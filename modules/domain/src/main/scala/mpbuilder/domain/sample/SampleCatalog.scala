@@ -251,7 +251,7 @@ object SampleCatalog:
   val businessCards: ProductCategory = ProductCategory(
     id = businessCardsId,
     name = LocalizedString("Business Cards", "Vizitky"),
-    allowedMaterialIds = Set(coated300gsmId, uncoatedBondId, kraftId),
+    allowedMaterialIds = Set(coated300gsmId, uncoatedBondId, kraftId, yupoId, cottonId),
     allowedFinishIds = Set(
       matteLaminationId, glossLaminationId, uvCoatingId, embossingId,
       foilStampingId, softTouchCoatingId, roundCornersId,
@@ -290,8 +290,8 @@ object SampleCatalog:
   val packaging: ProductCategory = ProductCategory(
     id = packagingId,
     name = LocalizedString("Packaging", "Obaly"),
-    allowedMaterialIds = Set(kraftId, corrugatedId),
-    allowedFinishIds = Set(matteLaminationId, uvCoatingId, embossingId, foilStampingId, dieCutId, scoringId, perforationId),
+    allowedMaterialIds = Set(kraftId, corrugatedId, yupoId),
+    allowedFinishIds = Set(matteLaminationId, uvCoatingId, embossingId, foilStampingId, dieCutId, scoringId, perforationId, debossingId),
     requiredSpecKinds = Set(SpecKind.Size, SpecKind.Quantity, SpecKind.ColorMode),
     allowedPrintingMethodIds = Set(offsetId, digitalId),
   )

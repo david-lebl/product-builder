@@ -331,5 +331,90 @@ object PriceCalculatorSpec extends ZIOSpecDefault:
           errors.exists(_.isInstanceOf[PricingError.NoSizeForAreaPricing]),
         )
       },
+      test("calendar with new material priced correctly") {
+        // 100× coated silk 250gsm (0.11) + matte lamination (0.03) + digital → no tier (1.0×)
+        val config = makeConfig(
+          category = SampleCatalog.calendars,
+          material = SampleCatalog.coatedSilk250gsm,
+          printingMethod = SampleCatalog.digitalMethod,
+          finishes = List(SampleCatalog.matteLamination),
+          specs = List(
+            SpecValue.SizeSpec(Dimension(297, 210)),
+            SpecValue.QuantitySpec(Quantity.unsafe(100)),
+            SpecValue.ColorModeSpec(ColorMode.CMYK),
+            SpecValue.PagesSpec(14),
+            SpecValue.BindingMethodSpec(BindingMethod.SpiralBinding),
+          ),
+        )
+
+        val result = PriceCalculator.calculate(config, pricelist)
+        val breakdown = result.toEither.toOption.get
+        // material: 0.11 × 100 = 11.00
+        // matte lamination: 0.03 × 100 = 3.00
+        // subtotal = 14.00
+        // tier: 1-249 qty → 1.0×
+        // total = 14.00
+        assertTrue(
+          breakdown.materialLine.unitPrice == Money("0.11"),
+          breakdown.subtotal == Money("14.00"),
+          breakdown.total == Money("14.00"),
+        )
+      },
+      test("Yupo synthetic material priced correctly") {
+        // 500× Yupo (0.18) + UV coating (0.04) + digital → 250-999 tier (0.90×)
+        val config = makeConfig(
+          category = SampleCatalog.businessCards,
+          material = SampleCatalog.yupo,
+          printingMethod = SampleCatalog.digitalMethod,
+          finishes = List(SampleCatalog.uvCoating),
+          specs = List(
+            SpecValue.SizeSpec(Dimension(90, 55)),
+            SpecValue.QuantitySpec(Quantity.unsafe(500)),
+            SpecValue.ColorModeSpec(ColorMode.CMYK),
+          ),
+        )
+
+        val result = PriceCalculator.calculate(config, pricelist)
+        val breakdown = result.toEither.toOption.get
+        // material: 0.18 × 500 = 90.00
+        // UV coating: 0.04 × 500 = 20.00
+        // subtotal = 110.00
+        // tier: 250-999 qty → 0.90×
+        // total = 110.00 × 0.90 = 99.00
+        assertTrue(
+          breakdown.materialLine.unitPrice == Money("0.18"),
+          breakdown.subtotal == Money("110.00"),
+          breakdown.total == Money("99.00"),
+        )
+      },
+      test("Cotton paper with letterpress process surcharge") {
+        // 150× Cotton (0.22) + letterpress surcharge (0.20) → 1-249 tier (1.0×)
+        val config = makeConfig(
+          category = SampleCatalog.businessCards,
+          material = SampleCatalog.cotton,
+          printingMethod = SampleCatalog.letterpressMethod,
+          finishes = Nil,
+          specs = List(
+            SpecValue.SizeSpec(Dimension(90, 55)),
+            SpecValue.QuantitySpec(Quantity.unsafe(150)),
+            SpecValue.ColorModeSpec(ColorMode.CMYK),
+          ),
+        )
+
+        val result = PriceCalculator.calculate(config, pricelist)
+        val breakdown = result.toEither.toOption.get
+        // material: 0.22 × 150 = 33.00
+        // letterpress: 0.20 × 150 = 30.00
+        // subtotal = 63.00
+        // tier: 1-249 qty → 1.0×
+        // total = 63.00
+        assertTrue(
+          breakdown.materialLine.unitPrice == Money("0.22"),
+          breakdown.processSurcharge.isDefined,
+          breakdown.processSurcharge.get.label.contains("Letterpress"),
+          breakdown.subtotal == Money("63.00"),
+          breakdown.total == Money("63.00"),
+        )
+      },
     ),
   )
