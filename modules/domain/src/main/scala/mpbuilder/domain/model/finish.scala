@@ -25,7 +25,7 @@ enum FinishSide:
 
 final case class Finish(
     id: FinishId,
-    name: String,
+    name: LocalizedString,
     finishType: FinishType,
     side: FinishSide,
 )

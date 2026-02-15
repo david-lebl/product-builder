@@ -7,10 +7,15 @@ enum PricingError:
   case NoQuantityInSpecifications
   case NoSizeForAreaPricing(materialId: MaterialId)
 
-  def message: String = this match
-    case NoBasePriceForMaterial(materialId) =>
-      s"No base price found for material '${materialId.value}'"
-    case NoQuantityInSpecifications =>
-      "Quantity specification is required for pricing"
-    case NoSizeForAreaPricing(materialId) =>
-      s"Area-based pricing requires size specification for material '${materialId.value}'"
+  def message: String = message(Language.En)
+
+  def message(lang: Language): String = this match
+    case NoBasePriceForMaterial(materialId) => lang match
+      case Language.En => s"No base price found for material '${materialId.value}'"
+      case Language.Cs => s"Nebyla nalezena základní cena pro materiál '${materialId.value}'"
+    case NoQuantityInSpecifications => lang match
+      case Language.En => "Quantity specification is required for pricing"
+      case Language.Cs => "Pro výpočet ceny je vyžadována specifikace množství"
+    case NoSizeForAreaPricing(materialId) => lang match
+      case Language.En => s"Area-based pricing requires size specification for material '${materialId.value}'"
+      case Language.Cs => s"Plošná kalkulace vyžaduje specifikaci rozměrů pro materiál '${materialId.value}'"

@@ -17,6 +17,8 @@ object SpecificationForm:
     // Signal for required spec kinds based on selected category
     val requiredSpecs = ProductBuilderViewModel.requiredSpecKinds
 
+    val lang = ProductBuilderViewModel.currentLanguage
+
     div(
       cls := "form-group",
 
@@ -29,7 +31,10 @@ object SpecificationForm:
       // Quantity
       div(
         cls := "form-group",
-        label("Quantity:"),
+        label(child.text <-- lang.map {
+          case Language.En => "Quantity:"
+          case Language.Cs => "Množství:"
+        }),
         input(
           typ := "number",
           placeholder := "e.g., 1000",
@@ -49,12 +54,18 @@ object SpecificationForm:
       // Size (Width x Height in mm)
       div(
         cls := "form-group",
-        label("Size (Width x Height in mm):"),
+        label(child.text <-- lang.map {
+          case Language.En => "Size (Width x Height in mm):"
+          case Language.Cs => "Rozměr (šířka × výška v mm):"
+        }),
         div(
           styleAttr := "display: flex; gap: 10px;",
           input(
             typ := "number",
-            placeholder := "Width (mm)",
+            placeholder <-- lang.map {
+              case Language.En => "Width (mm)"
+              case Language.Cs => "Šířka (mm)"
+            },
             styleAttr := "flex: 1;",
             value <-- clearFieldsStream,
             onInput.mapToValue --> { v => widthVar.set(v) },
@@ -62,7 +73,10 @@ object SpecificationForm:
           span("×", styleAttr := "line-height: 40px;"),
           input(
             typ := "number",
-            placeholder := "Height (mm)",
+            placeholder <-- lang.map {
+              case Language.En => "Height (mm)"
+              case Language.Cs => "Výška (mm)"
+            },
             styleAttr := "flex: 1;",
             value <-- clearFieldsStream,
             onInput.mapToValue --> { v => heightVar.set(v) },
@@ -83,7 +97,10 @@ object SpecificationForm:
       // Pages (for multi-page products)
       div(
         cls := "form-group",
-        label("Number of Pages (optional, for booklets/brochures):"),
+        label(child.text <-- lang.map {
+          case Language.En => "Number of Pages (optional, for booklets/brochures):"
+          case Language.Cs => "Počet stran (volitelné, pro brožurky/brožury):"
+        }),
         input(
           typ := "number",
           placeholder := "e.g., 8",
@@ -103,12 +120,31 @@ object SpecificationForm:
       // Color Mode
       div(
         cls := "form-group",
-        label("Color Mode:"),
+        label(child.text <-- lang.map {
+          case Language.En => "Color Mode:"
+          case Language.Cs => "Barevný režim:"
+        }),
         select(
           value <-- clearFieldsStream,
-          option("-- Select color mode --", value := ""),
-          option("CMYK (Full Color)", value := "cmyk"),
-          option("Grayscale", value := "grayscale"),
+          children <-- lang.map { l =>
+            List(
+              option(
+                l match
+                  case Language.En => "-- Select color mode --"
+                  case Language.Cs => "-- Vyberte barevný režim --"
+                , value := ""),
+              option(
+                l match
+                  case Language.En => "CMYK (Full Color)"
+                  case Language.Cs => "CMYK (plné barvy)"
+                , value := "cmyk"),
+              option(
+                l match
+                  case Language.En => "Grayscale"
+                  case Language.Cs => "Stupně šedi"
+                , value := "grayscale"),
+            )
+          },
           onChange.mapToValue --> { value =>
             value match
               case "cmyk" =>
@@ -132,12 +168,31 @@ object SpecificationForm:
         display <-- requiredSpecs.map(kinds =>
           if kinds.contains(SpecKind.Orientation) then "block" else "none"
         ),
-        label("Orientation:"),
+        label(child.text <-- lang.map {
+          case Language.En => "Orientation:"
+          case Language.Cs => "Orientace:"
+        }),
         select(
           value <-- clearFieldsStream,
-          option("-- Select orientation --", value := ""),
-          option("Portrait", value := "portrait"),
-          option("Landscape", value := "landscape"),
+          children <-- lang.map { l =>
+            List(
+              option(
+                l match
+                  case Language.En => "-- Select orientation --"
+                  case Language.Cs => "-- Vyberte orientaci --"
+                , value := ""),
+              option(
+                l match
+                  case Language.En => "Portrait"
+                  case Language.Cs => "Na výšku"
+                , value := "portrait"),
+              option(
+                l match
+                  case Language.En => "Landscape"
+                  case Language.Cs => "Na šířku"
+                , value := "landscape"),
+            )
+          },
           onChange.mapToValue --> { value =>
             value match
               case "portrait" =>
@@ -161,13 +216,22 @@ object SpecificationForm:
         display <-- requiredSpecs.map(kinds =>
           if kinds.contains(SpecKind.FoldType) then "block" else "none"
         ),
-        label("Fold Type:"),
+        label(child.text <-- lang.map {
+          case Language.En => "Fold Type:"
+          case Language.Cs => "Typ skladu:"
+        }),
         select(
           value <-- clearFieldsStream,
-          option("-- Select fold type --", value := ""),
-          FoldType.values.map { ft =>
-            option(ft.toString, value := ft.toString)
-          }.toSeq,
+          children <-- lang.map { l =>
+            option(
+              l match
+                case Language.En => "-- Select fold type --"
+                case Language.Cs => "-- Vyberte typ skladu --"
+              , value := "") ::
+            FoldType.values.map { ft =>
+              option(ft.toString, value := ft.toString)
+            }.toList
+          },
           onChange.mapToValue --> { value =>
             if value.nonEmpty then
               FoldType.values.find(_.toString == value).foreach { ft =>
@@ -186,13 +250,22 @@ object SpecificationForm:
         display <-- requiredSpecs.map(kinds =>
           if kinds.contains(SpecKind.BindingMethod) then "block" else "none"
         ),
-        label("Binding Method:"),
+        label(child.text <-- lang.map {
+          case Language.En => "Binding Method:"
+          case Language.Cs => "Typ vazby:"
+        }),
         select(
           value <-- clearFieldsStream,
-          option("-- Select binding method --", value := ""),
-          BindingMethod.values.map { bm =>
-            option(bm.toString, value := bm.toString)
-          }.toSeq,
+          children <-- lang.map { l =>
+            option(
+              l match
+                case Language.En => "-- Select binding method --"
+                case Language.Cs => "-- Vyberte typ vazby --"
+              , value := "") ::
+            BindingMethod.values.map { bm =>
+              option(bm.toString, value := bm.toString)
+            }.toList
+          },
           onChange.mapToValue --> { value =>
             if value.nonEmpty then
               BindingMethod.values.find(_.toString == value).foreach { bm =>
@@ -207,6 +280,9 @@ object SpecificationForm:
 
       div(
         cls := "info-box",
-        p("Note: Additional specifications like binding type or lamination can be added based on your product category."),
+        p(child.text <-- lang.map {
+          case Language.En => "Note: Additional specifications like binding type or lamination can be added based on your product category."
+          case Language.Cs => "Poznámka: Další specifikace jako typ vazby nebo laminace mohou být přidány na základě kategorie produktu."
+        }),
       ),
     )

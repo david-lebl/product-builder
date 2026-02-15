@@ -8,17 +8,27 @@ object MaterialSelector:
   def apply(): Element =
     val availableMaterials = ProductBuilderViewModel.availableMaterials
     val selectedMaterialId = ProductBuilderViewModel.state.map(_.selectedMaterialId)
+    val lang = ProductBuilderViewModel.currentLanguage
     
     div(
       cls := "form-group",
-      label("Material:"),
+      label(
+        child.text <-- lang.map {
+          case Language.En => "Material:"
+          case Language.Cs => "Materiál:"
+        }
+      ),
       select(
         disabled <-- ProductBuilderViewModel.state.map(_.selectedCategoryId.isEmpty),
-        children <-- availableMaterials.combineWith(selectedMaterialId).map { case (materials, selectedId) =>
+        children <-- availableMaterials.combineWith(selectedMaterialId, lang).map { case (materials, selectedId, l) =>
           val currentValue = selectedId.map(_.value).getOrElse("")
-          option("-- Select a material --", value := "", selected := currentValue.isEmpty) ::
+          option(
+            l match
+              case Language.En => "-- Select a material --"
+              case Language.Cs => "-- Vyberte materiál --"
+            , value := "", selected := currentValue.isEmpty) ::
           materials.map { mat =>
-            option(mat.name, value := mat.id.value, selected := (mat.id.value == currentValue))
+            option(mat.name(l), value := mat.id.value, selected := (mat.id.value == currentValue))
           }
         },
         onChange.mapToValue --> { value =>
@@ -28,9 +38,13 @@ object MaterialSelector:
       ),
       div(
         cls := "info-box",
-        child.maybe <-- availableMaterials.map { materials =>
+        child.maybe <-- availableMaterials.combineWith(lang).map { case (materials, l) =>
           materials.headOption.map { _ =>
-            span(s"${materials.size} material(s) available for this category")
+            span(
+              l match
+                case Language.En => s"${materials.size} material(s) available for this category"
+                case Language.Cs => s"${materials.size} materiál(ů) dostupných pro tuto kategorii"
+            )
           }
         },
       ),

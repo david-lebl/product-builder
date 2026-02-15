@@ -5,7 +5,7 @@ enum PrintingProcessType:
 
 final case class PrintingMethod(
     id: PrintingMethodId,
-    name: String,
+    name: LocalizedString,
     processType: PrintingProcessType,
     maxColorCount: Option[Int],
 )
