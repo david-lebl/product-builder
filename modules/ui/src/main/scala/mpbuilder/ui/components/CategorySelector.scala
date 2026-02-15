@@ -6,7 +6,7 @@ import mpbuilder.domain.model.*
 
 object CategorySelector:
   def apply(): Element =
-    val categories = ProductBuilderViewModel.catalog.categories
+    val categories = ProductBuilderViewModel.allCategories
     
     div(
       cls := "form-group",

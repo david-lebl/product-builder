@@ -32,13 +32,34 @@ object PricePreview:
             case Some(breakdown) =>
               List(
                 h3("Breakdown:"),
-              ) ++ breakdown.lineItems.map { lineItem =>
                 div(
                   cls := "price-line-item",
-                  span(lineItem.description),
-                  span(formatMoney(lineItem.amount)),
+                  span(breakdown.materialLine.label),
+                  span(formatMoney(breakdown.materialLine.lineTotal)),
+                ),
+              ) ++ breakdown.finishLines.map { finishLine =>
+                div(
+                  cls := "price-line-item",
+                  span(finishLine.label),
+                  span(formatMoney(finishLine.lineTotal)),
                 )
-              } ++ List(
+              } ++ (
+                breakdown.processSurcharge.map { proc =>
+                  div(
+                    cls := "price-line-item",
+                    span(proc.label),
+                    span(formatMoney(proc.lineTotal)),
+                  )
+                }.toList
+              ) ++ (
+                breakdown.categorySurcharge.map { cat =>
+                  div(
+                    cls := "price-line-item",
+                    span(cat.label),
+                    span(formatMoney(cat.lineTotal)),
+                  )
+                }.toList
+              ) ++ List(
                 div(
                   cls := "price-line-item",
                   span("Subtotal:"),
@@ -47,7 +68,7 @@ object PricePreview:
                 div(
                   cls := "price-line-item",
                   span(s"Quantity Multiplier (${breakdown.quantityMultiplier}×):"),
-                  span(if breakdown.quantityMultiplier < 1.0 then s"-${formatMoney(Money.unsafe(breakdown.subtotal.value * (1.0 - breakdown.quantityMultiplier)))}" else "$0.00"),
+                  span(if breakdown.quantityMultiplier < 1.0 then s"-${formatMoney(Money(breakdown.subtotal.value * (1.0 - breakdown.quantityMultiplier)))}" else "$0.00"),
                 ),
                 div(
                   cls := "price-line-item",

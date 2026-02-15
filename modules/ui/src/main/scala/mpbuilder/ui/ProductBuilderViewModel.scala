@@ -14,7 +14,7 @@ case class BuilderState(
   selectedMaterialId: Option[MaterialId] = None,
   selectedFinishIds: Set[FinishId] = Set.empty,
   selectedPrintingMethodId: Option[PrintingMethodId] = None,
-  specifications: List[ProductSpecification] = List.empty,
+  specifications: List[SpecValue] = List.empty,
   validationErrors: List[String] = List.empty,
   priceBreakdown: Option[PriceBreakdown] = None,
   configuration: Option[ProductConfiguration] = None,
@@ -28,6 +28,9 @@ object ProductBuilderViewModel:
   
   val stateVar: Var[BuilderState] = Var(BuilderState())
   val state: Signal[BuilderState] = stateVar.signal
+  
+  // Get all categories as a list
+  def allCategories: List[ProductCategory] = catalog.categories.values.toList
   
   // Update category selection
   def selectCategory(categoryId: CategoryId): Unit =
@@ -63,13 +66,13 @@ object ProductBuilderViewModel:
     )
   
   // Update specifications
-  def updateSpecifications(specs: List[ProductSpecification]): Unit =
+  def updateSpecifications(specs: List[SpecValue]): Unit =
     stateVar.update(state =>
       state.copy(specifications = specs)
     )
   
   // Add a specification
-  def addSpecification(spec: ProductSpecification): Unit =
+  def addSpecification(spec: SpecValue): Unit =
     stateVar.update(state =>
       state.copy(specifications = state.specifications :+ spec)
     )
@@ -84,63 +87,57 @@ object ProductBuilderViewModel:
   def validateConfiguration(): Unit =
     val currentState = stateVar.now()
     
-    (currentState.selectedCategoryId, currentState.selectedMaterialId) match
-      case (Some(categoryId), Some(materialId)) =>
-        // Get category and material from catalog
-        val categoryOpt = catalog.categories.find(_.id == categoryId)
-        val materialOpt = catalog.materials.find(_.id == materialId)
-        val finishes = currentState.selectedFinishIds.flatMap(fId => 
-          catalog.finishes.find(_.id == fId)
-        ).toList
+    (currentState.selectedCategoryId, currentState.selectedMaterialId, currentState.selectedPrintingMethodId) match
+      case (Some(categoryId), Some(materialId), Some(printingMethodId)) =>
+        // Build configuration request
+        val request = ConfigurationRequest(
+          categoryId = categoryId,
+          materialId = materialId,
+          printingMethodId = printingMethodId,
+          finishIds = currentState.selectedFinishIds.toList,
+          specs = currentState.specifications,
+        )
         
-        (categoryOpt, materialOpt) match
-          case (Some(category), Some(material)) =>
-            // Build configuration request
-            val request = ConfigurationRequest(
-              categoryId = categoryId,
-              materialId = materialId,
-              finishIds = currentState.selectedFinishIds.toList,
-              printingMethodId = currentState.selectedPrintingMethodId,
-              specifications = currentState.specifications,
-            )
-            
-            // Validate
-            val result = ConfigurationBuilder.build(catalog, ruleset)(request)
-            
-            result match
-              case Validation.Success(config) =>
-                // Calculate price
-                val priceResult = PriceCalculator.calculate(pricelist)(config)
-                priceResult match
-                  case Validation.Success(breakdown) =>
-                    stateVar.update(_.copy(
-                      configuration = Some(config),
-                      validationErrors = List.empty,
-                      priceBreakdown = Some(breakdown),
-                    ))
-                  case Validation.Failure(errors) =>
-                    val errorMessages = errors.map(_.message).toList
-                    stateVar.update(_.copy(
-                      configuration = Some(config),
-                      validationErrors = errorMessages,
-                      priceBreakdown = None,
-                    ))
-              case Validation.Failure(errors) =>
+        val configId = ConfigurationId.unsafe("config-1")
+        
+        // Validate
+        val result = ConfigurationBuilder.build(request, catalog, ruleset, configId)
+        
+        result.fold(
+          errors => {
+            // Validation failed
+            val errorMessages = errors.map(_.message).toList
+            stateVar.update(_.copy(
+              configuration = None,
+              validationErrors = errorMessages,
+              priceBreakdown = None,
+            ))
+          },
+          config => {
+            // Validation succeeded, calculate price
+            val priceResult = PriceCalculator.calculate(config, pricelist)
+            priceResult.fold(
+              errors => {
                 val errorMessages = errors.map(_.message).toList
                 stateVar.update(_.copy(
-                  configuration = None,
+                  configuration = Some(config),
                   validationErrors = errorMessages,
                   priceBreakdown = None,
                 ))
-          case _ =>
-            stateVar.update(_.copy(
-              validationErrors = List("Invalid category or material selection"),
-              configuration = None,
-              priceBreakdown = None,
-            ))
+              },
+              breakdown => {
+                stateVar.update(_.copy(
+                  configuration = Some(config),
+                  validationErrors = List.empty,
+                  priceBreakdown = Some(breakdown),
+                ))
+              }
+            )
+          }
+        )
       case _ =>
         stateVar.update(_.copy(
-          validationErrors = List("Please select a category and material"),
+          validationErrors = List("Please select a category, material, and printing method"),
           configuration = None,
           priceBreakdown = None,
         ))
@@ -150,7 +147,7 @@ object ProductBuilderViewModel:
     state.map { s =>
       s.selectedCategoryId match
         case Some(categoryId) =>
-          CatalogQueryService.availableMaterials(catalog, categoryId)
+          CatalogQueryService.availableMaterials(categoryId, catalog)
         case None =>
           List.empty
     }
@@ -161,10 +158,10 @@ object ProductBuilderViewModel:
       (s.selectedCategoryId, s.selectedMaterialId) match
         case (Some(categoryId), Some(materialId)) =>
           CatalogQueryService.compatibleFinishes(
-            catalog,
-            ruleset,
             categoryId,
             materialId,
+            catalog,
+            ruleset,
             s.selectedPrintingMethodId,
           )
         case _ =>
@@ -176,15 +173,7 @@ object ProductBuilderViewModel:
     state.map { s =>
       s.selectedCategoryId match
         case Some(categoryId) =>
-          val category = catalog.categories.find(_.id == categoryId)
-          category match
-            case Some(cat) =>
-              if cat.allowedPrintingMethodIds.isEmpty then
-                catalog.printingMethods
-              else
-                catalog.printingMethods.filter(pm => cat.allowedPrintingMethodIds.contains(pm.id))
-            case None =>
-              List.empty
+          CatalogQueryService.availablePrintingMethods(categoryId, catalog)
         case None =>
           List.empty
     }

@@ -19,9 +19,9 @@ object SpecificationForm:
           onInput.mapToValue.map(_.toIntOption) --> { qtyOpt =>
             qtyOpt.foreach { qty =>
               if qty > 0 then
-                ProductBuilderViewModel.removeSpecification(classOf[ProductSpecification.QuantitySpec])
+                ProductBuilderViewModel.removeSpecification(classOf[SpecValue.QuantitySpec])
                 ProductBuilderViewModel.addSpecification(
-                  ProductSpecification.QuantitySpec(Quantity.unsafe(qty))
+                  SpecValue.QuantitySpec(Quantity.unsafe(qty))
                 )
             }
           },
@@ -38,27 +38,24 @@ object SpecificationForm:
             typ := "number",
             placeholder := "Width (mm)",
             styleAttr := "flex: 1;",
-            onInput.mapToValue.map(_.toDoubleOption) --> { widthOpt =>
-              widthOpt.foreach { _ => () } // We'll handle this with height together
-            },
+            idAttr := "width-input",
           ),
           span("×", styleAttr := "line-height: 40px;"),
           input(
             typ := "number",
             placeholder := "Height (mm)",
             styleAttr := "flex: 1;",
-            onInput.mapToValue.map(_.toDoubleOption) --> { heightOpt =>
-              // For simplicity, we'll add size spec when height is entered
-              heightOpt.foreach { h =>
-                if h > 0 then
-                  ProductBuilderViewModel.removeSpecification(classOf[ProductSpecification.SizeSpec])
+            idAttr := "height-input",
+            onInput.mapToValue --> { heightStr =>
+              // When height is entered, read both width and height
+              val widthStr = org.scalajs.dom.document.getElementById("width-input").asInstanceOf[org.scalajs.dom.html.Input].value
+              (widthStr.toDoubleOption, heightStr.toDoubleOption) match
+                case (Some(w), Some(h)) if w > 0 && h > 0 =>
+                  ProductBuilderViewModel.removeSpecification(classOf[SpecValue.SizeSpec])
                   ProductBuilderViewModel.addSpecification(
-                    ProductSpecification.SizeSpec(
-                      Dimension.unsafe(90.0), // Default width, user should enter both
-                      Dimension.unsafe(h)
-                    )
+                    SpecValue.SizeSpec(Dimension(w, h))
                   )
-              }
+                case _ => ()
             },
           ),
         ),
@@ -74,9 +71,9 @@ object SpecificationForm:
           onInput.mapToValue.map(_.toIntOption) --> { pagesOpt =>
             pagesOpt.foreach { pages =>
               if pages > 0 then
-                ProductBuilderViewModel.removeSpecification(classOf[ProductSpecification.PageCount])
+                ProductBuilderViewModel.removeSpecification(classOf[SpecValue.PagesSpec])
                 ProductBuilderViewModel.addSpecification(
-                  ProductSpecification.PageCount(pages)
+                  SpecValue.PagesSpec(pages)
                 )
             }
           },
@@ -89,19 +86,19 @@ object SpecificationForm:
         label("Color Mode:"),
         select(
           option("-- Select color mode --", value := ""),
-          option("Full Color (CMYK)", value := "cmyk"),
-          option("Black & White", value := "blackandwhite"),
+          option("CMYK (Full Color)", value := "cmyk"),
+          option("Grayscale", value := "grayscale"),
           onChange.mapToValue --> { value =>
             value match
               case "cmyk" =>
-                ProductBuilderViewModel.removeSpecification(classOf[ProductSpecification.ColorModeSpec])
+                ProductBuilderViewModel.removeSpecification(classOf[SpecValue.ColorModeSpec])
                 ProductBuilderViewModel.addSpecification(
-                  ProductSpecification.ColorModeSpec(ColorMode.FullColor)
+                  SpecValue.ColorModeSpec(ColorMode.CMYK)
                 )
-              case "blackandwhite" =>
-                ProductBuilderViewModel.removeSpecification(classOf[ProductSpecification.ColorModeSpec])
+              case "grayscale" =>
+                ProductBuilderViewModel.removeSpecification(classOf[SpecValue.ColorModeSpec])
                 ProductBuilderViewModel.addSpecification(
-                  ProductSpecification.ColorModeSpec(ColorMode.BlackAndWhite)
+                  SpecValue.ColorModeSpec(ColorMode.Grayscale)
                 )
               case _ => ()
           },
