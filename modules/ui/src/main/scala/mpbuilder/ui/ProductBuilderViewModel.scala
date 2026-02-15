@@ -7,6 +7,7 @@ import mpbuilder.domain.pricing.*
 import mpbuilder.domain.sample.*
 import zio.prelude.Validation
 import com.raquo.laminar.api.L.*
+import org.scalajs.dom
 
 /** Application state for the product builder */
 case class BuilderState(
@@ -42,7 +43,6 @@ object ProductBuilderViewModel:
 
   // Switch language and persist to localStorage
   def setLanguage(lang: Language): Unit =
-    import org.scalajs.dom
     stateVar.update(_.copy(language = lang))
     // Persist the language preference using language code (e.g., "en", "cs")
     dom.window.localStorage.setItem("selectedLanguage", lang.toCode)
