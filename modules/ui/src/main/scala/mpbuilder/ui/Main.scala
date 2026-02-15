@@ -24,14 +24,13 @@ object Main:
       
       storedLang match
         case Some(code) => Language.fromCode(code)
-        case None =>
-          // Fall back to browser language detection
-          val browserLang = dom.window.navigator.language.toLowerCase()
-          if browserLang.startsWith("cs") then Language.Cs
-          else Language.En
+        case None => browserLanguageFromNavigator()
     catch
-      case _: Exception =>
+      case _: scala.scalajs.js.JavaScriptException =>
         // If localStorage access fails (e.g., private browsing), fall back to browser language
-        val browserLang = dom.window.navigator.language.toLowerCase()
-        if browserLang.startsWith("cs") then Language.Cs
-        else Language.En
+        browserLanguageFromNavigator()
+  
+  private def browserLanguageFromNavigator(): Language =
+    val browserLang = dom.window.navigator.language.toLowerCase()
+    if browserLang.startsWith("cs") then Language.Cs
+    else Language.En

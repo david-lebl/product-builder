@@ -48,7 +48,7 @@ object ProductBuilderViewModel:
     try
       dom.window.localStorage.setItem("selectedLanguage", lang.toCode)
     catch
-      case _: Exception => 
+      case _: scala.scalajs.js.JavaScriptException => 
         // If localStorage access fails, silently ignore (language still works for current session)
 
   // Get all categories as a list
