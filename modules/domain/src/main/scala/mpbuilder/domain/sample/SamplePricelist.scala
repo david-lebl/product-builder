@@ -12,6 +12,10 @@ object SamplePricelist:
       PricingRule.MaterialBasePrice(SampleCatalog.uncoatedBondId, Money("0.06")),
       PricingRule.MaterialBasePrice(SampleCatalog.kraftId, Money("0.10")),
       PricingRule.MaterialBasePrice(SampleCatalog.corrugatedId, Money("0.25")),
+      PricingRule.MaterialBasePrice(SampleCatalog.coatedSilk250gsmId, Money("0.11")),
+      PricingRule.MaterialBasePrice(SampleCatalog.yupoId, Money("0.18")),
+      PricingRule.MaterialBasePrice(SampleCatalog.adhesiveStockId, Money("0.14")),
+      PricingRule.MaterialBasePrice(SampleCatalog.cottonId, Money("0.22")),
 
       // --- Material area price (for vinyl — per sqm) ---
       PricingRule.MaterialAreaPrice(SampleCatalog.vinylId, Money("18.00")),
@@ -38,5 +42,5 @@ object SamplePricelist:
       PricingRule.QuantityTier(5000, None, BigDecimal("0.70")),
     ),
     currency = Currency.USD,
-    version = "1.0.0",
+    version = "1.1.0",
   )

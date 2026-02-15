@@ -141,9 +141,40 @@ object SampleRules:
       SpecPredicate.MaxPages(96),
       "Booklets must not exceed 96 pages",
     ),
+    // --- Calendar rules ---
+    // Calendars: allowed binding methods
+    CompatibilityRule.SpecConstraint(
+      cat.calendarsId,
+      SpecPredicate.AllowedBindingMethods(Set(BindingMethod.SpiralBinding, BindingMethod.WireOBinding)),
+      "Calendars only support spiral or wire-o binding",
+    ),
+    // Calendars: min pages 12
+    CompatibilityRule.SpecConstraint(
+      cat.calendarsId,
+      SpecPredicate.MinPages(12),
+      "Calendars must have at least 12 pages (12 months)",
+    ),
+    // Calendars: max pages 28 (12 months + cover + extras)
+    CompatibilityRule.SpecConstraint(
+      cat.calendarsId,
+      SpecPredicate.MaxPages(28),
+      "Calendars must not exceed 28 pages",
+    ),
+    // --- Yupo (synthetic) rules ---
+    // Yupo cannot be embossed or debossed (rigid plastic)
+    CompatibilityRule.MaterialFinishIncompatible(
+      cat.yupoId,
+      cat.embossingId,
+      "Yupo synthetic material cannot be embossed",
+    ),
+    CompatibilityRule.MaterialFinishIncompatible(
+      cat.yupoId,
+      cat.debossingId,
+      "Yupo synthetic material cannot be debossed",
+    ),
   )
 
   val ruleset: CompatibilityRuleset = CompatibilityRuleset(
     rules = rules,
-    version = "2.0.0",
+    version = "2.1.0",
   )

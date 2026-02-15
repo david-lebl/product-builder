@@ -10,6 +10,10 @@ object SampleCatalog:
   val kraftId: MaterialId           = MaterialId.unsafe("mat-kraft")
   val vinylId: MaterialId           = MaterialId.unsafe("mat-vinyl")
   val corrugatedId: MaterialId      = MaterialId.unsafe("mat-corrugated")
+  val coatedSilk250gsmId: MaterialId = MaterialId.unsafe("mat-coated-silk-250gsm")
+  val yupoId: MaterialId            = MaterialId.unsafe("mat-yupo")
+  val adhesiveStockId: MaterialId   = MaterialId.unsafe("mat-adhesive-stock")
+  val cottonId: MaterialId          = MaterialId.unsafe("mat-cotton-300gsm")
 
   // --- Finish IDs ---
   val matteLaminationId: FinishId   = FinishId.unsafe("fin-matte-lam")
@@ -34,6 +38,7 @@ object SampleCatalog:
   val bannersId: CategoryId         = CategoryId.unsafe("cat-banners")
   val packagingId: CategoryId       = CategoryId.unsafe("cat-packaging")
   val bookletsId: CategoryId        = CategoryId.unsafe("cat-booklets")
+  val calendarsId: CategoryId       = CategoryId.unsafe("cat-calendars")
 
   // --- Printing Method IDs ---
   val offsetId: PrintingMethodId       = PrintingMethodId.unsafe("pm-offset")
@@ -80,6 +85,38 @@ object SampleCatalog:
     family = MaterialFamily.Cardboard,
     weight = None,
     properties = Set(MaterialProperty.Recyclable, MaterialProperty.Textured),
+  )
+
+  val coatedSilk250gsm: Material = Material(
+    id = coatedSilk250gsmId,
+    name = LocalizedString("Coated Silk 250gsm", "Křídový saténový papír 250g"),
+    family = MaterialFamily.Paper,
+    weight = Some(PaperWeight.unsafe(250)),
+    properties = Set(MaterialProperty.Matte, MaterialProperty.SmoothSurface, MaterialProperty.Recyclable),
+  )
+
+  val yupo: Material = Material(
+    id = yupoId,
+    name = LocalizedString("Yupo Synthetic 200μm", "Syntetický papír Yupo 200μm"),
+    family = MaterialFamily.Paper,
+    weight = Some(PaperWeight.unsafe(200)),
+    properties = Set(MaterialProperty.WaterResistant, MaterialProperty.SmoothSurface),
+  )
+
+  val adhesiveStock: Material = Material(
+    id = adhesiveStockId,
+    name = LocalizedString("Adhesive Stock 100gsm", "Samolepicí materiál 100g"),
+    family = MaterialFamily.Paper,
+    weight = Some(PaperWeight.unsafe(100)),
+    properties = Set(MaterialProperty.Glossy, MaterialProperty.SmoothSurface),
+  )
+
+  val cotton: Material = Material(
+    id = cottonId,
+    name = LocalizedString("Cotton Paper 300gsm", "Bavlněný papír 300g"),
+    family = MaterialFamily.Paper,
+    weight = Some(PaperWeight.unsafe(300)),
+    properties = Set(MaterialProperty.Textured, MaterialProperty.Recyclable),
   )
 
   // --- Printing Methods ---
@@ -268,6 +305,15 @@ object SampleCatalog:
     allowedPrintingMethodIds = Set(offsetId, digitalId),
   )
 
+  val calendars: ProductCategory = ProductCategory(
+    id = calendarsId,
+    name = LocalizedString("Calendars", "Kalendáře"),
+    allowedMaterialIds = Set(coated300gsmId, coatedSilk250gsmId, uncoatedBondId),
+    allowedFinishIds = Set(matteLaminationId, glossLaminationId, uvCoatingId, perforationId),
+    requiredSpecKinds = Set(SpecKind.Size, SpecKind.Quantity, SpecKind.ColorMode, SpecKind.Pages, SpecKind.BindingMethod),
+    allowedPrintingMethodIds = Set(offsetId, digitalId),
+  )
+
   // --- Product Catalog ---
   val catalog: ProductCatalog = ProductCatalog(
     categories = Map(
@@ -277,13 +323,18 @@ object SampleCatalog:
       bannersId       -> banners,
       packagingId     -> packaging,
       bookletsId      -> booklets,
+      calendarsId     -> calendars,
     ),
     materials = Map(
-      coated300gsmId -> coated300gsm,
-      uncoatedBondId -> uncoatedBond,
-      kraftId        -> kraft,
-      vinylId        -> vinyl,
-      corrugatedId   -> corrugated,
+      coated300gsmId      -> coated300gsm,
+      uncoatedBondId      -> uncoatedBond,
+      kraftId             -> kraft,
+      vinylId             -> vinyl,
+      corrugatedId        -> corrugated,
+      coatedSilk250gsmId  -> coatedSilk250gsm,
+      yupoId              -> yupo,
+      adhesiveStockId     -> adhesiveStock,
+      cottonId            -> cotton,
     ),
     finishes = Map(
       matteLaminationId  -> matteLamination,
