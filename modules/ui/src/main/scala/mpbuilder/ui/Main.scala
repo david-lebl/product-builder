@@ -18,13 +18,20 @@ object Main:
     )
   
   private def detectBrowserLanguage(): Language =
-    // First check if user has previously selected a language
-    val storedLang = Option(dom.window.localStorage.getItem("selectedLanguage"))
-    
-    storedLang match
-      case Some(code) => Language.fromCode(code)
-      case None =>
-        // Fall back to browser language detection
+    try
+      // First check if user has previously selected a language
+      val storedLang = Option(dom.window.localStorage.getItem("selectedLanguage"))
+      
+      storedLang match
+        case Some(code) => Language.fromCode(code)
+        case None =>
+          // Fall back to browser language detection
+          val browserLang = dom.window.navigator.language.toLowerCase()
+          if browserLang.startsWith("cs") then Language.Cs
+          else Language.En
+    catch
+      case _: Exception =>
+        // If localStorage access fails (e.g., private browsing), fall back to browser language
         val browserLang = dom.window.navigator.language.toLowerCase()
         if browserLang.startsWith("cs") then Language.Cs
         else Language.En
