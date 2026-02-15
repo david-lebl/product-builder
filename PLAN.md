@@ -27,32 +27,29 @@ The core domain layer is fully implemented and tested:
 
 - **Value objects** — Opaque type IDs (`CategoryId`, `MaterialId`, `FinishId`, `ConfigurationId`) with smart constructors, `PaperWeight`, `Quantity`, `Dimension`
 - **Domain model** — `Material` (family, weight, properties), `Finish` (type, side), `ProductCategory` (allowed materials/finishes, required specs), `ProductSpecifications` (7 spec variants), `ProductConfiguration` (aggregate root), `ProductCatalog`
-- **Compatibility rules** — Sealed ADT with 5 rule variants (`MaterialFinishIncompatible`, `MaterialRequiresFinish`, `FinishRequiresMaterialProperty`, `FinishMutuallyExclusive`, `SpecConstraint`), spec predicates, configuration predicates with boolean algebra
-- **Validation** — Two-layer pipeline (structural checks then rule evaluation), rich error ADT with 11 error types and human-readable messages
+- **Compatibility rules** — Sealed ADT with 13 rule variants, spec predicates, configuration predicates with boolean algebra (And/Or/Not)
+- **Validation** — Two-layer pipeline (structural checks then rule evaluation), rich error ADT with 22 error types and human-readable messages
 - **Services** — `ConfigurationBuilder` (resolve + validate + build), `CatalogQueryService` (filtered queries for UI guidance)
-- **Sample data** — 5 categories (Business Cards, Flyers, Brochures, Banners, Packaging), 5 materials, 7 finishes, 10 compatibility rules
-- **Tests** — 23 passing tests covering valid configs, error accumulation, and catalog queries
+- **Sample data** — 6 categories (Business Cards, Flyers, Brochures, Banners, Packaging, Booklets), 5 materials, 14 finishes, 4 printing methods, 22 compatibility rules
+- **Tests** — 44 passing tests covering valid configs, error accumulation, catalog queries, weight rules, finish dependencies, and printing process requirements
+
+## Completed — Phase 2: Pricing
+
+Declarative pricing layer following the same rules-as-data pattern:
+
+- **Money** — Opaque type over `BigDecimal` (never `Double`), rounding to 2dp with `HALF_UP`
+- **PricingRule** — Sealed enum with 7 variants: `MaterialBasePrice`, `MaterialAreaPrice`, `FinishSurcharge`, `FinishTypeSurcharge`, `PrintingProcessSurcharge`, `CategorySurcharge`, `QuantityTier`
+- **PriceCalculator** — Pure interpreter: config + pricelist → `Validation[PricingError, PriceBreakdown]`. Supports area-based pricing (large-format), ID-over-type finish surcharge precedence, and quantity tier discounts
+- **PriceBreakdown** — Detailed output with line items for material, finishes, process/category surcharges, subtotal, multiplier, and rounded total
+- **Sample data** — Prices for all 5 materials (flat + area-based for vinyl), surcharges for key finishes, letterpress process surcharge, 4 quantity tiers (1.0×/0.90×/0.80×/0.70×)
+- **Tests** — 11 pricing tests (55 total): valid breakdowns, area-based calculation, tier discounts, multiple finishes, precedence, graceful skip, and all error cases
+- **Documentation** — See `docs/pricing.md` for detailed explanation with worked examples
 
 ---
 
 ## Roadmap
 
-### Phase 2: Pricing
-
-- Define a `PriceComponent` model (base price, per-unit cost, finish surcharges, quantity discounts)
-- Add `PricingRule` ADT — declarative pricing rules tied to materials, finishes, specs
-- Implement `PricingEngine` that computes a price breakdown from a valid `ProductConfiguration`
-- Add quantity-based tiered pricing (e.g. 100 units = $X, 500 units = $Y)
-- Consider currency handling and rounding strategies
-
-### Phase 3: Persistence
-
-- Add ZIO-based repository interfaces in the domain layer
-- Implement persistence adapters (e.g. JSON file store or database)
-- Store and retrieve product catalogs, rulesets, and saved configurations
-- Support catalog versioning for rule/data evolution
-
-### Phase 4: UI with Scala.js + Laminar
+### Phase 3: UI with Scala.js + Laminar
 
 - Cross-compile domain model to Scala.js
 - Build a step-by-step product configuration wizard using Laminar
@@ -60,10 +57,17 @@ The core domain layer is fully implemented and tested:
 - Real-time validation feedback as the user builds a configuration
 - Price preview updating live as options are selected
 
+### Phase 4: Persistence
+
+- Add ZIO-based repository interfaces in the domain layer
+- Implement persistence adapters (e.g. JSON file store or database)
+- Store and retrieve product catalogs, rulesets, pricelists, and saved configurations
+- Support catalog versioning for rule/data evolution
+
 ### Phase 5: Production Readiness
 
 - API layer (ZIO HTTP or similar) for server-side validation and pricing
-- Admin interface for managing catalogs and rules without code changes
+- Admin interface for managing catalogs, rules, and pricelists without code changes
 - Order submission workflow
 - PDF proof generation
 - Integration with print production systems
