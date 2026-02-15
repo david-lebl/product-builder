@@ -8,6 +8,7 @@ object PriceCalculator:
   def calculate(
       config: ProductConfiguration,
       pricelist: Pricelist,
+      lang: Language = Language.En,
   ): Validation[PricingError, PriceBreakdown] =
     val rules = pricelist.rules
 
@@ -15,17 +16,17 @@ object PriceCalculator:
       resolveMaterialUnitPrice(config.material, config.specifications, rules).map { materialUnitPrice =>
         val materialLineTotal = materialUnitPrice * quantity
         val materialLine = LineItem(
-          label = s"Material: ${config.material.name}",
+          label = s"Material: ${config.material.name(lang)}",
           unitPrice = materialUnitPrice,
           quantity = quantity,
           lineTotal = materialLineTotal,
         )
 
-        val finishLines = computeFinishLines(config.finishes, rules, quantity)
+        val finishLines = computeFinishLines(config.finishes, rules, quantity, lang)
 
-        val processSurcharge = findProcessSurcharge(config.printingMethod, rules, quantity)
+        val processSurcharge = findProcessSurcharge(config.printingMethod, rules, quantity, lang)
 
-        val categorySurcharge = findCategorySurcharge(config.category, rules, quantity)
+        val categorySurcharge = findCategorySurcharge(config.category, rules, quantity, lang)
 
         val allLineTotals =
           materialLine.lineTotal ::
@@ -88,6 +89,7 @@ object PriceCalculator:
       finishes: List[Finish],
       rules: List[PricingRule],
       quantity: Int,
+      lang: Language,
   ): List[LineItem] =
     finishes.flatMap { finish =>
       val byId = rules.collectFirst {
@@ -99,7 +101,7 @@ object PriceCalculator:
       // ID-level takes precedence over type-level
       byId.orElse(byType).map { surcharge =>
         LineItem(
-          label = s"Finish: ${finish.name}",
+          label = s"Finish: ${finish.name(lang)}",
           unitPrice = surcharge,
           quantity = quantity,
           lineTotal = surcharge * quantity,
@@ -111,11 +113,12 @@ object PriceCalculator:
       method: PrintingMethod,
       rules: List[PricingRule],
       quantity: Int,
+      lang: Language,
   ): Option[LineItem] =
     rules.collectFirst {
       case r: PricingRule.PrintingProcessSurcharge if r.processType == method.processType =>
         LineItem(
-          label = s"Process: ${method.name}",
+          label = s"Process: ${method.name(lang)}",
           unitPrice = r.surchargePerUnit,
           quantity = quantity,
           lineTotal = r.surchargePerUnit * quantity,
@@ -126,11 +129,12 @@ object PriceCalculator:
       category: ProductCategory,
       rules: List[PricingRule],
       quantity: Int,
+      lang: Language,
   ): Option[LineItem] =
     rules.collectFirst {
       case r: PricingRule.CategorySurcharge if r.categoryId == category.id =>
         LineItem(
-          label = s"Category: ${category.name}",
+          label = s"Category: ${category.name(lang)}",
           unitPrice = r.surchargePerUnit,
           quantity = quantity,
           lineTotal = r.surchargePerUnit * quantity,

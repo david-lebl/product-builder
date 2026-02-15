@@ -18,6 +18,7 @@ case class BuilderState(
   validationErrors: List[String] = List.empty,
   priceBreakdown: Option[PriceBreakdown] = None,
   configuration: Option[ProductConfiguration] = None,
+  language: Language = Language.En,
 )
 
 object ProductBuilderViewModel:
@@ -31,7 +32,14 @@ object ProductBuilderViewModel:
 
   // Event bus that fires when category changes, used to reset spec form fields
   val specResetBus: EventBus[Unit] = new EventBus[Unit]
-  
+
+  // Get current language
+  def currentLanguage: Signal[Language] = state.map(_.language)
+
+  // Switch language
+  def setLanguage(lang: Language): Unit =
+    stateVar.update(_.copy(language = lang))
+
   // Get all categories as a list
   def allCategories: List[ProductCategory] = catalog.categories.values.toList
   
@@ -90,6 +98,7 @@ object ProductBuilderViewModel:
   // Build and validate configuration
   def validateConfiguration(): Unit =
     val currentState = stateVar.now()
+    val lang = currentState.language
     
     (currentState.selectedCategoryId, currentState.selectedMaterialId, currentState.selectedPrintingMethodId) match
       case (Some(categoryId), Some(materialId), Some(printingMethodId)) =>
@@ -111,7 +120,7 @@ object ProductBuilderViewModel:
         result.fold(
           errors => {
             // Validation failed
-            val errorMessages = errors.map(_.message).toList
+            val errorMessages = errors.map(_.message(lang)).toList
             stateVar.update(_.copy(
               configuration = None,
               validationErrors = errorMessages,
@@ -120,10 +129,10 @@ object ProductBuilderViewModel:
           },
           config => {
             // Validation succeeded, calculate price
-            val priceResult = PriceCalculator.calculate(config, pricelist)
+            val priceResult = PriceCalculator.calculate(config, pricelist, lang)
             priceResult.fold(
               errors => {
-                val errorMessages = errors.map(_.message).toList
+                val errorMessages = errors.map(_.message(lang)).toList
                 stateVar.update(_.copy(
                   configuration = Some(config),
                   validationErrors = errorMessages,
@@ -141,8 +150,11 @@ object ProductBuilderViewModel:
           }
         )
       case _ =>
+        val msg = lang match
+          case Language.En => "Please select a category, material, and printing method"
+          case Language.Cs => "Vyberte prosím kategorii, materiál a tiskovou metodu"
         stateVar.update(_.copy(
-          validationErrors = List("Please select a category, material, and printing method"),
+          validationErrors = List(msg),
           configuration = None,
           priceBreakdown = None,
         ))

@@ -32,9 +32,9 @@ object ConfigurationBuilderSpec extends ZIOSpecDefault:
         val result = ConfigurationBuilder.build(request, catalog, ruleset, configId)
         assertTrue(
           result.toEither.isRight,
-          result.toEither.toOption.get.category.name == "Business Cards",
-          result.toEither.toOption.get.material.name == "Coated Art Paper 300gsm",
-          result.toEither.toOption.get.printingMethod.name == "Offset Printing",
+          result.toEither.toOption.get.category.name(Language.En) == "Business Cards",
+          result.toEither.toOption.get.material.name(Language.En) == "Coated Art Paper 300gsm",
+          result.toEither.toOption.get.printingMethod.name(Language.En) == "Offset Printing",
           result.toEither.toOption.get.finishes.size == 1,
         )
       },

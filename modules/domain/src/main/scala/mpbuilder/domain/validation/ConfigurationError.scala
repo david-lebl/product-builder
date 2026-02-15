@@ -27,48 +27,72 @@ enum ConfigurationError:
   case PrintingMethodNotFound(printingMethodId: PrintingMethodId)
   case ConfigurationConstraintViolation(categoryId: CategoryId, reason: String)
 
-  def message: String = this match
-    case CategoryNotFound(id) =>
-      s"Category '${id.value}' not found in catalog"
-    case MaterialNotFound(id) =>
-      s"Material '${id.value}' not found in catalog"
-    case FinishNotFound(id) =>
-      s"Finish '${id.value}' not found in catalog"
-    case InvalidCategoryMaterial(catId, matId) =>
-      s"Material '${matId.value}' is not allowed for category '${catId.value}'"
-    case InvalidCategoryFinish(catId, finId) =>
-      s"Finish '${finId.value}' is not allowed for category '${catId.value}'"
-    case MissingRequiredSpec(catId, kind) =>
-      s"Category '${catId.value}' requires specification '$kind'"
-    case IncompatibleMaterialFinish(matId, finId, reason) =>
-      s"Material '${matId.value}' is incompatible with finish '${finId.value}': $reason"
-    case MissingRequiredFinish(matId, finIds, reason) =>
-      s"Material '${matId.value}' requires one of finishes [${finIds.map(_.value).mkString(", ")}]: $reason"
-    case FinishMissingMaterialProperty(finId, prop, reason) =>
-      s"Finish '${finId.value}' requires material property '$prop': $reason"
-    case MutuallyExclusiveFinishes(a, b, reason) =>
-      s"Finishes '${a.value}' and '${b.value}' are mutually exclusive: $reason"
-    case SpecConstraintViolation(catId, pred, reason) =>
-      s"Specification constraint violated for category '${catId.value}': $reason"
-    case IncompatibleMaterialPropertyFinish(prop, ft, reason) =>
-      s"Material property '$prop' is incompatible with finish type '$ft': $reason"
-    case IncompatibleMaterialFamilyFinish(family, ft, reason) =>
-      s"Material family '$family' is incompatible with finish type '$ft': $reason"
-    case FinishWeightRequirementNotMet(ft, minGsm, actualGsm, reason) =>
-      s"Finish type '$ft' requires minimum ${minGsm}gsm (actual: ${actualGsm.map(g => s"${g}gsm").getOrElse("unknown")}): $reason"
-    case MutuallyExclusiveFinishTypes(ftA, ftB, reason) =>
-      s"Finish types '$ftA' and '$ftB' are mutually exclusive: $reason"
-    case FinishCategoryLimitExceeded(cat, reason) =>
-      s"Too many finishes in category '$cat': $reason"
-    case FinishRequiresPrintingProcessViolation(ft, procs, reason) =>
-      s"Finish type '$ft' requires printing process ${procs.mkString(" or ")}: $reason"
-    case PrintingMethodFinishIncompatibleError(pmId, ft, reason) =>
-      s"Printing method '${pmId.value}' is incompatible with finish type '$ft': $reason"
-    case FinishMissingDependentFinishType(finId, reqFt, reason) =>
-      s"Finish '${finId.value}' requires a finish of type '$reqFt': $reason"
-    case InvalidCategoryPrintingMethod(catId, pmId) =>
-      s"Printing method '${pmId.value}' is not allowed for category '${catId.value}'"
-    case PrintingMethodNotFound(pmId) =>
-      s"Printing method '${pmId.value}' not found in catalog"
-    case ConfigurationConstraintViolation(catId, reason) =>
-      s"Configuration constraint violated for category '${catId.value}': $reason"
+  def message: String = message(Language.En)
+
+  def message(lang: Language): String = this match
+    case CategoryNotFound(id) => lang match
+      case Language.En => s"Category '${id.value}' not found in catalog"
+      case Language.Cs => s"Kategorie '${id.value}' nebyla nalezena v katalogu"
+    case MaterialNotFound(id) => lang match
+      case Language.En => s"Material '${id.value}' not found in catalog"
+      case Language.Cs => s"Materiál '${id.value}' nebyl nalezen v katalogu"
+    case FinishNotFound(id) => lang match
+      case Language.En => s"Finish '${id.value}' not found in catalog"
+      case Language.Cs => s"Povrchová úprava '${id.value}' nebyla nalezena v katalogu"
+    case InvalidCategoryMaterial(catId, matId) => lang match
+      case Language.En => s"Material '${matId.value}' is not allowed for category '${catId.value}'"
+      case Language.Cs => s"Materiál '${matId.value}' není povolen pro kategorii '${catId.value}'"
+    case InvalidCategoryFinish(catId, finId) => lang match
+      case Language.En => s"Finish '${finId.value}' is not allowed for category '${catId.value}'"
+      case Language.Cs => s"Povrchová úprava '${finId.value}' není povolena pro kategorii '${catId.value}'"
+    case MissingRequiredSpec(catId, kind) => lang match
+      case Language.En => s"Category '${catId.value}' requires specification '$kind'"
+      case Language.Cs => s"Kategorie '${catId.value}' vyžaduje specifikaci '$kind'"
+    case IncompatibleMaterialFinish(matId, finId, reason) => lang match
+      case Language.En => s"Material '${matId.value}' is incompatible with finish '${finId.value}': $reason"
+      case Language.Cs => s"Materiál '${matId.value}' je nekompatibilní s úpravou '${finId.value}': $reason"
+    case MissingRequiredFinish(matId, finIds, reason) => lang match
+      case Language.En => s"Material '${matId.value}' requires one of finishes [${finIds.map(_.value).mkString(", ")}]: $reason"
+      case Language.Cs => s"Materiál '${matId.value}' vyžaduje jednu z úprav [${finIds.map(_.value).mkString(", ")}]: $reason"
+    case FinishMissingMaterialProperty(finId, prop, reason) => lang match
+      case Language.En => s"Finish '${finId.value}' requires material property '$prop': $reason"
+      case Language.Cs => s"Úprava '${finId.value}' vyžaduje vlastnost materiálu '$prop': $reason"
+    case MutuallyExclusiveFinishes(a, b, reason) => lang match
+      case Language.En => s"Finishes '${a.value}' and '${b.value}' are mutually exclusive: $reason"
+      case Language.Cs => s"Úpravy '${a.value}' a '${b.value}' se vzájemně vylučují: $reason"
+    case SpecConstraintViolation(catId, pred, reason) => lang match
+      case Language.En => s"Specification constraint violated for category '${catId.value}': $reason"
+      case Language.Cs => s"Porušeno omezení specifikace pro kategorii '${catId.value}': $reason"
+    case IncompatibleMaterialPropertyFinish(prop, ft, reason) => lang match
+      case Language.En => s"Material property '$prop' is incompatible with finish type '$ft': $reason"
+      case Language.Cs => s"Vlastnost materiálu '$prop' je nekompatibilní s typem úpravy '$ft': $reason"
+    case IncompatibleMaterialFamilyFinish(family, ft, reason) => lang match
+      case Language.En => s"Material family '$family' is incompatible with finish type '$ft': $reason"
+      case Language.Cs => s"Rodina materiálů '$family' je nekompatibilní s typem úpravy '$ft': $reason"
+    case FinishWeightRequirementNotMet(ft, minGsm, actualGsm, reason) => lang match
+      case Language.En => s"Finish type '$ft' requires minimum ${minGsm}gsm (actual: ${actualGsm.map(g => s"${g}gsm").getOrElse("unknown")}): $reason"
+      case Language.Cs => s"Typ úpravy '$ft' vyžaduje minimálně ${minGsm}gsm (skutečnost: ${actualGsm.map(g => s"${g}gsm").getOrElse("neznámá")}): $reason"
+    case MutuallyExclusiveFinishTypes(ftA, ftB, reason) => lang match
+      case Language.En => s"Finish types '$ftA' and '$ftB' are mutually exclusive: $reason"
+      case Language.Cs => s"Typy úprav '$ftA' a '$ftB' se vzájemně vylučují: $reason"
+    case FinishCategoryLimitExceeded(cat, reason) => lang match
+      case Language.En => s"Too many finishes in category '$cat': $reason"
+      case Language.Cs => s"Příliš mnoho úprav v kategorii '$cat': $reason"
+    case FinishRequiresPrintingProcessViolation(ft, procs, reason) => lang match
+      case Language.En => s"Finish type '$ft' requires printing process ${procs.mkString(" or ")}: $reason"
+      case Language.Cs => s"Typ úpravy '$ft' vyžaduje tiskový proces ${procs.mkString(" nebo ")}: $reason"
+    case PrintingMethodFinishIncompatibleError(pmId, ft, reason) => lang match
+      case Language.En => s"Printing method '${pmId.value}' is incompatible with finish type '$ft': $reason"
+      case Language.Cs => s"Tisková metoda '${pmId.value}' je nekompatibilní s typem úpravy '$ft': $reason"
+    case FinishMissingDependentFinishType(finId, reqFt, reason) => lang match
+      case Language.En => s"Finish '${finId.value}' requires a finish of type '$reqFt': $reason"
+      case Language.Cs => s"Úprava '${finId.value}' vyžaduje úpravu typu '$reqFt': $reason"
+    case InvalidCategoryPrintingMethod(catId, pmId) => lang match
+      case Language.En => s"Printing method '${pmId.value}' is not allowed for category '${catId.value}'"
+      case Language.Cs => s"Tisková metoda '${pmId.value}' není povolena pro kategorii '${catId.value}'"
+    case PrintingMethodNotFound(pmId) => lang match
+      case Language.En => s"Printing method '${pmId.value}' not found in catalog"
+      case Language.Cs => s"Tisková metoda '${pmId.value}' nebyla nalezena v katalogu"
+    case ConfigurationConstraintViolation(catId, reason) => lang match
+      case Language.En => s"Configuration constraint violated for category '${catId.value}': $reason"
+      case Language.Cs => s"Porušeno omezení konfigurace pro kategorii '${catId.value}': $reason"

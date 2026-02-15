@@ -8,17 +8,27 @@ object PrintingMethodSelector:
   def apply(): Element =
     val availableMethods = ProductBuilderViewModel.availablePrintingMethods
     val selectedMethodId = ProductBuilderViewModel.state.map(_.selectedPrintingMethodId)
+    val lang = ProductBuilderViewModel.currentLanguage
     
     div(
       cls := "form-group",
-      label("Printing Method:"),
+      label(
+        child.text <-- lang.map {
+          case Language.En => "Printing Method:"
+          case Language.Cs => "Tisková metoda:"
+        }
+      ),
       select(
         disabled <-- ProductBuilderViewModel.state.map(_.selectedCategoryId.isEmpty),
-        children <-- availableMethods.combineWith(selectedMethodId).map { case (methods, selectedId) =>
+        children <-- availableMethods.combineWith(selectedMethodId, lang).map { case (methods, selectedId, l) =>
           val currentValue = selectedId.map(_.value).getOrElse("")
-          option("-- Select a printing method --", value := "", selected := currentValue.isEmpty) ::
+          option(
+            l match
+              case Language.En => "-- Select a printing method --"
+              case Language.Cs => "-- Vyberte tiskovou metodu --"
+            , value := "", selected := currentValue.isEmpty) ::
           methods.map { method =>
-            option(method.name, value := method.id.value, selected := (method.id.value == currentValue))
+            option(method.name(l), value := method.id.value, selected := (method.id.value == currentValue))
           }
         },
         onChange.mapToValue --> { value =>

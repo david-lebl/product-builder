@@ -5,7 +5,7 @@ enum SpecKind:
 
 final case class ProductCategory(
     id: CategoryId,
-    name: String,
+    name: LocalizedString,
     allowedMaterialIds: Set[MaterialId],
     allowedFinishIds: Set[FinishId],
     requiredSpecKinds: Set[SpecKind],

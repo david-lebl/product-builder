@@ -20,7 +20,7 @@ object PaperWeight:
 
 final case class Material(
     id: MaterialId,
-    name: String,
+    name: LocalizedString,
     family: MaterialFamily,
     weight: Option[PaperWeight],
     properties: Set[MaterialProperty],
