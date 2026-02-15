@@ -8,6 +8,8 @@ A custom product builder for the printing industry that lets customers configure
 
 Material Builder is a domain-driven design (DDD) approach to building a flexible, maintainable product configuration system for print service providers. It enables customers to compose print products (business cards, flyers, banners, etc.) by selecting materials, finishes, and specifications, while automatically enforcing business rules to ensure only producible combinations can be ordered.
 
+**🌐 Live Demo:** [https://david-lebl.github.io/product-builder/](https://david-lebl.github.io/product-builder/)
+
 ## Tech Stack
 
 - **Scala 3.8.1** — Strongly-typed functional programming with DDD principles
@@ -121,7 +123,8 @@ Two-layer validation:
 - Live price calculation with detailed breakdown
 - Modern responsive design with purple gradient theme
 
-**Try it:** See [docs/ui-guide.md](docs/ui-guide.md) for instructions on running the UI locally.
+
+**Try it locally:** See [docs/ui-guide.md](docs/ui-guide.md) for instructions on running the UI locally.
 
 ### 🚧 Roadmap
 
