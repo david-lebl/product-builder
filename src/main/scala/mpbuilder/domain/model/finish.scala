@@ -11,9 +11,9 @@ enum FinishType:
 
 object FinishType:
   extension (ft: FinishType) def finishCategory: FinishCategory = ft match
-    case Lamination | Overlamination | UVCoating | AqueousCoating | SoftTouchCoating | Varnish =>
+    case Lamination | Overlamination | UVCoating | AqueousCoating | SoftTouchCoating =>
       FinishCategory.Surface
-    case Embossing | Debossing | FoilStamping | Thermography | EdgePainting =>
+    case Embossing | Debossing | FoilStamping | Thermography | EdgePainting | Varnish =>
       FinishCategory.Decorative
     case DieCut | ContourCut | KissCut | Scoring | Perforation | RoundCorners | Drilling | Numbering | Binding | Mounting =>
       FinishCategory.Structural
