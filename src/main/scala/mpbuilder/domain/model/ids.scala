@@ -32,6 +32,16 @@ object FinishId:
 
   extension (id: FinishId) def value: String = id
 
+opaque type PrintingMethodId = String
+object PrintingMethodId:
+  def apply(value: String): Validation[String, PrintingMethodId] =
+    if value.nonEmpty then Validation.succeed(value)
+    else Validation.fail("PrintingMethodId must not be empty")
+
+  def unsafe(value: String): PrintingMethodId = value
+
+  extension (id: PrintingMethodId) def value: String = id
+
 opaque type ConfigurationId = String
 object ConfigurationId:
   def apply(value: String): Validation[String, ConfigurationId] =

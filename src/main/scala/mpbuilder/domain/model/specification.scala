@@ -21,7 +21,10 @@ enum Orientation:
   case Portrait, Landscape
 
 enum FoldType:
-  case Half, Tri, Gate, Accordion
+  case Half, Tri, Gate, Accordion, ZFold, RollFold, FrenchFold, CrossFold
+
+enum BindingMethod:
+  case SaddleStitch, PerfectBinding, SpiralBinding, WireOBinding, CaseBinding
 
 enum SpecValue:
   case SizeSpec(dimension: Dimension)
@@ -31,16 +34,18 @@ enum SpecValue:
   case BleedSpec(bleedMm: Double)
   case PagesSpec(count: Int)
   case FoldTypeSpec(foldType: FoldType)
+  case BindingMethodSpec(method: BindingMethod)
 
 object SpecValue:
   def specKind(sv: SpecValue): SpecKind = sv match
-    case _: SpecValue.SizeSpec        => SpecKind.Size
-    case _: SpecValue.QuantitySpec    => SpecKind.Quantity
-    case _: SpecValue.ColorModeSpec   => SpecKind.ColorMode
-    case _: SpecValue.OrientationSpec => SpecKind.Orientation
-    case _: SpecValue.BleedSpec       => SpecKind.Bleed
-    case _: SpecValue.PagesSpec       => SpecKind.Pages
-    case _: SpecValue.FoldTypeSpec    => SpecKind.FoldType
+    case _: SpecValue.SizeSpec          => SpecKind.Size
+    case _: SpecValue.QuantitySpec      => SpecKind.Quantity
+    case _: SpecValue.ColorModeSpec     => SpecKind.ColorMode
+    case _: SpecValue.OrientationSpec   => SpecKind.Orientation
+    case _: SpecValue.BleedSpec         => SpecKind.Bleed
+    case _: SpecValue.PagesSpec         => SpecKind.Pages
+    case _: SpecValue.FoldTypeSpec      => SpecKind.FoldType
+    case _: SpecValue.BindingMethodSpec => SpecKind.BindingMethod
 
 final case class ProductSpecifications(specs: Map[SpecKind, SpecValue]):
   def get(kind: SpecKind): Option[SpecValue] = specs.get(kind)

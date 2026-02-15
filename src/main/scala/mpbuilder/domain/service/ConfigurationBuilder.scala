@@ -8,6 +8,7 @@ import mpbuilder.domain.validation.*
 final case class ConfigurationRequest(
     categoryId: CategoryId,
     materialId: MaterialId,
+    printingMethodId: PrintingMethodId,
     finishIds: List[FinishId],
     specs: List[SpecValue],
 )
@@ -30,6 +31,11 @@ object ConfigurationBuilder:
         case Some(m) => Validation.succeed(m)
         case None    => Validation.fail(ConfigurationError.MaterialNotFound(request.materialId))
 
+    val printingMethodV: Validation[ConfigurationError, PrintingMethod] =
+      catalog.printingMethods.get(request.printingMethodId) match
+        case Some(pm) => Validation.succeed(pm)
+        case None     => Validation.fail(ConfigurationError.PrintingMethodNotFound(request.printingMethodId))
+
     val finishesV: Validation[ConfigurationError, List[Finish]] =
       request.finishIds
         .map { fid =>
@@ -43,16 +49,17 @@ object ConfigurationBuilder:
         }
 
     Validation
-      .validateWith(categoryV, materialV, finishesV)((cat, mat, fins) => (cat, mat, fins))
-      .flatMap { case (category, material, finishes) =>
+      .validateWith(categoryV, materialV, printingMethodV, finishesV)((cat, mat, pm, fins) => (cat, mat, pm, fins))
+      .flatMap { case (category, material, printingMethod, finishes) =>
         val specifications = ProductSpecifications.fromSpecs(request.specs)
         ConfigurationValidator
-          .validate(category, material, finishes, specifications, ruleset)
+          .validate(category, material, finishes, specifications, ruleset, printingMethod)
           .map(_ =>
             ProductConfiguration(
               id = configId,
               category = category,
               material = material,
+              printingMethod = printingMethod,
               finishes = finishes,
               specifications = specifications,
             ),

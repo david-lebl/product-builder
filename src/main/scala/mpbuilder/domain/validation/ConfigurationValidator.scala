@@ -12,8 +12,9 @@ object ConfigurationValidator:
       finishes: List[Finish],
       specifications: ProductSpecifications,
       ruleset: CompatibilityRuleset,
+      printingMethod: PrintingMethod,
   ): Validation[ConfigurationError, Unit] =
-    val structural = validateStructural(category, material, finishes, specifications)
+    val structural = validateStructural(category, material, finishes, specifications, printingMethod)
     structural.flatMap(_ =>
       RuleEvaluator.evaluateAll(
         ruleset.rules,
@@ -21,6 +22,7 @@ object ConfigurationValidator:
         finishes,
         specifications,
         category.id,
+        printingMethod,
       ),
     )
 
@@ -29,6 +31,7 @@ object ConfigurationValidator:
       material: Material,
       finishes: List[Finish],
       specifications: ProductSpecifications,
+      printingMethod: PrintingMethod,
   ): Validation[ConfigurationError, Unit] =
     val materialCheck =
       if category.allowedMaterialIds.contains(material.id) then Validation.unit
@@ -44,7 +47,12 @@ object ConfigurationValidator:
       else Validation.fail(ConfigurationError.MissingRequiredSpec(category.id, kind))
     }
 
-    val allChecks = materialCheck :: finishChecks ::: specChecks
+    val printingMethodCheck =
+      if category.allowedPrintingMethodIds.isEmpty || category.allowedPrintingMethodIds.contains(printingMethod.id) then
+        Validation.unit
+      else Validation.fail(ConfigurationError.InvalidCategoryPrintingMethod(category.id, printingMethod.id))
+
+    val allChecks = materialCheck :: finishChecks ::: specChecks ::: List(printingMethodCheck)
     allChecks.foldLeft(Validation.unit: Validation[ConfigurationError, Unit])((acc, v) =>
       acc.zipRight(v),
     )

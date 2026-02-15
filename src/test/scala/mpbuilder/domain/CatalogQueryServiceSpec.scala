@@ -36,12 +36,13 @@ object CatalogQueryServiceSpec extends ZIOSpecDefault:
       },
     ),
     suite("compatibleFinishes")(
-      test("UV coating is filtered out for kraft paper in packaging") {
+      test("UV coating is filtered out for kraft paper in packaging (property rule)") {
         val finishes = CatalogQueryService.compatibleFinishes(
           SampleCatalog.packagingId,
           SampleCatalog.kraftId,
           catalog,
           ruleset,
+          None,
         )
         val finishIds = finishes.map(_.id).toSet
         assertTrue(
@@ -55,6 +56,7 @@ object CatalogQueryServiceSpec extends ZIOSpecDefault:
           SampleCatalog.kraftId,
           catalog,
           ruleset,
+          None,
         )
         val finishIds = finishes.map(_.id).toSet
         assertTrue(!finishIds.contains(SampleCatalog.foilStampingId))
@@ -65,6 +67,7 @@ object CatalogQueryServiceSpec extends ZIOSpecDefault:
           SampleCatalog.coated300gsmId,
           catalog,
           ruleset,
+          None,
         )
         val finishIds = finishes.map(_.id).toSet
         assertTrue(
@@ -74,6 +77,53 @@ object CatalogQueryServiceSpec extends ZIOSpecDefault:
           finishIds.contains(SampleCatalog.embossingId),
           finishIds.contains(SampleCatalog.foilStampingId),
         )
+      },
+      test("weight rule filters lamination for lightweight paper") {
+        val finishes = CatalogQueryService.compatibleFinishes(
+          SampleCatalog.businessCardsId,
+          SampleCatalog.uncoatedBondId,
+          catalog,
+          ruleset,
+          None,
+        )
+        val finishIds = finishes.map(_.id).toSet
+        assertTrue(
+          !finishIds.contains(SampleCatalog.matteLaminationId),
+          !finishIds.contains(SampleCatalog.glossLaminationId),
+        )
+      },
+      test("aqueous coating filtered when digital printing selected") {
+        val finishes = CatalogQueryService.compatibleFinishes(
+          SampleCatalog.flyersId,
+          SampleCatalog.coated300gsmId,
+          catalog,
+          ruleset,
+          Some(SampleCatalog.digitalId),
+        )
+        val finishIds = finishes.map(_.id).toSet
+        assertTrue(!finishIds.contains(SampleCatalog.aqueousCoatingId))
+      },
+      test("aqueous coating available when offset printing selected") {
+        val finishes = CatalogQueryService.compatibleFinishes(
+          SampleCatalog.flyersId,
+          SampleCatalog.coated300gsmId,
+          catalog,
+          ruleset,
+          Some(SampleCatalog.offsetId),
+        )
+        val finishIds = finishes.map(_.id).toSet
+        assertTrue(finishIds.contains(SampleCatalog.aqueousCoatingId))
+      },
+      test("aqueous coating available when no printing method selected") {
+        val finishes = CatalogQueryService.compatibleFinishes(
+          SampleCatalog.flyersId,
+          SampleCatalog.coated300gsmId,
+          catalog,
+          ruleset,
+          None,
+        )
+        val finishIds = finishes.map(_.id).toSet
+        assertTrue(finishIds.contains(SampleCatalog.aqueousCoatingId))
       },
     ),
     suite("requiredSpecifications")(
@@ -89,9 +139,38 @@ object CatalogQueryServiceSpec extends ZIOSpecDefault:
           specs == Set(SpecKind.Size, SpecKind.Quantity, SpecKind.ColorMode, SpecKind.FoldType, SpecKind.Pages),
         )
       },
+      test("booklets require Size, Quantity, ColorMode, Pages, BindingMethod") {
+        val specs = CatalogQueryService.requiredSpecifications(SampleCatalog.bookletsId, catalog)
+        assertTrue(
+          specs == Set(SpecKind.Size, SpecKind.Quantity, SpecKind.ColorMode, SpecKind.Pages, SpecKind.BindingMethod),
+        )
+      },
       test("unknown category returns empty") {
         val specs = CatalogQueryService.requiredSpecifications(CategoryId.unsafe("unknown"), catalog)
         assertTrue(specs.isEmpty)
+      },
+    ),
+    suite("availablePrintingMethods")(
+      test("returns allowed printing methods for business cards") {
+        val methods = CatalogQueryService.availablePrintingMethods(SampleCatalog.businessCardsId, catalog)
+        val methodIds = methods.map(_.id).toSet
+        assertTrue(
+          methodIds.contains(SampleCatalog.offsetId),
+          methodIds.contains(SampleCatalog.digitalId),
+          methodIds.contains(SampleCatalog.letterpressId),
+          !methodIds.contains(SampleCatalog.uvInkjetId),
+        )
+      },
+      test("returns only UV inkjet for banners") {
+        val methods = CatalogQueryService.availablePrintingMethods(SampleCatalog.bannersId, catalog)
+        assertTrue(
+          methods.size == 1,
+          methods.head.id == SampleCatalog.uvInkjetId,
+        )
+      },
+      test("returns empty for unknown category") {
+        val methods = CatalogQueryService.availablePrintingMethods(CategoryId.unsafe("unknown"), catalog)
+        assertTrue(methods.isEmpty)
       },
     ),
   )
