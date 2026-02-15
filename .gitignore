@@ -54,3 +54,6 @@ build/
 
 ### Build outputs ###
 dist/
+
+### UI resources symlinks ###
+modules/ui/src/main/resources/main.js

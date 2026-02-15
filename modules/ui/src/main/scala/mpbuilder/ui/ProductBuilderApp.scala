@@ -16,12 +16,11 @@ object ProductBuilderApp:
         cls := "language-selector",
         label("Language / Jazyk: "),
         select(
+          value <-- lang.map(_.toCode),
           option("English", value := "en"),
           option("Čeština", value := "cs"),
-          onChange.mapToValue --> { value =>
-            value match
-              case "cs" => ProductBuilderViewModel.setLanguage(Language.Cs)
-              case _    => ProductBuilderViewModel.setLanguage(Language.En)
+          onChange.mapToValue --> { code =>
+            ProductBuilderViewModel.setLanguage(Language.fromCode(code))
           },
         ),
       ),

@@ -7,6 +7,7 @@ import mpbuilder.domain.pricing.*
 import mpbuilder.domain.sample.*
 import zio.prelude.Validation
 import com.raquo.laminar.api.L.*
+import org.scalajs.dom
 
 /** Application state for the product builder */
 case class BuilderState(
@@ -36,9 +37,19 @@ object ProductBuilderViewModel:
   // Get current language
   def currentLanguage: Signal[Language] = state.map(_.language)
 
-  // Switch language
+  // Initialize language on app startup (does not persist - language is already from localStorage or browser detection)
+  def initializeLanguage(lang: Language): Unit =
+    stateVar.update(_.copy(language = lang))
+
+  // Switch language and persist to localStorage
   def setLanguage(lang: Language): Unit =
     stateVar.update(_.copy(language = lang))
+    // Persist the language preference using language code (e.g., "en", "cs")
+    try
+      dom.window.localStorage.setItem("selectedLanguage", lang.toCode)
+    catch
+      case _: scala.scalajs.js.JavaScriptException =>
+        // If localStorage access fails, silently ignore (language still works for current session)
 
   // Get all categories as a list
   def allCategories: List[ProductCategory] = catalog.categories.values.toList
