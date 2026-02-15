@@ -47,15 +47,24 @@ Declarative pricing layer following the same rules-as-data pattern:
 
 ---
 
+## Completed — Phase 3: UI with Scala.js + Laminar
+
+Interactive web UI for configuring print products:
+
+- **Cross-compilation** — Domain model compiled to JavaScript with Scala.js (downgraded to Scala 3.3.3 for compatibility)
+- **Laminar framework** — Reactive UI with Signal/Var primitives for state management
+- **Step-by-step wizard** — 5-step configuration flow: category → material → printing method → finishes → specifications
+- **Progressive disclosure** — `CatalogQueryService` filters options in real-time; disabled states guide users through valid paths only
+- **Live validation** — Immediate feedback on incompatible selections with detailed error messages
+- **Price calculation** — Real-time pricing with full breakdown (material, finishes, surcharges, quantity discounts)
+- **Modern design** — Responsive layout with gradient purple theme, sticky price preview, info boxes, and visual feedback
+- **Sample catalog** — Pre-loaded with 6 categories, 5 materials, 14 finishes, 4 printing methods, 22 compatibility rules, and full pricelist
+
+See `docs/ui-guide.md` for build and run instructions.
+
+---
+
 ## Roadmap
-
-### Phase 3: UI with Scala.js + Laminar
-
-- Cross-compile domain model to Scala.js
-- Build a step-by-step product configuration wizard using Laminar
-- Use `CatalogQueryService` for progressive disclosure — each step shows only valid options
-- Real-time validation feedback as the user builds a configuration
-- Price preview updating live as options are selected
 
 ### Phase 4: Persistence
 

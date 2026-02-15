@@ -106,25 +106,29 @@ Two-layer validation:
 - Sample data: 5 categories, 5 materials, 7 finishes, 10 compatibility rules
 - **23 passing tests** covering valid configs, invalid configs, error accumulation, and catalog queries
 
-### 🚧 Roadmap
-
-**Phase 2: Pricing**
+### ✅ Phase 2: Pricing (Complete)
 - `PriceComponent` model (base price, per-unit, surcharges, discounts)
 - `PricingRule` ADT for declarative pricing logic
 - `PricingEngine` for price computation and breakdown
 - Quantity-based tiered pricing support
+- **55 passing tests** covering pricing calculations, breakdowns, and edge cases
 
-**Phase 3: Persistence**
+### ✅ Phase 3: UI with Scala.js + Laminar (Complete)
+- Cross-compiled domain model to JavaScript
+- Interactive web UI using Laminar reactive framework
+- Step-by-step configuration wizard with progressive disclosure
+- Real-time validation feedback and compatibility filtering
+- Live price calculation with detailed breakdown
+- Modern responsive design with purple gradient theme
+
+**Try it:** See [docs/ui-guide.md](docs/ui-guide.md) for instructions on running the UI locally.
+
+### 🚧 Roadmap
+
+**Phase 4: Persistence**
 - ZIO-based repository interfaces
 - Adapters for JSON/database storage
 - Catalog versioning and rule evolution
-
-**Phase 4: UI (Scala.js + Laminar)**
-- Cross-compile domain model to JavaScript
-- Step-by-step configuration wizard
-- Progressive disclosure using `CatalogQueryService`
-- Real-time validation feedback
-- Live price preview
 
 **Phase 5: Production Readiness**
 - ZIO HTTP API for server-side validation & pricing
