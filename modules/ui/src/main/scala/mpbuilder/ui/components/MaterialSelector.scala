@@ -7,16 +7,18 @@ import mpbuilder.domain.model.*
 object MaterialSelector:
   def apply(): Element =
     val availableMaterials = ProductBuilderViewModel.availableMaterials
+    val selectedMaterialId = ProductBuilderViewModel.state.map(_.selectedMaterialId)
     
     div(
       cls := "form-group",
       label("Material:"),
       select(
         disabled <-- ProductBuilderViewModel.state.map(_.selectedCategoryId.isEmpty),
-        option("-- Select a material --", value := "", selected := true),
-        children <-- availableMaterials.map { materials =>
+        children <-- availableMaterials.combineWith(selectedMaterialId).map { case (materials, selectedId) =>
+          val currentValue = selectedId.map(_.value).getOrElse("")
+          option("-- Select a material --", value := "", selected := currentValue.isEmpty) ::
           materials.map { mat =>
-            option(mat.name, value := mat.id.value)
+            option(mat.name, value := mat.id.value, selected := (mat.id.value == currentValue))
           }
         },
         onChange.mapToValue --> { value =>
