@@ -106,6 +106,47 @@ object ConfigurationBuilderSpec extends ZIOSpecDefault:
         val result = ConfigurationBuilder.build(request, catalog, ruleset, configId)
         assertTrue(result.toEither.isRight)
       },
+      test("build a valid calendar configuration with spiral binding") {
+        val request = ConfigurationRequest(
+          categoryId = SampleCatalog.calendarsId,
+          materialId = SampleCatalog.coatedSilk250gsmId,
+          printingMethodId = SampleCatalog.digitalId,
+          finishIds = List(SampleCatalog.matteLaminationId),
+          specs = List(
+            SpecValue.SizeSpec(Dimension(297, 210)),
+            SpecValue.QuantitySpec(Quantity.unsafe(100)),
+            SpecValue.ColorModeSpec(ColorMode.CMYK),
+            SpecValue.PagesSpec(14),
+            SpecValue.BindingMethodSpec(BindingMethod.SpiralBinding),
+          ),
+        )
+
+        val result = ConfigurationBuilder.build(request, catalog, ruleset, configId)
+        assertTrue(
+          result.toEither.isRight,
+          result.toEither.toOption.get.category.name(Language.En) == "Calendars",
+          result.toEither.toOption.get.material.name(Language.En) == "Coated Silk 250gsm",
+        )
+      },
+      test("build a valid configuration with Yupo synthetic material") {
+        val request = ConfigurationRequest(
+          categoryId = SampleCatalog.businessCardsId,
+          materialId = SampleCatalog.yupoId,
+          printingMethodId = SampleCatalog.digitalId,
+          finishIds = List(SampleCatalog.uvCoatingId),
+          specs = List(
+            SpecValue.SizeSpec(Dimension(90, 55)),
+            SpecValue.QuantitySpec(Quantity.unsafe(500)),
+            SpecValue.ColorModeSpec(ColorMode.CMYK),
+          ),
+        )
+
+        val result = ConfigurationBuilder.build(request, catalog, ruleset, configId)
+        assertTrue(
+          result.toEither.isRight,
+          result.toEither.toOption.get.material.name(Language.En) == "Yupo Synthetic 200μm",
+        )
+      },
     ),
     suite("incompatible combinations produce accumulated errors")(
       test("UV coating on kraft paper is rejected (property-level rule)") {
@@ -530,6 +571,111 @@ object ConfigurationBuilderSpec extends ZIOSpecDefault:
           SampleCatalog.uvInkjetMethod,
         )
         assertTrue(result.toEither.isLeft)
+      },
+    ),
+    suite("calendar validation rules")(
+      test("calendar with invalid binding method is rejected") {
+        val request = ConfigurationRequest(
+          categoryId = SampleCatalog.calendarsId,
+          materialId = SampleCatalog.coatedSilk250gsmId,
+          printingMethodId = SampleCatalog.digitalId,
+          finishIds = Nil,
+          specs = List(
+            SpecValue.SizeSpec(Dimension(297, 210)),
+            SpecValue.QuantitySpec(Quantity.unsafe(100)),
+            SpecValue.ColorModeSpec(ColorMode.CMYK),
+            SpecValue.PagesSpec(14),
+            SpecValue.BindingMethodSpec(BindingMethod.SaddleStitch),
+          ),
+        )
+
+        val result = ConfigurationBuilder.build(request, catalog, ruleset, configId)
+        val errors = result.toEither.left.toOption.get.toList
+        assertTrue(
+          errors.exists(_.isInstanceOf[ConfigurationError.SpecConstraintViolation]),
+        )
+      },
+      test("calendar with too few pages is rejected") {
+        val request = ConfigurationRequest(
+          categoryId = SampleCatalog.calendarsId,
+          materialId = SampleCatalog.coatedSilk250gsmId,
+          printingMethodId = SampleCatalog.digitalId,
+          finishIds = Nil,
+          specs = List(
+            SpecValue.SizeSpec(Dimension(297, 210)),
+            SpecValue.QuantitySpec(Quantity.unsafe(100)),
+            SpecValue.ColorModeSpec(ColorMode.CMYK),
+            SpecValue.PagesSpec(8),
+            SpecValue.BindingMethodSpec(BindingMethod.SpiralBinding),
+          ),
+        )
+
+        val result = ConfigurationBuilder.build(request, catalog, ruleset, configId)
+        val errors = result.toEither.left.toOption.get.toList
+        assertTrue(
+          errors.exists(_.isInstanceOf[ConfigurationError.SpecConstraintViolation]),
+        )
+      },
+      test("calendar with too many pages is rejected") {
+        val request = ConfigurationRequest(
+          categoryId = SampleCatalog.calendarsId,
+          materialId = SampleCatalog.coatedSilk250gsmId,
+          printingMethodId = SampleCatalog.digitalId,
+          finishIds = Nil,
+          specs = List(
+            SpecValue.SizeSpec(Dimension(297, 210)),
+            SpecValue.QuantitySpec(Quantity.unsafe(100)),
+            SpecValue.ColorModeSpec(ColorMode.CMYK),
+            SpecValue.PagesSpec(30),
+            SpecValue.BindingMethodSpec(BindingMethod.SpiralBinding),
+          ),
+        )
+
+        val result = ConfigurationBuilder.build(request, catalog, ruleset, configId)
+        val errors = result.toEither.left.toOption.get.toList
+        assertTrue(
+          errors.exists(_.isInstanceOf[ConfigurationError.SpecConstraintViolation]),
+        )
+      },
+    ),
+    suite("new material validation")(
+      test("Yupo with embossing is rejected") {
+        val request = ConfigurationRequest(
+          categoryId = SampleCatalog.businessCardsId,
+          materialId = SampleCatalog.yupoId,
+          printingMethodId = SampleCatalog.digitalId,
+          finishIds = List(SampleCatalog.embossingId),
+          specs = List(
+            SpecValue.SizeSpec(Dimension(90, 55)),
+            SpecValue.QuantitySpec(Quantity.unsafe(500)),
+            SpecValue.ColorModeSpec(ColorMode.CMYK),
+          ),
+        )
+
+        val result = ConfigurationBuilder.build(request, catalog, ruleset, configId)
+        val errors = result.toEither.left.toOption.get.toList
+        assertTrue(
+          errors.exists(_.isInstanceOf[ConfigurationError.IncompatibleMaterialFinish]),
+        )
+      },
+      test("Yupo with debossing is rejected") {
+        val request = ConfigurationRequest(
+          categoryId = SampleCatalog.packagingId,
+          materialId = SampleCatalog.yupoId,
+          printingMethodId = SampleCatalog.digitalId,
+          finishIds = List(SampleCatalog.debossingId),
+          specs = List(
+            SpecValue.SizeSpec(Dimension(200, 150)),
+            SpecValue.QuantitySpec(Quantity.unsafe(100)),
+            SpecValue.ColorModeSpec(ColorMode.CMYK),
+          ),
+        )
+
+        val result = ConfigurationBuilder.build(request, catalog, ruleset, configId)
+        val errors = result.toEither.left.toOption.get.toList
+        assertTrue(
+          errors.exists(_.isInstanceOf[ConfigurationError.IncompatibleMaterialFinish]),
+        )
       },
     ),
   )
