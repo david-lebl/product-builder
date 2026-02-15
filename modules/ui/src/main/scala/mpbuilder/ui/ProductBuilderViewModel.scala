@@ -28,6 +28,9 @@ object ProductBuilderViewModel:
   
   val stateVar: Var[BuilderState] = Var(BuilderState())
   val state: Signal[BuilderState] = stateVar.signal
+
+  // Event bus that fires when category changes, used to reset spec form fields
+  val specResetBus: EventBus[Unit] = new EventBus[Unit]
   
   // Get all categories as a list
   def allCategories: List[ProductCategory] = catalog.categories.values.toList
@@ -36,6 +39,7 @@ object ProductBuilderViewModel:
   def selectCategory(categoryId: CategoryId): Unit =
     val newState = BuilderState(selectedCategoryId = Some(categoryId))
     stateVar.set(newState)
+    specResetBus.emit(())
   
   // Update material selection
   def selectMaterial(materialId: MaterialId): Unit =
