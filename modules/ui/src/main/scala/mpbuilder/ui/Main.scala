@@ -22,9 +22,8 @@ object Main:
     val storedLang = Option(dom.window.localStorage.getItem("selectedLanguage"))
     
     storedLang match
-      case Some("Cs") => Language.Cs
-      case Some("En") => Language.En
-      case _ =>
+      case Some(code) => Language.fromCode(code)
+      case None =>
         // Fall back to browser language detection
         val browserLang = dom.window.navigator.language.toLowerCase()
         if browserLang.startsWith("cs") then Language.Cs

@@ -44,8 +44,8 @@ object ProductBuilderViewModel:
   def setLanguage(lang: Language): Unit =
     import org.scalajs.dom
     stateVar.update(_.copy(language = lang))
-    // Persist the language preference
-    dom.window.localStorage.setItem("selectedLanguage", lang.toString)
+    // Persist the language preference using language code (e.g., "en", "cs")
+    dom.window.localStorage.setItem("selectedLanguage", lang.toCode)
 
   // Get all categories as a list
   def allCategories: List[ProductCategory] = catalog.categories.values.toList
