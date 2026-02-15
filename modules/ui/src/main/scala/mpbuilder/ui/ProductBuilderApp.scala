@@ -16,6 +16,10 @@ object ProductBuilderApp:
         cls := "language-selector",
         label("Language / Jazyk: "),
         select(
+          value <-- lang.map {
+            case Language.Cs => "cs"
+            case Language.En => "en"
+          },
           option("English", value := "en"),
           option("Čeština", value := "cs"),
           onChange.mapToValue --> { value =>

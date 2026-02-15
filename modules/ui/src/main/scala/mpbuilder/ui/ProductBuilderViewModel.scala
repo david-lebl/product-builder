@@ -36,9 +36,16 @@ object ProductBuilderViewModel:
   // Get current language
   def currentLanguage: Signal[Language] = state.map(_.language)
 
-  // Switch language
-  def setLanguage(lang: Language): Unit =
+  // Initialize language on app startup
+  def initializeLanguage(lang: Language): Unit =
     stateVar.update(_.copy(language = lang))
+
+  // Switch language and persist to localStorage
+  def setLanguage(lang: Language): Unit =
+    import org.scalajs.dom
+    stateVar.update(_.copy(language = lang))
+    // Persist the language preference
+    dom.window.localStorage.setItem("selectedLanguage", lang.toString)
 
   // Get all categories as a list
   def allCategories: List[ProductCategory] = catalog.categories.values.toList
