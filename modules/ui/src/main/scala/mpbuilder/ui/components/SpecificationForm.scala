@@ -13,6 +13,9 @@ object SpecificationForm:
     // Combined signal that updates size spec when both are present
     val sizeSignal = widthVar.signal.combineWith(heightVar.signal)
     
+    // Signal for required spec kinds based on selected category
+    val requiredSpecs = ProductBuilderViewModel.requiredSpecKinds
+    
     div(
       cls := "form-group",
       
@@ -107,6 +110,82 @@ object SpecificationForm:
                   SpecValue.ColorModeSpec(ColorMode.Grayscale)
                 )
               case _ => ()
+          },
+        ),
+      ),
+
+      // Orientation (required for Flyers)
+      div(
+        cls := "form-group",
+        display <-- requiredSpecs.map(kinds =>
+          if kinds.contains(SpecKind.Orientation) then "block" else "none"
+        ),
+        label("Orientation:"),
+        select(
+          option("-- Select orientation --", value := ""),
+          option("Portrait", value := "portrait"),
+          option("Landscape", value := "landscape"),
+          onChange.mapToValue --> { value =>
+            value match
+              case "portrait" =>
+                ProductBuilderViewModel.removeSpecification(classOf[SpecValue.OrientationSpec])
+                ProductBuilderViewModel.addSpecification(
+                  SpecValue.OrientationSpec(Orientation.Portrait)
+                )
+              case "landscape" =>
+                ProductBuilderViewModel.removeSpecification(classOf[SpecValue.OrientationSpec])
+                ProductBuilderViewModel.addSpecification(
+                  SpecValue.OrientationSpec(Orientation.Landscape)
+                )
+              case _ => ()
+          },
+        ),
+      ),
+
+      // Fold Type (required for Brochures)
+      div(
+        cls := "form-group",
+        display <-- requiredSpecs.map(kinds =>
+          if kinds.contains(SpecKind.FoldType) then "block" else "none"
+        ),
+        label("Fold Type:"),
+        select(
+          option("-- Select fold type --", value := ""),
+          FoldType.values.map { ft =>
+            option(ft.toString, value := ft.toString)
+          }.toSeq,
+          onChange.mapToValue --> { value =>
+            if value.nonEmpty then
+              FoldType.values.find(_.toString == value).foreach { ft =>
+                ProductBuilderViewModel.removeSpecification(classOf[SpecValue.FoldTypeSpec])
+                ProductBuilderViewModel.addSpecification(
+                  SpecValue.FoldTypeSpec(ft)
+                )
+              }
+          },
+        ),
+      ),
+
+      // Binding Method (required for Booklets)
+      div(
+        cls := "form-group",
+        display <-- requiredSpecs.map(kinds =>
+          if kinds.contains(SpecKind.BindingMethod) then "block" else "none"
+        ),
+        label("Binding Method:"),
+        select(
+          option("-- Select binding method --", value := ""),
+          BindingMethod.values.map { bm =>
+            option(bm.toString, value := bm.toString)
+          }.toSeq,
+          onChange.mapToValue --> { value =>
+            if value.nonEmpty then
+              BindingMethod.values.find(_.toString == value).foreach { bm =>
+                ProductBuilderViewModel.removeSpecification(classOf[SpecValue.BindingMethodSpec])
+                ProductBuilderViewModel.addSpecification(
+                  SpecValue.BindingMethodSpec(bm)
+                )
+              }
           },
         ),
       ),

@@ -169,6 +169,14 @@ object ProductBuilderViewModel:
           List.empty
     }
   
+  // Get required spec kinds for the selected category
+  def requiredSpecKinds: Signal[Set[SpecKind]] =
+    state.map { s =>
+      s.selectedCategoryId.flatMap(id => catalog.categories.get(id)) match
+        case Some(cat) => cat.requiredSpecKinds
+        case None      => Set.empty
+    }
+
   // Get available printing methods for selected category
   def availablePrintingMethods: Signal[List[PrintingMethod]] =
     state.map { s =>
