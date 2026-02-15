@@ -98,7 +98,8 @@ object ProductBuilderViewModel:
           specs = currentState.specifications,
         )
         
-        val configId = ConfigurationId.unsafe("config-1")
+        // Generate a unique configuration ID based on timestamp
+        val configId = ConfigurationId.unsafe(s"config-${System.currentTimeMillis()}")
         
         // Validate
         val result = ConfigurationBuilder.build(request, catalog, ruleset, configId)

@@ -6,6 +6,13 @@ import mpbuilder.domain.model.*
 
 object SpecificationForm:
   def apply(): Element =
+    // Vars to track width and height inputs
+    val widthVar = Var[Option[Double]](None)
+    val heightVar = Var[Option[Double]](None)
+    
+    // Combined signal that updates size spec when both are present
+    val sizeSignal = widthVar.signal.combineWith(heightVar.signal)
+    
     div(
       cls := "form-group",
       
@@ -38,27 +45,26 @@ object SpecificationForm:
             typ := "number",
             placeholder := "Width (mm)",
             styleAttr := "flex: 1;",
-            idAttr := "width-input",
+            onInput.mapToValue.map(_.toDoubleOption) --> widthVar.writer,
           ),
           span("×", styleAttr := "line-height: 40px;"),
           input(
             typ := "number",
             placeholder := "Height (mm)",
             styleAttr := "flex: 1;",
-            idAttr := "height-input",
-            onInput.mapToValue --> { heightStr =>
-              // When height is entered, read both width and height
-              val widthStr = org.scalajs.dom.document.getElementById("width-input").asInstanceOf[org.scalajs.dom.html.Input].value
-              (widthStr.toDoubleOption, heightStr.toDoubleOption) match
-                case (Some(w), Some(h)) if w > 0 && h > 0 =>
-                  ProductBuilderViewModel.removeSpecification(classOf[SpecValue.SizeSpec])
-                  ProductBuilderViewModel.addSpecification(
-                    SpecValue.SizeSpec(Dimension(w, h))
-                  )
-                case _ => ()
-            },
+            onInput.mapToValue.map(_.toDoubleOption) --> heightVar.writer,
           ),
         ),
+        // Observer that updates the spec when both width and height are available
+        sizeSignal --> { case (widthOpt, heightOpt) =>
+          (widthOpt, heightOpt) match
+            case (Some(w), Some(h)) if w > 0 && h > 0 =>
+              ProductBuilderViewModel.removeSpecification(classOf[SpecValue.SizeSpec])
+              ProductBuilderViewModel.addSpecification(
+                SpecValue.SizeSpec(Dimension(w, h))
+              )
+            case _ => ()
+        },
       ),
       
       // Pages (for multi-page products)
