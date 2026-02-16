@@ -42,6 +42,33 @@
             opacity: 0.95;
         }
 
+        .language-selector {
+            background: white;
+            border-radius: 8px;
+            padding: 10px 15px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .language-selector label {
+            margin: 0;
+            white-space: nowrap;
+            font-weight: 500;
+            color: #555;
+        }
+
+        .language-selector select {
+            width: auto;
+            min-width: 120px;
+            padding: 6px 10px;
+            border: 2px solid #e0e0e0;
+            border-radius: 6px;
+            font-size: 0.95rem;
+        }
+
         .main-content {
             display: grid;
             grid-template-columns: 2fr 1fr;
@@ -156,6 +183,10 @@
         .price-section {
             position: sticky;
             top: 20px;
+        }
+
+        .price-section > .card:not(:first-child) {
+            margin-top: 20px;
         }
 
         .price-display {
