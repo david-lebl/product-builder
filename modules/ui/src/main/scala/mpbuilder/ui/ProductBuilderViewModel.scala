@@ -20,6 +20,8 @@ case class BuilderState(
   priceBreakdown: Option[PriceBreakdown] = None,
   configuration: Option[ProductConfiguration] = None,
   language: Language = Language.En,
+  basket: Basket = Basket(BasketId.unsafe("main-basket"), List.empty),
+  basketMessage: Option[String] = None,
 )
 
 object ProductBuilderViewModel:
@@ -253,3 +255,62 @@ object ProductBuilderViewModel:
         case SpecValue.BindingMethodSpec(bindingMethod) => bindingMethod
       }
     }
+
+  // Basket operations
+  def addToBasket(quantity: Int): Unit =
+    val currentState = stateVar.now()
+    val lang = currentState.language
+    
+    currentState.configuration match
+      case Some(config) =>
+        val result = BasketService.addItem(currentState.basket, config, quantity, pricelist)
+        result.fold(
+          errors => {
+            val errorMsg = errors.map(_.message(lang)).toList.mkString(", ")
+            stateVar.update(_.copy(basketMessage = Some(errorMsg)))
+          },
+          updatedBasket => {
+            val msg = lang match
+              case Language.En => s"Added to basket (${quantity}×)"
+              case Language.Cs => s"Přidáno do košíku (${quantity}×)"
+            stateVar.update(_.copy(
+              basket = updatedBasket,
+              basketMessage = Some(msg),
+            ))
+          }
+        )
+      case None =>
+        val msg = lang match
+          case Language.En => "Please configure and validate a product first"
+          case Language.Cs => "Nejprve nakonfigurujte a ověřte produkt"
+        stateVar.update(_.copy(basketMessage = Some(msg)))
+
+  def removeFromBasket(configId: ConfigurationId): Unit =
+    val currentState = stateVar.now()
+    val updatedBasket = BasketService.removeItem(currentState.basket, configId)
+    stateVar.update(_.copy(basket = updatedBasket, basketMessage = None))
+
+  def updateBasketQuantity(configId: ConfigurationId, newQuantity: Int): Unit =
+    val currentState = stateVar.now()
+    val lang = currentState.language
+    val result = BasketService.updateQuantity(currentState.basket, configId, newQuantity)
+    result.fold(
+      errors => {
+        val errorMsg = errors.map(_.message(lang)).toList.mkString(", ")
+        stateVar.update(_.copy(basketMessage = Some(errorMsg)))
+      },
+      updatedBasket => {
+        stateVar.update(_.copy(basket = updatedBasket, basketMessage = None))
+      }
+    )
+
+  def clearBasket(): Unit =
+    val currentState = stateVar.now()
+    val clearedBasket = BasketService.clear(currentState.basket)
+    stateVar.update(_.copy(basket = clearedBasket, basketMessage = None))
+
+  def basketCalculation: Signal[BasketCalculation] =
+    state.map(s => BasketService.calculateTotal(s.basket))
+
+  def clearBasketMessage(): Unit =
+    stateVar.update(_.copy(basketMessage = None))

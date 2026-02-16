@@ -38,11 +38,12 @@ object ProductBuilderApp:
           ConfigurationForm(),
         ),
         
-        // Right side: Price preview
+        // Right side: Price preview and basket
         div(
           cls := "price-section",
           PricePreview(),
           ValidationMessages(),
+          BasketView(),
         ),
       ),
     )
