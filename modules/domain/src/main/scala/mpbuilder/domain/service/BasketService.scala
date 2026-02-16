@@ -21,11 +21,13 @@ object BasketService:
       configuration: ProductConfiguration,
       quantity: Int,
       pricelist: Pricelist,
-  ): Validation[PricingError, Basket] =
+  ): Validation[BasketError, Basket] =
     if quantity <= 0 then
-      Validation.fail(PricingError.InvalidQuantity(quantity))
+      Validation.fail(BasketError.InvalidQuantity(quantity))
     else
-      PriceCalculator.calculate(configuration, pricelist).map { priceBreakdown =>
+      PriceCalculator.calculate(configuration, pricelist).mapError { _ =>
+        BasketError.InvalidQuantity(quantity) // This shouldn't happen as we validate quantity above
+      }.map { priceBreakdown =>
         val newItem = BasketItem(configuration, quantity, priceBreakdown)
         basket.copy(items = basket.items :+ newItem)
       }
@@ -40,9 +42,9 @@ object BasketService:
       basket: Basket,
       configurationId: ConfigurationId,
       newQuantity: Int,
-  ): Validation[String, Basket] =
+  ): Validation[BasketError, Basket] =
     if newQuantity <= 0 then
-      Validation.fail(s"Quantity must be positive, got: $newQuantity")
+      Validation.fail(BasketError.InvalidQuantity(newQuantity))
     else
       basket.items.find(_.configuration.id == configurationId) match
         case Some(item) =>
@@ -52,7 +54,7 @@ object BasketService:
           }
           Validation.succeed(basket.copy(items = updatedItems))
         case None =>
-          Validation.fail(s"Configuration not found in basket: ${configurationId.value}")
+          Validation.fail(BasketError.ConfigurationNotFound(configurationId))
 
   def calculateTotal(basket: Basket): BasketCalculation =
     if basket.items.isEmpty then

@@ -132,7 +132,7 @@ object BasketServiceSpec extends ZIOSpecDefault:
 
         assertTrue(
           result.toEither.isLeft,
-          errors.exists(_.isInstanceOf[PricingError.InvalidQuantity]),
+          errors.exists(_.isInstanceOf[BasketError.InvalidQuantity]),
         )
       },
       test("rejects negative quantity") {
@@ -155,7 +155,7 @@ object BasketServiceSpec extends ZIOSpecDefault:
 
         assertTrue(
           result.toEither.isLeft,
-          errors.exists(_.isInstanceOf[PricingError.InvalidQuantity]),
+          errors.exists(_.isInstanceOf[BasketError.InvalidQuantity]),
         )
       },
     ),

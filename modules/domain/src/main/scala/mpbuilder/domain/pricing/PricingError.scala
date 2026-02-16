@@ -6,7 +6,6 @@ enum PricingError:
   case NoBasePriceForMaterial(materialId: MaterialId)
   case NoQuantityInSpecifications
   case NoSizeForAreaPricing(materialId: MaterialId)
-  case InvalidQuantity(quantity: Int)
 
   def message: String = message(Language.En)
 
@@ -20,6 +19,3 @@ enum PricingError:
     case NoSizeForAreaPricing(materialId) => lang match
       case Language.En => s"Area-based pricing requires size specification for material '${materialId.value}'"
       case Language.Cs => s"Plošná kalkulace vyžaduje specifikaci rozměrů pro materiál '${materialId.value}'"
-    case InvalidQuantity(quantity) => lang match
-      case Language.En => s"Invalid quantity: $quantity. Quantity must be positive."
-      case Language.Cs => s"Neplatné množství: $quantity. Množství musí být kladné."
