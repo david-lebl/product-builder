@@ -56,8 +56,19 @@ object ProductBuilderViewModel:
   
   // Update category selection
   def selectCategory(categoryId: CategoryId): Unit =
-    val newState = BuilderState(selectedCategoryId = Some(categoryId))
-    stateVar.set(newState)
+    stateVar.update(state =>
+      state.copy(
+        selectedCategoryId = Some(categoryId),
+        // Reset dependent selections
+        selectedMaterialId = None,
+        selectedFinishIds = Set.empty,
+        selectedPrintingMethodId = None,
+        specifications = List.empty,
+        validationErrors = List.empty,
+        priceBreakdown = None,
+        configuration = None,
+      )
+    )
     specResetBus.emit(())
   
   // Update material selection
