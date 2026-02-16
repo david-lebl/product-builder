@@ -51,3 +51,13 @@ object ConfigurationId:
   def unsafe(value: String): ConfigurationId = value
 
   extension (id: ConfigurationId) def value: String = id
+
+opaque type BasketId = String
+object BasketId:
+  def apply(value: String): Validation[String, BasketId] =
+    if value.nonEmpty then Validation.succeed(value)
+    else Validation.fail("BasketId must not be empty")
+
+  def unsafe(value: String): BasketId = value
+
+  extension (id: BasketId) def value: String = id
