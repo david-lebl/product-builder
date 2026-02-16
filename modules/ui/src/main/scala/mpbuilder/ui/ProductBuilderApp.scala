@@ -9,9 +9,7 @@ object ProductBuilderApp:
     val lang = ProductBuilderViewModel.currentLanguage
 
     div(
-      cls := "main-content",
-
-      // Language selector
+      // Language selector - positioned outside the grid
       div(
         cls := "language-selector",
         label("Language / Jazyk: "),
@@ -25,21 +23,26 @@ object ProductBuilderApp:
         ),
       ),
       
-      // Left side: Configuration form
+      // Main content grid
       div(
-        cls := "card",
-        h2(child.text <-- lang.map {
-          case Language.En => "Configure Your Product"
-          case Language.Cs => "Nakonfigurujte svůj produkt"
-        }),
+        cls := "main-content",
         
-        ConfigurationForm(),
-      ),
-      
-      // Right side: Price preview
-      div(
-        cls := "price-section",
-        PricePreview(),
-        ValidationMessages(),
+        // Left side: Configuration form
+        div(
+          cls := "card",
+          h2(child.text <-- lang.map {
+            case Language.En => "Configure Your Product"
+            case Language.Cs => "Nakonfigurujte svůj produkt"
+          }),
+          
+          ConfigurationForm(),
+        ),
+        
+        // Right side: Price preview
+        div(
+          cls := "price-section",
+          PricePreview(),
+          ValidationMessages(),
+        ),
       ),
     )
