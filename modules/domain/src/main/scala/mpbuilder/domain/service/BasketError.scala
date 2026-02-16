@@ -1,10 +1,12 @@
 package mpbuilder.domain.service
 
 import mpbuilder.domain.model.*
+import mpbuilder.domain.pricing.PricingError
 
 enum BasketError:
   case InvalidQuantity(quantity: Int)
   case ConfigurationNotFound(configurationId: ConfigurationId)
+  case PricingFailed(error: PricingError)
 
   def message: String = message(Language.En)
 
@@ -15,3 +17,6 @@ enum BasketError:
     case ConfigurationNotFound(configurationId) => lang match
       case Language.En => s"Configuration not found in basket: ${configurationId.value}"
       case Language.Cs => s"Konfigurace nebyla nalezena v košíku: ${configurationId.value}"
+    case PricingFailed(error) => lang match
+      case Language.En => s"Pricing calculation failed: ${error.message(Language.En)}"
+      case Language.Cs => s"Kalkulace ceny selhala: ${error.message(Language.Cs)}"
