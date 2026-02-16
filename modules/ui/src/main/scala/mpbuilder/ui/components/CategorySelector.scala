@@ -7,6 +7,7 @@ import mpbuilder.domain.model.*
 object CategorySelector:
   def apply(): Element =
     val categories = ProductBuilderViewModel.allCategories
+    val selectedCategoryId = ProductBuilderViewModel.state.map(_.selectedCategoryId)
     val lang = ProductBuilderViewModel.currentLanguage
     
     div(
@@ -18,14 +19,15 @@ object CategorySelector:
         }
       ),
       select(
-        children <-- lang.map { l =>
+        children <-- selectedCategoryId.combineWith(lang).map { case (selectedId, l) =>
+          val currentValue = selectedId.map(_.value).getOrElse("")
           option(
             l match
               case Language.En => "-- Select a category --"
               case Language.Cs => "-- Vyberte kategorii --"
-            , value := "", selected := true) ::
+            , value := "", selected := currentValue.isEmpty) ::
           categories.map { cat =>
-            option(cat.name(l), value := cat.id.value)
+            option(cat.name(l), value := cat.id.value, selected := (cat.id.value == currentValue))
           }
         },
         onChange.mapToValue --> { value =>

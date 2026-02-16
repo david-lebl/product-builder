@@ -125,32 +125,47 @@ object SpecificationForm:
           case Language.Cs => "Barevný režim:"
         }),
         select(
-          value <-- clearFieldsStream,
-          children <-- lang.map { l =>
+          children <-- ProductBuilderViewModel.selectedColorMode.combineWith(lang).map { case (selectedMode, l) =>
+            val currentValue = selectedMode match
+              case Some(ColorMode.CMYK) => "cmyk"
+              case Some(ColorMode.Grayscale) => "grayscale"
+              case Some(ColorMode.PMS) => "pms"
+              case None => ""
             List(
               option(
                 l match
                   case Language.En => "-- Select color mode --"
                   case Language.Cs => "-- Vyberte barevný režim --"
-                , value := ""),
+                , value := "", selected := currentValue.isEmpty),
               option(
                 l match
                   case Language.En => "CMYK (Full Color)"
                   case Language.Cs => "CMYK (plné barvy)"
-                , value := "cmyk"),
+                , value := "cmyk", selected := (currentValue == "cmyk")),
+              option(
+                l match
+                  case Language.En => "PMS (Spot Color)"
+                  case Language.Cs => "PMS (přímá barva)"
+                , value := "pms", selected := (currentValue == "pms")),
               option(
                 l match
                   case Language.En => "Grayscale"
                   case Language.Cs => "Stupně šedi"
-                , value := "grayscale"),
+                , value := "grayscale", selected := (currentValue == "grayscale")),
             )
           },
+          value <-- clearFieldsStream,
           onChange.mapToValue --> { value =>
             value match
               case "cmyk" =>
                 ProductBuilderViewModel.removeSpecification(classOf[SpecValue.ColorModeSpec])
                 ProductBuilderViewModel.addSpecification(
                   SpecValue.ColorModeSpec(ColorMode.CMYK)
+                )
+              case "pms" =>
+                ProductBuilderViewModel.removeSpecification(classOf[SpecValue.ColorModeSpec])
+                ProductBuilderViewModel.addSpecification(
+                  SpecValue.ColorModeSpec(ColorMode.PMS)
                 )
               case "grayscale" =>
                 ProductBuilderViewModel.removeSpecification(classOf[SpecValue.ColorModeSpec])
@@ -173,26 +188,30 @@ object SpecificationForm:
           case Language.Cs => "Orientace:"
         }),
         select(
-          value <-- clearFieldsStream,
-          children <-- lang.map { l =>
+          children <-- ProductBuilderViewModel.selectedOrientation.combineWith(lang).map { case (selectedOrientation, l) =>
+            val currentValue = selectedOrientation match
+              case Some(Orientation.Portrait) => "portrait"
+              case Some(Orientation.Landscape) => "landscape"
+              case None => ""
             List(
               option(
                 l match
                   case Language.En => "-- Select orientation --"
                   case Language.Cs => "-- Vyberte orientaci --"
-                , value := ""),
+                , value := "", selected := currentValue.isEmpty),
               option(
                 l match
                   case Language.En => "Portrait"
                   case Language.Cs => "Na výšku"
-                , value := "portrait"),
+                , value := "portrait", selected := (currentValue == "portrait")),
               option(
                 l match
                   case Language.En => "Landscape"
                   case Language.Cs => "Na šířku"
-                , value := "landscape"),
+                , value := "landscape", selected := (currentValue == "landscape")),
             )
           },
+          value <-- clearFieldsStream,
           onChange.mapToValue --> { value =>
             value match
               case "portrait" =>
@@ -221,17 +240,18 @@ object SpecificationForm:
           case Language.Cs => "Typ skladu:"
         }),
         select(
-          value <-- clearFieldsStream,
-          children <-- lang.map { l =>
+          children <-- ProductBuilderViewModel.selectedFoldType.combineWith(lang).map { case (selectedFoldType, l) =>
+            val currentValue = selectedFoldType.map(_.toString).getOrElse("")
             option(
               l match
                 case Language.En => "-- Select fold type --"
                 case Language.Cs => "-- Vyberte typ skladu --"
-              , value := "") ::
+              , value := "", selected := currentValue.isEmpty) ::
             FoldType.values.map { ft =>
-              option(ft.toString, value := ft.toString)
+              option(ft.toString, value := ft.toString, selected := (ft.toString == currentValue))
             }.toList
           },
+          value <-- clearFieldsStream,
           onChange.mapToValue --> { value =>
             if value.nonEmpty then
               FoldType.values.find(_.toString == value).foreach { ft =>
@@ -255,17 +275,18 @@ object SpecificationForm:
           case Language.Cs => "Typ vazby:"
         }),
         select(
-          value <-- clearFieldsStream,
-          children <-- lang.map { l =>
+          children <-- ProductBuilderViewModel.selectedBindingMethod.combineWith(lang).map { case (selectedBindingMethod, l) =>
+            val currentValue = selectedBindingMethod.map(_.toString).getOrElse("")
             option(
               l match
                 case Language.En => "-- Select binding method --"
                 case Language.Cs => "-- Vyberte typ vazby --"
-              , value := "") ::
+              , value := "", selected := currentValue.isEmpty) ::
             BindingMethod.values.map { bm =>
-              option(bm.toString, value := bm.toString)
+              option(bm.toString, value := bm.toString, selected := (bm.toString == currentValue))
             }.toList
           },
+          value <-- clearFieldsStream,
           onChange.mapToValue --> { value =>
             if value.nonEmpty then
               BindingMethod.values.find(_.toString == value).foreach { bm =>

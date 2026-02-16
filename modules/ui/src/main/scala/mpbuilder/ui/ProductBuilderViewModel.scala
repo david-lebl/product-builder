@@ -224,3 +224,32 @@ object ProductBuilderViewModel:
         case None =>
           List.empty
     }
+
+  // Get currently selected specifications as signals for UI binding
+  def selectedColorMode: Signal[Option[ColorMode]] =
+    state.map { s =>
+      s.specifications.collectFirst {
+        case SpecValue.ColorModeSpec(mode) => mode
+      }
+    }
+
+  def selectedOrientation: Signal[Option[Orientation]] =
+    state.map { s =>
+      s.specifications.collectFirst {
+        case SpecValue.OrientationSpec(orientation) => orientation
+      }
+    }
+
+  def selectedFoldType: Signal[Option[FoldType]] =
+    state.map { s =>
+      s.specifications.collectFirst {
+        case SpecValue.FoldTypeSpec(foldType) => foldType
+      }
+    }
+
+  def selectedBindingMethod: Signal[Option[BindingMethod]] =
+    state.map { s =>
+      s.specifications.collectFirst {
+        case SpecValue.BindingMethodSpec(bindingMethod) => bindingMethod
+      }
+    }
