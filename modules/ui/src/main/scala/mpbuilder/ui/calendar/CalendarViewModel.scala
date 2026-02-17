@@ -14,6 +14,10 @@ object CalendarViewModel {
   private val selectedElementVar: Var[Option[String]] = Var(None)
   val selectedElement: Signal[Option[String]] = selectedElementVar.signal
   
+  // Currently selected photo ID (for multi-photo support)
+  private val selectedPhotoVar: Var[Option[String]] = Var(None)
+  val selectedPhoto: Signal[Option[String]] = selectedPhotoVar.signal
+  
   // Photo editor state (when cropping/resizing)
   private val photoEditorOpenVar: Var[Boolean] = Var(false)
   val photoEditorOpen: Signal[Boolean] = photoEditorOpenVar.signal
@@ -55,38 +59,59 @@ object CalendarViewModel {
     )
     
     stateVar.update(s =>
-      s.updateCurrentPage(page => page.copy(photo = Some(photo)))
+      s.updateCurrentPage(page => page.copy(photos = page.photos :+ photo))
     )
+    
+    // Select the newly added photo
+    selectedPhotoVar.set(Some(photoId))
   }
   
-  def removePhoto(): Unit = {
+  def removePhoto(photoId: String): Unit = {
     stateVar.update(s =>
-      s.updateCurrentPage(page => page.copy(photo = None))
+      s.updateCurrentPage(page => page.copy(photos = page.photos.filterNot(_.id == photoId)))
     )
+    
+    // Deselect if this was the selected photo
+    if selectedPhotoVar.now().contains(photoId) then
+      selectedPhotoVar.set(None)
   }
   
-  def updatePhotoPosition(newPosition: Position): Unit = {
+  def updatePhotoPosition(photoId: String, newPosition: Position): Unit = {
     stateVar.update(s =>
       s.updateCurrentPage(page =>
-        page.copy(photo = page.photo.map(p => p.copy(position = newPosition)))
+        page.copy(photos = page.photos.map { p =>
+          if p.id == photoId then p.copy(position = newPosition) else p
+        })
       )
     )
   }
   
-  def updatePhotoSize(newSize: Size): Unit = {
+  def updatePhotoSize(photoId: String, newSize: Size): Unit = {
     stateVar.update(s =>
       s.updateCurrentPage(page =>
-        page.copy(photo = page.photo.map(p => p.copy(size = newSize)))
+        page.copy(photos = page.photos.map { p =>
+          if p.id == photoId then p.copy(size = newSize) else p
+        })
       )
     )
   }
   
-  def updatePhotoRotation(rotation: Double): Unit = {
+  def updatePhotoRotation(photoId: String, rotation: Double): Unit = {
     stateVar.update(s =>
       s.updateCurrentPage(page =>
-        page.copy(photo = page.photo.map(p => p.copy(rotation = rotation)))
+        page.copy(photos = page.photos.map { p =>
+          if p.id == photoId then p.copy(rotation = rotation) else p
+        })
       )
     )
+  }
+  
+  def selectPhoto(photoId: String): Unit = {
+    selectedPhotoVar.set(Some(photoId))
+  }
+  
+  def deselectPhoto(): Unit = {
+    selectedPhotoVar.set(None)
   }
   
   // Text field operations
@@ -172,6 +197,7 @@ object CalendarViewModel {
   def reset(): Unit = {
     stateVar.set(CalendarState.empty)
     selectedElementVar.set(None)
+    selectedPhotoVar.set(None)
     photoEditorOpenVar.set(false)
   }
   

@@ -9,12 +9,12 @@ import scala.scalajs.js
 object PhotoEditor {
   def apply(): Element = {
     val currentPage = CalendarViewModel.currentPage
-    val photoEditorOpen = CalendarViewModel.photoEditorOpen
+    val selectedPhoto = CalendarViewModel.selectedPhoto
     
     div(
       cls := "photo-editor-section",
       
-      h4("Photo"),
+      h4("Photos"),
       
       // Photo upload section
       div(
@@ -48,23 +48,62 @@ object PhotoEditor {
             dom.document.getElementById("photo-upload-input").asInstanceOf[dom.html.Input].click()
           }
         ),
-        
-        // Show remove button if photo exists
-        child.maybe <-- currentPage.map(_.photo.map { photo =>
-          button(
-            cls := "photo-remove-btn",
-            "Remove Photo",
-            onClick --> { _ => CalendarViewModel.removePhoto() }
-          )
-        }),
       ),
       
-      // Photo controls (only show if photo exists)
-      child.maybe <-- currentPage.map(_.photo.map { photo =>
-        div(
-          cls := "photo-controls",
-          
-          h5("Photo Controls"),
+      // List of photos
+      div(
+        cls := "photos-list",
+        children <-- currentPage.combineWith(selectedPhoto).map { (page, selected) =>
+          page.photos.zipWithIndex.map { case (photo, index) =>
+            renderPhotoItem(photo, index + 1, selected)
+          }
+        }
+      ),
+      
+      // Selected photo controls
+      child.maybe <-- selectedPhoto.signal.combineWith(currentPage).map {
+        case (Some(selectedId), page) =>
+          page.photos.find(_.id == selectedId).map { photo =>
+            renderPhotoControls(photo)
+          }
+        case _ => None
+      }
+    )
+  }
+  
+  private def renderPhotoItem(photo: PhotoElement, number: Int, selectedId: Option[String]): Element = {
+    val isSelected = selectedId.contains(photo.id)
+    
+    div(
+      cls := "photo-item",
+      cls := "selected" -> isSelected,
+      
+      div(
+        cls := "photo-preview",
+        span(
+          cls := "photo-number",
+          s"Photo $number"
+        ),
+        button(
+          cls := "select-photo-btn",
+          "Select",
+          onClick --> { _ => CalendarViewModel.selectPhoto(photo.id) }
+        ),
+        button(
+          cls := "remove-photo-btn",
+          "×",
+          onClick --> { _ => CalendarViewModel.removePhoto(photo.id) }
+        )
+      )
+    )
+  }
+  
+  private def renderPhotoControls(photo: PhotoElement): Element = {
+    div(
+      cls := "photo-controls",
+      
+      h5("Photo Controls"),
+      p(cls := "photo-hint", "Tip: Click and drag corners to resize. Click rotate button (↻) to rotate."),
           
           // Size controls
           div(
@@ -79,7 +118,7 @@ object PhotoEditor {
               cls := "size-input",
               onInput.mapToValue --> { value =>
                 value.toDoubleOption.foreach { w =>
-                  CalendarViewModel.updatePhotoSize(Size(w, photo.size.height))
+                  CalendarViewModel.updatePhotoSize(photo.id, Size(w, photo.size.height))
                 }
               }
             ),
@@ -97,7 +136,7 @@ object PhotoEditor {
               cls := "size-input",
               onInput.mapToValue --> { value =>
                 value.toDoubleOption.foreach { h =>
-                  CalendarViewModel.updatePhotoSize(Size(photo.size.width, h))
+                  CalendarViewModel.updatePhotoSize(photo.id, Size(photo.size.width, h))
                 }
               }
             ),
@@ -116,7 +155,7 @@ object PhotoEditor {
               cls := "rotation-slider",
               onInput.mapToValue --> { value =>
                 value.toDoubleOption.foreach { r =>
-                  CalendarViewModel.updatePhotoRotation(r)
+                  CalendarViewModel.updatePhotoRotation(photo.id, r)
                 }
               }
             ),
@@ -136,7 +175,7 @@ object PhotoEditor {
               cls := "position-input",
               onInput.mapToValue --> { value =>
                 value.toDoubleOption.foreach { x =>
-                  CalendarViewModel.updatePhotoPosition(Position(x, photo.position.y))
+                  CalendarViewModel.updatePhotoPosition(photo.id, Position(x, photo.position.y))
                 }
               }
             ),
@@ -154,13 +193,11 @@ object PhotoEditor {
               cls := "position-input",
               onInput.mapToValue --> { value =>
                 value.toDoubleOption.foreach { y =>
-                  CalendarViewModel.updatePhotoPosition(Position(photo.position.x, y))
+                  CalendarViewModel.updatePhotoPosition(photo.id, Position(photo.position.x, y))
                 }
               }
             ),
           ),
         )
-      }),
-    )
   }
 }

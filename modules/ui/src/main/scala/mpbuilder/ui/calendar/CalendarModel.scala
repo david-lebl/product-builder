@@ -37,7 +37,7 @@ case class CalendarTemplate(
 case class CalendarPage(
   pageNumber: Int, // 1-12 for each month
   template: CalendarTemplate,
-  photo: Option[PhotoElement] = None,
+  photos: List[PhotoElement] = List.empty, // Support multiple photos
   customTextFields: List[TextField] = List.empty,
 )
 

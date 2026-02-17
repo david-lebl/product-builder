@@ -9,15 +9,13 @@ object CalendarBuilderApp {
   def apply(): Element = {
     val lang = ProductBuilderViewModel.currentLanguage
     
-    // Update calendar month names when language changes
-    val languageChanges = lang.changes
-    languageChanges --> { language =>
-      CalendarViewModel.updateLanguage(language.toCode)
-    }
-    
     div(
       cls := "calendar-builder-app",
-      languageChanges, // Mount the observer
+      
+      // Update calendar month names when language changes
+      lang.changes --> { language =>
+        CalendarViewModel.updateLanguage(language.toCode)
+      },
       
       // Header
       div(
@@ -79,8 +77,8 @@ object CalendarBuilderApp {
             case Language.En => "Reset Calendar"
             case Language.Cs => "Resetovat kalendář"
           },
-          onClick --> { _ =>
-            val confirmMsg = lang.now() match {
+          onClick.compose(_.withCurrentValueOf(lang)) --> { case (_, currentLang) =>
+            val confirmMsg = currentLang match {
               case Language.En => "Are you sure you want to reset the calendar? All changes will be lost."
               case Language.Cs => "Opravdu chcete resetovat kalendář? Všechny změny budou ztraceny."
             }
@@ -94,8 +92,8 @@ object CalendarBuilderApp {
             case Language.En => "Preview All Pages"
             case Language.Cs => "Náhled všech stránek"
           },
-          onClick --> { _ =>
-            val msg = lang.now() match {
+          onClick.compose(_.withCurrentValueOf(lang)) --> { case (_, currentLang) =>
+            val msg = currentLang match {
               case Language.En => "Preview feature coming soon!"
               case Language.Cs => "Funkce náhledu bude brzy k dispozici!"
             }
