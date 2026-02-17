@@ -565,7 +565,7 @@
 
         .calendar-main-content {
             display: grid;
-            grid-template-columns: 300px 1fr 200px;
+            grid-template-columns: 320px 1fr 200px;
             gap: 20px;
             min-height: 600px;
         }
@@ -580,6 +580,8 @@
         .calendar-sidebar {
             border-right: 2px solid #e0e0e0;
             padding-right: 20px;
+            max-height: 700px;
+            overflow-y: auto;
         }
 
         .calendar-controls-card {
@@ -591,7 +593,8 @@
         .calendar-controls-card h4,
         .calendar-controls-card h5 {
             color: #667eea;
-            margin-bottom: 15px;
+            margin-bottom: 12px;
+            font-size: 1rem;
         }
 
         .calendar-controls-card hr {
@@ -600,122 +603,210 @@
             border-top: 1px solid #e0e0e0;
         }
 
-        /* Photo Editor Styles */
-        .photo-editor-section {
+        /* ─── Unified Element Editor ─────────────────────────── */
+
+        .element-editor-section {
             margin-bottom: 20px;
         }
 
-        .photo-upload {
+        /* Add-element button row */
+        .add-element-buttons {
             display: flex;
-            gap: 10px;
-            margin-bottom: 15px;
+            flex-wrap: wrap;
+            gap: 6px;
+            margin-bottom: 12px;
         }
 
-        .photo-upload-btn,
-        .photo-remove-btn {
-            flex: 1;
-            padding: 8px 12px;
+        .add-element-btn {
+            flex: 1 1 auto;
+            min-width: 70px;
+            padding: 6px 8px;
+            font-size: 0.8rem;
+            white-space: nowrap;
+        }
+
+        .add-photo-btn { background: #667eea; }
+        .add-text-btn  { background: #4caf50; }
+        .add-rect-btn  { background: #ff9800; }
+        .add-line-btn  { background: #795548; }
+        .add-clipart-btn { background: #9c27b0; }
+
+        /* Element list */
+        .elements-list {
+            max-height: 220px;
+            overflow-y: auto;
+            margin-bottom: 12px;
+        }
+
+        .empty-elements {
+            text-align: center;
+            color: #999;
+            padding: 15px;
+            font-style: italic;
             font-size: 0.9rem;
         }
 
-        .photo-remove-btn {
+        .element-item {
+            background: white;
+            border: 2px solid #e0e0e0;
+            border-radius: 6px;
+            padding: 6px 8px;
+            margin-bottom: 6px;
+            cursor: pointer;
+            transition: border-color 0.2s, background-color 0.2s;
+        }
+
+        .element-item:hover {
+            border-color: #b0b8f0;
+        }
+
+        .element-item.selected {
+            border-color: #667eea;
+            background: #f5f7ff;
+        }
+
+        .element-item-row {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .element-icon {
+            width: 22px;
+            text-align: center;
+            font-size: 0.9rem;
+        }
+
+        .element-label {
+            flex: 1;
+            font-size: 0.85rem;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .element-actions {
+            display: flex;
+            gap: 2px;
+        }
+
+        .element-action-btn {
+            padding: 2px 5px;
+            font-size: 0.75rem;
+            min-width: 22px;
+            background: #e0e0e0;
+            color: #333;
+            border-radius: 4px;
+        }
+
+        .element-action-btn:hover {
+            background: #667eea;
+            color: white;
+            transform: none;
+        }
+
+        .element-delete-btn {
+            background: #ffcdd2;
+            color: #c62828;
+        }
+
+        .element-delete-btn:hover {
             background: #ff5252;
+            color: white;
         }
 
-        .photo-remove-btn:hover {
-            background: #d32f2f;
+        /* Element form (type-specific editor) */
+        .element-form {
+            background: #f0f0f0;
+            border-radius: 6px;
+            padding: 12px;
+            margin-top: 10px;
         }
 
-        .photo-controls {
-            margin-top: 15px;
+        .element-form h5 {
+            margin-bottom: 10px;
         }
 
         .control-group {
-            margin-bottom: 10px;
+            margin-bottom: 8px;
         }
 
         .control-group label {
             display: block;
             margin-bottom: 3px;
-            font-size: 0.9rem;
+            font-size: 0.85rem;
             font-weight: 500;
         }
 
-        .control-group input {
+        .control-group input,
+        .control-group select {
             width: 100%;
-            padding: 6px;
-            font-size: 0.9rem;
+            padding: 5px 6px;
+            font-size: 0.85rem;
         }
 
-        .rotation-slider {
-            width: 80%;
+        .control-row {
+            display: flex;
+            gap: 8px;
         }
 
-        /* Text Editor Styles */
-        .text-editor-section {
-            margin-bottom: 20px;
+        .control-group.half {
+            flex: 1;
         }
 
-        .add-text-btn {
-            width: 100%;
-            margin-bottom: 15px;
-            background: #4caf50;
-        }
-
-        .add-text-btn:hover {
-            background: #388e3c;
-        }
-
-        .text-fields-list {
-            max-height: 200px;
-            overflow-y: auto;
-            margin-bottom: 15px;
-        }
-
-        .text-field-item {
-            background: white;
-            border: 2px solid #e0e0e0;
-            border-radius: 6px;
-            padding: 8px;
-            margin-bottom: 8px;
-            transition: border-color 0.2s;
-        }
-
-        .text-field-item.selected {
-            border-color: #667eea;
-            background: #f5f7ff;
-        }
-
-        .text-field-preview {
+        .rotation-row {
             display: flex;
             align-items: center;
             gap: 8px;
         }
 
-        .text-preview {
+        .rotation-slider {
             flex: 1;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            white-space: nowrap;
-            font-size: 0.9rem;
         }
 
-        .edit-text-btn,
-        .remove-text-btn {
+        .rotation-value {
+            font-size: 0.85rem;
+            min-width: 35px;
+            text-align: right;
+        }
+
+        /* Text formatting toolbar */
+        .text-format-row {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            flex-wrap: wrap;
+        }
+
+        .format-btn {
             padding: 4px 8px;
             font-size: 0.8rem;
+            min-width: 28px;
+            background: #e0e0e0;
+            color: #333;
+            border-radius: 4px;
+            text-align: center;
         }
 
-        .remove-text-btn {
-            background: #ff5252;
-            padding: 4px 10px;
+        .format-btn:hover {
+            background: #b8b8f0;
+            transform: none;
         }
 
-        .text-field-editor {
-            background: #f0f0f0;
-            border-radius: 6px;
-            padding: 15px;
-            margin-top: 10px;
+        .format-btn.active {
+            background: #667eea;
+            color: white;
+        }
+
+        .format-italic {
+            font-style: italic;
+        }
+
+        .format-separator {
+            width: 1px;
+            height: 20px;
+            background: #ccc;
+            margin: 0 2px;
         }
 
         .done-editing-btn {
@@ -723,11 +814,64 @@
             margin-top: 10px;
         }
 
-        /* Calendar Canvas Styles */
+        .info-hint {
+            font-size: 0.8rem;
+            color: #888;
+            font-style: italic;
+            margin-bottom: 8px;
+        }
+
+        /* ─── Background & Template Editor ───────────────────── */
+
+        .background-editor-section {
+            margin-bottom: 10px;
+        }
+
+        .template-select {
+            width: 100%;
+            padding: 6px;
+        }
+
+        .bg-image-controls {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .bg-upload-btn {
+            width: 100%;
+            padding: 8px;
+            font-size: 0.85rem;
+            background: #2196f3;
+        }
+
+        .bg-upload-btn:hover {
+            background: #1976d2;
+        }
+
+        .bg-reset-btn {
+            width: 100%;
+            padding: 6px;
+            font-size: 0.8rem;
+            background: #e0e0e0;
+            color: #333;
+        }
+
+        .bg-reset-btn:hover {
+            background: #ccc;
+            transform: none;
+        }
+
+        .predefined-textures {
+            padding: 4px 0;
+        }
+
+        /* ─── Calendar Canvas ────────────────────────────────── */
+
         .calendar-canvas-area {
             display: flex;
             justify-content: center;
-            align-items: center;
+            align-items: flex-start;
             background: #f5f5f5;
             border-radius: 8px;
             padding: 20px;
@@ -744,14 +888,14 @@
             border: 2px solid #e0e0e0;
             border-radius: 8px;
             box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-            overflow: hidden;
+            overflow: visible;
         }
 
         .calendar-page {
             position: relative;
             width: 100%;
             height: 600px;
-            overflow: hidden;
+            overflow: visible;
         }
 
         .calendar-background {
@@ -763,9 +907,10 @@
             z-index: 0;
         }
 
+        /* Template text (locked month/day labels) */
         .calendar-text-field {
             position: absolute;
-            z-index: 10;
+            z-index: 1;
             padding: 2px 4px;
             white-space: nowrap;
         }
@@ -775,28 +920,53 @@
             pointer-events: none;
         }
 
-        .calendar-photo {
+        /* ─── Canvas Elements (shared) ───────────────────────── */
+
+        .calendar-element {
             position: absolute;
-            z-index: 5;
             border: 2px dashed transparent;
-            transition: border-color 0.2s;
+            transition: border-color 0.15s;
             cursor: move;
         }
 
-        .calendar-photo.selected {
+        .calendar-element:hover {
+            border-color: rgba(102, 126, 234, 0.5);
+        }
+
+        .calendar-element.selected {
             border-color: #667eea;
             border-style: solid;
         }
 
-        .calendar-photo:hover {
-            border-color: #667eea;
-        }
-
+        /* Photo element */
         .calendar-photo img {
             pointer-events: none;
         }
-        
-        /* Resize handles */
+
+        /* Text element with frame */
+        .calendar-text-element {
+            min-width: 30px;
+            min-height: 20px;
+        }
+
+        .text-element-content {
+            padding: 2px 4px;
+            pointer-events: none;
+        }
+
+        /* Shape element */
+        .calendar-shape-element {
+            min-width: 10px;
+            min-height: 4px;
+        }
+
+        /* Clipart element */
+        .calendar-clipart-element img {
+            pointer-events: none;
+        }
+
+        /* ─── Resize Handles ─────────────────────────────────── */
+
         .resize-handles {
             position: absolute;
             top: 0;
@@ -805,92 +975,49 @@
             height: 100%;
             pointer-events: none;
         }
-        
+
         .resize-handle {
             position: absolute;
+            width: 10px;
+            height: 10px;
             background: #667eea;
             border: 2px solid white;
+            border-radius: 2px;
             pointer-events: all;
-            z-index: 10;
+            z-index: 20;
         }
-        
-        /* Corner handles */
-        .resize-handle-nw {
-            top: -5px;
-            left: -5px;
-            width: 10px;
-            height: 10px;
-            cursor: nw-resize;
-        }
-        
-        .resize-handle-ne {
-            top: -5px;
-            right: -5px;
-            width: 10px;
-            height: 10px;
-            cursor: ne-resize;
-        }
-        
-        .resize-handle-sw {
-            bottom: -5px;
-            left: -5px;
-            width: 10px;
-            height: 10px;
-            cursor: sw-resize;
-        }
-        
-        .resize-handle-se {
-            bottom: -5px;
-            right: -5px;
-            width: 10px;
-            height: 10px;
-            cursor: se-resize;
-        }
-        
-        /* Side handles */
+
+        .resize-handle-nw { top: -5px;    left: -5px;   cursor: nw-resize; }
+        .resize-handle-ne { top: -5px;    right: -5px;  cursor: ne-resize; }
+        .resize-handle-sw { bottom: -5px; left: -5px;   cursor: sw-resize; }
+        .resize-handle-se { bottom: -5px; right: -5px;  cursor: se-resize; }
+
         .resize-handle-n {
-            top: -5px;
-            left: 50%;
-            transform: translateX(-50%);
-            width: 10px;
-            height: 10px;
+            top: -5px; left: 50%; transform: translateX(-50%);
             cursor: n-resize;
         }
-        
         .resize-handle-s {
-            bottom: -5px;
-            left: 50%;
-            transform: translateX(-50%);
-            width: 10px;
-            height: 10px;
+            bottom: -5px; left: 50%; transform: translateX(-50%);
             cursor: s-resize;
         }
-        
         .resize-handle-e {
-            top: 50%;
-            right: -5px;
-            transform: translateY(-50%);
-            width: 10px;
-            height: 10px;
+            top: 50%; right: -5px; transform: translateY(-50%);
             cursor: e-resize;
         }
-        
         .resize-handle-w {
-            top: 50%;
-            left: -5px;
-            transform: translateY(-50%);
-            width: 10px;
-            height: 10px;
+            top: 50%; left: -5px; transform: translateY(-50%);
             cursor: w-resize;
         }
-        
-        /* Rotation button */
+
+        /* ─── Rotation Button (FIX: visible above parent) ──── */
+
         .rotate-btn {
             position: absolute;
-            top: -30px;
-            right: -5px;
-            width: 24px;
-            height: 24px;
+            top: -35px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 28px;
+            height: 28px;
             background: #667eea;
             color: white;
             border: 2px solid white;
@@ -899,69 +1026,22 @@
             align-items: center;
             justify-content: center;
             cursor: pointer;
-            font-size: 16px;
+            font-size: 18px;
             font-weight: bold;
-            z-index: 11;
+            z-index: 30;
             pointer-events: all;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+            line-height: 1;
+            padding: 0;
         }
-        
+
         .rotate-btn:hover {
             background: #764ba2;
-        }
-        
-        /* Photo list styles */
-        .photos-list {
-            max-height: 150px;
-            overflow-y: auto;
-            margin-bottom: 10px;
-        }
-        
-        .photo-item {
-            background: white;
-            border: 2px solid #e0e0e0;
-            border-radius: 6px;
-            padding: 8px;
-            margin-bottom: 8px;
-            transition: border-color 0.2s;
-        }
-        
-        .photo-item.selected {
-            border-color: #667eea;
-            background: #f5f7ff;
-        }
-        
-        .photo-preview {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-        
-        .photo-number {
-            flex: 1;
-            font-size: 0.9rem;
-        }
-        
-        .select-photo-btn,
-        .remove-photo-btn {
-            padding: 4px 8px;
-            font-size: 0.8rem;
-        }
-        
-        .remove-photo-btn {
-            background: #ff5252;
-            padding: 4px 10px;
-        }
-        
-        .photo-hint {
-            font-size: 0.85rem;
-            color: #666;
-            font-style: italic;
-            margin-bottom: 10px;
-            line-height: 1.4;
+            transform: translateX(-50%) scale(1.15);
         }
 
+        /* ─── Navigation Sidebar ─────────────────────────────── */
 
-        /* Navigation Sidebar Styles */
         .calendar-navigation-sidebar {
             border-left: 2px solid #e0e0e0;
             padding-left: 20px;
@@ -983,7 +1063,7 @@
             padding: 10px;
             width: 100%;
         }
-        
+
         .nav-btn:disabled {
             background: #cccccc !important;
             color: #666666 !important;
@@ -1038,7 +1118,8 @@
             margin-top: 4px;
         }
 
-        /* Calendar Footer Styles */
+        /* ─── Calendar Footer ────────────────────────────────── */
+
         .calendar-footer {
             margin-top: 30px;
             padding-top: 20px;

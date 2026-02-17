@@ -8,15 +8,15 @@ import mpbuilder.domain.model.Language
 object CalendarBuilderApp {
   def apply(): Element = {
     val lang = ProductBuilderViewModel.currentLanguage
-    
+
     div(
       cls := "calendar-builder-app",
-      
+
       // Update calendar month names when language changes
       lang.changes --> { language =>
         CalendarViewModel.updateLanguage(language.toCode)
       },
-      
+
       // Header
       div(
         cls := "calendar-header",
@@ -25,49 +25,49 @@ object CalendarBuilderApp {
           case Language.Cs => "Tvůrce foto kalendáře"
         }),
         p(child.text <-- lang.map {
-          case Language.En => "Create your custom photo calendar - upload photos, add text, and customize each month"
-          case Language.Cs => "Vytvořte si vlastní foto kalendář - nahrajte fotky, přidejte text a přizpůsobte každý měsíc"
+          case Language.En => "Create your custom photo calendar - upload photos, add text, shapes and customize each month"
+          case Language.Cs => "Vytvořte si vlastní foto kalendář - nahrajte fotky, přidejte text, tvary a přizpůsobte každý měsíc"
         })
       ),
-      
+
       // Main content area
       div(
         cls := "calendar-main-content",
-        
-        // Left sidebar: Controls
+
+        // Left sidebar: Unified element editor + background
         div(
           cls := "calendar-sidebar",
-          
+
           div(
             cls := "calendar-controls-card",
-            
-            // Photo editor section
-            PhotoEditor(),
-            
+
+            // Unified element list & forms
+            ElementListEditor(),
+
             hr(),
-            
-            // Text editor section
-            TextFieldEditor(),
+
+            // Background & template editor
+            BackgroundEditor(),
           )
         ),
-        
+
         // Center: Calendar page canvas
         div(
           cls := "calendar-canvas-area",
           CalendarPageCanvas()
         ),
-        
+
         // Right sidebar: Page navigation
         div(
           cls := "calendar-navigation-sidebar",
-          
+
           div(
             cls := "calendar-nav-card",
             PageNavigation()
           )
         )
       ),
-      
+
       // Footer with actions
       div(
         cls := "calendar-footer",
