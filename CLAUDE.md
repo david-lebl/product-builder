@@ -11,7 +11,7 @@ sbt "testOnly mpbuilder.domain.ConfigurationBuilderSpec"  # Run a single test su
 sbt "testOnly * -- -v"  # Verbose test output
 ```
 
-- Scala 3.8.1, JDK 11+, sbt
+- Scala 3.3.3, JDK 11+, sbt
 - Dependencies: ZIO 2.1.16, ZIO Prelude 1.0.0-RC39, ZIO Test
 
 ## Architecture
@@ -21,11 +21,11 @@ This is a DDD (Domain-Driven Design) product configuration system for the printi
 ### Package layout: `mpbuilder.domain`
 
 - **`model/`** — Value objects (opaque type IDs with smart constructors), entities, enums. `ProductConfiguration` is the aggregate root.
-- **`rules/`** — `CompatibilityRule` sealed ADT (13 rule variants), `SpecPredicate` and `ConfigurationPredicate` (boolean algebra with And/Or/Not). Rules are data, not code.
+- **`rules/`** — `CompatibilityRule` sealed ADT (12 rule variants), `SpecPredicate` and `ConfigurationPredicate` (boolean algebra with And/Or/Not). Rules are data, not code.
 - **`validation/`** — `ConfigurationError` ADT with exhaustive `message` match. `RuleEvaluator` interprets rules. `ConfigurationValidator` runs two-layer validation: structural checks first, then rule evaluation.
 - **`service/`** — `ConfigurationBuilder` resolves IDs from catalog and orchestrates validation. `CatalogQueryService` pre-filters compatible options for UI progressive disclosure.
 - **`pricing/`** — `Money` opaque type (BigDecimal, never Double). `PricingRule` sealed enum (7 variants: base price, area price, finish/type/process/category surcharges, quantity tiers). `PriceCalculator` interprets rules purely. `PricingError` ADT with exhaustive `message` match. `PriceBreakdown` output with line items.
-- **`sample/`** — `SampleCatalog` (6 categories, 5 materials, 14 finishes, 4 printing methods), `SampleRules` (22 rules), and `SamplePricelist` (pricing for all materials, key finishes, 4 quantity tiers). Used by tests.
+- **`sample/`** — `SampleCatalog` (7 categories, 9 materials, 14 finishes, 4 printing methods), `SampleRules` (24 rules), and `SamplePricelist` (pricing for all materials, key finishes, 4 quantity tiers). Used by tests.
 
 ### Key data flow
 
