@@ -95,9 +95,19 @@ object ElementListEditor {
       ),
 
       // ─── Selected element form editor ──────────────────────────
-      child.maybe <-- selectedElement.combineWith(currentPage).map { (selected, page) =>
+      // Only re-create form when selection changes (not on every state change)
+      // to prevent form fields from losing focus on each keystroke
+      child.maybe <-- selectedElement.map { selected =>
         selected.flatMap { selId =>
-          page.elements.find(_.id == selId).map(renderElementForm)
+          // Look up element type at creation time (type never changes for a given ID)
+          CalendarViewModel.currentPageSnapshot().elements.find(_.id == selId).map { elem =>
+            elem match {
+              case _: PhotoElement   => renderPhotoFormReactive(selId)
+              case _: TextElement    => renderTextFormReactive(selId)
+              case _: ShapeElement   => renderShapeFormReactive(selId)
+              case _: ClipartElement => renderClipartFormReactive(selId)
+            }
+          }
         }
       }
     )
@@ -160,25 +170,108 @@ object ElementListEditor {
   }
 
   // ─── Element form dispatcher ───────────────────────────────────
+  // (Reactive versions — form created once per selection, fields update via signals)
 
-  private def renderElementForm(elem: CanvasElement): Element = elem match {
-    case photo: PhotoElement   => renderPhotoForm(photo)
-    case text: TextElement     => renderTextForm(text)
-    case shape: ShapeElement   => renderShapeForm(shape)
-    case clip: ClipartElement  => renderClipartForm(clip)
-  }
+  // ─── Photo form (reactive) ─────────────────────────────────────
 
-  // ─── Photo form ────────────────────────────────────────────────
+  private def renderPhotoFormReactive(photoId: String): Element = {
+    val photoSignal: Signal[Option[PhotoElement]] = CalendarViewModel.currentPage.map(
+      _.elements.collectFirst { case p: PhotoElement if p.id == photoId => p }
+    )
 
-  private def renderPhotoForm(photo: PhotoElement): Element = {
     div(
       cls := "element-form",
 
       h5("Photo Controls"),
 
-      renderPositionControls(photo.id, photo.position),
-      renderSizeControls(photo.id, photo.size),
-      renderRotationControl(photo.id, photo.rotation),
+      // Replace image
+      div(
+        cls := "control-group",
+        input(
+          typ := "file",
+          accept := "image/*",
+          idAttr := s"photo-replace-$photoId",
+          display := "none",
+          onChange --> { ev =>
+            val inp = ev.target.asInstanceOf[dom.html.Input]
+            val files = inp.files
+            if files.length > 0 then
+              val file = files(0)
+              val reader = new FileReader()
+              reader.onload = { _ =>
+                val imageData = reader.result.asInstanceOf[String]
+                CalendarViewModel.replacePhotoImage(photoId, imageData)
+              }
+              reader.readAsDataURL(file)
+          }
+        ),
+        div(
+          cls := "photo-action-buttons",
+          button(
+            cls := "add-element-btn",
+            "📷 Replace Image",
+            onClick --> { _ =>
+              dom.document.getElementById(s"photo-replace-$photoId").asInstanceOf[dom.html.Input].click()
+            }
+          ),
+          button(
+            cls := "add-element-btn element-delete-btn",
+            "✕ Clear Image",
+            onClick --> { _ => CalendarViewModel.clearPhotoImage(photoId) }
+          ),
+        ),
+      ),
+
+      // Zoom control
+      div(
+        cls := "control-group",
+        label("Zoom:"),
+        div(
+          cls := "zoom-row",
+          button(
+            cls := "zoom-btn",
+            "−",
+            title := "Zoom out",
+            onClick --> { _ =>
+              CalendarViewModel.currentPageSnapshot().elements.collectFirst {
+                case p: PhotoElement if p.id == photoId => p
+              }.foreach { p =>
+                CalendarViewModel.updatePhotoImageScale(photoId, p.imageScale - 0.1)
+              }
+            }
+          ),
+          input(
+            typ := "range",
+            value <-- photoSignal.map(_.map(_.imageScale.toString).getOrElse("1.0")),
+            minAttr := "1",
+            maxAttr := "3",
+            stepAttr := "0.1",
+            cls := "zoom-slider",
+            onInput.mapToValue --> { v =>
+              v.toDoubleOption.foreach(s => CalendarViewModel.updatePhotoImageScale(photoId, s))
+            }
+          ),
+          button(
+            cls := "zoom-btn",
+            "+",
+            title := "Zoom in",
+            onClick --> { _ =>
+              CalendarViewModel.currentPageSnapshot().elements.collectFirst {
+                case p: PhotoElement if p.id == photoId => p
+              }.foreach { p =>
+                CalendarViewModel.updatePhotoImageScale(photoId, p.imageScale + 0.1)
+              }
+            }
+          ),
+          span(cls := "zoom-value", child.text <-- photoSignal.map(p =>
+            s"${(p.map(_.imageScale).getOrElse(1.0) * 100).toInt}%"
+          )),
+        ),
+      ),
+
+      renderPositionControlsReactive(photoId),
+      renderSizeControlsReactive(photoId),
+      renderRotationControlReactive(photoId),
 
       button(
         cls := "done-editing-btn",
@@ -188,9 +281,13 @@ object ElementListEditor {
     )
   }
 
-  // ─── Text form ─────────────────────────────────────────────────
+  // ─── Text form (reactive) ──────────────────────────────────────
 
-  private def renderTextForm(text: TextElement): Element = {
+  private def renderTextFormReactive(textId: String): Element = {
+    val textSignal: Signal[Option[TextElement]] = CalendarViewModel.currentPage.map(
+      _.elements.collectFirst { case t: TextElement if t.id == textId => t }
+    )
+
     div(
       cls := "element-form",
 
@@ -202,11 +299,13 @@ object ElementListEditor {
         label("Text:"),
         input(
           typ := "text",
-          value := text.text,
+          controlled(
+            value <-- textSignal.map(_.map(_.text).getOrElse("")),
+            onInput.mapToValue --> { v =>
+              CalendarViewModel.updateTextFieldText(textId, v)
+            }
+          ),
           cls := "text-input",
-          onInput.mapToValue --> { v =>
-            CalendarViewModel.updateTextFieldText(text.id, v)
-          }
         )
       ),
 
@@ -216,12 +315,12 @@ object ElementListEditor {
         label("Font:"),
         select(
           cls := "font-select",
-          value := text.fontFamily,
+          value <-- textSignal.map(_.map(_.fontFamily).getOrElse("Arial")),
           List("Arial", "Helvetica", "Times New Roman", "Georgia", "Courier New", "Verdana", "Impact", "Comic Sans MS").map { f =>
-            option(value := f, f, selected := (f == text.fontFamily))
+            option(value := f, f)
           },
           onChange.mapToValue --> { v =>
-            CalendarViewModel.updateTextFieldFontFamily(text.id, v)
+            CalendarViewModel.updateTextFieldFontFamily(textId, v)
           }
         )
       ),
@@ -232,14 +331,16 @@ object ElementListEditor {
         label("Font Size:"),
         input(
           typ := "number",
-          value := text.fontSize.toString,
+          controlled(
+            value <-- textSignal.map(_.map(_.fontSize.toString).getOrElse("14")),
+            onInput.mapToValue --> { v =>
+              v.toIntOption.foreach(sz => CalendarViewModel.updateTextFieldFontSize(textId, sz))
+            }
+          ),
           minAttr := "8",
           maxAttr := "72",
           stepAttr := "1",
           cls := "font-size-input",
-          onInput.mapToValue --> { v =>
-            v.toIntOption.foreach(sz => CalendarViewModel.updateTextFieldFontSize(text.id, sz))
-          }
         )
       ),
 
@@ -248,39 +349,47 @@ object ElementListEditor {
         cls := "control-group text-format-row",
         button(
           cls := "format-btn",
-          cls := "active" -> text.bold,
+          cls <-- textSignal.map(_.exists(_.bold)).map(b => if b then "active" else ""),
           "B",
           title := "Bold",
-          onClick --> { _ => CalendarViewModel.updateTextFieldBold(text.id, !text.bold) }
+          onClick --> { _ =>
+            CalendarViewModel.currentPageSnapshot().elements.collectFirst {
+              case t: TextElement if t.id == textId => t
+            }.foreach(t => CalendarViewModel.updateTextFieldBold(textId, !t.bold))
+          }
         ),
         button(
           cls := "format-btn format-italic",
-          cls := "active" -> text.italic,
+          cls <-- textSignal.map(_.exists(_.italic)).map(i => if i then "active" else ""),
           "I",
           title := "Italic",
-          onClick --> { _ => CalendarViewModel.updateTextFieldItalic(text.id, !text.italic) }
+          onClick --> { _ =>
+            CalendarViewModel.currentPageSnapshot().elements.collectFirst {
+              case t: TextElement if t.id == textId => t
+            }.foreach(t => CalendarViewModel.updateTextFieldItalic(textId, !t.italic))
+          }
         ),
         span(cls := "format-separator"),
         button(
           cls := "format-btn",
-          cls := "active" -> (text.textAlign == TextAlignment.Left),
+          cls <-- textSignal.map(_.exists(_.textAlign == TextAlignment.Left)).map(a => if a then "active" else ""),
           "≡←",
           title := "Align left",
-          onClick --> { _ => CalendarViewModel.updateTextFieldAlign(text.id, TextAlignment.Left) }
+          onClick --> { _ => CalendarViewModel.updateTextFieldAlign(textId, TextAlignment.Left) }
         ),
         button(
           cls := "format-btn",
-          cls := "active" -> (text.textAlign == TextAlignment.Center),
+          cls <-- textSignal.map(_.exists(_.textAlign == TextAlignment.Center)).map(a => if a then "active" else ""),
           "≡",
           title := "Align center",
-          onClick --> { _ => CalendarViewModel.updateTextFieldAlign(text.id, TextAlignment.Center) }
+          onClick --> { _ => CalendarViewModel.updateTextFieldAlign(textId, TextAlignment.Center) }
         ),
         button(
           cls := "format-btn",
-          cls := "active" -> (text.textAlign == TextAlignment.Right),
+          cls <-- textSignal.map(_.exists(_.textAlign == TextAlignment.Right)).map(a => if a then "active" else ""),
           "≡→",
           title := "Align right",
-          onClick --> { _ => CalendarViewModel.updateTextFieldAlign(text.id, TextAlignment.Right) }
+          onClick --> { _ => CalendarViewModel.updateTextFieldAlign(textId, TextAlignment.Right) }
         ),
       ),
 
@@ -290,17 +399,17 @@ object ElementListEditor {
         label("Color:"),
         input(
           typ := "color",
-          value := text.color,
+          value <-- textSignal.map(_.map(_.color).getOrElse("#000000")),
           cls := "color-input",
           onInput.mapToValue --> { v =>
-            CalendarViewModel.updateTextFieldColor(text.id, v)
+            CalendarViewModel.updateTextFieldColor(textId, v)
           }
         )
       ),
 
-      renderPositionControls(text.id, text.position),
-      renderSizeControls(text.id, text.size),
-      renderRotationControl(text.id, text.rotation),
+      renderPositionControlsReactive(textId),
+      renderSizeControlsReactive(textId),
+      renderRotationControlReactive(textId),
 
       button(
         cls := "done-editing-btn",
@@ -310,13 +419,22 @@ object ElementListEditor {
     )
   }
 
-  // ─── Shape form ────────────────────────────────────────────────
+  // ─── Shape form (reactive) ─────────────────────────────────────
 
-  private def renderShapeForm(shape: ShapeElement): Element = {
+  private def renderShapeFormReactive(shapeId: String): Element = {
+    val shapeSignal: Signal[Option[ShapeElement]] = CalendarViewModel.currentPage.map(
+      _.elements.collectFirst { case s: ShapeElement if s.id == shapeId => s }
+    )
+
+    // Shape type is determined once at creation (never changes)
+    val shapeType = CalendarViewModel.currentPageSnapshot().elements.collectFirst {
+      case s: ShapeElement if s.id == shapeId => s.shapeType
+    }.getOrElse(ShapeType.Rectangle)
+
     div(
       cls := "element-form",
 
-      h5(s"${shape.shapeType} Controls"),
+      h5(s"$shapeType Controls"),
 
       // Stroke color
       div(
@@ -324,25 +442,25 @@ object ElementListEditor {
         label("Stroke Color:"),
         input(
           typ := "color",
-          value := shape.strokeColor,
+          value <-- shapeSignal.map(_.map(_.strokeColor).getOrElse("#000000")),
           cls := "color-input",
           onInput.mapToValue --> { v =>
-            CalendarViewModel.updateShape(shape.id, _.copy(strokeColor = v))
+            CalendarViewModel.updateShape(shapeId, _.copy(strokeColor = v))
           }
         )
       ),
 
       // Fill color (for rectangle)
-      if shape.shapeType == ShapeType.Rectangle then
+      if shapeType == ShapeType.Rectangle then
         div(
           cls := "control-group",
           label("Fill Color:"),
           input(
             typ := "color",
-            value := (if shape.fillColor == "transparent" then "#ffffff" else shape.fillColor),
+            value <-- shapeSignal.map(_.map(s => if s.fillColor == "transparent" then "#ffffff" else s.fillColor).getOrElse("#ffffff")),
             cls := "color-input",
             onInput.mapToValue --> { v =>
-              CalendarViewModel.updateShape(shape.id, _.copy(fillColor = v))
+              CalendarViewModel.updateShape(shapeId, _.copy(fillColor = v))
             }
           )
         )
@@ -354,20 +472,22 @@ object ElementListEditor {
         label("Stroke Width:"),
         input(
           typ := "number",
-          value := shape.strokeWidth.toString,
+          controlled(
+            value <-- shapeSignal.map(_.map(_.strokeWidth.toString).getOrElse("2")),
+            onInput.mapToValue --> { v =>
+              v.toDoubleOption.foreach(sw => CalendarViewModel.updateShape(shapeId, _.copy(strokeWidth = sw)))
+            }
+          ),
           minAttr := "1",
           maxAttr := "20",
           stepAttr := "1",
           cls := "stroke-input",
-          onInput.mapToValue --> { v =>
-            v.toDoubleOption.foreach(sw => CalendarViewModel.updateShape(shape.id, _.copy(strokeWidth = sw)))
-          }
         )
       ),
 
-      renderPositionControls(shape.id, shape.position),
-      renderSizeControls(shape.id, shape.size),
-      renderRotationControl(shape.id, shape.rotation),
+      renderPositionControlsReactive(shapeId),
+      renderSizeControlsReactive(shapeId),
+      renderRotationControlReactive(shapeId),
 
       button(
         cls := "done-editing-btn",
@@ -377,18 +497,18 @@ object ElementListEditor {
     )
   }
 
-  // ─── Clipart form ──────────────────────────────────────────────
+  // ─── Clipart form (reactive) ───────────────────────────────────
 
-  private def renderClipartForm(clip: ClipartElement): Element = {
+  private def renderClipartFormReactive(clipId: String): Element = {
     div(
       cls := "element-form",
 
       h5("Clipart Controls"),
       p(cls := "info-hint", "Clipart gallery coming soon. Replace image via upload."),
 
-      renderPositionControls(clip.id, clip.position),
-      renderSizeControls(clip.id, clip.size),
-      renderRotationControl(clip.id, clip.rotation),
+      renderPositionControlsReactive(clipId),
+      renderSizeControlsReactive(clipId),
+      renderRotationControlReactive(clipId),
 
       button(
         cls := "done-editing-btn",
@@ -398,9 +518,10 @@ object ElementListEditor {
     )
   }
 
-  // ─── Shared form helpers ───────────────────────────────────────
+  // ─── Shared reactive form helpers ──────────────────────────────
 
-  private def renderPositionControls(elementId: String, pos: Position): Element = {
+  private def renderPositionControlsReactive(elementId: String): Element = {
+    val elemSignal = CalendarViewModel.currentPage.map(_.elements.find(_.id == elementId))
     div(
       cls := "control-row",
       div(
@@ -408,12 +529,14 @@ object ElementListEditor {
         label("X:"),
         input(
           typ := "number",
-          value := pos.x.toInt.toString,
+          controlled(
+            value <-- elemSignal.map(_.map(_.position.x.toInt.toString).getOrElse("0")),
+            onInput.mapToValue --> { v =>
+              v.toDoubleOption.foreach(x => CalendarViewModel.updateElementPositionX(elementId, x))
+            }
+          ),
           stepAttr := "5",
           cls := "position-input",
-          onInput.mapToValue --> { v =>
-            v.toDoubleOption.foreach(x => CalendarViewModel.updateElementPosition(elementId, Position(x, pos.y)))
-          }
         )
       ),
       div(
@@ -421,18 +544,21 @@ object ElementListEditor {
         label("Y:"),
         input(
           typ := "number",
-          value := pos.y.toInt.toString,
+          controlled(
+            value <-- elemSignal.map(_.map(_.position.y.toInt.toString).getOrElse("0")),
+            onInput.mapToValue --> { v =>
+              v.toDoubleOption.foreach(y => CalendarViewModel.updateElementPositionY(elementId, y))
+            }
+          ),
           stepAttr := "5",
           cls := "position-input",
-          onInput.mapToValue --> { v =>
-            v.toDoubleOption.foreach(y => CalendarViewModel.updateElementPosition(elementId, Position(pos.x, y)))
-          }
         )
       )
     )
   }
 
-  private def renderSizeControls(elementId: String, sz: Size): Element = {
+  private def renderSizeControlsReactive(elementId: String): Element = {
+    val elemSignal = CalendarViewModel.currentPage.map(_.elements.find(_.id == elementId))
     div(
       cls := "control-row",
       div(
@@ -440,13 +566,15 @@ object ElementListEditor {
         label("W:"),
         input(
           typ := "number",
-          value := sz.width.toInt.toString,
+          controlled(
+            value <-- elemSignal.map(_.map(_.size.width.toInt.toString).getOrElse("0")),
+            onInput.mapToValue --> { v =>
+              v.toDoubleOption.foreach(w => CalendarViewModel.updateElementSizeWidth(elementId, w))
+            }
+          ),
           minAttr := "10",
           stepAttr := "10",
           cls := "size-input",
-          onInput.mapToValue --> { v =>
-            v.toDoubleOption.foreach(w => CalendarViewModel.updateElementSize(elementId, Size(w, sz.height)))
-          }
         )
       ),
       div(
@@ -454,19 +582,22 @@ object ElementListEditor {
         label("H:"),
         input(
           typ := "number",
-          value := sz.height.toInt.toString,
+          controlled(
+            value <-- elemSignal.map(_.map(_.size.height.toInt.toString).getOrElse("0")),
+            onInput.mapToValue --> { v =>
+              v.toDoubleOption.foreach(h => CalendarViewModel.updateElementSizeHeight(elementId, h))
+            }
+          ),
           minAttr := "10",
           stepAttr := "10",
           cls := "size-input",
-          onInput.mapToValue --> { v =>
-            v.toDoubleOption.foreach(h => CalendarViewModel.updateElementSize(elementId, Size(sz.width, h)))
-          }
         )
       )
     )
   }
 
-  private def renderRotationControl(elementId: String, rotation: Double): Element = {
+  private def renderRotationControlReactive(elementId: String): Element = {
+    val elemSignal = CalendarViewModel.currentPage.map(_.elements.find(_.id == elementId))
     div(
       cls := "control-group",
       label("Rotation:"),
@@ -474,7 +605,7 @@ object ElementListEditor {
         cls := "rotation-row",
         input(
           typ := "range",
-          value := rotation.toString,
+          value <-- elemSignal.map(_.map(_.rotation.toString).getOrElse("0")),
           minAttr := "0",
           maxAttr := "360",
           stepAttr := "1",
@@ -483,7 +614,9 @@ object ElementListEditor {
             v.toDoubleOption.foreach(r => CalendarViewModel.updateElementRotation(elementId, r))
           }
         ),
-        span(cls := "rotation-value", s"${rotation.toInt}°"),
+        span(cls := "rotation-value", child.text <-- elemSignal.map(e =>
+          s"${e.map(_.rotation.toInt).getOrElse(0)}°"
+        )),
       )
     )
   }

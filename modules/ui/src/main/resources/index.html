@@ -821,6 +821,57 @@
             margin-bottom: 8px;
         }
 
+        /* Photo action buttons and zoom controls */
+        .photo-action-buttons {
+            display: flex;
+            gap: 6px;
+            margin-bottom: 8px;
+        }
+
+        .photo-action-buttons button {
+            flex: 1;
+            padding: 6px 8px;
+            font-size: 0.8rem;
+        }
+
+        .zoom-row {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .zoom-slider {
+            flex: 1;
+        }
+
+        .zoom-btn {
+            width: 28px;
+            height: 28px;
+            padding: 0;
+            font-size: 16px;
+            font-weight: bold;
+            background: #e0e0e0;
+            color: #333;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            flex-shrink: 0;
+        }
+
+        .zoom-btn:hover {
+            background: #667eea;
+            color: white;
+            transform: none;
+        }
+
+        .zoom-value {
+            font-size: 0.8rem;
+            min-width: 38px;
+            text-align: right;
+        }
+
         /* ─── Background & Template Editor ───────────────────── */
 
         .background-editor-section {
@@ -888,14 +939,14 @@
             border: 2px solid #e0e0e0;
             border-radius: 8px;
             box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-            overflow: visible;
+            overflow: hidden;
         }
 
         .calendar-page {
             position: relative;
             width: 100%;
             height: 600px;
-            overflow: visible;
+            overflow: hidden;
         }
 
         .calendar-background {
@@ -1009,13 +1060,20 @@
             cursor: w-resize;
         }
 
-        /* ─── Rotation Button (FIX: visible above parent) ──── */
+        /* ─── Rotation Buttons (left and right) ──────────────── */
 
-        .rotate-btn {
+        .rotate-buttons-container {
             position: absolute;
             top: -35px;
             left: 50%;
             transform: translateX(-50%);
+            display: flex;
+            gap: 4px;
+            z-index: 30;
+            pointer-events: all;
+        }
+
+        .rotate-btn {
             width: 28px;
             height: 28px;
             background: #667eea;
@@ -1037,7 +1095,7 @@
 
         .rotate-btn:hover {
             background: #764ba2;
-            transform: translateX(-50%) scale(1.15);
+            transform: scale(1.15);
         }
 
         /* ─── Navigation Sidebar ─────────────────────────────── */

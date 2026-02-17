@@ -33,6 +33,9 @@ object CalendarViewModel {
 
   def currentPageIndex: Signal[Int] = state.map(_.currentPageIndex)
 
+  /** Snapshot of the current page (for one-time lookups, not reactive) */
+  def currentPageSnapshot(): CalendarPage = stateVar.now().currentPage
+
   // Navigation
   def goToNextPage(): Unit = stateVar.update(_.goToNext)
   def goToPreviousPage(): Unit = stateVar.update(_.goToPrevious)
@@ -67,8 +70,20 @@ object CalendarViewModel {
   def updateElementPosition(elementId: String, newPosition: Position): Unit =
     updateElement(elementId, _.withPosition(newPosition))
 
+  def updateElementPositionX(elementId: String, newX: Double): Unit =
+    updateElement(elementId, e => e.withPosition(Position(newX, e.position.y)))
+
+  def updateElementPositionY(elementId: String, newY: Double): Unit =
+    updateElement(elementId, e => e.withPosition(Position(e.position.x, newY)))
+
   def updateElementSize(elementId: String, newSize: Size): Unit =
     updateElement(elementId, _.withSize(newSize))
+
+  def updateElementSizeWidth(elementId: String, newWidth: Double): Unit =
+    updateElement(elementId, e => e.withSize(Size(newWidth, e.size.height)))
+
+  def updateElementSizeHeight(elementId: String, newHeight: Double): Unit =
+    updateElement(elementId, e => e.withSize(Size(e.size.width, newHeight)))
 
   def updateElementRotation(elementId: String, rotation: Double): Unit =
     updateElement(elementId, _.withRotation(rotation))
@@ -146,6 +161,28 @@ object CalendarViewModel {
 
   def updatePhotoRotation(photoId: String, rotation: Double): Unit =
     updateElementRotation(photoId, rotation)
+
+  def updatePhoto(photoId: String, updater: PhotoElement => PhotoElement): Unit =
+    stateVar.update(s =>
+      s.updateCurrentPage(page =>
+        page.copy(elements = page.elements.map {
+          case e: PhotoElement if e.id == photoId => updater(e)
+          case other => other
+        })
+      )
+    )
+
+  def updatePhotoImageScale(photoId: String, scale: Double): Unit =
+    updatePhoto(photoId, _.copy(imageScale = math.max(1.0, scale)))
+
+  def updatePhotoImageOffset(photoId: String, offsetX: Double, offsetY: Double): Unit =
+    updatePhoto(photoId, _.copy(imageOffsetX = offsetX, imageOffsetY = offsetY))
+
+  def clearPhotoImage(photoId: String): Unit =
+    updatePhoto(photoId, _.copy(imageData = "", imageScale = 1.0, imageOffsetX = 0.0, imageOffsetY = 0.0))
+
+  def replacePhotoImage(photoId: String, imageData: String): Unit =
+    updatePhoto(photoId, _.copy(imageData = imageData, imageScale = 1.0, imageOffsetX = 0.0, imageOffsetY = 0.0))
 
   // ─── Text element operations ─────────────────────────────────────
 
