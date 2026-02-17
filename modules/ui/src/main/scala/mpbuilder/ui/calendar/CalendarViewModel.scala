@@ -18,6 +18,14 @@ object CalendarViewModel {
   private val photoEditorOpenVar: Var[Boolean] = Var(false)
   val photoEditorOpen: Signal[Boolean] = photoEditorOpenVar.signal
   
+  // ID generation counter to avoid collisions
+  private var idCounter: Int = 0
+  
+  private def generateId(prefix: String): String = {
+    idCounter += 1
+    s"$prefix-${System.currentTimeMillis()}-$idCounter"
+  }
+  
   // Current page as signal
   def currentPage: Signal[CalendarPage] = state.map(_.currentPage)
   
@@ -38,7 +46,7 @@ object CalendarViewModel {
   
   // Photo operations
   def uploadPhoto(imageData: String): Unit = {
-    val photoId = s"photo-${System.currentTimeMillis()}"
+    val photoId = generateId("photo")
     val photo = PhotoElement(
       id = photoId,
       imageData = imageData,
@@ -83,7 +91,7 @@ object CalendarViewModel {
   
   // Text field operations
   def addTextField(): Unit = {
-    val textId = s"text-${System.currentTimeMillis()}"
+    val textId = generateId("text")
     val textField = TextField(
       id = textId,
       text = "New Text",

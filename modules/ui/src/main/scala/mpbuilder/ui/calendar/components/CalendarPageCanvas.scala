@@ -73,7 +73,7 @@ object CalendarPageCanvas {
           val startPosX = field.position.x
           val startPosY = field.position.y
           
-          var mouseUpHandler: js.Function1[dom.MouseEvent, Unit] = null
+          var mouseUpHandlerOpt: Option[js.Function1[dom.MouseEvent, Unit]] = None
           
           val mouseMoveHandler: js.Function1[dom.MouseEvent, Unit] = { moveEv =>
             val deltaX = moveEv.clientX - startX
@@ -84,10 +84,12 @@ object CalendarPageCanvas {
             )
           }
           
-          mouseUpHandler = { _ =>
+          val mouseUpHandler: js.Function1[dom.MouseEvent, Unit] = { _ =>
             dom.window.removeEventListener("mousemove", mouseMoveHandler)
-            dom.window.removeEventListener("mouseup", mouseUpHandler)
+            mouseUpHandlerOpt.foreach(h => dom.window.removeEventListener("mouseup", h))
           }
+          
+          mouseUpHandlerOpt = Some(mouseUpHandler)
           
           dom.window.addEventListener("mousemove", mouseMoveHandler)
           dom.window.addEventListener("mouseup", mouseUpHandler)
@@ -125,7 +127,7 @@ object CalendarPageCanvas {
         val startPosX = photo.position.x
         val startPosY = photo.position.y
         
-        var mouseUpHandler: js.Function1[dom.MouseEvent, Unit] = null
+        var mouseUpHandlerOpt: Option[js.Function1[dom.MouseEvent, Unit]] = None
         
         val mouseMoveHandler: js.Function1[dom.MouseEvent, Unit] = { moveEv =>
           val deltaX = moveEv.clientX - startX
@@ -135,10 +137,12 @@ object CalendarPageCanvas {
           )
         }
         
-        mouseUpHandler = { _ =>
+        val mouseUpHandler: js.Function1[dom.MouseEvent, Unit] = { _ =>
           dom.window.removeEventListener("mousemove", mouseMoveHandler)
-          dom.window.removeEventListener("mouseup", mouseUpHandler)
+          mouseUpHandlerOpt.foreach(h => dom.window.removeEventListener("mouseup", h))
         }
+        
+        mouseUpHandlerOpt = Some(mouseUpHandler)
         
         dom.window.addEventListener("mousemove", mouseMoveHandler)
         dom.window.addEventListener("mouseup", mouseUpHandler)
