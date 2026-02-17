@@ -22,6 +22,20 @@ object AppRouter {
     val lang = ProductBuilderViewModel.currentLanguage
     
     div(
+      // Language selector at the top level
+      div(
+        cls := "language-selector",
+        label("Language / Jazyk: "),
+        select(
+          value <-- lang.map(_.toCode),
+          option("English", value := "en"),
+          option("Čeština", value := "cs"),
+          onChange.mapToValue --> { code =>
+            ProductBuilderViewModel.setLanguage(Language.fromCode(code))
+          },
+        ),
+      ),
+      
       // Navigation header
       div(
         cls := "app-navigation",
@@ -43,7 +57,10 @@ object AppRouter {
             case AppRoute.CalendarBuilder => "active"
             case _ => ""
           },
-          "Calendar Builder",
+          child.text <-- lang.map {
+            case Language.En => "Calendar Builder"
+            case Language.Cs => "Tvůrce kalendářů"
+          },
           onClick --> { _ => navigateTo(AppRoute.CalendarBuilder) }
         )
       ),

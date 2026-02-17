@@ -9,20 +9,6 @@ object ProductBuilderApp:
     val lang = ProductBuilderViewModel.currentLanguage
 
     div(
-      // Language selector - positioned outside the grid
-      div(
-        cls := "language-selector",
-        label("Language / Jazyk: "),
-        select(
-          value <-- lang.map(_.toCode),
-          option("English", value := "en"),
-          option("Čeština", value := "cs"),
-          onChange.mapToValue --> { code =>
-            ProductBuilderViewModel.setLanguage(Language.fromCode(code))
-          },
-        ),
-      ),
-      
       // Main content grid
       div(
         cls := "main-content",
