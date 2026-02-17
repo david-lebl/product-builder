@@ -1,6 +1,6 @@
-# Running the Material Builder UI
+# Running the Product Builder UI
 
-This guide explains how to build and run the Material Builder UI locally.
+This guide explains how to build and run the Product Builder UI locally. The app includes two main views: the **Product Builder** (print product configurator) and the **Calendar Builder** (photo calendar editor).
 
 ## Prerequisites
 
@@ -79,27 +79,52 @@ Then copy from `modules/ui/target/scala-3.3.3/material-builder-ui-opt/` instead.
 
 ## Using the UI
 
-### Step 1: Select Product Category
-Choose from available categories (Business Cards, Flyers, Brochures, Banners, Packaging, Booklets).
+The app has two main views accessible via navigation buttons at the top: **Product Builder** and **Calendar Builder**. A language selector (English / Čeština) is available at the top level and applies to both views.
 
-### Step 2: Select Material
-The dropdown will show only materials compatible with your selected category.
+### Product Builder
 
-### Step 3: Select Printing Method
+#### Step 1: Select Product Category
+Choose from available categories (Business Cards, Flyers, Brochures, Banners, Packaging, Booklets, Calendars).
+
+#### Step 2: Select Material
+The dropdown shows only materials compatible with your selected category.
+
+#### Step 3: Select Printing Method
 Choose a printing method suitable for your category.
 
-### Step 4: Select Finishes (Optional)
+#### Step 4: Select Finishes (Optional)
 The UI shows only finishes compatible with your material and category. You can select multiple finishes.
 
-### Step 5: Product Specifications
+#### Step 5: Product Specifications
 Enter specifications:
 - **Quantity**: Number of items (e.g., 1000)
 - **Size**: Width and height in millimeters (e.g., 90mm × 50mm for business cards)
 - **Pages**: Optional, for multi-page products
 - **Color Mode**: CMYK or Grayscale
+- **Binding Method**: Required for booklets/calendars
 
-### Step 6: Calculate Price
-Click "Calculate Price" to validate your configuration and see the pricing breakdown.
+#### Step 6: Calculate Price & Add to Basket
+Click "Calculate Price" to validate your configuration and see the pricing breakdown. You can then add the configured product to the shopping basket with a specified quantity.
+
+### Shopping Basket
+- View all added items with product details (category, material, printing method, finishes)
+- Update quantities for individual items
+- Remove items or clear the entire basket
+- See basket total calculation
+
+### Calendar Builder
+
+The Calendar Builder is a visual editor for designing 12-page photo calendars:
+
+- **Page Navigation**: Move between 12 monthly pages
+- **Element Types**: Add photos (upload from local machine), text fields, and shapes (lines, rectangles)
+- **Element Editing**: Select any element to resize, rotate, reposition, or modify properties
+- **Text Formatting**: Bold, italic, text alignment (left/center/right)
+- **Shapes**: Configurable stroke and fill colors
+- **Z-Ordering**: Bring elements to front or send to back
+- **Duplicate & Delete**: Clone or remove elements
+- **Page Backgrounds**: Set solid colors or upload background images
+- **Template Fields**: Pre-set month and day labels (locked, non-editable)
 
 ## Key Features
 
@@ -107,6 +132,9 @@ Click "Calculate Price" to validate your configuration and see the pricing break
 - **Real-time Compatibility**: The UI dynamically filters available materials, finishes, and methods based on business rules
 - **Price Calculation**: Instant pricing with detailed breakdown including material costs, finish surcharges, and quantity discounts
 - **Validation Feedback**: Clear error messages if configuration is invalid
+- **Internationalization**: English and Czech language support with browser detection
+- **Shopping Basket**: Manage multiple product configurations with quantities and totals
+- **Calendar Editor**: Visual drag-and-drop calendar page design
 
 ## Architecture
 
@@ -115,6 +143,7 @@ The UI is built with:
 - **Laminar**: Reactive UI framework with Signal/Var reactive primitives
 - **Domain Model**: Shared pure functional domain logic (cross-compiled from JVM)
 - **Sample Catalog**: Pre-loaded with materials, finishes, rules, and pricing
+- **AppRouter**: Client-side routing between Product Builder and Calendar Builder views
 
 ## Troubleshooting
 
@@ -132,7 +161,7 @@ Clear your browser cache or do a hard refresh (Ctrl+F5 or Cmd+Shift+R).
 
 ## Next Steps
 
-- Persistence layer for saving configurations
+- Persistence layer for saving configurations and calendar state
 - Server-side API for validation and pricing
 - Admin interface for managing catalogs and rules
-- PDF generation for order proofs
+- PDF generation for calendar pages and order proofs
