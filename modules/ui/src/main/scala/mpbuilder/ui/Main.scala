@@ -14,7 +14,7 @@ object Main:
     
     renderOnDomContentLoaded(
       dom.document.getElementById("app-root"),
-      ProductBuilderApp()
+      AppRouter()
     )
   
   private def detectBrowserLanguage(): Language =
