@@ -54,7 +54,7 @@ object PhotoEditor {
       div(
         cls := "photos-list",
         children <-- currentPage.combineWith(selectedPhoto).map { (page, selected) =>
-          page.photos.zipWithIndex.map { case (photo, index) =>
+          page.elements.collect { case p: PhotoElement => p }.zipWithIndex.map { case (photo, index) =>
             renderPhotoItem(photo, index + 1, selected)
           }
         }
@@ -63,7 +63,7 @@ object PhotoEditor {
       // Selected photo controls
       child.maybe <-- selectedPhoto.signal.combineWith(currentPage).map {
         case (Some(selectedId), page) =>
-          page.photos.find(_.id == selectedId).map { photo =>
+          page.elements.collectFirst { case p: PhotoElement if p.id == selectedId => p }.map { photo =>
             renderPhotoControls(photo)
           }
         case _ => None

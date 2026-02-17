@@ -48,6 +48,31 @@ object CalendarViewModel {
     stateVar.update(_.goToPage(index))
   }
   
+  // Generic element operations
+  private def updateElement(elementId: String, updater: CanvasElement => CanvasElement): Unit = {
+    stateVar.update(s =>
+      s.updateCurrentPage(page =>
+        page.copy(elements = page.elements.map { e =>
+          if e.id == elementId then updater(e) else e
+        })
+      )
+    )
+  }
+
+  private def addElement(element: CanvasElement): Unit = {
+    stateVar.update(s =>
+      s.updateCurrentPage(page => page.copy(elements = page.elements :+ element))
+    )
+  }
+
+  private def removeElement(elementId: String): Unit = {
+    stateVar.update(s =>
+      s.updateCurrentPage(page =>
+        page.copy(elements = page.elements.filterNot(_.id == elementId))
+      )
+    )
+  }
+
   // Photo operations
   def uploadPhoto(imageData: String): Unit = {
     val photoId = generateId("photo")
@@ -57,53 +82,27 @@ object CalendarViewModel {
       position = Position(100, 100),
       size = Size(300, 200),
     )
-    
-    stateVar.update(s =>
-      s.updateCurrentPage(page => page.copy(photos = page.photos :+ photo))
-    )
-    
-    // Select the newly added photo
+
+    addElement(photo)
     selectedPhotoVar.set(Some(photoId))
   }
-  
+
   def removePhoto(photoId: String): Unit = {
-    stateVar.update(s =>
-      s.updateCurrentPage(page => page.copy(photos = page.photos.filterNot(_.id == photoId)))
-    )
-    
-    // Deselect if this was the selected photo
+    removeElement(photoId)
     if selectedPhotoVar.now().contains(photoId) then
       selectedPhotoVar.set(None)
   }
-  
+
   def updatePhotoPosition(photoId: String, newPosition: Position): Unit = {
-    stateVar.update(s =>
-      s.updateCurrentPage(page =>
-        page.copy(photos = page.photos.map { p =>
-          if p.id == photoId then p.copy(position = newPosition) else p
-        })
-      )
-    )
+    updateElement(photoId, _.withPosition(newPosition))
   }
-  
+
   def updatePhotoSize(photoId: String, newSize: Size): Unit = {
-    stateVar.update(s =>
-      s.updateCurrentPage(page =>
-        page.copy(photos = page.photos.map { p =>
-          if p.id == photoId then p.copy(size = newSize) else p
-        })
-      )
-    )
+    updateElement(photoId, _.withSize(newSize))
   }
-  
+
   def updatePhotoRotation(photoId: String, rotation: Double): Unit = {
-    stateVar.update(s =>
-      s.updateCurrentPage(page =>
-        page.copy(photos = page.photos.map { p =>
-          if p.id == photoId then p.copy(rotation = rotation) else p
-        })
-      )
-    )
+    updateElement(photoId, _.withRotation(rotation))
   }
   
   def selectPhoto(photoId: String): Unit = {
@@ -117,60 +116,49 @@ object CalendarViewModel {
   // Text field operations
   def addTextField(): Unit = {
     val textId = generateId("text")
-    val textField = TextField(
+    val textElement = TextElement(
       id = textId,
       text = "New Text",
       position = Position(200, 200),
+      size = Size(200, 30),
       fontSize = 16,
       fontFamily = "Arial",
       color = "#000000",
-      locked = false
     )
-    
-    stateVar.update(s =>
-      s.updateCurrentPage(page =>
-        page.copy(customTextFields = page.customTextFields :+ textField)
-      )
-    )
-    
-    // Select the newly added text field
+
+    addElement(textElement)
     selectedElementVar.set(Some(textId))
   }
-  
+
   def removeTextField(textId: String): Unit = {
-    stateVar.update(s =>
-      s.updateCurrentPage(page =>
-        page.copy(customTextFields = page.customTextFields.filterNot(_.id == textId))
-      )
-    )
-    
-    // Deselect if this was the selected element
+    removeElement(textId)
     if selectedElementVar.now().contains(textId) then
       selectedElementVar.set(None)
   }
-  
-  def updateTextField(textId: String, updater: TextField => TextField): Unit = {
+
+  def updateTextField(textId: String, updater: TextElement => TextElement): Unit = {
     stateVar.update(s =>
       s.updateCurrentPage(page =>
-        page.copy(customTextFields = page.customTextFields.map { field =>
-          if field.id == textId then updater(field) else field
+        page.copy(elements = page.elements.map {
+          case e: TextElement if e.id == textId => updater(e)
+          case other => other
         })
       )
     )
   }
-  
+
   def updateTextFieldText(textId: String, newText: String): Unit = {
     updateTextField(textId, _.copy(text = newText))
   }
-  
+
   def updateTextFieldPosition(textId: String, newPosition: Position): Unit = {
     updateTextField(textId, _.copy(position = newPosition))
   }
-  
+
   def updateTextFieldFontSize(textId: String, newSize: Int): Unit = {
     updateTextField(textId, _.copy(fontSize = newSize))
   }
-  
+
   def updateTextFieldColor(textId: String, newColor: String): Unit = {
     updateTextField(textId, _.copy(color = newColor))
   }

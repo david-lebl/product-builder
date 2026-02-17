@@ -28,68 +28,92 @@ object CalendarPageCanvas {
       // Background
       div(
         cls := "calendar-background",
-        styleAttr := s"background-color: ${page.template.backgroundImage match {
-          case "white" => "#ffffff"
-          case color => color
+        styleAttr := s"background-color: ${page.template.background match {
+          case PageBackground.SolidColor(c) => c
+          case PageBackground.BackgroundImage(_) => "#ffffff"
         }}"
       ),
       
-      // Month title (locked)
-      renderTextField(page.template.monthField, locked = true),
+      // Month title (locked template field)
+      renderTemplateTextField(page.template.monthField),
       
-      // Days grid (locked)
-      page.template.daysGrid.map(dayField => renderTextField(dayField, locked = true)),
+      // Days grid (locked template fields)
+      page.template.daysGrid.map(dayField => renderTemplateTextField(dayField)),
       
-      // All photos
-      page.photos.map(renderPhoto),
-      
-      // Custom text fields
-      page.customTextFields.map(field => renderTextField(field, locked = false))
+      // All canvas elements (sorted by z-index)
+      page.elements.sortBy(_.zIndex).map(renderCanvasElement)
     )
   }
   
-  private def renderTextField(field: TextField, locked: Boolean): Element = {
+  private def renderTemplateTextField(field: TemplateTextField): Element = {
+    div(
+      cls := "calendar-text-field locked",
+      styleAttr := s"position: absolute; left: ${field.position.x}px; top: ${field.position.y}px; font-size: ${field.fontSize}px; font-family: ${field.fontFamily}; color: ${field.color}; cursor: default; user-select: none;",
+      field.text
+    )
+  }
+
+  private def renderCanvasElement(elem: CanvasElement): Element = elem match {
+    case photo: PhotoElement  => renderPhoto(photo)
+    case text: TextElement    => renderTextElement(text)
+    case shape: ShapeElement  => renderShapeElement(shape)
+    case clip: ClipartElement => renderClipartElement(clip)
+  }
+
+  private def renderTextElement(field: TextElement): Element = {
     div(
       cls := "calendar-text-field",
-      cls := "locked" -> locked,
-      styleAttr := s"position: absolute; left: ${field.position.x}px; top: ${field.position.y}px; font-size: ${field.fontSize}px; font-family: ${field.fontFamily}; color: ${field.color}; cursor: ${if locked then "default" else "move"}; user-select: none;",
-      
+      styleAttr := s"position: absolute; left: ${field.position.x}px; top: ${field.position.y}px; font-size: ${field.fontSize}px; font-family: ${field.fontFamily}; color: ${field.color}; cursor: move; user-select: none; font-weight: ${if field.bold then "bold" else "normal"}; font-style: ${if field.italic then "italic" else "normal"}; text-align: ${field.textAlign match { case TextAlignment.Left => "left"; case TextAlignment.Center => "center"; case TextAlignment.Right => "right" }}; transform: rotate(${field.rotation}deg);",
       field.text,
-      
-      // Make draggable if not locked
-      if !locked then
-        onMouseDown --> { ev =>
-          ev.preventDefault()
-          CalendarViewModel.selectElement(field.id)
-          
-          val startX = ev.clientX
-          val startY = ev.clientY
-          val startPosX = field.position.x
-          val startPosY = field.position.y
-          
-          var mouseUpHandlerOpt: Option[js.Function1[dom.MouseEvent, Unit]] = None
-          
-          val mouseMoveHandler: js.Function1[dom.MouseEvent, Unit] = { moveEv =>
-            val deltaX = moveEv.clientX - startX
-            val deltaY = moveEv.clientY - startY
-            CalendarViewModel.updateTextFieldPosition(
-              field.id,
-              Position(startPosX + deltaX, startPosY + deltaY)
-            )
-          }
-          
-          val mouseUpHandler: js.Function1[dom.MouseEvent, Unit] = { _ =>
-            dom.window.removeEventListener("mousemove", mouseMoveHandler)
-            mouseUpHandlerOpt.foreach(h => dom.window.removeEventListener("mouseup", h))
-          }
-          
-          mouseUpHandlerOpt = Some(mouseUpHandler)
-          
-          dom.window.addEventListener("mousemove", mouseMoveHandler)
-          dom.window.addEventListener("mouseup", mouseUpHandler)
+      onMouseDown --> { ev =>
+        ev.preventDefault()
+        CalendarViewModel.selectElement(field.id)
+        
+        val startX = ev.clientX
+        val startY = ev.clientY
+        val startPosX = field.position.x
+        val startPosY = field.position.y
+        
+        var mouseUpHandlerOpt: Option[js.Function1[dom.MouseEvent, Unit]] = None
+        
+        val mouseMoveHandler: js.Function1[dom.MouseEvent, Unit] = { moveEv =>
+          val deltaX = moveEv.clientX - startX
+          val deltaY = moveEv.clientY - startY
+          CalendarViewModel.updateTextFieldPosition(
+            field.id,
+            Position(startPosX + deltaX, startPosY + deltaY)
+          )
         }
-      else
-        emptyMod
+        
+        val mouseUpHandler: js.Function1[dom.MouseEvent, Unit] = { _ =>
+          dom.window.removeEventListener("mousemove", mouseMoveHandler)
+          mouseUpHandlerOpt.foreach(h => dom.window.removeEventListener("mouseup", h))
+        }
+        
+        mouseUpHandlerOpt = Some(mouseUpHandler)
+        
+        dom.window.addEventListener("mousemove", mouseMoveHandler)
+        dom.window.addEventListener("mouseup", mouseUpHandler)
+      }
+    )
+  }
+
+  private def renderShapeElement(shape: ShapeElement): Element = {
+    div(
+      cls := "calendar-shape",
+      styleAttr := s"position: absolute; left: ${shape.position.x}px; top: ${shape.position.y}px; width: ${shape.size.width}px; height: ${shape.size.height}px; border: ${shape.strokeWidth}px solid ${shape.strokeColor}; background-color: ${shape.fillColor}; transform: rotate(${shape.rotation}deg);",
+    )
+  }
+
+  private def renderClipartElement(clip: ClipartElement): Element = {
+    div(
+      cls := "calendar-clipart",
+      styleAttr := s"position: absolute; left: ${clip.position.x}px; top: ${clip.position.y}px; width: ${clip.size.width}px; height: ${clip.size.height}px; transform: rotate(${clip.rotation}deg); transform-origin: center;",
+      img(
+        src := clip.imageData,
+        styleAttr := "width: 100%; height: 100%; object-fit: contain; pointer-events: none;",
+        draggable := false,
+      )
     )
   }
   

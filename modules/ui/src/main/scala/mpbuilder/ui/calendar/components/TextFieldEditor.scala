@@ -24,8 +24,8 @@ object TextFieldEditor {
       div(
         cls := "text-fields-list",
         children <-- currentPage.combineWith(selectedElement).map { (page, selected) =>
-          page.customTextFields.map { textField =>
-            renderTextField(textField, selected)
+          page.elements.collect { case t: TextElement => t }.map { textElement =>
+            renderTextField(textElement, selected)
           }
         }
       ),
@@ -33,15 +33,15 @@ object TextFieldEditor {
       // Selected text field editor
       child.maybe <-- selectedElement.signal.combineWith(currentPage).map {
         case (Some(selectedId), page) =>
-          page.customTextFields.find(_.id == selectedId).map { textField =>
-            renderTextFieldEditor(textField)
+          page.elements.collectFirst { case t: TextElement if t.id == selectedId => t }.map { textElement =>
+            renderTextFieldEditor(textElement)
           }
         case _ => None
       }
     )
   }
   
-  private def renderTextField(textField: TextField, selectedId: Option[String]): Element = {
+  private def renderTextField(textField: TextElement, selectedId: Option[String]): Element = {
     val isSelected = selectedId.contains(textField.id)
     
     div(
@@ -68,7 +68,7 @@ object TextFieldEditor {
     )
   }
   
-  private def renderTextFieldEditor(textField: TextField): Element = {
+  private def renderTextFieldEditor(textField: TextElement): Element = {
     div(
       cls := "text-field-editor",
       
