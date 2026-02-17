@@ -25,11 +25,8 @@ object CalendarViewModel {
     s"$prefix-${System.currentTimeMillis()}-$idCounter"
   }
 
-  private def nextZIndex(): Int = {
-    val page = stateVar.now().currentPage
-    if page.elements.isEmpty then 1
-    else page.elements.map(_.zIndex).max + 1
-  }
+  private def nextZIndex(): Int =
+    stateVar.now().currentPage.elements.map(_.zIndex).maxOption.getOrElse(0) + 1
 
   // Current page as signal
   def currentPage: Signal[CalendarPage] = state.map(_.currentPage)
