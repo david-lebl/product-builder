@@ -23,9 +23,9 @@ object TextFieldEditor {
       // List of custom text fields
       div(
         cls := "text-fields-list",
-        children <-- currentPage.map { page =>
+        children <-- currentPage.combineWith(selectedElement).map { (page, selected) =>
           page.customTextFields.map { textField =>
-            renderTextField(textField, selectedElement.now())
+            renderTextField(textField, selected)
           }
         }
       ),
@@ -97,7 +97,7 @@ object TextFieldEditor {
           value := textField.fontSize.toString,
           minAttr := "8",
           maxAttr := "72",
-          step := "1",
+          stepAttr := "1",
           cls := "font-size-input",
           onInput.mapToValue --> { value =>
             value.toIntOption.foreach { size =>
@@ -130,7 +130,7 @@ object TextFieldEditor {
           value := textField.position.x.toString,
           minAttr := "0",
           maxAttr := "1000",
-          step := "5",
+          stepAttr := "5",
           cls := "position-input",
           onInput.mapToValue --> { value =>
             value.toDoubleOption.foreach { x =>
@@ -148,7 +148,7 @@ object TextFieldEditor {
           value := textField.position.y.toString,
           minAttr := "0",
           maxAttr := "1000",
-          step := "5",
+          stepAttr := "5",
           cls := "position-input",
           onInput.mapToValue --> { value =>
             value.toDoubleOption.foreach { y =>

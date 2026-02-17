@@ -28,10 +28,10 @@ object CalendarPageCanvas {
       // Background
       div(
         cls := "calendar-background",
-        backgroundColor := page.template.backgroundImage match {
+        styleAttr := s"background-color: ${page.template.backgroundImage match {
           case "white" => "#ffffff"
           case color => color
-        }
+        }}"
       ),
       
       // Month title (locked)
@@ -58,8 +58,7 @@ object CalendarPageCanvas {
       fontSize := s"${field.fontSize}px",
       fontFamily := field.fontFamily,
       color := field.color,
-      cursor := (if locked then "default" else "move"),
-      userSelect := "none",
+      styleAttr := "cursor: " + (if locked then "default" else "move") + "; user-select: none;",
       
       field.text,
       
@@ -74,6 +73,8 @@ object CalendarPageCanvas {
           val startPosX = field.position.x
           val startPosY = field.position.y
           
+          var mouseUpHandler: js.Function1[dom.MouseEvent, Unit] = null
+          
           val mouseMoveHandler: js.Function1[dom.MouseEvent, Unit] = { moveEv =>
             val deltaX = moveEv.clientX - startX
             val deltaY = moveEv.clientY - startY
@@ -83,7 +84,7 @@ object CalendarPageCanvas {
             )
           }
           
-          val mouseUpHandler: js.Function1[dom.MouseEvent, Unit] = { _ =>
+          mouseUpHandler = { _ =>
             dom.window.removeEventListener("mousemove", mouseMoveHandler)
             dom.window.removeEventListener("mouseup", mouseUpHandler)
           }
@@ -111,7 +112,7 @@ object CalendarPageCanvas {
         src := photo.imageData,
         width := "100%",
         height := "100%",
-        objectFit := "cover",
+        styleAttr := "object-fit: cover;",
         draggable := false
       ),
       
@@ -124,6 +125,8 @@ object CalendarPageCanvas {
         val startPosX = photo.position.x
         val startPosY = photo.position.y
         
+        var mouseUpHandler: js.Function1[dom.MouseEvent, Unit] = null
+        
         val mouseMoveHandler: js.Function1[dom.MouseEvent, Unit] = { moveEv =>
           val deltaX = moveEv.clientX - startX
           val deltaY = moveEv.clientY - startY
@@ -132,7 +135,7 @@ object CalendarPageCanvas {
           )
         }
         
-        val mouseUpHandler: js.Function1[dom.MouseEvent, Unit] = { _ =>
+        mouseUpHandler = { _ =>
           dom.window.removeEventListener("mousemove", mouseMoveHandler)
           dom.window.removeEventListener("mouseup", mouseUpHandler)
         }

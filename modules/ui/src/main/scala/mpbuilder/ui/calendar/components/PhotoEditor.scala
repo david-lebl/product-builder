@@ -75,7 +75,7 @@ object PhotoEditor {
               value := photo.size.width.toString,
               minAttr := "50",
               maxAttr := "800",
-              step := "10",
+              stepAttr := "10",
               cls := "size-input",
               onInput.mapToValue --> { value =>
                 value.toDoubleOption.foreach { w =>
@@ -93,7 +93,7 @@ object PhotoEditor {
               value := photo.size.height.toString,
               minAttr := "50",
               maxAttr := "800",
-              step := "10",
+              stepAttr := "10",
               cls := "size-input",
               onInput.mapToValue --> { value =>
                 value.toDoubleOption.foreach { h =>
@@ -112,7 +112,7 @@ object PhotoEditor {
               value := photo.rotation.toString,
               minAttr := "0",
               maxAttr := "360",
-              step := "1",
+              stepAttr := "1",
               cls := "rotation-slider",
               onInput.mapToValue --> { value =>
                 value.toDoubleOption.foreach { r =>
@@ -132,7 +132,7 @@ object PhotoEditor {
               value := photo.position.x.toString,
               minAttr := "0",
               maxAttr := "1000",
-              step := "5",
+              stepAttr := "5",
               cls := "position-input",
               onInput.mapToValue --> { value =>
                 value.toDoubleOption.foreach { x =>
@@ -150,7 +150,7 @@ object PhotoEditor {
               value := photo.position.y.toString,
               minAttr := "0",
               maxAttr := "1000",
-              step := "5",
+              stepAttr := "5",
               cls := "position-input",
               onInput.mapToValue --> { value =>
                 value.toDoubleOption.foreach { y =>
