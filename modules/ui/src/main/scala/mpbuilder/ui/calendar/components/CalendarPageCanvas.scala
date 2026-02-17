@@ -52,13 +52,7 @@ object CalendarPageCanvas {
     div(
       cls := "calendar-text-field",
       cls := "locked" -> locked,
-      position := "absolute",
-      left := s"${field.position.x}px",
-      top := s"${field.position.y}px",
-      fontSize := s"${field.fontSize}px",
-      fontFamily := field.fontFamily,
-      color := field.color,
-      styleAttr := "cursor: " + (if locked then "default" else "move") + "; user-select: none;",
+      styleAttr := s"position: absolute; left: ${field.position.x}px; top: ${field.position.y}px; font-size: ${field.fontSize}px; font-family: ${field.fontFamily}; color: ${field.color}; cursor: ${if locked then "default" else "move"}; user-select: none;",
       
       field.text,
       
@@ -102,19 +96,11 @@ object CalendarPageCanvas {
   private def renderPhoto(photo: PhotoElement): Element = {
     div(
       cls := "calendar-photo",
-      position := "absolute",
-      left := s"${photo.position.x}px",
-      top := s"${photo.position.y}px",
-      width := s"${photo.size.width}px",
-      height := s"${photo.size.height}px",
-      transform := s"rotate(${photo.rotation}deg)",
-      cursor := "move",
+      styleAttr := s"position: absolute; left: ${photo.position.x}px; top: ${photo.position.y}px; width: ${photo.size.width}px; height: ${photo.size.height}px; transform: rotate(${photo.rotation}deg); cursor: move; overflow: hidden;",
       
       img(
         src := photo.imageData,
-        width := "100%",
-        height := "100%",
-        styleAttr := "object-fit: cover;",
+        styleAttr := "width: 100%; height: 100%; object-fit: contain; pointer-events: none;",
         draggable := false
       ),
       

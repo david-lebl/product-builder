@@ -174,4 +174,9 @@ object CalendarViewModel {
     selectedElementVar.set(None)
     photoEditorOpenVar.set(false)
   }
+  
+  // Update language for month names
+  def updateLanguage(lang: String): Unit = {
+    stateVar.update(state => CalendarState.updateLanguage(state, lang))
+  }
 }

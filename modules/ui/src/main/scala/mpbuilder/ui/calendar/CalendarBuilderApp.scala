@@ -2,17 +2,34 @@ package mpbuilder.ui.calendar
 
 import com.raquo.laminar.api.L.*
 import mpbuilder.ui.calendar.components.*
+import mpbuilder.ui.ProductBuilderViewModel
+import mpbuilder.domain.model.Language
 
 object CalendarBuilderApp {
   def apply(): Element = {
+    val lang = ProductBuilderViewModel.currentLanguage
+    
+    // Update calendar month names when language changes
+    val languageChanges = lang.changes
+    languageChanges --> { language =>
+      CalendarViewModel.updateLanguage(language.toCode)
+    }
+    
     div(
       cls := "calendar-builder-app",
+      languageChanges, // Mount the observer
       
       // Header
       div(
         cls := "calendar-header",
-        h1("Photo Calendar Builder"),
-        p("Create your custom photo calendar - upload photos, add text, and customize each month")
+        h1(child.text <-- lang.map {
+          case Language.En => "Photo Calendar Builder"
+          case Language.Cs => "Tvůrce foto kalendáře"
+        }),
+        p(child.text <-- lang.map {
+          case Language.En => "Create your custom photo calendar - upload photos, add text, and customize each month"
+          case Language.Cs => "Vytvořte si vlastní foto kalendář - nahrajte fotky, přidejte text a přizpůsobte každý měsíc"
+        })
       ),
       
       // Main content area
@@ -58,17 +75,31 @@ object CalendarBuilderApp {
         cls := "calendar-footer",
         button(
           cls := "reset-btn",
-          "Reset Calendar",
+          child.text <-- lang.map {
+            case Language.En => "Reset Calendar"
+            case Language.Cs => "Resetovat kalendář"
+          },
           onClick --> { _ =>
-            if org.scalajs.dom.window.confirm("Are you sure you want to reset the calendar? All changes will be lost.") then
+            val confirmMsg = lang.now() match {
+              case Language.En => "Are you sure you want to reset the calendar? All changes will be lost."
+              case Language.Cs => "Opravdu chcete resetovat kalendář? Všechny změny budou ztraceny."
+            }
+            if org.scalajs.dom.window.confirm(confirmMsg) then
               CalendarViewModel.reset()
           }
         ),
         button(
           cls := "preview-btn",
-          "Preview All Pages",
+          child.text <-- lang.map {
+            case Language.En => "Preview All Pages"
+            case Language.Cs => "Náhled všech stránek"
+          },
           onClick --> { _ =>
-            org.scalajs.dom.window.alert("Preview feature coming soon!")
+            val msg = lang.now() match {
+              case Language.En => "Preview feature coming soon!"
+              case Language.Cs => "Funkce náhledu bude brzy k dispozici!"
+            }
+            org.scalajs.dom.window.alert(msg)
           }
         )
       )

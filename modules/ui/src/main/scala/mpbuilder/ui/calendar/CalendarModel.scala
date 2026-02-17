@@ -73,12 +73,17 @@ case class CalendarState(
 object CalendarState {
   /** Create a new calendar with 12 blank pages */
   def empty: CalendarState = {
-    val months = List(
+    val monthsEn = List(
       "January", "February", "March", "April", "May", "June",
       "July", "August", "September", "October", "November", "December"
     )
     
-    val pages = months.zipWithIndex.map { case (monthName, index) =>
+    val monthsCs = List(
+      "Leden", "Únor", "Březen", "Duben", "Květen", "Červen",
+      "Červenec", "Srpen", "Září", "Říjen", "Listopad", "Prosinec"
+    )
+    
+    val pages = monthsEn.zipWithIndex.map { case (monthName, index) =>
       // Create a simple template for each month
       val template = CalendarTemplate(
         backgroundImage = "white", // placeholder
@@ -100,6 +105,25 @@ object CalendarState {
     }
     
     CalendarState(pages)
+  }
+  
+  /** Update month names based on language */
+  def updateLanguage(state: CalendarState, lang: String): CalendarState = {
+    val months = if lang == "cs" then
+      List("Leden", "Únor", "Březen", "Duben", "Květen", "Červen",
+           "Červenec", "Srpen", "Září", "Říjen", "Listopad", "Prosinec")
+    else
+      List("January", "February", "March", "April", "May", "June",
+           "July", "August", "September", "October", "November", "December")
+    
+    val updatedPages = state.pages.zipWithIndex.map { case (page, index) =>
+      val updatedTemplate = page.template.copy(
+        monthField = page.template.monthField.copy(text = months(index))
+      )
+      page.copy(template = updatedTemplate)
+    }
+    
+    state.copy(pages = updatedPages)
   }
   
   /** Create a grid of day text fields for a month */
