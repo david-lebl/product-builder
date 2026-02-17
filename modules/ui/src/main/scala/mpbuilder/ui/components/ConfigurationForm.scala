@@ -70,4 +70,36 @@ object ConfigurationForm:
           onClick --> { _ => ProductBuilderViewModel.validateConfiguration() },
         ),
       ),
+
+      // Add to Basket Button
+      div(
+        cls := "form-section",
+        div(
+          cls := "add-to-basket-section",
+          label(child.text <-- lang.map {
+            case Language.En => "Quantity to add:"
+            case Language.Cs => "Množství k přidání:"
+          }),
+          input(
+            typ := "number",
+            minAttr := "1",
+            value := "1",
+            cls := "basket-quantity-input",
+            idAttr := "basket-qty-input",
+          ),
+          button(
+            cls := "add-to-basket-btn",
+            disabled <-- ProductBuilderViewModel.state.map(_.configuration.isEmpty),
+            child.text <-- lang.map {
+              case Language.En => "Add to Basket"
+              case Language.Cs => "Přidat do košíku"
+            },
+            onClick --> { _ =>
+              val qtyInput = org.scalajs.dom.document.getElementById("basket-qty-input").asInstanceOf[org.scalajs.dom.html.Input]
+              val qty = qtyInput.value.toIntOption.getOrElse(1)
+              ProductBuilderViewModel.addToBasket(qty)
+            },
+          ),
+        ),
+      ),
     )
