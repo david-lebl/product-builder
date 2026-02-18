@@ -105,7 +105,7 @@ object CalendarBuilderApp {
                   case Language.En => s"${fmt.nameEn} (${fmt.widthMm}×${fmt.heightMm} mm)"
                   case Language.Cs => s"${fmt.nameCs} (${fmt.widthMm}×${fmt.heightMm} mm)"
                 }
-                option(value := fmt.id, lbl)
+                option(value := fmt.id, selected := (fmt.id == currentFmt.id), lbl)
               },
               onChange.mapToValue --> { selectedId =>
                 formats.find(_.id == selectedId).foreach(CalendarViewModel.setProductFormat)
