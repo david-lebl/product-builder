@@ -2,11 +2,11 @@
 
 > ⚠️ **Note**: This project was built with the assistance of an LLM (Large Language Model). 
 
-A custom product builder for the printing industry that lets customers configure products from categories, materials, finishes, and specifications — with declarative compatibility rules ensuring only valid combinations are possible. Includes a photo calendar editor for designing custom calendar pages.
+A custom product builder for the printing industry that lets customers configure products from categories, materials, finishes, and specifications — with declarative compatibility rules ensuring only valid combinations are possible. Includes a visual product editor for designing calendars, photo books, and wall pictures with per-page customization.
 
 ## Vision
 
-Product Builder is a domain-driven design (DDD) approach to building a flexible, maintainable product configuration system for print service providers. It enables customers to compose print products (business cards, flyers, banners, calendars, etc.) by selecting materials, finishes, and specifications, while automatically enforcing business rules to ensure only producible combinations can be ordered.
+Product Builder is a domain-driven design (DDD) approach to building a flexible, maintainable product configuration system for print service providers. It enables customers to compose print products (business cards, flyers, banners, calendars, photo books, etc.) by selecting materials, finishes, and specifications, while automatically enforcing business rules to ensure only producible combinations can be ordered. The visual editor allows customers to design multi-page products with photos, text, and shapes.
 
 **🌐 Live Demo:** [https://david-lebl.github.io/product-builder/](https://david-lebl.github.io/product-builder/)
 
@@ -85,10 +85,10 @@ modules/
 │
 ├── ui/src/main/scala/mpbuilder/ui/
 │   ├── Main.scala                # Application entry point
-│   ├── AppRouter.scala           # Client-side routing (Product Builder / Calendar)
+│   ├── AppRouter.scala           # Client-side routing (Product Parameters / Visual Editor)
 │   ├── ProductBuilderApp.scala   # Product configuration view
 │   ├── ProductBuilderViewModel.scala # Reactive state management
-│   ├── components/               # UI components
+│   ├── components/               # Product configuration UI components
 │   │   ├── CategorySelector.scala
 │   │   ├── MaterialSelector.scala
 │   │   ├── PrintingMethodSelector.scala
@@ -98,15 +98,23 @@ modules/
 │   │   ├── PricePreview.scala
 │   │   ├── ValidationMessages.scala
 │   │   └── BasketView.scala
-│   └── calendar/                 # Calendar editor
-│       ├── CalendarBuilderApp.scala
-│       ├── CalendarModel.scala   # ADT-based element model
-│       ├── CalendarViewModel.scala
+│   └── calendar/                 # Visual product editor
+│       ├── CalendarBuilderApp.scala    # Main visual editor view
+│       ├── CalendarModel.scala         # Visual editor model (product types, formats,
+│       │                               #   canvas elements, templates, pages)
+│       ├── CalendarViewModel.scala     # Reactive state for the visual editor
 │       └── components/
-│           ├── CalendarPageCanvas.scala
-│           ├── ElementListEditor.scala
-│           ├── BackgroundEditor.scala
-│           └── PageNavigation.scala
+│           ├── CalendarPageCanvas.scala # Interactive canvas with drag/resize/rotate
+│           ├── ElementListEditor.scala  # Element management & property editors
+│           ├── BackgroundEditor.scala   # Page background & template settings
+│           └── PageNavigation.scala     # Horizontal page strip with thumbnails
+
+docs/
+├── pricing.md                    # Pricing system documentation with worked examples
+├── ui-guide.md                   # Running and testing guide
+├── visual-product-types.md       # Visual product types, formats, and domain mapping
+├── printing-domain-analysis.md   # Printing industry domain analysis
+└── domain-model-gap-analysis.md  # Domain model gap analysis
 ```
 
 ## Core Components
@@ -175,22 +183,25 @@ Two-layer validation:
 - Real-time total calculation with currency support
 - Pure functional `BasketService` with `Validation`-based error handling
 
-### 📅 Photo Calendar Builder
-- 12-page calendar editor with per-page customization
+### 📅 Visual Product Editor
+- **Product types**: Monthly Calendar (12p), Weekly Calendar (52p), Bi-weekly Calendar (26p), Photo Book (12p), Wall Picture (1p)
+- **Domain-driven formats**: 10 physical formats with precise mm dimensions (wall/desk calendars, photo books, wall pictures)
 - ADT-based canvas element model: `PhotoElement`, `TextElement`, `ShapeElement`, `ClipartElement`
-- Photo upload, resize, rotate, and position on canvas
+- Photo upload, resize, rotate, and position on canvas — including template image placeholders as interactive `PhotoElement`s
 - Text elements with bold/italic/alignment formatting
 - Shape elements (lines, rectangles) with stroke and fill colors
 - Page backgrounds (solid color or image)
 - Unified element list with z-ordering (bring to front / send to back), duplication, and deletion
-- Page navigation (next/back) across all 12 months
+- Horizontal scrollable page navigation strip — handles 52+ pages
+- Sidebar tabs: "Page Elements" / "Background" for reduced visual noise
+- Format selector dynamically filtered by product type
 
 ### 🎨 Product Configuration UI
 - Step-by-step wizard: category → material → printing method → finishes → specifications
 - Progressive disclosure with real-time compatibility filtering
 - Live validation feedback with localized error messages
 - Real-time price calculation with detailed breakdown
-- Client-side routing between Product Builder and Calendar Builder views
+- Client-side routing between Product Parameters and Visual Editor views
 - Modern responsive design with purple gradient theme
 
 ## Status
@@ -243,6 +254,16 @@ Two-layer validation:
 - Unified element list with z-ordering, duplication, and type-specific editors
 - Client-side routing between Product Builder and Calendar Builder
 
+### ✅ Phase 8: Visual Product Editor Generalization (Complete)
+- Extended calendar builder into a general visual product editor
+- 5 product types: Monthly Calendar (12p), Weekly Calendar (52p), Bi-weekly Calendar (26p), Photo Book (12p), Wall Picture (1p)
+- Domain-driven `ProductFormat` with physical dimensions: 10 formats across calendar (wall/desk), photo book (square/landscape/portrait), and wall picture
+- Template image placeholders replaced with interactive `PhotoElement` — selectable, draggable, resizable, with upload/replace/clear
+- Horizontal scrollable page navigation strip (handles 52+ pages)
+- Sidebar tab view ("Page Elements" / "Background") to reduce visual noise
+- Format selector dynamically filtered by product type
+- See [docs/visual-product-types.md](docs/visual-product-types.md) for supported types and formats
+
 **99 passing tests** across 5 test suites.
 
 **Try it locally:** See [docs/ui-guide.md](docs/ui-guide.md) for instructions on running the UI locally.
@@ -264,24 +285,55 @@ Two-layer validation:
 ## Getting Started
 
 ### Prerequisites
-- Scala 3.3.3
-- JDK 11+
-- sbt (Scala Build Tool)
+- Java 11+ (Java 17 recommended)
+- sbt 1.12.3+ (Scala Build Tool)
+- A modern web browser
 
-### Build
+### Build & Test
+
 ```bash
+# Compile all modules (domain JVM + JS, UI)
 sbt compile
-```
 
-### Test
-```bash
+# Run all tests (99 tests across 5 suites)
 sbt test
+
+# Run a single test suite
+sbt "testOnly mpbuilder.domain.ConfigurationBuilderSpec"
+
+# Run tests with verbose output
+sbt "testOnly * -- -v"
+
+# Compile only the UI (Scala.js)
+sbt ui/fastLinkJS
+
+# Production-optimized JS build
+sbt ui/fullLinkJS
 ```
 
-### Run Tests with Output
+### Run the UI Locally
+
 ```bash
-sbt "testOnly * -- -v"
+# 1. Build the UI JavaScript
+sbt ui/fastLinkJS
+
+# 2. Copy files to a dist directory
+mkdir -p dist
+cp modules/ui/src/main/resources/index.html dist/
+cp modules/ui/target/scala-3.3.3/material-builder-ui-fastopt/main.js dist/
+
+# 3. Serve with any HTTP server
+cd dist && python3 -m http.server 8080
+
+# 4. Open http://localhost:8080/index.html
 ```
+
+For development with auto-recompilation:
+```bash
+sbt ~ui/fastLinkJS
+```
+
+See [docs/ui-guide.md](docs/ui-guide.md) for detailed instructions including development workflow, production builds, and troubleshooting.
 
 ## Testing
 
