@@ -117,6 +117,22 @@ Interactive calendar page editor:
 
 ---
 
+## Completed — Phase 8: Visual Product Editor Generalization
+
+Extended the calendar builder into a general visual product editor:
+
+- **Product types** — `VisualProductType` enum: Monthly Calendar (12p), Weekly Calendar (52p), Bi-weekly Calendar (26p), Photo Book (12p), Wall Picture (1p)
+- **Domain-driven formats** — `ProductFormat` case class with physical dimensions (mm); 10 formats: 4 calendar (wall/desk, normal/large/small), 3 photo book (square/landscape/portrait), 3 wall picture (small/large/landscape)
+- **Format–type rules** — `ProductFormat.formatsFor(pt)` constrains which formats are available per product type; selector dynamically filtered
+- **Interactive image placeholders** — Replaced static `TemplateImagePlaceholder` with `PhotoElement(imageData = "")` in page elements list — fully interactive: selectable, draggable, resizable, with upload/replace/clear
+- **Horizontal page navigation** — Scrollable page strip in footer (replaces right sidebar); handles 52+ pages
+- **Sidebar tabs** — "Page Elements" / "Background" tabs to reduce visual noise
+- **UI naming** — Tabs renamed: "Product Parameters" / "Visual Editor"; page title/header: "Product Builder"
+- **Canvas aspect ratio** — Derived from physical format dimensions
+- **Documentation** — `docs/visual-product-types.md` for all supported types and formats
+
+---
+
 ## Testing
 
 **99 passing tests** across 5 test suites:

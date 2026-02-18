@@ -5,14 +5,18 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Build & Test Commands
 
 ```bash
-sbt compile          # Compile all sources
-sbt test             # Run all tests
+sbt compile          # Compile all sources (domain JVM + JS, UI)
+sbt test             # Run all tests (99 tests, 5 suites)
+sbt domainJVM/test   # Run domain tests only (faster)
+sbt ui/compile       # Compile UI module only
+sbt ui/fastLinkJS    # Build UI JavaScript (development)
+sbt ui/fullLinkJS    # Build UI JavaScript (production, optimized)
 sbt "testOnly mpbuilder.domain.ConfigurationBuilderSpec"  # Run a single test suite
 sbt "testOnly * -- -v"  # Verbose test output
 ```
 
-- Scala 3.3.3, JDK 11+, sbt
-- Dependencies: ZIO 2.1.16, ZIO Prelude 1.0.0-RC39, ZIO Test
+- Scala 3.3.3, JDK 11+ (17 recommended), sbt
+- Dependencies: ZIO 2.1.16, ZIO Prelude 1.0.0-RC39, ZIO Test, Laminar 17.2.0
 
 ## Architecture
 
@@ -26,6 +30,13 @@ This is a DDD (Domain-Driven Design) product configuration system for the printi
 - **`service/`** — `ConfigurationBuilder` resolves IDs from catalog and orchestrates validation. `CatalogQueryService` pre-filters compatible options for UI progressive disclosure.
 - **`pricing/`** — `Money` opaque type (BigDecimal, never Double). `PricingRule` sealed enum (7 variants: base price, area price, finish/type/process/category surcharges, quantity tiers). `PriceCalculator` interprets rules purely. `PricingError` ADT with exhaustive `message` match. `PriceBreakdown` output with line items.
 - **`sample/`** — `SampleCatalog` (7 categories, 9 materials, 14 finishes, 4 printing methods), `SampleRules` (24 rules), and `SamplePricelist` (pricing for all materials, key finishes, 4 quantity tiers). Used by tests.
+
+### Package layout: `mpbuilder.ui.calendar` (Visual Editor)
+
+- **`CalendarModel.scala`** — All visual editor types: `VisualProductType` enum (5 product types), `ProductFormat` case class with physical mm dimensions (10 formats), `CanvasElement` sealed trait with `PhotoElement`/`TextElement`/`ShapeElement`/`ClipartElement`, `CalendarTemplate` with `TemplateTextField` and `CalendarPage`, `CalendarState` aggregate.
+- **`CalendarViewModel.scala`** — Reactive state management with `Var[CalendarState]`. Element CRUD, selection, z-ordering, duplication. Product type/format switching. Background/template operations.
+- **`CalendarBuilderApp.scala`** — Main visual editor view with product type/format selectors, sidebar tabs, and layout.
+- **`components/`** — `CalendarPageCanvas` (interactive canvas with drag/resize/rotate), `ElementListEditor` (element management with type-specific form editors), `BackgroundEditor` (page background settings), `PageNavigation` (horizontal scrollable page strip).
 
 ### Key data flow
 
@@ -54,6 +65,16 @@ ZIO Prelude `Validation` accumulates all errors (not short-circuit). Structural 
 3. Add handling in `PriceCalculator.calculate`
 4. Add sample rules in `SamplePricelist` and tests
 
+### Adding new visual product types
+
+1. Add variant to `VisualProductType` enum in `CalendarModel.scala`
+2. Add `ProductFormat` definitions and update `formatsFor` / `defaultFor`
+3. Add factory method in `CalendarState` companion (`createXxxPages`)
+4. Update `CalendarState.create` match and `CalendarState.updateLanguage` match
+5. Update `defaultPageCount` match
+6. Update product type selector options in `CalendarBuilderApp.scala`
+7. Update `docs/visual-product-types.md`
+
 ### Important conventions
 
 - All enum matches must be exhaustive — no wildcards in `CompatibilityRule`, `ConfigurationError`, or `PricingError` pattern matches
@@ -62,3 +83,5 @@ ZIO Prelude `Validation` accumulates all errors (not short-circuit). Structural 
 - `FinishCategory` is derived from `FinishType` via extension method `finishCategory`, not stored on `Finish`
 - `CatalogQueryService.compatibleFinishes` takes `printingMethodId: Option[PrintingMethodId]` — `None` means "not yet selected, don't filter by method"
 - Finish pricing precedence: `FinishSurcharge` (by ID) overrides `FinishTypeSurcharge` (by type) for the same finish
+- Template image placeholders use `PhotoElement(imageData = "")` — they're fully interactive `CanvasElement`s, not static template fields
+- The format `<select>` in `CalendarBuilderApp` is re-created on each state change (`child <-- ...`), so options must have `selected` attribute set explicitly

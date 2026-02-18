@@ -46,8 +46,8 @@ object AppRouter {
             case _ => ""
           },
           child.text <-- lang.map {
-            case Language.En => "Product Builder"
-            case Language.Cs => "Stavitel produktů"
+            case Language.En => "Product Parameters"
+            case Language.Cs => "Parametry produktu"
           },
           onClick --> { _ => navigateTo(AppRoute.ProductBuilder) }
         ),
@@ -58,8 +58,8 @@ object AppRouter {
             case _ => ""
           },
           child.text <-- lang.map {
-            case Language.En => "Calendar Builder"
-            case Language.Cs => "Tvůrce kalendářů"
+            case Language.En => "Visual Editor"
+            case Language.Cs => "Vizuální editor"
           },
           onClick --> { _ => navigateTo(AppRoute.CalendarBuilder) }
         )

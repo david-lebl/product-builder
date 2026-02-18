@@ -8,9 +8,14 @@ import scala.scalajs.js
 object CalendarPageCanvas {
   def apply(): Element = {
     val currentPage = CalendarViewModel.currentPage
+    val format = CalendarViewModel.productFormat
 
     div(
       cls := "calendar-canvas-container",
+      styleAttr <-- format.map { fmt =>
+        val maxW = if ProductFormat.isLandscape(fmt) then 800 else 600
+        s"max-width: ${maxW}px;"
+      },
 
       div(
         cls := "calendar-canvas",
@@ -23,20 +28,26 @@ object CalendarPageCanvas {
         },
 
         // Render the calendar page
-        child <-- currentPage.map(renderPage)
+        child <-- currentPage.combineWith(format).map { (page, fmt) => renderPage(page, fmt) }
       )
     )
   }
 
-  private def renderPage(page: CalendarPage): Element = {
+  private def renderPage(page: CalendarPage, format: ProductFormat): Element = {
+    // Scale to fit canvas: use aspect ratio from physical dimensions
+    val aspectRatio = format.widthMm.toDouble / format.heightMm
+    val canvasWidth = if ProductFormat.isLandscape(format) then 760 else 560
+    val pageHeight = (canvasWidth / aspectRatio).toInt
+
     div(
       cls := "calendar-page",
+      styleAttr := s"height: ${pageHeight}px;",
 
       // Background
       renderBackground(page.template.background),
 
-      // Month title (locked template field)
-      renderTemplateTextField(page.template.monthField),
+      // Month title (locked template field) — only render if text is non-empty
+      if page.template.monthField.text.nonEmpty then renderTemplateTextField(page.template.monthField) else emptyMod,
 
       // Days grid (locked template fields)
       page.template.daysGrid.map(dayField => renderTemplateTextField(dayField)),
