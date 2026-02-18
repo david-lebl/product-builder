@@ -23,6 +23,19 @@ enum PageBackground:
 enum CalendarTemplateType:
   case GridTemplate
 
+/** Visual product types supported by the editor */
+enum VisualProductType:
+  case MonthlyCalendar
+  case WeeklyCalendar
+  case BiweeklyCalendar
+  case PhotoBook
+  case WallPicture
+
+/** Product format / orientation */
+enum ProductFormat:
+  case Basic
+  case Landscape
+
 /** Canvas element ADT — all user-placed items on a calendar page */
 sealed trait CanvasElement:
   def id: String
@@ -132,6 +145,8 @@ case class CalendarPage(
 case class CalendarState(
   pages: List[CalendarPage],
   currentPageIndex: Int = 0,
+  productType: VisualProductType = VisualProductType.MonthlyCalendar,
+  productFormat: ProductFormat = ProductFormat.Basic,
 ) {
   def currentPage: CalendarPage = pages(currentPageIndex)
 
@@ -155,17 +170,119 @@ case class CalendarState(
       copy(currentPageIndex = index)
     else
       this
+
+  /** Apply a background to all pages */
+  def applyBackgroundToAll(bg: PageBackground): CalendarState =
+    copy(pages = pages.map(page =>
+      page.copy(template = page.template.copy(background = bg))
+    ))
+
+  /** Apply a template type to all pages */
+  def applyTemplateTypeToAll(tt: CalendarTemplateType): CalendarState =
+    copy(pages = pages.map(page =>
+      page.copy(template = page.template.copy(templateType = tt))
+    ))
 }
 
 object CalendarState {
-  /** Create a new calendar with 12 blank pages */
-  def empty: CalendarState = {
-    val monthsEn = List(
-      "January", "February", "March", "April", "May", "June",
-      "July", "August", "September", "October", "November", "December"
-    )
+  /** Create a default state for the given product type and format */
+  def create(
+    productType: VisualProductType = VisualProductType.MonthlyCalendar,
+    format: ProductFormat = ProductFormat.Basic,
+    lang: String = "en",
+  ): CalendarState = {
+    val pages = productType match {
+      case VisualProductType.MonthlyCalendar   => createMonthlyCalendarPages(lang)
+      case VisualProductType.WeeklyCalendar    => createWeeklyCalendarPages(lang)
+      case VisualProductType.BiweeklyCalendar  => createBiweeklyCalendarPages(lang)
+      case VisualProductType.PhotoBook         => createPhotoBookPages(lang)
+      case VisualProductType.WallPicture       => createWallPicturePages(lang)
+    }
+    CalendarState(pages, productType = productType, productFormat = format)
+  }
 
-    val pages = monthsEn.zipWithIndex.map { case (monthName, index) =>
+  /** Create a new calendar with 12 blank pages (backward compat) */
+  def empty: CalendarState = create()
+
+  /** Update page titles based on language */
+  def updateLanguage(state: CalendarState, lang: String): CalendarState = {
+    state.productType match {
+      case VisualProductType.MonthlyCalendar =>
+        val months = monthNames(lang)
+        val updatedPages = state.pages.zipWithIndex.map { case (page, index) =>
+          val updatedTemplate = page.template.copy(
+            monthField = page.template.monthField.copy(text = months(index))
+          )
+          page.copy(template = updatedTemplate)
+        }
+        state.copy(pages = updatedPages)
+
+      case VisualProductType.WeeklyCalendar =>
+        val weekLabel = if lang == "cs" then "Týden" else "Week"
+        val updatedPages = state.pages.zipWithIndex.map { case (page, index) =>
+          val updatedTemplate = page.template.copy(
+            monthField = page.template.monthField.copy(text = s"$weekLabel ${index + 1}")
+          )
+          page.copy(template = updatedTemplate)
+        }
+        state.copy(pages = updatedPages)
+
+      case VisualProductType.BiweeklyCalendar =>
+        val weeksLabel = if lang == "cs" then "Týdny" else "Weeks"
+        val updatedPages = state.pages.zipWithIndex.map { case (page, index) =>
+          val startWeek = index * 2 + 1
+          val endWeek = startWeek + 1
+          val updatedTemplate = page.template.copy(
+            monthField = page.template.monthField.copy(text = s"$weeksLabel $startWeek–$endWeek")
+          )
+          page.copy(template = updatedTemplate)
+        }
+        state.copy(pages = updatedPages)
+
+      case VisualProductType.PhotoBook =>
+        val pageLabel = if lang == "cs" then "Stránka" else "Page"
+        val updatedPages = state.pages.zipWithIndex.map { case (page, index) =>
+          val updatedTemplate = page.template.copy(
+            monthField = page.template.monthField.copy(text = s"$pageLabel ${index + 1}")
+          )
+          page.copy(template = updatedTemplate)
+        }
+        state.copy(pages = updatedPages)
+
+      case VisualProductType.WallPicture =>
+        val title = if lang == "cs" then "Obraz" else "Picture"
+        val updatedPages = state.pages.map { page =>
+          val updatedTemplate = page.template.copy(
+            monthField = page.template.monthField.copy(text = title)
+          )
+          page.copy(template = updatedTemplate)
+        }
+        state.copy(pages = updatedPages)
+    }
+  }
+
+  /** Default page count for each product type */
+  def defaultPageCount(productType: VisualProductType): Int = productType match {
+    case VisualProductType.MonthlyCalendar  => 12
+    case VisualProductType.WeeklyCalendar   => 52
+    case VisualProductType.BiweeklyCalendar => 26
+    case VisualProductType.PhotoBook        => 12
+    case VisualProductType.WallPicture      => 1
+  }
+
+  private def monthNames(lang: String): List[String] =
+    if lang == "cs" then
+      List("Leden", "Únor", "Březen", "Duben", "Květen", "Červen",
+           "Červenec", "Srpen", "Září", "Říjen", "Listopad", "Prosinec")
+    else
+      List("January", "February", "March", "April", "May", "June",
+           "July", "August", "September", "October", "November", "December")
+
+  // ─── Factory methods for each product type ─────────────────────
+
+  private def createMonthlyCalendarPages(lang: String): List[CalendarPage] = {
+    val months = monthNames(lang)
+    months.zipWithIndex.map { case (monthName, index) =>
       val template = CalendarTemplate(
         monthField = TemplateTextField(
           id = s"month-${index + 1}",
@@ -176,33 +293,108 @@ object CalendarState {
         ),
         daysGrid = createDaysGrid(index + 1),
       )
-
-      CalendarPage(
-        pageNumber = index + 1,
-        template = template,
-      )
+      CalendarPage(pageNumber = index + 1, template = template)
     }
-
-    CalendarState(pages)
   }
 
-  /** Update month names based on language */
-  def updateLanguage(state: CalendarState, lang: String): CalendarState = {
-    val months = if lang == "cs" then
-      List("Leden", "Únor", "Březen", "Duben", "Květen", "Červen",
-           "Červenec", "Srpen", "Září", "Říjen", "Listopad", "Prosinec")
+  private def createWeeklyCalendarPages(lang: String): List[CalendarPage] = {
+    val weekLabel = if lang == "cs" then "Týden" else "Week"
+    val dayLabels = if lang == "cs" then
+      List("Po", "Út", "St", "Čt", "Pá", "So", "Ne")
     else
-      List("January", "February", "March", "April", "May", "June",
-           "July", "August", "September", "October", "November", "December")
+      List("Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun")
 
-    val updatedPages = state.pages.zipWithIndex.map { case (page, index) =>
-      val updatedTemplate = page.template.copy(
-        monthField = page.template.monthField.copy(text = months(index))
+    (1 to 52).map { weekNum =>
+      val template = CalendarTemplate(
+        monthField = TemplateTextField(
+          id = s"week-$weekNum",
+          text = s"$weekLabel $weekNum",
+          position = Position(50, 30),
+          fontSize = 24,
+          fontFamily = "Arial",
+        ),
+        daysGrid = dayLabels.zipWithIndex.map { case (dayName, col) =>
+          TemplateTextField(
+            id = s"day-w$weekNum-$col",
+            text = dayName,
+            position = Position(50 + col * 80, 80),
+            fontSize = 12,
+            fontFamily = "Arial",
+          )
+        },
       )
-      page.copy(template = updatedTemplate)
-    }
+      CalendarPage(pageNumber = weekNum, template = template)
+    }.toList
+  }
 
-    state.copy(pages = updatedPages)
+  private def createBiweeklyCalendarPages(lang: String): List[CalendarPage] = {
+    val weeksLabel = if lang == "cs" then "Týdny" else "Weeks"
+    val dayLabels = if lang == "cs" then
+      List("Po", "Út", "St", "Čt", "Pá", "So", "Ne")
+    else
+      List("Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun")
+
+    (1 to 26).map { biweekNum =>
+      val startWeek = (biweekNum - 1) * 2 + 1
+      val endWeek = startWeek + 1
+      val template = CalendarTemplate(
+        monthField = TemplateTextField(
+          id = s"biweek-$biweekNum",
+          text = s"$weeksLabel $startWeek–$endWeek",
+          position = Position(50, 30),
+          fontSize = 24,
+          fontFamily = "Arial",
+        ),
+        daysGrid = (0 until 14).map { day =>
+          val row = day / 7
+          val col = day % 7
+          TemplateTextField(
+            id = s"day-bw$biweekNum-$day",
+            text = dayLabels(col),
+            position = Position(50 + col * 80, 80 + row * 50),
+            fontSize = 12,
+            fontFamily = "Arial",
+          )
+        }.toList,
+      )
+      CalendarPage(pageNumber = biweekNum, template = template)
+    }.toList
+  }
+
+  private def createPhotoBookPages(lang: String): List[CalendarPage] = {
+    val pageLabel = if lang == "cs" then "Stránka" else "Page"
+    (1 to 12).map { pageNum =>
+      val template = CalendarTemplate(
+        monthField = TemplateTextField(
+          id = s"page-$pageNum",
+          text = s"$pageLabel $pageNum",
+          position = Position(50, 30),
+          fontSize = 24,
+          fontFamily = "Arial",
+        ),
+        daysGrid = List.empty,
+      )
+      CalendarPage(pageNumber = pageNum, template = template)
+    }.toList
+  }
+
+  private def createWallPicturePages(lang: String): List[CalendarPage] = {
+    val title = if lang == "cs" then "Obraz" else "Picture"
+    List(
+      CalendarPage(
+        pageNumber = 1,
+        template = CalendarTemplate(
+          monthField = TemplateTextField(
+            id = "picture-1",
+            text = title,
+            position = Position(50, 30),
+            fontSize = 24,
+            fontFamily = "Arial",
+          ),
+          daysGrid = List.empty,
+        ),
+      )
+    )
   }
 
   /** Create a grid of day template text fields for a month */

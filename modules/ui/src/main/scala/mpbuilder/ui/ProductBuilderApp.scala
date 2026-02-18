@@ -17,8 +17,8 @@ object ProductBuilderApp:
         div(
           cls := "card",
           h2(child.text <-- lang.map {
-            case Language.En => "Configure Your Product"
-            case Language.Cs => "Nakonfigurujte svůj produkt"
+            case Language.En => "Product Parameters"
+            case Language.Cs => "Parametry produktu"
           }),
           
           ConfigurationForm(),

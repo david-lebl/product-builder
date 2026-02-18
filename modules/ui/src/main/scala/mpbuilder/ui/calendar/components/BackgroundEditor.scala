@@ -102,6 +102,24 @@ object BackgroundEditor {
             onClick --> { _ =>
               CalendarViewModel.setBackgroundColor("#ffffff")
             }
+          ),
+
+          // Apply to all pages
+          button(
+            cls := "bg-upload-btn",
+            "Apply Background to All Pages",
+            onClick --> { _ =>
+              CalendarViewModel.applyBackgroundToAllPages()
+            }
+          ),
+
+          // Apply template to all pages
+          button(
+            cls := "bg-upload-btn",
+            "Apply Template to All Pages",
+            onClick --> { _ =>
+              CalendarViewModel.applyTemplateToAllPages()
+            }
           )
         )
       )

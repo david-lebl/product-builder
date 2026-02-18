@@ -8,9 +8,14 @@ import scala.scalajs.js
 object CalendarPageCanvas {
   def apply(): Element = {
     val currentPage = CalendarViewModel.currentPage
+    val format = CalendarViewModel.productFormat
 
     div(
       cls := "calendar-canvas-container",
+      styleAttr <-- format.map {
+        case ProductFormat.Landscape => "max-width: 800px;"
+        case ProductFormat.Basic     => "max-width: 600px;"
+      },
 
       div(
         cls := "calendar-canvas",
@@ -23,14 +28,20 @@ object CalendarPageCanvas {
         },
 
         // Render the calendar page
-        child <-- currentPage.map(renderPage)
+        child <-- currentPage.combineWith(format).map { (page, fmt) => renderPage(page, fmt) }
       )
     )
   }
 
-  private def renderPage(page: CalendarPage): Element = {
+  private def renderPage(page: CalendarPage, format: ProductFormat): Element = {
+    val pageHeight = format match {
+      case ProductFormat.Landscape => 450
+      case ProductFormat.Basic     => 600
+    }
+
     div(
       cls := "calendar-page",
+      styleAttr := s"height: ${pageHeight}px;",
 
       // Background
       renderBackground(page.template.background),

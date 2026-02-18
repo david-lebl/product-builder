@@ -28,10 +28,12 @@ object PageNavigation {
       // Page indicator
       div(
         cls := "page-indicator",
-        child.text <-- currentPageIndex.combineWith(lang).map { (index, language) =>
+        child.text <-- state.combineWith(lang).map { case (s, language) =>
+          val index = s.currentPageIndex
+          val total = s.pages.length
           language match {
-            case Language.En => s"Page ${index + 1} of 12"
-            case Language.Cs => s"Stránka ${index + 1} z 12"
+            case Language.En => s"Page ${index + 1} of $total"
+            case Language.Cs => s"Stránka ${index + 1} z $total"
           }
         }
       ),
@@ -43,7 +45,7 @@ object PageNavigation {
           case Language.En => "Next →"
           case Language.Cs => "Další →"
         },
-        disabled <-- currentPageIndex.map(_ == 11),
+        disabled <-- state.map(s => s.currentPageIndex >= s.pages.length - 1),
         onClick --> { _ => CalendarViewModel.goToNextPage() }
       ),
       

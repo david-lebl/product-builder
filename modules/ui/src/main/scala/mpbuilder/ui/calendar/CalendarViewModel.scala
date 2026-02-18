@@ -10,6 +10,10 @@ object CalendarViewModel {
   private val stateVar: Var[CalendarState] = Var(CalendarState.empty)
   val state: Signal[CalendarState] = stateVar.signal
 
+  // Product type and format as derived signals
+  val productType: Signal[VisualProductType] = state.map(_.productType)
+  val productFormat: Signal[ProductFormat] = state.map(_.productFormat)
+
   // Unified element selection — a single selected element ID across all types
   private val selectedElementVar: Var[Option[String]] = Var(None)
   val selectedElement: Signal[Option[String]] = selectedElementVar.signal
@@ -297,6 +301,10 @@ object CalendarViewModel {
       )
     )
 
+  def applyBackgroundToAllPages(): Unit =
+    val currentBg = stateVar.now().currentPage.template.background
+    stateVar.update(_.applyBackgroundToAll(currentBg))
+
   // ─── Template operations ─────────────────────────────────────────
 
   def setTemplateType(templateType: CalendarTemplateType): Unit =
@@ -305,6 +313,22 @@ object CalendarViewModel {
         page.copy(template = page.template.copy(templateType = templateType))
       )
     )
+
+  def applyTemplateToAllPages(): Unit =
+    val currentTt = stateVar.now().currentPage.template.templateType
+    stateVar.update(_.applyTemplateTypeToAll(currentTt))
+
+  // ─── Product type & format ───────────────────────────────────────
+
+  def setProductType(productType: VisualProductType): Unit = {
+    selectedElementVar.set(None)
+    stateVar.set(CalendarState.create(productType, stateVar.now().productFormat))
+  }
+
+  def setProductFormat(format: ProductFormat): Unit = {
+    selectedElementVar.set(None)
+    stateVar.update(_.copy(productFormat = format))
+  }
 
   // ─── Reset & language ────────────────────────────────────────────
 

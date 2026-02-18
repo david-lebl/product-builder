@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Material Builder - Product Configuration</title>
+    <title>Product Builder</title>
     <style>
         * {
             margin: 0;
@@ -537,6 +537,45 @@
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
             border-color: transparent;
+        }
+
+        /* ─── Product Type & Format Selectors ────────────────── */
+
+        .product-selectors {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 20px;
+            padding: 15px;
+            background: #f5f7ff;
+            border-radius: 8px;
+            border: 2px solid #e0e0e0;
+        }
+
+        .selector-group {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            flex: 1;
+        }
+
+        .selector-group label {
+            font-weight: 600;
+            font-size: 0.9rem;
+            color: #555;
+        }
+
+        .product-type-select,
+        .format-select {
+            padding: 8px 10px;
+            font-size: 0.95rem;
+            border: 2px solid #e0e0e0;
+            border-radius: 6px;
+        }
+
+        @media (max-width: 768px) {
+            .product-selectors {
+                flex-direction: column;
+            }
         }
 
         /* Calendar Builder Styles */
@@ -1207,8 +1246,8 @@
 <body>
     <div class="container">
         <div class="header">
-            <h1>Material Builder</h1>
-            <p>Configure your custom print product with ease</p>
+            <h1>Product Builder</h1>
+            <p>Configure and design your custom print products with ease</p>
         </div>
 
         <div id="app-root"></div>
