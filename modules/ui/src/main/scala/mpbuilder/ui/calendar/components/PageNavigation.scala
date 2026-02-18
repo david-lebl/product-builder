@@ -10,21 +10,18 @@ object PageNavigation {
     val currentPageIndex = CalendarViewModel.currentPageIndex
     val state = CalendarViewModel.state
     val lang = ProductBuilderViewModel.currentLanguage
-    
+
     div(
-      cls := "page-navigation",
-      
+      cls := "page-navigation-strip",
+
       // Previous button
       button(
-        cls := "nav-btn prev-btn",
-        child.text <-- lang.map {
-          case Language.En => "← Previous"
-          case Language.Cs => "← Předchozí"
-        },
+        cls := "nav-strip-btn prev-btn",
+        "←",
         disabled <-- currentPageIndex.map(_ == 0),
         onClick --> { _ => CalendarViewModel.goToPreviousPage() }
       ),
-      
+
       // Page indicator
       div(
         cls := "page-indicator",
@@ -32,26 +29,23 @@ object PageNavigation {
           val index = s.currentPageIndex
           val total = s.pages.length
           language match {
-            case Language.En => s"Page ${index + 1} of $total"
-            case Language.Cs => s"Stránka ${index + 1} z $total"
+            case Language.En => s"${index + 1} / $total"
+            case Language.Cs => s"${index + 1} / $total"
           }
         }
       ),
-      
+
       // Next button
       button(
-        cls := "nav-btn next-btn",
-        child.text <-- lang.map {
-          case Language.En => "Next →"
-          case Language.Cs => "Další →"
-        },
+        cls := "nav-strip-btn next-btn",
+        "→",
         disabled <-- state.map(s => s.currentPageIndex >= s.pages.length - 1),
         onClick --> { _ => CalendarViewModel.goToNextPage() }
       ),
-      
-      // Page thumbnails/quick navigation
+
+      // Horizontally scrollable page thumbnails
       div(
-        cls := "page-thumbnails",
+        cls := "page-thumbnails-strip",
         children <-- state.map { s =>
           s.pages.zipWithIndex.map { case (page, index) =>
             renderPageThumbnail(page, index, s.currentPageIndex)
@@ -60,24 +54,24 @@ object PageNavigation {
       )
     )
   }
-  
+
   private def renderPageThumbnail(page: CalendarPage, index: Int, currentIndex: Int): Element = {
     val isActive = index == currentIndex
-    
+
     div(
-      cls := "page-thumbnail",
+      cls := "page-thumbnail-item",
       cls := "active" -> isActive,
-      
+
       div(
         cls := "thumbnail-number",
         (index + 1).toString
       ),
-      
+
       div(
-        cls := "thumbnail-month",
-        page.template.monthField.text.take(3) // Show abbreviated month name
+        cls := "thumbnail-label",
+        page.template.monthField.text.take(5)
       ),
-      
+
       onClick --> { _ => CalendarViewModel.goToPage(index) }
     )
   }

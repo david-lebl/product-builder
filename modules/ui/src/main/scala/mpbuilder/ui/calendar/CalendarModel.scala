@@ -31,10 +31,44 @@ enum VisualProductType:
   case PhotoBook
   case WallPicture
 
-/** Product format / orientation */
-enum ProductFormat:
-  case Basic
-  case Landscape
+/** Physical product format with dimensions in mm */
+case class ProductFormat(
+  id: String,
+  nameEn: String,
+  nameCs: String,
+  widthMm: Int,
+  heightMm: Int,
+)
+
+object ProductFormat:
+  // Calendar formats
+  val WallCalendar: ProductFormat       = ProductFormat("wall-calendar",       "Wall Calendar",           "Nástěnný kalendář",           210, 297)
+  val WallCalendarLarge: ProductFormat  = ProductFormat("wall-calendar-large", "Wall Calendar Large",     "Nástěnný kalendář velký",      297, 420)
+  val DeskCalendar: ProductFormat       = ProductFormat("desk-calendar",       "Desk Calendar",           "Stolní kalendář",              297, 170)
+  val DeskCalendarSmall: ProductFormat  = ProductFormat("desk-calendar-small", "Desk Calendar Small",     "Stolní kalendář malý",         210, 110)
+  // Photo Book formats
+  val PhotoBookSquare: ProductFormat    = ProductFormat("photobook-square",    "Photo Book Square",       "Fotokniha čtvercová",          210, 210)
+  val PhotoBookLandscape: ProductFormat = ProductFormat("photobook-landscape", "Photo Book Landscape",    "Fotokniha na šířku",           297, 210)
+  val PhotoBookPortrait: ProductFormat  = ProductFormat("photobook-portrait",  "Photo Book Portrait",     "Fotokniha na výšku",           210, 297)
+  // Wall Picture formats
+  val WallPictureSmall: ProductFormat     = ProductFormat("wall-picture-small",     "Wall Picture Small",     "Obraz malý",       210, 297)
+  val WallPictureLarge: ProductFormat     = ProductFormat("wall-picture-large",     "Wall Picture Large",     "Obraz velký",      297, 420)
+  val WallPictureLandscape: ProductFormat = ProductFormat("wall-picture-landscape", "Wall Picture Landscape", "Obraz na šířku",   420, 297)
+
+  /** Formats applicable to each product type */
+  def formatsFor(pt: VisualProductType): List[ProductFormat] = pt match
+    case VisualProductType.MonthlyCalendar | VisualProductType.WeeklyCalendar | VisualProductType.BiweeklyCalendar =>
+      List(WallCalendar, WallCalendarLarge, DeskCalendar, DeskCalendarSmall)
+    case VisualProductType.PhotoBook =>
+      List(PhotoBookSquare, PhotoBookLandscape, PhotoBookPortrait)
+    case VisualProductType.WallPicture =>
+      List(WallPictureSmall, WallPictureLarge, WallPictureLandscape)
+
+  /** Default format for each product type */
+  def defaultFor(pt: VisualProductType): ProductFormat = formatsFor(pt).head
+
+  /** Whether the format is landscape (width > height) */
+  def isLandscape(fmt: ProductFormat): Boolean = fmt.widthMm > fmt.heightMm
 
 /** Canvas element ADT — all user-placed items on a calendar page */
 sealed trait CanvasElement:
@@ -126,12 +160,20 @@ case class TemplateTextField(
   color: String = "#000000",
 )
 
+/** Template image placeholder — a dashed-border area for the user to place a photo */
+case class TemplateImagePlaceholder(
+  id: String,
+  position: Position,
+  size: Size,
+)
+
 /** Calendar template */
 case class CalendarTemplate(
   templateType: CalendarTemplateType = CalendarTemplateType.GridTemplate,
   background: PageBackground = PageBackground.SolidColor("#ffffff"),
   monthField: TemplateTextField,
   daysGrid: List[TemplateTextField],
+  imagePlaceholder: Option[TemplateImagePlaceholder] = None,
 )
 
 /** A single page in the calendar */
@@ -146,7 +188,7 @@ case class CalendarState(
   pages: List[CalendarPage],
   currentPageIndex: Int = 0,
   productType: VisualProductType = VisualProductType.MonthlyCalendar,
-  productFormat: ProductFormat = ProductFormat.Basic,
+  productFormat: ProductFormat = ProductFormat.WallCalendar,
 ) {
   def currentPage: CalendarPage = pages(currentPageIndex)
 
@@ -188,7 +230,7 @@ object CalendarState {
   /** Create a default state for the given product type and format */
   def create(
     productType: VisualProductType = VisualProductType.MonthlyCalendar,
-    format: ProductFormat = ProductFormat.Basic,
+    format: ProductFormat = ProductFormat.WallCalendar,
     lang: String = "en",
   ): CalendarState = {
     val pages = productType match {
@@ -240,24 +282,12 @@ object CalendarState {
         state.copy(pages = updatedPages)
 
       case VisualProductType.PhotoBook =>
-        val pageLabel = if lang == "cs" then "Stránka" else "Page"
-        val updatedPages = state.pages.zipWithIndex.map { case (page, index) =>
-          val updatedTemplate = page.template.copy(
-            monthField = page.template.monthField.copy(text = s"$pageLabel ${index + 1}")
-          )
-          page.copy(template = updatedTemplate)
-        }
-        state.copy(pages = updatedPages)
+        // Photo book only has a small page number — no language update needed
+        state
 
       case VisualProductType.WallPicture =>
-        val title = if lang == "cs" then "Obraz" else "Picture"
-        val updatedPages = state.pages.map { page =>
-          val updatedTemplate = page.template.copy(
-            monthField = page.template.monthField.copy(text = title)
-          )
-          page.copy(template = updatedTemplate)
-        }
-        state.copy(pages = updatedPages)
+        // Wall picture has no visible text — no language update needed
+        state
     }
   }
 
@@ -292,6 +322,11 @@ object CalendarState {
           fontFamily = "Arial",
         ),
         daysGrid = createDaysGrid(index + 1),
+        imagePlaceholder = Some(TemplateImagePlaceholder(
+          id = s"img-month-${index + 1}",
+          position = Position(50, 350),
+          size = Size(460, 220),
+        )),
       )
       CalendarPage(pageNumber = index + 1, template = template)
     }
@@ -322,6 +357,11 @@ object CalendarState {
             fontFamily = "Arial",
           )
         },
+        imagePlaceholder = Some(TemplateImagePlaceholder(
+          id = s"img-week-$weekNum",
+          position = Position(50, 130),
+          size = Size(460, 250),
+        )),
       )
       CalendarPage(pageNumber = weekNum, template = template)
     }.toList
@@ -356,42 +396,55 @@ object CalendarState {
             fontFamily = "Arial",
           )
         }.toList,
+        imagePlaceholder = Some(TemplateImagePlaceholder(
+          id = s"img-biweek-$biweekNum",
+          position = Position(50, 200),
+          size = Size(460, 220),
+        )),
       )
       CalendarPage(pageNumber = biweekNum, template = template)
     }.toList
   }
 
   private def createPhotoBookPages(lang: String): List[CalendarPage] = {
-    val pageLabel = if lang == "cs" then "Stránka" else "Page"
     (1 to 12).map { pageNum =>
       val template = CalendarTemplate(
         monthField = TemplateTextField(
-          id = s"page-$pageNum",
-          text = s"$pageLabel $pageNum",
-          position = Position(50, 30),
-          fontSize = 24,
+          id = s"page-num-$pageNum",
+          text = pageNum.toString,
+          position = Position(270, 570),
+          fontSize = 10,
           fontFamily = "Arial",
+          color = "#999999",
         ),
         daysGrid = List.empty,
+        imagePlaceholder = Some(TemplateImagePlaceholder(
+          id = s"img-page-$pageNum",
+          position = Position(30, 30),
+          size = Size(500, 520),
+        )),
       )
       CalendarPage(pageNumber = pageNum, template = template)
     }.toList
   }
 
   private def createWallPicturePages(lang: String): List[CalendarPage] = {
-    val title = if lang == "cs" then "Obraz" else "Picture"
     List(
       CalendarPage(
         pageNumber = 1,
         template = CalendarTemplate(
           monthField = TemplateTextField(
-            id = "picture-1",
-            text = title,
-            position = Position(50, 30),
-            fontSize = 24,
-            fontFamily = "Arial",
+            id = "picture-hidden",
+            text = "",
+            position = Position(0, 0),
+            fontSize = 0,
           ),
           daysGrid = List.empty,
+          imagePlaceholder = Some(TemplateImagePlaceholder(
+            id = "img-picture-1",
+            position = Position(20, 20),
+            size = Size(520, 555),
+          )),
         ),
       )
     )

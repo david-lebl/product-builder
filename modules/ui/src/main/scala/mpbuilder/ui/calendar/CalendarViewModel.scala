@@ -322,7 +322,8 @@ object CalendarViewModel {
 
   def setProductType(productType: VisualProductType): Unit = {
     selectedElementVar.set(None)
-    stateVar.set(CalendarState.create(productType, stateVar.now().productFormat))
+    val newFormat = ProductFormat.defaultFor(productType)
+    stateVar.set(CalendarState.create(productType, newFormat))
   }
 
   def setProductFormat(format: ProductFormat): Unit = {

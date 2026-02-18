@@ -6,6 +6,10 @@ import mpbuilder.ui.ProductBuilderViewModel
 import mpbuilder.domain.model.Language
 
 object CalendarBuilderApp {
+
+  // Sidebar tab state: "elements" or "background"
+  private val sidebarTabVar: Var[String] = Var("elements")
+
   def apply(): Element = {
     val lang = ProductBuilderViewModel.currentLanguage
 
@@ -82,55 +86,74 @@ object CalendarBuilderApp {
           ),
         ),
 
+        // Dynamic format selector driven by product type
         div(
           cls := "selector-group",
           label(child.text <-- lang.map {
             case Language.En => "Format:"
             case Language.Cs => "Formát:"
           }),
-          select(
-            cls := "format-select",
-            value <-- CalendarViewModel.productFormat.map {
-              case ProductFormat.Basic     => "basic"
-              case ProductFormat.Landscape => "landscape"
-            },
-            option(value := "basic", child.text <-- lang.map {
-              case Language.En => "Basic (Portrait)"
-              case Language.Cs => "Základní (Na výšku)"
-            }),
-            option(value := "landscape", child.text <-- lang.map {
-              case Language.En => "Landscape"
-              case Language.Cs => "Na šířku"
-            }),
-            onChange.mapToValue --> { v =>
-              val fmt = v match {
-                case "landscape" => ProductFormat.Landscape
-                case _           => ProductFormat.Basic
+          child <-- CalendarViewModel.state.combineWith(lang).map { case (st, language) =>
+            val pt = st.productType
+            val currentFmt = st.productFormat
+            val formats = ProductFormat.formatsFor(pt)
+            select(
+              cls := "format-select",
+              value := currentFmt.id,
+              formats.map { fmt =>
+                val lbl = language match {
+                  case Language.En => s"${fmt.nameEn} (${fmt.widthMm}×${fmt.heightMm} mm)"
+                  case Language.Cs => s"${fmt.nameCs} (${fmt.widthMm}×${fmt.heightMm} mm)"
+                }
+                option(value := fmt.id, lbl)
+              },
+              onChange.mapToValue --> { selectedId =>
+                formats.find(_.id == selectedId).foreach(CalendarViewModel.setProductFormat)
               }
-              CalendarViewModel.setProductFormat(fmt)
-            }
-          ),
+            )
+          },
         ),
       ),
 
-      // Main content area
+      // Main content area: 2-column layout (sidebar + canvas)
       div(
         cls := "calendar-main-content",
 
-        // Left sidebar: Unified element editor + background
+        // Left sidebar with tabs
         div(
           cls := "calendar-sidebar",
 
+          // Tab buttons
+          div(
+            cls := "sidebar-tabs",
+            button(
+              cls := "sidebar-tab-btn",
+              cls <-- sidebarTabVar.signal.map(t => if t == "elements" then "active" else ""),
+              child.text <-- lang.map {
+                case Language.En => "Page Elements"
+                case Language.Cs => "Prvky stránky"
+              },
+              onClick --> { _ => sidebarTabVar.set("elements") }
+            ),
+            button(
+              cls := "sidebar-tab-btn",
+              cls <-- sidebarTabVar.signal.map(t => if t == "background" then "active" else ""),
+              child.text <-- lang.map {
+                case Language.En => "Background"
+                case Language.Cs => "Pozadí"
+              },
+              onClick --> { _ => sidebarTabVar.set("background") }
+            ),
+          ),
+
+          // Tab content
           div(
             cls := "calendar-controls-card",
-
-            // Unified element list & forms
-            ElementListEditor(),
-
-            hr(),
-
-            // Background & template editor
-            BackgroundEditor(),
+            child <-- sidebarTabVar.signal.map {
+              case "elements"   => ElementListEditor()
+              case "background" => BackgroundEditor()
+              case _            => ElementListEditor()
+            }
           )
         ),
 
@@ -139,17 +162,10 @@ object CalendarBuilderApp {
           cls := "calendar-canvas-area",
           CalendarPageCanvas()
         ),
-
-        // Right sidebar: Page navigation
-        div(
-          cls := "calendar-navigation-sidebar",
-
-          div(
-            cls := "calendar-nav-card",
-            PageNavigation()
-          )
-        )
       ),
+
+      // Page navigation strip (horizontal, scrollable)
+      PageNavigation(),
 
       // Footer with actions
       div(

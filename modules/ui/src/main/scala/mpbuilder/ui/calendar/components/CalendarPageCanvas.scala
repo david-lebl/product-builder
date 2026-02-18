@@ -12,9 +12,9 @@ object CalendarPageCanvas {
 
     div(
       cls := "calendar-canvas-container",
-      styleAttr <-- format.map {
-        case ProductFormat.Landscape => "max-width: 800px;"
-        case ProductFormat.Basic     => "max-width: 600px;"
+      styleAttr <-- format.map { fmt =>
+        val maxW = if ProductFormat.isLandscape(fmt) then 800 else 600
+        s"max-width: ${maxW}px;"
       },
 
       div(
@@ -34,10 +34,10 @@ object CalendarPageCanvas {
   }
 
   private def renderPage(page: CalendarPage, format: ProductFormat): Element = {
-    val pageHeight = format match {
-      case ProductFormat.Landscape => 450
-      case ProductFormat.Basic     => 600
-    }
+    // Scale to fit canvas: use aspect ratio from physical dimensions
+    val aspectRatio = format.widthMm.toDouble / format.heightMm
+    val canvasWidth = if ProductFormat.isLandscape(format) then 760 else 560
+    val pageHeight = (canvasWidth / aspectRatio).toInt
 
     div(
       cls := "calendar-page",
@@ -46,11 +46,14 @@ object CalendarPageCanvas {
       // Background
       renderBackground(page.template.background),
 
-      // Month title (locked template field)
-      renderTemplateTextField(page.template.monthField),
+      // Month title (locked template field) — only render if text is non-empty
+      if page.template.monthField.text.nonEmpty then renderTemplateTextField(page.template.monthField) else emptyMod,
 
       // Days grid (locked template fields)
       page.template.daysGrid.map(dayField => renderTemplateTextField(dayField)),
+
+      // Template image placeholder (dashed area)
+      page.template.imagePlaceholder.map(renderImagePlaceholder).getOrElse(emptyMod),
 
       // All canvas elements (sorted by z-index)
       page.elements.sortBy(_.zIndex).map(renderCanvasElement)
@@ -68,6 +71,14 @@ object CalendarPageCanvas {
         cls := "calendar-background",
         styleAttr := s"background-image: url($imageData); background-size: cover; background-position: center;"
       )
+  }
+
+  private def renderImagePlaceholder(ph: TemplateImagePlaceholder): Element = {
+    div(
+      cls := "template-image-placeholder",
+      styleAttr := s"position: absolute; left: ${ph.position.x}px; top: ${ph.position.y}px; width: ${ph.size.width}px; height: ${ph.size.height}px;",
+      span("📷"),
+    )
   }
 
   private def renderTemplateTextField(field: TemplateTextField): Element = {
