@@ -160,20 +160,12 @@ case class TemplateTextField(
   color: String = "#000000",
 )
 
-/** Template image placeholder — a dashed-border area for the user to place a photo */
-case class TemplateImagePlaceholder(
-  id: String,
-  position: Position,
-  size: Size,
-)
-
 /** Calendar template */
 case class CalendarTemplate(
   templateType: CalendarTemplateType = CalendarTemplateType.GridTemplate,
   background: PageBackground = PageBackground.SolidColor("#ffffff"),
   monthField: TemplateTextField,
   daysGrid: List[TemplateTextField],
-  imagePlaceholder: Option[TemplateImagePlaceholder] = None,
 )
 
 /** A single page in the calendar */
@@ -322,13 +314,19 @@ object CalendarState {
           fontFamily = "Arial",
         ),
         daysGrid = createDaysGrid(index + 1),
-        imagePlaceholder = Some(TemplateImagePlaceholder(
-          id = s"img-month-${index + 1}",
-          position = Position(50, 350),
-          size = Size(460, 220),
-        )),
       )
-      CalendarPage(pageNumber = index + 1, template = template)
+      CalendarPage(
+        pageNumber = index + 1,
+        template = template,
+        elements = List(
+          PhotoElement(
+            id = s"img-month-${index + 1}",
+            imageData = "",
+            position = Position(50, 350),
+            size = Size(460, 220),
+          )
+        ),
+      )
     }
   }
 
@@ -357,13 +355,19 @@ object CalendarState {
             fontFamily = "Arial",
           )
         },
-        imagePlaceholder = Some(TemplateImagePlaceholder(
-          id = s"img-week-$weekNum",
-          position = Position(50, 130),
-          size = Size(460, 250),
-        )),
       )
-      CalendarPage(pageNumber = weekNum, template = template)
+      CalendarPage(
+        pageNumber = weekNum,
+        template = template,
+        elements = List(
+          PhotoElement(
+            id = s"img-week-$weekNum",
+            imageData = "",
+            position = Position(50, 130),
+            size = Size(460, 250),
+          )
+        ),
+      )
     }.toList
   }
 
@@ -396,13 +400,19 @@ object CalendarState {
             fontFamily = "Arial",
           )
         }.toList,
-        imagePlaceholder = Some(TemplateImagePlaceholder(
-          id = s"img-biweek-$biweekNum",
-          position = Position(50, 200),
-          size = Size(460, 220),
-        )),
       )
-      CalendarPage(pageNumber = biweekNum, template = template)
+      CalendarPage(
+        pageNumber = biweekNum,
+        template = template,
+        elements = List(
+          PhotoElement(
+            id = s"img-biweek-$biweekNum",
+            imageData = "",
+            position = Position(50, 200),
+            size = Size(460, 220),
+          )
+        ),
+      )
     }.toList
   }
 
@@ -418,13 +428,19 @@ object CalendarState {
           color = "#999999",
         ),
         daysGrid = List.empty,
-        imagePlaceholder = Some(TemplateImagePlaceholder(
-          id = s"img-page-$pageNum",
-          position = Position(30, 30),
-          size = Size(500, 520),
-        )),
       )
-      CalendarPage(pageNumber = pageNum, template = template)
+      CalendarPage(
+        pageNumber = pageNum,
+        template = template,
+        elements = List(
+          PhotoElement(
+            id = s"img-page-$pageNum",
+            imageData = "",
+            position = Position(30, 30),
+            size = Size(500, 520),
+          )
+        ),
+      )
     }.toList
   }
 
@@ -440,11 +456,14 @@ object CalendarState {
             fontSize = 0,
           ),
           daysGrid = List.empty,
-          imagePlaceholder = Some(TemplateImagePlaceholder(
+        ),
+        elements = List(
+          PhotoElement(
             id = "img-picture-1",
+            imageData = "",
             position = Position(20, 20),
             size = Size(520, 555),
-          )),
+          )
         ),
       )
     )

@@ -52,9 +52,6 @@ object CalendarPageCanvas {
       // Days grid (locked template fields)
       page.template.daysGrid.map(dayField => renderTemplateTextField(dayField)),
 
-      // Template image placeholder (dashed area)
-      page.template.imagePlaceholder.map(renderImagePlaceholder).getOrElse(emptyMod),
-
       // All canvas elements (sorted by z-index)
       page.elements.sortBy(_.zIndex).map(renderCanvasElement)
     )
@@ -71,14 +68,6 @@ object CalendarPageCanvas {
         cls := "calendar-background",
         styleAttr := s"background-image: url($imageData); background-size: cover; background-position: center;"
       )
-  }
-
-  private def renderImagePlaceholder(ph: TemplateImagePlaceholder): Element = {
-    div(
-      cls := "template-image-placeholder",
-      styleAttr := s"position: absolute; left: ${ph.position.x}px; top: ${ph.position.y}px; width: ${ph.size.width}px; height: ${ph.size.height}px;",
-      span("📷"),
-    )
   }
 
   private def renderTemplateTextField(field: TemplateTextField): Element = {
