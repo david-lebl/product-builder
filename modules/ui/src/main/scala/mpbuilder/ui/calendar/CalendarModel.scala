@@ -43,6 +43,9 @@ case class PhotoElement(
   size: Size,
   rotation: Double = 0.0,
   zIndex: Int = 0,
+  imageScale: Double = 1.0,
+  imageOffsetX: Double = 0.0,
+  imageOffsetY: Double = 0.0,
 ) extends CanvasElement:
   def withPosition(p: Position): PhotoElement = copy(position = p)
   def withSize(s: Size): PhotoElement = copy(size = s)

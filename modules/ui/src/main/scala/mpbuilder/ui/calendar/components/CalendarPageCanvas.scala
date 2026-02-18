@@ -96,9 +96,9 @@ object CalendarPageCanvas {
         if sel.contains(field.id) then Some(renderResizeHandles(field.id, field)) else None
       },
 
-      // Rotation button (when selected)
+      // Rotation buttons (when selected)
       child.maybe <-- selected.map { sel =>
-        if sel.contains(field.id) then Some(renderRotationButton(field.id, field.rotation)) else None
+        if sel.contains(field.id) then Some(renderRotationButtons(field.id, field.rotation)) else None
       },
 
       // Drag behavior
@@ -143,9 +143,9 @@ object CalendarPageCanvas {
         if sel.contains(shape.id) then Some(renderResizeHandles(shape.id, shape)) else None
       },
 
-      // Rotation button (when selected)
+      // Rotation buttons (when selected)
       child.maybe <-- selected.map { sel =>
-        if sel.contains(shape.id) then Some(renderRotationButton(shape.id, shape.rotation)) else None
+        if sel.contains(shape.id) then Some(renderRotationButtons(shape.id, shape.rotation)) else None
       },
 
       // Drag behavior
@@ -181,9 +181,9 @@ object CalendarPageCanvas {
         if sel.contains(clip.id) then Some(renderResizeHandles(clip.id, clip)) else None
       },
 
-      // Rotation button (when selected)
+      // Rotation buttons (when selected)
       child.maybe <-- selected.map { sel =>
-        if sel.contains(clip.id) then Some(renderRotationButton(clip.id, clip.rotation)) else None
+        if sel.contains(clip.id) then Some(renderRotationButtons(clip.id, clip.rotation)) else None
       },
 
       // Drag behavior
@@ -206,13 +206,25 @@ object CalendarPageCanvas {
     div(
       cls := "calendar-element calendar-photo",
       cls <-- selected.map(sel => if sel.contains(photo.id) then "selected" else ""),
-      styleAttr := s"position: absolute; left: ${photo.position.x}px; top: ${photo.position.y}px; width: ${photo.size.width}px; height: ${photo.size.height}px; transform: rotate(${photo.rotation}deg); transform-origin: center; overflow: hidden; z-index: ${photo.zIndex};",
+      styleAttr := s"position: absolute; left: ${photo.position.x}px; top: ${photo.position.y}px; width: ${photo.size.width}px; height: ${photo.size.height}px; transform: rotate(${photo.rotation}deg); transform-origin: center; z-index: ${photo.zIndex};",
 
-      // Main image
-      img(
-        src := photo.imageData,
-        styleAttr := "width: 100%; height: 100%; object-fit: contain; pointer-events: none;",
-        draggable := false
+      // Inner container with overflow hidden for image clipping
+      div(
+        cls := "photo-image-container",
+        styleAttr := "width: 100%; height: 100%; overflow: hidden; position: relative;",
+
+        if photo.imageData.nonEmpty then
+          img(
+            src := photo.imageData,
+            styleAttr := s"width: 100%; height: 100%; object-fit: cover; pointer-events: none; transform: scale(${photo.imageScale}) translate(${photo.imageOffsetX}px, ${photo.imageOffsetY}px); transform-origin: center;",
+            draggable := false
+          )
+        else
+          div(
+            cls := "photo-placeholder",
+            styleAttr := "width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; background: #f0f0f0; border: 2px dashed #ccc; box-sizing: border-box; color: #999; font-size: 14px; text-align: center; pointer-events: none;",
+            "📷 Click to add photo"
+          )
       ),
 
       // Resize handles (visible when selected)
@@ -220,15 +232,16 @@ object CalendarPageCanvas {
         if sel.contains(photo.id) then Some(renderResizeHandles(photo.id, photo)) else None
       },
 
-      // Rotation button (visible when selected)
+      // Rotation buttons (visible when selected)
       child.maybe <-- selected.map { sel =>
-        if sel.contains(photo.id) then Some(renderRotationButton(photo.id, photo.rotation)) else None
+        if sel.contains(photo.id) then Some(renderRotationButtons(photo.id, photo.rotation)) else None
       },
 
       // Make draggable
       onMouseDown --> { ev =>
-        if !ev.target.asInstanceOf[dom.Element].classList.contains("resize-handle") &&
-           !ev.target.asInstanceOf[dom.Element].classList.contains("rotate-btn") then
+        val target = ev.target.asInstanceOf[dom.Element]
+        if !target.classList.contains("resize-handle") &&
+           !target.classList.contains("rotate-btn") then
           ev.preventDefault()
           ev.stopPropagation()
           CalendarViewModel.selectElement(photo.id)
@@ -385,19 +398,33 @@ object CalendarPageCanvas {
     )
   }
 
-  // ─── Rotation button ─────────────────────────────────────────────
+  // ─── Rotation buttons (left and right) ─────────────────────────
 
-  private def renderRotationButton(elementId: String, currentRotation: Double): Element = {
+  private def renderRotationButtons(elementId: String, currentRotation: Double): Element = {
     div(
-      cls := "rotate-btn",
-      "↻",
-      title := "Rotate 15°",
-      onClick --> { ev =>
-        ev.preventDefault()
-        ev.stopPropagation()
-        val newRotation = (currentRotation + 15) % 360
-        CalendarViewModel.updateElementRotation(elementId, newRotation)
-      }
+      cls := "rotate-buttons-container",
+      div(
+        cls := "rotate-btn rotate-btn-left",
+        "↺",
+        title := "Rotate left 15°",
+        onClick --> { ev =>
+          ev.preventDefault()
+          ev.stopPropagation()
+          val newRotation = (currentRotation - 15 + 360) % 360
+          CalendarViewModel.updateElementRotation(elementId, newRotation)
+        }
+      ),
+      div(
+        cls := "rotate-btn rotate-btn-right",
+        "↻",
+        title := "Rotate right 15°",
+        onClick --> { ev =>
+          ev.preventDefault()
+          ev.stopPropagation()
+          val newRotation = (currentRotation + 15) % 360
+          CalendarViewModel.updateElementRotation(elementId, newRotation)
+        }
+      )
     )
   }
 
