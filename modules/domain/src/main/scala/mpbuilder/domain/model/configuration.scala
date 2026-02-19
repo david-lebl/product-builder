@@ -7,4 +7,5 @@ final case class ProductConfiguration(
     printingMethod: PrintingMethod,
     finishes: List[Finish],
     specifications: ProductSpecifications,
+    components: List[ProductComponent] = Nil,
 )

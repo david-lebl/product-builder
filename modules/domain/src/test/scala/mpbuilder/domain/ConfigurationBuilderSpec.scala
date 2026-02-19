@@ -97,9 +97,22 @@ object ConfigurationBuilderSpec extends ZIOSpecDefault:
           specs = List(
             SpecValue.SizeSpec(Dimension(210, 148)),
             SpecValue.QuantitySpec(Quantity.unsafe(500)),
-            SpecValue.InkConfigSpec(InkConfiguration.cmyk4_4),
             SpecValue.PagesSpec(32),
             SpecValue.BindingMethodSpec(BindingMethod.SaddleStitch),
+          ),
+          components = List(
+            ComponentRequest(
+              role = ComponentRole.Cover,
+              materialId = SampleCatalog.coated300gsmId,
+              finishIds = List(SampleCatalog.matteLaminationId),
+              inkConfiguration = Some(InkConfiguration.cmyk4_4),
+            ),
+            ComponentRequest(
+              role = ComponentRole.Body,
+              materialId = SampleCatalog.uncoatedBondId,
+              finishIds = Nil,
+              inkConfiguration = Some(InkConfiguration.cmyk4_4),
+            ),
           ),
         )
 
@@ -115,9 +128,22 @@ object ConfigurationBuilderSpec extends ZIOSpecDefault:
           specs = List(
             SpecValue.SizeSpec(Dimension(297, 210)),
             SpecValue.QuantitySpec(Quantity.unsafe(100)),
-            SpecValue.InkConfigSpec(InkConfiguration.cmyk4_4),
             SpecValue.PagesSpec(14),
             SpecValue.BindingMethodSpec(BindingMethod.SpiralBinding),
+          ),
+          components = List(
+            ComponentRequest(
+              role = ComponentRole.Cover,
+              materialId = SampleCatalog.coatedSilk250gsmId,
+              finishIds = List(SampleCatalog.matteLaminationId),
+              inkConfiguration = Some(InkConfiguration.cmyk4_4),
+            ),
+            ComponentRequest(
+              role = ComponentRole.Body,
+              materialId = SampleCatalog.coatedSilk250gsmId,
+              finishIds = Nil,
+              inkConfiguration = Some(InkConfiguration.cmyk4_4),
+            ),
           ),
         )
 
@@ -499,9 +525,22 @@ object ConfigurationBuilderSpec extends ZIOSpecDefault:
           specs = List(
             SpecValue.SizeSpec(Dimension(210, 148)),
             SpecValue.QuantitySpec(Quantity.unsafe(500)),
-            SpecValue.InkConfigSpec(InkConfiguration.cmyk4_4),
             SpecValue.PagesSpec(32),
             SpecValue.BindingMethodSpec(BindingMethod.CaseBinding),
+          ),
+          components = List(
+            ComponentRequest(
+              role = ComponentRole.Cover,
+              materialId = SampleCatalog.coated300gsmId,
+              finishIds = Nil,
+              inkConfiguration = Some(InkConfiguration.cmyk4_4),
+            ),
+            ComponentRequest(
+              role = ComponentRole.Body,
+              materialId = SampleCatalog.uncoatedBondId,
+              finishIds = Nil,
+              inkConfiguration = Some(InkConfiguration.cmyk4_4),
+            ),
           ),
         )
 
@@ -520,9 +559,22 @@ object ConfigurationBuilderSpec extends ZIOSpecDefault:
           specs = List(
             SpecValue.SizeSpec(Dimension(210, 148)),
             SpecValue.QuantitySpec(Quantity.unsafe(500)),
-            SpecValue.InkConfigSpec(InkConfiguration.cmyk4_4),
             SpecValue.PagesSpec(4),
             SpecValue.BindingMethodSpec(BindingMethod.SaddleStitch),
+          ),
+          components = List(
+            ComponentRequest(
+              role = ComponentRole.Cover,
+              materialId = SampleCatalog.coated300gsmId,
+              finishIds = Nil,
+              inkConfiguration = Some(InkConfiguration.cmyk4_4),
+            ),
+            ComponentRequest(
+              role = ComponentRole.Body,
+              materialId = SampleCatalog.uncoatedBondId,
+              finishIds = Nil,
+              inkConfiguration = Some(InkConfiguration.cmyk4_4),
+            ),
           ),
         )
 
@@ -583,9 +635,22 @@ object ConfigurationBuilderSpec extends ZIOSpecDefault:
           specs = List(
             SpecValue.SizeSpec(Dimension(297, 210)),
             SpecValue.QuantitySpec(Quantity.unsafe(100)),
-            SpecValue.InkConfigSpec(InkConfiguration.cmyk4_4),
             SpecValue.PagesSpec(14),
             SpecValue.BindingMethodSpec(BindingMethod.SaddleStitch),
+          ),
+          components = List(
+            ComponentRequest(
+              role = ComponentRole.Cover,
+              materialId = SampleCatalog.coatedSilk250gsmId,
+              finishIds = Nil,
+              inkConfiguration = Some(InkConfiguration.cmyk4_4),
+            ),
+            ComponentRequest(
+              role = ComponentRole.Body,
+              materialId = SampleCatalog.coatedSilk250gsmId,
+              finishIds = Nil,
+              inkConfiguration = Some(InkConfiguration.cmyk4_4),
+            ),
           ),
         )
 
@@ -604,9 +669,22 @@ object ConfigurationBuilderSpec extends ZIOSpecDefault:
           specs = List(
             SpecValue.SizeSpec(Dimension(297, 210)),
             SpecValue.QuantitySpec(Quantity.unsafe(100)),
-            SpecValue.InkConfigSpec(InkConfiguration.cmyk4_4),
             SpecValue.PagesSpec(8),
             SpecValue.BindingMethodSpec(BindingMethod.SpiralBinding),
+          ),
+          components = List(
+            ComponentRequest(
+              role = ComponentRole.Cover,
+              materialId = SampleCatalog.coatedSilk250gsmId,
+              finishIds = Nil,
+              inkConfiguration = Some(InkConfiguration.cmyk4_4),
+            ),
+            ComponentRequest(
+              role = ComponentRole.Body,
+              materialId = SampleCatalog.coatedSilk250gsmId,
+              finishIds = Nil,
+              inkConfiguration = Some(InkConfiguration.cmyk4_4),
+            ),
           ),
         )
 
@@ -625,9 +703,22 @@ object ConfigurationBuilderSpec extends ZIOSpecDefault:
           specs = List(
             SpecValue.SizeSpec(Dimension(297, 210)),
             SpecValue.QuantitySpec(Quantity.unsafe(100)),
-            SpecValue.InkConfigSpec(InkConfiguration.cmyk4_4),
             SpecValue.PagesSpec(30),
             SpecValue.BindingMethodSpec(BindingMethod.SpiralBinding),
+          ),
+          components = List(
+            ComponentRequest(
+              role = ComponentRole.Cover,
+              materialId = SampleCatalog.coatedSilk250gsmId,
+              finishIds = Nil,
+              inkConfiguration = Some(InkConfiguration.cmyk4_4),
+            ),
+            ComponentRequest(
+              role = ComponentRole.Body,
+              materialId = SampleCatalog.coatedSilk250gsmId,
+              finishIds = Nil,
+              inkConfiguration = Some(InkConfiguration.cmyk4_4),
+            ),
           ),
         )
 
