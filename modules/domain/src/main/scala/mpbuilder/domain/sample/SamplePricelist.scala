@@ -51,3 +51,80 @@ object SamplePricelist:
     currency = Currency.USD,
     version = "1.1.0",
   )
+
+  /** Czech CZK pricelist for small format sheet printing.
+    * Prices are estimated for the Czech market.
+    * Base prices correspond to A3 flyer 4/4 CMYK per-unit prices.
+    */
+  val pricelistCzk: Pricelist = Pricelist(
+    rules = List(
+      // --- Coated Art Paper Glossy base prices (CZK per unit) ---
+      PricingRule.MaterialBasePrice(SampleCatalog.coatedGlossy90gsmId, Money("12")),
+      PricingRule.MaterialBasePrice(SampleCatalog.coatedGlossy115gsmId, Money("12")),
+      PricingRule.MaterialBasePrice(SampleCatalog.coatedGlossy130gsmId, Money("12")),
+      PricingRule.MaterialBasePrice(SampleCatalog.coatedGlossy150gsmId, Money("13")),
+      PricingRule.MaterialBasePrice(SampleCatalog.coatedGlossy170gsmId, Money("13")),
+      PricingRule.MaterialBasePrice(SampleCatalog.coatedGlossy200gsmId, Money("14")),
+      PricingRule.MaterialBasePrice(SampleCatalog.coatedGlossy250gsmId, Money("14")),
+      PricingRule.MaterialBasePrice(SampleCatalog.coated300gsmId, Money("15")),
+      PricingRule.MaterialBasePrice(SampleCatalog.coatedGlossy350gsmId, Money("15")),
+
+      // --- Coated Art Paper Matte base prices (CZK per unit) ---
+      PricingRule.MaterialBasePrice(SampleCatalog.coatedMatte90gsmId, Money("12")),
+      PricingRule.MaterialBasePrice(SampleCatalog.coatedMatte115gsmId, Money("12")),
+      PricingRule.MaterialBasePrice(SampleCatalog.coatedMatte130gsmId, Money("12")),
+      PricingRule.MaterialBasePrice(SampleCatalog.coatedMatte150gsmId, Money("13")),
+      PricingRule.MaterialBasePrice(SampleCatalog.coatedMatte170gsmId, Money("13")),
+      PricingRule.MaterialBasePrice(SampleCatalog.coatedMatte200gsmId, Money("14")),
+      PricingRule.MaterialBasePrice(SampleCatalog.coatedMatte250gsmId, Money("14")),
+      PricingRule.MaterialBasePrice(SampleCatalog.coatedMatte300gsmId, Money("15")),
+      PricingRule.MaterialBasePrice(SampleCatalog.coatedMatte350gsmId, Money("15")),
+
+      // --- Other material base prices (CZK per unit, estimated) ---
+      PricingRule.MaterialBasePrice(SampleCatalog.uncoatedBondId, Money("8")),
+      PricingRule.MaterialBasePrice(SampleCatalog.kraftId, Money("10")),
+      PricingRule.MaterialBasePrice(SampleCatalog.corrugatedId, Money("6")),
+      PricingRule.MaterialBasePrice(SampleCatalog.coatedSilk250gsmId, Money("14")),
+      PricingRule.MaterialBasePrice(SampleCatalog.yupoId, Money("16")),
+      PricingRule.MaterialBasePrice(SampleCatalog.adhesiveStockId, Money("10")),
+      PricingRule.MaterialBasePrice(SampleCatalog.cottonId, Money("18")),
+
+      // --- Material area price (for vinyl — CZK per sqm) ---
+      PricingRule.MaterialAreaPrice(SampleCatalog.vinylId, Money("420")),
+
+      // --- Finish surcharges (ID-level, CZK) ---
+      PricingRule.FinishSurcharge(SampleCatalog.matteLaminationId, Money("1")),
+      PricingRule.FinishSurcharge(SampleCatalog.glossLaminationId, Money("1")),
+      PricingRule.FinishSurcharge(SampleCatalog.softTouchCoatingId, Money("1.50")),
+      PricingRule.FinishSurcharge(SampleCatalog.embossingId, Money("2")),
+      PricingRule.FinishSurcharge(SampleCatalog.foilStampingId, Money("3.50")),
+
+      // --- Finish surcharges (type-level, CZK) ---
+      PricingRule.FinishTypeSurcharge(FinishType.UVCoating, Money("1")),
+      PricingRule.FinishTypeSurcharge(FinishType.AqueousCoating, Money("0.50")),
+      PricingRule.FinishTypeSurcharge(FinishType.Varnish, Money("1.50")),
+
+      // --- Printing process surcharge (CZK) ---
+      PricingRule.PrintingProcessSurcharge(PrintingProcessType.Letterpress, Money("5")),
+
+      // --- Ink configuration factors ---
+      // 4/4 CMYK both sides: full price
+      PricingRule.InkConfigurationFactor(4, 4, BigDecimal("1.00")),
+      // 4/0 CMYK front only: ~85% of 4/4 price (estimated from Czech market data)
+      PricingRule.InkConfigurationFactor(4, 0, BigDecimal("0.85")),
+      // 4/1 CMYK front + mono back
+      PricingRule.InkConfigurationFactor(4, 1, BigDecimal("0.90")),
+      // 1/0 Mono front only
+      PricingRule.InkConfigurationFactor(1, 0, BigDecimal("0.55")),
+      // 1/1 Mono both sides
+      PricingRule.InkConfigurationFactor(1, 1, BigDecimal("0.65")),
+
+      // --- Quantity tiers (CZK market, steeper volume discounts) ---
+      PricingRule.QuantityTier(1, Some(99), BigDecimal("1.0")),
+      PricingRule.QuantityTier(100, Some(499), BigDecimal("0.55")),
+      PricingRule.QuantityTier(500, Some(999), BigDecimal("0.45")),
+      PricingRule.QuantityTier(1000, None, BigDecimal("0.40")),
+    ),
+    currency = Currency.CZK,
+    version = "1.0.0-czk",
+  )

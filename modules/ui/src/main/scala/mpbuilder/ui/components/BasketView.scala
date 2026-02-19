@@ -2,7 +2,7 @@ package mpbuilder.ui.components
 
 import com.raquo.laminar.api.L.*
 import mpbuilder.ui.ProductBuilderViewModel
-import mpbuilder.domain.pricing.Money
+import mpbuilder.domain.pricing.{Money, Currency}
 import mpbuilder.domain.model.{Language, ConfigurationId}
 
 object BasketView:
@@ -108,12 +108,12 @@ object BasketView:
                   div(
                     cls := "basket-item-price",
                     span(cls := "unit-price", l match
-                      case Language.En => s"Unit: ${formatMoney(item.priceBreakdown.total)}"
-                      case Language.Cs => s"Jednotka: ${formatMoney(item.priceBreakdown.total)}"
+                      case Language.En => s"Unit: ${formatMoney(item.priceBreakdown.total, item.priceBreakdown.currency)}"
+                      case Language.Cs => s"Jednotka: ${formatMoney(item.priceBreakdown.total, item.priceBreakdown.currency)}"
                     ),
                     span(cls := "line-total", l match
-                      case Language.En => s"Total: ${formatMoney(item.priceBreakdown.total * item.quantity)}"
-                      case Language.Cs => s"Celkem: ${formatMoney(item.priceBreakdown.total * item.quantity)}"
+                      case Language.En => s"Total: ${formatMoney(item.priceBreakdown.total * item.quantity, item.priceBreakdown.currency)}"
+                      case Language.Cs => s"Celkem: ${formatMoney(item.priceBreakdown.total * item.quantity, item.priceBreakdown.currency)}"
                     ),
                   ),
                 ),
@@ -134,7 +134,7 @@ object BasketView:
                   case Language.En => "Basket Total:"
                   case Language.Cs => "Celkem v košíku:"
                 ),
-                strong(child.text <-- basketCalc.map(calc => formatMoney(calc.total))),
+                strong(child.text <-- basketCalc.map(calc => formatMoney(calc.total, calc.currency))),
               )
             )
           else
@@ -165,5 +165,9 @@ object BasketView:
       ),
     )
 
-  private def formatMoney(money: Money): String =
-    f"$$${money.value}%.2f"
+  private def formatMoney(money: Money, currency: Currency): String =
+    currency match
+      case Currency.CZK => f"${money.value}%.2f Kč"
+      case Currency.USD => f"$$${money.value}%.2f"
+      case Currency.EUR => f"€${money.value}%.2f"
+      case Currency.GBP => f"£${money.value}%.2f"
