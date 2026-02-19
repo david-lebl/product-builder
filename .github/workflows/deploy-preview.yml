@@ -1,25 +1,25 @@
-name: Deploy UI to GitHub Pages
+name: Deploy PR Preview
 
 on:
-  push:
-    branches: [main]
-  workflow_dispatch:
+  pull_request:
+    types: [opened, synchronize, reopened, closed]
 
 permissions:
   contents: write
+  pull-requests: write
 
-concurrency:
-  group: pages-main
-  cancel-in-progress: true
+concurrency: preview-${{ github.ref }}
 
 jobs:
-  build-and-deploy:
+  deploy-preview:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
+        if: github.event.action != 'closed'
         uses: actions/checkout@v4
 
       - name: Set up JDK 17
+        if: github.event.action != 'closed'
         uses: actions/setup-java@v4
         with:
           java-version: '17'
@@ -27,19 +27,21 @@ jobs:
           cache: 'sbt'
 
       - name: Set up sbt
+        if: github.event.action != 'closed'
         uses: sbt/setup-sbt@v1
 
       - name: Build Scala.js UI
+        if: github.event.action != 'closed'
         run: sbt ui/fullLinkJS
 
       - name: Assemble site
+        if: github.event.action != 'closed'
         run: |
           mkdir -p _site
           cp modules/ui/src/main/resources/index.html _site/
           cp modules/ui/target/scala-*/material-builder-ui-opt/main.js _site/
 
-      - name: Deploy to GitHub Pages
-        uses: JamesIves/github-pages-deploy-action@v4
+      - name: Deploy PR Preview
+        uses: rossjrw/pr-preview-action@v1
         with:
-          folder: _site
-          clean-exclude: pr-preview
+          source-dir: ./_site
