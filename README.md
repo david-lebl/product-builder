@@ -122,7 +122,8 @@ docs/
 ### 📦 Value Objects
 - **Opaque type IDs**: `CategoryId`, `MaterialId`, `FinishId`, `PrintingMethodId`, `ConfigurationId`, `BasketId` with smart constructors
 - **Physical properties**: `PaperWeight`, `Quantity`, `Dimension`
-- **Enumerations**: `ColorMode`, `PaperFamily`, `FinishType`, `FinishSide`, `MaterialFamily`, `MaterialProperty`
+- **Enumerations**: `InkType`, `PaperFamily`, `FinishType`, `FinishSide`, `MaterialFamily`, `MaterialProperty`
+- **Ink configuration**: `InkSetup` (ink type + color count), `InkConfiguration` (front + optional back setup)
 - **i18n**: `Language` enum (`En`, `Cs`), `LocalizedString` opaque type with fallback
 
 ### 📋 Domain Model
