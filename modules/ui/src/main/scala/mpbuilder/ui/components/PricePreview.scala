@@ -101,8 +101,8 @@ object PricePreview:
             case None =>
               List(
                 p(l match
-                  case Language.En => "Configure your product and click 'Calculate Price' to see the pricing breakdown."
-                  case Language.Cs => "Nakonfigurujte svůj produkt a klikněte na 'Vypočítat cenu' pro zobrazení rozpisu."
+                  case Language.En => "Configure your product to see the pricing breakdown."
+                  case Language.Cs => "Nakonfigurujte svůj produkt pro zobrazení rozpisu ceny."
                 ),
               )
         },
