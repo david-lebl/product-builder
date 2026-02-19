@@ -39,7 +39,7 @@ object PriceCalculatorSpec extends ZIOSpecDefault:
           specs = List(
             SpecValue.SizeSpec(Dimension(90, 55)),
             SpecValue.QuantitySpec(Quantity.unsafe(500)),
-            SpecValue.ColorModeSpec(ColorMode.CMYK),
+            SpecValue.InkConfigSpec(InkConfiguration.cmyk4_4),
           ),
         )
 
@@ -74,7 +74,7 @@ object PriceCalculatorSpec extends ZIOSpecDefault:
           specs = List(
             SpecValue.SizeSpec(Dimension(1000, 500)),
             SpecValue.QuantitySpec(Quantity.unsafe(10)),
-            SpecValue.ColorModeSpec(ColorMode.CMYK),
+            SpecValue.InkConfigSpec(InkConfiguration.cmyk4_4),
           ),
         )
 
@@ -108,7 +108,7 @@ object PriceCalculatorSpec extends ZIOSpecDefault:
           specs = List(
             SpecValue.SizeSpec(Dimension(90, 55)),
             SpecValue.QuantitySpec(Quantity.unsafe(1000)),
-            SpecValue.ColorModeSpec(ColorMode.CMYK),
+            SpecValue.InkConfigSpec(InkConfiguration.cmyk4_4),
           ),
         )
 
@@ -134,7 +134,7 @@ object PriceCalculatorSpec extends ZIOSpecDefault:
           specs = List(
             SpecValue.SizeSpec(Dimension(90, 55)),
             SpecValue.QuantitySpec(Quantity.unsafe(500)),
-            SpecValue.ColorModeSpec(ColorMode.CMYK),
+            SpecValue.InkConfigSpec(InkConfiguration.cmyk4_4),
           ),
         )
 
@@ -162,7 +162,7 @@ object PriceCalculatorSpec extends ZIOSpecDefault:
           specs = List(
             SpecValue.SizeSpec(Dimension(90, 55)),
             SpecValue.QuantitySpec(Quantity.unsafe(500)),
-            SpecValue.ColorModeSpec(ColorMode.CMYK),
+            SpecValue.InkConfigSpec(InkConfiguration.cmyk4_4),
           ),
         )
 
@@ -205,7 +205,7 @@ object PriceCalculatorSpec extends ZIOSpecDefault:
           specs = List(
             SpecValue.SizeSpec(Dimension(90, 55)),
             SpecValue.QuantitySpec(Quantity.unsafe(100)),
-            SpecValue.ColorModeSpec(ColorMode.CMYK),
+            SpecValue.InkConfigSpec(InkConfiguration.cmyk4_4),
           ),
         )
 
@@ -226,7 +226,7 @@ object PriceCalculatorSpec extends ZIOSpecDefault:
           specs = List(
             SpecValue.SizeSpec(Dimension(90, 55)),
             SpecValue.QuantitySpec(Quantity.unsafe(500)),
-            SpecValue.ColorModeSpec(ColorMode.CMYK),
+            SpecValue.InkConfigSpec(InkConfiguration.cmyk4_4),
           ),
         )
 
@@ -247,7 +247,7 @@ object PriceCalculatorSpec extends ZIOSpecDefault:
           specs = List(
             SpecValue.SizeSpec(Dimension(210, 148)),
             SpecValue.QuantitySpec(Quantity.unsafe(500)),
-            SpecValue.ColorModeSpec(ColorMode.CMYK),
+            SpecValue.InkConfigSpec(InkConfiguration.cmyk4_4),
             SpecValue.PagesSpec(32),
             SpecValue.BindingMethodSpec(BindingMethod.SaddleStitch),
           ),
@@ -265,6 +265,51 @@ object PriceCalculatorSpec extends ZIOSpecDefault:
           breakdown.subtotal == Money("75.00"),
           breakdown.total == Money("67.50"),
         )
+      },
+      test("4/0 ink configuration applies lower material multiplier than 4/4") {
+        // 500× coated 300gsm + 4/0 ink config → 0.60 material multiplier
+        val config = makeConfig(
+          category = SampleCatalog.businessCards,
+          material = SampleCatalog.coated300gsm,
+          printingMethod = SampleCatalog.offsetMethod,
+          finishes = Nil,
+          specs = List(
+            SpecValue.SizeSpec(Dimension(90, 55)),
+            SpecValue.QuantitySpec(Quantity.unsafe(500)),
+            SpecValue.InkConfigSpec(InkConfiguration.cmyk4_0),
+          ),
+        )
+
+        val result = PriceCalculator.calculate(config, pricelist)
+        val breakdown = result.toEither.toOption.get
+        // material: 0.12 × 500 = 60.00
+        // ink config: 60.00 × (0.60 - 1.0) = -24.00
+        // subtotal = 60.00 + (-24.00) = 36.00
+        // tier 250-999: 0.90×
+        // total = 36.00 × 0.90 = 32.40
+        assertTrue(
+          breakdown.inkConfigLine.isDefined,
+          breakdown.inkConfigLine.get.lineTotal == Money("-24.00"),
+          breakdown.subtotal == Money("36.00"),
+          breakdown.total == Money("32.40"),
+        )
+      },
+      test("4/4 ink configuration produces no ink config line") {
+        val config = makeConfig(
+          category = SampleCatalog.businessCards,
+          material = SampleCatalog.coated300gsm,
+          printingMethod = SampleCatalog.offsetMethod,
+          finishes = Nil,
+          specs = List(
+            SpecValue.SizeSpec(Dimension(90, 55)),
+            SpecValue.QuantitySpec(Quantity.unsafe(500)),
+            SpecValue.InkConfigSpec(InkConfiguration.cmyk4_4),
+          ),
+        )
+
+        val result = PriceCalculator.calculate(config, pricelist)
+        val breakdown = result.toEither.toOption.get
+        assertTrue(breakdown.inkConfigLine.isEmpty)
       },
     ),
     suite("error cases")(
@@ -285,7 +330,7 @@ object PriceCalculatorSpec extends ZIOSpecDefault:
           specs = List(
             SpecValue.SizeSpec(Dimension(90, 55)),
             SpecValue.QuantitySpec(Quantity.unsafe(500)),
-            SpecValue.ColorModeSpec(ColorMode.CMYK),
+            SpecValue.InkConfigSpec(InkConfiguration.cmyk4_4),
           ),
         )
 
@@ -303,7 +348,7 @@ object PriceCalculatorSpec extends ZIOSpecDefault:
           finishes = Nil,
           specs = List(
             SpecValue.SizeSpec(Dimension(90, 55)),
-            SpecValue.ColorModeSpec(ColorMode.CMYK),
+            SpecValue.InkConfigSpec(InkConfiguration.cmyk4_4),
           ),
         )
 
@@ -321,7 +366,7 @@ object PriceCalculatorSpec extends ZIOSpecDefault:
           finishes = Nil,
           specs = List(
             SpecValue.QuantitySpec(Quantity.unsafe(10)),
-            SpecValue.ColorModeSpec(ColorMode.CMYK),
+            SpecValue.InkConfigSpec(InkConfiguration.cmyk4_4),
           ),
         )
 
@@ -341,7 +386,7 @@ object PriceCalculatorSpec extends ZIOSpecDefault:
           specs = List(
             SpecValue.SizeSpec(Dimension(297, 210)),
             SpecValue.QuantitySpec(Quantity.unsafe(100)),
-            SpecValue.ColorModeSpec(ColorMode.CMYK),
+            SpecValue.InkConfigSpec(InkConfiguration.cmyk4_4),
             SpecValue.PagesSpec(14),
             SpecValue.BindingMethodSpec(BindingMethod.SpiralBinding),
           ),
@@ -370,7 +415,7 @@ object PriceCalculatorSpec extends ZIOSpecDefault:
           specs = List(
             SpecValue.SizeSpec(Dimension(90, 55)),
             SpecValue.QuantitySpec(Quantity.unsafe(500)),
-            SpecValue.ColorModeSpec(ColorMode.CMYK),
+            SpecValue.InkConfigSpec(InkConfiguration.cmyk4_4),
           ),
         )
 
@@ -397,7 +442,7 @@ object PriceCalculatorSpec extends ZIOSpecDefault:
           specs = List(
             SpecValue.SizeSpec(Dimension(90, 55)),
             SpecValue.QuantitySpec(Quantity.unsafe(150)),
-            SpecValue.ColorModeSpec(ColorMode.CMYK),
+            SpecValue.InkConfigSpec(InkConfiguration.cmyk4_4),
           ),
         )
 

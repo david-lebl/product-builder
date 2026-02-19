@@ -129,7 +129,7 @@ object LocalizationSpec extends ZIOSpecDefault:
           specifications = ProductSpecifications.fromSpecs(List(
             SpecValue.SizeSpec(Dimension(90, 55)),
             SpecValue.QuantitySpec(Quantity.unsafe(500)),
-            SpecValue.ColorModeSpec(ColorMode.CMYK),
+            SpecValue.InkConfigSpec(InkConfiguration.cmyk4_4),
           )),
         )
 
@@ -150,7 +150,7 @@ object LocalizationSpec extends ZIOSpecDefault:
           specifications = ProductSpecifications.fromSpecs(List(
             SpecValue.SizeSpec(Dimension(90, 55)),
             SpecValue.QuantitySpec(Quantity.unsafe(500)),
-            SpecValue.ColorModeSpec(ColorMode.CMYK),
+            SpecValue.InkConfigSpec(InkConfiguration.cmyk4_4),
           )),
         )
 

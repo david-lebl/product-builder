@@ -228,10 +228,10 @@ object ProductBuilderViewModel:
     }
 
   // Get currently selected specifications as signals for UI binding
-  def selectedColorMode: Signal[Option[ColorMode]] =
+  def selectedInkConfig: Signal[Option[InkConfiguration]] =
     state.map { s =>
       s.specifications.collectFirst {
-        case SpecValue.ColorModeSpec(mode) => mode
+        case SpecValue.InkConfigSpec(config) => config
       }
     }
 

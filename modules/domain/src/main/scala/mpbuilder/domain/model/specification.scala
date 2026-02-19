@@ -14,8 +14,29 @@ object Quantity:
 
   extension (q: Quantity) def value: Int = q
 
-enum ColorMode:
-  case CMYK, PMS, Grayscale
+enum InkType:
+  case CMYK, PMS, Grayscale, None
+
+final case class InkSetup(inkType: InkType, colorCount: Int)
+
+object InkSetup:
+  val cmyk: InkSetup = InkSetup(InkType.CMYK, 4)
+  val none: InkSetup = InkSetup(InkType.None, 0)
+  val grayscale: InkSetup = InkSetup(InkType.Grayscale, 1)
+  def pms(n: Int): InkSetup = InkSetup(InkType.PMS, n)
+
+final case class InkConfiguration(front: InkSetup, back: InkSetup):
+  def notation: String = s"${front.colorCount}/${back.colorCount}"
+  def maxColorCount: Int = math.max(front.colorCount, back.colorCount)
+  def isSingleSided: Boolean = back.inkType == InkType.None
+  def isDoubleSided: Boolean = back.inkType != InkType.None
+
+object InkConfiguration:
+  val cmyk4_4: InkConfiguration = InkConfiguration(InkSetup.cmyk, InkSetup.cmyk)
+  val cmyk4_0: InkConfiguration = InkConfiguration(InkSetup.cmyk, InkSetup.none)
+  val cmyk4_1: InkConfiguration = InkConfiguration(InkSetup.cmyk, InkSetup.grayscale)
+  val mono1_0: InkConfiguration = InkConfiguration(InkSetup.grayscale, InkSetup.none)
+  val mono1_1: InkConfiguration = InkConfiguration(InkSetup.grayscale, InkSetup.grayscale)
 
 enum Orientation:
   case Portrait, Landscape
@@ -29,7 +50,7 @@ enum BindingMethod:
 enum SpecValue:
   case SizeSpec(dimension: Dimension)
   case QuantitySpec(quantity: Quantity)
-  case ColorModeSpec(mode: ColorMode)
+  case InkConfigSpec(config: InkConfiguration)
   case OrientationSpec(orientation: Orientation)
   case BleedSpec(bleedMm: Double)
   case PagesSpec(count: Int)
@@ -40,7 +61,7 @@ object SpecValue:
   def specKind(sv: SpecValue): SpecKind = sv match
     case _: SpecValue.SizeSpec          => SpecKind.Size
     case _: SpecValue.QuantitySpec      => SpecKind.Quantity
-    case _: SpecValue.ColorModeSpec     => SpecKind.ColorMode
+    case _: SpecValue.InkConfigSpec      => SpecKind.InkConfig
     case _: SpecValue.OrientationSpec   => SpecKind.Orientation
     case _: SpecValue.BleedSpec         => SpecKind.Bleed
     case _: SpecValue.PagesSpec         => SpecKind.Pages

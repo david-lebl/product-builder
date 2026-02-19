@@ -26,6 +26,7 @@ enum ConfigurationError:
   case InvalidCategoryPrintingMethod(categoryId: CategoryId, printingMethodId: PrintingMethodId)
   case PrintingMethodNotFound(printingMethodId: PrintingMethodId)
   case ConfigurationConstraintViolation(categoryId: CategoryId, reason: String)
+  case InkConfigExceedsMethodColorLimit(printingMethodId: PrintingMethodId, inkConfig: InkConfiguration, maxAllowed: Int)
 
   def message: String = message(Language.En)
 
@@ -96,3 +97,6 @@ enum ConfigurationError:
     case ConfigurationConstraintViolation(catId, reason) => lang match
       case Language.En => s"Configuration constraint violated for category '${catId.value}': $reason"
       case Language.Cs => s"Porušeno omezení konfigurace pro kategorii '${catId.value}': $reason"
+    case InkConfigExceedsMethodColorLimit(pmId, inkConfig, maxAllowed) => lang match
+      case Language.En => s"Ink configuration '${inkConfig.notation}' exceeds printing method '${pmId.value}' maximum of $maxAllowed colors per side"
+      case Language.Cs => s"Konfigurace inkoustu '${inkConfig.notation}' překračuje maximum $maxAllowed barev na stranu pro tiskovou metodu '${pmId.value}'"

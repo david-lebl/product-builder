@@ -2,6 +2,7 @@ package mpbuilder.domain.pricing
 
 import zio.prelude.*
 import mpbuilder.domain.model.*
+import mpbuilder.domain.model.SpecValue.InkConfigSpec
 
 object PriceCalculator:
 
@@ -22,6 +23,8 @@ object PriceCalculator:
           lineTotal = materialLineTotal,
         )
 
+        val inkConfigLine = computeInkConfigLine(config.specifications, rules, materialUnitPrice, materialLineTotal, quantity)
+
         val finishLines = computeFinishLines(config.finishes, rules, quantity, lang)
 
         val processSurcharge = findProcessSurcharge(config.printingMethod, rules, quantity, lang)
@@ -30,6 +33,7 @@ object PriceCalculator:
 
         val allLineTotals =
           materialLine.lineTotal ::
+            inkConfigLine.map(_.lineTotal).toList :::
             finishLines.map(_.lineTotal) :::
             processSurcharge.map(_.lineTotal).toList :::
             categorySurcharge.map(_.lineTotal).toList
@@ -44,6 +48,7 @@ object PriceCalculator:
 
         PriceBreakdown(
           materialLine = materialLine,
+          inkConfigLine = inkConfigLine,
           finishLines = finishLines,
           processSurcharge = processSurcharge,
           categorySurcharge = categorySurcharge,
@@ -84,6 +89,34 @@ object PriceCalculator:
         baseRule match
           case Some(bp) => Validation.succeed(bp.unitPrice)
           case None     => Validation.fail(PricingError.NoBasePriceForMaterial(material.id))
+
+  private def computeInkConfigLine(
+      specs: ProductSpecifications,
+      rules: List[PricingRule],
+      materialUnitPrice: Money,
+      materialLineTotal: Money,
+      quantity: Int,
+  ): Option[LineItem] =
+    specs.get(SpecKind.InkConfig) match
+      case Some(InkConfigSpec(config)) =>
+        rules.collectFirst {
+          case r: PricingRule.InkConfigurationFactor
+              if r.frontColorCount == config.front.colorCount && r.backColorCount == config.back.colorCount =>
+            r.materialMultiplier
+        }.flatMap { multiplier =>
+          if multiplier == BigDecimal(1) then scala.None
+          else
+            val adjustmentFactor = multiplier - BigDecimal(1)
+            val unitAdjustment = materialUnitPrice * adjustmentFactor
+            val lineTotal = materialLineTotal * adjustmentFactor
+            Some(LineItem(
+              label = s"Ink configuration: ${config.notation}",
+              unitPrice = unitAdjustment,
+              quantity = quantity,
+              lineTotal = lineTotal,
+            ))
+        }
+      case _ => scala.None
 
   private def computeFinishLines(
       finishes: List[Finish],
