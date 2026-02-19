@@ -1,141 +1,154 @@
-# Domain Model — Gap Analysis
+# Domain Model — Gap Analysis (Updated 2026-02-19)
 
-Comparison of our current domain model against the printing domain analysis.
+Comparison of our current domain model against real-world printing domain requirements.
+Focus: **small-format sheet printing** (business cards, flyers, brochures, booklets, calendars).
 
 ---
 
-## Material Model
+## Current Model Summary
 
-### Current
 ```scala
+// Materials
 MaterialFamily: Paper, Vinyl, Cardboard, Fabric
 MaterialProperty: Recyclable, WaterResistant, Glossy, Matte, Textured, SmoothSurface
+PaperWeight: opaque Int (1–2000 gsm)
 Material: id, name, family, weight (Option[PaperWeight]), properties
-```
 
-### Gaps
-
-| Gap | Issue | Impact |
-|---|---|---|
-| **Missing families** | No `Synthetic`, `Adhesive`, `Carbonless`, `Acrylic`, `Metal`, `Wood` | Can't model Yupo, stickers, NCR, premium sign materials |
-| **No coating/surface type** | Coated Gloss vs Coated Silk vs Coated Matte are distinct substrates — our properties `Glossy`/`Matte` overlap with finish semantics | Material surface is intrinsic; finish is applied. Need `SurfaceCoating` enum (Gloss, Silk, Matte, Uncoated) |
-| **No thickness for non-paper** | Rigid substrates (foam board, acrylic, Dibond) measured in mm not gsm | Need `thickness: Option[Thickness]` alongside weight |
-| **Missing properties** | No `TearResistant`, `Printable`, `Transparent`, `SelfAdhesive`, `Carbonless`, `Rigid` | Can't express key constraints (e.g. "NCR cannot be laminated", "rigid requires UV-cure") |
-| **No material format** | Sheet vs roll vs rigid board distinction missing | Affects what printing methods and finishes are possible |
-| **Weight naming** | `PaperWeight` is too paper-specific for vinyl, foam board, etc. | Rename to `SubstrateWeight` or keep as-is but clearly optional |
-
----
-
-## Finish Model
-
-### Current
-```scala
-FinishType: Lamination, UVCoating, Embossing, FoilStamping, Varnish, DieCut
+// Finishes
+FinishCategory: Surface, Decorative, Structural, LargeFormat  // derived from FinishType
+FinishType (21): Lamination, Overlamination, UVCoating, AqueousCoating, SoftTouchCoating,
+  Varnish, Embossing, Debossing, FoilStamping, Thermography, EdgePainting,
+  DieCut, ContourCut, KissCut, Scoring, Perforation, RoundCorners, Drilling,
+  Numbering, Binding, Mounting, Grommets, Hem
 FinishSide: Front, Back, Both
 Finish: id, name, finishType, side
-```
 
-### Gaps
-
-| Gap | Issue | Impact |
-|---|---|---|
-| **Missing finish types** | No `Debossing`, `Scoring`, `Folding`, `Perforation`, `RoundCorners`, `Drilling`, `Numbering`, `AqueousCoating`, `SoftTouchCoating`, `Binding`, `KissCut`, `ContourCut`, `EdgePainting`, `Grommets`, `Hem`, `Mounting`, `Overlamination`, `Thermography`, `Letterpress` | Can't model brochures (folding), booklets (binding), stickers (kiss-cut), banners (grommets/hem), or many premium finishes |
-| **No finish category** | All finishes are flat — no grouping of surface vs structural vs decorative vs large-format | Hard to validate "one lamination type only" generically |
-| **No finish parameters** | Lamination has no variant (gloss/matte/soft-touch), foil has no color, fold has no type, binding has no method | Each finish type needs its own parameter data |
-| **No minimum weight constraint on finish** | Rules like "lamination requires ≥200gsm" must be expressed externally | Should be on the `Finish` definition or as a dedicated rule type |
-| **FinishSide too limited** | Doesn't cover edge (edge painting), spine, top/bottom (hem), or "all edges" (grommets) | Extend or make application area more flexible |
-
----
-
-## Specification Model
-
-### Current
-```scala
-SpecKind: Size, Quantity, ColorMode, Orientation, Bleed, Pages, FoldType
-SpecValue: SizeSpec, QuantitySpec, ColorModeSpec, OrientationSpec, BleedSpec, PagesSpec, FoldTypeSpec
+// Specifications
+SpecKind: Size, Quantity, ColorMode, Orientation, Bleed, Pages, FoldType, BindingMethod
+FoldType: Half, Tri, Gate, Accordion, ZFold, RollFold, FrenchFold, CrossFold
+BindingMethod: SaddleStitch, PerfectBinding, SpiralBinding, WireOBinding, CaseBinding
 ColorMode: CMYK, PMS, Grayscale
-FoldType: Half, Tri, Gate, Accordion
-```
 
-### Gaps
+// Printing
+PrintingProcessType: Offset, Digital, Letterpress, ScreenPrint, UVCurableInkjet, LatexInkjet, SolventInkjet
+PrintingMethod: id, name, processType, maxColorCount
 
-| Gap | Issue | Impact |
-|---|---|---|
-| **No printing method** | Offset, Digital, Large-format inkjet, Screen, Letterpress are missing | Can't validate method→material or method→finish rules |
-| **No ink configuration** | 4/0, 4/4, 1/0, 4/1, CMYK+PMS, CMYK+White are missing | Color mode alone doesn't capture sides or spot additions |
-| **Missing fold types** | No `ZFold`, `RollFold`, `FrenchFold`, `CrossFold` | Incomplete brochure options |
-| **No binding spec** | `BindingMethod` (saddle stitch, perfect, spiral, wire-o, case) is missing | Can't configure booklets/catalogs |
-| **No adhesive type** | Permanent vs removable for stickers | Can't configure sticker products |
-| **No parts/plies spec** | NCR forms need 2-part, 3-part, 4-part | Can't configure NCR |
-| **No cover vs body distinction** | Booklets have separate cover material/weight from body pages | Need separate material selection for cover and body |
-| **No finishing parameters in specs** | Grommet spacing, hem size, corner radius, foil color aren't specs | These are finish-level parameters, not product specs |
+// Categories
+ProductCategory: id, name, allowedMaterialIds, allowedFinishIds, requiredSpecKinds, allowedPrintingMethodIds
 
----
-
-## Category Model
-
-### Current
-```scala
-ProductCategory: id, name, allowedMaterialIds, allowedFinishIds, requiredSpecKinds
-```
-
-### Gaps
-
-| Gap | Issue | Impact |
-|---|---|---|
-| **No format classification** | Small-format vs large-format distinction | Affects which printing methods, materials, finishes are relevant |
-| **No weight constraints per category** | "Business cards ≥250gsm" can only be expressed as external rules | Category should declare min/max weight range |
-| **No multi-component products** | Booklets need cover + body with different materials | Need concept of product "components" (cover, body, insert) |
-
----
-
-## Rules Model
-
-### Current
-```scala
+// Rules (13 variants)
 CompatibilityRule:
   MaterialFinishIncompatible(materialId, finishId, reason)
   MaterialRequiresFinish(materialId, requiredFinishIds, reason)
   FinishRequiresMaterialProperty(finishId, requiredProperty, reason)
   FinishMutuallyExclusive(finishIdA, finishIdB, reason)
   SpecConstraint(categoryId, predicate, reason)
+  MaterialPropertyFinishTypeIncompatible(property, finishType, reason)
+  MaterialFamilyFinishTypeIncompatible(family, finishType, reason)
+  MaterialWeightFinishType(finishType, minWeightGsm, reason)
+  FinishTypeMutuallyExclusive(finishTypeA, finishTypeB, reason)
+  FinishCategoryExclusive(category, reason)
+  FinishRequiresFinishType(finishId, requiredFinishType, reason)
+  FinishRequiresPrintingProcess(finishType, requiredProcessTypes, reason)
+  ConfigurationConstraint(categoryId, predicate, reason)
+
+// Predicates (boolean algebra)
+ConfigurationPredicate: Spec, HasMaterialProperty, HasMaterialFamily, HasPrintingProcess,
+  HasMinWeight, And, Or, Not
+SpecPredicate: MinDimension, MaxDimension, MinQuantity, MaxQuantity, AllowedColorModes,
+  AllowedBindingMethods, AllowedFoldTypes, MinPages, MaxPages
 ```
-
-### Gaps
-
-| Gap | Issue | Impact |
-|---|---|---|
-| **No weight-based rules** | "Lamination requires ≥200gsm", "Embossing requires ≥250gsm" — can't express | Need `FinishRequiresMinWeight(finishId, minGsm, reason)` or generalize via predicates |
-| **No printing method rules** | "Aqueous coating is offset-only", "Letterpress max 2 colors" | Need `PrintMethodMaterialCompatibility`, `PrintMethodFinishCompatibility` |
-| **No finish-requires-finish** | "Spot UV requires lamination base", "Folding requires scoring if ≥170gsm" | Need `FinishRequiresFinish(finishId, requiredFinishIds, condition, reason)` |
-| **No category-level weight constraint** | "Business cards require cover weight ≥250gsm" | Need `CategoryMaterialConstraint` or predicate-based rule |
-| **Rules are ID-specific** | `MaterialFinishIncompatible` uses specific material ID — doesn't generalize to "all textured materials" | Need property-based or family-based rules, not just ID-to-ID |
-| **No conditional rules** | "Scoring required for folding IF weight ≥170gsm" — needs condition on when rule applies | `ConfigurationPredicate` exists but isn't wired into rule evaluation |
 
 ---
 
-## Summary: Priority Gaps to Address
+## Remaining Gaps
 
-### High Priority (blocks realistic product configuration)
-1. **Printing method** — add to specs and rules (drives material/finish compatibility)
-2. **More finish types** — at minimum: Scoring, Folding, Binding, Perforation, RoundCorners, Debossing, AqueousCoating, SoftTouchCoating, Grommets/Hem
-3. **Finish parameters** — lamination variant, foil color, binding method, fold type as finish params (not just spec)
-4. **Weight-based rules** — "lamination requires ≥200gsm", "embossing ≥250gsm"
-5. **Property/family-based rules** — replace some ID-specific rules with generic ones
-6. **Finish dependency rules** — "spot UV requires lamination", "folding requires scoring if heavy"
+### Material Model
 
-### Medium Priority (needed for full product range)
-7. **Missing material families** — Synthetic, Adhesive, Carbonless, Acrylic, Metal
-8. **Material surface/coating** as separate attribute from properties
-9. **Binding as spec** for booklets/catalogs
-10. **Ink configuration** (4/0, 4/4, etc.) beyond simple color mode
-11. **Multi-component products** (cover + body)
-12. **More fold types** — Z-fold, Roll, French, Cross
+| Gap | Issue | Impact | Priority |
+|---|---|---|---|
+| **No surface/coating attribute** | Coated Gloss vs Coated Silk vs Coated Matte are distinct paper stocks; our `Glossy`/`Matte` properties conflate intrinsic surface with applied finish | Can't distinguish "Coated Silk 300gsm" from "Coated Gloss 300gsm" as different substrates. Need `SurfaceCoating` enum (Gloss, Silk, Matte, Uncoated) or similar | High |
+| **Missing families** | `Synthetic` (Yupo is modeled as Paper), `Adhesive` (sticker stock is Paper) — semantically wrong | Rules can't target synthetic or adhesive materials by family; workaround is material properties | Medium |
+| **Missing properties** | No `TearResistant`, `SelfAdhesive`, `Transparent`, `Carbonless` | Can't express constraints like "self-adhesive can't be laminated" generically | Medium |
+| **No thickness** | Rigid substrates (foam board, acrylic) measured in mm not gsm | Not relevant for small-format sheet printing | Low |
+| **No material format** | Sheet vs roll vs rigid board distinction | Small-format is always sheets; matters for pricing (waste calculation) | Low |
+| **Weight naming** | `PaperWeight` is paper-specific | Cosmetic — works fine as optional field | Low |
 
-### Lower Priority (nice-to-have / future)
-13. Material format (sheet/roll/rigid)
-14. Finish category grouping (surface/structural/decorative)
-15. Large-format specific finishing (contour cut, standoffs)
-16. Adhesive type for stickers
-17. NCR parts/plies
-18. Edge painting, numbering, drilling
+### Finish Model
+
+| Gap | Issue | Impact | Priority |
+|---|---|---|---|
+| **No finish parameters** | Foil color, corner radius, grommet spacing are not modeled | Affects quoting accuracy — gold foil vs silver foil have different costs. Lamination variants are handled via separate `Finish` instances (matte-lam, gloss-lam), which works | Medium |
+| **FinishSide too limited** | Doesn't cover edge (edge painting), spine, or "all edges" (grommets) | Adequate for small-format sheets (Front/Back/Both suffices) | Low |
+
+### Specification Model
+
+| Gap | Issue | Impact | Priority |
+|---|---|---|---|
+| **No ink configuration** | 4/0, 4/4, 1/0, 4/1, CMYK+PMS, CMYK+White are not modeled | A 4/0 flyer costs roughly half a 4/4 flyer. `ColorMode` alone doesn't capture print sides or spot color additions. This is the single biggest pricing gap for small-format | **High** |
+| **No cover vs body distinction** | Booklets need separate cover material/weight from body pages | Can't properly configure a booklet with 300gsm cover and 120gsm body | High |
+| **No adhesive type** | Permanent vs removable for stickers | Only relevant if stickers are in scope | Low |
+| **No NCR parts/plies** | 2-part, 3-part, 4-part carbonless forms | Niche product type | Low |
+
+### Category Model
+
+| Gap | Issue | Impact | Priority |
+|---|---|---|---|
+| **No multi-component products** | Booklets/catalogs need cover + body with different materials, weights, and finishes | Currently one material per configuration — blocks realistic booklet configuration | High |
+| **No weight constraints per category** | "Business cards must be ≥250gsm" expressed via `ConfigurationConstraint` + `HasMinWeight` predicate | Works via rules but verbose; a category-level `minWeight`/`maxWeight` field would be cleaner | Low |
+| **No format classification** | Small-format vs large-format distinction on category | Could help with UI filtering; currently implicit via allowed printing methods | Low |
+
+### Rules Model
+
+| Gap | Issue | Impact | Priority |
+|---|---|---|---|
+| **No conditional finish dependencies** | "Scoring required for folding IF weight ≥170gsm" needs a condition | `ConfigurationConstraint` with `And(HasMinWeight, ...)` can express the condition, but can't auto-add scoring — only reject | Medium |
+| **No auto-suggestion rules** | Rules can reject but can't recommend ("you should add scoring") | UI can only show errors, not helpful suggestions | Low |
+
+---
+
+## Summary: Prioritized Gaps for Small-Format Sheets
+
+### High Priority (blocks realistic product configuration/pricing)
+
+| # | Gap | Why |
+|---|-----|-----|
+| 1 | **Ink configuration** | A 4/0 vs 4/4 distinction is fundamental to every print quote. Affects pricing (halves material cost for single-sided), finish applicability, and is expected by every print buyer. |
+| 2 | **Multi-component products** | Booklets and catalogs need cover + body with independent material, weight, finish, and page count. Currently impossible with single-material configurations. |
+| 3 | **Material surface/coating** | Every print shop distinguishes Coated Gloss / Coated Silk / Coated Matte / Uncoated as separate substrate lines. Our `Glossy`/`Matte` properties blur intrinsic surface with applied finish. |
+
+### Medium Priority (improves correctness and range)
+
+| # | Gap | Why |
+|---|-----|-----|
+| 4 | **Finish parameters** | Foil color (gold/silver/custom), corner radius, perforation pitch — needed for accurate quoting. Lamination variants already work via separate finish instances. |
+| 5 | **Missing material families** | `Synthetic` and `Adhesive` would let rules target these substrates generically instead of by individual material ID. |
+| 6 | **Conditional finish dependencies** | "Add scoring when folding heavy stock" — currently can only reject, not suggest. |
+
+### Lower Priority (nice-to-have for small-format)
+
+| # | Gap | Why |
+|---|-----|-----|
+| 7 | Material format (sheet/roll) | Always sheets for small-format; relevant for waste/pricing later |
+| 8 | Missing material properties | `SelfAdhesive`, `TearResistant` — needed when stickers/synthetic are in scope |
+| 9 | Auto-suggestion rules | UX improvement, not a data model gap |
+| 10 | Adhesive type, NCR plies | Niche products, can defer |
+
+---
+
+## Previously Identified Gaps (Now Resolved)
+
+The following gaps from the original analysis have been implemented:
+
+- **Finish types**: 21 variants now cover Debossing, Scoring, Perforation, RoundCorners, Drilling, Numbering, AqueousCoating, SoftTouchCoating, Binding, KissCut, ContourCut, EdgePainting, Grommets, Hem, Mounting, Overlamination, Thermography
+- **Finish categories**: `FinishCategory` enum (Surface, Decorative, Structural, LargeFormat) derived from `FinishType`
+- **Printing methods**: `PrintingMethod` with `PrintingProcessType` (7 variants) and `maxColorCount`
+- **Fold types**: `ZFold`, `RollFold`, `FrenchFold`, `CrossFold` added
+- **Binding spec**: `BindingMethod` enum with 5 variants (SaddleStitch, PerfectBinding, SpiralBinding, WireOBinding, CaseBinding)
+- **Weight-based rules**: `MaterialWeightFinishType(finishType, minWeightGsm, reason)`
+- **Printing method rules**: `FinishRequiresPrintingProcess(finishType, requiredProcessTypes, reason)`
+- **Finish dependency rules**: `FinishRequiresFinishType(finishId, requiredFinishType, reason)`
+- **Property/family-based rules**: `MaterialPropertyFinishTypeIncompatible`, `MaterialFamilyFinishTypeIncompatible`, `FinishTypeMutuallyExclusive`
+- **Conditional rules**: `ConfigurationConstraint` with `ConfigurationPredicate` boolean algebra (And/Or/Not/HasMinWeight/HasMaterialProperty/HasMaterialFamily/HasPrintingProcess)
+- **Category printing methods**: `allowedPrintingMethodIds` on `ProductCategory`
+- **Finish category exclusion**: `FinishCategoryExclusive` rule variant
