@@ -8,6 +8,9 @@ enum MaterialFamily:
 enum MaterialProperty:
   case Recyclable, WaterResistant, Glossy, Matte, Textured, SmoothSurface
 
+enum SurfaceCoating:
+  case Gloss, Silk, Matte, Uncoated
+
 opaque type PaperWeight = Int
 object PaperWeight:
   def apply(gsm: Int): Validation[String, PaperWeight] =
@@ -24,4 +27,5 @@ final case class Material(
     family: MaterialFamily,
     weight: Option[PaperWeight],
     properties: Set[MaterialProperty],
+    surfaceCoating: Option[SurfaceCoating] = None,
 )

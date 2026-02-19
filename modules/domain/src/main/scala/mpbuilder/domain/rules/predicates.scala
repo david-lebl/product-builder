@@ -12,6 +12,7 @@ enum SpecPredicate:
   case AllowedFoldTypes(foldTypes: Set[FoldType])
   case MinPages(min: Int)
   case MaxPages(max: Int)
+  case AllowedInkConfigurations(configurations: Set[InkConfiguration])
 
 enum ConfigurationPredicate:
   case Spec(predicate: SpecPredicate)
@@ -19,6 +20,7 @@ enum ConfigurationPredicate:
   case HasMaterialFamily(family: MaterialFamily)
   case HasPrintingProcess(processType: PrintingProcessType)
   case HasMinWeight(minGsm: Int)
+  case HasSurfaceCoating(coating: SurfaceCoating)
   case And(left: ConfigurationPredicate, right: ConfigurationPredicate)
   case Or(left: ConfigurationPredicate, right: ConfigurationPredicate)
   case Not(inner: ConfigurationPredicate)

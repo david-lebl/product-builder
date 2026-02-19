@@ -170,6 +170,14 @@ object RuleEvaluator:
             else Validation.unit
           case _ => Validation.unit
 
+      case SpecPredicate.AllowedInkConfigurations(configurations) =>
+        specs.get(SpecKind.InkConfiguration) match
+          case Some(SpecValue.InkConfigurationSpec(ic)) =>
+            if !configurations.contains(ic) then
+              Validation.fail(ConfigurationError.SpecConstraintViolation(categoryId, predicate, reason))
+            else Validation.unit
+          case _ => Validation.unit
+
   def evaluateConfigurationPredicate(
       predicate: ConfigurationPredicate,
       material: Material,
@@ -189,6 +197,8 @@ object RuleEvaluator:
         printingMethod.processType == processType
       case ConfigurationPredicate.HasMinWeight(minGsm) =>
         material.weight.exists(_.gsm >= minGsm)
+      case ConfigurationPredicate.HasSurfaceCoating(coating) =>
+        material.surfaceCoating.contains(coating)
       case ConfigurationPredicate.And(left, right) =>
         evaluateConfigurationPredicate(left, material, finishes, specifications, printingMethod) &&
           evaluateConfigurationPredicate(right, material, finishes, specifications, printingMethod)

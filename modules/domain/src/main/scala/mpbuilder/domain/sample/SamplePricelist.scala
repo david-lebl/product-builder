@@ -35,6 +35,9 @@ object SamplePricelist:
       // --- Printing process surcharge ---
       PricingRule.PrintingProcessSurcharge(PrintingProcessType.Letterpress, Money("0.20")),
 
+      // --- Double-sided printing surcharge ---
+      PricingRule.DoubleSidedPrintSurcharge(Money("0.04")),
+
       // --- Quantity tiers ---
       PricingRule.QuantityTier(1, Some(249), BigDecimal("1.0")),
       PricingRule.QuantityTier(250, Some(999), BigDecimal("0.90")),

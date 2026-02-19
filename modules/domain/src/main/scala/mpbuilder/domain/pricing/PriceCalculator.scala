@@ -28,11 +28,14 @@ object PriceCalculator:
 
         val categorySurcharge = findCategorySurcharge(config.category, rules, quantity, lang)
 
+        val doubleSidedSurcharge = findDoubleSidedSurcharge(config.specifications, rules, quantity, lang)
+
         val allLineTotals =
           materialLine.lineTotal ::
             finishLines.map(_.lineTotal) :::
             processSurcharge.map(_.lineTotal).toList :::
-            categorySurcharge.map(_.lineTotal).toList
+            categorySurcharge.map(_.lineTotal).toList :::
+            doubleSidedSurcharge.map(_.lineTotal).toList
 
         val subtotal = allLineTotals.foldLeft(Money.zero)(_ + _)
 
@@ -47,6 +50,7 @@ object PriceCalculator:
           finishLines = finishLines,
           processSurcharge = processSurcharge,
           categorySurcharge = categorySurcharge,
+          doubleSidedSurcharge = doubleSidedSurcharge,
           subtotal = subtotal,
           quantityMultiplier = multiplier,
           total = total,
@@ -150,3 +154,24 @@ object PriceCalculator:
           if r.minQuantity <= quantity &&
             r.maxQuantity.forall(_ >= quantity) => r
     }.sortBy(_.minQuantity)(using scala.math.Ordering[Int].reverse).headOption
+
+  private def findDoubleSidedSurcharge(
+      specs: ProductSpecifications,
+      rules: List[PricingRule],
+      quantity: Int,
+      lang: Language,
+  ): Option[LineItem] =
+    specs.get(SpecKind.InkConfiguration) match
+      case Some(SpecValue.InkConfigurationSpec(ic)) if ic.isDoubleSided =>
+        rules.collectFirst {
+          case r: PricingRule.DoubleSidedPrintSurcharge =>
+            LineItem(
+              label = lang match
+                case Language.En => s"Double-sided printing (${ic.label})"
+                case Language.Cs => s"Oboustranný tisk (${ic.label})",
+              unitPrice = r.surchargePerUnit,
+              quantity = quantity,
+              lineTotal = r.surchargePerUnit * quantity,
+            )
+        }
+      case _ => None

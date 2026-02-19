@@ -12,6 +12,7 @@ final case class PriceBreakdown(
     finishLines: List[LineItem],
     processSurcharge: Option[LineItem],
     categorySurcharge: Option[LineItem],
+    doubleSidedSurcharge: Option[LineItem],
     subtotal: Money,
     quantityMultiplier: BigDecimal,
     total: Money,

@@ -53,6 +53,7 @@ object SampleCatalog:
     family = MaterialFamily.Paper,
     weight = Some(PaperWeight.unsafe(300)),
     properties = Set(MaterialProperty.Glossy, MaterialProperty.SmoothSurface, MaterialProperty.Recyclable),
+    surfaceCoating = Some(SurfaceCoating.Gloss),
   )
 
   val uncoatedBond: Material = Material(
@@ -61,6 +62,7 @@ object SampleCatalog:
     family = MaterialFamily.Paper,
     weight = Some(PaperWeight.unsafe(120)),
     properties = Set(MaterialProperty.Matte, MaterialProperty.Recyclable),
+    surfaceCoating = Some(SurfaceCoating.Uncoated),
   )
 
   val kraft: Material = Material(
@@ -69,6 +71,7 @@ object SampleCatalog:
     family = MaterialFamily.Paper,
     weight = Some(PaperWeight.unsafe(250)),
     properties = Set(MaterialProperty.Textured, MaterialProperty.Recyclable),
+    surfaceCoating = Some(SurfaceCoating.Uncoated),
   )
 
   val vinyl: Material = Material(
@@ -93,6 +96,7 @@ object SampleCatalog:
     family = MaterialFamily.Paper,
     weight = Some(PaperWeight.unsafe(250)),
     properties = Set(MaterialProperty.Matte, MaterialProperty.SmoothSurface, MaterialProperty.Recyclable),
+    surfaceCoating = Some(SurfaceCoating.Silk),
   )
 
   val yupo: Material = Material(
@@ -117,6 +121,7 @@ object SampleCatalog:
     family = MaterialFamily.Paper,
     weight = Some(PaperWeight.unsafe(300)),
     properties = Set(MaterialProperty.Textured, MaterialProperty.Recyclable),
+    surfaceCoating = Some(SurfaceCoating.Uncoated),
   )
 
   // --- Printing Methods ---
