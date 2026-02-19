@@ -59,13 +59,13 @@ object ConfigurationForm:
         SpecificationForm(),
       ),
       
-      // Validate Button
+      // Server Validate Button (price is computed live; this button reserved for future server-side validation)
       div(
         cls := "form-section",
         button(
           child.text <-- lang.map {
-            case Language.En => "Calculate Price"
-            case Language.Cs => "Vypočítat cenu"
+            case Language.En => "Validate with Server"
+            case Language.Cs => "Ověřit na serveru"
           },
           onClick --> { _ => ProductBuilderViewModel.validateConfiguration() },
         ),

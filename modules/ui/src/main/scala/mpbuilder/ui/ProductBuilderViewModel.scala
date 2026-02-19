@@ -72,6 +72,7 @@ object ProductBuilderViewModel:
       )
     )
     specResetBus.emit(())
+    autoRecalculate()
   
   // Update material selection
   def selectMaterial(materialId: MaterialId): Unit =
@@ -82,6 +83,7 @@ object ProductBuilderViewModel:
         selectedFinishIds = Set.empty,
       )
     )
+    autoRecalculate()
   
   // Toggle finish selection
   def toggleFinish(finishId: FinishId): Unit =
@@ -94,31 +96,50 @@ object ProductBuilderViewModel:
       
       state.copy(selectedFinishIds = newFinishIds)
     )
+    autoRecalculate()
   
   // Update printing method
   def selectPrintingMethod(methodId: PrintingMethodId): Unit =
     stateVar.update(state =>
       state.copy(selectedPrintingMethodId = Some(methodId))
     )
+    autoRecalculate()
   
   // Update specifications
   def updateSpecifications(specs: List[SpecValue]): Unit =
     stateVar.update(state =>
       state.copy(specifications = specs)
     )
+    autoRecalculate()
   
   // Add a specification
   def addSpecification(spec: SpecValue): Unit =
     stateVar.update(state =>
       state.copy(specifications = state.specifications :+ spec)
     )
+    autoRecalculate()
   
   // Remove a specification by type
   def removeSpecification(specType: Class[?]): Unit =
     stateVar.update(state =>
       state.copy(specifications = state.specifications.filterNot(s => s.getClass == specType))
     )
+    autoRecalculate()
   
+  // Automatically recalculate price when configuration inputs change
+  private def autoRecalculate(): Unit =
+    val currentState = stateVar.now()
+    (currentState.selectedCategoryId, currentState.selectedMaterialId, currentState.selectedPrintingMethodId) match
+      case (Some(_), Some(_), Some(_)) =>
+        validateConfiguration()
+      case _ =>
+        // Not enough selections yet - clear price silently
+        stateVar.update(_.copy(
+          validationErrors = List.empty,
+          priceBreakdown = None,
+          configuration = None,
+        ))
+
   // Build and validate configuration
   def validateConfiguration(): Unit =
     val currentState = stateVar.now()
