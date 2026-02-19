@@ -117,10 +117,10 @@ object SampleRules:
       SpecPredicate.MinDimension(300, 200),
       "Banners must be at least 300x200mm",
     ),
-    // Banners: only CMYK ink type
-    CompatibilityRule.SpecConstraint(
+    // Banners: only CMYK ink type (now a ConfigurationConstraint)
+    CompatibilityRule.ConfigurationConstraint(
       cat.bannersId,
-      SpecPredicate.AllowedInkTypes(Set(InkType.CMYK)),
+      ConfigurationPredicate.AllowedInkTypes(Set(InkType.CMYK)),
       "Banners only support CMYK ink type",
     ),
     // Booklets: allowed binding methods
@@ -176,5 +176,5 @@ object SampleRules:
 
   val ruleset: CompatibilityRuleset = CompatibilityRuleset(
     rules = rules,
-    version = "2.1.0",
+    version = "3.0.0",
   )

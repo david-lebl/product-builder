@@ -87,6 +87,7 @@ object LocalizationSpec extends ZIOSpecDefault:
         val err = ConfigurationError.InvalidCategoryMaterial(
           CategoryId.unsafe("cat-test"),
           MaterialId.unsafe("mat-test"),
+          ComponentRole.Main,
         )
         assertTrue(
           err.message(Language.Cs).contains("není povolen"),
@@ -100,7 +101,7 @@ object LocalizationSpec extends ZIOSpecDefault:
     ),
     suite("PricingError Czech messages")(
       test("NoBasePriceForMaterial in Czech") {
-        val err = PricingError.NoBasePriceForMaterial(MaterialId.unsafe("mat-test"))
+        val err = PricingError.NoBasePriceForMaterial(MaterialId.unsafe("mat-test"), ComponentRole.Main)
         assertTrue(
           err.message(Language.Cs).contains("Nebyla nalezena základní cena"),
           err.message(Language.En).contains("No base price found"),
@@ -123,42 +124,52 @@ object LocalizationSpec extends ZIOSpecDefault:
         val config = ProductConfiguration(
           id = configId,
           category = SampleCatalog.businessCards,
-          material = SampleCatalog.coated300gsm,
           printingMethod = SampleCatalog.offsetMethod,
-          finishes = List(SampleCatalog.matteLamination),
+          components = List(ProductComponent(
+            role = ComponentRole.Main,
+            material = SampleCatalog.coated300gsm,
+            inkConfiguration = InkConfiguration.cmyk4_4,
+            finishes = List(SampleCatalog.matteLamination),
+            sheetCount = 1,
+          )),
           specifications = ProductSpecifications.fromSpecs(List(
             SpecValue.SizeSpec(Dimension(90, 55)),
             SpecValue.QuantitySpec(Quantity.unsafe(500)),
-            SpecValue.InkConfigSpec(InkConfiguration.cmyk4_4),
           )),
         )
 
         val result = PriceCalculator.calculate(config, pricelist, Language.Cs)
         val breakdown = result.toEither.toOption.get
+        val cb = breakdown.componentBreakdowns.head
         assertTrue(
-          breakdown.materialLine.label.contains("Křídový papír 300g"),
-          breakdown.finishLines.head.label.contains("Matná laminace"),
+          cb.materialLine.label.contains("Křídový papír 300g"),
+          cb.finishLines.head.label.contains("Matná laminace"),
         )
       },
       test("price breakdown labels use English by default") {
         val config = ProductConfiguration(
           id = configId,
           category = SampleCatalog.businessCards,
-          material = SampleCatalog.coated300gsm,
           printingMethod = SampleCatalog.offsetMethod,
-          finishes = List(SampleCatalog.matteLamination),
+          components = List(ProductComponent(
+            role = ComponentRole.Main,
+            material = SampleCatalog.coated300gsm,
+            inkConfiguration = InkConfiguration.cmyk4_4,
+            finishes = List(SampleCatalog.matteLamination),
+            sheetCount = 1,
+          )),
           specifications = ProductSpecifications.fromSpecs(List(
             SpecValue.SizeSpec(Dimension(90, 55)),
             SpecValue.QuantitySpec(Quantity.unsafe(500)),
-            SpecValue.InkConfigSpec(InkConfiguration.cmyk4_4),
           )),
         )
 
         val result = PriceCalculator.calculate(config, pricelist)
         val breakdown = result.toEither.toOption.get
+        val cb = breakdown.componentBreakdowns.head
         assertTrue(
-          breakdown.materialLine.label.contains("Coated Art Paper 300gsm"),
-          breakdown.finishLines.head.label.contains("Matte Lamination"),
+          cb.materialLine.label.contains("Coated Art Paper 300gsm"),
+          cb.finishLines.head.label.contains("Matte Lamination"),
         )
       },
     ),

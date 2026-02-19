@@ -7,8 +7,8 @@ enum ConfigurationError:
   case CategoryNotFound(categoryId: CategoryId)
   case MaterialNotFound(materialId: MaterialId)
   case FinishNotFound(finishId: FinishId)
-  case InvalidCategoryMaterial(categoryId: CategoryId, materialId: MaterialId)
-  case InvalidCategoryFinish(categoryId: CategoryId, finishId: FinishId)
+  case InvalidCategoryMaterial(categoryId: CategoryId, materialId: MaterialId, role: ComponentRole)
+  case InvalidCategoryFinish(categoryId: CategoryId, finishId: FinishId, role: ComponentRole)
   case MissingRequiredSpec(categoryId: CategoryId, specKind: SpecKind)
   case IncompatibleMaterialFinish(materialId: MaterialId, finishId: FinishId, reason: String)
   case MissingRequiredFinish(materialId: MaterialId, requiredFinishIds: Set[FinishId], reason: String)
@@ -26,7 +26,9 @@ enum ConfigurationError:
   case InvalidCategoryPrintingMethod(categoryId: CategoryId, printingMethodId: PrintingMethodId)
   case PrintingMethodNotFound(printingMethodId: PrintingMethodId)
   case ConfigurationConstraintViolation(categoryId: CategoryId, reason: String)
-  case InkConfigExceedsMethodColorLimit(printingMethodId: PrintingMethodId, inkConfig: InkConfiguration, maxAllowed: Int)
+  case InkConfigExceedsMethodColorLimit(printingMethodId: PrintingMethodId, inkConfig: InkConfiguration, maxAllowed: Int, role: ComponentRole)
+  case InvalidComponentRoles(categoryId: CategoryId, expectedRoles: Set[ComponentRole], actualRoles: Set[ComponentRole])
+  case MissingComponent(categoryId: CategoryId, role: ComponentRole)
 
   def message: String = message(Language.En)
 
@@ -40,12 +42,12 @@ enum ConfigurationError:
     case FinishNotFound(id) => lang match
       case Language.En => s"Finish '${id.value}' not found in catalog"
       case Language.Cs => s"Povrchová úprava '${id.value}' nebyla nalezena v katalogu"
-    case InvalidCategoryMaterial(catId, matId) => lang match
-      case Language.En => s"Material '${matId.value}' is not allowed for category '${catId.value}'"
-      case Language.Cs => s"Materiál '${matId.value}' není povolen pro kategorii '${catId.value}'"
-    case InvalidCategoryFinish(catId, finId) => lang match
-      case Language.En => s"Finish '${finId.value}' is not allowed for category '${catId.value}'"
-      case Language.Cs => s"Povrchová úprava '${finId.value}' není povolena pro kategorii '${catId.value}'"
+    case InvalidCategoryMaterial(catId, matId, role) => lang match
+      case Language.En => s"Material '${matId.value}' is not allowed for category '${catId.value}' component '$role'"
+      case Language.Cs => s"Materiál '${matId.value}' není povolen pro kategorii '${catId.value}' komponent '$role'"
+    case InvalidCategoryFinish(catId, finId, role) => lang match
+      case Language.En => s"Finish '${finId.value}' is not allowed for category '${catId.value}' component '$role'"
+      case Language.Cs => s"Povrchová úprava '${finId.value}' není povolena pro kategorii '${catId.value}' komponent '$role'"
     case MissingRequiredSpec(catId, kind) => lang match
       case Language.En => s"Category '${catId.value}' requires specification '$kind'"
       case Language.Cs => s"Kategorie '${catId.value}' vyžaduje specifikaci '$kind'"
@@ -97,6 +99,12 @@ enum ConfigurationError:
     case ConfigurationConstraintViolation(catId, reason) => lang match
       case Language.En => s"Configuration constraint violated for category '${catId.value}': $reason"
       case Language.Cs => s"Porušeno omezení konfigurace pro kategorii '${catId.value}': $reason"
-    case InkConfigExceedsMethodColorLimit(pmId, inkConfig, maxAllowed) => lang match
-      case Language.En => s"Ink configuration '${inkConfig.notation}' exceeds printing method '${pmId.value}' maximum of $maxAllowed colors per side"
-      case Language.Cs => s"Konfigurace inkoustu '${inkConfig.notation}' překračuje maximum $maxAllowed barev na stranu pro tiskovou metodu '${pmId.value}'"
+    case InkConfigExceedsMethodColorLimit(pmId, inkConfig, maxAllowed, role) => lang match
+      case Language.En => s"Ink configuration '${inkConfig.notation}' in component '$role' exceeds printing method '${pmId.value}' maximum of $maxAllowed colors per side"
+      case Language.Cs => s"Konfigurace inkoustu '${inkConfig.notation}' v komponentu '$role' překračuje maximum $maxAllowed barev na stranu pro tiskovou metodu '${pmId.value}'"
+    case InvalidComponentRoles(catId, expectedRoles, actualRoles) => lang match
+      case Language.En => s"Category '${catId.value}' expects components ${expectedRoles.mkString(", ")} but got ${actualRoles.mkString(", ")}"
+      case Language.Cs => s"Kategorie '${catId.value}' očekává komponenty ${expectedRoles.mkString(", ")} ale obdržela ${actualRoles.mkString(", ")}"
+    case MissingComponent(catId, role) => lang match
+      case Language.En => s"Category '${catId.value}' requires component '$role'"
+      case Language.Cs => s"Kategorie '${catId.value}' vyžaduje komponent '$role'"

@@ -2,6 +2,7 @@ package mpbuilder.domain.service
 
 import mpbuilder.domain.model.*
 import mpbuilder.domain.model.FinishType.finishCategory
+import mpbuilder.domain.model.ProductCategory.*
 import mpbuilder.domain.rules.*
 
 object CatalogQueryService:
@@ -9,11 +10,14 @@ object CatalogQueryService:
   def availableMaterials(
       categoryId: CategoryId,
       catalog: ProductCatalog,
+      role: ComponentRole,
   ): List[Material] =
     catalog.categories.get(categoryId) match
       case None => Nil
       case Some(category) =>
-        category.allowedMaterialIds.toList.flatMap(catalog.materials.get)
+        category.componentFor(role) match
+          case None           => Nil
+          case Some(template) => template.allowedMaterialIds.toList.flatMap(catalog.materials.get)
 
   def compatibleFinishes(
       categoryId: CategoryId,
@@ -21,10 +25,14 @@ object CatalogQueryService:
       catalog: ProductCatalog,
       ruleset: CompatibilityRuleset,
       printingMethodId: Option[PrintingMethodId],
+      role: ComponentRole,
   ): List[Finish] =
     val categoryFinishes = catalog.categories.get(categoryId) match
-      case None           => Nil
-      case Some(category) => category.allowedFinishIds.toList.flatMap(catalog.finishes.get)
+      case None => Nil
+      case Some(category) =>
+        category.componentFor(role) match
+          case None           => Nil
+          case Some(template) => template.allowedFinishIds.toList.flatMap(catalog.finishes.get)
 
     val material = catalog.materials.get(materialId)
     val printingMethod = printingMethodId.flatMap(catalog.printingMethods.get)

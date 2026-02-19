@@ -5,10 +5,11 @@ import mpbuilder.ui.ProductBuilderViewModel
 import mpbuilder.domain.model.*
 
 object FinishSelector:
-  def apply(): Element =
-    val availableFinishes = ProductBuilderViewModel.availableFinishes
+  def apply(role: ComponentRole): Element =
+    val availableFinishes = ProductBuilderViewModel.availableFinishes(role)
+    val finishIds = ProductBuilderViewModel.selectedFinishIds(role)
     val lang = ProductBuilderViewModel.currentLanguage
-    
+
     div(
       cls := "form-group",
       label(
@@ -35,9 +36,9 @@ object FinishSelector:
                 cls := "checkbox-label",
                 input(
                   typ := "checkbox",
-                  checked <-- ProductBuilderViewModel.state.map(_.selectedFinishIds.contains(finish.id)),
+                  checked <-- finishIds.map(_.contains(finish.id)),
                   onChange.mapToChecked --> { _ =>
-                    ProductBuilderViewModel.toggleFinish(finish.id)
+                    ProductBuilderViewModel.toggleFinish(role, finish.id)
                   },
                 ),
                 span(finish.name(l)),

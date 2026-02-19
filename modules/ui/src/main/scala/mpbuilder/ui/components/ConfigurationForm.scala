@@ -18,54 +18,65 @@ object ConfigurationForm:
         }),
         CategorySelector(),
       ),
-      
-      // Material Selection
-      div(
-        cls := "form-section",
-        h3(child.text <-- lang.map {
-          case Language.En => "2. Select Material"
-          case Language.Cs => "2. Vyberte materiál"
-        }),
-        MaterialSelector(),
-      ),
-      
+
       // Printing Method Selection
       div(
         cls := "form-section",
         h3(child.text <-- lang.map {
-          case Language.En => "3. Select Printing Method"
-          case Language.Cs => "3. Vyberte tiskovou metodu"
+          case Language.En => "2. Select Printing Method"
+          case Language.Cs => "2. Vyberte tiskovou metodu"
         }),
         PrintingMethodSelector(),
       ),
-      
-      // Finish Selection
+
+      // Component Configuration — dynamic sections based on category
       div(
         cls := "form-section",
         h3(child.text <-- lang.map {
-          case Language.En => "4. Select Finishes (Optional)"
-          case Language.Cs => "4. Vyberte povrchové úpravy (volitelné)"
+          case Language.En => "3. Configure Components"
+          case Language.Cs => "3. Nakonfigurujte komponenty"
         }),
-        FinishSelector(),
+        children <-- ProductBuilderViewModel.componentRoles.combineWith(lang).map { case (roles, l) =>
+          if roles.isEmpty then
+            List(
+              p(cls := "info-box",
+                l match
+                  case Language.En => "Select a category to configure components"
+                  case Language.Cs => "Vyberte kategorii pro konfiguraci komponentů"
+              )
+            )
+          else if roles.size == 1 && roles.head == ComponentRole.Main then
+            // Single-component product — no role header needed
+            List(componentSection(ComponentRole.Main))
+          else
+            // Multi-component product — show labeled sections
+            roles.map { role =>
+              div(
+                cls := "component-section",
+                h4(componentRoleLabel(role, l)),
+                componentSection(role),
+              )
+            }
+        },
       ),
-      
+
       // Specifications
       div(
         cls := "form-section",
         h3(child.text <-- lang.map {
-          case Language.En => "5. Product Specifications"
-          case Language.Cs => "5. Specifikace produktu"
+          case Language.En => "4. Product Specifications"
+          case Language.Cs => "4. Specifikace produktu"
         }),
         SpecificationForm(),
       ),
-      
+
       // Server Validate Button (price is computed live; this button reserved for future server-side validation)
       div(
         cls := "form-section",
         button(
           child.text <-- lang.map {
-            case Language.En => "Validate with Server"
-            case Language.Cs => "Ověřit na serveru"
+            case Language.En => "Validate price"
+            case Language.Cs => "Ověřit cenu"
           },
           onClick --> { _ => ProductBuilderViewModel.validateConfiguration() },
         ),
@@ -103,3 +114,22 @@ object ConfigurationForm:
         ),
       ),
     )
+
+  private def componentSection(role: ComponentRole): Element =
+    div(
+      MaterialSelector(role),
+      InkConfigSelector(role),
+      FinishSelector(role),
+    )
+
+  private def componentRoleLabel(role: ComponentRole, lang: Language): String =
+    role match
+      case ComponentRole.Main => lang match
+        case Language.En => "Main Component"
+        case Language.Cs => "Hlavní komponent"
+      case ComponentRole.Cover => lang match
+        case Language.En => "Cover"
+        case Language.Cs => "Obálka"
+      case ComponentRole.Body => lang match
+        case Language.En => "Body / Inner Pages"
+        case Language.Cs => "Vnitřní část / stránky"

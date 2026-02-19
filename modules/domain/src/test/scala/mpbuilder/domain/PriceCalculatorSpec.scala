@@ -16,17 +16,26 @@ object PriceCalculatorSpec extends ZIOSpecDefault:
       category: ProductCategory,
       material: Material,
       printingMethod: PrintingMethod,
+      inkConfig: InkConfiguration,
       finishes: List[Finish],
       specs: List[SpecValue],
   ): ProductConfiguration =
     ProductConfiguration(
       id = configId,
       category = category,
-      material = material,
       printingMethod = printingMethod,
-      finishes = finishes,
+      components = List(ProductComponent(
+        role = ComponentRole.Main,
+        material = material,
+        inkConfiguration = inkConfig,
+        finishes = finishes,
+        sheetCount = 1,
+      )),
       specifications = ProductSpecifications.fromSpecs(specs),
     )
+
+  private def firstBreakdown(bd: PriceBreakdown): ComponentBreakdown =
+    bd.componentBreakdowns.head
 
   def spec = suite("PriceCalculator")(
     suite("valid pricing")(
@@ -36,29 +45,25 @@ object PriceCalculatorSpec extends ZIOSpecDefault:
           category = SampleCatalog.businessCards,
           material = SampleCatalog.coated300gsm,
           printingMethod = SampleCatalog.offsetMethod,
+          inkConfig = InkConfiguration.cmyk4_4,
           finishes = List(SampleCatalog.matteLamination),
           specs = List(
             SpecValue.SizeSpec(Dimension(90, 55)),
             SpecValue.QuantitySpec(Quantity.unsafe(500)),
-            SpecValue.InkConfigSpec(InkConfiguration.cmyk4_4),
           ),
         )
 
         val result = PriceCalculator.calculate(config, pricelist)
         val breakdown = result.toEither.toOption.get
-        // material: 0.12 × 500 = 60.00
-        // matte lamination: 0.03 × 500 = 15.00
-        // subtotal = 75.00
-        // tier 250-999: 0.90×
-        // total = 75.00 × 0.90 = 67.50
+        val cb = firstBreakdown(breakdown)
         assertTrue(
           result.toEither.isRight,
-          breakdown.materialLine.unitPrice == Money("0.12"),
-          breakdown.materialLine.quantity == 500,
-          breakdown.materialLine.lineTotal == Money("60.00"),
-          breakdown.finishLines.size == 1,
-          breakdown.finishLines.head.unitPrice == Money("0.03"),
-          breakdown.finishLines.head.lineTotal == Money("15.00"),
+          cb.materialLine.unitPrice == Money("0.12"),
+          cb.materialLine.quantity == 500,
+          cb.materialLine.lineTotal == Money("60.00"),
+          cb.finishLines.size == 1,
+          cb.finishLines.head.unitPrice == Money("0.03"),
+          cb.finishLines.head.lineTotal == Money("15.00"),
           breakdown.subtotal == Money("75.00"),
           breakdown.quantityMultiplier == BigDecimal("0.90"),
           breakdown.total == Money("67.50"),
@@ -71,54 +76,43 @@ object PriceCalculatorSpec extends ZIOSpecDefault:
           category = SampleCatalog.banners,
           material = SampleCatalog.vinyl,
           printingMethod = SampleCatalog.uvInkjetMethod,
+          inkConfig = InkConfiguration.cmyk4_4,
           finishes = List(SampleCatalog.uvCoating),
           specs = List(
             SpecValue.SizeSpec(Dimension(1000, 500)),
             SpecValue.QuantitySpec(Quantity.unsafe(10)),
-            SpecValue.InkConfigSpec(InkConfiguration.cmyk4_4),
           ),
         )
 
         val result = PriceCalculator.calculate(config, pricelist)
         val breakdown = result.toEither.toOption.get
-        // area = 1000 × 500 / 1_000_000 = 0.5 sqm
-        // material unit price = 18.00 × 0.5 = 9.00
-        // material line total = 9.00 × 10 = 90.00
-        // UV coating (type-level): 0.04 × 10 = 0.40
-        // subtotal = 90.40
-        // tier 1-249: 1.0×
-        // total = 90.40
+        val cb = firstBreakdown(breakdown)
         assertTrue(
           result.toEither.isRight,
-          breakdown.materialLine.unitPrice == Money("9.00"),
-          breakdown.materialLine.lineTotal == Money("90.00"),
-          breakdown.finishLines.size == 1,
-          breakdown.finishLines.head.unitPrice == Money("0.04"),
+          cb.materialLine.unitPrice == Money("9.00"),
+          cb.materialLine.lineTotal == Money("90.00"),
+          cb.finishLines.size == 1,
+          cb.finishLines.head.unitPrice == Money("0.04"),
           breakdown.subtotal == Money("90.40"),
           breakdown.quantityMultiplier == BigDecimal("1.0"),
           breakdown.total == Money("90.40"),
         )
       },
       test("quantity tier discount correctly applied") {
-        // 1000× coated 300gsm, no finishes, offset → 1000-4999 tier (0.80×)
         val config = makeConfig(
           category = SampleCatalog.businessCards,
           material = SampleCatalog.coated300gsm,
           printingMethod = SampleCatalog.offsetMethod,
+          inkConfig = InkConfiguration.cmyk4_4,
           finishes = Nil,
           specs = List(
             SpecValue.SizeSpec(Dimension(90, 55)),
             SpecValue.QuantitySpec(Quantity.unsafe(1000)),
-            SpecValue.InkConfigSpec(InkConfiguration.cmyk4_4),
           ),
         )
 
         val result = PriceCalculator.calculate(config, pricelist)
         val breakdown = result.toEither.toOption.get
-        // material: 0.12 × 1000 = 120.00
-        // subtotal = 120.00
-        // tier 1000-4999: 0.80×
-        // total = 96.00
         assertTrue(
           breakdown.subtotal == Money("120.00"),
           breakdown.quantityMultiplier == BigDecimal("0.80"),
@@ -126,54 +120,42 @@ object PriceCalculatorSpec extends ZIOSpecDefault:
         )
       },
       test("multiple finish surcharges accumulated") {
-        // 500× coated 300gsm + embossing + foil stamping + offset
         val config = makeConfig(
           category = SampleCatalog.businessCards,
           material = SampleCatalog.coated300gsm,
           printingMethod = SampleCatalog.offsetMethod,
+          inkConfig = InkConfiguration.cmyk4_4,
           finishes = List(SampleCatalog.embossing, SampleCatalog.foilStamping),
           specs = List(
             SpecValue.SizeSpec(Dimension(90, 55)),
             SpecValue.QuantitySpec(Quantity.unsafe(500)),
-            SpecValue.InkConfigSpec(InkConfiguration.cmyk4_4),
           ),
         )
 
         val result = PriceCalculator.calculate(config, pricelist)
         val breakdown = result.toEither.toOption.get
-        // material: 0.12 × 500 = 60.00
-        // embossing: 0.08 × 500 = 40.00
-        // foil stamping: 0.15 × 500 = 75.00
-        // subtotal = 175.00
-        // tier 250-999: 0.90×
-        // total = 157.50
+        val cb = firstBreakdown(breakdown)
         assertTrue(
-          breakdown.finishLines.size == 2,
+          cb.finishLines.size == 2,
           breakdown.subtotal == Money("175.00"),
           breakdown.total == Money("157.50"),
         )
       },
       test("letterpress process surcharge applied") {
-        // 500× coated 300gsm + letterpress
         val config = makeConfig(
           category = SampleCatalog.businessCards,
           material = SampleCatalog.coated300gsm,
           printingMethod = SampleCatalog.letterpressMethod,
+          inkConfig = InkConfiguration.cmyk4_4,
           finishes = Nil,
           specs = List(
             SpecValue.SizeSpec(Dimension(90, 55)),
             SpecValue.QuantitySpec(Quantity.unsafe(500)),
-            SpecValue.InkConfigSpec(InkConfiguration.cmyk4_4),
           ),
         )
 
         val result = PriceCalculator.calculate(config, pricelist)
         val breakdown = result.toEither.toOption.get
-        // material: 0.12 × 500 = 60.00
-        // letterpress: 0.20 × 500 = 100.00
-        // subtotal = 160.00
-        // tier 250-999: 0.90×
-        // total = 144.00
         assertTrue(
           breakdown.processSurcharge.isDefined,
           breakdown.processSurcharge.get.unitPrice == Money("0.20"),
@@ -183,10 +165,6 @@ object PriceCalculatorSpec extends ZIOSpecDefault:
         )
       },
       test("ID-level finish surcharge takes precedence over type-level") {
-        // UV coating has both: type-level FinishTypeSurcharge(UVCoating, 0.04)
-        // and no ID-level surcharge, so type-level applies.
-        // Matte lamination has ID-level (0.03) and no type-level for Lamination.
-        // Test: Add a type-level surcharge for Lamination and verify ID-level wins.
         val customPricelist = Pricelist(
           rules = List(
             PricingRule.MaterialBasePrice(SampleCatalog.coated300gsmId, Money("0.10")),
@@ -202,95 +180,138 @@ object PriceCalculatorSpec extends ZIOSpecDefault:
           category = SampleCatalog.businessCards,
           material = SampleCatalog.coated300gsm,
           printingMethod = SampleCatalog.offsetMethod,
+          inkConfig = InkConfiguration.cmyk4_4,
           finishes = List(SampleCatalog.matteLamination),
           specs = List(
             SpecValue.SizeSpec(Dimension(90, 55)),
             SpecValue.QuantitySpec(Quantity.unsafe(100)),
-            SpecValue.InkConfigSpec(InkConfiguration.cmyk4_4),
           ),
         )
 
         val result = PriceCalculator.calculate(config, customPricelist)
         val breakdown = result.toEither.toOption.get
-        // ID-level surcharge (0.03) should win over type-level (0.99)
+        val cb = firstBreakdown(breakdown)
         assertTrue(
-          breakdown.finishLines.head.unitPrice == Money("0.03"),
+          cb.finishLines.head.unitPrice == Money("0.03"),
         )
       },
       test("no surcharge for finish with no pricing rule") {
-        // Round corners has no pricing rule → gracefully skipped
         val config = makeConfig(
           category = SampleCatalog.businessCards,
           material = SampleCatalog.coated300gsm,
           printingMethod = SampleCatalog.offsetMethod,
+          inkConfig = InkConfiguration.cmyk4_4,
           finishes = List(SampleCatalog.roundCorners),
           specs = List(
             SpecValue.SizeSpec(Dimension(90, 55)),
             SpecValue.QuantitySpec(Quantity.unsafe(500)),
-            SpecValue.InkConfigSpec(InkConfiguration.cmyk4_4),
           ),
         )
 
         val result = PriceCalculator.calculate(config, pricelist)
         val breakdown = result.toEither.toOption.get
+        val cb = firstBreakdown(breakdown)
         assertTrue(
-          breakdown.finishLines.isEmpty,
+          cb.finishLines.isEmpty,
           breakdown.subtotal == Money("60.00"),
         )
       },
-      test("booklet with binding method priced correctly") {
-        // Binding has no special pricing rule — just material + finishes
-        val config = makeConfig(
+      test("booklet with cover and body priced correctly") {
+        // Cover: coated300gsm (0.12) × 1 sheet × 500 = 60.00, matte lam: 0.03 × 500 = 15.00
+        // Body: coated300gsm (0.12) × 7 sheets × 500 = 420.00 (saddle stitch 32 pages: (32/4)-1 = 7)
+        // subtotal = 60.00 + 15.00 + 420.00 = 495.00
+        // tier 250-999: 0.90×
+        // total = 495.00 × 0.90 = 445.50
+        val config = ProductConfiguration(
+          id = configId,
           category = SampleCatalog.booklets,
-          material = SampleCatalog.coated300gsm,
           printingMethod = SampleCatalog.offsetMethod,
-          finishes = List(SampleCatalog.matteLamination),
-          specs = List(
+          components = List(
+            ProductComponent(ComponentRole.Cover, SampleCatalog.coated300gsm, InkConfiguration.cmyk4_4, List(SampleCatalog.matteLamination), sheetCount = 1),
+            ProductComponent(ComponentRole.Body, SampleCatalog.coated300gsm, InkConfiguration.cmyk4_4, Nil, sheetCount = 7),
+          ),
+          specifications = ProductSpecifications.fromSpecs(List(
             SpecValue.SizeSpec(Dimension(210, 148)),
             SpecValue.QuantitySpec(Quantity.unsafe(500)),
-            SpecValue.InkConfigSpec(InkConfiguration.cmyk4_4),
             SpecValue.PagesSpec(32),
             SpecValue.BindingMethodSpec(BindingMethod.SaddleStitch),
-          ),
+          )),
         )
 
         val result = PriceCalculator.calculate(config, pricelist)
         val breakdown = result.toEither.toOption.get
-        // material: 0.12 × 500 = 60.00
-        // matte lamination: 0.03 × 500 = 15.00
-        // subtotal = 75.00
-        // tier 250-999: 0.90×
-        // total = 67.50
+        val coverBd = breakdown.componentBreakdowns.find(_.role == ComponentRole.Cover).get
+        val bodyBd = breakdown.componentBreakdowns.find(_.role == ComponentRole.Body).get
         assertTrue(
           result.toEither.isRight,
-          breakdown.subtotal == Money("75.00"),
-          breakdown.total == Money("67.50"),
+          coverBd.materialLine.quantity == 500,  // 1 sheet × 500
+          coverBd.materialLine.lineTotal == Money("60.00"),
+          coverBd.finishLines.size == 1,
+          coverBd.finishLines.head.lineTotal == Money("15.00"),
+          bodyBd.materialLine.quantity == 3500,  // 7 sheets × 500
+          bodyBd.materialLine.lineTotal == Money("420.00"),
+          breakdown.subtotal == Money("495.00"),
+          breakdown.quantityMultiplier == BigDecimal("0.90"),
+          breakdown.total == Money("445.50"),
+        )
+      },
+      test("calendar with different materials per component") {
+        // Cover: coatedSilk250gsm (0.11) × 1 × 100 = 11.00
+        // Cover ink config (4/0, multiplier 0.60): 11.00 × (0.60 - 1.0) = -4.40
+        // Cover gloss lam: 0.03 × 100 = 3.00
+        // Body: coated300gsm (0.12) × 6 × 100 = 72.00  (spiral 14 pages: (14-2)/2 = 6)
+        // subtotal = 11.00 + (-4.40) + 3.00 + 72.00 = 81.60
+        // tier 1-249: 1.0×
+        // total = 81.60
+        val config = ProductConfiguration(
+          id = configId,
+          category = SampleCatalog.calendars,
+          printingMethod = SampleCatalog.digitalMethod,
+          components = List(
+            ProductComponent(ComponentRole.Cover, SampleCatalog.coatedSilk250gsm, InkConfiguration.cmyk4_0, List(SampleCatalog.glossLamination), sheetCount = 1),
+            ProductComponent(ComponentRole.Body, SampleCatalog.coated300gsm, InkConfiguration.cmyk4_4, Nil, sheetCount = 6),
+          ),
+          specifications = ProductSpecifications.fromSpecs(List(
+            SpecValue.SizeSpec(Dimension(297, 210)),
+            SpecValue.QuantitySpec(Quantity.unsafe(100)),
+            SpecValue.PagesSpec(14),
+            SpecValue.BindingMethodSpec(BindingMethod.SpiralBinding),
+          )),
+        )
+
+        val result = PriceCalculator.calculate(config, pricelist)
+        val breakdown = result.toEither.toOption.get
+        val coverBd = breakdown.componentBreakdowns.find(_.role == ComponentRole.Cover).get
+        val bodyBd = breakdown.componentBreakdowns.find(_.role == ComponentRole.Body).get
+        assertTrue(
+          result.toEither.isRight,
+          coverBd.materialLine.unitPrice == Money("0.11"),
+          coverBd.materialLine.lineTotal == Money("11.00"),
+          bodyBd.materialLine.unitPrice == Money("0.12"),
+          bodyBd.materialLine.lineTotal == Money("72.00"),
+          breakdown.subtotal == Money("81.60"),
+          breakdown.total == Money("81.60"),
         )
       },
       test("4/0 ink configuration applies lower material multiplier than 4/4") {
-        // 500× coated 300gsm + 4/0 ink config → 0.60 material multiplier
         val config = makeConfig(
           category = SampleCatalog.businessCards,
           material = SampleCatalog.coated300gsm,
           printingMethod = SampleCatalog.offsetMethod,
+          inkConfig = InkConfiguration.cmyk4_0,
           finishes = Nil,
           specs = List(
             SpecValue.SizeSpec(Dimension(90, 55)),
             SpecValue.QuantitySpec(Quantity.unsafe(500)),
-            SpecValue.InkConfigSpec(InkConfiguration.cmyk4_0),
           ),
         )
 
         val result = PriceCalculator.calculate(config, pricelist)
         val breakdown = result.toEither.toOption.get
-        // material: 0.12 × 500 = 60.00
-        // ink config: 60.00 × (0.60 - 1.0) = -24.00
-        // subtotal = 60.00 + (-24.00) = 36.00
-        // tier 250-999: 0.90×
-        // total = 36.00 × 0.90 = 32.40
+        val cb = firstBreakdown(breakdown)
         assertTrue(
-          breakdown.inkConfigLine.isDefined,
-          breakdown.inkConfigLine.get.lineTotal == Money("-24.00"),
+          cb.inkConfigLine.isDefined,
+          cb.inkConfigLine.get.lineTotal == Money("-24.00"),
           breakdown.subtotal == Money("36.00"),
           breakdown.total == Money("32.40"),
         )
@@ -300,17 +321,18 @@ object PriceCalculatorSpec extends ZIOSpecDefault:
           category = SampleCatalog.businessCards,
           material = SampleCatalog.coated300gsm,
           printingMethod = SampleCatalog.offsetMethod,
+          inkConfig = InkConfiguration.cmyk4_4,
           finishes = Nil,
           specs = List(
             SpecValue.SizeSpec(Dimension(90, 55)),
             SpecValue.QuantitySpec(Quantity.unsafe(500)),
-            SpecValue.InkConfigSpec(InkConfiguration.cmyk4_4),
           ),
         )
 
         val result = PriceCalculator.calculate(config, pricelist)
         val breakdown = result.toEither.toOption.get
-        assertTrue(breakdown.inkConfigLine.isEmpty)
+        val cb = firstBreakdown(breakdown)
+        assertTrue(cb.inkConfigLine.isEmpty)
       },
     ),
     suite("error cases")(
@@ -327,11 +349,11 @@ object PriceCalculatorSpec extends ZIOSpecDefault:
           category = SampleCatalog.businessCards,
           material = SampleCatalog.coated300gsm,
           printingMethod = SampleCatalog.offsetMethod,
+          inkConfig = InkConfiguration.cmyk4_4,
           finishes = Nil,
           specs = List(
             SpecValue.SizeSpec(Dimension(90, 55)),
             SpecValue.QuantitySpec(Quantity.unsafe(500)),
-            SpecValue.InkConfigSpec(InkConfiguration.cmyk4_4),
           ),
         )
 
@@ -346,10 +368,10 @@ object PriceCalculatorSpec extends ZIOSpecDefault:
           category = SampleCatalog.businessCards,
           material = SampleCatalog.coated300gsm,
           printingMethod = SampleCatalog.offsetMethod,
+          inkConfig = InkConfiguration.cmyk4_4,
           finishes = Nil,
           specs = List(
             SpecValue.SizeSpec(Dimension(90, 55)),
-            SpecValue.InkConfigSpec(InkConfiguration.cmyk4_4),
           ),
         )
 
@@ -364,10 +386,10 @@ object PriceCalculatorSpec extends ZIOSpecDefault:
           category = SampleCatalog.banners,
           material = SampleCatalog.vinyl,
           printingMethod = SampleCatalog.uvInkjetMethod,
+          inkConfig = InkConfiguration.cmyk4_4,
           finishes = Nil,
           specs = List(
             SpecValue.QuantitySpec(Quantity.unsafe(10)),
-            SpecValue.InkConfigSpec(InkConfiguration.cmyk4_4),
           ),
         )
 
@@ -378,16 +400,15 @@ object PriceCalculatorSpec extends ZIOSpecDefault:
         )
       },
       test("calendar with new material priced correctly") {
-        // 100× coated silk 250gsm (0.11) + matte lamination (0.03) + digital → no tier (1.0×)
         val config = makeConfig(
           category = SampleCatalog.calendars,
           material = SampleCatalog.coatedSilk250gsm,
           printingMethod = SampleCatalog.digitalMethod,
+          inkConfig = InkConfiguration.cmyk4_4,
           finishes = List(SampleCatalog.matteLamination),
           specs = List(
             SpecValue.SizeSpec(Dimension(297, 210)),
             SpecValue.QuantitySpec(Quantity.unsafe(100)),
-            SpecValue.InkConfigSpec(InkConfiguration.cmyk4_4),
             SpecValue.PagesSpec(14),
             SpecValue.BindingMethodSpec(BindingMethod.SpiralBinding),
           ),
@@ -395,67 +416,53 @@ object PriceCalculatorSpec extends ZIOSpecDefault:
 
         val result = PriceCalculator.calculate(config, pricelist)
         val breakdown = result.toEither.toOption.get
-        // material: 0.11 × 100 = 11.00
-        // matte lamination: 0.03 × 100 = 3.00
-        // subtotal = 14.00
-        // tier: 1-249 qty → 1.0×
-        // total = 14.00
+        val cb = firstBreakdown(breakdown)
         assertTrue(
-          breakdown.materialLine.unitPrice == Money("0.11"),
+          cb.materialLine.unitPrice == Money("0.11"),
           breakdown.subtotal == Money("14.00"),
           breakdown.total == Money("14.00"),
         )
       },
       test("Yupo synthetic material priced correctly") {
-        // 500× Yupo (0.18) + UV coating (0.04) + digital → 250-999 tier (0.90×)
         val config = makeConfig(
           category = SampleCatalog.businessCards,
           material = SampleCatalog.yupo,
           printingMethod = SampleCatalog.digitalMethod,
+          inkConfig = InkConfiguration.cmyk4_4,
           finishes = List(SampleCatalog.uvCoating),
           specs = List(
             SpecValue.SizeSpec(Dimension(90, 55)),
             SpecValue.QuantitySpec(Quantity.unsafe(500)),
-            SpecValue.InkConfigSpec(InkConfiguration.cmyk4_4),
           ),
         )
 
         val result = PriceCalculator.calculate(config, pricelist)
         val breakdown = result.toEither.toOption.get
-        // material: 0.18 × 500 = 90.00
-        // UV coating: 0.04 × 500 = 20.00
-        // subtotal = 110.00
-        // tier: 250-999 qty → 0.90×
-        // total = 110.00 × 0.90 = 99.00
+        val cb = firstBreakdown(breakdown)
         assertTrue(
-          breakdown.materialLine.unitPrice == Money("0.18"),
+          cb.materialLine.unitPrice == Money("0.18"),
           breakdown.subtotal == Money("110.00"),
           breakdown.total == Money("99.00"),
         )
       },
       test("Cotton paper with letterpress process surcharge") {
-        // 150× Cotton (0.22) + letterpress surcharge (0.20) → 1-249 tier (1.0×)
         val config = makeConfig(
           category = SampleCatalog.businessCards,
           material = SampleCatalog.cotton,
           printingMethod = SampleCatalog.letterpressMethod,
+          inkConfig = InkConfiguration.cmyk4_4,
           finishes = Nil,
           specs = List(
             SpecValue.SizeSpec(Dimension(90, 55)),
             SpecValue.QuantitySpec(Quantity.unsafe(150)),
-            SpecValue.InkConfigSpec(InkConfiguration.cmyk4_4),
           ),
         )
 
         val result = PriceCalculator.calculate(config, pricelist)
         val breakdown = result.toEither.toOption.get
-        // material: 0.22 × 150 = 33.00
-        // letterpress: 0.20 × 150 = 30.00
-        // subtotal = 63.00
-        // tier: 1-249 qty → 1.0×
-        // total = 63.00
+        val cb = firstBreakdown(breakdown)
         assertTrue(
-          breakdown.materialLine.unitPrice == Money("0.22"),
+          cb.materialLine.unitPrice == Money("0.22"),
           breakdown.processSurcharge.isDefined,
           breakdown.processSurcharge.get.label.contains("Letterpress"),
           breakdown.subtotal == Money("63.00"),

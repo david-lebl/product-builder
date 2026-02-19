@@ -10,33 +10,52 @@ object RuleEvaluator:
 
   def evaluate(
       rule: CompatibilityRule,
-      material: Material,
-      finishes: List[Finish],
+      components: List[ProductComponent],
       specifications: ProductSpecifications,
       categoryId: CategoryId,
       printingMethod: PrintingMethod,
   ): Validation[ConfigurationError, Unit] =
     rule match
       case CompatibilityRule.MaterialFinishIncompatible(matId, finId, reason) =>
-        if material.id == matId && finishes.exists(_.id == finId) then
-          Validation.fail(ConfigurationError.IncompatibleMaterialFinish(matId, finId, reason))
-        else Validation.unit
+        val violations = components.flatMap { comp =>
+          if comp.material.id == matId && comp.finishes.exists(_.id == finId) then
+            List(ConfigurationError.IncompatibleMaterialFinish(matId, finId, reason))
+          else Nil
+        }
+        violations.foldLeft(Validation.unit: Validation[ConfigurationError, Unit])((acc, e) =>
+          acc.zipRight(Validation.fail(e)),
+        )
 
       case CompatibilityRule.MaterialRequiresFinish(matId, requiredFinishIds, reason) =>
-        if material.id == matId && !finishes.exists(f => requiredFinishIds.contains(f.id)) then
-          Validation.fail(ConfigurationError.MissingRequiredFinish(matId, requiredFinishIds, reason))
-        else Validation.unit
+        val violations = components.flatMap { comp =>
+          if comp.material.id == matId && !comp.finishes.exists(f => requiredFinishIds.contains(f.id)) then
+            List(ConfigurationError.MissingRequiredFinish(matId, requiredFinishIds, reason))
+          else Nil
+        }
+        violations.foldLeft(Validation.unit: Validation[ConfigurationError, Unit])((acc, e) =>
+          acc.zipRight(Validation.fail(e)),
+        )
 
       case CompatibilityRule.FinishRequiresMaterialProperty(finId, requiredProp, reason) =>
-        if finishes.exists(_.id == finId) && !material.properties.contains(requiredProp) then
-          Validation.fail(ConfigurationError.FinishMissingMaterialProperty(finId, requiredProp, reason))
-        else Validation.unit
+        val violations = components.flatMap { comp =>
+          if comp.finishes.exists(_.id == finId) && !comp.material.properties.contains(requiredProp) then
+            List(ConfigurationError.FinishMissingMaterialProperty(finId, requiredProp, reason))
+          else Nil
+        }
+        violations.foldLeft(Validation.unit: Validation[ConfigurationError, Unit])((acc, e) =>
+          acc.zipRight(Validation.fail(e)),
+        )
 
       case CompatibilityRule.FinishMutuallyExclusive(finIdA, finIdB, reason) =>
-        val finishIds = finishes.map(_.id).toSet
-        if finishIds.contains(finIdA) && finishIds.contains(finIdB) then
-          Validation.fail(ConfigurationError.MutuallyExclusiveFinishes(finIdA, finIdB, reason))
-        else Validation.unit
+        val violations = components.flatMap { comp =>
+          val finishIds = comp.finishes.map(_.id).toSet
+          if finishIds.contains(finIdA) && finishIds.contains(finIdB) then
+            List(ConfigurationError.MutuallyExclusiveFinishes(finIdA, finIdB, reason))
+          else Nil
+        }
+        violations.foldLeft(Validation.unit: Validation[ConfigurationError, Unit])((acc, e) =>
+          acc.zipRight(Validation.fail(e)),
+        )
 
       case CompatibilityRule.SpecConstraint(catId, predicate, reason) =>
         if categoryId == catId then
@@ -44,49 +63,84 @@ object RuleEvaluator:
         else Validation.unit
 
       case CompatibilityRule.MaterialPropertyFinishTypeIncompatible(property, finishType, reason) =>
-        if material.properties.contains(property) && finishes.exists(_.finishType == finishType) then
-          Validation.fail(ConfigurationError.IncompatibleMaterialPropertyFinish(property, finishType, reason))
-        else Validation.unit
+        val violations = components.flatMap { comp =>
+          if comp.material.properties.contains(property) && comp.finishes.exists(_.finishType == finishType) then
+            List(ConfigurationError.IncompatibleMaterialPropertyFinish(property, finishType, reason))
+          else Nil
+        }
+        violations.foldLeft(Validation.unit: Validation[ConfigurationError, Unit])((acc, e) =>
+          acc.zipRight(Validation.fail(e)),
+        )
 
       case CompatibilityRule.MaterialFamilyFinishTypeIncompatible(family, finishType, reason) =>
-        if material.family == family && finishes.exists(_.finishType == finishType) then
-          Validation.fail(ConfigurationError.IncompatibleMaterialFamilyFinish(family, finishType, reason))
-        else Validation.unit
+        val violations = components.flatMap { comp =>
+          if comp.material.family == family && comp.finishes.exists(_.finishType == finishType) then
+            List(ConfigurationError.IncompatibleMaterialFamilyFinish(family, finishType, reason))
+          else Nil
+        }
+        violations.foldLeft(Validation.unit: Validation[ConfigurationError, Unit])((acc, e) =>
+          acc.zipRight(Validation.fail(e)),
+        )
 
       case CompatibilityRule.MaterialWeightFinishType(finishType, minWeightGsm, reason) =>
-        if finishes.exists(_.finishType == finishType) then
-          val actualWeight = material.weight.map(_.gsm)
-          actualWeight match
-            case Some(w) if w >= minWeightGsm => Validation.unit
-            case _ =>
-              Validation.fail(ConfigurationError.FinishWeightRequirementNotMet(finishType, minWeightGsm, actualWeight, reason))
-        else Validation.unit
+        val violations = components.flatMap { comp =>
+          if comp.finishes.exists(_.finishType == finishType) then
+            val actualWeight = comp.material.weight.map(_.gsm)
+            actualWeight match
+              case Some(w) if w >= minWeightGsm => Nil
+              case _ =>
+                List(ConfigurationError.FinishWeightRequirementNotMet(finishType, minWeightGsm, actualWeight, reason))
+          else Nil
+        }
+        violations.foldLeft(Validation.unit: Validation[ConfigurationError, Unit])((acc, e) =>
+          acc.zipRight(Validation.fail(e)),
+        )
 
       case CompatibilityRule.FinishTypeMutuallyExclusive(ftA, ftB, reason) =>
-        val finishTypes = finishes.map(_.finishType).toSet
-        if finishTypes.contains(ftA) && finishTypes.contains(ftB) then
-          Validation.fail(ConfigurationError.MutuallyExclusiveFinishTypes(ftA, ftB, reason))
-        else Validation.unit
+        val violations = components.flatMap { comp =>
+          val finishTypes = comp.finishes.map(_.finishType).toSet
+          if finishTypes.contains(ftA) && finishTypes.contains(ftB) then
+            List(ConfigurationError.MutuallyExclusiveFinishTypes(ftA, ftB, reason))
+          else Nil
+        }
+        violations.foldLeft(Validation.unit: Validation[ConfigurationError, Unit])((acc, e) =>
+          acc.zipRight(Validation.fail(e)),
+        )
 
       case CompatibilityRule.FinishCategoryExclusive(category, reason) =>
-        val categoryFinishes = finishes.filter(_.finishType.finishCategory == category)
-        if categoryFinishes.size > 1 then
-          Validation.fail(ConfigurationError.FinishCategoryLimitExceeded(category, reason))
-        else Validation.unit
+        val violations = components.flatMap { comp =>
+          val categoryFinishes = comp.finishes.filter(_.finishType.finishCategory == category)
+          if categoryFinishes.size > 1 then
+            List(ConfigurationError.FinishCategoryLimitExceeded(category, reason))
+          else Nil
+        }
+        violations.foldLeft(Validation.unit: Validation[ConfigurationError, Unit])((acc, e) =>
+          acc.zipRight(Validation.fail(e)),
+        )
 
       case CompatibilityRule.FinishRequiresFinishType(finId, requiredFinishType, reason) =>
-        if finishes.exists(_.id == finId) && !finishes.exists(_.finishType == requiredFinishType) then
-          Validation.fail(ConfigurationError.FinishMissingDependentFinishType(finId, requiredFinishType, reason))
-        else Validation.unit
+        val violations = components.flatMap { comp =>
+          if comp.finishes.exists(_.id == finId) && !comp.finishes.exists(_.finishType == requiredFinishType) then
+            List(ConfigurationError.FinishMissingDependentFinishType(finId, requiredFinishType, reason))
+          else Nil
+        }
+        violations.foldLeft(Validation.unit: Validation[ConfigurationError, Unit])((acc, e) =>
+          acc.zipRight(Validation.fail(e)),
+        )
 
       case CompatibilityRule.FinishRequiresPrintingProcess(finishType, requiredProcessTypes, reason) =>
-        if finishes.exists(_.finishType == finishType) && !requiredProcessTypes.contains(printingMethod.processType) then
-          Validation.fail(ConfigurationError.FinishRequiresPrintingProcessViolation(finishType, requiredProcessTypes, reason))
-        else Validation.unit
+        val violations = components.flatMap { comp =>
+          if comp.finishes.exists(_.finishType == finishType) && !requiredProcessTypes.contains(printingMethod.processType) then
+            List(ConfigurationError.FinishRequiresPrintingProcessViolation(finishType, requiredProcessTypes, reason))
+          else Nil
+        }
+        violations.foldLeft(Validation.unit: Validation[ConfigurationError, Unit])((acc, e) =>
+          acc.zipRight(Validation.fail(e)),
+        )
 
       case CompatibilityRule.ConfigurationConstraint(catId, predicate, reason) =>
         if categoryId == catId then
-          evaluateConfigurationPredicate(predicate, material, finishes, specifications, printingMethod) match
+          evaluateConfigurationPredicate(predicate, components, specifications, printingMethod) match
             case false => Validation.fail(ConfigurationError.ConfigurationConstraintViolation(catId, reason))
             case true  => Validation.unit
         else Validation.unit
@@ -130,24 +184,6 @@ object RuleEvaluator:
             else Validation.unit
           case _ => Validation.unit
 
-      case SpecPredicate.AllowedInkTypes(inkTypes) =>
-        specs.get(SpecKind.InkConfig) match
-          case Some(SpecValue.InkConfigSpec(config)) =>
-            val frontOk = config.front.inkType == InkType.None || inkTypes.contains(config.front.inkType)
-            val backOk = config.back.inkType == InkType.None || inkTypes.contains(config.back.inkType)
-            if !frontOk || !backOk then
-              Validation.fail(ConfigurationError.SpecConstraintViolation(categoryId, predicate, reason))
-            else Validation.unit
-          case _ => Validation.unit
-
-      case SpecPredicate.MaxColorCountPerSide(max) =>
-        specs.get(SpecKind.InkConfig) match
-          case Some(SpecValue.InkConfigSpec(config)) =>
-            if config.front.colorCount > max || config.back.colorCount > max then
-              Validation.fail(ConfigurationError.SpecConstraintViolation(categoryId, predicate, reason))
-            else Validation.unit
-          case _ => Validation.unit
-
       case SpecPredicate.AllowedBindingMethods(methods) =>
         specs.get(SpecKind.BindingMethod) match
           case Some(SpecValue.BindingMethodSpec(method)) =>
@@ -182,42 +218,49 @@ object RuleEvaluator:
 
   def evaluateConfigurationPredicate(
       predicate: ConfigurationPredicate,
-      material: Material,
-      finishes: List[Finish],
+      components: List[ProductComponent],
       specifications: ProductSpecifications,
       printingMethod: PrintingMethod,
   ): Boolean =
     predicate match
       case ConfigurationPredicate.Spec(sp) =>
-        // A spec predicate "passes" if it doesn't produce errors
         evaluateSpecPredicate(sp, specifications, CategoryId.unsafe("_"), "").toEither.isRight
       case ConfigurationPredicate.HasMaterialProperty(property) =>
-        material.properties.contains(property)
+        components.exists(_.material.properties.contains(property))
       case ConfigurationPredicate.HasMaterialFamily(family) =>
-        material.family == family
+        components.exists(_.material.family == family)
       case ConfigurationPredicate.HasPrintingProcess(processType) =>
         printingMethod.processType == processType
       case ConfigurationPredicate.HasMinWeight(minGsm) =>
-        material.weight.exists(_.gsm >= minGsm)
+        components.exists(_.material.weight.exists(_.gsm >= minGsm))
+      case ConfigurationPredicate.AllowedInkTypes(inkTypes) =>
+        components.forall { comp =>
+          val frontOk = comp.inkConfiguration.front.inkType == InkType.None || inkTypes.contains(comp.inkConfiguration.front.inkType)
+          val backOk = comp.inkConfiguration.back.inkType == InkType.None || inkTypes.contains(comp.inkConfiguration.back.inkType)
+          frontOk && backOk
+        }
+      case ConfigurationPredicate.MaxColorCountPerSide(max) =>
+        components.forall { comp =>
+          comp.inkConfiguration.front.colorCount <= max && comp.inkConfiguration.back.colorCount <= max
+        }
       case ConfigurationPredicate.And(left, right) =>
-        evaluateConfigurationPredicate(left, material, finishes, specifications, printingMethod) &&
-          evaluateConfigurationPredicate(right, material, finishes, specifications, printingMethod)
+        evaluateConfigurationPredicate(left, components, specifications, printingMethod) &&
+          evaluateConfigurationPredicate(right, components, specifications, printingMethod)
       case ConfigurationPredicate.Or(left, right) =>
-        evaluateConfigurationPredicate(left, material, finishes, specifications, printingMethod) ||
-          evaluateConfigurationPredicate(right, material, finishes, specifications, printingMethod)
+        evaluateConfigurationPredicate(left, components, specifications, printingMethod) ||
+          evaluateConfigurationPredicate(right, components, specifications, printingMethod)
       case ConfigurationPredicate.Not(inner) =>
-        !evaluateConfigurationPredicate(inner, material, finishes, specifications, printingMethod)
+        !evaluateConfigurationPredicate(inner, components, specifications, printingMethod)
 
   def evaluateAll(
       rules: List[CompatibilityRule],
-      material: Material,
-      finishes: List[Finish],
+      components: List[ProductComponent],
       specifications: ProductSpecifications,
       categoryId: CategoryId,
       printingMethod: PrintingMethod,
   ): Validation[ConfigurationError, Unit] =
     rules
-      .map(rule => evaluate(rule, material, finishes, specifications, categoryId, printingMethod))
+      .map(rule => evaluate(rule, components, specifications, categoryId, printingMethod))
       .foldLeft(Validation.unit: Validation[ConfigurationError, Unit])((acc, v) =>
         acc.zipRight(v),
       )

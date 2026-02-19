@@ -50,7 +50,6 @@ enum BindingMethod:
 enum SpecValue:
   case SizeSpec(dimension: Dimension)
   case QuantitySpec(quantity: Quantity)
-  case InkConfigSpec(config: InkConfiguration)
   case OrientationSpec(orientation: Orientation)
   case BleedSpec(bleedMm: Double)
   case PagesSpec(count: Int)
@@ -61,7 +60,6 @@ object SpecValue:
   def specKind(sv: SpecValue): SpecKind = sv match
     case _: SpecValue.SizeSpec          => SpecKind.Size
     case _: SpecValue.QuantitySpec      => SpecKind.Quantity
-    case _: SpecValue.InkConfigSpec      => SpecKind.InkConfig
     case _: SpecValue.OrientationSpec   => SpecKind.Orientation
     case _: SpecValue.BleedSpec         => SpecKind.Bleed
     case _: SpecValue.PagesSpec         => SpecKind.Pages
