@@ -417,4 +417,88 @@ object PriceCalculatorSpec extends ZIOSpecDefault:
         )
       },
     ),
+    suite("ink configuration pricing")(
+      test("double-sided print surcharge applied for 4/4 ink config") {
+        // 500× coated 300gsm + 4/4 ink config + offset → double-sided surcharge applied
+        val config = makeConfig(
+          category = SampleCatalog.businessCards,
+          material = SampleCatalog.coated300gsm,
+          printingMethod = SampleCatalog.offsetMethod,
+          finishes = Nil,
+          specs = List(
+            SpecValue.SizeSpec(Dimension(90, 55)),
+            SpecValue.QuantitySpec(Quantity.unsafe(500)),
+            SpecValue.ColorModeSpec(ColorMode.CMYK),
+            SpecValue.InkConfigurationSpec(InkConfiguration.`4/4`),
+          ),
+        )
+
+        val result = PriceCalculator.calculate(config, pricelist)
+        val breakdown = result.toEither.toOption.get
+        // material: 0.12 × 500 = 60.00
+        // double-sided: 0.04 × 500 = 20.00
+        // subtotal = 80.00
+        // tier 250-999: 0.90×
+        // total = 72.00
+        assertTrue(
+          result.toEither.isRight,
+          breakdown.doubleSidedSurcharge.isDefined,
+          breakdown.doubleSidedSurcharge.get.unitPrice == Money("0.04"),
+          breakdown.doubleSidedSurcharge.get.lineTotal == Money("20.00"),
+          breakdown.subtotal == Money("80.00"),
+          breakdown.total == Money("72.00"),
+        )
+      },
+      test("no double-sided surcharge for 4/0 single-sided ink config") {
+        // 500× coated 300gsm + 4/0 ink config + offset → no double-sided surcharge
+        val config = makeConfig(
+          category = SampleCatalog.businessCards,
+          material = SampleCatalog.coated300gsm,
+          printingMethod = SampleCatalog.offsetMethod,
+          finishes = Nil,
+          specs = List(
+            SpecValue.SizeSpec(Dimension(90, 55)),
+            SpecValue.QuantitySpec(Quantity.unsafe(500)),
+            SpecValue.ColorModeSpec(ColorMode.CMYK),
+            SpecValue.InkConfigurationSpec(InkConfiguration.`4/0`),
+          ),
+        )
+
+        val result = PriceCalculator.calculate(config, pricelist)
+        val breakdown = result.toEither.toOption.get
+        // material: 0.12 × 500 = 60.00
+        // no double-sided surcharge
+        // subtotal = 60.00
+        // tier 250-999: 0.90×
+        // total = 54.00
+        assertTrue(
+          result.toEither.isRight,
+          breakdown.doubleSidedSurcharge.isEmpty,
+          breakdown.subtotal == Money("60.00"),
+          breakdown.total == Money("54.00"),
+        )
+      },
+      test("no double-sided surcharge when no ink configuration specified") {
+        // Backward compatible: no InkConfigurationSpec → no surcharge
+        val config = makeConfig(
+          category = SampleCatalog.businessCards,
+          material = SampleCatalog.coated300gsm,
+          printingMethod = SampleCatalog.offsetMethod,
+          finishes = Nil,
+          specs = List(
+            SpecValue.SizeSpec(Dimension(90, 55)),
+            SpecValue.QuantitySpec(Quantity.unsafe(500)),
+            SpecValue.ColorModeSpec(ColorMode.CMYK),
+          ),
+        )
+
+        val result = PriceCalculator.calculate(config, pricelist)
+        val breakdown = result.toEither.toOption.get
+        assertTrue(
+          result.toEither.isRight,
+          breakdown.doubleSidedSurcharge.isEmpty,
+          breakdown.subtotal == Money("60.00"),
+        )
+      },
+    ),
   )

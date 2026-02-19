@@ -11,8 +11,9 @@ Focus: **small-format sheet printing** (business cards, flyers, brochures, bookl
 // Materials
 MaterialFamily: Paper, Vinyl, Cardboard, Fabric
 MaterialProperty: Recyclable, WaterResistant, Glossy, Matte, Textured, SmoothSurface
+SurfaceCoating: Gloss, Silk, Matte, Uncoated                                        // NEW
 PaperWeight: opaque Int (1–2000 gsm)
-Material: id, name, family, weight (Option[PaperWeight]), properties
+Material: id, name, family, weight (Option[PaperWeight]), properties, surfaceCoating (Option[SurfaceCoating])
 
 // Finishes
 FinishCategory: Surface, Decorative, Structural, LargeFormat  // derived from FinishType
@@ -24,7 +25,8 @@ FinishSide: Front, Back, Both
 Finish: id, name, finishType, side
 
 // Specifications
-SpecKind: Size, Quantity, ColorMode, Orientation, Bleed, Pages, FoldType, BindingMethod
+SpecKind: Size, Quantity, ColorMode, Orientation, Bleed, Pages, FoldType, BindingMethod, InkConfiguration
+InkConfiguration: frontColors (Int), backColors (Int)  // e.g. 4/4, 4/0, 4/1, 1/0    // NEW
 FoldType: Half, Tri, Gate, Accordion, ZFold, RollFold, FrenchFold, CrossFold
 BindingMethod: SaddleStitch, PerfectBinding, SpiralBinding, WireOBinding, CaseBinding
 ColorMode: CMYK, PMS, Grayscale
@@ -54,9 +56,15 @@ CompatibilityRule:
 
 // Predicates (boolean algebra)
 ConfigurationPredicate: Spec, HasMaterialProperty, HasMaterialFamily, HasPrintingProcess,
-  HasMinWeight, And, Or, Not
+  HasMinWeight, HasSurfaceCoating, And, Or, Not                                       // HasSurfaceCoating NEW
 SpecPredicate: MinDimension, MaxDimension, MinQuantity, MaxQuantity, AllowedColorModes,
-  AllowedBindingMethods, AllowedFoldTypes, MinPages, MaxPages
+  AllowedBindingMethods, AllowedFoldTypes, MinPages, MaxPages, AllowedInkConfigurations // AllowedInkConfigurations NEW
+
+// Pricing (8 variants)
+PricingRule:
+  MaterialBasePrice, MaterialAreaPrice, FinishSurcharge, FinishTypeSurcharge,
+  PrintingProcessSurcharge, CategorySurcharge, QuantityTier,
+  DoubleSidedPrintSurcharge                                                            // NEW
 ```
 
 ---
@@ -67,7 +75,7 @@ SpecPredicate: MinDimension, MaxDimension, MinQuantity, MaxQuantity, AllowedColo
 
 | Gap | Issue | Impact | Priority |
 |---|---|---|---|
-| **No surface/coating attribute** | Coated Gloss vs Coated Silk vs Coated Matte are distinct paper stocks; our `Glossy`/`Matte` properties conflate intrinsic surface with applied finish | Can't distinguish "Coated Silk 300gsm" from "Coated Gloss 300gsm" as different substrates. Need `SurfaceCoating` enum (Gloss, Silk, Matte, Uncoated) or similar | High |
+| ~~**No surface/coating attribute**~~ | ~~Coated Gloss vs Coated Silk vs Coated Matte are distinct paper stocks; our `Glossy`/`Matte` properties conflate intrinsic surface with applied finish~~ | ~~Can't distinguish "Coated Silk 300gsm" from "Coated Gloss 300gsm" as different substrates. Need `SurfaceCoating` enum (Gloss, Silk, Matte, Uncoated) or similar~~ | ~~High~~ ✅ |
 | **Missing families** | `Synthetic` (Yupo is modeled as Paper), `Adhesive` (sticker stock is Paper) — semantically wrong | Rules can't target synthetic or adhesive materials by family; workaround is material properties | Medium |
 | **Missing properties** | No `TearResistant`, `SelfAdhesive`, `Transparent`, `Carbonless` | Can't express constraints like "self-adhesive can't be laminated" generically | Medium |
 | **No thickness** | Rigid substrates (foam board, acrylic) measured in mm not gsm | Not relevant for small-format sheet printing | Low |
@@ -85,7 +93,7 @@ SpecPredicate: MinDimension, MaxDimension, MinQuantity, MaxQuantity, AllowedColo
 
 | Gap | Issue | Impact | Priority |
 |---|---|---|---|
-| **No ink configuration** | 4/0, 4/4, 1/0, 4/1, CMYK+PMS, CMYK+White are not modeled | A 4/0 flyer costs roughly half a 4/4 flyer. `ColorMode` alone doesn't capture print sides or spot color additions. This is the single biggest pricing gap for small-format | **High** |
+| ~~**No ink configuration**~~ | ~~4/0, 4/4, 1/0, 4/1, CMYK+PMS, CMYK+White are not modeled~~ | ~~A 4/0 flyer costs roughly half a 4/4 flyer. `ColorMode` alone doesn't capture print sides or spot color additions. This is the single biggest pricing gap for small-format~~ | ~~**High**~~ ✅ |
 | **No cover vs body distinction** | Booklets need separate cover material/weight from body pages | Can't properly configure a booklet with 300gsm cover and 120gsm body | High |
 | **No adhesive type** | Permanent vs removable for stickers | Only relevant if stickers are in scope | Low |
 | **No NCR parts/plies** | 2-part, 3-part, 4-part carbonless forms | Niche product type | Low |
@@ -94,7 +102,7 @@ SpecPredicate: MinDimension, MaxDimension, MinQuantity, MaxQuantity, AllowedColo
 
 | Gap | Issue | Impact | Priority |
 |---|---|---|---|
-| **No multi-component products** | Booklets/catalogs need cover + body with different materials, weights, and finishes | Currently one material per configuration — blocks realistic booklet configuration | High |
+| **No multi-component products** | Booklets/catalogs need cover + body with different materials, weights, and finishes | Currently one material per configuration — blocks realistic booklet configuration. See [design proposal](multi-component-design.md) | High |
 | **No weight constraints per category** | "Business cards must be ≥250gsm" expressed via `ConfigurationConstraint` + `HasMinWeight` predicate | Works via rules but verbose; a category-level `minWeight`/`maxWeight` field would be cleaner | Low |
 | **No format classification** | Small-format vs large-format distinction on category | Could help with UI filtering; currently implicit via allowed printing methods | Low |
 
@@ -111,11 +119,11 @@ SpecPredicate: MinDimension, MaxDimension, MinQuantity, MaxQuantity, AllowedColo
 
 ### High Priority (blocks realistic product configuration/pricing)
 
-| # | Gap | Why |
-|---|-----|-----|
-| 1 | **Ink configuration** | A 4/0 vs 4/4 distinction is fundamental to every print quote. Affects pricing (halves material cost for single-sided), finish applicability, and is expected by every print buyer. |
-| 2 | **Multi-component products** | Booklets and catalogs need cover + body with independent material, weight, finish, and page count. Currently impossible with single-material configurations. |
-| 3 | **Material surface/coating** | Every print shop distinguishes Coated Gloss / Coated Silk / Coated Matte / Uncoated as separate substrate lines. Our `Glossy`/`Matte` properties blur intrinsic surface with applied finish. |
+| # | Gap | Why | Status |
+|---|-----|-----|--------|
+| 1 | **Ink configuration** | A 4/0 vs 4/4 distinction is fundamental to every print quote. Affects pricing (halves material cost for single-sided), finish applicability, and is expected by every print buyer. | ✅ Implemented |
+| 2 | **Multi-component products** | Booklets and catalogs need cover + body with independent material, weight, finish, and page count. Currently impossible with single-material configurations. | 📋 Design in [multi-component-design.md](multi-component-design.md) |
+| 3 | **Material surface/coating** | Every print shop distinguishes Coated Gloss / Coated Silk / Coated Matte / Uncoated as separate substrate lines. Our `Glossy`/`Matte` properties blur intrinsic surface with applied finish. | ✅ Implemented |
 
 ### Medium Priority (improves correctness and range)
 
@@ -140,6 +148,8 @@ SpecPredicate: MinDimension, MaxDimension, MinQuantity, MaxQuantity, AllowedColo
 
 The following gaps from the original analysis have been implemented:
 
+- **Material surface/coating**: `SurfaceCoating` enum (Gloss, Silk, Matte, Uncoated) on `Material` with `HasSurfaceCoating` predicate. Distinguishes "Coated Silk 300gsm" from "Coated Gloss 300gsm" as different substrates.
+- **Ink configuration**: `InkConfiguration` model with `frontColors`/`backColors` (e.g., 4/4, 4/0, 4/1, 1/0). `InkConfigurationSpec` spec value, `AllowedInkConfigurations` spec predicate, `DoubleSidedPrintSurcharge` pricing rule. Enables accurate pricing for single-sided vs double-sided printing.
 - **Finish types**: 21 variants now cover Debossing, Scoring, Perforation, RoundCorners, Drilling, Numbering, AqueousCoating, SoftTouchCoating, Binding, KissCut, ContourCut, EdgePainting, Grommets, Hem, Mounting, Overlamination, Thermography
 - **Finish categories**: `FinishCategory` enum (Surface, Decorative, Structural, LargeFormat) derived from `FinishType`
 - **Printing methods**: `PrintingMethod` with `PrintingProcessType` (7 variants) and `maxColorCount`

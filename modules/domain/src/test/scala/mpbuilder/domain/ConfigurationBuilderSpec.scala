@@ -678,4 +678,121 @@ object ConfigurationBuilderSpec extends ZIOSpecDefault:
         )
       },
     ),
+    suite("surface coating")(
+      test("sample materials have surface coating set") {
+        assertTrue(
+          SampleCatalog.coated300gsm.surfaceCoating == Some(SurfaceCoating.Gloss),
+          SampleCatalog.uncoatedBond.surfaceCoating == Some(SurfaceCoating.Uncoated),
+          SampleCatalog.coatedSilk250gsm.surfaceCoating == Some(SurfaceCoating.Silk),
+          SampleCatalog.cotton.surfaceCoating == Some(SurfaceCoating.Uncoated),
+          SampleCatalog.vinyl.surfaceCoating == None,
+        )
+      },
+      test("HasSurfaceCoating predicate evaluates correctly") {
+        val glossPredicate = ConfigurationPredicate.HasSurfaceCoating(SurfaceCoating.Gloss)
+        val silkPredicate = ConfigurationPredicate.HasSurfaceCoating(SurfaceCoating.Silk)
+        assertTrue(
+          RuleEvaluator.evaluateConfigurationPredicate(
+            glossPredicate, SampleCatalog.coated300gsm, Nil, ProductSpecifications.empty, SampleCatalog.offsetMethod,
+          ) == true,
+          RuleEvaluator.evaluateConfigurationPredicate(
+            silkPredicate, SampleCatalog.coated300gsm, Nil, ProductSpecifications.empty, SampleCatalog.offsetMethod,
+          ) == false,
+          RuleEvaluator.evaluateConfigurationPredicate(
+            glossPredicate, SampleCatalog.vinyl, Nil, ProductSpecifications.empty, SampleCatalog.uvInkjetMethod,
+          ) == false,
+        )
+      },
+    ),
+    suite("ink configuration")(
+      test("InkConfiguration presets have correct values") {
+        import InkConfiguration.*
+        assertTrue(
+          `4/4`.frontColors == 4 && `4/4`.backColors == 4,
+          `4/0`.frontColors == 4 && `4/0`.backColors == 0,
+          `4/1`.frontColors == 4 && `4/1`.backColors == 1,
+          `1/0`.frontColors == 1 && `1/0`.backColors == 0,
+          `1/1`.frontColors == 1 && `1/1`.backColors == 1,
+        )
+      },
+      test("InkConfiguration isDoubleSided extension works") {
+        import InkConfiguration.*
+        assertTrue(
+          `4/4`.isDoubleSided == true,
+          `4/0`.isDoubleSided == false,
+          `4/1`.isDoubleSided == true,
+          `1/0`.isDoubleSided == false,
+        )
+      },
+      test("InkConfiguration label extension works") {
+        import InkConfiguration.*
+        assertTrue(
+          `4/4`.label == "4/4",
+          `4/0`.label == "4/0",
+        )
+      },
+      test("InkConfigurationSpec maps to SpecKind.InkConfiguration") {
+        val spec = SpecValue.InkConfigurationSpec(InkConfiguration.`4/4`)
+        assertTrue(SpecValue.specKind(spec) == SpecKind.InkConfiguration)
+      },
+      test("build valid configuration with ink configuration spec") {
+        val request = ConfigurationRequest(
+          categoryId = SampleCatalog.businessCardsId,
+          materialId = SampleCatalog.coated300gsmId,
+          printingMethodId = SampleCatalog.offsetId,
+          finishIds = List(SampleCatalog.matteLaminationId),
+          specs = List(
+            SpecValue.SizeSpec(Dimension(90, 55)),
+            SpecValue.QuantitySpec(Quantity.unsafe(500)),
+            SpecValue.ColorModeSpec(ColorMode.CMYK),
+            SpecValue.InkConfigurationSpec(InkConfiguration.`4/4`),
+          ),
+        )
+
+        val result = ConfigurationBuilder.build(request, catalog, ruleset, configId)
+        assertTrue(result.toEither.isRight)
+      },
+      test("AllowedInkConfigurations rejects disallowed ink config") {
+        val rule = CompatibilityRule.SpecConstraint(
+          SampleCatalog.businessCardsId,
+          SpecPredicate.AllowedInkConfigurations(Set(InkConfiguration.`4/4`, InkConfiguration.`4/0`)),
+          "Only 4/4 and 4/0 configurations allowed",
+        )
+
+        val specs = ProductSpecifications.fromSpecs(List(
+          SpecValue.InkConfigurationSpec(InkConfiguration.`1/0`),
+        ))
+
+        val result = RuleEvaluator.evaluate(
+          rule,
+          SampleCatalog.coated300gsm,
+          Nil,
+          specs,
+          SampleCatalog.businessCardsId,
+          SampleCatalog.offsetMethod,
+        )
+        assertTrue(result.toEither.isLeft)
+      },
+      test("AllowedInkConfigurations allows valid ink config") {
+        val rule = CompatibilityRule.SpecConstraint(
+          SampleCatalog.businessCardsId,
+          SpecPredicate.AllowedInkConfigurations(Set(InkConfiguration.`4/4`, InkConfiguration.`4/0`)),
+          "Only 4/4 and 4/0 configurations allowed",
+        )
+
+        val specs = ProductSpecifications.fromSpecs(List(
+          SpecValue.InkConfigurationSpec(InkConfiguration.`4/4`),
+        ))
+
+        val result = RuleEvaluator.evaluate(
+          rule,
+          SampleCatalog.coated300gsm,
+          Nil,
+          specs,
+          SampleCatalog.businessCardsId,
+          SampleCatalog.offsetMethod,
+        )
+        assertTrue(result.toEither.isRight)
+      },
+    ),
   )
