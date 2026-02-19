@@ -117,9 +117,10 @@ object SpecificationForm:
         ),
       ),
 
-      // Ink Configuration
+      // Ink Configuration (hidden for multi-component categories — ink is per-component)
       div(
         cls := "form-group",
+        display <-- ProductBuilderViewModel.isMultiComponent.map(if _ then "none" else "block"),
         label(child.text <-- lang.map {
           case Language.En => "Ink Configuration:"
           case Language.Cs => "Konfigurace inkoustu:"
