@@ -1,8 +1,12 @@
-# Multi-Component Product Configuration — Design Proposal
+# Multi-Component Product Configuration — Design & Implementation
+
+## Status: ✅ Implemented
+
+This document describes the multi-component product configuration system that enables booklets, catalogs, calendars, and similar bound products to have **independent material, weight, finish, and ink configuration per component** (e.g., cover vs body pages).
 
 ## Problem
 
-Booklets, catalogs, and similar bound products require **independent material, weight, finish, and ink configuration per component** (e.g., cover vs body pages). The current `ProductConfiguration` supports only a single material and set of finishes, making realistic booklet/catalog configuration impossible.
+Booklets, catalogs, and similar bound products require **independent material, weight, finish, and ink configuration per component** (e.g., cover vs body pages). The original `ProductConfiguration` supported only a single material and set of finishes, making realistic booklet/catalog configuration impossible.
 
 ### Example: A typical booklet
 
@@ -15,7 +19,7 @@ Booklets, catalogs, and similar bound products require **independent material, w
 
 ## Design Goals
 
-1. **Backward compatible** — Single-component products (business cards, flyers, banners) should continue to work unchanged.
+1. **Backward compatible** — Single-component products (business cards, flyers, banners) continue to work unchanged.
 2. **Minimal API surface change** — Keep the existing `ConfigurationRequest` → `ProductConfiguration` flow.
 3. **Independent validation** — Each component validates its own material/finish constraints independently.
 4. **Independent pricing** — Each component has its own pricing line items.
@@ -23,16 +27,14 @@ Booklets, catalogs, and similar bound products require **independent material, w
 
 ---
 
-## Proposed Model Changes
+## Implemented Model
 
-### New Types
+### New Types (model/component.scala)
 
 ```scala
-// Identifies a component role within a multi-component product
 enum ComponentRole:
   case Cover, Body
 
-// A single component's configuration (material + finishes + ink)
 final case class ProductComponent(
     role: ComponentRole,
     material: Material,
@@ -40,7 +42,6 @@ final case class ProductComponent(
     inkConfiguration: Option[InkConfiguration],
 )
 
-// Request for a single component
 final case class ComponentRequest(
     role: ComponentRole,
     materialId: MaterialId,
@@ -55,26 +56,11 @@ final case class ComponentRequest(
 final case class ProductConfiguration(
     id: ConfigurationId,
     category: ProductCategory,
-    material: Material,                         // primary material (backward compat)
+    material: Material,                         // primary material (= Cover for multi-component)
     printingMethod: PrintingMethod,
-    finishes: List[Finish],                     // primary finishes (backward compat)
+    finishes: List[Finish],                     // primary finishes (= Cover for multi-component)
     specifications: ProductSpecifications,
-    components: List[ProductComponent],         // NEW: empty for single-component products
-)
-```
-
-For single-component products (business cards, flyers, etc.), `components` remains empty and the existing `material`/`finishes` fields are used. For multi-component products (booklets, catalogs), the `material`/`finishes` fields represent the cover (or are copied from the first component), while `components` holds the full breakdown.
-
-### Updated `ConfigurationRequest`
-
-```scala
-final case class ConfigurationRequest(
-    categoryId: CategoryId,
-    materialId: MaterialId,                     // primary material (backward compat)
-    printingMethodId: PrintingMethodId,
-    finishIds: List[FinishId],                  // primary finishes (backward compat)
-    specs: List[SpecValue],
-    components: List[ComponentRequest],         // NEW: empty for single-component
+    components: List[ProductComponent] = Nil,   // empty for single-component products
 )
 ```
 
@@ -88,159 +74,138 @@ final case class ProductCategory(
     allowedFinishIds: Set[FinishId],
     requiredSpecKinds: Set[SpecKind],
     allowedPrintingMethodIds: Set[PrintingMethodId],
-    componentRoles: Set[ComponentRole],         // NEW: empty means single-component
-    allowedMaterialIdsByRole: Map[ComponentRole, Set[MaterialId]],  // NEW: per-role overrides
+    componentRoles: Set[ComponentRole] = Set.empty,
+    allowedMaterialIdsByRole: Map[ComponentRole, Set[MaterialId]] = Map.empty,
 )
 ```
 
-When `componentRoles` is non-empty, the category expects components. `allowedMaterialIdsByRole` provides per-role material constraints (e.g., cover materials can be heavier stock, body materials lighter).
-
----
-
-## Validation Changes
-
-### `ConfigurationValidator`
-
-1. **Structural validation** gains a component check:
-    - If category has `componentRoles` defined, verify that all required roles are present in `request.components`.
-    - For each component, verify material is in `allowedMaterialIdsByRole(role)` (or fall back to `allowedMaterialIds`).
-    - For each component, verify finishes are in `allowedFinishIds`.
-
-2. **Rule evaluation** runs per-component:
-    - Material/finish compatibility rules evaluate against each component's material+finishes independently.
-    - Spec-level rules continue to evaluate at the configuration level (shared specs like size, quantity, binding).
-
-### `RuleEvaluator`
-
-The existing `evaluate` and `evaluateAll` signatures take `material: Material` and `finishes: List[Finish]`. For multi-component, the validator would call these once per component, passing each component's material and finishes.
-
-No changes needed to `RuleEvaluator` itself — the orchestration happens in `ConfigurationValidator`.
-
----
-
-## Pricing Changes
-
-### `PriceCalculator`
-
-For multi-component products, pricing produces a `LineItem` per component's material + finishes, then sums.
+### Updated `ConfigurationRequest`
 
 ```scala
-// NEW
+final case class ConfigurationRequest(
+    categoryId: CategoryId,
+    materialId: MaterialId,
+    printingMethodId: PrintingMethodId,
+    finishIds: List[FinishId],
+    specs: List[SpecValue],
+    components: List[ComponentRequest] = Nil,   // empty for single-component
+)
+```
+
+---
+
+## Validation
+
+### Structural Validation (multi-component)
+
+1. All required roles from `category.componentRoles` must be present in the request
+2. Each component's material is checked against `allowedMaterialIdsByRole(role)` (falls back to `allowedMaterialIds`)
+3. Each component's finishes are checked against `allowedFinishIds`
+4. Each component must have an ink configuration
+5. Each component's ink config is validated against the printing method's `maxColorCount`
+6. Shared spec requirements (Size, Quantity, Pages, BindingMethod) are checked at the configuration level
+7. `InkConfig` is excluded from shared spec checks for multi-component (it's per-component)
+
+### Rule Evaluation (multi-component)
+
+Material/finish compatibility rules (`CompatibilityRule`) evaluate once per component against that component's material and finishes. Spec-level rules (SpecConstraint) continue to evaluate at the shared specification level.
+
+### New Error Variants
+
+| Error | When |
+|-------|------|
+| `MissingRequiredComponent(categoryId, role)` | A required component role is missing |
+| `InvalidComponentMaterial(categoryId, role, materialId)` | Component material not allowed for role |
+| `MissingComponentInkConfig(role)` | Component has no ink configuration |
+| `ComponentInkConfigExceedsMethodColorLimit(role, pmId, inkConfig, max)` | Component ink exceeds printing method limits |
+
+---
+
+## Pricing
+
+### Multi-Component Pricing
+
+For multi-component products, each component contributes its own material, ink, and finish line items:
+
+```scala
 final case class ComponentLineItems(
     role: ComponentRole,
     materialLine: LineItem,
+    inkConfigLine: Option[LineItem],
     finishLines: List[LineItem],
-    doubleSidedSurcharge: Option[LineItem],
 )
 ```
 
-### Updated `PriceBreakdown`
+**Body material scaling**: The body material cost is multiplied by the number of body sheets derived from the page count:
+- Cover: 1 sheet per unit (4 cover pages)
+- Body: `(totalPages - 4) / 2` sheets per unit
 
-```scala
-final case class PriceBreakdown(
-    materialLine: LineItem,                         // primary (backward compat)
-    finishLines: List[LineItem],                    // primary (backward compat)
-    processSurcharge: Option[LineItem],
-    categorySurcharge: Option[LineItem],
-    doubleSidedSurcharge: Option[LineItem],         // primary (backward compat)
-    componentLines: List[ComponentLineItems],       // NEW: empty for single-component
-    subtotal: Money,
-    quantityMultiplier: BigDecimal,
-    total: Money,
-    currency: Currency,
-)
+**Updated `PriceBreakdown`** includes `componentLines: List[ComponentLineItems]` (empty for single-component products).
+
+### Worked Example: 32-page Booklet
+
+Configuration: 500× Booklet, Cover: Coated 300gsm + Matte Lamination, Body: Uncoated Bond 120gsm
+
 ```
-
-For single-component products, `componentLines` is empty and the existing fields work as before. For multi-component products, each component contributes its own material and finish line items. The `materialLine` would represent the cover component for backward compatibility.
-
-### Pricing Rule Additions
-
-A new pricing rule variant for component-level material pricing may be needed:
-
-```scala
-case ComponentMaterialBasePrice(
-    role: ComponentRole,
-    materialId: MaterialId,
-    unitPrice: Money,
-)
-```
-
-However, the simpler approach is to reuse existing `MaterialBasePrice` rules — each component's material is priced using the same material price lookup. The body material cost could be multiplied by page count (derived from `PagesSpec`) to reflect the per-page material cost.
-
----
-
-## CatalogQueryService Changes
-
-New methods for component-aware queries:
-
-```scala
-def availableMaterialsForRole(
-    categoryId: CategoryId,
-    role: ComponentRole,
-    catalog: ProductCatalog,
-): List[Material]
-
-def compatibleFinishesForRole(
-    categoryId: CategoryId,
-    role: ComponentRole,
-    materialId: MaterialId,
-    catalog: ProductCatalog,
-    ruleset: CompatibilityRuleset,
-    printingMethodId: Option[PrintingMethodId],
-): List[Finish]
+Cover material: Coated 300gsm     $0.12 × 1 sheet  × 500 =  $60.00
+Body material:  Uncoated Bond     $0.06 × 14 sheets × 500 = $420.00
+  (32 pages - 4 cover = 28 body pages / 2 = 14 sheets)
+Cover finish:   Matte Lamination  $0.03 × 500              =  $15.00
+                                                    ─────────────────
+Subtotal                                                     $495.00
+Quantity tier (250–999)                                    ×    0.90
+                                                    ─────────────────
+Total                                                        $445.50
 ```
 
 ---
 
-## Sample Data Changes
+## CatalogQueryService
 
-### Updated Booklet Category
+New role-aware methods:
 
 ```scala
-val booklets: ProductCategory = ProductCategory(
-    id = bookletsId,
-    name = LocalizedString("Booklets", "Brožurky"),
-    allowedMaterialIds = Set(coated300gsmId, uncoatedBondId),
-    allowedFinishIds = Set(matteLaminationId, glossLaminationId, uvCoatingId, perforationId),
-    requiredSpecKinds = Set(SpecKind.Size, SpecKind.Quantity, SpecKind.ColorMode,
-                            SpecKind.Pages, SpecKind.BindingMethod),
-    allowedPrintingMethodIds = Set(offsetId, digitalId),
-    componentRoles = Set(ComponentRole.Cover, ComponentRole.Body),
-    allowedMaterialIdsByRole = Map(
-        ComponentRole.Cover -> Set(coated300gsmId, coatedSilk250gsmId),
-        ComponentRole.Body  -> Set(uncoatedBondId, coated300gsmId),
-    ),
-)
+def availableMaterialsForRole(categoryId, role, catalog): List[Material]
+def compatibleFinishesForRole(categoryId, role, materialId, catalog, ruleset, printingMethodId): List[Finish]
 ```
 
----
-
-## Migration Path
-
-1. **Phase 1** — Add new types (`ComponentRole`, `ProductComponent`, `ComponentRequest`) and new fields with defaults (`components = Nil`, `componentRoles = Set.empty`). All existing code continues to work.
-2. **Phase 2** — Update `ConfigurationValidator` to validate components when present.
-3. **Phase 3** — Update `PriceCalculator` to price components individually.
-4. **Phase 4** — Update `CatalogQueryService` with role-aware queries.
-5. **Phase 5** — Update sample data for booklets and calendars with component roles.
-6. **Phase 6** — Add comprehensive tests.
-
-Each phase is independently deployable and testable. Existing single-component products are never affected.
+These respect `allowedMaterialIdsByRole` overrides and fall back to the category-level `allowedMaterialIds` when no role-specific override exists.
 
 ---
 
-## Impact Assessment
+## Sample Data
 
-| Area | Change Size | Risk |
-|------|-------------|------|
-| `model/` types | Small — additive new types + optional fields | Low |
-| `ProductCategory` | Small — two new optional fields | Low |
-| `ConfigurationRequest` | Small — one new optional field | Low |
-| `ProductConfiguration` | Small — one new optional field | Low |
-| `ConfigurationValidator` | Medium — new component validation loop | Medium |
-| `PriceCalculator` | Medium — component-level pricing | Medium |
-| `CatalogQueryService` | Small — new role-aware methods | Low |
-| `SampleCatalog` / `SampleRules` | Small — update booklet/calendar categories | Low |
-| Existing tests | None — all pass unchanged | None |
-| New tests | Medium — ~20-30 new test cases | N/A |
+### Booklets Category (multi-component)
 
-**Total estimated effort**: Medium. Approximately 200-300 lines of new/changed code spread across 8-10 files, plus ~200 lines of new tests.
+- `componentRoles = Set(Cover, Body)`
+- Cover materials: Coated 300gsm, Coated Silk 250gsm
+- Body materials: Uncoated Bond, Coated 300gsm, Coated Silk 250gsm
+- Shared specs: Size, Quantity, Pages, BindingMethod (SaddleStitch, PerfectBinding)
+- Binding: SaddleStitch, PerfectBinding
+
+### Calendars Category (multi-component)
+
+- `componentRoles = Set(Cover, Body)`
+- Cover materials: Coated 300gsm, Coated Silk 250gsm
+- Body materials: Coated 300gsm, Coated Silk 250gsm, Uncoated Bond
+- Shared specs: Size, Quantity, Pages, BindingMethod (SpiralBinding, WireOBinding)
+
+---
+
+## UI Integration
+
+The UI automatically detects multi-component categories and:
+
+1. Hides the single-component Material/Finish/Ink selectors
+2. Shows separate **Component Editor** panels for Cover and Body
+3. Each editor has its own Material, Finishes, and Ink Configuration selectors
+4. Shared specs (Size, Quantity, Pages, Binding Method) remain at the top level
+5. Price preview shows breakdown by component
+
+---
+
+## Test Coverage
+
+- **14 new tests** added across ConfigurationBuilder, PriceCalculator, and CatalogQueryService
+- All 118 tests pass (7 existing booklet/calendar tests updated for multi-component)
+- Tests cover: valid multi-component builds, missing components, invalid materials, missing ink configs, ink config limits, role-aware queries, component pricing, backward compatibility

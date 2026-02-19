@@ -97,9 +97,22 @@ object ConfigurationBuilderSpec extends ZIOSpecDefault:
           specs = List(
             SpecValue.SizeSpec(Dimension(210, 148)),
             SpecValue.QuantitySpec(Quantity.unsafe(500)),
-            SpecValue.InkConfigSpec(InkConfiguration.cmyk4_4),
             SpecValue.PagesSpec(32),
             SpecValue.BindingMethodSpec(BindingMethod.SaddleStitch),
+          ),
+          components = List(
+            ComponentRequest(
+              role = ComponentRole.Cover,
+              materialId = SampleCatalog.coated300gsmId,
+              finishIds = List(SampleCatalog.matteLaminationId),
+              inkConfiguration = Some(InkConfiguration.cmyk4_4),
+            ),
+            ComponentRequest(
+              role = ComponentRole.Body,
+              materialId = SampleCatalog.uncoatedBondId,
+              finishIds = Nil,
+              inkConfiguration = Some(InkConfiguration.cmyk4_4),
+            ),
           ),
         )
 
@@ -115,9 +128,22 @@ object ConfigurationBuilderSpec extends ZIOSpecDefault:
           specs = List(
             SpecValue.SizeSpec(Dimension(297, 210)),
             SpecValue.QuantitySpec(Quantity.unsafe(100)),
-            SpecValue.InkConfigSpec(InkConfiguration.cmyk4_4),
             SpecValue.PagesSpec(14),
             SpecValue.BindingMethodSpec(BindingMethod.SpiralBinding),
+          ),
+          components = List(
+            ComponentRequest(
+              role = ComponentRole.Cover,
+              materialId = SampleCatalog.coatedSilk250gsmId,
+              finishIds = List(SampleCatalog.matteLaminationId),
+              inkConfiguration = Some(InkConfiguration.cmyk4_4),
+            ),
+            ComponentRequest(
+              role = ComponentRole.Body,
+              materialId = SampleCatalog.coatedSilk250gsmId,
+              finishIds = Nil,
+              inkConfiguration = Some(InkConfiguration.cmyk4_4),
+            ),
           ),
         )
 
@@ -499,9 +525,22 @@ object ConfigurationBuilderSpec extends ZIOSpecDefault:
           specs = List(
             SpecValue.SizeSpec(Dimension(210, 148)),
             SpecValue.QuantitySpec(Quantity.unsafe(500)),
-            SpecValue.InkConfigSpec(InkConfiguration.cmyk4_4),
             SpecValue.PagesSpec(32),
             SpecValue.BindingMethodSpec(BindingMethod.CaseBinding),
+          ),
+          components = List(
+            ComponentRequest(
+              role = ComponentRole.Cover,
+              materialId = SampleCatalog.coated300gsmId,
+              finishIds = Nil,
+              inkConfiguration = Some(InkConfiguration.cmyk4_4),
+            ),
+            ComponentRequest(
+              role = ComponentRole.Body,
+              materialId = SampleCatalog.uncoatedBondId,
+              finishIds = Nil,
+              inkConfiguration = Some(InkConfiguration.cmyk4_4),
+            ),
           ),
         )
 
@@ -520,9 +559,22 @@ object ConfigurationBuilderSpec extends ZIOSpecDefault:
           specs = List(
             SpecValue.SizeSpec(Dimension(210, 148)),
             SpecValue.QuantitySpec(Quantity.unsafe(500)),
-            SpecValue.InkConfigSpec(InkConfiguration.cmyk4_4),
             SpecValue.PagesSpec(4),
             SpecValue.BindingMethodSpec(BindingMethod.SaddleStitch),
+          ),
+          components = List(
+            ComponentRequest(
+              role = ComponentRole.Cover,
+              materialId = SampleCatalog.coated300gsmId,
+              finishIds = Nil,
+              inkConfiguration = Some(InkConfiguration.cmyk4_4),
+            ),
+            ComponentRequest(
+              role = ComponentRole.Body,
+              materialId = SampleCatalog.uncoatedBondId,
+              finishIds = Nil,
+              inkConfiguration = Some(InkConfiguration.cmyk4_4),
+            ),
           ),
         )
 
@@ -583,9 +635,22 @@ object ConfigurationBuilderSpec extends ZIOSpecDefault:
           specs = List(
             SpecValue.SizeSpec(Dimension(297, 210)),
             SpecValue.QuantitySpec(Quantity.unsafe(100)),
-            SpecValue.InkConfigSpec(InkConfiguration.cmyk4_4),
             SpecValue.PagesSpec(14),
             SpecValue.BindingMethodSpec(BindingMethod.SaddleStitch),
+          ),
+          components = List(
+            ComponentRequest(
+              role = ComponentRole.Cover,
+              materialId = SampleCatalog.coatedSilk250gsmId,
+              finishIds = Nil,
+              inkConfiguration = Some(InkConfiguration.cmyk4_4),
+            ),
+            ComponentRequest(
+              role = ComponentRole.Body,
+              materialId = SampleCatalog.coatedSilk250gsmId,
+              finishIds = Nil,
+              inkConfiguration = Some(InkConfiguration.cmyk4_4),
+            ),
           ),
         )
 
@@ -604,9 +669,22 @@ object ConfigurationBuilderSpec extends ZIOSpecDefault:
           specs = List(
             SpecValue.SizeSpec(Dimension(297, 210)),
             SpecValue.QuantitySpec(Quantity.unsafe(100)),
-            SpecValue.InkConfigSpec(InkConfiguration.cmyk4_4),
             SpecValue.PagesSpec(8),
             SpecValue.BindingMethodSpec(BindingMethod.SpiralBinding),
+          ),
+          components = List(
+            ComponentRequest(
+              role = ComponentRole.Cover,
+              materialId = SampleCatalog.coatedSilk250gsmId,
+              finishIds = Nil,
+              inkConfiguration = Some(InkConfiguration.cmyk4_4),
+            ),
+            ComponentRequest(
+              role = ComponentRole.Body,
+              materialId = SampleCatalog.coatedSilk250gsmId,
+              finishIds = Nil,
+              inkConfiguration = Some(InkConfiguration.cmyk4_4),
+            ),
           ),
         )
 
@@ -625,9 +703,22 @@ object ConfigurationBuilderSpec extends ZIOSpecDefault:
           specs = List(
             SpecValue.SizeSpec(Dimension(297, 210)),
             SpecValue.QuantitySpec(Quantity.unsafe(100)),
-            SpecValue.InkConfigSpec(InkConfiguration.cmyk4_4),
             SpecValue.PagesSpec(30),
             SpecValue.BindingMethodSpec(BindingMethod.SpiralBinding),
+          ),
+          components = List(
+            ComponentRequest(
+              role = ComponentRole.Cover,
+              materialId = SampleCatalog.coatedSilk250gsmId,
+              finishIds = Nil,
+              inkConfiguration = Some(InkConfiguration.cmyk4_4),
+            ),
+            ComponentRequest(
+              role = ComponentRole.Body,
+              materialId = SampleCatalog.coatedSilk250gsmId,
+              finishIds = Nil,
+              inkConfiguration = Some(InkConfiguration.cmyk4_4),
+            ),
           ),
         )
 
@@ -728,6 +819,249 @@ object ConfigurationBuilderSpec extends ZIOSpecDefault:
         val errors = result.toEither.left.toOption.get.toList
         assertTrue(
           errors.exists(_.isInstanceOf[ConfigurationError.IncompatibleMaterialFinish]),
+        )
+      },
+    ),
+    suite("multi-component products")(
+      test("booklet with different cover and body materials succeeds") {
+        val request = ConfigurationRequest(
+          categoryId = SampleCatalog.bookletsId,
+          materialId = SampleCatalog.coated300gsmId,
+          printingMethodId = SampleCatalog.offsetId,
+          finishIds = Nil,
+          specs = List(
+            SpecValue.SizeSpec(Dimension(210, 148)),
+            SpecValue.QuantitySpec(Quantity.unsafe(500)),
+            SpecValue.PagesSpec(32),
+            SpecValue.BindingMethodSpec(BindingMethod.SaddleStitch),
+          ),
+          components = List(
+            ComponentRequest(
+              role = ComponentRole.Cover,
+              materialId = SampleCatalog.coated300gsmId,
+              finishIds = List(SampleCatalog.matteLaminationId),
+              inkConfiguration = Some(InkConfiguration.cmyk4_4),
+            ),
+            ComponentRequest(
+              role = ComponentRole.Body,
+              materialId = SampleCatalog.uncoatedBondId,
+              finishIds = Nil,
+              inkConfiguration = Some(InkConfiguration.cmyk4_4),
+            ),
+          ),
+        )
+
+        val result = ConfigurationBuilder.build(request, catalog, ruleset, configId)
+        val config = result.toEither.toOption.get
+        assertTrue(
+          result.toEither.isRight,
+          config.components.size == 2,
+          config.components.find(_.role == ComponentRole.Cover).get.material.id == SampleCatalog.coated300gsmId,
+          config.components.find(_.role == ComponentRole.Body).get.material.id == SampleCatalog.uncoatedBondId,
+          config.material.id == SampleCatalog.coated300gsmId, // primary = cover
+        )
+      },
+      test("booklet missing Cover component is rejected") {
+        val request = ConfigurationRequest(
+          categoryId = SampleCatalog.bookletsId,
+          materialId = SampleCatalog.coated300gsmId,
+          printingMethodId = SampleCatalog.offsetId,
+          finishIds = Nil,
+          specs = List(
+            SpecValue.SizeSpec(Dimension(210, 148)),
+            SpecValue.QuantitySpec(Quantity.unsafe(500)),
+            SpecValue.PagesSpec(32),
+            SpecValue.BindingMethodSpec(BindingMethod.SaddleStitch),
+          ),
+          components = List(
+            ComponentRequest(
+              role = ComponentRole.Body,
+              materialId = SampleCatalog.uncoatedBondId,
+              finishIds = Nil,
+              inkConfiguration = Some(InkConfiguration.cmyk4_4),
+            ),
+          ),
+        )
+
+        val result = ConfigurationBuilder.build(request, catalog, ruleset, configId)
+        val errors = result.toEither.left.toOption.get.toList
+        assertTrue(
+          errors.exists(_.isInstanceOf[ConfigurationError.MissingRequiredComponent]),
+        )
+      },
+      test("booklet with invalid body material is rejected") {
+        val request = ConfigurationRequest(
+          categoryId = SampleCatalog.bookletsId,
+          materialId = SampleCatalog.coated300gsmId,
+          printingMethodId = SampleCatalog.offsetId,
+          finishIds = Nil,
+          specs = List(
+            SpecValue.SizeSpec(Dimension(210, 148)),
+            SpecValue.QuantitySpec(Quantity.unsafe(500)),
+            SpecValue.PagesSpec(32),
+            SpecValue.BindingMethodSpec(BindingMethod.SaddleStitch),
+          ),
+          components = List(
+            ComponentRequest(
+              role = ComponentRole.Cover,
+              materialId = SampleCatalog.coated300gsmId,
+              finishIds = Nil,
+              inkConfiguration = Some(InkConfiguration.cmyk4_4),
+            ),
+            ComponentRequest(
+              role = ComponentRole.Body,
+              materialId = SampleCatalog.vinylId, // not allowed for body
+              finishIds = Nil,
+              inkConfiguration = Some(InkConfiguration.cmyk4_4),
+            ),
+          ),
+        )
+
+        val result = ConfigurationBuilder.build(request, catalog, ruleset, configId)
+        val errors = result.toEither.left.toOption.get.toList
+        assertTrue(
+          errors.exists(_.isInstanceOf[ConfigurationError.InvalidComponentMaterial]),
+        )
+      },
+      test("booklet component missing ink config is rejected") {
+        val request = ConfigurationRequest(
+          categoryId = SampleCatalog.bookletsId,
+          materialId = SampleCatalog.coated300gsmId,
+          printingMethodId = SampleCatalog.offsetId,
+          finishIds = Nil,
+          specs = List(
+            SpecValue.SizeSpec(Dimension(210, 148)),
+            SpecValue.QuantitySpec(Quantity.unsafe(500)),
+            SpecValue.PagesSpec(32),
+            SpecValue.BindingMethodSpec(BindingMethod.SaddleStitch),
+          ),
+          components = List(
+            ComponentRequest(
+              role = ComponentRole.Cover,
+              materialId = SampleCatalog.coated300gsmId,
+              finishIds = Nil,
+              inkConfiguration = Some(InkConfiguration.cmyk4_4),
+            ),
+            ComponentRequest(
+              role = ComponentRole.Body,
+              materialId = SampleCatalog.uncoatedBondId,
+              finishIds = Nil,
+              inkConfiguration = None, // missing!
+            ),
+          ),
+        )
+
+        val result = ConfigurationBuilder.build(request, catalog, ruleset, configId)
+        val errors = result.toEither.left.toOption.get.toList
+        assertTrue(
+          errors.exists(_.isInstanceOf[ConfigurationError.MissingComponentInkConfig]),
+        )
+      },
+      test("calendar with cover lamination and body without finishes") {
+        val request = ConfigurationRequest(
+          categoryId = SampleCatalog.calendarsId,
+          materialId = SampleCatalog.coated300gsmId,
+          printingMethodId = SampleCatalog.digitalId,
+          finishIds = Nil,
+          specs = List(
+            SpecValue.SizeSpec(Dimension(297, 210)),
+            SpecValue.QuantitySpec(Quantity.unsafe(200)),
+            SpecValue.PagesSpec(14),
+            SpecValue.BindingMethodSpec(BindingMethod.WireOBinding),
+          ),
+          components = List(
+            ComponentRequest(
+              role = ComponentRole.Cover,
+              materialId = SampleCatalog.coated300gsmId,
+              finishIds = List(SampleCatalog.glossLaminationId),
+              inkConfiguration = Some(InkConfiguration.cmyk4_4),
+            ),
+            ComponentRequest(
+              role = ComponentRole.Body,
+              materialId = SampleCatalog.uncoatedBondId,
+              finishIds = Nil,
+              inkConfiguration = Some(InkConfiguration.cmyk4_0),
+            ),
+          ),
+        )
+
+        val result = ConfigurationBuilder.build(request, catalog, ruleset, configId)
+        val config = result.toEither.toOption.get
+        assertTrue(
+          result.toEither.isRight,
+          config.components.size == 2,
+          config.components.find(_.role == ComponentRole.Cover).get.finishes.size == 1,
+          config.components.find(_.role == ComponentRole.Body).get.finishes.isEmpty,
+        )
+      },
+      test("component ink config exceeding method limit is rejected") {
+        val request = ConfigurationRequest(
+          categoryId = SampleCatalog.bookletsId,
+          materialId = SampleCatalog.coated300gsmId,
+          printingMethodId = SampleCatalog.letterpressId, // max 2 colors
+          finishIds = Nil,
+          specs = List(
+            SpecValue.SizeSpec(Dimension(210, 148)),
+            SpecValue.QuantitySpec(Quantity.unsafe(500)),
+            SpecValue.PagesSpec(32),
+            SpecValue.BindingMethodSpec(BindingMethod.SaddleStitch),
+          ),
+          components = List(
+            ComponentRequest(
+              role = ComponentRole.Cover,
+              materialId = SampleCatalog.coated300gsmId,
+              finishIds = Nil,
+              inkConfiguration = Some(InkConfiguration.cmyk4_4), // 4 colors > max 2
+            ),
+            ComponentRequest(
+              role = ComponentRole.Body,
+              materialId = SampleCatalog.uncoatedBondId,
+              finishIds = Nil,
+              inkConfiguration = Some(InkConfiguration.mono1_1),
+            ),
+          ),
+        )
+
+        val result = ConfigurationBuilder.build(request, catalog, ruleset, configId)
+        val errors = result.toEither.left.toOption.get.toList
+        assertTrue(
+          errors.exists(_.isInstanceOf[ConfigurationError.ComponentInkConfigExceedsMethodColorLimit]),
+        )
+      },
+      test("booklet with different ink configs per component") {
+        val request = ConfigurationRequest(
+          categoryId = SampleCatalog.bookletsId,
+          materialId = SampleCatalog.coated300gsmId,
+          printingMethodId = SampleCatalog.offsetId,
+          finishIds = Nil,
+          specs = List(
+            SpecValue.SizeSpec(Dimension(210, 148)),
+            SpecValue.QuantitySpec(Quantity.unsafe(500)),
+            SpecValue.PagesSpec(32),
+            SpecValue.BindingMethodSpec(BindingMethod.SaddleStitch),
+          ),
+          components = List(
+            ComponentRequest(
+              role = ComponentRole.Cover,
+              materialId = SampleCatalog.coated300gsmId,
+              finishIds = Nil,
+              inkConfiguration = Some(InkConfiguration.cmyk4_4), // full color both sides
+            ),
+            ComponentRequest(
+              role = ComponentRole.Body,
+              materialId = SampleCatalog.uncoatedBondId,
+              finishIds = Nil,
+              inkConfiguration = Some(InkConfiguration.mono1_1), // grayscale body
+            ),
+          ),
+        )
+
+        val result = ConfigurationBuilder.build(request, catalog, ruleset, configId)
+        val config = result.toEither.toOption.get
+        assertTrue(
+          result.toEither.isRight,
+          config.components.find(_.role == ComponentRole.Cover).get.inkConfiguration.get == InkConfiguration.cmyk4_4,
+          config.components.find(_.role == ComponentRole.Body).get.inkConfiguration.get == InkConfiguration.mono1_1,
         )
       },
     ),

@@ -238,32 +238,49 @@ object PriceCalculatorSpec extends ZIOSpecDefault:
         )
       },
       test("booklet with binding method priced correctly") {
-        // Binding has no special pricing rule — just material + finishes
-        val config = makeConfig(
+        // Multi-component booklet: Cover (coated 300gsm + matte lam) + Body (uncoated bond)
+        val config = ProductConfiguration(
+          id = configId,
           category = SampleCatalog.booklets,
           material = SampleCatalog.coated300gsm,
           printingMethod = SampleCatalog.offsetMethod,
           finishes = List(SampleCatalog.matteLamination),
-          specs = List(
+          specifications = ProductSpecifications.fromSpecs(List(
             SpecValue.SizeSpec(Dimension(210, 148)),
             SpecValue.QuantitySpec(Quantity.unsafe(500)),
-            SpecValue.InkConfigSpec(InkConfiguration.cmyk4_4),
             SpecValue.PagesSpec(32),
             SpecValue.BindingMethodSpec(BindingMethod.SaddleStitch),
+          )),
+          components = List(
+            ProductComponent(
+              role = ComponentRole.Cover,
+              material = SampleCatalog.coated300gsm,
+              finishes = List(SampleCatalog.matteLamination),
+              inkConfiguration = Some(InkConfiguration.cmyk4_4),
+            ),
+            ProductComponent(
+              role = ComponentRole.Body,
+              material = SampleCatalog.uncoatedBond,
+              finishes = Nil,
+              inkConfiguration = Some(InkConfiguration.cmyk4_4),
+            ),
           ),
         )
 
         val result = PriceCalculator.calculate(config, pricelist)
         val breakdown = result.toEither.toOption.get
-        // material: 0.12 × 500 = 60.00
-        // matte lamination: 0.03 × 500 = 15.00
-        // subtotal = 75.00
+        // Cover material: 0.12 × 1 sheet × 500 = 60.00
+        // Body material: 0.06 × 14 sheets × 500 = 420.00
+        //   (32 pages - 4 cover pages = 28 body pages / 2 = 14 sheets)
+        // Cover finish (matte lam): 0.03 × 500 = 15.00
+        // subtotal = 60.00 + 420.00 + 15.00 = 495.00
         // tier 250-999: 0.90×
-        // total = 67.50
+        // total = 495.00 × 0.90 = 445.50
         assertTrue(
           result.toEither.isRight,
-          breakdown.subtotal == Money("75.00"),
-          breakdown.total == Money("67.50"),
+          breakdown.componentLines.size == 2,
+          breakdown.subtotal == Money("495.00"),
+          breakdown.total == Money("445.50"),
         )
       },
       test("4/0 ink configuration applies lower material multiplier than 4/4") {
@@ -377,32 +394,48 @@ object PriceCalculatorSpec extends ZIOSpecDefault:
         )
       },
       test("calendar with new material priced correctly") {
-        // 100× coated silk 250gsm (0.11) + matte lamination (0.03) + digital → no tier (1.0×)
-        val config = makeConfig(
+        // Multi-component calendar: Cover (silk 250gsm + matte lam) + Body (silk 250gsm)
+        val config = ProductConfiguration(
+          id = configId,
           category = SampleCatalog.calendars,
           material = SampleCatalog.coatedSilk250gsm,
           printingMethod = SampleCatalog.digitalMethod,
           finishes = List(SampleCatalog.matteLamination),
-          specs = List(
+          specifications = ProductSpecifications.fromSpecs(List(
             SpecValue.SizeSpec(Dimension(297, 210)),
             SpecValue.QuantitySpec(Quantity.unsafe(100)),
-            SpecValue.InkConfigSpec(InkConfiguration.cmyk4_4),
             SpecValue.PagesSpec(14),
             SpecValue.BindingMethodSpec(BindingMethod.SpiralBinding),
+          )),
+          components = List(
+            ProductComponent(
+              role = ComponentRole.Cover,
+              material = SampleCatalog.coatedSilk250gsm,
+              finishes = List(SampleCatalog.matteLamination),
+              inkConfiguration = Some(InkConfiguration.cmyk4_4),
+            ),
+            ProductComponent(
+              role = ComponentRole.Body,
+              material = SampleCatalog.coatedSilk250gsm,
+              finishes = Nil,
+              inkConfiguration = Some(InkConfiguration.cmyk4_4),
+            ),
           ),
         )
 
         val result = PriceCalculator.calculate(config, pricelist)
         val breakdown = result.toEither.toOption.get
-        // material: 0.11 × 100 = 11.00
-        // matte lamination: 0.03 × 100 = 3.00
-        // subtotal = 14.00
+        // Cover material: 0.11 × 1 sheet × 100 = 11.00
+        // Body material: 0.11 × 5 sheets × 100 = 55.00
+        //   (14 pages - 4 cover pages = 10 body pages / 2 = 5 sheets)
+        // Cover finish (matte lam): 0.03 × 100 = 3.00
+        // subtotal = 11.00 + 55.00 + 3.00 = 69.00
         // tier: 1-249 qty → 1.0×
-        // total = 14.00
+        // total = 69.00
         assertTrue(
-          breakdown.materialLine.unitPrice == Money("0.11"),
-          breakdown.subtotal == Money("14.00"),
-          breakdown.total == Money("14.00"),
+          breakdown.componentLines.size == 2,
+          breakdown.subtotal == Money("69.00"),
+          breakdown.total == Money("69.00"),
         )
       },
       test("Yupo synthetic material priced correctly") {
@@ -459,6 +492,124 @@ object PriceCalculatorSpec extends ZIOSpecDefault:
           breakdown.processSurcharge.get.label.contains("Letterpress"),
           breakdown.subtotal == Money("63.00"),
           breakdown.total == Money("63.00"),
+        )
+      },
+    ),
+    suite("multi-component pricing")(
+      test("booklet with cover and body priced independently") {
+        // 500× booklet with 32 pages
+        // Cover: coated 300gsm (0.12) × 1 sheet × 500 = 60.00
+        // Body: uncoated bond (0.06) × 14 sheets × 500 = 420.00
+        //   (32 - 4 = 28 body pages / 2 = 14 sheets)
+        // Cover matte lamination: 0.03 × 500 = 15.00
+        // subtotal = 495.00, tier 250-999: 0.90×, total = 445.50
+        val config = ProductConfiguration(
+          id = configId,
+          category = SampleCatalog.booklets,
+          material = SampleCatalog.coated300gsm,
+          printingMethod = SampleCatalog.offsetMethod,
+          finishes = List(SampleCatalog.matteLamination),
+          specifications = ProductSpecifications.fromSpecs(List(
+            SpecValue.SizeSpec(Dimension(210, 148)),
+            SpecValue.QuantitySpec(Quantity.unsafe(500)),
+            SpecValue.PagesSpec(32),
+            SpecValue.BindingMethodSpec(BindingMethod.SaddleStitch),
+          )),
+          components = List(
+            ProductComponent(
+              role = ComponentRole.Cover,
+              material = SampleCatalog.coated300gsm,
+              finishes = List(SampleCatalog.matteLamination),
+              inkConfiguration = Some(InkConfiguration.cmyk4_4),
+            ),
+            ProductComponent(
+              role = ComponentRole.Body,
+              material = SampleCatalog.uncoatedBond,
+              finishes = Nil,
+              inkConfiguration = Some(InkConfiguration.cmyk4_4),
+            ),
+          ),
+        )
+
+        val result = PriceCalculator.calculate(config, pricelist)
+        val breakdown = result.toEither.toOption.get
+        assertTrue(
+          result.toEither.isRight,
+          breakdown.componentLines.size == 2,
+          breakdown.componentLines.find(_.role == ComponentRole.Cover).get.materialLine.lineTotal == Money("60.00"),
+          breakdown.componentLines.find(_.role == ComponentRole.Body).get.materialLine.lineTotal == Money("420.00"),
+          breakdown.subtotal == Money("495.00"),
+          breakdown.total == Money("445.50"),
+        )
+      },
+      test("booklet with body ink config 4/0 produces ink adjustment") {
+        // 100× booklet with 12 pages
+        // Cover: coated 300gsm (0.12) × 1 × 100 = 12.00
+        // Body: coated 300gsm (0.12) × 4 sheets × 100 = 48.00
+        //   (12 - 4 = 8 body pages / 2 = 4 sheets)
+        // Body ink 4/0: multiplier 0.60, adjustment = (0.60 - 1) × 48 = -19.20
+        // subtotal = 12.00 + 48.00 + (-19.20) = 40.80
+        // tier 1-249: 1.0×
+        // total = 40.80
+        val config = ProductConfiguration(
+          id = configId,
+          category = SampleCatalog.booklets,
+          material = SampleCatalog.coated300gsm,
+          printingMethod = SampleCatalog.offsetMethod,
+          finishes = Nil,
+          specifications = ProductSpecifications.fromSpecs(List(
+            SpecValue.SizeSpec(Dimension(210, 148)),
+            SpecValue.QuantitySpec(Quantity.unsafe(100)),
+            SpecValue.PagesSpec(12),
+            SpecValue.BindingMethodSpec(BindingMethod.SaddleStitch),
+          )),
+          components = List(
+            ProductComponent(
+              role = ComponentRole.Cover,
+              material = SampleCatalog.coated300gsm,
+              finishes = Nil,
+              inkConfiguration = Some(InkConfiguration.cmyk4_4),
+            ),
+            ProductComponent(
+              role = ComponentRole.Body,
+              material = SampleCatalog.coated300gsm,
+              finishes = Nil,
+              inkConfiguration = Some(InkConfiguration.cmyk4_0),
+            ),
+          ),
+        )
+
+        val result = PriceCalculator.calculate(config, pricelist)
+        val breakdown = result.toEither.toOption.get
+        val bodyComp = breakdown.componentLines.find(_.role == ComponentRole.Body).get
+        assertTrue(
+          result.toEither.isRight,
+          bodyComp.inkConfigLine.isDefined,
+          bodyComp.inkConfigLine.get.lineTotal == Money("-19.20"),
+          breakdown.subtotal == Money("40.80"),
+          breakdown.total == Money("40.80"),
+        )
+      },
+      test("single-component product still prices normally (backward compat)") {
+        // 500× business card (no components) should work as before
+        val config = makeConfig(
+          category = SampleCatalog.businessCards,
+          material = SampleCatalog.coated300gsm,
+          printingMethod = SampleCatalog.offsetMethod,
+          finishes = List(SampleCatalog.matteLamination),
+          specs = List(
+            SpecValue.SizeSpec(Dimension(90, 55)),
+            SpecValue.QuantitySpec(Quantity.unsafe(500)),
+            SpecValue.InkConfigSpec(InkConfiguration.cmyk4_4),
+          ),
+        )
+
+        val result = PriceCalculator.calculate(config, pricelist)
+        val breakdown = result.toEither.toOption.get
+        assertTrue(
+          breakdown.componentLines.isEmpty,
+          breakdown.materialLine.lineTotal == Money("60.00"),
+          breakdown.total == Money("67.50"),
         )
       },
     ),

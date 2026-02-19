@@ -173,4 +173,60 @@ object CatalogQueryServiceSpec extends ZIOSpecDefault:
         assertTrue(methods.isEmpty)
       },
     ),
+    suite("role-aware queries")(
+      test("available materials for booklet Cover role") {
+        val materials = CatalogQueryService.availableMaterialsForRole(
+          SampleCatalog.bookletsId,
+          ComponentRole.Cover,
+          catalog,
+        )
+        val materialIds = materials.map(_.id).toSet
+        assertTrue(
+          materialIds.contains(SampleCatalog.coated300gsmId),
+          materialIds.contains(SampleCatalog.coatedSilk250gsmId),
+          !materialIds.contains(SampleCatalog.uncoatedBondId), // not in cover role
+        )
+      },
+      test("available materials for booklet Body role") {
+        val materials = CatalogQueryService.availableMaterialsForRole(
+          SampleCatalog.bookletsId,
+          ComponentRole.Body,
+          catalog,
+        )
+        val materialIds = materials.map(_.id).toSet
+        assertTrue(
+          materialIds.contains(SampleCatalog.uncoatedBondId),
+          materialIds.contains(SampleCatalog.coated300gsmId),
+          materialIds.contains(SampleCatalog.coatedSilk250gsmId),
+        )
+      },
+      test("compatible finishes for role respects material rules") {
+        val finishes = CatalogQueryService.compatibleFinishesForRole(
+          SampleCatalog.bookletsId,
+          ComponentRole.Cover,
+          SampleCatalog.coated300gsmId,
+          catalog,
+          ruleset,
+          Some(SampleCatalog.offsetId),
+        )
+        val finishIds = finishes.map(_.id).toSet
+        assertTrue(
+          finishIds.contains(SampleCatalog.matteLaminationId),
+          finishIds.contains(SampleCatalog.glossLaminationId),
+        )
+      },
+      test("available materials for non-multi-component falls back to category") {
+        // Business cards have no componentRoles, so role query falls back to allowedMaterialIds
+        val materials = CatalogQueryService.availableMaterialsForRole(
+          SampleCatalog.businessCardsId,
+          ComponentRole.Cover,
+          catalog,
+        )
+        val materialIds = materials.map(_.id).toSet
+        assertTrue(
+          materialIds.contains(SampleCatalog.coated300gsmId),
+          materialIds.contains(SampleCatalog.uncoatedBondId),
+        )
+      },
+    ),
   )

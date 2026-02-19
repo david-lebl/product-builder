@@ -24,7 +24,7 @@ This is a DDD (Domain-Driven Design) product configuration system for the printi
 
 ### Package layout: `mpbuilder.domain`
 
-- **`model/`** — Value objects (opaque type IDs with smart constructors), entities, enums. `ProductConfiguration` is the aggregate root. `InkType`/`InkSetup`/`InkConfiguration` model per-side ink setup (e.g., 4/0, 4/4). `SpecKind.InkConfig` + `SpecValue.InkConfigSpec` replace the former `ColorMode`.
+- **`model/`** — Value objects (opaque type IDs with smart constructors), entities, enums. `ProductConfiguration` is the aggregate root. `InkType`/`InkSetup`/`InkConfiguration` model per-side ink setup (e.g., 4/0, 4/4). `SpecKind.InkConfig` + `SpecValue.InkConfigSpec` replace the former `ColorMode`. `ComponentRole`/`ProductComponent`/`ComponentRequest` support multi-component products (booklets, calendars) with independent material/finish/ink per component.
 - **`rules/`** — `CompatibilityRule` sealed ADT (12 rule variants), `SpecPredicate` and `ConfigurationPredicate` (boolean algebra with And/Or/Not). Rules are data, not code.
 - **`validation/`** — `ConfigurationError` ADT with exhaustive `message` match. `RuleEvaluator` interprets rules. `ConfigurationValidator` runs two-layer validation: structural checks first, then rule evaluation.
 - **`service/`** — `ConfigurationBuilder` resolves IDs from catalog and orchestrates validation. `CatalogQueryService` pre-filters compatible options for UI progressive disclosure.
@@ -41,6 +41,9 @@ This is a DDD (Domain-Driven Design) product configuration system for the printi
 ### Key data flow
 
 `ConfigurationRequest` → resolve IDs from `ProductCatalog` → `ConfigurationValidator.validate` (structural + rules) → `ProductConfiguration` → `PriceCalculator.calculate` (config + pricelist) → `PriceBreakdown`
+
+For multi-component products (booklets, calendars):
+`ConfigurationRequest` (with `components: List[ComponentRequest]`) → resolve component IDs → `ConfigurationValidator.validateMultiComponent` (per-component structural + rules) → `ProductConfiguration` (with `components: List[ProductComponent]`) → `PriceCalculator.calculateMultiComponent` (per-component pricing) → `PriceBreakdown` (with `componentLines`)
 
 ### Validation approach
 
@@ -84,5 +87,6 @@ ZIO Prelude `Validation` accumulates all errors (not short-circuit). Structural 
 - `InkConfiguration` models per-side ink setup: `InkSetup(inkType, colorCount)` for front and back. Presets: `cmyk4_4`, `cmyk4_0`, `cmyk4_1`, `mono1_0`, `mono1_1`. Structural validation checks `maxColorCount` against `PrintingMethod.maxColorCount`
 - `CatalogQueryService.compatibleFinishes` takes `printingMethodId: Option[PrintingMethodId]` — `None` means "not yet selected, don't filter by method"
 - Finish pricing precedence: `FinishSurcharge` (by ID) overrides `FinishTypeSurcharge` (by type) for the same finish
+- Multi-component products: `ProductCategory.componentRoles` non-empty means the category requires components. `allowedMaterialIdsByRole` provides per-role material overrides (falls back to `allowedMaterialIds`). Ink configuration is per-component, not in shared specs. Body material cost scales by `(totalPages - 4) / 2` sheets.
 - Template image placeholders use `PhotoElement(imageData = "")` — they're fully interactive `CanvasElement`s, not static template fields
 - The format `<select>` in `CalendarBuilderApp` is re-created on each state change (`child <-- ...`), so options must have `selected` attribute set explicitly

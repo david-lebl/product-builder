@@ -15,7 +15,38 @@ object CatalogQueryService:
       case Some(category) =>
         category.allowedMaterialIds.toList.flatMap(catalog.materials.get)
 
+  def availableMaterialsForRole(
+      categoryId: CategoryId,
+      role: ComponentRole,
+      catalog: ProductCatalog,
+  ): List[Material] =
+    catalog.categories.get(categoryId) match
+      case None => Nil
+      case Some(category) =>
+        val materialIds = category.allowedMaterialIdsByRole
+          .getOrElse(role, category.allowedMaterialIds)
+        materialIds.toList.flatMap(catalog.materials.get)
+
   def compatibleFinishes(
+      categoryId: CategoryId,
+      materialId: MaterialId,
+      catalog: ProductCatalog,
+      ruleset: CompatibilityRuleset,
+      printingMethodId: Option[PrintingMethodId],
+  ): List[Finish] =
+    compatibleFinishesInternal(categoryId, materialId, catalog, ruleset, printingMethodId)
+
+  def compatibleFinishesForRole(
+      categoryId: CategoryId,
+      role: ComponentRole,
+      materialId: MaterialId,
+      catalog: ProductCatalog,
+      ruleset: CompatibilityRuleset,
+      printingMethodId: Option[PrintingMethodId],
+  ): List[Finish] =
+    compatibleFinishesInternal(categoryId, materialId, catalog, ruleset, printingMethodId)
+
+  private def compatibleFinishesInternal(
       categoryId: CategoryId,
       materialId: MaterialId,
       catalog: ProductCatalog,

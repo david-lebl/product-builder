@@ -27,6 +27,10 @@ enum ConfigurationError:
   case PrintingMethodNotFound(printingMethodId: PrintingMethodId)
   case ConfigurationConstraintViolation(categoryId: CategoryId, reason: String)
   case InkConfigExceedsMethodColorLimit(printingMethodId: PrintingMethodId, inkConfig: InkConfiguration, maxAllowed: Int)
+  case MissingRequiredComponent(categoryId: CategoryId, role: ComponentRole)
+  case InvalidComponentMaterial(categoryId: CategoryId, role: ComponentRole, materialId: MaterialId)
+  case MissingComponentInkConfig(role: ComponentRole)
+  case ComponentInkConfigExceedsMethodColorLimit(role: ComponentRole, printingMethodId: PrintingMethodId, inkConfig: InkConfiguration, maxAllowed: Int)
 
   def message: String = message(Language.En)
 
@@ -100,3 +104,15 @@ enum ConfigurationError:
     case InkConfigExceedsMethodColorLimit(pmId, inkConfig, maxAllowed) => lang match
       case Language.En => s"Ink configuration '${inkConfig.notation}' exceeds printing method '${pmId.value}' maximum of $maxAllowed colors per side"
       case Language.Cs => s"Konfigurace inkoustu '${inkConfig.notation}' překračuje maximum $maxAllowed barev na stranu pro tiskovou metodu '${pmId.value}'"
+    case MissingRequiredComponent(catId, role) => lang match
+      case Language.En => s"Category '${catId.value}' requires a '${role}' component"
+      case Language.Cs => s"Kategorie '${catId.value}' vyžaduje komponentu '${role}'"
+    case InvalidComponentMaterial(catId, role, matId) => lang match
+      case Language.En => s"Material '${matId.value}' is not allowed for '${role}' component in category '${catId.value}'"
+      case Language.Cs => s"Materiál '${matId.value}' není povolen pro komponentu '${role}' v kategorii '${catId.value}'"
+    case MissingComponentInkConfig(role) => lang match
+      case Language.En => s"Ink configuration is required for '${role}' component"
+      case Language.Cs => s"Konfigurace inkoustu je vyžadována pro komponentu '${role}'"
+    case ComponentInkConfigExceedsMethodColorLimit(role, pmId, inkConfig, maxAllowed) => lang match
+      case Language.En => s"Ink configuration '${inkConfig.notation}' for '${role}' component exceeds printing method '${pmId.value}' maximum of $maxAllowed colors per side"
+      case Language.Cs => s"Konfigurace inkoustu '${inkConfig.notation}' pro komponentu '${role}' překračuje maximum $maxAllowed barev na stranu pro tiskovou metodu '${pmId.value}'"
