@@ -112,10 +112,10 @@ SpecPredicate: MinDimension, MaxDimension, MinQuantity, MaxQuantity, AllowedInkT
 
 ### High Priority (blocks realistic product configuration/pricing)
 
-| # | Gap | Why |
-|---|-----|-----|
-| 1 | **Multi-component products** | Booklets and catalogs need cover + body with independent material, weight, finish, and page count. Currently impossible with single-material configurations. |
-| 2 | **Material surface/coating** | Every print shop distinguishes Coated Gloss / Coated Silk / Coated Matte / Uncoated as separate substrate lines. Our `Glossy`/`Matte` properties blur intrinsic surface with applied finish. |
+| # | Gap | Why | Status |
+|---|-----|-----|--------|
+| 1 | **Multi-component products** | Booklets and catalogs need cover + body with independent material, weight, finish, and page count. | ✅ **Implemented** — `ComponentRole`, `ProductComponent`, `ComponentRequest` types; multi-component validation, pricing, and UI. See `/docs/multi-component-design.md`. |
+| 2 | **Material surface/coating** | Every print shop distinguishes Coated Gloss / Coated Silk / Coated Matte / Uncoated as separate substrate lines. Our `Glossy`/`Matte` properties blur intrinsic surface with applied finish. | Open |
 
 ### Medium Priority (improves correctness and range)
 
