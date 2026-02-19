@@ -19,8 +19,12 @@ object CatalogQueryServiceSpec extends ZIOSpecDefault:
           materialIds.contains(SampleCatalog.coated300gsmId),
           materialIds.contains(SampleCatalog.uncoatedBondId),
           materialIds.contains(SampleCatalog.kraftId),
+          materialIds.contains(SampleCatalog.coatedSilk250gsmId),
+          materialIds.contains(SampleCatalog.coatedGlossy250gsmId),
+          materialIds.contains(SampleCatalog.coatedMatte300gsmId),
           !materialIds.contains(SampleCatalog.vinylId),
           !materialIds.contains(SampleCatalog.corrugatedId),
+          !materialIds.contains(SampleCatalog.coatedGlossy90gsmId),
         )
       },
       test("returns only vinyl for banners") {
@@ -28,6 +32,43 @@ object CatalogQueryServiceSpec extends ZIOSpecDefault:
         assertTrue(
           materials.size == 1,
           materials.head.id == SampleCatalog.vinylId,
+        )
+      },
+      test("returns expanded paper selection for brochures") {
+        val materials = CatalogQueryService.availableMaterials(SampleCatalog.brochuresId, catalog)
+        val materialIds = materials.map(_.id).toSet
+        assertTrue(
+          materialIds.contains(SampleCatalog.coated300gsmId),
+          materialIds.contains(SampleCatalog.uncoatedBondId),
+          materialIds.contains(SampleCatalog.coatedSilk250gsmId),
+          materialIds.contains(SampleCatalog.coatedGlossy130gsmId),
+          materialIds.contains(SampleCatalog.coatedMatte170gsmId),
+          !materialIds.contains(SampleCatalog.vinylId),
+        )
+      },
+      test("returns expanded paper selection for booklets") {
+        val materials = CatalogQueryService.availableMaterials(SampleCatalog.bookletsId, catalog)
+        val materialIds = materials.map(_.id).toSet
+        assertTrue(
+          materialIds.contains(SampleCatalog.coated300gsmId),
+          materialIds.contains(SampleCatalog.uncoatedBondId),
+          materialIds.contains(SampleCatalog.coatedSilk250gsmId),
+          materialIds.contains(SampleCatalog.coatedGlossy200gsmId),
+          materialIds.contains(SampleCatalog.coatedMatte250gsmId),
+          !materialIds.contains(SampleCatalog.vinylId),
+        )
+      },
+      test("returns medium-heavy paper selection for calendars") {
+        val materials = CatalogQueryService.availableMaterials(SampleCatalog.calendarsId, catalog)
+        val materialIds = materials.map(_.id).toSet
+        assertTrue(
+          materialIds.contains(SampleCatalog.coated300gsmId),
+          materialIds.contains(SampleCatalog.coatedSilk250gsmId),
+          materialIds.contains(SampleCatalog.uncoatedBondId),
+          materialIds.contains(SampleCatalog.coatedGlossy200gsmId),
+          materialIds.contains(SampleCatalog.coatedMatte350gsmId),
+          !materialIds.contains(SampleCatalog.coatedGlossy90gsmId),
+          !materialIds.contains(SampleCatalog.vinylId),
         )
       },
       test("returns empty for unknown category") {

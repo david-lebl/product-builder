@@ -410,11 +410,43 @@ object SampleCatalog:
     side = FinishSide.Both,
   )
 
+  // --- Reusable Material ID Sets ---
+  private val allCoatedGlossyIds: Set[MaterialId] = Set(
+    coatedGlossy90gsmId, coatedGlossy115gsmId, coatedGlossy130gsmId,
+    coatedGlossy150gsmId, coatedGlossy170gsmId, coatedGlossy200gsmId,
+    coatedGlossy250gsmId, coatedGlossy350gsmId,
+  )
+
+  private val allCoatedMatteIds: Set[MaterialId] = Set(
+    coatedMatte90gsmId, coatedMatte115gsmId, coatedMatte130gsmId,
+    coatedMatte150gsmId, coatedMatte170gsmId, coatedMatte200gsmId,
+    coatedMatte250gsmId, coatedMatte300gsmId, coatedMatte350gsmId,
+  )
+
+  private val heavyCoatedGlossyIds: Set[MaterialId] = Set(
+    coatedGlossy250gsmId, coatedGlossy350gsmId,
+  )
+
+  private val heavyCoatedMatteIds: Set[MaterialId] = Set(
+    coatedMatte250gsmId, coatedMatte300gsmId, coatedMatte350gsmId,
+  )
+
+  private val mediumHeavyCoatedGlossyIds: Set[MaterialId] = Set(
+    coatedGlossy170gsmId, coatedGlossy200gsmId,
+    coatedGlossy250gsmId, coatedGlossy350gsmId,
+  )
+
+  private val mediumHeavyCoatedMatteIds: Set[MaterialId] = Set(
+    coatedMatte170gsmId, coatedMatte200gsmId,
+    coatedMatte250gsmId, coatedMatte300gsmId, coatedMatte350gsmId,
+  )
+
   // --- Categories ---
   val businessCards: ProductCategory = ProductCategory(
     id = businessCardsId,
     name = LocalizedString("Business Cards", "Vizitky"),
-    allowedMaterialIds = Set(coated300gsmId, uncoatedBondId, kraftId, yupoId, cottonId),
+    allowedMaterialIds = Set(coated300gsmId, uncoatedBondId, kraftId, yupoId, cottonId, coatedSilk250gsmId) ++
+      heavyCoatedGlossyIds ++ heavyCoatedMatteIds,
     allowedFinishIds = Set(
       matteLaminationId, glossLaminationId, uvCoatingId, embossingId,
       foilStampingId, softTouchCoatingId, roundCornersId,
@@ -426,15 +458,8 @@ object SampleCatalog:
   val flyers: ProductCategory = ProductCategory(
     id = flyersId,
     name = LocalizedString("Flyers", "Letáky"),
-    allowedMaterialIds = Set(
-      coated300gsmId, uncoatedBondId,
-      coatedGlossy90gsmId, coatedGlossy115gsmId, coatedGlossy130gsmId,
-      coatedGlossy150gsmId, coatedGlossy170gsmId, coatedGlossy200gsmId,
-      coatedGlossy250gsmId, coatedGlossy350gsmId,
-      coatedMatte90gsmId, coatedMatte115gsmId, coatedMatte130gsmId,
-      coatedMatte150gsmId, coatedMatte170gsmId, coatedMatte200gsmId,
-      coatedMatte250gsmId, coatedMatte300gsmId, coatedMatte350gsmId,
-    ),
+    allowedMaterialIds = Set(coated300gsmId, uncoatedBondId) ++
+      allCoatedGlossyIds ++ allCoatedMatteIds,
     allowedFinishIds = Set(matteLaminationId, glossLaminationId, uvCoatingId, varnishId, aqueousCoatingId),
     requiredSpecKinds = Set(SpecKind.Size, SpecKind.Quantity, SpecKind.InkConfig, SpecKind.Orientation),
     allowedPrintingMethodIds = Set(offsetId, digitalId),
@@ -443,7 +468,8 @@ object SampleCatalog:
   val brochures: ProductCategory = ProductCategory(
     id = brochuresId,
     name = LocalizedString("Brochures", "Brožury"),
-    allowedMaterialIds = Set(coated300gsmId, uncoatedBondId),
+    allowedMaterialIds = Set(coated300gsmId, uncoatedBondId, coatedSilk250gsmId) ++
+      allCoatedGlossyIds ++ allCoatedMatteIds,
     allowedFinishIds = Set(matteLaminationId, glossLaminationId, uvCoatingId, scoringId),
     requiredSpecKinds = Set(SpecKind.Size, SpecKind.Quantity, SpecKind.InkConfig, SpecKind.FoldType, SpecKind.Pages),
     allowedPrintingMethodIds = Set(offsetId, digitalId),
@@ -470,7 +496,8 @@ object SampleCatalog:
   val booklets: ProductCategory = ProductCategory(
     id = bookletsId,
     name = LocalizedString("Booklets", "Brožurky"),
-    allowedMaterialIds = Set(coated300gsmId, uncoatedBondId),
+    allowedMaterialIds = Set(coated300gsmId, uncoatedBondId, coatedSilk250gsmId) ++
+      allCoatedGlossyIds ++ allCoatedMatteIds,
     allowedFinishIds = Set(matteLaminationId, glossLaminationId, uvCoatingId, perforationId),
     requiredSpecKinds = Set(SpecKind.Size, SpecKind.Quantity, SpecKind.InkConfig, SpecKind.Pages, SpecKind.BindingMethod),
     allowedPrintingMethodIds = Set(offsetId, digitalId),
@@ -479,7 +506,8 @@ object SampleCatalog:
   val calendars: ProductCategory = ProductCategory(
     id = calendarsId,
     name = LocalizedString("Calendars", "Kalendáře"),
-    allowedMaterialIds = Set(coated300gsmId, coatedSilk250gsmId, uncoatedBondId),
+    allowedMaterialIds = Set(coated300gsmId, coatedSilk250gsmId, uncoatedBondId) ++
+      mediumHeavyCoatedGlossyIds ++ mediumHeavyCoatedMatteIds,
     allowedFinishIds = Set(matteLaminationId, glossLaminationId, uvCoatingId, perforationId),
     requiredSpecKinds = Set(SpecKind.Size, SpecKind.Quantity, SpecKind.InkConfig, SpecKind.Pages, SpecKind.BindingMethod),
     allowedPrintingMethodIds = Set(offsetId, digitalId),
