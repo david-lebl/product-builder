@@ -9,6 +9,7 @@ import mpbuilder.domain.sample.*
 object PriceCalculatorSpec extends ZIOSpecDefault:
 
   private val pricelist = SamplePricelist.pricelist
+  private val pricelistCzk = SamplePricelist.pricelistCzk
   private val configId = ConfigurationId.unsafe("test-pricing-1")
 
   private def makeConfig(
@@ -459,6 +460,149 @@ object PriceCalculatorSpec extends ZIOSpecDefault:
           breakdown.processSurcharge.get.label.contains("Letterpress"),
           breakdown.subtotal == Money("63.00"),
           breakdown.total == Money("63.00"),
+        )
+      },
+    ),
+    suite("CZK pricelist")(
+      test("flyer with coated glossy 90gsm 4/4 at 1 pc") {
+        val config = makeConfig(
+          category = SampleCatalog.flyers,
+          material = SampleCatalog.coatedGlossy90gsm,
+          printingMethod = SampleCatalog.offsetMethod,
+          finishes = Nil,
+          specs = List(
+            SpecValue.SizeSpec(Dimension(420, 297)),
+            SpecValue.QuantitySpec(Quantity.unsafe(1)),
+            SpecValue.InkConfigSpec(InkConfiguration.cmyk4_4),
+            SpecValue.OrientationSpec(Orientation.Portrait),
+          ),
+        )
+
+        val result = PriceCalculator.calculate(config, pricelistCzk)
+        val breakdown = result.toEither.toOption.get
+        // material: 12 × 1 = 12
+        // tier 1-99: 1.0×
+        // total = 12
+        assertTrue(
+          result.toEither.isRight,
+          breakdown.materialLine.unitPrice == Money("12"),
+          breakdown.total == Money("12.00"),
+          breakdown.currency == Currency.CZK,
+        )
+      },
+      test("flyer with coated matte 350gsm 4/4 at 1 pc") {
+        val config = makeConfig(
+          category = SampleCatalog.flyers,
+          material = SampleCatalog.coatedMatte350gsm,
+          printingMethod = SampleCatalog.offsetMethod,
+          finishes = Nil,
+          specs = List(
+            SpecValue.SizeSpec(Dimension(420, 297)),
+            SpecValue.QuantitySpec(Quantity.unsafe(1)),
+            SpecValue.InkConfigSpec(InkConfiguration.cmyk4_4),
+            SpecValue.OrientationSpec(Orientation.Portrait),
+          ),
+        )
+
+        val result = PriceCalculator.calculate(config, pricelistCzk)
+        val breakdown = result.toEither.toOption.get
+        // material: 15 × 1 = 15
+        // tier 1-99: 1.0×
+        // total = 15
+        assertTrue(
+          breakdown.materialLine.unitPrice == Money("15"),
+          breakdown.total == Money("15.00"),
+          breakdown.currency == Currency.CZK,
+        )
+      },
+      test("flyer with coated glossy 90gsm 4/0 at 1 pc applies ink factor") {
+        val config = makeConfig(
+          category = SampleCatalog.flyers,
+          material = SampleCatalog.coatedGlossy90gsm,
+          printingMethod = SampleCatalog.offsetMethod,
+          finishes = Nil,
+          specs = List(
+            SpecValue.SizeSpec(Dimension(420, 297)),
+            SpecValue.QuantitySpec(Quantity.unsafe(1)),
+            SpecValue.InkConfigSpec(InkConfiguration.cmyk4_0),
+            SpecValue.OrientationSpec(Orientation.Portrait),
+          ),
+        )
+
+        val result = PriceCalculator.calculate(config, pricelistCzk)
+        val breakdown = result.toEither.toOption.get
+        // material: 12 × 1 = 12
+        // ink config 4/0: 12 × (0.85 - 1.0) = -1.80
+        // subtotal = 12 + (-1.80) = 10.20
+        // tier 1-99: 1.0×
+        // total = 10.20 (approximates 10 Kč from price table)
+        assertTrue(
+          breakdown.inkConfigLine.isDefined,
+          breakdown.inkConfigLine.get.lineTotal == Money("-1.80"),
+          breakdown.subtotal == Money("10.20"),
+          breakdown.total == Money("10.20"),
+        )
+      },
+      test("flyer with coated glossy 130gsm 4/4 at 1000 pcs applies quantity tier") {
+        val config = makeConfig(
+          category = SampleCatalog.flyers,
+          material = SampleCatalog.coatedGlossy130gsm,
+          printingMethod = SampleCatalog.offsetMethod,
+          finishes = Nil,
+          specs = List(
+            SpecValue.SizeSpec(Dimension(420, 297)),
+            SpecValue.QuantitySpec(Quantity.unsafe(1000)),
+            SpecValue.InkConfigSpec(InkConfiguration.cmyk4_4),
+            SpecValue.OrientationSpec(Orientation.Portrait),
+          ),
+        )
+
+        val result = PriceCalculator.calculate(config, pricelistCzk)
+        val breakdown = result.toEither.toOption.get
+        // material: 12 × 1000 = 12000
+        // tier 1000+: 0.40×
+        // total = 12000 × 0.40 = 4800 (i.e. 4.80 Kč/pc, approximates 6 Kč from table)
+        assertTrue(
+          breakdown.materialLine.unitPrice == Money("12"),
+          breakdown.quantityMultiplier == BigDecimal("0.40"),
+          breakdown.total == Money("4800.00"),
+          breakdown.currency == Currency.CZK,
+        )
+      },
+      test("matte and glossy at same weight have same base price") {
+        val configGlossy = makeConfig(
+          category = SampleCatalog.flyers,
+          material = SampleCatalog.coatedGlossy150gsm,
+          printingMethod = SampleCatalog.offsetMethod,
+          finishes = Nil,
+          specs = List(
+            SpecValue.SizeSpec(Dimension(420, 297)),
+            SpecValue.QuantitySpec(Quantity.unsafe(1)),
+            SpecValue.InkConfigSpec(InkConfiguration.cmyk4_4),
+            SpecValue.OrientationSpec(Orientation.Portrait),
+          ),
+        )
+        val configMatte = makeConfig(
+          category = SampleCatalog.flyers,
+          material = SampleCatalog.coatedMatte150gsm,
+          printingMethod = SampleCatalog.offsetMethod,
+          finishes = Nil,
+          specs = List(
+            SpecValue.SizeSpec(Dimension(420, 297)),
+            SpecValue.QuantitySpec(Quantity.unsafe(1)),
+            SpecValue.InkConfigSpec(InkConfiguration.cmyk4_4),
+            SpecValue.OrientationSpec(Orientation.Portrait),
+          ),
+        )
+
+        val glossyResult = PriceCalculator.calculate(configGlossy, pricelistCzk)
+        val matteResult = PriceCalculator.calculate(configMatte, pricelistCzk)
+        val glossyBreakdown = glossyResult.toEither.toOption.get
+        val matteBreakdown = matteResult.toEither.toOption.get
+        assertTrue(
+          glossyBreakdown.materialLine.unitPrice == Money("13"),
+          matteBreakdown.materialLine.unitPrice == Money("13"),
+          glossyBreakdown.total == matteBreakdown.total,
         )
       },
     ),

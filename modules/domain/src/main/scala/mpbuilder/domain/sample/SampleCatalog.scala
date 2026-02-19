@@ -15,6 +15,27 @@ object SampleCatalog:
   val adhesiveStockId: MaterialId   = MaterialId.unsafe("mat-adhesive-stock")
   val cottonId: MaterialId          = MaterialId.unsafe("mat-cotton-300gsm")
 
+  // --- Coated Art Paper Glossy IDs ---
+  val coatedGlossy90gsmId: MaterialId  = MaterialId.unsafe("mat-coated-glossy-90gsm")
+  val coatedGlossy115gsmId: MaterialId = MaterialId.unsafe("mat-coated-glossy-115gsm")
+  val coatedGlossy130gsmId: MaterialId = MaterialId.unsafe("mat-coated-glossy-130gsm")
+  val coatedGlossy150gsmId: MaterialId = MaterialId.unsafe("mat-coated-glossy-150gsm")
+  val coatedGlossy170gsmId: MaterialId = MaterialId.unsafe("mat-coated-glossy-170gsm")
+  val coatedGlossy200gsmId: MaterialId = MaterialId.unsafe("mat-coated-glossy-200gsm")
+  val coatedGlossy250gsmId: MaterialId = MaterialId.unsafe("mat-coated-glossy-250gsm")
+  val coatedGlossy350gsmId: MaterialId = MaterialId.unsafe("mat-coated-glossy-350gsm")
+
+  // --- Coated Art Paper Matte IDs ---
+  val coatedMatte90gsmId: MaterialId  = MaterialId.unsafe("mat-coated-matte-90gsm")
+  val coatedMatte115gsmId: MaterialId = MaterialId.unsafe("mat-coated-matte-115gsm")
+  val coatedMatte130gsmId: MaterialId = MaterialId.unsafe("mat-coated-matte-130gsm")
+  val coatedMatte150gsmId: MaterialId = MaterialId.unsafe("mat-coated-matte-150gsm")
+  val coatedMatte170gsmId: MaterialId = MaterialId.unsafe("mat-coated-matte-170gsm")
+  val coatedMatte200gsmId: MaterialId = MaterialId.unsafe("mat-coated-matte-200gsm")
+  val coatedMatte250gsmId: MaterialId = MaterialId.unsafe("mat-coated-matte-250gsm")
+  val coatedMatte300gsmId: MaterialId = MaterialId.unsafe("mat-coated-matte-300gsm")
+  val coatedMatte350gsmId: MaterialId = MaterialId.unsafe("mat-coated-matte-350gsm")
+
   // --- Finish IDs ---
   val matteLaminationId: FinishId   = FinishId.unsafe("fin-matte-lam")
   val glossLaminationId: FinishId   = FinishId.unsafe("fin-gloss-lam")
@@ -117,6 +138,148 @@ object SampleCatalog:
     family = MaterialFamily.Paper,
     weight = Some(PaperWeight.unsafe(300)),
     properties = Set(MaterialProperty.Textured, MaterialProperty.Recyclable),
+  )
+
+  // --- Coated Art Paper Glossy ---
+  private val glossyCoatedProps = Set(MaterialProperty.Glossy, MaterialProperty.SmoothSurface, MaterialProperty.Recyclable)
+
+  val coatedGlossy90gsm: Material = Material(
+    id = coatedGlossy90gsmId,
+    name = LocalizedString("Coated Art Paper Glossy 90gsm", "Křídový papír lesklý 90g"),
+    family = MaterialFamily.Paper,
+    weight = Some(PaperWeight.unsafe(90)),
+    properties = glossyCoatedProps,
+  )
+
+  val coatedGlossy115gsm: Material = Material(
+    id = coatedGlossy115gsmId,
+    name = LocalizedString("Coated Art Paper Glossy 115gsm", "Křídový papír lesklý 115g"),
+    family = MaterialFamily.Paper,
+    weight = Some(PaperWeight.unsafe(115)),
+    properties = glossyCoatedProps,
+  )
+
+  val coatedGlossy130gsm: Material = Material(
+    id = coatedGlossy130gsmId,
+    name = LocalizedString("Coated Art Paper Glossy 130gsm", "Křídový papír lesklý 130g"),
+    family = MaterialFamily.Paper,
+    weight = Some(PaperWeight.unsafe(130)),
+    properties = glossyCoatedProps,
+  )
+
+  val coatedGlossy150gsm: Material = Material(
+    id = coatedGlossy150gsmId,
+    name = LocalizedString("Coated Art Paper Glossy 150gsm", "Křídový papír lesklý 150g"),
+    family = MaterialFamily.Paper,
+    weight = Some(PaperWeight.unsafe(150)),
+    properties = glossyCoatedProps,
+  )
+
+  val coatedGlossy170gsm: Material = Material(
+    id = coatedGlossy170gsmId,
+    name = LocalizedString("Coated Art Paper Glossy 170gsm", "Křídový papír lesklý 170g"),
+    family = MaterialFamily.Paper,
+    weight = Some(PaperWeight.unsafe(170)),
+    properties = glossyCoatedProps,
+  )
+
+  val coatedGlossy200gsm: Material = Material(
+    id = coatedGlossy200gsmId,
+    name = LocalizedString("Coated Art Paper Glossy 200gsm", "Křídový papír lesklý 200g"),
+    family = MaterialFamily.Paper,
+    weight = Some(PaperWeight.unsafe(200)),
+    properties = glossyCoatedProps,
+  )
+
+  val coatedGlossy250gsm: Material = Material(
+    id = coatedGlossy250gsmId,
+    name = LocalizedString("Coated Art Paper Glossy 250gsm", "Křídový papír lesklý 250g"),
+    family = MaterialFamily.Paper,
+    weight = Some(PaperWeight.unsafe(250)),
+    properties = glossyCoatedProps,
+  )
+
+  val coatedGlossy350gsm: Material = Material(
+    id = coatedGlossy350gsmId,
+    name = LocalizedString("Coated Art Paper Glossy 350gsm", "Křídový papír lesklý 350g"),
+    family = MaterialFamily.Paper,
+    weight = Some(PaperWeight.unsafe(350)),
+    properties = glossyCoatedProps,
+  )
+
+  // --- Coated Art Paper Matte ---
+  private val matteCoatedProps = Set(MaterialProperty.Matte, MaterialProperty.SmoothSurface, MaterialProperty.Recyclable)
+
+  val coatedMatte90gsm: Material = Material(
+    id = coatedMatte90gsmId,
+    name = LocalizedString("Coated Art Paper Matte 90gsm", "Křídový papír matný 90g"),
+    family = MaterialFamily.Paper,
+    weight = Some(PaperWeight.unsafe(90)),
+    properties = matteCoatedProps,
+  )
+
+  val coatedMatte115gsm: Material = Material(
+    id = coatedMatte115gsmId,
+    name = LocalizedString("Coated Art Paper Matte 115gsm", "Křídový papír matný 115g"),
+    family = MaterialFamily.Paper,
+    weight = Some(PaperWeight.unsafe(115)),
+    properties = matteCoatedProps,
+  )
+
+  val coatedMatte130gsm: Material = Material(
+    id = coatedMatte130gsmId,
+    name = LocalizedString("Coated Art Paper Matte 130gsm", "Křídový papír matný 130g"),
+    family = MaterialFamily.Paper,
+    weight = Some(PaperWeight.unsafe(130)),
+    properties = matteCoatedProps,
+  )
+
+  val coatedMatte150gsm: Material = Material(
+    id = coatedMatte150gsmId,
+    name = LocalizedString("Coated Art Paper Matte 150gsm", "Křídový papír matný 150g"),
+    family = MaterialFamily.Paper,
+    weight = Some(PaperWeight.unsafe(150)),
+    properties = matteCoatedProps,
+  )
+
+  val coatedMatte170gsm: Material = Material(
+    id = coatedMatte170gsmId,
+    name = LocalizedString("Coated Art Paper Matte 170gsm", "Křídový papír matný 170g"),
+    family = MaterialFamily.Paper,
+    weight = Some(PaperWeight.unsafe(170)),
+    properties = matteCoatedProps,
+  )
+
+  val coatedMatte200gsm: Material = Material(
+    id = coatedMatte200gsmId,
+    name = LocalizedString("Coated Art Paper Matte 200gsm", "Křídový papír matný 200g"),
+    family = MaterialFamily.Paper,
+    weight = Some(PaperWeight.unsafe(200)),
+    properties = matteCoatedProps,
+  )
+
+  val coatedMatte250gsm: Material = Material(
+    id = coatedMatte250gsmId,
+    name = LocalizedString("Coated Art Paper Matte 250gsm", "Křídový papír matný 250g"),
+    family = MaterialFamily.Paper,
+    weight = Some(PaperWeight.unsafe(250)),
+    properties = matteCoatedProps,
+  )
+
+  val coatedMatte300gsm: Material = Material(
+    id = coatedMatte300gsmId,
+    name = LocalizedString("Coated Art Paper Matte 300gsm", "Křídový papír matný 300g"),
+    family = MaterialFamily.Paper,
+    weight = Some(PaperWeight.unsafe(300)),
+    properties = matteCoatedProps,
+  )
+
+  val coatedMatte350gsm: Material = Material(
+    id = coatedMatte350gsmId,
+    name = LocalizedString("Coated Art Paper Matte 350gsm", "Křídový papír matný 350g"),
+    family = MaterialFamily.Paper,
+    weight = Some(PaperWeight.unsafe(350)),
+    properties = matteCoatedProps,
   )
 
   // --- Printing Methods ---
@@ -263,7 +426,15 @@ object SampleCatalog:
   val flyers: ProductCategory = ProductCategory(
     id = flyersId,
     name = LocalizedString("Flyers", "Letáky"),
-    allowedMaterialIds = Set(coated300gsmId, uncoatedBondId),
+    allowedMaterialIds = Set(
+      coated300gsmId, uncoatedBondId,
+      coatedGlossy90gsmId, coatedGlossy115gsmId, coatedGlossy130gsmId,
+      coatedGlossy150gsmId, coatedGlossy170gsmId, coatedGlossy200gsmId,
+      coatedGlossy250gsmId, coatedGlossy350gsmId,
+      coatedMatte90gsmId, coatedMatte115gsmId, coatedMatte130gsmId,
+      coatedMatte150gsmId, coatedMatte170gsmId, coatedMatte200gsmId,
+      coatedMatte250gsmId, coatedMatte300gsmId, coatedMatte350gsmId,
+    ),
     allowedFinishIds = Set(matteLaminationId, glossLaminationId, uvCoatingId, varnishId, aqueousCoatingId),
     requiredSpecKinds = Set(SpecKind.Size, SpecKind.Quantity, SpecKind.InkConfig, SpecKind.Orientation),
     allowedPrintingMethodIds = Set(offsetId, digitalId),
@@ -335,6 +506,25 @@ object SampleCatalog:
       yupoId              -> yupo,
       adhesiveStockId     -> adhesiveStock,
       cottonId            -> cotton,
+      // Coated Art Paper Glossy
+      coatedGlossy90gsmId  -> coatedGlossy90gsm,
+      coatedGlossy115gsmId -> coatedGlossy115gsm,
+      coatedGlossy130gsmId -> coatedGlossy130gsm,
+      coatedGlossy150gsmId -> coatedGlossy150gsm,
+      coatedGlossy170gsmId -> coatedGlossy170gsm,
+      coatedGlossy200gsmId -> coatedGlossy200gsm,
+      coatedGlossy250gsmId -> coatedGlossy250gsm,
+      coatedGlossy350gsmId -> coatedGlossy350gsm,
+      // Coated Art Paper Matte
+      coatedMatte90gsmId  -> coatedMatte90gsm,
+      coatedMatte115gsmId -> coatedMatte115gsm,
+      coatedMatte130gsmId -> coatedMatte130gsm,
+      coatedMatte150gsmId -> coatedMatte150gsm,
+      coatedMatte170gsmId -> coatedMatte170gsm,
+      coatedMatte200gsmId -> coatedMatte200gsm,
+      coatedMatte250gsmId -> coatedMatte250gsm,
+      coatedMatte300gsmId -> coatedMatte300gsm,
+      coatedMatte350gsmId -> coatedMatte350gsm,
     ),
     finishes = Map(
       matteLaminationId  -> matteLamination,
