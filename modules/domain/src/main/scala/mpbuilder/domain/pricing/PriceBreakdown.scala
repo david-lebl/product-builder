@@ -9,6 +9,7 @@ final case class LineItem(
 
 final case class PriceBreakdown(
     materialLine: LineItem,
+    inkConfigLine: Option[LineItem],
     finishLines: List[LineItem],
     processSurcharge: Option[LineItem],
     categorySurcharge: Option[LineItem],

@@ -127,22 +127,22 @@ object CatalogQueryServiceSpec extends ZIOSpecDefault:
       },
     ),
     suite("requiredSpecifications")(
-      test("business cards require Size, Quantity, ColorMode") {
+      test("business cards require Size, Quantity, InkConfig") {
         val specs = CatalogQueryService.requiredSpecifications(SampleCatalog.businessCardsId, catalog)
         assertTrue(
-          specs == Set(SpecKind.Size, SpecKind.Quantity, SpecKind.ColorMode),
+          specs == Set(SpecKind.Size, SpecKind.Quantity, SpecKind.InkConfig),
         )
       },
-      test("brochures require Size, Quantity, ColorMode, FoldType, Pages") {
+      test("brochures require Size, Quantity, InkConfig, FoldType, Pages") {
         val specs = CatalogQueryService.requiredSpecifications(SampleCatalog.brochuresId, catalog)
         assertTrue(
-          specs == Set(SpecKind.Size, SpecKind.Quantity, SpecKind.ColorMode, SpecKind.FoldType, SpecKind.Pages),
+          specs == Set(SpecKind.Size, SpecKind.Quantity, SpecKind.InkConfig, SpecKind.FoldType, SpecKind.Pages),
         )
       },
-      test("booklets require Size, Quantity, ColorMode, Pages, BindingMethod") {
+      test("booklets require Size, Quantity, InkConfig, Pages, BindingMethod") {
         val specs = CatalogQueryService.requiredSpecifications(SampleCatalog.bookletsId, catalog)
         assertTrue(
-          specs == Set(SpecKind.Size, SpecKind.Quantity, SpecKind.ColorMode, SpecKind.Pages, SpecKind.BindingMethod),
+          specs == Set(SpecKind.Size, SpecKind.Quantity, SpecKind.InkConfig, SpecKind.Pages, SpecKind.BindingMethod),
         )
       },
       test("unknown category returns empty") {

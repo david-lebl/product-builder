@@ -60,7 +60,7 @@ object BasketServiceSpec extends ZIOSpecDefault:
           specs = List(
             SpecValue.SizeSpec(Dimension(90, 55)),
             SpecValue.QuantitySpec(Quantity.unsafe(500)),
-            SpecValue.ColorModeSpec(ColorMode.CMYK),
+            SpecValue.InkConfigSpec(InkConfiguration.cmyk4_4),
           ),
         )
 
@@ -84,7 +84,7 @@ object BasketServiceSpec extends ZIOSpecDefault:
           specs = List(
             SpecValue.SizeSpec(Dimension(90, 55)),
             SpecValue.QuantitySpec(Quantity.unsafe(100)),
-            SpecValue.ColorModeSpec(ColorMode.CMYK),
+            SpecValue.InkConfigSpec(InkConfiguration.cmyk4_4),
           ),
         )
 
@@ -97,7 +97,7 @@ object BasketServiceSpec extends ZIOSpecDefault:
           specs = List(
             SpecValue.SizeSpec(Dimension(210, 297)),
             SpecValue.QuantitySpec(Quantity.unsafe(200)),
-            SpecValue.ColorModeSpec(ColorMode.CMYK),
+            SpecValue.InkConfigSpec(InkConfiguration.cmyk4_4),
           ),
         )
 
@@ -122,7 +122,7 @@ object BasketServiceSpec extends ZIOSpecDefault:
           specs = List(
             SpecValue.SizeSpec(Dimension(90, 55)),
             SpecValue.QuantitySpec(Quantity.unsafe(100)),
-            SpecValue.ColorModeSpec(ColorMode.CMYK),
+            SpecValue.InkConfigSpec(InkConfiguration.cmyk4_4),
           ),
         )
 
@@ -145,7 +145,7 @@ object BasketServiceSpec extends ZIOSpecDefault:
           specs = List(
             SpecValue.SizeSpec(Dimension(90, 55)),
             SpecValue.QuantitySpec(Quantity.unsafe(100)),
-            SpecValue.ColorModeSpec(ColorMode.CMYK),
+            SpecValue.InkConfigSpec(InkConfiguration.cmyk4_4),
           ),
         )
 
@@ -170,7 +170,7 @@ object BasketServiceSpec extends ZIOSpecDefault:
           specs = List(
             SpecValue.SizeSpec(Dimension(90, 55)),
             SpecValue.QuantitySpec(Quantity.unsafe(100)),
-            SpecValue.ColorModeSpec(ColorMode.CMYK),
+            SpecValue.InkConfigSpec(InkConfiguration.cmyk4_4),
           ),
         )
 
@@ -201,7 +201,7 @@ object BasketServiceSpec extends ZIOSpecDefault:
           specs = List(
             SpecValue.SizeSpec(Dimension(90, 55)),
             SpecValue.QuantitySpec(Quantity.unsafe(100)),
-            SpecValue.ColorModeSpec(ColorMode.CMYK),
+            SpecValue.InkConfigSpec(InkConfiguration.cmyk4_4),
           ),
         )
 
@@ -214,7 +214,7 @@ object BasketServiceSpec extends ZIOSpecDefault:
           specs = List(
             SpecValue.SizeSpec(Dimension(210, 297)),
             SpecValue.QuantitySpec(Quantity.unsafe(200)),
-            SpecValue.ColorModeSpec(ColorMode.CMYK),
+            SpecValue.InkConfigSpec(InkConfiguration.cmyk4_4),
           ),
         )
 
@@ -246,7 +246,7 @@ object BasketServiceSpec extends ZIOSpecDefault:
           specs = List(
             SpecValue.SizeSpec(Dimension(90, 55)),
             SpecValue.QuantitySpec(Quantity.unsafe(100)),
-            SpecValue.ColorModeSpec(ColorMode.CMYK),
+            SpecValue.InkConfigSpec(InkConfiguration.cmyk4_4),
           ),
         )
 
@@ -277,7 +277,7 @@ object BasketServiceSpec extends ZIOSpecDefault:
           specs = List(
             SpecValue.SizeSpec(Dimension(90, 55)),
             SpecValue.QuantitySpec(Quantity.unsafe(100)),
-            SpecValue.ColorModeSpec(ColorMode.CMYK),
+            SpecValue.InkConfigSpec(InkConfiguration.cmyk4_4),
           ),
         )
 
@@ -299,7 +299,7 @@ object BasketServiceSpec extends ZIOSpecDefault:
           specs = List(
             SpecValue.SizeSpec(Dimension(90, 55)),
             SpecValue.QuantitySpec(Quantity.unsafe(100)),
-            SpecValue.ColorModeSpec(ColorMode.CMYK),
+            SpecValue.InkConfigSpec(InkConfiguration.cmyk4_4),
           ),
         )
 
@@ -323,7 +323,7 @@ object BasketServiceSpec extends ZIOSpecDefault:
           specs = List(
             SpecValue.SizeSpec(Dimension(90, 55)),
             SpecValue.QuantitySpec(Quantity.unsafe(500)),
-            SpecValue.ColorModeSpec(ColorMode.CMYK),
+            SpecValue.InkConfigSpec(InkConfiguration.cmyk4_4),
           ),
         )
 
@@ -350,7 +350,7 @@ object BasketServiceSpec extends ZIOSpecDefault:
           specs = List(
             SpecValue.SizeSpec(Dimension(90, 55)),
             SpecValue.QuantitySpec(Quantity.unsafe(500)),
-            SpecValue.ColorModeSpec(ColorMode.CMYK),
+            SpecValue.InkConfigSpec(InkConfiguration.cmyk4_4),
           ),
         )
 
@@ -376,7 +376,7 @@ object BasketServiceSpec extends ZIOSpecDefault:
           specs = List(
             SpecValue.SizeSpec(Dimension(90, 55)),
             SpecValue.QuantitySpec(Quantity.unsafe(100)),
-            SpecValue.ColorModeSpec(ColorMode.CMYK),
+            SpecValue.InkConfigSpec(InkConfiguration.cmyk4_4),
           ),
         )
 
@@ -389,7 +389,7 @@ object BasketServiceSpec extends ZIOSpecDefault:
           specs = List(
             SpecValue.SizeSpec(Dimension(90, 55)),
             SpecValue.QuantitySpec(Quantity.unsafe(500)),
-            SpecValue.ColorModeSpec(ColorMode.CMYK),
+            SpecValue.InkConfigSpec(InkConfiguration.cmyk4_4),
           ),
         )
 
@@ -426,7 +426,7 @@ object BasketServiceSpec extends ZIOSpecDefault:
           specs = List(
             SpecValue.SizeSpec(Dimension(90, 55)),
             SpecValue.QuantitySpec(Quantity.unsafe(100)),
-            SpecValue.ColorModeSpec(ColorMode.CMYK),
+            SpecValue.InkConfigSpec(InkConfiguration.cmyk4_4),
           ),
         )
 

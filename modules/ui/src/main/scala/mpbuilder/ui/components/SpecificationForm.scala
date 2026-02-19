@@ -117,62 +117,68 @@ object SpecificationForm:
         ),
       ),
 
-      // Color Mode
+      // Ink Configuration
       div(
         cls := "form-group",
         label(child.text <-- lang.map {
-          case Language.En => "Color Mode:"
-          case Language.Cs => "Barevný režim:"
+          case Language.En => "Ink Configuration:"
+          case Language.Cs => "Konfigurace inkoustu:"
         }),
         select(
-          children <-- ProductBuilderViewModel.selectedColorMode.combineWith(lang).map { case (selectedMode, l) =>
-            val currentValue = selectedMode match
-              case Some(ColorMode.CMYK) => "cmyk"
-              case Some(ColorMode.Grayscale) => "grayscale"
-              case Some(ColorMode.PMS) => "pms"
-              case None => ""
+          children <-- ProductBuilderViewModel.selectedInkConfig.combineWith(lang).map { case (selectedConfig, l) =>
+            val currentValue = selectedConfig match
+              case Some(c) if c == InkConfiguration.cmyk4_4 => "4/4"
+              case Some(c) if c == InkConfiguration.cmyk4_0 => "4/0"
+              case Some(c) if c == InkConfiguration.cmyk4_1 => "4/1"
+              case Some(c) if c == InkConfiguration.mono1_0 => "1/0"
+              case Some(c) if c == InkConfiguration.mono1_1 => "1/1"
+              case _ => ""
             List(
               option(
                 l match
-                  case Language.En => "-- Select color mode --"
-                  case Language.Cs => "-- Vyberte barevný režim --"
+                  case Language.En => "-- Select ink configuration --"
+                  case Language.Cs => "-- Vyberte konfiguraci inkoustu --"
                 , value := "", selected := currentValue.isEmpty),
               option(
                 l match
-                  case Language.En => "CMYK (Full Color)"
-                  case Language.Cs => "CMYK (plné barvy)"
-                , value := "cmyk", selected := (currentValue == "cmyk")),
+                  case Language.En => "4/4 CMYK both sides"
+                  case Language.Cs => "4/4 CMYK oboustranně"
+                , value := "4/4", selected := (currentValue == "4/4")),
               option(
                 l match
-                  case Language.En => "PMS (Spot Color)"
-                  case Language.Cs => "PMS (přímá barva)"
-                , value := "pms", selected := (currentValue == "pms")),
+                  case Language.En => "4/0 CMYK front only"
+                  case Language.Cs => "4/0 CMYK jen přední strana"
+                , value := "4/0", selected := (currentValue == "4/0")),
               option(
                 l match
-                  case Language.En => "Grayscale"
-                  case Language.Cs => "Stupně šedi"
-                , value := "grayscale", selected := (currentValue == "grayscale")),
+                  case Language.En => "4/1 CMYK front + grayscale back"
+                  case Language.Cs => "4/1 CMYK přední + šedá zadní"
+                , value := "4/1", selected := (currentValue == "4/1")),
+              option(
+                l match
+                  case Language.En => "1/0 Grayscale front only"
+                  case Language.Cs => "1/0 Šedá jen přední strana"
+                , value := "1/0", selected := (currentValue == "1/0")),
+              option(
+                l match
+                  case Language.En => "1/1 Grayscale both sides"
+                  case Language.Cs => "1/1 Šedá oboustranně"
+                , value := "1/1", selected := (currentValue == "1/1")),
             )
           },
           value <-- clearFieldsStream,
           onChange.mapToValue --> { value =>
-            value match
-              case "cmyk" =>
-                ProductBuilderViewModel.removeSpecification(classOf[SpecValue.ColorModeSpec])
-                ProductBuilderViewModel.addSpecification(
-                  SpecValue.ColorModeSpec(ColorMode.CMYK)
-                )
-              case "pms" =>
-                ProductBuilderViewModel.removeSpecification(classOf[SpecValue.ColorModeSpec])
-                ProductBuilderViewModel.addSpecification(
-                  SpecValue.ColorModeSpec(ColorMode.PMS)
-                )
-              case "grayscale" =>
-                ProductBuilderViewModel.removeSpecification(classOf[SpecValue.ColorModeSpec])
-                ProductBuilderViewModel.addSpecification(
-                  SpecValue.ColorModeSpec(ColorMode.Grayscale)
-                )
-              case _ => ()
+            val inkConfig = value match
+              case "4/4" => Some(InkConfiguration.cmyk4_4)
+              case "4/0" => Some(InkConfiguration.cmyk4_0)
+              case "4/1" => Some(InkConfiguration.cmyk4_1)
+              case "1/0" => Some(InkConfiguration.mono1_0)
+              case "1/1" => Some(InkConfiguration.mono1_1)
+              case _ => scala.None
+            inkConfig.foreach { config =>
+              ProductBuilderViewModel.removeSpecification(classOf[SpecValue.InkConfigSpec])
+              ProductBuilderViewModel.addSpecification(SpecValue.InkConfigSpec(config))
+            }
           },
         ),
       ),

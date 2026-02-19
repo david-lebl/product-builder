@@ -130,10 +130,20 @@ object RuleEvaluator:
             else Validation.unit
           case _ => Validation.unit
 
-      case SpecPredicate.AllowedColorModes(modes) =>
-        specs.get(SpecKind.ColorMode) match
-          case Some(SpecValue.ColorModeSpec(mode)) =>
-            if !modes.contains(mode) then
+      case SpecPredicate.AllowedInkTypes(inkTypes) =>
+        specs.get(SpecKind.InkConfig) match
+          case Some(SpecValue.InkConfigSpec(config)) =>
+            val frontOk = config.front.inkType == InkType.None || inkTypes.contains(config.front.inkType)
+            val backOk = config.back.inkType == InkType.None || inkTypes.contains(config.back.inkType)
+            if !frontOk || !backOk then
+              Validation.fail(ConfigurationError.SpecConstraintViolation(categoryId, predicate, reason))
+            else Validation.unit
+          case _ => Validation.unit
+
+      case SpecPredicate.MaxColorCountPerSide(max) =>
+        specs.get(SpecKind.InkConfig) match
+          case Some(SpecValue.InkConfigSpec(config)) =>
+            if config.front.colorCount > max || config.back.colorCount > max then
               Validation.fail(ConfigurationError.SpecConstraintViolation(categoryId, predicate, reason))
             else Validation.unit
           case _ => Validation.unit

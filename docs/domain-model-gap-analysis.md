@@ -24,10 +24,12 @@ FinishSide: Front, Back, Both
 Finish: id, name, finishType, side
 
 // Specifications
-SpecKind: Size, Quantity, ColorMode, Orientation, Bleed, Pages, FoldType, BindingMethod
+SpecKind: Size, Quantity, InkConfig, Orientation, Bleed, Pages, FoldType, BindingMethod
 FoldType: Half, Tri, Gate, Accordion, ZFold, RollFold, FrenchFold, CrossFold
 BindingMethod: SaddleStitch, PerfectBinding, SpiralBinding, WireOBinding, CaseBinding
-ColorMode: CMYK, PMS, Grayscale
+InkType: CMYK, PMS, Grayscale
+InkSetup: inkType, colorCount
+InkConfiguration: front (InkSetup), back (Option[InkSetup])  // e.g. 4/0, 4/4, 4/1
 
 // Printing
 PrintingProcessType: Offset, Digital, Letterpress, ScreenPrint, UVCurableInkjet, LatexInkjet, SolventInkjet
@@ -55,8 +57,8 @@ CompatibilityRule:
 // Predicates (boolean algebra)
 ConfigurationPredicate: Spec, HasMaterialProperty, HasMaterialFamily, HasPrintingProcess,
   HasMinWeight, And, Or, Not
-SpecPredicate: MinDimension, MaxDimension, MinQuantity, MaxQuantity, AllowedColorModes,
-  AllowedBindingMethods, AllowedFoldTypes, MinPages, MaxPages
+SpecPredicate: MinDimension, MaxDimension, MinQuantity, MaxQuantity, AllowedInkTypes,
+  MaxColorCountPerSide, AllowedBindingMethods, AllowedFoldTypes, MinPages, MaxPages
 ```
 
 ---
@@ -85,7 +87,6 @@ SpecPredicate: MinDimension, MaxDimension, MinQuantity, MaxQuantity, AllowedColo
 
 | Gap | Issue | Impact | Priority |
 |---|---|---|---|
-| **No ink configuration** | 4/0, 4/4, 1/0, 4/1, CMYK+PMS, CMYK+White are not modeled | A 4/0 flyer costs roughly half a 4/4 flyer. `ColorMode` alone doesn't capture print sides or spot color additions. This is the single biggest pricing gap for small-format | **High** |
 | **No cover vs body distinction** | Booklets need separate cover material/weight from body pages | Can't properly configure a booklet with 300gsm cover and 120gsm body | High |
 | **No adhesive type** | Permanent vs removable for stickers | Only relevant if stickers are in scope | Low |
 | **No NCR parts/plies** | 2-part, 3-part, 4-part carbonless forms | Niche product type | Low |
@@ -113,26 +114,25 @@ SpecPredicate: MinDimension, MaxDimension, MinQuantity, MaxQuantity, AllowedColo
 
 | # | Gap | Why |
 |---|-----|-----|
-| 1 | **Ink configuration** | A 4/0 vs 4/4 distinction is fundamental to every print quote. Affects pricing (halves material cost for single-sided), finish applicability, and is expected by every print buyer. |
-| 2 | **Multi-component products** | Booklets and catalogs need cover + body with independent material, weight, finish, and page count. Currently impossible with single-material configurations. |
-| 3 | **Material surface/coating** | Every print shop distinguishes Coated Gloss / Coated Silk / Coated Matte / Uncoated as separate substrate lines. Our `Glossy`/`Matte` properties blur intrinsic surface with applied finish. |
+| 1 | **Multi-component products** | Booklets and catalogs need cover + body with independent material, weight, finish, and page count. Currently impossible with single-material configurations. |
+| 2 | **Material surface/coating** | Every print shop distinguishes Coated Gloss / Coated Silk / Coated Matte / Uncoated as separate substrate lines. Our `Glossy`/`Matte` properties blur intrinsic surface with applied finish. |
 
 ### Medium Priority (improves correctness and range)
 
 | # | Gap | Why |
 |---|-----|-----|
-| 4 | **Finish parameters** | Foil color (gold/silver/custom), corner radius, perforation pitch — needed for accurate quoting. Lamination variants already work via separate finish instances. |
-| 5 | **Missing material families** | `Synthetic` and `Adhesive` would let rules target these substrates generically instead of by individual material ID. |
-| 6 | **Conditional finish dependencies** | "Add scoring when folding heavy stock" — currently can only reject, not suggest. |
+| 3 | **Finish parameters** | Foil color (gold/silver/custom), corner radius, perforation pitch — needed for accurate quoting. Lamination variants already work via separate finish instances. |
+| 4 | **Missing material families** | `Synthetic` and `Adhesive` would let rules target these substrates generically instead of by individual material ID. |
+| 5 | **Conditional finish dependencies** | "Add scoring when folding heavy stock" — currently can only reject, not suggest. |
 
 ### Lower Priority (nice-to-have for small-format)
 
 | # | Gap | Why |
 |---|-----|-----|
-| 7 | Material format (sheet/roll) | Always sheets for small-format; relevant for waste/pricing later |
-| 8 | Missing material properties | `SelfAdhesive`, `TearResistant` — needed when stickers/synthetic are in scope |
-| 9 | Auto-suggestion rules | UX improvement, not a data model gap |
-| 10 | Adhesive type, NCR plies | Niche products, can defer |
+| 6 | Material format (sheet/roll) | Always sheets for small-format; relevant for waste/pricing later |
+| 7 | Missing material properties | `SelfAdhesive`, `TearResistant` — needed when stickers/synthetic are in scope |
+| 8 | Auto-suggestion rules | UX improvement, not a data model gap |
+| 9 | Adhesive type, NCR plies | Niche products, can defer |
 
 ---
 
@@ -152,3 +152,4 @@ The following gaps from the original analysis have been implemented:
 - **Conditional rules**: `ConfigurationConstraint` with `ConfigurationPredicate` boolean algebra (And/Or/Not/HasMinWeight/HasMaterialProperty/HasMaterialFamily/HasPrintingProcess)
 - **Category printing methods**: `allowedPrintingMethodIds` on `ProductCategory`
 - **Finish category exclusion**: `FinishCategoryExclusive` rule variant
+- **Ink configuration**: `InkType`/`InkSetup`/`InkConfiguration` replace `ColorMode`. Per-side ink setup (e.g., 4/0, 4/4, 4/1) with `InkConfigurationFactor` pricing rule. `SpecKind.InkConfig` + `SpecValue.InkConfigSpec`. Structural validation checks `maxColorCount` against `PrintingMethod.maxColorCount`

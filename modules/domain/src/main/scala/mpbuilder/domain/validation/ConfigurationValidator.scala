@@ -52,7 +52,14 @@ object ConfigurationValidator:
         Validation.unit
       else Validation.fail(ConfigurationError.InvalidCategoryPrintingMethod(category.id, printingMethod.id))
 
-    val allChecks = materialCheck :: finishChecks ::: specChecks ::: List(printingMethodCheck)
+    val inkConfigCheck = (specifications.get(SpecKind.InkConfig), printingMethod.maxColorCount) match
+      case (Some(SpecValue.InkConfigSpec(config)), Some(max)) =>
+        if config.maxColorCount > max then
+          Validation.fail(ConfigurationError.InkConfigExceedsMethodColorLimit(printingMethod.id, config, max))
+        else Validation.unit
+      case _ => Validation.unit
+
+    val allChecks = materialCheck :: finishChecks ::: specChecks ::: List(printingMethodCheck, inkConfigCheck)
     allChecks.foldLeft(Validation.unit: Validation[ConfigurationError, Unit])((acc, v) =>
       acc.zipRight(v),
     )

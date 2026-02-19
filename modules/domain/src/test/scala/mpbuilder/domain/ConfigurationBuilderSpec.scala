@@ -25,7 +25,7 @@ object ConfigurationBuilderSpec extends ZIOSpecDefault:
           specs = List(
             SpecValue.SizeSpec(Dimension(90, 55)),
             SpecValue.QuantitySpec(Quantity.unsafe(500)),
-            SpecValue.ColorModeSpec(ColorMode.CMYK),
+            SpecValue.InkConfigSpec(InkConfiguration.cmyk4_4),
           ),
         )
 
@@ -47,7 +47,7 @@ object ConfigurationBuilderSpec extends ZIOSpecDefault:
           specs = List(
             SpecValue.SizeSpec(Dimension(90, 55)),
             SpecValue.QuantitySpec(Quantity.unsafe(500)),
-            SpecValue.ColorModeSpec(ColorMode.CMYK),
+            SpecValue.InkConfigSpec(InkConfiguration.cmyk4_4),
           ),
         )
 
@@ -63,7 +63,7 @@ object ConfigurationBuilderSpec extends ZIOSpecDefault:
           specs = List(
             SpecValue.SizeSpec(Dimension(1000, 500)),
             SpecValue.QuantitySpec(Quantity.unsafe(10)),
-            SpecValue.ColorModeSpec(ColorMode.CMYK),
+            SpecValue.InkConfigSpec(InkConfiguration.cmyk4_4),
           ),
         )
 
@@ -79,7 +79,7 @@ object ConfigurationBuilderSpec extends ZIOSpecDefault:
           specs = List(
             SpecValue.SizeSpec(Dimension(297, 210)),
             SpecValue.QuantitySpec(Quantity.unsafe(1000)),
-            SpecValue.ColorModeSpec(ColorMode.CMYK),
+            SpecValue.InkConfigSpec(InkConfiguration.cmyk4_4),
             SpecValue.FoldTypeSpec(FoldType.Tri),
             SpecValue.PagesSpec(6),
           ),
@@ -97,7 +97,7 @@ object ConfigurationBuilderSpec extends ZIOSpecDefault:
           specs = List(
             SpecValue.SizeSpec(Dimension(210, 148)),
             SpecValue.QuantitySpec(Quantity.unsafe(500)),
-            SpecValue.ColorModeSpec(ColorMode.CMYK),
+            SpecValue.InkConfigSpec(InkConfiguration.cmyk4_4),
             SpecValue.PagesSpec(32),
             SpecValue.BindingMethodSpec(BindingMethod.SaddleStitch),
           ),
@@ -115,7 +115,7 @@ object ConfigurationBuilderSpec extends ZIOSpecDefault:
           specs = List(
             SpecValue.SizeSpec(Dimension(297, 210)),
             SpecValue.QuantitySpec(Quantity.unsafe(100)),
-            SpecValue.ColorModeSpec(ColorMode.CMYK),
+            SpecValue.InkConfigSpec(InkConfiguration.cmyk4_4),
             SpecValue.PagesSpec(14),
             SpecValue.BindingMethodSpec(BindingMethod.SpiralBinding),
           ),
@@ -137,7 +137,7 @@ object ConfigurationBuilderSpec extends ZIOSpecDefault:
           specs = List(
             SpecValue.SizeSpec(Dimension(90, 55)),
             SpecValue.QuantitySpec(Quantity.unsafe(500)),
-            SpecValue.ColorModeSpec(ColorMode.CMYK),
+            SpecValue.InkConfigSpec(InkConfiguration.cmyk4_4),
           ),
         )
 
@@ -158,7 +158,7 @@ object ConfigurationBuilderSpec extends ZIOSpecDefault:
           specs = List(
             SpecValue.SizeSpec(Dimension(200, 150)),
             SpecValue.QuantitySpec(Quantity.unsafe(100)),
-            SpecValue.ColorModeSpec(ColorMode.CMYK),
+            SpecValue.InkConfigSpec(InkConfiguration.cmyk4_4),
           ),
         )
 
@@ -177,7 +177,7 @@ object ConfigurationBuilderSpec extends ZIOSpecDefault:
           specs = List(
             SpecValue.SizeSpec(Dimension(200, 150)),
             SpecValue.QuantitySpec(Quantity.unsafe(100)),
-            SpecValue.ColorModeSpec(ColorMode.CMYK),
+            SpecValue.InkConfigSpec(InkConfiguration.cmyk4_4),
           ),
         )
 
@@ -196,7 +196,7 @@ object ConfigurationBuilderSpec extends ZIOSpecDefault:
           specs = List(
             SpecValue.SizeSpec(Dimension(90, 55)),
             SpecValue.QuantitySpec(Quantity.unsafe(500)),
-            SpecValue.ColorModeSpec(ColorMode.CMYK),
+            SpecValue.InkConfigSpec(InkConfiguration.cmyk4_4),
           ),
         )
 
@@ -215,7 +215,7 @@ object ConfigurationBuilderSpec extends ZIOSpecDefault:
           specs = List(
             SpecValue.SizeSpec(Dimension(90, 55)),
             SpecValue.QuantitySpec(Quantity.unsafe(500)),
-            SpecValue.ColorModeSpec(ColorMode.CMYK),
+            SpecValue.InkConfigSpec(InkConfiguration.cmyk4_4),
           ),
         )
 
@@ -233,7 +233,7 @@ object ConfigurationBuilderSpec extends ZIOSpecDefault:
           finishIds = Nil,
           specs = List(
             SpecValue.SizeSpec(Dimension(90, 55)),
-            // Missing Quantity and ColorMode
+            // Missing Quantity and InkConfig
           ),
         )
 
@@ -252,7 +252,7 @@ object ConfigurationBuilderSpec extends ZIOSpecDefault:
           specs = List(
             SpecValue.SizeSpec(Dimension(200, 150)),
             SpecValue.QuantitySpec(Quantity.unsafe(100)),
-            SpecValue.ColorModeSpec(ColorMode.CMYK),
+            SpecValue.InkConfigSpec(InkConfiguration.cmyk4_4),
           ),
         )
 
@@ -270,7 +270,7 @@ object ConfigurationBuilderSpec extends ZIOSpecDefault:
           specs = List(
             SpecValue.SizeSpec(Dimension(200, 100)), // Too large
             SpecValue.QuantitySpec(Quantity.unsafe(500)),
-            SpecValue.ColorModeSpec(ColorMode.CMYK),
+            SpecValue.InkConfigSpec(InkConfiguration.cmyk4_4),
           ),
         )
 
@@ -289,7 +289,7 @@ object ConfigurationBuilderSpec extends ZIOSpecDefault:
           specs = List(
             SpecValue.SizeSpec(Dimension(90, 55)),
             SpecValue.QuantitySpec(Quantity.unsafe(10)), // Below minimum 100
-            SpecValue.ColorModeSpec(ColorMode.CMYK),
+            SpecValue.InkConfigSpec(InkConfiguration.cmyk4_4),
           ),
         )
 
@@ -299,7 +299,7 @@ object ConfigurationBuilderSpec extends ZIOSpecDefault:
           errors.exists(_.isInstanceOf[ConfigurationError.SpecConstraintViolation]),
         )
       },
-      test("banner with PMS color mode is rejected") {
+      test("banner with PMS ink type is rejected") {
         val request = ConfigurationRequest(
           categoryId = SampleCatalog.bannersId,
           materialId = SampleCatalog.vinylId,
@@ -308,7 +308,7 @@ object ConfigurationBuilderSpec extends ZIOSpecDefault:
           specs = List(
             SpecValue.SizeSpec(Dimension(1000, 500)),
             SpecValue.QuantitySpec(Quantity.unsafe(10)),
-            SpecValue.ColorModeSpec(ColorMode.PMS),
+            SpecValue.InkConfigSpec(InkConfiguration(InkSetup.pms(2), InkSetup.none)),
           ),
         )
 
@@ -342,7 +342,7 @@ object ConfigurationBuilderSpec extends ZIOSpecDefault:
           specs = List(
             SpecValue.SizeSpec(Dimension(90, 55)),
             SpecValue.QuantitySpec(Quantity.unsafe(500)),
-            SpecValue.ColorModeSpec(ColorMode.CMYK),
+            SpecValue.InkConfigSpec(InkConfiguration.cmyk4_4),
           ),
         )
 
@@ -363,7 +363,7 @@ object ConfigurationBuilderSpec extends ZIOSpecDefault:
           specs = List(
             SpecValue.SizeSpec(Dimension(90, 55)),
             SpecValue.QuantitySpec(Quantity.unsafe(500)),
-            SpecValue.ColorModeSpec(ColorMode.CMYK),
+            SpecValue.InkConfigSpec(InkConfiguration.cmyk4_4),
           ),
         )
 
@@ -382,7 +382,7 @@ object ConfigurationBuilderSpec extends ZIOSpecDefault:
           specs = List(
             SpecValue.SizeSpec(Dimension(90, 55)),
             SpecValue.QuantitySpec(Quantity.unsafe(500)),
-            SpecValue.ColorModeSpec(ColorMode.CMYK),
+            SpecValue.InkConfigSpec(InkConfiguration.cmyk4_4),
           ),
         )
 
@@ -400,7 +400,7 @@ object ConfigurationBuilderSpec extends ZIOSpecDefault:
           specs = List(
             SpecValue.SizeSpec(Dimension(90, 55)),
             SpecValue.QuantitySpec(Quantity.unsafe(500)),
-            SpecValue.ColorModeSpec(ColorMode.CMYK),
+            SpecValue.InkConfigSpec(InkConfiguration.cmyk4_4),
           ),
         )
 
@@ -421,7 +421,7 @@ object ConfigurationBuilderSpec extends ZIOSpecDefault:
           specs = List(
             SpecValue.SizeSpec(Dimension(210, 297)),
             SpecValue.QuantitySpec(Quantity.unsafe(500)),
-            SpecValue.ColorModeSpec(ColorMode.CMYK),
+            SpecValue.InkConfigSpec(InkConfiguration.cmyk4_4),
             SpecValue.OrientationSpec(Orientation.Portrait),
           ),
         )
@@ -441,7 +441,7 @@ object ConfigurationBuilderSpec extends ZIOSpecDefault:
           specs = List(
             SpecValue.SizeSpec(Dimension(210, 297)),
             SpecValue.QuantitySpec(Quantity.unsafe(500)),
-            SpecValue.ColorModeSpec(ColorMode.CMYK),
+            SpecValue.InkConfigSpec(InkConfiguration.cmyk4_4),
             SpecValue.OrientationSpec(Orientation.Portrait),
           ),
         )
@@ -460,7 +460,7 @@ object ConfigurationBuilderSpec extends ZIOSpecDefault:
           specs = List(
             SpecValue.SizeSpec(Dimension(210, 297)),
             SpecValue.QuantitySpec(Quantity.unsafe(500)),
-            SpecValue.ColorModeSpec(ColorMode.CMYK),
+            SpecValue.InkConfigSpec(InkConfiguration.cmyk4_4),
             SpecValue.OrientationSpec(Orientation.Portrait),
           ),
         )
@@ -480,7 +480,7 @@ object ConfigurationBuilderSpec extends ZIOSpecDefault:
           specs = List(
             SpecValue.SizeSpec(Dimension(210, 297)),
             SpecValue.QuantitySpec(Quantity.unsafe(500)),
-            SpecValue.ColorModeSpec(ColorMode.CMYK),
+            SpecValue.InkConfigSpec(InkConfiguration.cmyk4_4),
             SpecValue.OrientationSpec(Orientation.Portrait),
           ),
         )
@@ -499,7 +499,7 @@ object ConfigurationBuilderSpec extends ZIOSpecDefault:
           specs = List(
             SpecValue.SizeSpec(Dimension(210, 148)),
             SpecValue.QuantitySpec(Quantity.unsafe(500)),
-            SpecValue.ColorModeSpec(ColorMode.CMYK),
+            SpecValue.InkConfigSpec(InkConfiguration.cmyk4_4),
             SpecValue.PagesSpec(32),
             SpecValue.BindingMethodSpec(BindingMethod.CaseBinding),
           ),
@@ -520,7 +520,7 @@ object ConfigurationBuilderSpec extends ZIOSpecDefault:
           specs = List(
             SpecValue.SizeSpec(Dimension(210, 148)),
             SpecValue.QuantitySpec(Quantity.unsafe(500)),
-            SpecValue.ColorModeSpec(ColorMode.CMYK),
+            SpecValue.InkConfigSpec(InkConfiguration.cmyk4_4),
             SpecValue.PagesSpec(4),
             SpecValue.BindingMethodSpec(BindingMethod.SaddleStitch),
           ),
@@ -543,7 +543,7 @@ object ConfigurationBuilderSpec extends ZIOSpecDefault:
           specs = List(
             SpecValue.SizeSpec(Dimension(1000, 500)),
             SpecValue.QuantitySpec(Quantity.unsafe(10)),
-            SpecValue.ColorModeSpec(ColorMode.CMYK),
+            SpecValue.InkConfigSpec(InkConfiguration.cmyk4_4),
           ),
         )
 
@@ -583,7 +583,7 @@ object ConfigurationBuilderSpec extends ZIOSpecDefault:
           specs = List(
             SpecValue.SizeSpec(Dimension(297, 210)),
             SpecValue.QuantitySpec(Quantity.unsafe(100)),
-            SpecValue.ColorModeSpec(ColorMode.CMYK),
+            SpecValue.InkConfigSpec(InkConfiguration.cmyk4_4),
             SpecValue.PagesSpec(14),
             SpecValue.BindingMethodSpec(BindingMethod.SaddleStitch),
           ),
@@ -604,7 +604,7 @@ object ConfigurationBuilderSpec extends ZIOSpecDefault:
           specs = List(
             SpecValue.SizeSpec(Dimension(297, 210)),
             SpecValue.QuantitySpec(Quantity.unsafe(100)),
-            SpecValue.ColorModeSpec(ColorMode.CMYK),
+            SpecValue.InkConfigSpec(InkConfiguration.cmyk4_4),
             SpecValue.PagesSpec(8),
             SpecValue.BindingMethodSpec(BindingMethod.SpiralBinding),
           ),
@@ -625,7 +625,7 @@ object ConfigurationBuilderSpec extends ZIOSpecDefault:
           specs = List(
             SpecValue.SizeSpec(Dimension(297, 210)),
             SpecValue.QuantitySpec(Quantity.unsafe(100)),
-            SpecValue.ColorModeSpec(ColorMode.CMYK),
+            SpecValue.InkConfigSpec(InkConfiguration.cmyk4_4),
             SpecValue.PagesSpec(30),
             SpecValue.BindingMethodSpec(BindingMethod.SpiralBinding),
           ),
@@ -638,6 +638,59 @@ object ConfigurationBuilderSpec extends ZIOSpecDefault:
         )
       },
     ),
+    suite("ink configuration validation")(
+      test("4/0 ink configuration validates successfully") {
+        val request = ConfigurationRequest(
+          categoryId = SampleCatalog.businessCardsId,
+          materialId = SampleCatalog.coated300gsmId,
+          printingMethodId = SampleCatalog.offsetId,
+          finishIds = List(SampleCatalog.matteLaminationId),
+          specs = List(
+            SpecValue.SizeSpec(Dimension(90, 55)),
+            SpecValue.QuantitySpec(Quantity.unsafe(500)),
+            SpecValue.InkConfigSpec(InkConfiguration.cmyk4_0),
+          ),
+        )
+
+        val result = ConfigurationBuilder.build(request, catalog, ruleset, configId)
+        assertTrue(result.toEither.isRight)
+      },
+      test("CMYK 4/4 with letterpress (max 2 colors) is rejected") {
+        val request = ConfigurationRequest(
+          categoryId = SampleCatalog.businessCardsId,
+          materialId = SampleCatalog.coated300gsmId,
+          printingMethodId = SampleCatalog.letterpressId,
+          finishIds = Nil,
+          specs = List(
+            SpecValue.SizeSpec(Dimension(90, 55)),
+            SpecValue.QuantitySpec(Quantity.unsafe(500)),
+            SpecValue.InkConfigSpec(InkConfiguration.cmyk4_4),
+          ),
+        )
+
+        val result = ConfigurationBuilder.build(request, catalog, ruleset, configId)
+        val errors = result.toEither.left.toOption.get.toList
+        assertTrue(
+          errors.exists(_.isInstanceOf[ConfigurationError.InkConfigExceedsMethodColorLimit]),
+        )
+      },
+      test("mono 1/1 with letterpress (max 2 colors) succeeds") {
+        val request = ConfigurationRequest(
+          categoryId = SampleCatalog.businessCardsId,
+          materialId = SampleCatalog.coated300gsmId,
+          printingMethodId = SampleCatalog.letterpressId,
+          finishIds = Nil,
+          specs = List(
+            SpecValue.SizeSpec(Dimension(90, 55)),
+            SpecValue.QuantitySpec(Quantity.unsafe(500)),
+            SpecValue.InkConfigSpec(InkConfiguration.mono1_1),
+          ),
+        )
+
+        val result = ConfigurationBuilder.build(request, catalog, ruleset, configId)
+        assertTrue(result.toEither.isRight)
+      },
+    ),
     suite("new material validation")(
       test("Yupo with embossing is rejected") {
         val request = ConfigurationRequest(
@@ -648,7 +701,7 @@ object ConfigurationBuilderSpec extends ZIOSpecDefault:
           specs = List(
             SpecValue.SizeSpec(Dimension(90, 55)),
             SpecValue.QuantitySpec(Quantity.unsafe(500)),
-            SpecValue.ColorModeSpec(ColorMode.CMYK),
+            SpecValue.InkConfigSpec(InkConfiguration.cmyk4_4),
           ),
         )
 
@@ -667,7 +720,7 @@ object ConfigurationBuilderSpec extends ZIOSpecDefault:
           specs = List(
             SpecValue.SizeSpec(Dimension(200, 150)),
             SpecValue.QuantitySpec(Quantity.unsafe(100)),
-            SpecValue.ColorModeSpec(ColorMode.CMYK),
+            SpecValue.InkConfigSpec(InkConfiguration.cmyk4_4),
           ),
         )
 

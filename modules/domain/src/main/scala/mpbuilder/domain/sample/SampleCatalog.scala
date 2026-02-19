@@ -256,7 +256,7 @@ object SampleCatalog:
       matteLaminationId, glossLaminationId, uvCoatingId, embossingId,
       foilStampingId, softTouchCoatingId, roundCornersId,
     ),
-    requiredSpecKinds = Set(SpecKind.Size, SpecKind.Quantity, SpecKind.ColorMode),
+    requiredSpecKinds = Set(SpecKind.Size, SpecKind.Quantity, SpecKind.InkConfig),
     allowedPrintingMethodIds = Set(offsetId, digitalId, letterpressId),
   )
 
@@ -265,7 +265,7 @@ object SampleCatalog:
     name = LocalizedString("Flyers", "Letáky"),
     allowedMaterialIds = Set(coated300gsmId, uncoatedBondId),
     allowedFinishIds = Set(matteLaminationId, glossLaminationId, uvCoatingId, varnishId, aqueousCoatingId),
-    requiredSpecKinds = Set(SpecKind.Size, SpecKind.Quantity, SpecKind.ColorMode, SpecKind.Orientation),
+    requiredSpecKinds = Set(SpecKind.Size, SpecKind.Quantity, SpecKind.InkConfig, SpecKind.Orientation),
     allowedPrintingMethodIds = Set(offsetId, digitalId),
   )
 
@@ -274,7 +274,7 @@ object SampleCatalog:
     name = LocalizedString("Brochures", "Brožury"),
     allowedMaterialIds = Set(coated300gsmId, uncoatedBondId),
     allowedFinishIds = Set(matteLaminationId, glossLaminationId, uvCoatingId, scoringId),
-    requiredSpecKinds = Set(SpecKind.Size, SpecKind.Quantity, SpecKind.ColorMode, SpecKind.FoldType, SpecKind.Pages),
+    requiredSpecKinds = Set(SpecKind.Size, SpecKind.Quantity, SpecKind.InkConfig, SpecKind.FoldType, SpecKind.Pages),
     allowedPrintingMethodIds = Set(offsetId, digitalId),
   )
 
@@ -283,7 +283,7 @@ object SampleCatalog:
     name = LocalizedString("Banners", "Bannery"),
     allowedMaterialIds = Set(vinylId),
     allowedFinishIds = Set(uvCoatingId, dieCutId, grommetsId),
-    requiredSpecKinds = Set(SpecKind.Size, SpecKind.Quantity, SpecKind.ColorMode),
+    requiredSpecKinds = Set(SpecKind.Size, SpecKind.Quantity, SpecKind.InkConfig),
     allowedPrintingMethodIds = Set(uvInkjetId),
   )
 
@@ -292,7 +292,7 @@ object SampleCatalog:
     name = LocalizedString("Packaging", "Obaly"),
     allowedMaterialIds = Set(kraftId, corrugatedId, yupoId),
     allowedFinishIds = Set(matteLaminationId, uvCoatingId, embossingId, foilStampingId, dieCutId, scoringId, perforationId, debossingId),
-    requiredSpecKinds = Set(SpecKind.Size, SpecKind.Quantity, SpecKind.ColorMode),
+    requiredSpecKinds = Set(SpecKind.Size, SpecKind.Quantity, SpecKind.InkConfig),
     allowedPrintingMethodIds = Set(offsetId, digitalId),
   )
 
@@ -301,7 +301,7 @@ object SampleCatalog:
     name = LocalizedString("Booklets", "Brožurky"),
     allowedMaterialIds = Set(coated300gsmId, uncoatedBondId),
     allowedFinishIds = Set(matteLaminationId, glossLaminationId, uvCoatingId, perforationId),
-    requiredSpecKinds = Set(SpecKind.Size, SpecKind.Quantity, SpecKind.ColorMode, SpecKind.Pages, SpecKind.BindingMethod),
+    requiredSpecKinds = Set(SpecKind.Size, SpecKind.Quantity, SpecKind.InkConfig, SpecKind.Pages, SpecKind.BindingMethod),
     allowedPrintingMethodIds = Set(offsetId, digitalId),
   )
 
@@ -310,7 +310,7 @@ object SampleCatalog:
     name = LocalizedString("Calendars", "Kalendáře"),
     allowedMaterialIds = Set(coated300gsmId, coatedSilk250gsmId, uncoatedBondId),
     allowedFinishIds = Set(matteLaminationId, glossLaminationId, uvCoatingId, perforationId),
-    requiredSpecKinds = Set(SpecKind.Size, SpecKind.Quantity, SpecKind.ColorMode, SpecKind.Pages, SpecKind.BindingMethod),
+    requiredSpecKinds = Set(SpecKind.Size, SpecKind.Quantity, SpecKind.InkConfig, SpecKind.Pages, SpecKind.BindingMethod),
     allowedPrintingMethodIds = Set(offsetId, digitalId),
   )
 

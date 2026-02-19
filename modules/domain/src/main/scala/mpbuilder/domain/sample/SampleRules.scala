@@ -117,11 +117,11 @@ object SampleRules:
       SpecPredicate.MinDimension(300, 200),
       "Banners must be at least 300x200mm",
     ),
-    // Banners: only CMYK color mode
+    // Banners: only CMYK ink type
     CompatibilityRule.SpecConstraint(
       cat.bannersId,
-      SpecPredicate.AllowedColorModes(Set(ColorMode.CMYK)),
-      "Banners only support CMYK color mode",
+      SpecPredicate.AllowedInkTypes(Set(InkType.CMYK)),
+      "Banners only support CMYK ink type",
     ),
     // Booklets: allowed binding methods
     CompatibilityRule.SpecConstraint(

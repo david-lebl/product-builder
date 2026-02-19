@@ -35,6 +35,13 @@ object SamplePricelist:
       // --- Printing process surcharge ---
       PricingRule.PrintingProcessSurcharge(PrintingProcessType.Letterpress, Money("0.20")),
 
+      // --- Ink configuration factors ---
+      PricingRule.InkConfigurationFactor(4, 4, BigDecimal("1.00")),
+      PricingRule.InkConfigurationFactor(4, 0, BigDecimal("0.60")),
+      PricingRule.InkConfigurationFactor(4, 1, BigDecimal("0.75")),
+      PricingRule.InkConfigurationFactor(1, 0, BigDecimal("0.40")),
+      PricingRule.InkConfigurationFactor(1, 1, BigDecimal("0.55")),
+
       // --- Quantity tiers ---
       PricingRule.QuantityTier(1, Some(249), BigDecimal("1.0")),
       PricingRule.QuantityTier(250, Some(999), BigDecimal("0.90")),
