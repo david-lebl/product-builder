@@ -12,6 +12,7 @@ final case class LineItem(
 final case class ComponentBreakdown(
     role: ComponentRole,
     materialLine: LineItem,
+    cuttingLine: Option[LineItem],
     inkConfigLine: Option[LineItem],
     finishLines: List[LineItem],
 )

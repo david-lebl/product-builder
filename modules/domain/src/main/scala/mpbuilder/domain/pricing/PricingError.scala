@@ -6,6 +6,7 @@ enum PricingError:
   case NoBasePriceForMaterial(materialId: MaterialId, role: ComponentRole)
   case NoQuantityInSpecifications
   case NoSizeForAreaPricing(materialId: MaterialId, role: ComponentRole)
+  case NoSizeForSheetPricing(materialId: MaterialId, role: ComponentRole)
 
   def message: String = message(Language.En)
 
@@ -19,3 +20,6 @@ enum PricingError:
     case NoSizeForAreaPricing(materialId, role) => lang match
       case Language.En => s"Area-based pricing requires size specification for material '${materialId.value}' in component '$role'"
       case Language.Cs => s"Plošná kalkulace vyžaduje specifikaci rozměrů pro materiál '${materialId.value}' v komponentu '$role'"
+    case NoSizeForSheetPricing(materialId, role) => lang match
+      case Language.En => s"Sheet-based pricing requires size specification for material '${materialId.value}' in component '$role'"
+      case Language.Cs => s"Archová kalkulace vyžaduje specifikaci rozměrů pro materiál '${materialId.value}' v komponentu '$role'"

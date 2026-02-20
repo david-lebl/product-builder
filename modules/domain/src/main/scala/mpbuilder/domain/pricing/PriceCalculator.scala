@@ -26,6 +26,7 @@ object PriceCalculator:
 
         val componentTotals = componentBreakdowns.flatMap { cb =>
           cb.materialLine.lineTotal ::
+            cb.cuttingLine.map(_.lineTotal).toList :::
             cb.inkConfigLine.map(_.lineTotal).toList :::
             cb.finishLines.map(_.lineTotal)
         }
@@ -72,6 +73,8 @@ object PriceCalculator:
         lineTotal = materialLineTotal,
       )
 
+      val cuttingLine = computeCuttingLine(comp.material.id, specs, rules, effectiveQuantity)
+
       val inkConfigLine = computeInkConfigLine(comp.inkConfiguration, rules, materialUnitPrice, materialLineTotal, effectiveQuantity)
 
       val finishLines = computeFinishLines(comp.finishes, rules, quantity, lang)
@@ -79,6 +82,7 @@ object PriceCalculator:
       ComponentBreakdown(
         role = comp.role,
         materialLine = materialLine,
+        cuttingLine = cuttingLine,
         inkConfigLine = inkConfigLine,
         finishLines = finishLines,
       )
@@ -98,6 +102,9 @@ object PriceCalculator:
     val areaRule = rules.collectFirst {
       case r: PricingRule.MaterialAreaPrice if r.materialId == material.id => r
     }
+    val sheetRule = rules.collectFirst {
+      case r: PricingRule.MaterialSheetPrice if r.materialId == material.id => r
+    }
     val baseRule = rules.collectFirst {
       case r: PricingRule.MaterialBasePrice if r.materialId == material.id => r
     }
@@ -111,9 +118,56 @@ object PriceCalculator:
           case _ =>
             Validation.fail(PricingError.NoSizeForAreaPricing(material.id, role))
       case None =>
-        baseRule match
-          case Some(bp) => Validation.succeed(bp.unitPrice)
-          case None     => Validation.fail(PricingError.NoBasePriceForMaterial(material.id, role))
+        sheetRule match
+          case Some(sp) =>
+            specs.get(SpecKind.Size) match
+              case Some(SpecValue.SizeSpec(dim)) =>
+                val pps = SheetNesting.piecesPerSheet(
+                  sp.sheetWidthMm, sp.sheetHeightMm,
+                  dim.widthMm.toDouble, dim.heightMm.toDouble,
+                  sp.bleedMm, sp.gutterMm,
+                )
+                val rawUnitPrice = sp.pricePerSheet / pps
+                Validation.succeed(rawUnitPrice.atLeast(sp.minUnitPrice))
+              case _ =>
+                Validation.fail(PricingError.NoSizeForSheetPricing(material.id, role))
+          case None =>
+            baseRule match
+              case Some(bp) => Validation.succeed(bp.unitPrice)
+              case None     => Validation.fail(PricingError.NoBasePriceForMaterial(material.id, role))
+
+  private def computeCuttingLine(
+      materialId: MaterialId,
+      specs: ProductSpecifications,
+      rules: List[PricingRule],
+      effectiveQuantity: Int,
+  ): Option[LineItem] =
+    val sheetRule = rules.collectFirst {
+      case r: PricingRule.MaterialSheetPrice if r.materialId == materialId => r
+    }
+    val cuttingRule = rules.collectFirst {
+      case r: PricingRule.CuttingSurcharge => r
+    }
+
+    for
+      sp <- sheetRule
+      cr <- cuttingRule
+      dim <- specs.get(SpecKind.Size).collect { case SpecValue.SizeSpec(d) => d }
+      pps = SheetNesting.piecesPerSheet(
+        sp.sheetWidthMm, sp.sheetHeightMm,
+        dim.widthMm.toDouble, dim.heightMm.toDouble,
+        sp.bleedMm, sp.gutterMm,
+      )
+      numCuts = pps - 1
+      if numCuts > 0
+    yield
+      val costPerPiece = (cr.costPerCut * numCuts) / pps
+      LineItem(
+        label = "Cutting surcharge",
+        unitPrice = costPerPiece,
+        quantity = effectiveQuantity,
+        lineTotal = (costPerPiece * effectiveQuantity).rounded,
+      )
 
   private def computeInkConfigLine(
       inkConfig: InkConfiguration,
@@ -205,3 +259,24 @@ object PriceCalculator:
           if r.minQuantity <= quantity &&
             r.maxQuantity.forall(_ >= quantity) => r
     }.sortBy(_.minQuantity)(using scala.math.Ordering[Int].reverse).headOption
+
+  private object SheetNesting:
+    def piecesPerSheet(
+        sheetW: Double,
+        sheetH: Double,
+        itemW: Double,
+        itemH: Double,
+        bleedMm: Double,
+        gutterMm: Double,
+    ): Int =
+      val effectiveW = itemW + 2 * bleedMm
+      val effectiveH = itemH + 2 * bleedMm
+
+      def countOrientation(ew: Double, eh: Double): Int =
+        val cols = math.floor((sheetW + gutterMm) / (ew + gutterMm)).toInt
+        val rows = math.floor((sheetH + gutterMm) / (eh + gutterMm)).toInt
+        cols * rows
+
+      val normal = countOrientation(effectiveW, effectiveH)
+      val rotated = countOrientation(effectiveH, effectiveW)
+      math.max(math.max(normal, rotated), 1)

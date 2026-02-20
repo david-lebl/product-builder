@@ -35,7 +35,7 @@ object ProductBuilderViewModel:
 
   val catalog: ProductCatalog = SampleCatalog.catalog
   val ruleset = SampleRules.ruleset
-  val pricelist = SamplePricelist.pricelistCzk
+  val pricelist = SamplePricelist.pricelistCzkSheet
 
   val stateVar: Var[BuilderState] = Var(BuilderState())
   val state: Signal[BuilderState] = stateVar.signal
