@@ -5,16 +5,22 @@ import mpbuilder.ui.ProductBuilderViewModel
 import mpbuilder.domain.model.*
 
 object SpecificationForm:
-  // Predefined size presets: (key, labelEn, labelCs, widthMm, heightMm)
-  private val sizePresets: List[(String, String, String, Int, Int)] = List(
-    ("a3",       "A3",             "A3",             297, 420),
-    ("a4",       "A4",             "A4",             210, 297),
-    ("a5",       "A5",             "A5",             148, 210),
-    ("a6",       "A6",             "A6",             105, 148),
-    ("dl",       "DL",             "DL",              99, 210),
-    ("bcard",    "Business Card",  "Vizitka",         90,  55),
-    ("sq148",    "Square 148mm",   "Čtverec 148mm",  148, 148),
-    ("sq210",    "Square 210mm",   "Čtverec 210mm",  210, 210),
+  private case class SizePreset(key: String, nameEn: String, nameCs: String, widthMm: Int, heightMm: Int):
+    def label(lang: Language): String =
+      val name = lang match
+        case Language.En => nameEn
+        case Language.Cs => nameCs
+      s"$name ($widthMm \u00d7 $heightMm mm)"
+
+  private val sizePresets: List[SizePreset] = List(
+    SizePreset("a3",    "A3",            "A3",            297, 420),
+    SizePreset("a4",    "A4",            "A4",            210, 297),
+    SizePreset("a5",    "A5",            "A5",            148, 210),
+    SizePreset("a6",    "A6",            "A6",            105, 148),
+    SizePreset("dl",    "DL",            "DL",             99, 210),
+    SizePreset("bcard", "Business Card", "Vizitka",        90,  55),
+    SizePreset("sq148", "Square",        "Čtverec",       148, 148),
+    SizePreset("sq210", "Square",        "Čtverec",       210, 210),
   )
 
   def apply(): Element =
@@ -94,11 +100,8 @@ object SpecificationForm:
             val customLabel = l match
               case Language.En => "Custom"
               case Language.Cs => "Vlastní"
-            val presetOptions = sizePresets.map { case (key, labelEn, labelCs, _, _) =>
-              val lbl = l match
-                case Language.En => labelEn
-                case Language.Cs => labelCs
-              option(lbl, value := key, selected := (currentPreset == key))
+            val presetOptions = sizePresets.map { preset =>
+              option(preset.label(l), value := preset.key, selected := (currentPreset == preset.key))
             }
             option(placeholderLabel, value := "", selected := currentPreset.isEmpty) ::
             (presetOptions :+ option(customLabel, value := "custom", selected := (currentPreset == "custom")))
@@ -106,10 +109,10 @@ object SpecificationForm:
           value <-- clearFieldsStream,
           onChange.mapToValue --> { v =>
             sizePresetVar.set(v)
-            sizePresets.find(_._1 == v) match
-              case Some((_, _, _, w, h)) =>
-                widthVar.set(w.toString)
-                heightVar.set(h.toString)
+            sizePresets.find(_.key == v) match
+              case Some(preset) =>
+                widthVar.set(preset.widthMm.toString)
+                heightVar.set(preset.heightMm.toString)
               case None =>
                 if v == "custom" then
                   widthVar.set("")
