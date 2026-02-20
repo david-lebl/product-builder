@@ -5,6 +5,18 @@ import mpbuilder.ui.ProductBuilderViewModel
 import mpbuilder.domain.model.*
 
 object SpecificationForm:
+  // Predefined size presets: (key, labelEn, labelCs, widthMm, heightMm)
+  private val sizePresets: List[(String, String, String, Int, Int)] = List(
+    ("a3",       "A3",             "A3",             297, 420),
+    ("a4",       "A4",             "A4",             210, 297),
+    ("a5",       "A5",             "A5",             148, 210),
+    ("a6",       "A6",             "A6",             105, 148),
+    ("dl",       "DL",             "DL",              99, 210),
+    ("bcard",    "Business Card",  "Vizitka",         90,  55),
+    ("sq148",    "Square 148mm",   "Čtverec 148mm",  148, 148),
+    ("sq210",    "Square 210mm",   "Čtverec 210mm",  210, 210),
+  )
+
   def apply(): Element =
     // EventStream that fires when category changes, used to clear all inputs
     val clearFieldsStream = ProductBuilderViewModel.specResetBus.events.mapTo("")
@@ -14,6 +26,9 @@ object SpecificationForm:
     val heightVar = Var("")
     val sizeSignal = widthVar.signal.combineWith(heightVar.signal)
 
+    // Size preset selector: "" = no selection (custom), or a preset key
+    val sizePresetVar = Var("")
+
     // Signal for required spec kinds based on selected category
     val requiredSpecs = ProductBuilderViewModel.requiredSpecKinds
 
@@ -22,10 +37,11 @@ object SpecificationForm:
     div(
       cls := "form-group",
 
-      // Reset local width/height Vars when category changes
+      // Reset local width/height Vars and preset when category changes
       clearFieldsStream --> { _ =>
         widthVar.set("")
         heightVar.set("")
+        sizePresetVar.set("")
       },
 
       // Quantity
@@ -51,12 +67,64 @@ object SpecificationForm:
         ),
       ),
 
-      // Size (Width x Height in mm)
+      // Observer that updates the spec when both width and height are available
+      // (placed on the parent div so it fires for both presets and custom input)
+      sizeSignal --> { case (widthStr, heightStr) =>
+        (widthStr.toDoubleOption, heightStr.toDoubleOption) match
+          case (Some(w), Some(h)) if w > 0 && h > 0 =>
+            ProductBuilderViewModel.removeSpecification(classOf[SpecValue.SizeSpec])
+            ProductBuilderViewModel.addSpecification(
+              SpecValue.SizeSpec(Dimension(w, h))
+            )
+          case _ => ()
+      },
+
+      // Size preset selector
       div(
         cls := "form-group",
         label(child.text <-- lang.map {
-          case Language.En => "Size (Width x Height in mm):"
-          case Language.Cs => "Rozměr (šířka × výška v mm):"
+          case Language.En => "Size:"
+          case Language.Cs => "Rozměr:"
+        }),
+        select(
+          children <-- sizePresetVar.signal.combineWith(lang).map { case (currentPreset, l) =>
+            val placeholderLabel = l match
+              case Language.En => "-- Select size --"
+              case Language.Cs => "-- Vyberte rozměr --"
+            val customLabel = l match
+              case Language.En => "Custom"
+              case Language.Cs => "Vlastní"
+            val presetOptions = sizePresets.map { case (key, labelEn, labelCs, _, _) =>
+              val lbl = l match
+                case Language.En => labelEn
+                case Language.Cs => labelCs
+              option(lbl, value := key, selected := (currentPreset == key))
+            }
+            option(placeholderLabel, value := "", selected := currentPreset.isEmpty) ::
+            (presetOptions :+ option(customLabel, value := "custom", selected := (currentPreset == "custom")))
+          },
+          value <-- clearFieldsStream,
+          onChange.mapToValue --> { v =>
+            sizePresetVar.set(v)
+            sizePresets.find(_._1 == v) match
+              case Some((_, _, _, w, h)) =>
+                widthVar.set(w.toString)
+                heightVar.set(h.toString)
+              case None =>
+                if v == "custom" then
+                  widthVar.set("")
+                  heightVar.set("")
+          },
+        ),
+      ),
+
+      // Custom size inputs - visible when "Custom" is selected
+      div(
+        cls := "form-group",
+        display <-- sizePresetVar.signal.map(p => if p == "custom" then "block" else "none"),
+        label(child.text <-- lang.map {
+          case Language.En => "Custom Size (Width x Height in mm):"
+          case Language.Cs => "Vlastní rozměr (šířka × výška v mm):"
         }),
         div(
           styleAttr := "display: flex; gap: 10px;",
@@ -82,16 +150,6 @@ object SpecificationForm:
             onInput.mapToValue --> { v => heightVar.set(v) },
           ),
         ),
-        // Observer that updates the spec when both width and height are available
-        sizeSignal --> { case (widthStr, heightStr) =>
-          (widthStr.toDoubleOption, heightStr.toDoubleOption) match
-            case (Some(w), Some(h)) if w > 0 && h > 0 =>
-              ProductBuilderViewModel.removeSpecification(classOf[SpecValue.SizeSpec])
-              ProductBuilderViewModel.addSpecification(
-                SpecValue.SizeSpec(Dimension(w, h))
-              )
-            case _ => ()
-        },
       ),
 
       // Pages (for multi-page products)
