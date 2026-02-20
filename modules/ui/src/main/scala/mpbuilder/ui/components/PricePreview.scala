@@ -2,8 +2,8 @@ package mpbuilder.ui.components
 
 import com.raquo.laminar.api.L.*
 import mpbuilder.ui.ProductBuilderViewModel
-import mpbuilder.domain.pricing.{Money, Currency}
-import mpbuilder.domain.model.Language
+import mpbuilder.domain.pricing.{Money, Currency, ComponentBreakdown}
+import mpbuilder.domain.model.{Language, ComponentRole}
 
 object PricePreview:
   def apply(): Element =
@@ -15,7 +15,7 @@ object PricePreview:
         case Language.En => "Price Preview"
         case Language.Cs => "Náhled ceny"
       }),
-      
+
       // Price display
       div(
         cls := "price-display",
@@ -32,7 +32,7 @@ object PricePreview:
           },
         ),
       ),
-      
+
       // Price breakdown
       div(
         cls := "price-breakdown",
@@ -40,39 +40,65 @@ object PricePreview:
           state.priceBreakdown match
             case Some(breakdown) =>
               val cur = breakdown.currency
-              List(
+              val headerLine = List(
                 h3(l match
                   case Language.En => "Breakdown:"
                   case Language.Cs => "Rozpis:"
                 ),
-                div(
-                  cls := "price-line-item",
-                  span(breakdown.materialLine.label),
-                  span(formatMoney(breakdown.materialLine.lineTotal, cur)),
-                ),
-              ) ++ breakdown.finishLines.map { finishLine =>
-                div(
-                  cls := "price-line-item",
-                  span(finishLine.label),
-                  span(formatMoney(finishLine.lineTotal, cur)),
+              )
+
+              val componentLines = breakdown.componentBreakdowns.flatMap { cb =>
+                val roleLabel = componentRoleLabel(cb.role, l)
+                val showRoleHeader = breakdown.componentBreakdowns.size > 1
+
+                val roleHeader =
+                  if showRoleHeader then
+                    List(h4(cls := "component-role-header", roleLabel))
+                  else
+                    List.empty
+
+                val materialLine = List(
+                  div(
+                    cls := "price-line-item",
+                    span(cb.materialLine.label),
+                    span(formatMoney(cb.materialLine.lineTotal, cur)),
+                  ),
                 )
-              } ++ (
-                breakdown.processSurcharge.map { proc =>
+
+                val inkLine = cb.inkConfigLine.map { ink =>
                   div(
                     cls := "price-line-item",
-                    span(proc.label),
-                    span(formatMoney(proc.lineTotal, cur)),
+                    span(ink.label),
+                    span(formatMoney(ink.lineTotal, cur)),
                   )
                 }.toList
-              ) ++ (
-                breakdown.categorySurcharge.map { cat =>
+
+                val finishLines = cb.finishLines.map { finishLine =>
                   div(
                     cls := "price-line-item",
-                    span(cat.label),
-                    span(formatMoney(cat.lineTotal, cur)),
+                    span(finishLine.label),
+                    span(formatMoney(finishLine.lineTotal, cur)),
                   )
-                }.toList
-              ) ++ List(
+                }
+
+                roleHeader ++ materialLine ++ inkLine ++ finishLines
+              }
+
+              val surchargeLines = breakdown.processSurcharge.map { proc =>
+                div(
+                  cls := "price-line-item",
+                  span(proc.label),
+                  span(formatMoney(proc.lineTotal, cur)),
+                )
+              }.toList ++ breakdown.categorySurcharge.map { cat =>
+                div(
+                  cls := "price-line-item",
+                  span(cat.label),
+                  span(formatMoney(cat.lineTotal, cur)),
+                )
+              }.toList
+
+              val totalLines = List(
                 div(
                   cls := "price-line-item",
                   span(l match
@@ -84,8 +110,8 @@ object PricePreview:
                 div(
                   cls := "price-line-item",
                   span(l match
-                    case Language.En => s"Quantity Multiplier (${breakdown.quantityMultiplier}×):"
-                    case Language.Cs => s"Množstevní koeficient (${breakdown.quantityMultiplier}×):"
+                    case Language.En => s"Quantity Multiplier (${breakdown.quantityMultiplier}\u00d7):"
+                    case Language.Cs => s"Množstevní koeficient (${breakdown.quantityMultiplier}\u00d7):"
                   ),
                   span(if breakdown.quantityMultiplier < 1.0 then s"-${formatMoney(Money(breakdown.subtotal.value * (1.0 - breakdown.quantityMultiplier)), cur)}" else formatMoney(Money.zero, cur)),
                 ),
@@ -98,6 +124,9 @@ object PricePreview:
                   strong(formatMoney(breakdown.total, cur)),
                 ),
               )
+
+              headerLine ++ componentLines ++ surchargeLines ++ totalLines
+
             case None =>
               List(
                 p(l match
@@ -108,10 +137,22 @@ object PricePreview:
         },
       ),
     )
-  
+
   private def formatMoney(money: Money, currency: Currency): String =
     currency match
       case Currency.CZK => f"${money.value}%.2f Kč"
       case Currency.USD => f"$$${money.value}%.2f"
       case Currency.EUR => f"€${money.value}%.2f"
       case Currency.GBP => f"£${money.value}%.2f"
+
+  private def componentRoleLabel(role: ComponentRole, lang: Language): String =
+    role match
+      case ComponentRole.Main => lang match
+        case Language.En => "Main"
+        case Language.Cs => "Hlavní"
+      case ComponentRole.Cover => lang match
+        case Language.En => "Cover"
+        case Language.Cs => "Obálka"
+      case ComponentRole.Body => lang match
+        case Language.En => "Body"
+        case Language.Cs => "Vnitřní část"

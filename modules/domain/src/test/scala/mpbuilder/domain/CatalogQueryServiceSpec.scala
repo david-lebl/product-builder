@@ -12,8 +12,8 @@ object CatalogQueryServiceSpec extends ZIOSpecDefault:
 
   def spec = suite("CatalogQueryService")(
     suite("availableMaterials")(
-      test("returns allowed materials for business cards") {
-        val materials = CatalogQueryService.availableMaterials(SampleCatalog.businessCardsId, catalog)
+      test("returns allowed materials for business cards (Main)") {
+        val materials = CatalogQueryService.availableMaterials(SampleCatalog.businessCardsId, catalog, ComponentRole.Main)
         val materialIds = materials.map(_.id).toSet
         assertTrue(
           materialIds.contains(SampleCatalog.coated300gsmId),
@@ -27,8 +27,8 @@ object CatalogQueryServiceSpec extends ZIOSpecDefault:
           !materialIds.contains(SampleCatalog.coatedGlossy90gsmId),
         )
       },
-      test("returns only vinyl for banners") {
-        val materials = CatalogQueryService.availableMaterials(SampleCatalog.bannersId, catalog)
+      test("returns only vinyl for banners (Main)") {
+        val materials = CatalogQueryService.availableMaterials(SampleCatalog.bannersId, catalog, ComponentRole.Main)
         assertTrue(
           materials.size == 1,
           materials.head.id == SampleCatalog.vinylId,
@@ -72,7 +72,25 @@ object CatalogQueryServiceSpec extends ZIOSpecDefault:
         )
       },
       test("returns empty for unknown category") {
-        val materials = CatalogQueryService.availableMaterials(CategoryId.unsafe("unknown"), catalog)
+        val materials = CatalogQueryService.availableMaterials(CategoryId.unsafe("unknown"), catalog, ComponentRole.Main)
+        assertTrue(materials.isEmpty)
+      },
+      test("returns cover materials for booklets") {
+        val materials = CatalogQueryService.availableMaterials(SampleCatalog.bookletsId, catalog, ComponentRole.Cover)
+        val materialIds = materials.map(_.id).toSet
+        assertTrue(
+          materialIds == Set(SampleCatalog.coated300gsmId),
+        )
+      },
+      test("returns body materials for booklets") {
+        val materials = CatalogQueryService.availableMaterials(SampleCatalog.bookletsId, catalog, ComponentRole.Body)
+        val materialIds = materials.map(_.id).toSet
+        assertTrue(
+          materialIds == Set(SampleCatalog.coated300gsmId, SampleCatalog.uncoatedBondId),
+        )
+      },
+      test("returns empty for wrong role in single-component category") {
+        val materials = CatalogQueryService.availableMaterials(SampleCatalog.businessCardsId, catalog, ComponentRole.Cover)
         assertTrue(materials.isEmpty)
       },
     ),
@@ -84,6 +102,7 @@ object CatalogQueryServiceSpec extends ZIOSpecDefault:
           catalog,
           ruleset,
           None,
+          ComponentRole.Main,
         )
         val finishIds = finishes.map(_.id).toSet
         assertTrue(
@@ -98,6 +117,7 @@ object CatalogQueryServiceSpec extends ZIOSpecDefault:
           catalog,
           ruleset,
           None,
+          ComponentRole.Main,
         )
         val finishIds = finishes.map(_.id).toSet
         assertTrue(!finishIds.contains(SampleCatalog.foilStampingId))
@@ -109,6 +129,7 @@ object CatalogQueryServiceSpec extends ZIOSpecDefault:
           catalog,
           ruleset,
           None,
+          ComponentRole.Main,
         )
         val finishIds = finishes.map(_.id).toSet
         assertTrue(
@@ -126,6 +147,7 @@ object CatalogQueryServiceSpec extends ZIOSpecDefault:
           catalog,
           ruleset,
           None,
+          ComponentRole.Main,
         )
         val finishIds = finishes.map(_.id).toSet
         assertTrue(
@@ -140,6 +162,7 @@ object CatalogQueryServiceSpec extends ZIOSpecDefault:
           catalog,
           ruleset,
           Some(SampleCatalog.digitalId),
+          ComponentRole.Main,
         )
         val finishIds = finishes.map(_.id).toSet
         assertTrue(!finishIds.contains(SampleCatalog.aqueousCoatingId))
@@ -151,6 +174,7 @@ object CatalogQueryServiceSpec extends ZIOSpecDefault:
           catalog,
           ruleset,
           Some(SampleCatalog.offsetId),
+          ComponentRole.Main,
         )
         val finishIds = finishes.map(_.id).toSet
         assertTrue(finishIds.contains(SampleCatalog.aqueousCoatingId))
@@ -162,28 +186,61 @@ object CatalogQueryServiceSpec extends ZIOSpecDefault:
           catalog,
           ruleset,
           None,
+          ComponentRole.Main,
         )
         val finishIds = finishes.map(_.id).toSet
         assertTrue(finishIds.contains(SampleCatalog.aqueousCoatingId))
       },
+      test("cover finishes for booklets only returns cover-allowed finishes") {
+        val finishes = CatalogQueryService.compatibleFinishes(
+          SampleCatalog.bookletsId,
+          SampleCatalog.coated300gsmId,
+          catalog,
+          ruleset,
+          None,
+          ComponentRole.Cover,
+        )
+        val finishIds = finishes.map(_.id).toSet
+        assertTrue(
+          finishIds.contains(SampleCatalog.matteLaminationId),
+          finishIds.contains(SampleCatalog.glossLaminationId),
+          finishIds.contains(SampleCatalog.uvCoatingId),
+          !finishIds.contains(SampleCatalog.perforationId),
+        )
+      },
+      test("body finishes for booklets only returns body-allowed finishes") {
+        val finishes = CatalogQueryService.compatibleFinishes(
+          SampleCatalog.bookletsId,
+          SampleCatalog.coated300gsmId,
+          catalog,
+          ruleset,
+          None,
+          ComponentRole.Body,
+        )
+        val finishIds = finishes.map(_.id).toSet
+        assertTrue(
+          finishIds.contains(SampleCatalog.perforationId),
+          !finishIds.contains(SampleCatalog.matteLaminationId),
+        )
+      },
     ),
     suite("requiredSpecifications")(
-      test("business cards require Size, Quantity, InkConfig") {
+      test("business cards require Size, Quantity") {
         val specs = CatalogQueryService.requiredSpecifications(SampleCatalog.businessCardsId, catalog)
         assertTrue(
-          specs == Set(SpecKind.Size, SpecKind.Quantity, SpecKind.InkConfig),
+          specs == Set(SpecKind.Size, SpecKind.Quantity),
         )
       },
-      test("brochures require Size, Quantity, InkConfig, FoldType, Pages") {
+      test("brochures require Size, Quantity, FoldType, Pages") {
         val specs = CatalogQueryService.requiredSpecifications(SampleCatalog.brochuresId, catalog)
         assertTrue(
-          specs == Set(SpecKind.Size, SpecKind.Quantity, SpecKind.InkConfig, SpecKind.FoldType, SpecKind.Pages),
+          specs == Set(SpecKind.Size, SpecKind.Quantity, SpecKind.FoldType, SpecKind.Pages),
         )
       },
-      test("booklets require Size, Quantity, InkConfig, Pages, BindingMethod") {
+      test("booklets require Size, Quantity, Pages, BindingMethod") {
         val specs = CatalogQueryService.requiredSpecifications(SampleCatalog.bookletsId, catalog)
         assertTrue(
-          specs == Set(SpecKind.Size, SpecKind.Quantity, SpecKind.InkConfig, SpecKind.Pages, SpecKind.BindingMethod),
+          specs == Set(SpecKind.Size, SpecKind.Quantity, SpecKind.Pages, SpecKind.BindingMethod),
         )
       },
       test("unknown category returns empty") {

@@ -1,5 +1,7 @@
 package mpbuilder.domain.pricing
 
+import mpbuilder.domain.model.ComponentRole
+
 final case class LineItem(
     label: String,
     unitPrice: Money,
@@ -7,10 +9,15 @@ final case class LineItem(
     lineTotal: Money,
 )
 
-final case class PriceBreakdown(
+final case class ComponentBreakdown(
+    role: ComponentRole,
     materialLine: LineItem,
     inkConfigLine: Option[LineItem],
     finishLines: List[LineItem],
+)
+
+final case class PriceBreakdown(
+    componentBreakdowns: List[ComponentBreakdown],
     processSurcharge: Option[LineItem],
     categorySurcharge: Option[LineItem],
     subtotal: Money,

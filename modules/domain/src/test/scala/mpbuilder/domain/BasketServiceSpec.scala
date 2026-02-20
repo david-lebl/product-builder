@@ -17,15 +17,21 @@ object BasketServiceSpec extends ZIOSpecDefault:
       category: ProductCategory,
       material: Material,
       printingMethod: PrintingMethod,
+      inkConfig: InkConfiguration,
       finishes: List[Finish],
       specs: List[SpecValue],
   ): ProductConfiguration =
     ProductConfiguration(
       id = ConfigurationId.unsafe(id),
       category = category,
-      material = material,
       printingMethod = printingMethod,
-      finishes = finishes,
+      components = List(ProductComponent(
+        role = ComponentRole.Main,
+        material = material,
+        inkConfiguration = inkConfig,
+        finishes = finishes,
+        sheetCount = 1,
+      )),
       specifications = ProductSpecifications.fromSpecs(specs),
     )
 
@@ -56,11 +62,11 @@ object BasketServiceSpec extends ZIOSpecDefault:
           category = SampleCatalog.businessCards,
           material = SampleCatalog.coated300gsm,
           printingMethod = SampleCatalog.offsetMethod,
+          inkConfig = InkConfiguration.cmyk4_4,
           finishes = List(SampleCatalog.matteLamination),
           specs = List(
             SpecValue.SizeSpec(Dimension(90, 55)),
             SpecValue.QuantitySpec(Quantity.unsafe(500)),
-            SpecValue.InkConfigSpec(InkConfiguration.cmyk4_4),
           ),
         )
 
@@ -80,11 +86,11 @@ object BasketServiceSpec extends ZIOSpecDefault:
           category = SampleCatalog.businessCards,
           material = SampleCatalog.coated300gsm,
           printingMethod = SampleCatalog.offsetMethod,
+          inkConfig = InkConfiguration.cmyk4_4,
           finishes = List.empty,
           specs = List(
             SpecValue.SizeSpec(Dimension(90, 55)),
             SpecValue.QuantitySpec(Quantity.unsafe(100)),
-            SpecValue.InkConfigSpec(InkConfiguration.cmyk4_4),
           ),
         )
 
@@ -93,11 +99,11 @@ object BasketServiceSpec extends ZIOSpecDefault:
           category = SampleCatalog.flyers,
           material = SampleCatalog.coated300gsm,
           printingMethod = SampleCatalog.offsetMethod,
+          inkConfig = InkConfiguration.cmyk4_4,
           finishes = List.empty,
           specs = List(
             SpecValue.SizeSpec(Dimension(210, 297)),
             SpecValue.QuantitySpec(Quantity.unsafe(200)),
-            SpecValue.InkConfigSpec(InkConfiguration.cmyk4_4),
           ),
         )
 
@@ -118,11 +124,11 @@ object BasketServiceSpec extends ZIOSpecDefault:
           category = SampleCatalog.businessCards,
           material = SampleCatalog.coated300gsm,
           printingMethod = SampleCatalog.offsetMethod,
+          inkConfig = InkConfiguration.cmyk4_4,
           finishes = List.empty,
           specs = List(
             SpecValue.SizeSpec(Dimension(90, 55)),
             SpecValue.QuantitySpec(Quantity.unsafe(100)),
-            SpecValue.InkConfigSpec(InkConfiguration.cmyk4_4),
           ),
         )
 
@@ -141,11 +147,11 @@ object BasketServiceSpec extends ZIOSpecDefault:
           category = SampleCatalog.businessCards,
           material = SampleCatalog.coated300gsm,
           printingMethod = SampleCatalog.offsetMethod,
+          inkConfig = InkConfiguration.cmyk4_4,
           finishes = List.empty,
           specs = List(
             SpecValue.SizeSpec(Dimension(90, 55)),
             SpecValue.QuantitySpec(Quantity.unsafe(100)),
-            SpecValue.InkConfigSpec(InkConfiguration.cmyk4_4),
           ),
         )
 
@@ -166,11 +172,11 @@ object BasketServiceSpec extends ZIOSpecDefault:
           category = SampleCatalog.businessCards,
           material = SampleCatalog.coated300gsm,
           printingMethod = SampleCatalog.offsetMethod,
+          inkConfig = InkConfiguration.cmyk4_4,
           finishes = List.empty,
           specs = List(
             SpecValue.SizeSpec(Dimension(90, 55)),
             SpecValue.QuantitySpec(Quantity.unsafe(100)),
-            SpecValue.InkConfigSpec(InkConfiguration.cmyk4_4),
           ),
         )
 
@@ -197,11 +203,11 @@ object BasketServiceSpec extends ZIOSpecDefault:
           category = SampleCatalog.businessCards,
           material = SampleCatalog.coated300gsm,
           printingMethod = SampleCatalog.offsetMethod,
+          inkConfig = InkConfiguration.cmyk4_4,
           finishes = List.empty,
           specs = List(
             SpecValue.SizeSpec(Dimension(90, 55)),
             SpecValue.QuantitySpec(Quantity.unsafe(100)),
-            SpecValue.InkConfigSpec(InkConfiguration.cmyk4_4),
           ),
         )
 
@@ -210,11 +216,11 @@ object BasketServiceSpec extends ZIOSpecDefault:
           category = SampleCatalog.flyers,
           material = SampleCatalog.coated300gsm,
           printingMethod = SampleCatalog.offsetMethod,
+          inkConfig = InkConfiguration.cmyk4_4,
           finishes = List.empty,
           specs = List(
             SpecValue.SizeSpec(Dimension(210, 297)),
             SpecValue.QuantitySpec(Quantity.unsafe(200)),
-            SpecValue.InkConfigSpec(InkConfiguration.cmyk4_4),
           ),
         )
 
@@ -242,11 +248,11 @@ object BasketServiceSpec extends ZIOSpecDefault:
           category = SampleCatalog.businessCards,
           material = SampleCatalog.coated300gsm,
           printingMethod = SampleCatalog.offsetMethod,
+          inkConfig = InkConfiguration.cmyk4_4,
           finishes = List.empty,
           specs = List(
             SpecValue.SizeSpec(Dimension(90, 55)),
             SpecValue.QuantitySpec(Quantity.unsafe(100)),
-            SpecValue.InkConfigSpec(InkConfiguration.cmyk4_4),
           ),
         )
 
@@ -273,11 +279,11 @@ object BasketServiceSpec extends ZIOSpecDefault:
           category = SampleCatalog.businessCards,
           material = SampleCatalog.coated300gsm,
           printingMethod = SampleCatalog.offsetMethod,
+          inkConfig = InkConfiguration.cmyk4_4,
           finishes = List.empty,
           specs = List(
             SpecValue.SizeSpec(Dimension(90, 55)),
             SpecValue.QuantitySpec(Quantity.unsafe(100)),
-            SpecValue.InkConfigSpec(InkConfiguration.cmyk4_4),
           ),
         )
 
@@ -295,11 +301,11 @@ object BasketServiceSpec extends ZIOSpecDefault:
           category = SampleCatalog.businessCards,
           material = SampleCatalog.coated300gsm,
           printingMethod = SampleCatalog.offsetMethod,
+          inkConfig = InkConfiguration.cmyk4_4,
           finishes = List.empty,
           specs = List(
             SpecValue.SizeSpec(Dimension(90, 55)),
             SpecValue.QuantitySpec(Quantity.unsafe(100)),
-            SpecValue.InkConfigSpec(InkConfiguration.cmyk4_4),
           ),
         )
 
@@ -319,11 +325,11 @@ object BasketServiceSpec extends ZIOSpecDefault:
           category = SampleCatalog.businessCards,
           material = SampleCatalog.coated300gsm,
           printingMethod = SampleCatalog.offsetMethod,
+          inkConfig = InkConfiguration.cmyk4_4,
           finishes = List(SampleCatalog.matteLamination),
           specs = List(
             SpecValue.SizeSpec(Dimension(90, 55)),
             SpecValue.QuantitySpec(Quantity.unsafe(500)),
-            SpecValue.InkConfigSpec(InkConfiguration.cmyk4_4),
           ),
         )
 
@@ -331,8 +337,6 @@ object BasketServiceSpec extends ZIOSpecDefault:
         val withItem = BasketService.addItem(basket, config, 1, pricelist).toEither.toOption.get
         val calculation = BasketService.calculateTotal(withItem)
 
-        // Price for 500× business cards with matte lamination = 67.50
-        // Total for 1× this configuration = 67.50
         assertTrue(
           calculation.items.size == 1,
           calculation.subtotal == Money("67.50"),
@@ -346,11 +350,11 @@ object BasketServiceSpec extends ZIOSpecDefault:
           category = SampleCatalog.businessCards,
           material = SampleCatalog.coated300gsm,
           printingMethod = SampleCatalog.offsetMethod,
+          inkConfig = InkConfiguration.cmyk4_4,
           finishes = List(SampleCatalog.matteLamination),
           specs = List(
             SpecValue.SizeSpec(Dimension(90, 55)),
             SpecValue.QuantitySpec(Quantity.unsafe(500)),
-            SpecValue.InkConfigSpec(InkConfiguration.cmyk4_4),
           ),
         )
 
@@ -358,8 +362,6 @@ object BasketServiceSpec extends ZIOSpecDefault:
         val withItem = BasketService.addItem(basket, config, 3, pricelist).toEither.toOption.get
         val calculation = BasketService.calculateTotal(withItem)
 
-        // Price for 500× business cards with matte lamination = 67.50
-        // Total for 3× this configuration = 67.50 × 3 = 202.50
         assertTrue(
           calculation.items.size == 1,
           calculation.subtotal == Money("202.50"),
@@ -372,11 +374,11 @@ object BasketServiceSpec extends ZIOSpecDefault:
           category = SampleCatalog.businessCards,
           material = SampleCatalog.coated300gsm,
           printingMethod = SampleCatalog.offsetMethod,
+          inkConfig = InkConfiguration.cmyk4_4,
           finishes = List.empty,
           specs = List(
             SpecValue.SizeSpec(Dimension(90, 55)),
             SpecValue.QuantitySpec(Quantity.unsafe(100)),
-            SpecValue.InkConfigSpec(InkConfiguration.cmyk4_4),
           ),
         )
 
@@ -385,11 +387,11 @@ object BasketServiceSpec extends ZIOSpecDefault:
           category = SampleCatalog.businessCards,
           material = SampleCatalog.coated300gsm,
           printingMethod = SampleCatalog.offsetMethod,
+          inkConfig = InkConfiguration.cmyk4_4,
           finishes = List(SampleCatalog.matteLamination),
           specs = List(
             SpecValue.SizeSpec(Dimension(90, 55)),
             SpecValue.QuantitySpec(Quantity.unsafe(500)),
-            SpecValue.InkConfigSpec(InkConfiguration.cmyk4_4),
           ),
         )
 
@@ -403,11 +405,6 @@ object BasketServiceSpec extends ZIOSpecDefault:
 
         val calculation = BasketService.calculateTotal(withItems)
 
-        // Config 1: 100× business cards = 12.00 (material only, no tier discount)
-        // Config 1 total: 12.00 × 2 = 24.00
-        // Config 2: 500× business cards with matte lamination = 67.50
-        // Config 2 total: 67.50 × 1 = 67.50
-        // Grand total: 24.00 + 67.50 = 91.50
         assertTrue(
           calculation.items.size == 2,
           calculation.subtotal == Money("91.50"),
@@ -422,11 +419,11 @@ object BasketServiceSpec extends ZIOSpecDefault:
           category = SampleCatalog.businessCards,
           material = SampleCatalog.coated300gsm,
           printingMethod = SampleCatalog.offsetMethod,
+          inkConfig = InkConfiguration.cmyk4_4,
           finishes = List.empty,
           specs = List(
             SpecValue.SizeSpec(Dimension(90, 55)),
             SpecValue.QuantitySpec(Quantity.unsafe(100)),
-            SpecValue.InkConfigSpec(InkConfiguration.cmyk4_4),
           ),
         )
 

@@ -5,11 +5,11 @@ import mpbuilder.ui.ProductBuilderViewModel
 import mpbuilder.domain.model.*
 
 object MaterialSelector:
-  def apply(): Element =
-    val availableMaterials = ProductBuilderViewModel.availableMaterials
-    val selectedMaterialId = ProductBuilderViewModel.state.map(_.selectedMaterialId)
+  def apply(role: ComponentRole): Element =
+    val availableMaterials = ProductBuilderViewModel.availableMaterials(role)
+    val selectedMaterialId = ProductBuilderViewModel.selectedMaterialId(role)
     val lang = ProductBuilderViewModel.currentLanguage
-    
+
     div(
       cls := "form-group",
       label(
@@ -33,7 +33,7 @@ object MaterialSelector:
         },
         onChange.mapToValue --> { value =>
           if value.nonEmpty then
-            ProductBuilderViewModel.selectMaterial(MaterialId.unsafe(value))
+            ProductBuilderViewModel.selectMaterial(role, MaterialId.unsafe(value))
         },
       ),
       div(

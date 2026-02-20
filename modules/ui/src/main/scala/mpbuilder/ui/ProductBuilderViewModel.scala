@@ -9,27 +9,34 @@ import zio.prelude.Validation
 import com.raquo.laminar.api.L.*
 import org.scalajs.dom
 
+/** Per-component UI state */
+case class ComponentState(
+                           role: ComponentRole,
+                           selectedMaterialId: Option[MaterialId] = None,
+                           selectedInkConfig: Option[InkConfiguration] = None,
+                           selectedFinishIds: Set[FinishId] = Set.empty,
+                         )
+
 /** Application state for the product builder */
 case class BuilderState(
-  selectedCategoryId: Option[CategoryId] = None,
-  selectedMaterialId: Option[MaterialId] = None,
-  selectedFinishIds: Set[FinishId] = Set.empty,
-  selectedPrintingMethodId: Option[PrintingMethodId] = None,
-  specifications: List[SpecValue] = List.empty,
-  validationErrors: List[String] = List.empty,
-  priceBreakdown: Option[PriceBreakdown] = None,
-  configuration: Option[ProductConfiguration] = None,
-  language: Language = Language.En,
-  basket: Basket = Basket(BasketId.unsafe("main-basket"), List.empty),
-  basketMessage: Option[String] = None,
-)
+                         selectedCategoryId: Option[CategoryId] = None,
+                         componentStates: Map[ComponentRole, ComponentState] = Map.empty,
+                         selectedPrintingMethodId: Option[PrintingMethodId] = None,
+                         specifications: List[SpecValue] = List.empty,
+                         validationErrors: List[String] = List.empty,
+                         priceBreakdown: Option[PriceBreakdown] = None,
+                         configuration: Option[ProductConfiguration] = None,
+                         language: Language = Language.En,
+                         basket: Basket = Basket(BasketId.unsafe("main-basket"), List.empty),
+                         basketMessage: Option[String] = None,
+                       )
 
 object ProductBuilderViewModel:
-  
+
   val catalog: ProductCatalog = SampleCatalog.catalog
   val ruleset = SampleRules.ruleset
   val pricelist = SamplePricelist.pricelistCzk
-  
+
   val stateVar: Var[BuilderState] = Var(BuilderState())
   val state: Signal[BuilderState] = stateVar.signal
 
@@ -51,19 +58,23 @@ object ProductBuilderViewModel:
       dom.window.localStorage.setItem("selectedLanguage", lang.toCode)
     catch
       case _: scala.scalajs.js.JavaScriptException =>
-        // If localStorage access fails, silently ignore (language still works for current session)
+  // If localStorage access fails, silently ignore (language still works for current session)
 
   // Get all categories as a list
   def allCategories: List[ProductCategory] = catalog.categories.values.toList
-  
-  // Update category selection
-  def selectCategory(categoryId: CategoryId): Unit =
+
+  // Update category selection — derives component states from category template
+  def selectCategory(categoryId: CategoryId): Unit = {
+    val componentStates = catalog.categories.get(categoryId) match
+      case Some(cat) =>
+        cat.components.map(ct => ct.role -> ComponentState(ct.role)).toMap
+      case None =>
+        Map.empty[ComponentRole, ComponentState]
+
     stateVar.update(state =>
       state.copy(
         selectedCategoryId = Some(categoryId),
-        // Reset dependent selections
-        selectedMaterialId = None,
-        selectedFinishIds = Set.empty,
+        componentStates = componentStates,
         selectedPrintingMethodId = None,
         specifications = List.empty,
         validationErrors = List.empty,
@@ -73,63 +84,75 @@ object ProductBuilderViewModel:
     )
     specResetBus.emit(())
     autoRecalculate()
-  
-  // Update material selection
-  def selectMaterial(materialId: MaterialId): Unit =
+  }
+
+  // Update material selection for a specific component role
+  def selectMaterial(role: ComponentRole, materialId: MaterialId): Unit = 
     stateVar.update(state =>
-      state.copy(
+      val cs = state.componentStates.getOrElse(role, ComponentState(role))
+      val updated = cs.copy(
         selectedMaterialId = Some(materialId),
-        // Reset dependent selections
-        selectedFinishIds = Set.empty,
+        selectedFinishIds = Set.empty, // Reset finishes when material changes
       )
+      state.copy(componentStates = state.componentStates + (role -> updated))
     )
     autoRecalculate()
-  
-  // Toggle finish selection
-  def toggleFinish(finishId: FinishId): Unit =
+
+  // Toggle finish selection for a specific component role
+  def toggleFinish(role: ComponentRole, finishId: FinishId): Unit =
     stateVar.update(state =>
-      val newFinishIds = 
-        if state.selectedFinishIds.contains(finishId) then
-          state.selectedFinishIds - finishId
+      val cs = state.componentStates.getOrElse(role, ComponentState(role))
+      val newFinishIds =
+        if cs.selectedFinishIds.contains(finishId) then
+          cs.selectedFinishIds - finishId
         else
-          state.selectedFinishIds + finishId
-      
-      state.copy(selectedFinishIds = newFinishIds)
+          cs.selectedFinishIds + finishId
+      state.copy(componentStates = state.componentStates + (role -> cs.copy(selectedFinishIds = newFinishIds)))
     )
     autoRecalculate()
-  
+
+  // Select ink configuration for a specific component role
+  def selectInkConfig(role: ComponentRole, config: InkConfiguration): Unit = 
+    stateVar.update(state =>
+      val cs = state.componentStates.getOrElse(role, ComponentState(role))
+      state.copy(componentStates = state.componentStates + (role -> cs.copy(selectedInkConfig = Some(config))))
+    )
+    autoRecalculate()
+
   // Update printing method
-  def selectPrintingMethod(methodId: PrintingMethodId): Unit =
+  def selectPrintingMethod(methodId: PrintingMethodId): Unit = 
     stateVar.update(state =>
       state.copy(selectedPrintingMethodId = Some(methodId))
     )
     autoRecalculate()
-  
+
   // Update specifications
-  def updateSpecifications(specs: List[SpecValue]): Unit =
+  def updateSpecifications(specs: List[SpecValue]): Unit = 
     stateVar.update(state =>
       state.copy(specifications = specs)
     )
     autoRecalculate()
-  
+
   // Add a specification
-  def addSpecification(spec: SpecValue): Unit =
+  def addSpecification(spec: SpecValue): Unit = 
     stateVar.update(state =>
       state.copy(specifications = state.specifications :+ spec)
     )
     autoRecalculate()
-  
+
   // Remove a specification by type
-  def removeSpecification(specType: Class[?]): Unit =
+  def removeSpecification(specType: Class[?]): Unit = 
     stateVar.update(state =>
       state.copy(specifications = state.specifications.filterNot(s => s.getClass == specType))
     )
     autoRecalculate()
-  
+
   // Automatically recalculate price when configuration inputs change
   private def autoRecalculate(): Unit =
     val currentState = stateVar.now()
-    (currentState.selectedCategoryId, currentState.selectedMaterialId, currentState.selectedPrintingMethodId) match
+    (currentState.selectedCategoryId,
+      currentState.componentStates.values.flatMap(_.selectedMaterialId).headOption,
+      currentState.selectedPrintingMethodId) match
       case (Some(_), Some(_), Some(_)) =>
         validateConfiguration()
       case _ =>
@@ -141,27 +164,39 @@ object ProductBuilderViewModel:
         ))
 
   // Build and validate configuration
-  def validateConfiguration(): Unit =
+  def validateConfiguration(): Unit = {
     val currentState = stateVar.now()
     val lang = currentState.language
-    
-    (currentState.selectedCategoryId, currentState.selectedMaterialId, currentState.selectedPrintingMethodId) match
-      case (Some(categoryId), Some(materialId), Some(printingMethodId)) =>
-        // Build configuration request
+
+    val allHaveMaterial = currentState.componentStates.nonEmpty &&
+      currentState.componentStates.values.forall(_.selectedMaterialId.isDefined)
+    val allHaveInkConfig = currentState.componentStates.nonEmpty &&
+      currentState.componentStates.values.forall(_.selectedInkConfig.isDefined)
+
+    (currentState.selectedCategoryId, currentState.selectedPrintingMethodId) match
+      case (Some(categoryId), Some(printingMethodId)) if allHaveMaterial && allHaveInkConfig =>
+        val components = currentState.componentStates.values.map { cs =>
+          ComponentRequest(
+            role = cs.role,
+            materialId = cs.selectedMaterialId.get,
+            inkConfiguration = cs.selectedInkConfig.get,
+            finishIds = cs.selectedFinishIds.toList,
+          )
+        }.toList
+
         val request = ConfigurationRequest(
           categoryId = categoryId,
-          materialId = materialId,
           printingMethodId = printingMethodId,
-          finishIds = currentState.selectedFinishIds.toList,
+          components = components,
           specs = currentState.specifications,
         )
-        
+
         // Generate a unique configuration ID based on timestamp
         val configId = ConfigurationId.unsafe(s"config-${System.currentTimeMillis()}")
-        
+
         // Validate
         val result = ConfigurationBuilder.build(request, catalog, ruleset, configId)
-        
+
         result.fold(
           errors => {
             // Validation failed
@@ -196,46 +231,53 @@ object ProductBuilderViewModel:
         )
       case _ =>
         val msg = lang match
-          case Language.En => "Please select a category, material, and printing method"
-          case Language.Cs => "Vyberte prosím kategorii, materiál a tiskovou metodu"
+          case Language.En => "Please select a category, printing method, and configure all components (material, ink configuration)"
+          case Language.Cs => "Vyberte prosím kategorii, tiskovou metodu a nakonfigurujte všechny komponenty (materiál, konfigurace inkoustu)"
         stateVar.update(_.copy(
           validationErrors = List(msg),
           configuration = None,
           priceBreakdown = None,
         ))
-  
-  // Get available materials for selected category
-  def availableMaterials: Signal[List[Material]] =
+  }
+
+  // Get component roles for the currently selected category
+  def componentRoles: Signal[List[ComponentRole]] =
+    state.map(_.componentStates.keys.toList.sortBy(_.ordinal))
+
+  // Get available materials for a specific component role
+  def availableMaterials(role: ComponentRole): Signal[List[Material]] =
     state.map { s =>
       s.selectedCategoryId match
         case Some(categoryId) =>
-          CatalogQueryService.availableMaterials(categoryId, catalog)
+          CatalogQueryService.availableMaterials(categoryId, catalog, role)
         case None =>
           List.empty
     }
-  
-  // Get available finishes for selected material and category
-  def availableFinishes: Signal[List[Finish]] =
+
+  // Get available finishes for a specific component role
+  def availableFinishes(role: ComponentRole): Signal[List[Finish]] =
     state.map { s =>
-      (s.selectedCategoryId, s.selectedMaterialId) match
-        case (Some(categoryId), Some(materialId)) =>
+      val materialId = s.componentStates.get(role).flatMap(_.selectedMaterialId)
+      (s.selectedCategoryId, materialId) match
+        case (Some(categoryId), Some(matId)) =>
           CatalogQueryService.compatibleFinishes(
             categoryId,
-            materialId,
+            matId,
             catalog,
             ruleset,
             s.selectedPrintingMethodId,
+            role,
           )
         case _ =>
           List.empty
     }
-  
+
   // Get required spec kinds for the selected category
   def requiredSpecKinds: Signal[Set[SpecKind]] =
     state.map { s =>
       s.selectedCategoryId.flatMap(id => catalog.categories.get(id)) match
         case Some(cat) => cat.requiredSpecKinds
-        case None      => Set.empty
+        case None => Set.empty
     }
 
   // Get available printing methods for selected category
@@ -248,13 +290,15 @@ object ProductBuilderViewModel:
           List.empty
     }
 
-  // Get currently selected specifications as signals for UI binding
-  def selectedInkConfig: Signal[Option[InkConfiguration]] =
-    state.map { s =>
-      s.specifications.collectFirst {
-        case SpecValue.InkConfigSpec(config) => config
-      }
-    }
+  // Per-component signals
+  def selectedInkConfig(role: ComponentRole): Signal[Option[InkConfiguration]] =
+    state.map(_.componentStates.get(role).flatMap(_.selectedInkConfig))
+
+  def selectedMaterialId(role: ComponentRole): Signal[Option[MaterialId]] =
+    state.map(_.componentStates.get(role).flatMap(_.selectedMaterialId))
+
+  def selectedFinishIds(role: ComponentRole): Signal[Set[FinishId]] =
+    state.map(_.componentStates.get(role).map(_.selectedFinishIds).getOrElse(Set.empty))
 
   def selectedOrientation: Signal[Option[Orientation]] =
     state.map { s =>
@@ -281,7 +325,7 @@ object ProductBuilderViewModel:
   def addToBasket(quantity: Int): Unit =
     val currentState = stateVar.now()
     val lang = currentState.language
-    
+
     currentState.configuration match
       case Some(config) =>
         val result = BasketService.addItem(currentState.basket, config, quantity, pricelist)

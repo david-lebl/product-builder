@@ -3,7 +3,7 @@ package mpbuilder.ui.components
 import com.raquo.laminar.api.L.*
 import mpbuilder.ui.ProductBuilderViewModel
 import mpbuilder.domain.pricing.{Money, Currency}
-import mpbuilder.domain.model.{Language, ConfigurationId}
+import mpbuilder.domain.model.{Language, ConfigurationId, ComponentRole}
 
 object BasketView:
   def apply(): Element =
@@ -58,7 +58,7 @@ object BasketView:
                   div(
                     cls := "basket-item-title",
                     strong(item.configuration.category.name(l)),
-                    span(cls := "basket-item-material", s" • ${item.configuration.material.name(l)}"),
+                    span(cls := "basket-item-material", s" • ${item.configuration.components.map(_.material.name(l)).mkString(", ")}"),
                   ),
                   button(
                     cls := "remove-btn",
@@ -80,14 +80,17 @@ object BasketView:
                       case Language.En => s"Method: ${item.configuration.printingMethod.name(l)}"
                       case Language.Cs => s"Metoda: ${item.configuration.printingMethod.name(l)}"
                     ),
-                    if item.configuration.finishes.nonEmpty then
-                      span(
-                        cls := "basket-item-finishes",
-                        l match
-                          case Language.En => s" | Finishes: ${item.configuration.finishes.map(_.name(l)).mkString(", ")}"
-                          case Language.Cs => s" | Povrchové úpravy: ${item.configuration.finishes.map(_.name(l)).mkString(", ")}"
-                      )
-                    else emptyNode,
+                    {
+                      val allFinishes = item.configuration.components.flatMap(_.finishes)
+                      if allFinishes.nonEmpty then
+                        span(
+                          cls := "basket-item-finishes",
+                          l match
+                            case Language.En => s" | Finishes: ${allFinishes.map(_.name(l)).mkString(", ")}"
+                            case Language.Cs => s" | Povrchové úpravy: ${allFinishes.map(_.name(l)).mkString(", ")}"
+                        )
+                      else emptyNode
+                    },
                   ),
                   div(
                     cls := "basket-item-quantity",
