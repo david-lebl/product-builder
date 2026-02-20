@@ -35,7 +35,7 @@ object CatalogQueryServiceSpec extends ZIOSpecDefault:
         )
       },
       test("returns expanded paper selection for brochures") {
-        val materials = CatalogQueryService.availableMaterials(SampleCatalog.brochuresId, catalog)
+        val materials = CatalogQueryService.availableMaterials(SampleCatalog.brochuresId, catalog, ComponentRole.Main)
         val materialIds = materials.map(_.id).toSet
         assertTrue(
           materialIds.contains(SampleCatalog.coated300gsmId),
@@ -47,7 +47,7 @@ object CatalogQueryServiceSpec extends ZIOSpecDefault:
         )
       },
       test("returns expanded paper selection for booklets") {
-        val materials = CatalogQueryService.availableMaterials(SampleCatalog.bookletsId, catalog)
+        val materials = CatalogQueryService.availableMaterials(SampleCatalog.bookletsId, catalog, ComponentRole.Main)
         val materialIds = materials.map(_.id).toSet
         assertTrue(
           materialIds.contains(SampleCatalog.coated300gsmId),
@@ -59,7 +59,7 @@ object CatalogQueryServiceSpec extends ZIOSpecDefault:
         )
       },
       test("returns medium-heavy paper selection for calendars") {
-        val materials = CatalogQueryService.availableMaterials(SampleCatalog.calendarsId, catalog)
+        val materials = CatalogQueryService.availableMaterials(SampleCatalog.calendarsId, catalog, ComponentRole.Main)
         val materialIds = materials.map(_.id).toSet
         assertTrue(
           materialIds.contains(SampleCatalog.coated300gsmId),

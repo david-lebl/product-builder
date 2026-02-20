@@ -128,3 +128,57 @@ object SamplePricelist:
     currency = Currency.CZK,
     version = "1.0.0-czk",
   )
+
+  /** Czech CZK pricelist using sheet-based pricing.
+    * Prices are per SRA3 sheet (320×450mm), with cutting surcharge.
+    * Sheet pricing takes precedence over base pricing for materials that have it.
+    */
+  val pricelistCzkSheet: Pricelist = Pricelist(
+    rules = List(
+      // --- Material sheet prices (CZK per SRA3 sheet 320×450mm) ---
+      PricingRule.MaterialSheetPrice(
+        materialId = SampleCatalog.coatedGlossy90gsmId,
+        pricePerSheet = Money("8"),
+        sheetWidthMm = 320, sheetHeightMm = 450,
+        bleedMm = 3, gutterMm = 2,
+        minUnitPrice = Money("0.50"),
+      ),
+      PricingRule.MaterialSheetPrice(
+        materialId = SampleCatalog.coatedGlossy130gsmId,
+        pricePerSheet = Money("10"),
+        sheetWidthMm = 320, sheetHeightMm = 450,
+        bleedMm = 3, gutterMm = 2,
+        minUnitPrice = Money("0.50"),
+      ),
+      PricingRule.MaterialSheetPrice(
+        materialId = SampleCatalog.coated300gsmId,
+        pricePerSheet = Money("18"),
+        sheetWidthMm = 320, sheetHeightMm = 450,
+        bleedMm = 3, gutterMm = 2,
+        minUnitPrice = Money("1.00"),
+      ),
+
+      // --- Cutting surcharge ---
+      PricingRule.CuttingSurcharge(costPerCut = Money("0.10")),
+
+      // --- Finish surcharges (ID-level, CZK) ---
+      PricingRule.FinishSurcharge(SampleCatalog.matteLaminationId, Money("1")),
+      PricingRule.FinishSurcharge(SampleCatalog.glossLaminationId, Money("1")),
+      PricingRule.FinishSurcharge(SampleCatalog.softTouchCoatingId, Money("1.50")),
+
+      // --- Ink configuration factors ---
+      PricingRule.InkConfigurationFactor(4, 4, BigDecimal("1.00")),
+      PricingRule.InkConfigurationFactor(4, 0, BigDecimal("0.85")),
+      PricingRule.InkConfigurationFactor(4, 1, BigDecimal("0.90")),
+      PricingRule.InkConfigurationFactor(1, 0, BigDecimal("0.55")),
+      PricingRule.InkConfigurationFactor(1, 1, BigDecimal("0.65")),
+
+      // --- Quantity tiers (CZK market) ---
+      PricingRule.QuantityTier(1, Some(99), BigDecimal("1.0")),
+      PricingRule.QuantityTier(100, Some(499), BigDecimal("0.55")),
+      PricingRule.QuantityTier(500, Some(999), BigDecimal("0.45")),
+      PricingRule.QuantityTier(1000, None, BigDecimal("0.40")),
+    ),
+    currency = Currency.CZK,
+    version = "1.0.0-czk-sheet",
+  )

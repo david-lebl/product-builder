@@ -11,3 +11,13 @@ enum PricingRule:
   case CategorySurcharge(categoryId: CategoryId, surchargePerUnit: Money)
   case QuantityTier(minQuantity: Int, maxQuantity: Option[Int], multiplier: BigDecimal)
   case InkConfigurationFactor(frontColorCount: Int, backColorCount: Int, materialMultiplier: BigDecimal)
+  case MaterialSheetPrice(
+      materialId: MaterialId,
+      pricePerSheet: Money,
+      sheetWidthMm: Double,
+      sheetHeightMm: Double,
+      bleedMm: Double,
+      gutterMm: Double,
+      minUnitPrice: Money,
+  )
+  case CuttingSurcharge(costPerCut: Money)

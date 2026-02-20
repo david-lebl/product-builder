@@ -14,6 +14,10 @@ object Money:
     def +(other: Money): Money = m + other
     def *(factor: BigDecimal): Money = m * factor
     def *(qty: Int): Money = m * BigDecimal(qty)
+    def /(divisor: Int): Money = m / BigDecimal(divisor)
+    def /(divisor: BigDecimal): Money =
+      BigDecimal(m.bigDecimal.divide(divisor.bigDecimal, java.math.MathContext.DECIMAL128))
+    def atLeast(floor: Money): Money = if (m: BigDecimal) >= (floor: BigDecimal) then m else floor
     def rounded: Money = m.setScale(2, BigDecimal.RoundingMode.HALF_UP)
 
 enum Currency:

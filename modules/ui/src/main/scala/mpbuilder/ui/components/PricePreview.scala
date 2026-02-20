@@ -65,6 +65,14 @@ object PricePreview:
                   ),
                 )
 
+                val cuttingLine = cb.cuttingLine.map { cutting =>
+                  div(
+                    cls := "price-line-item",
+                    span(cutting.label),
+                    span(formatMoney(cutting.lineTotal, cur)),
+                  )
+                }.toList
+
                 val inkLine = cb.inkConfigLine.map { ink =>
                   div(
                     cls := "price-line-item",
@@ -81,7 +89,7 @@ object PricePreview:
                   )
                 }
 
-                roleHeader ++ materialLine ++ inkLine ++ finishLines
+                roleHeader ++ materialLine ++ cuttingLine ++ inkLine ++ finishLines
               }
 
               val surchargeLines = breakdown.processSurcharge.map { proc =>

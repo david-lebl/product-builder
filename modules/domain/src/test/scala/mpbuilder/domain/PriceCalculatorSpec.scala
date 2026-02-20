@@ -476,23 +476,23 @@ object PriceCalculatorSpec extends ZIOSpecDefault:
           category = SampleCatalog.flyers,
           material = SampleCatalog.coatedGlossy90gsm,
           printingMethod = SampleCatalog.offsetMethod,
+          inkConfig = InkConfiguration.cmyk4_4,
           finishes = Nil,
           specs = List(
             SpecValue.SizeSpec(Dimension(420, 297)),
             SpecValue.QuantitySpec(Quantity.unsafe(1)),
-            SpecValue.InkConfigSpec(InkConfiguration.cmyk4_4),
-            SpecValue.OrientationSpec(Orientation.Portrait),
           ),
         )
 
         val result = PriceCalculator.calculate(config, pricelistCzk)
         val breakdown = result.toEither.toOption.get
+        val cb = firstBreakdown(breakdown)
         // material: 12 × 1 = 12
         // tier 1-99: 1.0×
         // total = 12
         assertTrue(
           result.toEither.isRight,
-          breakdown.materialLine.unitPrice == Money("12"),
+          cb.materialLine.unitPrice == Money("12"),
           breakdown.total == Money("12.00"),
           breakdown.currency == Currency.CZK,
         )
@@ -502,22 +502,22 @@ object PriceCalculatorSpec extends ZIOSpecDefault:
           category = SampleCatalog.flyers,
           material = SampleCatalog.coatedMatte350gsm,
           printingMethod = SampleCatalog.offsetMethod,
+          inkConfig = InkConfiguration.cmyk4_4,
           finishes = Nil,
           specs = List(
             SpecValue.SizeSpec(Dimension(420, 297)),
             SpecValue.QuantitySpec(Quantity.unsafe(1)),
-            SpecValue.InkConfigSpec(InkConfiguration.cmyk4_4),
-            SpecValue.OrientationSpec(Orientation.Portrait),
           ),
         )
 
         val result = PriceCalculator.calculate(config, pricelistCzk)
         val breakdown = result.toEither.toOption.get
+        val cb = firstBreakdown(breakdown)
         // material: 15 × 1 = 15
         // tier 1-99: 1.0×
         // total = 15
         assertTrue(
-          breakdown.materialLine.unitPrice == Money("15"),
+          cb.materialLine.unitPrice == Money("15"),
           breakdown.total == Money("15.00"),
           breakdown.currency == Currency.CZK,
         )
@@ -527,25 +527,25 @@ object PriceCalculatorSpec extends ZIOSpecDefault:
           category = SampleCatalog.flyers,
           material = SampleCatalog.coatedGlossy90gsm,
           printingMethod = SampleCatalog.offsetMethod,
+          inkConfig = InkConfiguration.cmyk4_0,
           finishes = Nil,
           specs = List(
             SpecValue.SizeSpec(Dimension(420, 297)),
             SpecValue.QuantitySpec(Quantity.unsafe(1)),
-            SpecValue.InkConfigSpec(InkConfiguration.cmyk4_0),
-            SpecValue.OrientationSpec(Orientation.Portrait),
           ),
         )
 
         val result = PriceCalculator.calculate(config, pricelistCzk)
         val breakdown = result.toEither.toOption.get
+        val cb = firstBreakdown(breakdown)
         // material: 12 × 1 = 12
         // ink config 4/0: 12 × (0.85 - 1.0) = -1.80
         // subtotal = 12 + (-1.80) = 10.20
         // tier 1-99: 1.0×
         // total = 10.20 (approximates 10 Kč from price table)
         assertTrue(
-          breakdown.inkConfigLine.isDefined,
-          breakdown.inkConfigLine.get.lineTotal == Money("-1.80"),
+          cb.inkConfigLine.isDefined,
+          cb.inkConfigLine.get.lineTotal == Money("-1.80"),
           breakdown.subtotal == Money("10.20"),
           breakdown.total == Money("10.20"),
         )
@@ -555,22 +555,22 @@ object PriceCalculatorSpec extends ZIOSpecDefault:
           category = SampleCatalog.flyers,
           material = SampleCatalog.coatedGlossy130gsm,
           printingMethod = SampleCatalog.offsetMethod,
+          inkConfig = InkConfiguration.cmyk4_4,
           finishes = Nil,
           specs = List(
             SpecValue.SizeSpec(Dimension(420, 297)),
             SpecValue.QuantitySpec(Quantity.unsafe(1000)),
-            SpecValue.InkConfigSpec(InkConfiguration.cmyk4_4),
-            SpecValue.OrientationSpec(Orientation.Portrait),
           ),
         )
 
         val result = PriceCalculator.calculate(config, pricelistCzk)
         val breakdown = result.toEither.toOption.get
+        val cb = firstBreakdown(breakdown)
         // material: 12 × 1000 = 12000
         // tier 1000+: 0.40×
         // total = 12000 × 0.40 = 4800 (i.e. 4.80 Kč/pc, approximates 6 Kč from table)
         assertTrue(
-          breakdown.materialLine.unitPrice == Money("12"),
+          cb.materialLine.unitPrice == Money("12"),
           breakdown.quantityMultiplier == BigDecimal("0.40"),
           breakdown.total == Money("4800.00"),
           breakdown.currency == Currency.CZK,
@@ -581,24 +581,22 @@ object PriceCalculatorSpec extends ZIOSpecDefault:
           category = SampleCatalog.flyers,
           material = SampleCatalog.coatedGlossy150gsm,
           printingMethod = SampleCatalog.offsetMethod,
+          inkConfig = InkConfiguration.cmyk4_4,
           finishes = Nil,
           specs = List(
             SpecValue.SizeSpec(Dimension(420, 297)),
             SpecValue.QuantitySpec(Quantity.unsafe(1)),
-            SpecValue.InkConfigSpec(InkConfiguration.cmyk4_4),
-            SpecValue.OrientationSpec(Orientation.Portrait),
           ),
         )
         val configMatte = makeConfig(
           category = SampleCatalog.flyers,
           material = SampleCatalog.coatedMatte150gsm,
           printingMethod = SampleCatalog.offsetMethod,
+          inkConfig = InkConfiguration.cmyk4_4,
           finishes = Nil,
           specs = List(
             SpecValue.SizeSpec(Dimension(420, 297)),
             SpecValue.QuantitySpec(Quantity.unsafe(1)),
-            SpecValue.InkConfigSpec(InkConfiguration.cmyk4_4),
-            SpecValue.OrientationSpec(Orientation.Portrait),
           ),
         )
 
@@ -606,10 +604,281 @@ object PriceCalculatorSpec extends ZIOSpecDefault:
         val matteResult = PriceCalculator.calculate(configMatte, pricelistCzk)
         val glossyBreakdown = glossyResult.toEither.toOption.get
         val matteBreakdown = matteResult.toEither.toOption.get
+        val glossyCb = firstBreakdown(glossyBreakdown)
+        val matteCb = firstBreakdown(matteBreakdown)
         assertTrue(
-          glossyBreakdown.materialLine.unitPrice == Money("13"),
-          matteBreakdown.materialLine.unitPrice == Money("13"),
+          glossyCb.materialLine.unitPrice == Money("13"),
+          matteCb.materialLine.unitPrice == Money("13"),
           glossyBreakdown.total == matteBreakdown.total,
+        )
+      },
+    ),
+    suite("sheet-based pricing")(
+      test("A3 flyer on SRA3 sheet — 1 piece/sheet, no cutting") {
+        // A3 = 420×297mm, effective = 426×303 (3mm bleed each side)
+        // SRA3 = 320×450mm
+        // Normal: cols=floor((320+2)/(426+2))=0, rows=... → 0
+        // Rotated: cols=floor((320+2)/(303+2))=1, rows=floor((450+2)/(426+2))=1 → 1
+        // So 1 piece/sheet, unitPrice = 8/1 = 8, no cuts
+        val config = makeConfig(
+          category = SampleCatalog.flyers,
+          material = SampleCatalog.coatedGlossy90gsm,
+          printingMethod = SampleCatalog.offsetMethod,
+          inkConfig = InkConfiguration.cmyk4_4,
+          finishes = Nil,
+          specs = List(
+            SpecValue.SizeSpec(Dimension(420, 297)),
+            SpecValue.QuantitySpec(Quantity.unsafe(100)),
+          ),
+        )
+
+        val result = PriceCalculator.calculate(config, SamplePricelist.pricelistCzkSheet)
+        val breakdown = result.toEither.toOption.get
+        val cb = firstBreakdown(breakdown)
+        assertTrue(
+          result.toEither.isRight,
+          cb.materialLine.unitPrice == Money("8"),
+          cb.materialLine.quantity == 100,
+          cb.materialLine.lineTotal == Money("800"),
+          cb.cuttingLine.isEmpty,
+        )
+      },
+      test("A4 flyer on SRA3 sheet — 2 pieces/sheet, 1 cut") {
+        // A4 = 210×297mm, effective = 216×303 (3mm bleed each side)
+        // SRA3 = 320×450mm
+        // Normal: cols=floor(322/218)=1, rows=floor(452/305)=1 → 1
+        // Rotated: cols=floor(322/305)=1, rows=floor(452/218)=2 → 2
+        // So 2 pieces/sheet, unitPrice = 8/2 = 4
+        // Cuts: 1 cut, costPerPiece = (1 × 0.10) / 2 = 0.05
+        val config = makeConfig(
+          category = SampleCatalog.flyers,
+          material = SampleCatalog.coatedGlossy90gsm,
+          printingMethod = SampleCatalog.offsetMethod,
+          inkConfig = InkConfiguration.cmyk4_4,
+          finishes = Nil,
+          specs = List(
+            SpecValue.SizeSpec(Dimension(210, 297)),
+            SpecValue.QuantitySpec(Quantity.unsafe(100)),
+          ),
+        )
+
+        val result = PriceCalculator.calculate(config, SamplePricelist.pricelistCzkSheet)
+        val breakdown = result.toEither.toOption.get
+        val cb = firstBreakdown(breakdown)
+        assertTrue(
+          result.toEither.isRight,
+          cb.materialLine.unitPrice == Money("4"),
+          cb.materialLine.lineTotal == Money("400"),
+          cb.cuttingLine.isDefined,
+          cb.cuttingLine.get.unitPrice == Money("0.05"),
+          cb.cuttingLine.get.lineTotal == Money("5.00"),
+          breakdown.subtotal == Money("405"),
+        )
+      },
+      test("business card on SRA3 sheet — many pieces/sheet, nesting calculation") {
+        // Business card = 90×55mm, effective = 96×61 (3mm bleed each side)
+        // SRA3 = 320×450mm
+        // Normal: cols=floor(322/98)=3, rows=floor(452/63)=7 → 21
+        // Rotated: cols=floor(322/63)=5, rows=floor(452/98)=4 → 20
+        // So 21 pieces/sheet
+        // unitPrice = 18/21
+        // Cuts: 20 cuts, costPerPiece = (20 × 0.10) / 21
+        val config = makeConfig(
+          category = SampleCatalog.businessCards,
+          material = SampleCatalog.coated300gsm,
+          printingMethod = SampleCatalog.offsetMethod,
+          inkConfig = InkConfiguration.cmyk4_4,
+          finishes = Nil,
+          specs = List(
+            SpecValue.SizeSpec(Dimension(90, 55)),
+            SpecValue.QuantitySpec(Quantity.unsafe(100)),
+          ),
+        )
+
+        val result = PriceCalculator.calculate(config, SamplePricelist.pricelistCzkSheet)
+        val breakdown = result.toEither.toOption.get
+        val cb = firstBreakdown(breakdown)
+        // 18/21 ≈ 0.857..., min floor = 1.00, so floor applies → unitPrice = 1.00
+        assertTrue(
+          result.toEither.isRight,
+          cb.materialLine.unitPrice == Money("1.00"),
+          cb.materialLine.lineTotal == Money("100.00"),
+          cb.cuttingLine.isDefined,
+        )
+      },
+      test("small item hitting minUnitPrice floor") {
+        // Very small item, many fit on sheet, raw price < minUnitPrice
+        // 40×30mm item, effective = 46×36 (3mm bleed)
+        // SRA3 = 320×450mm
+        // Normal: cols=floor(322/48)=6, rows=floor(452/38)=11 → 66
+        // Rotated: cols=floor(322/38)=8, rows=floor(452/48)=9 → 72
+        // 72 pieces/sheet
+        // rawUnitPrice = 18/72 = 0.25, minUnitPrice = 1.00 → floor applies
+        val config = makeConfig(
+          category = SampleCatalog.businessCards,
+          material = SampleCatalog.coated300gsm,
+          printingMethod = SampleCatalog.offsetMethod,
+          inkConfig = InkConfiguration.cmyk4_4,
+          finishes = Nil,
+          specs = List(
+            SpecValue.SizeSpec(Dimension(40, 30)),
+            SpecValue.QuantitySpec(Quantity.unsafe(100)),
+          ),
+        )
+
+        val result = PriceCalculator.calculate(config, SamplePricelist.pricelistCzkSheet)
+        val breakdown = result.toEither.toOption.get
+        val cb = firstBreakdown(breakdown)
+        assertTrue(
+          result.toEither.isRight,
+          cb.materialLine.unitPrice == Money("1.00"),
+        )
+      },
+      test("missing SizeSpec returns NoSizeForSheetPricing error") {
+        val config = makeConfig(
+          category = SampleCatalog.flyers,
+          material = SampleCatalog.coatedGlossy90gsm,
+          printingMethod = SampleCatalog.offsetMethod,
+          inkConfig = InkConfiguration.cmyk4_4,
+          finishes = Nil,
+          specs = List(
+            SpecValue.QuantitySpec(Quantity.unsafe(100)),
+          ),
+        )
+
+        val result = PriceCalculator.calculate(config, SamplePricelist.pricelistCzkSheet)
+        val errors = result.toEither.left.toOption.get.toList
+        assertTrue(
+          errors.exists(_.isInstanceOf[PricingError.NoSizeForSheetPricing]),
+        )
+      },
+      test("area pricing takes precedence over sheet pricing") {
+        // Create a pricelist with both area and sheet rules for the same material
+        val mixedPricelist = Pricelist(
+          rules = List(
+            PricingRule.MaterialAreaPrice(SampleCatalog.coatedGlossy90gsmId, Money("20.00")),
+            PricingRule.MaterialSheetPrice(
+              SampleCatalog.coatedGlossy90gsmId, Money("8"),
+              320, 450, 3, 2, Money("0.50"),
+            ),
+            PricingRule.QuantityTier(1, None, BigDecimal("1.0")),
+          ),
+          currency = Currency.CZK,
+          version = "test",
+        )
+
+        val config = makeConfig(
+          category = SampleCatalog.flyers,
+          material = SampleCatalog.coatedGlossy90gsm,
+          printingMethod = SampleCatalog.offsetMethod,
+          inkConfig = InkConfiguration.cmyk4_4,
+          finishes = Nil,
+          specs = List(
+            SpecValue.SizeSpec(Dimension(210, 297)),
+            SpecValue.QuantitySpec(Quantity.unsafe(1)),
+          ),
+        )
+
+        val result = PriceCalculator.calculate(config, mixedPricelist)
+        val breakdown = result.toEither.toOption.get
+        val cb = firstBreakdown(breakdown)
+        // Area: 0.210 × 0.297 × 20.00 = 1.2474
+        val expectedArea = Money("20.00") * (BigDecimal("0.210") * BigDecimal("0.297"))
+        assertTrue(
+          result.toEither.isRight,
+          cb.materialLine.unitPrice == expectedArea,
+          cb.cuttingLine.isEmpty, // no cutting for area pricing
+        )
+      },
+      test("sheet pricing takes precedence over base pricing") {
+        // Pricelist with both sheet and base rules for coatedGlossy90gsm
+        val mixedPricelist = Pricelist(
+          rules = List(
+            PricingRule.MaterialSheetPrice(
+              SampleCatalog.coatedGlossy90gsmId, Money("8"),
+              320, 450, 3, 2, Money("0.50"),
+            ),
+            PricingRule.MaterialBasePrice(SampleCatalog.coatedGlossy90gsmId, Money("99")),
+            PricingRule.QuantityTier(1, None, BigDecimal("1.0")),
+          ),
+          currency = Currency.CZK,
+          version = "test",
+        )
+
+        val config = makeConfig(
+          category = SampleCatalog.flyers,
+          material = SampleCatalog.coatedGlossy90gsm,
+          printingMethod = SampleCatalog.offsetMethod,
+          inkConfig = InkConfiguration.cmyk4_4,
+          finishes = Nil,
+          specs = List(
+            SpecValue.SizeSpec(Dimension(420, 297)),
+            SpecValue.QuantitySpec(Quantity.unsafe(1)),
+          ),
+        )
+
+        val result = PriceCalculator.calculate(config, mixedPricelist)
+        val breakdown = result.toEither.toOption.get
+        val cb = firstBreakdown(breakdown)
+        // Sheet pricing: 1 piece/sheet → unitPrice = 8 (not 99 from base)
+        assertTrue(
+          result.toEither.isRight,
+          cb.materialLine.unitPrice == Money("8"),
+        )
+      },
+      test("sheet pricing + ink config factor interaction") {
+        // A4 on SRA3: 2 pieces/sheet, unitPrice = 8/2 = 4
+        // ink config 4/0 factor = 0.85 → adjustment = 4 × (0.85 - 1.0) = -0.60
+        val config = makeConfig(
+          category = SampleCatalog.flyers,
+          material = SampleCatalog.coatedGlossy90gsm,
+          printingMethod = SampleCatalog.offsetMethod,
+          inkConfig = InkConfiguration.cmyk4_0,
+          finishes = Nil,
+          specs = List(
+            SpecValue.SizeSpec(Dimension(210, 297)),
+            SpecValue.QuantitySpec(Quantity.unsafe(100)),
+          ),
+        )
+
+        val result = PriceCalculator.calculate(config, SamplePricelist.pricelistCzkSheet)
+        val breakdown = result.toEither.toOption.get
+        val cb = firstBreakdown(breakdown)
+        assertTrue(
+          result.toEither.isRight,
+          cb.materialLine.unitPrice == Money("4"),
+          cb.inkConfigLine.isDefined,
+          cb.inkConfigLine.get.unitPrice == Money("-0.60"),
+        )
+      },
+      test("rotated orientation yields more pieces") {
+        // 150×100mm item, effective = 156×106 (3mm bleed)
+        // SRA3 = 320×450mm
+        // Normal: cols=floor(322/158)=2, rows=floor(452/108)=4 → 8
+        // Rotated: cols=floor(322/108)=2, rows=floor(452/158)=2 → 4
+        // Normal wins with 8 pieces
+        // unitPrice = 8/8 = 1
+        val config = makeConfig(
+          category = SampleCatalog.flyers,
+          material = SampleCatalog.coatedGlossy90gsm,
+          printingMethod = SampleCatalog.offsetMethod,
+          inkConfig = InkConfiguration.cmyk4_4,
+          finishes = Nil,
+          specs = List(
+            SpecValue.SizeSpec(Dimension(150, 100)),
+            SpecValue.QuantitySpec(Quantity.unsafe(100)),
+          ),
+        )
+
+        val result = PriceCalculator.calculate(config, SamplePricelist.pricelistCzkSheet)
+        val breakdown = result.toEither.toOption.get
+        val cb = firstBreakdown(breakdown)
+        assertTrue(
+          result.toEither.isRight,
+          cb.materialLine.unitPrice == Money("1"),
+          cb.cuttingLine.isDefined,
+          // 7 cuts for 8 pieces: (7 × 0.10) / 8 = 0.0875
+          cb.cuttingLine.get.quantity == 100,
         )
       },
     ),
