@@ -28,7 +28,7 @@ This is a DDD (Domain-Driven Design) product configuration system for the printi
 - **`rules/`** — `CompatibilityRule` sealed ADT (12 rule variants), `SpecPredicate` and `ConfigurationPredicate` (boolean algebra with And/Or/Not). Rules are data, not code.
 - **`validation/`** — `ConfigurationError` ADT with exhaustive `message` match. `RuleEvaluator` interprets rules. `ConfigurationValidator` runs two-layer validation: structural checks first, then rule evaluation.
 - **`service/`** — `ConfigurationBuilder` resolves IDs from catalog and orchestrates validation. `CatalogQueryService` pre-filters compatible options for UI progressive disclosure.
-- **`pricing/`** — `Money` opaque type (BigDecimal, never Double). `PricingRule` sealed enum (8 variants: base price, area price, finish/type/process/category surcharges, quantity tiers, `InkConfigurationFactor`). `PriceCalculator` interprets rules purely. `PricingError` ADT with exhaustive `message` match. `PriceBreakdown` output with line items (including optional `inkConfigLine`).
+- **`pricing/`** — `Money` opaque type (BigDecimal, never Double). `PricingRule` sealed enum (10 variants: base price, area price, sheet price, finish/type/process/category surcharges, quantity tiers, sheet quantity tiers, `InkConfigurationFactor`, cutting surcharge). `PriceCalculator` interprets rules purely. `PricingError` ADT with exhaustive `message` match. `PriceBreakdown` output with `ComponentBreakdown` per component (including optional `inkConfigLine`, `cuttingLine`, and `sheetsUsed`).
 - **`sample/`** — `SampleCatalog` (7 categories, 9 materials, 14 finishes, 4 printing methods), `SampleRules` (24 rules), and `SamplePricelist` (pricing for all materials, key finishes, 4 quantity tiers). Used by tests.
 
 ### Package layout: `mpbuilder.ui.calendar` (Visual Editor)
@@ -56,7 +56,7 @@ ZIO Prelude `Validation` accumulates all errors (not short-circuit). Structural 
 
 ### Pricing approach
 
-`PriceCalculator.calculate` is pure — returns `Validation[PricingError, PriceBreakdown]`. Steps: extract quantity → resolve material unit price (area-based first, then flat) → apply `InkConfigurationFactor` (multiplier on material cost by front/back color counts; 1.0 = no line item) → finish surcharges (ID-level overrides type-level) → process/category surcharges → sum subtotal → apply best quantity tier multiplier → round total to 2dp.
+`PriceCalculator.calculate` is pure — returns `Validation[PricingError, PriceBreakdown]`. Steps: extract quantity → resolve material unit price (area > sheet > base precedence) → compute `sheetsUsed` per component (for sheet-priced materials) → apply `InkConfigurationFactor` (multiplier on material cost by front/back color counts; 1.0 = no line item) → finish surcharges (ID-level overrides type-level) → process/category surcharges → sum subtotal → apply best tier multiplier (`SheetQuantityTier` if totalSheets > 0 and rules exist, else `QuantityTier` fallback) → round total to 2dp.
 
 ### Adding new pricing rule types
 
