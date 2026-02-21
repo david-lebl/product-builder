@@ -68,53 +68,16 @@ object PriceCalculator:
       quantity: Int,
       lang: Language,
   ): Validation[PricingError, ComponentBreakdown] =
-    resolveMaterialUnitPrice(comp.material, comp.role, specs, rules).map { materialUnitPrice =>
-      val effectiveQuantity = comp.sheetCount * quantity
-      val materialLineTotal = materialUnitPrice * effectiveQuantity
-      val materialLine = LineItem(
-        label = s"Material: ${comp.material.name(lang)}",
-        unitPrice = materialUnitPrice,
-        quantity = effectiveQuantity,
-        lineTotal = materialLineTotal,
-      )
+    val effectiveQuantity = comp.sheetCount * quantity
 
-      val cuttingLine = computeCuttingLine(comp.material.id, specs, rules, effectiveQuantity)
-
-      val inkConfigLine = computeInkConfigLine(comp.inkConfiguration, rules, materialUnitPrice, materialLineTotal, effectiveQuantity)
-
-      val finishLines = computeFinishLines(comp.finishes, rules, quantity, lang)
-
-      val sheetsUsed = computeSheetsUsed(comp.material.id, specs, rules, effectiveQuantity)
-
-      ComponentBreakdown(
-        role = comp.role,
-        materialLine = materialLine,
-        cuttingLine = cuttingLine,
-        inkConfigLine = inkConfigLine,
-        finishLines = finishLines,
-        sheetsUsed = sheetsUsed,
-      )
-    }
-
-  private def extractQuantity(specs: ProductSpecifications): Validation[PricingError, Int] =
-    specs.get(SpecKind.Quantity) match
-      case Some(SpecValue.QuantitySpec(q)) => Validation.succeed(q.value)
-      case _                              => Validation.fail(PricingError.NoQuantityInSpecifications)
-
-  private def resolveMaterialUnitPrice(
-      material: Material,
-      role: ComponentRole,
-      specs: ProductSpecifications,
-      rules: List[PricingRule],
-  ): Validation[PricingError, Money] =
     val areaRule = rules.collectFirst {
-      case r: PricingRule.MaterialAreaPrice if r.materialId == material.id => r
+      case r: PricingRule.MaterialAreaPrice if r.materialId == comp.material.id => r
     }
     val sheetRule = rules.collectFirst {
-      case r: PricingRule.MaterialSheetPrice if r.materialId == material.id => r
+      case r: PricingRule.MaterialSheetPrice if r.materialId == comp.material.id => r
     }
     val baseRule = rules.collectFirst {
-      case r: PricingRule.MaterialBasePrice if r.materialId == material.id => r
+      case r: PricingRule.MaterialBasePrice if r.materialId == comp.material.id => r
     }
 
     areaRule match
@@ -122,9 +85,27 @@ object PriceCalculator:
         specs.get(SpecKind.Size) match
           case Some(SpecValue.SizeSpec(dim)) =>
             val areaSqM = BigDecimal(dim.widthMm) * BigDecimal(dim.heightMm) / BigDecimal(1_000_000)
-            Validation.succeed(areaPrice.pricePerSqMeter * areaSqM)
+            val unitPrice = areaPrice.pricePerSqMeter * areaSqM
+            val materialLineTotal = unitPrice * effectiveQuantity
+            val materialLine = LineItem(
+              label = s"Material: ${comp.material.name(lang)}",
+              unitPrice = unitPrice,
+              quantity = effectiveQuantity,
+              lineTotal = materialLineTotal,
+            )
+            val inkConfigLine = computeInkConfigLine(comp.inkConfiguration, rules, unitPrice, materialLineTotal, effectiveQuantity)
+            val finishLines = computeFinishLines(comp.finishes, rules, quantity, lang)
+            Validation.succeed(ComponentBreakdown(
+              role = comp.role,
+              materialLine = materialLine,
+              cuttingLine = None,
+              inkConfigLine = inkConfigLine,
+              finishLines = finishLines,
+              sheetsUsed = 0,
+            ))
           case _ =>
-            Validation.fail(PricingError.NoSizeForAreaPricing(material.id, role))
+            Validation.fail(PricingError.NoSizeForAreaPricing(comp.material.id, comp.role))
+
       case None =>
         sheetRule match
           case Some(sp) =>
@@ -135,47 +116,72 @@ object PriceCalculator:
                   dim.widthMm.toDouble, dim.heightMm.toDouble,
                   sp.bleedMm, sp.gutterMm,
                 )
-                val rawUnitPrice = sp.pricePerSheet / pps
-                Validation.succeed(rawUnitPrice.atLeast(sp.minUnitPrice))
+                val sheetsUsed = math.ceil(effectiveQuantity.toDouble / pps).toInt
+                val materialLineTotal = sp.pricePerSheet * sheetsUsed
+                val materialLine = LineItem(
+                  label = s"Material: ${comp.material.name(lang)}",
+                  unitPrice = sp.pricePerSheet,
+                  quantity = sheetsUsed,
+                  lineTotal = materialLineTotal,
+                )
+
+                val perPiecePrice = materialLineTotal / effectiveQuantity
+                val inkConfigLine = computeInkConfigLine(comp.inkConfiguration, rules, perPiecePrice, materialLineTotal, effectiveQuantity)
+
+                val cuttingRule = rules.collectFirst { case r: PricingRule.CuttingSurcharge => r }
+                val numCuts = pps - 1
+                val cuttingLine =
+                  if numCuts > 0 then
+                    cuttingRule.map { cr =>
+                      val costPerSheet = cr.costPerCut * numCuts
+                      LineItem(
+                        label = "Cutting surcharge",
+                        unitPrice = costPerSheet,
+                        quantity = sheetsUsed,
+                        lineTotal = (costPerSheet * sheetsUsed).rounded,
+                      )
+                    }
+                  else None
+
+                val finishLines = computeFinishLines(comp.finishes, rules, quantity, lang)
+                Validation.succeed(ComponentBreakdown(
+                  role = comp.role,
+                  materialLine = materialLine,
+                  cuttingLine = cuttingLine,
+                  inkConfigLine = inkConfigLine,
+                  finishLines = finishLines,
+                  sheetsUsed = sheetsUsed,
+                ))
               case _ =>
-                Validation.fail(PricingError.NoSizeForSheetPricing(material.id, role))
+                Validation.fail(PricingError.NoSizeForSheetPricing(comp.material.id, comp.role))
+
           case None =>
             baseRule match
-              case Some(bp) => Validation.succeed(bp.unitPrice)
-              case None     => Validation.fail(PricingError.NoBasePriceForMaterial(material.id, role))
+              case Some(bp) =>
+                val materialLineTotal = bp.unitPrice * effectiveQuantity
+                val materialLine = LineItem(
+                  label = s"Material: ${comp.material.name(lang)}",
+                  unitPrice = bp.unitPrice,
+                  quantity = effectiveQuantity,
+                  lineTotal = materialLineTotal,
+                )
+                val inkConfigLine = computeInkConfigLine(comp.inkConfiguration, rules, bp.unitPrice, materialLineTotal, effectiveQuantity)
+                val finishLines = computeFinishLines(comp.finishes, rules, quantity, lang)
+                Validation.succeed(ComponentBreakdown(
+                  role = comp.role,
+                  materialLine = materialLine,
+                  cuttingLine = None,
+                  inkConfigLine = inkConfigLine,
+                  finishLines = finishLines,
+                  sheetsUsed = 0,
+                ))
+              case None =>
+                Validation.fail(PricingError.NoBasePriceForMaterial(comp.material.id, comp.role))
 
-  private def computeCuttingLine(
-      materialId: MaterialId,
-      specs: ProductSpecifications,
-      rules: List[PricingRule],
-      effectiveQuantity: Int,
-  ): Option[LineItem] =
-    val sheetRule = rules.collectFirst {
-      case r: PricingRule.MaterialSheetPrice if r.materialId == materialId => r
-    }
-    val cuttingRule = rules.collectFirst {
-      case r: PricingRule.CuttingSurcharge => r
-    }
-
-    for
-      sp <- sheetRule
-      cr <- cuttingRule
-      dim <- specs.get(SpecKind.Size).collect { case SpecValue.SizeSpec(d) => d }
-      pps = SheetNesting.piecesPerSheet(
-        sp.sheetWidthMm, sp.sheetHeightMm,
-        dim.widthMm.toDouble, dim.heightMm.toDouble,
-        sp.bleedMm, sp.gutterMm,
-      )
-      numCuts = pps - 1
-      if numCuts > 0
-    yield
-      val costPerPiece = (cr.costPerCut * numCuts) / pps
-      LineItem(
-        label = "Cutting surcharge",
-        unitPrice = costPerPiece,
-        quantity = effectiveQuantity,
-        lineTotal = (costPerPiece * effectiveQuantity).rounded,
-      )
+  private def extractQuantity(specs: ProductSpecifications): Validation[PricingError, Int] =
+    specs.get(SpecKind.Quantity) match
+      case Some(SpecValue.QuantitySpec(q)) => Validation.succeed(q.value)
+      case _                              => Validation.fail(PricingError.NoQuantityInSpecifications)
 
   private def computeInkConfigLine(
       inkConfig: InkConfiguration,
@@ -277,25 +283,6 @@ object PriceCalculator:
           if r.minSheets <= totalSheets &&
             r.maxSheets.forall(_ >= totalSheets) => r
     }.sortBy(_.minSheets)(using scala.math.Ordering[Int].reverse).headOption
-
-  private def computeSheetsUsed(
-      materialId: MaterialId,
-      specs: ProductSpecifications,
-      rules: List[PricingRule],
-      effectiveQuantity: Int,
-  ): Int =
-    val sheetRule = rules.collectFirst {
-      case r: PricingRule.MaterialSheetPrice if r.materialId == materialId => r
-    }
-    (for
-      sp <- sheetRule
-      dim <- specs.get(SpecKind.Size).collect { case SpecValue.SizeSpec(d) => d }
-      pps = SheetNesting.piecesPerSheet(
-        sp.sheetWidthMm, sp.sheetHeightMm,
-        dim.widthMm.toDouble, dim.heightMm.toDouble,
-        sp.bleedMm, sp.gutterMm,
-      )
-    yield math.ceil(effectiveQuantity.toDouble / pps).toInt).getOrElse(0)
 
   private object SheetNesting:
     def piecesPerSheet(

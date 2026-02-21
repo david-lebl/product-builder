@@ -140,126 +140,126 @@ object SamplePricelist:
       PricingRule.MaterialSheetPrice(
         materialId = SampleCatalog.coatedGlossy90gsmId,
         pricePerSheet = Money("8"), sheetWidthMm = 320, sheetHeightMm = 450,
-        bleedMm = 3, gutterMm = 2, minUnitPrice = Money("0.50"),
+        bleedMm = 3, gutterMm = 2,
       ),
       PricingRule.MaterialSheetPrice(
         materialId = SampleCatalog.coatedGlossy115gsmId,
         pricePerSheet = Money("9"), sheetWidthMm = 320, sheetHeightMm = 450,
-        bleedMm = 3, gutterMm = 2, minUnitPrice = Money("0.50"),
+        bleedMm = 3, gutterMm = 2,
       ),
       PricingRule.MaterialSheetPrice(
         materialId = SampleCatalog.coatedGlossy130gsmId,
         pricePerSheet = Money("10"), sheetWidthMm = 320, sheetHeightMm = 450,
-        bleedMm = 3, gutterMm = 2, minUnitPrice = Money("0.50"),
+        bleedMm = 3, gutterMm = 2,
       ),
       PricingRule.MaterialSheetPrice(
         materialId = SampleCatalog.coatedMatte90gsmId,
         pricePerSheet = Money("8"), sheetWidthMm = 320, sheetHeightMm = 450,
-        bleedMm = 3, gutterMm = 2, minUnitPrice = Money("0.50"),
+        bleedMm = 3, gutterMm = 2,
       ),
       PricingRule.MaterialSheetPrice(
         materialId = SampleCatalog.coatedMatte115gsmId,
         pricePerSheet = Money("9"), sheetWidthMm = 320, sheetHeightMm = 450,
-        bleedMm = 3, gutterMm = 2, minUnitPrice = Money("0.50"),
+        bleedMm = 3, gutterMm = 2,
       ),
       PricingRule.MaterialSheetPrice(
         materialId = SampleCatalog.coatedMatte130gsmId,
         pricePerSheet = Money("10"), sheetWidthMm = 320, sheetHeightMm = 450,
-        bleedMm = 3, gutterMm = 2, minUnitPrice = Money("0.50"),
+        bleedMm = 3, gutterMm = 2,
       ),
 
       // Medium papers (150-200gsm): ~12-14 CZK/sheet
       PricingRule.MaterialSheetPrice(
         materialId = SampleCatalog.coatedGlossy150gsmId,
         pricePerSheet = Money("12"), sheetWidthMm = 320, sheetHeightMm = 450,
-        bleedMm = 3, gutterMm = 2, minUnitPrice = Money("0.50"),
+        bleedMm = 3, gutterMm = 2,
       ),
       PricingRule.MaterialSheetPrice(
         materialId = SampleCatalog.coatedGlossy170gsmId,
         pricePerSheet = Money("12"), sheetWidthMm = 320, sheetHeightMm = 450,
-        bleedMm = 3, gutterMm = 2, minUnitPrice = Money("0.50"),
+        bleedMm = 3, gutterMm = 2,
       ),
       PricingRule.MaterialSheetPrice(
         materialId = SampleCatalog.coatedGlossy200gsmId,
         pricePerSheet = Money("14"), sheetWidthMm = 320, sheetHeightMm = 450,
-        bleedMm = 3, gutterMm = 2, minUnitPrice = Money("0.50"),
+        bleedMm = 3, gutterMm = 2,
       ),
       PricingRule.MaterialSheetPrice(
         materialId = SampleCatalog.coatedMatte150gsmId,
         pricePerSheet = Money("12"), sheetWidthMm = 320, sheetHeightMm = 450,
-        bleedMm = 3, gutterMm = 2, minUnitPrice = Money("0.50"),
+        bleedMm = 3, gutterMm = 2,
       ),
       PricingRule.MaterialSheetPrice(
         materialId = SampleCatalog.coatedMatte170gsmId,
         pricePerSheet = Money("12"), sheetWidthMm = 320, sheetHeightMm = 450,
-        bleedMm = 3, gutterMm = 2, minUnitPrice = Money("0.50"),
+        bleedMm = 3, gutterMm = 2,
       ),
       PricingRule.MaterialSheetPrice(
         materialId = SampleCatalog.coatedMatte200gsmId,
         pricePerSheet = Money("14"), sheetWidthMm = 320, sheetHeightMm = 450,
-        bleedMm = 3, gutterMm = 2, minUnitPrice = Money("0.50"),
+        bleedMm = 3, gutterMm = 2,
       ),
       PricingRule.MaterialSheetPrice(
         materialId = SampleCatalog.yupoId,
         pricePerSheet = Money("14"), sheetWidthMm = 320, sheetHeightMm = 450,
-        bleedMm = 3, gutterMm = 2, minUnitPrice = Money("0.50"),
+        bleedMm = 3, gutterMm = 2,
       ),
       PricingRule.MaterialSheetPrice(
         materialId = SampleCatalog.adhesiveStockId,
         pricePerSheet = Money("12"), sheetWidthMm = 320, sheetHeightMm = 450,
-        bleedMm = 3, gutterMm = 2, minUnitPrice = Money("0.50"),
+        bleedMm = 3, gutterMm = 2,
       ),
       PricingRule.MaterialSheetPrice(
         materialId = SampleCatalog.uncoatedBondId,
         pricePerSheet = Money("8"), sheetWidthMm = 320, sheetHeightMm = 450,
-        bleedMm = 3, gutterMm = 2, minUnitPrice = Money("0.50"),
+        bleedMm = 3, gutterMm = 2,
       ),
 
       // Heavy papers (250-350gsm): ~16-20 CZK/sheet
       PricingRule.MaterialSheetPrice(
         materialId = SampleCatalog.coatedGlossy250gsmId,
         pricePerSheet = Money("16"), sheetWidthMm = 320, sheetHeightMm = 450,
-        bleedMm = 3, gutterMm = 2, minUnitPrice = Money("1.00"),
+        bleedMm = 3, gutterMm = 2,
       ),
       PricingRule.MaterialSheetPrice(
         materialId = SampleCatalog.coatedGlossy350gsmId,
         pricePerSheet = Money("20"), sheetWidthMm = 320, sheetHeightMm = 450,
-        bleedMm = 3, gutterMm = 2, minUnitPrice = Money("1.00"),
+        bleedMm = 3, gutterMm = 2,
       ),
       PricingRule.MaterialSheetPrice(
         materialId = SampleCatalog.coated300gsmId,
         pricePerSheet = Money("18"), sheetWidthMm = 320, sheetHeightMm = 450,
-        bleedMm = 3, gutterMm = 2, minUnitPrice = Money("1.00"),
+        bleedMm = 3, gutterMm = 2,
       ),
       PricingRule.MaterialSheetPrice(
         materialId = SampleCatalog.coatedMatte250gsmId,
         pricePerSheet = Money("16"), sheetWidthMm = 320, sheetHeightMm = 450,
-        bleedMm = 3, gutterMm = 2, minUnitPrice = Money("1.00"),
+        bleedMm = 3, gutterMm = 2,
       ),
       PricingRule.MaterialSheetPrice(
         materialId = SampleCatalog.coatedMatte300gsmId,
         pricePerSheet = Money("18"), sheetWidthMm = 320, sheetHeightMm = 450,
-        bleedMm = 3, gutterMm = 2, minUnitPrice = Money("1.00"),
+        bleedMm = 3, gutterMm = 2,
       ),
       PricingRule.MaterialSheetPrice(
         materialId = SampleCatalog.coatedMatte350gsmId,
         pricePerSheet = Money("20"), sheetWidthMm = 320, sheetHeightMm = 450,
-        bleedMm = 3, gutterMm = 2, minUnitPrice = Money("1.00"),
+        bleedMm = 3, gutterMm = 2,
       ),
       PricingRule.MaterialSheetPrice(
         materialId = SampleCatalog.coatedSilk250gsmId,
         pricePerSheet = Money("16"), sheetWidthMm = 320, sheetHeightMm = 450,
-        bleedMm = 3, gutterMm = 2, minUnitPrice = Money("1.00"),
+        bleedMm = 3, gutterMm = 2,
       ),
       PricingRule.MaterialSheetPrice(
         materialId = SampleCatalog.kraftId,
         pricePerSheet = Money("16"), sheetWidthMm = 320, sheetHeightMm = 450,
-        bleedMm = 3, gutterMm = 2, minUnitPrice = Money("1.00"),
+        bleedMm = 3, gutterMm = 2,
       ),
       PricingRule.MaterialSheetPrice(
         materialId = SampleCatalog.cottonId,
         pricePerSheet = Money("20"), sheetWidthMm = 320, sheetHeightMm = 450,
-        bleedMm = 3, gutterMm = 2, minUnitPrice = Money("1.00"),
+        bleedMm = 3, gutterMm = 2,
       ),
 
       // --- Material area price (for vinyl — CZK per sqm) ---
