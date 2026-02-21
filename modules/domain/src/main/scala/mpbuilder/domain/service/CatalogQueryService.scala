@@ -16,6 +16,8 @@ object CatalogQueryService:
       case None => Nil
       case Some(category) =>
         category.componentFor(role) match
+          case None if role == ComponentRole.Main =>
+            category.allAllowedMaterialIds.toList.flatMap(catalog.materials.get)
           case None           => Nil
           case Some(template) => template.allowedMaterialIds.toList.flatMap(catalog.materials.get)
 

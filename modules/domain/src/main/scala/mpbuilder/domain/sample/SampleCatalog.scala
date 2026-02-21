@@ -514,7 +514,7 @@ object SampleCatalog:
     components = List(
       ComponentTemplate(
         ComponentRole.Cover,
-        allowedMaterialIds = Set(coated300gsmId, uncoatedBondId, coatedSilk250gsmId) ++
+        allowedMaterialIds = Set(coated300gsmId, coatedSilk250gsmId) ++
           allCoatedGlossyIds ++ allCoatedMatteIds,
         allowedFinishIds = Set(matteLaminationId, glossLaminationId, uvCoatingId),
       ),
