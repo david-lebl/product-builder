@@ -28,7 +28,6 @@ MaterialSheetPrice(
   sheetHeightMm,
   bleedMm,           // bleed added per side to each item
   gutterMm,          // spacing between items on the sheet
-  minUnitPrice,      // floor price per piece
 )
 ```
 
@@ -53,24 +52,26 @@ piecesPerSheet = cols * rows
 Both orientations (normal and 90-degree rotated) are tried, and the better one is used. The result is clamped to a
 minimum of 1 (an oversized item that doesn't fully fit still counts as 1 per sheet).
 
-### Unit Price Derivation
+### Whole-Sheet Pricing
+
+You pay for whole sheets — leftover space is waste. The material line item shows per-sheet pricing:
 
 ```
-rawUnitPrice = pricePerSheet / piecesPerSheet
-unitPrice    = max(rawUnitPrice, minUnitPrice)
+sheetsUsed = ceil(effectiveQuantity / piecesPerSheet)
+unitPrice  = pricePerSheet
+quantity   = sheetsUsed
+lineTotal  = pricePerSheet × sheetsUsed
 ```
-
-The `minUnitPrice` floor prevents unrealistically cheap pricing for very small items where dozens fit on a single sheet
-but the actual handling and finishing cost per piece doesn't scale down to zero.
 
 ### Cutting Surcharge
 
 A companion rule `CuttingSurcharge(costPerCut)` models the cost of cutting items from the sheet. It only applies when
-sheet-based pricing is in use:
+sheet-based pricing is in use. Like material, cutting is priced per sheet:
 
 ```
 numCuts      = piecesPerSheet - 1
-costPerPiece = (numCuts * costPerCut) / piecesPerSheet
+costPerSheet = numCuts × costPerCut
+lineTotal    = costPerSheet × sheetsUsed
 ```
 
 This appears as a separate line item in the breakdown, making the cost structure transparent.
@@ -99,11 +100,12 @@ Effective item: 216 x 303mm
 Normal:  cols=floor(322/218)=1, rows=floor(452/305)=1 → 1 piece
 Rotated: cols=floor(322/305)=1, rows=floor(452/218)=2 → 2 pieces
 Best: 2 pieces per sheet
+sheetsUsed = ceil(100/2) = 50
 
-Material: 8.00 / 2 = 4.00 CZK/piece × 100 = 400.00 CZK
-Cutting:  1 cut × 0.10 / 2 = 0.05 CZK/piece × 100 =   5.00 CZK
-                                                    ──────────────
-Subtotal                                            =  405.00 CZK
+Material: 8.00 CZK/sheet × 50 sheets = 400.00 CZK
+Cutting:  1 cut × 0.10 = 0.10 CZK/sheet × 50 sheets =   5.00 CZK
+                                                      ──────────────
+Subtotal                                              =  405.00 CZK
 ```
 
 ## Sheet Quantity Tiers
@@ -238,20 +240,6 @@ to take an optional `materialId` filter without breaking existing pricelists.
 *Alternative considered — cutting cost embedded in `MaterialSheetPrice`:* Would reduce the number of rule types but
 would duplicate the cutting cost across every sheet-priced material. Would also prevent the cutting cost from applying
 uniformly when it changes.
-
-### Minimum unit price: embedded vs. separate rule
-
-**Chosen: `minUnitPrice` field on `MaterialSheetPrice`**
-
-*Why:* The minimum price floor is fundamentally tied to sheet-based pricing — it only makes sense when the unit price is
-*derived* from sheet nesting. For flat-rate or area-based pricing, the unit price is already explicitly set by the
-pricelist author. A separate `MinimumUnitPrice` rule type would add complexity (another rule to match, another error
-case if missing) for a concept that has no meaning outside sheet pricing. Embedding it keeps related parameters together
-and makes the rule self-contained.
-
-*Alternative considered — separate `MinimumUnitPrice(materialId, floor)` rule:* More flexible (could apply to any
-pricing mode) but over-general for the current need. Would also require coordinating two rules for every sheet-priced
-material.
 
 ### Nesting algorithm: grid-only vs. mixed layouts
 
