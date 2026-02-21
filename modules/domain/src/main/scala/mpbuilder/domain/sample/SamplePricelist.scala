@@ -278,10 +278,14 @@ object SamplePricelist:
       PricingRule.FinishSurcharge(SampleCatalog.embossingId, Money("2")),
       PricingRule.FinishSurcharge(SampleCatalog.foilStampingId, Money("3.50")),
 
+
       // --- Finish surcharges (type-level, CZK) ---
       PricingRule.FinishTypeSurcharge(FinishType.UVCoating, Money("1")),
       PricingRule.FinishTypeSurcharge(FinishType.AqueousCoating, Money("0.50")),
       PricingRule.FinishTypeSurcharge(FinishType.Varnish, Money("1.50")),
+      PricingRule.FinishTypeSurcharge(FinishType.RoundCorners, Money("0.50")),
+      PricingRule.FinishTypeSurcharge(FinishType.Perforation, Money("0.50")),
+      PricingRule.FinishTypeSurcharge(FinishType.Scoring, Money("0.50")),
 
       // --- Printing process surcharge (CZK) ---
       PricingRule.PrintingProcessSurcharge(PrintingProcessType.Letterpress, Money("5")),
@@ -293,11 +297,11 @@ object SamplePricelist:
       PricingRule.InkConfigurationFactor(1, 0, BigDecimal("0.55")),
       PricingRule.InkConfigurationFactor(1, 1, BigDecimal("0.65")),
 
-      // --- Quantity tiers (CZK market) ---
-      PricingRule.QuantityTier(1, Some(99), BigDecimal("1.0")),
-      PricingRule.QuantityTier(100, Some(499), BigDecimal("0.55")),
-      PricingRule.QuantityTier(500, Some(999), BigDecimal("0.45")),
-      PricingRule.QuantityTier(1000, None, BigDecimal("0.40")),
+      // --- Sheet quantity tiers (discount based on total physical sheets) ---
+      PricingRule.SheetQuantityTier(1, Some(49), BigDecimal("1.0")),
+      PricingRule.SheetQuantityTier(50, Some(249), BigDecimal("0.90")),
+      PricingRule.SheetQuantityTier(250, Some(999), BigDecimal("0.80")),
+      PricingRule.SheetQuantityTier(1000, None, BigDecimal("0.70")),
     ),
     currency = Currency.CZK,
     version = "1.0.0-czk-sheet",

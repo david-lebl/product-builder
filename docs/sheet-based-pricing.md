@@ -106,6 +106,84 @@ Cutting:  1 cut × 0.10 / 2 = 0.05 CZK/piece × 100 =   5.00 CZK
 Subtotal                                            =  405.00 CZK
 ```
 
+## Sheet Quantity Tiers
+
+### The Problem
+
+Standard `QuantityTier` discounts use the product quantity (e.g., 100 business cards) for tier lookup. But material
+consumption varies hugely by product format:
+
+- 100 business cards (90×55mm, 21/sheet) = **5 sheets**
+- 100 A4 flyers (210×297mm, 2/sheet) = **50 sheets**
+- 100 A4 booklets (8 components, 2/sheet) = **400 sheets**
+
+All three would get the same discount with product-quantity tiers, which doesn't reflect actual print shop economics.
+Discounts should be proportional to the actual press run — the number of physical sheets.
+
+### The Solution: `SheetQuantityTier`
+
+The `SheetQuantityTier` rule applies a multiplier based on the total number of physical sheets across all components:
+
+```
+SheetQuantityTier(
+  minSheets,    // minimum sheet count for this tier
+  maxSheets,    // optional upper bound (None = unlimited)
+  multiplier,   // discount multiplier (e.g., 0.90 = 10% off)
+)
+```
+
+### How It Works
+
+**1. Compute sheets per component.** For each component, if a `MaterialSheetPrice` rule exists for its material:
+
+```
+piecesPerSheet = SheetNesting(sheet, item + bleed, gutter)
+sheetsUsed     = ceil(effectiveQuantity / piecesPerSheet)
+```
+
+Components without sheet pricing get `sheetsUsed = 0`.
+
+**2. Sum total sheets** across all components.
+
+**3. Select the tier.** If `totalSheets > 0` and `SheetQuantityTier` rules exist in the pricelist, use the sheet tier.
+Otherwise, fall back to `QuantityTier` (backward compatible).
+
+### Worked Example: Business Cards vs. A4 Flyers
+
+Both orders are 100 pieces on the CZK sheet pricelist:
+
+```
+Business cards (90×55mm):
+  21 pieces/sheet → ceil(100/21) = 5 sheets
+  Sheet tier 1-49: multiplier = 1.0 (no discount)
+
+A4 flyers (210×297mm):
+  2 pieces/sheet → ceil(100/2) = 50 sheets
+  Sheet tier 50-249: multiplier = 0.90 (10% discount)
+```
+
+Same product quantity, different discounts — reflecting the actual press run difference.
+
+### Multi-Component Products
+
+For products with multiple components (e.g., booklets with cover + body), the `sheetsUsed` from each component is
+summed. This means a booklet with a heavy cover and many body pages will correctly accumulate a higher sheet count than
+a simple single-sheet product.
+
+### Backward Compatibility
+
+Pricelists that only define `QuantityTier` rules (no `SheetQuantityTier`) continue to work exactly as before — the
+calculator falls back to product-quantity-based tier lookup. This means existing pricelists don't need to be updated.
+
+### Sample Sheet Quantity Tiers (CZK Sheet Pricelist)
+
+| Sheets | Multiplier | Discount |
+|--------|------------|----------|
+| 1–49   | 1.00       | None     |
+| 50–249 | 0.90       | 10%      |
+| 250–999| 0.80       | 20%      |
+| 1000+  | 0.70       | 30%      |
+
 ## Design Decisions and Alternatives Considered
 
 ### Where to put sheet dimensions

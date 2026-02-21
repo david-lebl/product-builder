@@ -882,4 +882,127 @@ object PriceCalculatorSpec extends ZIOSpecDefault:
         )
       },
     ),
+    suite("sheet quantity tiers")(
+      test("100 business cards — 5 sheets — no discount (tier 1-49)") {
+        // Business card 90×55mm on SRA3: 21 pieces/sheet
+        // 100 / 21 = ceil(4.76) = 5 sheets → tier 1-49 → multiplier 1.0
+        val config = makeConfig(
+          category = SampleCatalog.businessCards,
+          material = SampleCatalog.coated300gsm,
+          printingMethod = SampleCatalog.offsetMethod,
+          inkConfig = InkConfiguration.cmyk4_4,
+          finishes = Nil,
+          specs = List(
+            SpecValue.SizeSpec(Dimension(90, 55)),
+            SpecValue.QuantitySpec(Quantity.unsafe(100)),
+          ),
+        )
+
+        val result = PriceCalculator.calculate(config, SamplePricelist.pricelistCzkSheet)
+        val breakdown = result.toEither.toOption.get
+        val cb = firstBreakdown(breakdown)
+        assertTrue(
+          result.toEither.isRight,
+          cb.sheetsUsed == 5,
+          breakdown.quantityMultiplier == BigDecimal("1.0"),
+        )
+      },
+      test("100 A4 flyers — 50 sheets — 10% discount (tier 50-249)") {
+        // A4 210×297mm on SRA3: 2 pieces/sheet
+        // 100 / 2 = 50 sheets → tier 50-249 → multiplier 0.90
+        val config = makeConfig(
+          category = SampleCatalog.flyers,
+          material = SampleCatalog.coatedGlossy90gsm,
+          printingMethod = SampleCatalog.offsetMethod,
+          inkConfig = InkConfiguration.cmyk4_4,
+          finishes = Nil,
+          specs = List(
+            SpecValue.SizeSpec(Dimension(210, 297)),
+            SpecValue.QuantitySpec(Quantity.unsafe(100)),
+          ),
+        )
+
+        val result = PriceCalculator.calculate(config, SamplePricelist.pricelistCzkSheet)
+        val breakdown = result.toEither.toOption.get
+        val cb = firstBreakdown(breakdown)
+        assertTrue(
+          result.toEither.isRight,
+          cb.sheetsUsed == 50,
+          breakdown.quantityMultiplier == BigDecimal("0.90"),
+        )
+      },
+      test("multi-component booklet — total sheets determines tier") {
+        // Cover: coated300gsm, 90×55mm, 21 pps, sheetCount=1, effectiveQty=100
+        //   sheetsUsed = ceil(100/21) = 5
+        // Body: coated300gsm, 90×55mm, 21 pps, sheetCount=7, effectiveQty=700
+        //   sheetsUsed = ceil(700/21) = 34
+        // totalSheets = 5 + 34 = 39 → tier 1-49 → multiplier 1.0
+        val config = ProductConfiguration(
+          id = configId,
+          category = SampleCatalog.booklets,
+          printingMethod = SampleCatalog.offsetMethod,
+          components = List(
+            ProductComponent(ComponentRole.Cover, SampleCatalog.coated300gsm, InkConfiguration.cmyk4_4, Nil, sheetCount = 1),
+            ProductComponent(ComponentRole.Body, SampleCatalog.coated300gsm, InkConfiguration.cmyk4_4, Nil, sheetCount = 7),
+          ),
+          specifications = ProductSpecifications.fromSpecs(List(
+            SpecValue.SizeSpec(Dimension(90, 55)),
+            SpecValue.QuantitySpec(Quantity.unsafe(100)),
+            SpecValue.PagesSpec(32),
+            SpecValue.BindingMethodSpec(BindingMethod.SaddleStitch),
+          )),
+        )
+
+        val result = PriceCalculator.calculate(config, SamplePricelist.pricelistCzkSheet)
+        val breakdown = result.toEither.toOption.get
+        val coverBd = breakdown.componentBreakdowns.find(_.role == ComponentRole.Cover).get
+        val bodyBd = breakdown.componentBreakdowns.find(_.role == ComponentRole.Body).get
+        val totalSheets = coverBd.sheetsUsed + bodyBd.sheetsUsed
+        assertTrue(
+          result.toEither.isRight,
+          coverBd.sheetsUsed == 5,
+          bodyBd.sheetsUsed == 34,
+          totalSheets == 39,
+          breakdown.quantityMultiplier == BigDecimal("1.0"),
+        )
+      },
+      test("pricelist with only QuantityTier — uses product quantity (backward compat)") {
+        // Pricelist with QuantityTier only (no SheetQuantityTier)
+        // Even though sheet pricing is used, falls back to product quantity tiers
+        val baseOnlyPricelist = Pricelist(
+          rules = List(
+            PricingRule.MaterialSheetPrice(
+              SampleCatalog.coatedGlossy90gsmId, Money("8"),
+              320, 450, 3, 2, Money("0.50"),
+            ),
+            PricingRule.CuttingSurcharge(costPerCut = Money("0.10")),
+            PricingRule.QuantityTier(1, Some(99), BigDecimal("1.0")),
+            PricingRule.QuantityTier(100, Some(499), BigDecimal("0.90")),
+            PricingRule.QuantityTier(500, None, BigDecimal("0.80")),
+          ),
+          currency = Currency.CZK,
+          version = "test-compat",
+        )
+
+        val config = makeConfig(
+          category = SampleCatalog.flyers,
+          material = SampleCatalog.coatedGlossy90gsm,
+          printingMethod = SampleCatalog.offsetMethod,
+          inkConfig = InkConfiguration.cmyk4_4,
+          finishes = Nil,
+          specs = List(
+            SpecValue.SizeSpec(Dimension(210, 297)),
+            SpecValue.QuantitySpec(Quantity.unsafe(100)),
+          ),
+        )
+
+        val result = PriceCalculator.calculate(config, baseOnlyPricelist)
+        val breakdown = result.toEither.toOption.get
+        // 100 qty → tier 100-499 → multiplier 0.90 (product quantity, not sheets)
+        assertTrue(
+          result.toEither.isRight,
+          breakdown.quantityMultiplier == BigDecimal("0.90"),
+        )
+      },
+    ),
   )

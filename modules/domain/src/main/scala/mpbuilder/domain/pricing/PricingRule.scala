@@ -10,6 +10,7 @@ enum PricingRule:
   case PrintingProcessSurcharge(processType: PrintingProcessType, surchargePerUnit: Money)
   case CategorySurcharge(categoryId: CategoryId, surchargePerUnit: Money)
   case QuantityTier(minQuantity: Int, maxQuantity: Option[Int], multiplier: BigDecimal)
+  case SheetQuantityTier(minSheets: Int, maxSheets: Option[Int], multiplier: BigDecimal)
   case InkConfigurationFactor(frontColorCount: Int, backColorCount: Int, materialMultiplier: BigDecimal)
   case MaterialSheetPrice(
       materialId: MaterialId,

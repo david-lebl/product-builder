@@ -15,6 +15,7 @@ final case class ComponentBreakdown(
     cuttingLine: Option[LineItem],
     inkConfigLine: Option[LineItem],
     finishLines: List[LineItem],
+    sheetsUsed: Int,
 )
 
 final case class PriceBreakdown(

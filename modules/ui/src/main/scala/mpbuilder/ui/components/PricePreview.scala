@@ -65,6 +65,18 @@ object PricePreview:
                   ),
                 )
 
+                val sheetsLine =
+                  if cb.sheetsUsed > 0 then
+                    List(div(
+                      cls := "price-line-item",
+                      span(l match
+                        case Language.En => s"Sheets used: ${cb.sheetsUsed}"
+                        case Language.Cs => s"Použité archy: ${cb.sheetsUsed}"
+                      ),
+                      span(""),
+                    ))
+                  else List.empty
+
                 val cuttingLine = cb.cuttingLine.map { cutting =>
                   div(
                     cls := "price-line-item",
@@ -89,7 +101,7 @@ object PricePreview:
                   )
                 }
 
-                roleHeader ++ materialLine ++ cuttingLine ++ inkLine ++ finishLines
+                roleHeader ++ materialLine ++ sheetsLine ++ cuttingLine ++ inkLine ++ finishLines
               }
 
               val surchargeLines = breakdown.processSurcharge.map { proc =>
@@ -106,6 +118,9 @@ object PricePreview:
                 )
               }.toList
 
+              val totalSheets = breakdown.componentBreakdowns.map(_.sheetsUsed).sum
+              val isSheetTier = totalSheets > 0
+
               val totalLines = List(
                 div(
                   cls := "price-line-item",
@@ -117,9 +132,15 @@ object PricePreview:
                 ),
                 div(
                   cls := "price-line-item",
-                  span(l match
-                    case Language.En => s"Quantity Multiplier (${breakdown.quantityMultiplier}\u00d7):"
-                    case Language.Cs => s"Množstevní koeficient (${breakdown.quantityMultiplier}\u00d7):"
+                  span(
+                    if isSheetTier then
+                      l match
+                        case Language.En => s"Sheet Tier ($totalSheets sheets, ${breakdown.quantityMultiplier}\u00d7):"
+                        case Language.Cs => s"Archová sleva ($totalSheets archů, ${breakdown.quantityMultiplier}\u00d7):"
+                    else
+                      l match
+                        case Language.En => s"Quantity Multiplier (${breakdown.quantityMultiplier}\u00d7):"
+                        case Language.Cs => s"Množstevní koeficient (${breakdown.quantityMultiplier}\u00d7):"
                   ),
                   span(if breakdown.quantityMultiplier < 1.0 then s"-${formatMoney(Money(breakdown.subtotal.value * (1.0 - breakdown.quantityMultiplier)), cur)}" else formatMoney(Money.zero, cur)),
                 ),

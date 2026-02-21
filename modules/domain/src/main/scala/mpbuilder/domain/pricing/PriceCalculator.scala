@@ -38,8 +38,13 @@ object PriceCalculator:
 
         val subtotal = allLineTotals.foldLeft(Money.zero)(_ + _)
 
-        val multiplier = findBestQuantityTier(rules, quantity)
-          .map(_.multiplier)
+        val totalSheets = componentBreakdowns.map(_.sheetsUsed).sum
+        val sheetTierMultiplier =
+          if totalSheets > 0 then findBestSheetQuantityTier(rules, totalSheets).map(_.multiplier)
+          else None
+
+        val multiplier = sheetTierMultiplier
+          .orElse(findBestQuantityTier(rules, quantity).map(_.multiplier))
           .getOrElse(BigDecimal(1))
 
         val total = (subtotal * multiplier).rounded
@@ -79,12 +84,15 @@ object PriceCalculator:
 
       val finishLines = computeFinishLines(comp.finishes, rules, quantity, lang)
 
+      val sheetsUsed = computeSheetsUsed(comp.material.id, specs, rules, effectiveQuantity)
+
       ComponentBreakdown(
         role = comp.role,
         materialLine = materialLine,
         cuttingLine = cuttingLine,
         inkConfigLine = inkConfigLine,
         finishLines = finishLines,
+        sheetsUsed = sheetsUsed,
       )
     }
 
@@ -259,6 +267,35 @@ object PriceCalculator:
           if r.minQuantity <= quantity &&
             r.maxQuantity.forall(_ >= quantity) => r
     }.sortBy(_.minQuantity)(using scala.math.Ordering[Int].reverse).headOption
+
+  private def findBestSheetQuantityTier(
+      rules: List[PricingRule],
+      totalSheets: Int,
+  ): Option[PricingRule.SheetQuantityTier] =
+    rules.collect {
+      case r: PricingRule.SheetQuantityTier
+          if r.minSheets <= totalSheets &&
+            r.maxSheets.forall(_ >= totalSheets) => r
+    }.sortBy(_.minSheets)(using scala.math.Ordering[Int].reverse).headOption
+
+  private def computeSheetsUsed(
+      materialId: MaterialId,
+      specs: ProductSpecifications,
+      rules: List[PricingRule],
+      effectiveQuantity: Int,
+  ): Int =
+    val sheetRule = rules.collectFirst {
+      case r: PricingRule.MaterialSheetPrice if r.materialId == materialId => r
+    }
+    (for
+      sp <- sheetRule
+      dim <- specs.get(SpecKind.Size).collect { case SpecValue.SizeSpec(d) => d }
+      pps = SheetNesting.piecesPerSheet(
+        sp.sheetWidthMm, sp.sheetHeightMm,
+        dim.widthMm.toDouble, dim.heightMm.toDouble,
+        sp.bleedMm, sp.gutterMm,
+      )
+    yield math.ceil(effectiveQuantity.toDouble / pps).toInt).getOrElse(0)
 
   private object SheetNesting:
     def piecesPerSheet(

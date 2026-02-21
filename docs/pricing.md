@@ -32,7 +32,7 @@ Pricelist(
 
 ### Pricing Rules
 
-There are 7 rule types, each a variant of the `PricingRule` sealed enum:
+There are 8 rule types, each a variant of the `PricingRule` sealed enum:
 
 | Rule | Purpose | Example |
 |------|---------|---------|
@@ -42,7 +42,8 @@ There are 7 rule types, each a variant of the `PricingRule` sealed enum:
 | `FinishTypeSurcharge` | Per-unit surcharge for a finish type | UV coating = $0.04/unit |
 | `PrintingProcessSurcharge` | Per-unit surcharge for a printing process | Letterpress = $0.20/unit |
 | `CategorySurcharge` | Per-unit surcharge for a product category | (e.g., packaging premium) |
-| `QuantityTier` | Multiplier applied to the subtotal based on quantity | 1000+ units = 0.80× |
+| `QuantityTier` | Multiplier applied to the subtotal based on product quantity | 1000+ units = 0.80× |
+| `SheetQuantityTier` | Multiplier applied to the subtotal based on total physical sheets | 250+ sheets = 0.80× |
 
 ## How Pricing Works
 
@@ -67,7 +68,10 @@ Given a valid `ProductConfiguration` and a `Pricelist`, the `PriceCalculator` pe
 
 **6. Sum all line items** into a subtotal.
 
-**7. Apply quantity tier.** Find the best matching `QuantityTier` — the one with the highest `minQuantity` that is still ≤ the actual quantity. Multiply the subtotal by the tier's multiplier.
+**7. Apply quantity tier.** Two tier mechanisms are checked in order:
+   - **Sheet quantity tier:** If any component uses sheet-based pricing (`sheetsUsed > 0`) and `SheetQuantityTier` rules exist, the calculator sums `sheetsUsed` across all components and finds the best matching sheet tier. This gives discounts proportional to the actual press run (number of physical sheets), not the product quantity.
+   - **Product quantity tier (fallback):** If no sheet tier applies (no sheet-priced components, or no `SheetQuantityTier` rules in the pricelist), the best matching `QuantityTier` is used based on product quantity. This preserves backward compatibility for pricelists that only define `QuantityTier` rules.
+   - In both cases, the "best" tier is the one with the highest `minQuantity`/`minSheets` that is still ≤ the actual quantity/sheet count.
 
 **8. Round the total** to 2 decimal places.
 
@@ -116,14 +120,24 @@ The calculator returns a `PriceBreakdown` containing:
 
 | Field | Description |
 |-------|-------------|
-| `materialLine` | Base material cost as a `LineItem` |
-| `finishLines` | List of finish surcharge `LineItem`s (one per priced finish) |
+| `componentBreakdowns` | List of per-component breakdowns (see below) |
 | `processSurcharge` | Optional printing process `LineItem` |
 | `categorySurcharge` | Optional category `LineItem` |
 | `subtotal` | Sum of all lines before tier multiplier |
 | `quantityMultiplier` | The applied tier multiplier (1.0 = no discount) |
 | `total` | Final price: subtotal × multiplier, rounded to 2dp |
 | `currency` | Currency from the pricelist |
+
+Each `ComponentBreakdown` contains:
+
+| Field | Description |
+|-------|-------------|
+| `role` | Component role (Main, Cover, Body) |
+| `materialLine` | Base material cost as a `LineItem` |
+| `cuttingLine` | Optional cutting surcharge `LineItem` (sheet pricing only) |
+| `inkConfigLine` | Optional ink configuration adjustment `LineItem` |
+| `finishLines` | List of finish surcharge `LineItem`s (one per priced finish) |
+| `sheetsUsed` | Number of physical sheets consumed (0 for non-sheet-priced components) |
 
 Each `LineItem` contains a `label`, `unitPrice`, `quantity`, and `lineTotal`.
 
@@ -134,17 +148,18 @@ The calculator returns `Validation[PricingError, PriceBreakdown]` — it fails f
 | Error | When |
 |-------|------|
 | `NoQuantityInSpecifications` | No `QuantitySpec` in the configuration's specs |
-| `NoBasePriceForMaterial(id)` | No `MaterialBasePrice` or `MaterialAreaPrice` for the material |
+| `NoBasePriceForMaterial(id)` | No `MaterialBasePrice`, `MaterialSheetPrice`, or `MaterialAreaPrice` for the material |
 | `NoSizeForAreaPricing(id)` | A `MaterialAreaPrice` rule exists but no `SizeSpec` in specs |
+| `NoSizeForSheetPricing(id)` | A `MaterialSheetPrice` rule exists but no `SizeSpec` in specs |
 
 ## Package Structure
 
 ```
 mpbuilder.domain.pricing/
 ├── Money.scala          — Money opaque type, Currency enum, Price case class
-├── PricingRule.scala     — 7-variant sealed enum (rules as data)
+├── PricingRule.scala     — 10-variant sealed enum (rules as data)
 ├── Pricelist.scala       — Container: rules + currency + version
-├── PricingError.scala    — 3-variant error ADT with exhaustive messages
+├── PricingError.scala    — 4-variant error ADT with exhaustive messages
 ├── PriceBreakdown.scala  — LineItem + PriceBreakdown output types
 └── PriceCalculator.scala — Pure interpreter: config + pricelist → breakdown
 
