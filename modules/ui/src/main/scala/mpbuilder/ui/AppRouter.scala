@@ -13,8 +13,10 @@ object AppRoute {
 object AppRouter {
   private val currentRouteVar: Var[AppRoute] = Var(AppRoute.ProductBuilder)
   val currentRoute: Signal[AppRoute] = currentRouteVar.signal
-  
+  val basketOpen: Var[Boolean] = Var(false)
+
   def navigateTo(route: AppRoute): Unit = {
+    basketOpen.set(false)
     currentRouteVar.set(route)
   }
   
@@ -62,7 +64,28 @@ object AppRouter {
             case Language.Cs => "Vizuální editor"
           },
           onClick --> { _ => navigateTo(AppRoute.CalendarBuilder) }
-        )
+        ),
+        // Basket button — right side of nav, visible only on ProductBuilder
+        button(
+          cls := "nav-basket-btn",
+          cls <-- currentRoute.map {
+            case AppRoute.ProductBuilder => ""
+            case _ => "nav-basket-btn-hidden"
+          },
+          child <-- ProductBuilderViewModel.state.combineWith(lang).map { case (state, l) =>
+            val count = state.basket.items.size
+            span(
+              cls := "nav-basket-content",
+              span(cls := "basket-icon", "🛒"),
+              if count > 0 then span(cls := "basket-badge", if count > 99 then "99+" else count.toString) else emptyNode,
+              span(cls := "basket-btn-label", l match
+                case Language.En => " Basket"
+                case Language.Cs => " Košík"
+              ),
+            )
+          },
+          onClick --> { _ => basketOpen.update(!_) },
+        ),
       ),
       
       // Route content
