@@ -38,10 +38,10 @@ object SpecificationForm:
           .map(_.key).getOrElse("custom")
       }.getOrElse("")
 
-    // Local Vars for width/height to combine into size spec
-    val widthVar = Var("")
-    val heightVar = Var("")
-    val sizeSignal = widthVar.signal.combineWith(heightVar.signal)
+    // Single Var for width+height so both dimensions are updated atomically
+    val sizePairVar = Var(("", ""))
+    val widthSignal  = sizePairVar.signal.map(_._1)
+    val heightSignal = sizePairVar.signal.map(_._2)
 
     // Size preset selector: "" = no selection (custom), or a preset key
     val sizePresetVar = Var("")
@@ -58,15 +58,13 @@ object SpecificationForm:
       defaultSpecsStream --> { specs =>
         specs.collectFirst { case SpecValue.SizeSpec(dim) => dim } match
           case Some(dim) =>
-            widthVar.set(dim.widthMm.toInt.toString)
-            heightVar.set(dim.heightMm.toInt.toString)
+            sizePairVar.set((dim.widthMm.toInt.toString, dim.heightMm.toInt.toString))
             val presetKey = SizePreset.values.find(p =>
               p.widthMm == dim.widthMm.toInt && p.heightMm == dim.heightMm.toInt
             ).map(_.key).getOrElse("custom")
             sizePresetVar.set(presetKey)
           case None =>
-            widthVar.set("")
-            heightVar.set("")
+            sizePairVar.set(("", ""))
             sizePresetVar.set("")
       },
 
@@ -92,18 +90,6 @@ object SpecificationForm:
           },
         ),
       ),
-
-      // Observer that updates the spec when both width and height are available
-      // (placed on the parent div so it fires for both presets and custom input)
-      sizeSignal --> { case (widthStr, heightStr) =>
-        (widthStr.toDoubleOption, heightStr.toDoubleOption) match
-          case (Some(w), Some(h)) if w > 0 && h > 0 =>
-            ProductBuilderViewModel.removeSpecification(classOf[SpecValue.SizeSpec])
-            ProductBuilderViewModel.addSpecification(
-              SpecValue.SizeSpec(Dimension(w, h))
-            )
-          case _ => ()
-      },
 
       // Size preset selector
       div(
@@ -131,12 +117,13 @@ object SpecificationForm:
             sizePresetVar.set(v)
             SizePreset.values.find(_.key == v) match
               case Some(preset) =>
-                widthVar.set(preset.widthMm.toString)
-                heightVar.set(preset.heightMm.toString)
+                sizePairVar.set((preset.widthMm.toString, preset.heightMm.toString))
+                ProductBuilderViewModel.replaceSpecification(
+                  SpecValue.SizeSpec(Dimension(preset.widthMm.toDouble, preset.heightMm.toDouble))
+                )
               case None =>
                 if v == "custom" then
-                  widthVar.set("")
-                  heightVar.set("")
+                  sizePairVar.set(("", ""))
           },
         ),
       ),
@@ -158,8 +145,15 @@ object SpecificationForm:
               case Language.Cs => "Šířka (mm)"
             },
             styleAttr := "flex: 1;",
-            value <-- widthVar.signal,
-            onInput.mapToValue --> { v => widthVar.set(v) },
+            value <-- widthSignal,
+            onInput.mapToValue --> { v =>
+              val currentH = sizePairVar.now()._2
+              sizePairVar.set((v, currentH))
+              (v.toDoubleOption, currentH.toDoubleOption) match
+                case (Some(w), Some(h)) if w > 0 && h > 0 =>
+                  ProductBuilderViewModel.replaceSpecification(SpecValue.SizeSpec(Dimension(w, h)))
+                case _ => ()
+            },
           ),
           span("\u00d7", styleAttr := "line-height: 40px;"),
           input(
@@ -169,8 +163,15 @@ object SpecificationForm:
               case Language.Cs => "Výška (mm)"
             },
             styleAttr := "flex: 1;",
-            value <-- heightVar.signal,
-            onInput.mapToValue --> { v => heightVar.set(v) },
+            value <-- heightSignal,
+            onInput.mapToValue --> { v =>
+              val currentW = sizePairVar.now()._1
+              sizePairVar.set((currentW, v))
+              (currentW.toDoubleOption, v.toDoubleOption) match
+                case (Some(w), Some(h)) if w > 0 && h > 0 =>
+                  ProductBuilderViewModel.replaceSpecification(SpecValue.SizeSpec(Dimension(w, h)))
+                case _ => ()
+            },
           ),
         ),
       ),

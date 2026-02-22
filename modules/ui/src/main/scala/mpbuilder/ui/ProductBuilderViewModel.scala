@@ -169,6 +169,14 @@ object ProductBuilderViewModel:
     )
     autoRecalculate()
 
+  // Replace (or add) a specification atomically in a single state update
+  def replaceSpecification(spec: SpecValue): Unit =
+    stateVar.update(state =>
+      val filtered = state.specifications.filterNot(s => s.getClass == spec.getClass)
+      state.copy(specifications = filtered :+ spec)
+    )
+    autoRecalculate()
+
   // Automatically recalculate price when configuration inputs change
   private def autoRecalculate(): Unit =
     val currentState = stateVar.now()
