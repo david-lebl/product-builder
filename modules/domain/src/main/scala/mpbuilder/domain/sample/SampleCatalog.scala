@@ -60,6 +60,7 @@ object SampleCatalog:
   val packagingId: CategoryId       = CategoryId.unsafe("cat-packaging")
   val bookletsId: CategoryId        = CategoryId.unsafe("cat-booklets")
   val calendarsId: CategoryId       = CategoryId.unsafe("cat-calendars")
+  val freeId: CategoryId            = CategoryId.unsafe("cat-free")
 
   // --- Printing Method IDs ---
   val offsetId: PrintingMethodId       = PrintingMethodId.unsafe("pm-offset")
@@ -550,6 +551,29 @@ object SampleCatalog:
     allowedPrintingMethodIds = Set(offsetId, digitalId),
   )
 
+  private val allMaterialIds: Set[MaterialId] = Set(
+    coated300gsmId, uncoatedBondId, kraftId, vinylId, corrugatedId,
+    coatedSilk250gsmId, yupoId, adhesiveStockId, cottonId,
+  ) ++ allCoatedGlossyIds ++ allCoatedMatteIds
+
+  private val allFinishIds: Set[FinishId] = Set(
+    matteLaminationId, glossLaminationId, uvCoatingId, embossingId,
+    foilStampingId, dieCutId, varnishId, softTouchCoatingId, aqueousCoatingId,
+    debossingId, scoringId, perforationId, roundCornersId, grommetsId,
+  )
+
+  val free: ProductCategory = ProductCategory(
+    id = freeId,
+    name = LocalizedString("Free Configuration", "Volná konfigurace"),
+    components = List(ComponentTemplate(
+      ComponentRole.Main,
+      allowedMaterialIds = allMaterialIds,
+      allowedFinishIds = allFinishIds,
+    )),
+    requiredSpecKinds = Set(SpecKind.Size, SpecKind.Quantity),
+    allowedPrintingMethodIds = Set.empty, // empty = all methods allowed
+  )
+
   // --- Product Catalog ---
   val catalog: ProductCatalog = ProductCatalog(
     categories = Map(
@@ -560,6 +584,7 @@ object SampleCatalog:
       packagingId     -> packaging,
       bookletsId      -> booklets,
       calendarsId     -> calendars,
+      freeId          -> free,
     ),
     materials = Map(
       coated300gsmId      -> coated300gsm,
