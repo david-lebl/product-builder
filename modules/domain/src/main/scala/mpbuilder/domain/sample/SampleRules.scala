@@ -93,6 +93,13 @@ object SampleRules:
       "Embossing works best on smooth surface materials",
     ),
     // --- Spec constraints ---
+    // Booklets: max size 210x297mm (A4 size)
+    // fixme: if we have a larger materials, we could allow larger booklets but with a surcharge
+    CompatibilityRule.SpecConstraint(
+      cat.bookletsId,
+      SpecPredicate.MaxDimension(210, 297), // A4 size
+      "Booklets must not exceed A4 size (210x297mm)",
+    ),
     // Business cards: min size 50x25mm
     CompatibilityRule.SpecConstraint(
       cat.businessCardsId,
