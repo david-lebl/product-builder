@@ -40,8 +40,8 @@ object ProductBuilderViewModel:
   val stateVar: Var[BuilderState] = Var(BuilderState())
   val state: Signal[BuilderState] = stateVar.signal
 
-  // Event bus that fires when category changes, used to reset spec form fields
-  val specResetBus: EventBus[Unit] = new EventBus[Unit]
+  // Event bus that fires when category changes, carries default specs for the category
+  val specResetBus: EventBus[List[SpecValue]] = new EventBus[List[SpecValue]]
 
   // Get current language
   def currentLanguage: Signal[Language] = state.map(_.language)
@@ -65,26 +65,48 @@ object ProductBuilderViewModel:
 
   // Update category selection — derives component states from category template
   def selectCategory(categoryId: CategoryId): Unit = {
-    val componentStates = catalog.categories.get(categoryId) match
+    val categoryOpt = catalog.categories.get(categoryId)
+    val componentStates = categoryOpt match
       case Some(cat) =>
         cat.components.map(ct => ct.role -> ComponentState(ct.role)).toMap
       case None =>
         Map.empty[ComponentRole, ComponentState]
+
+    val defaultSpecs = categoryOpt match
+      case Some(cat) => defaultSpecsForCategory(cat)
+      case None      => List.empty
 
     stateVar.update(state =>
       state.copy(
         selectedCategoryId = Some(categoryId),
         componentStates = componentStates,
         selectedPrintingMethodId = None,
-        specifications = List.empty,
+        specifications = defaultSpecs,
         validationErrors = List.empty,
         priceBreakdown = None,
         configuration = None,
       )
     )
-    specResetBus.emit(())
+    specResetBus.emit(defaultSpecs)
     autoRecalculate()
   }
+
+  private def defaultSpecsForCategory(cat: ProductCategory): List[SpecValue] =
+    val kinds = cat.requiredSpecKinds
+    val specs = List.newBuilder[SpecValue]
+    if kinds.contains(SpecKind.Quantity) then
+      specs += SpecValue.QuantitySpec(Quantity.unsafe(1000))
+    if kinds.contains(SpecKind.Size) then
+      specs += SpecValue.SizeSpec(Dimension(210, 297)) // A4
+    if kinds.contains(SpecKind.Orientation) then
+      specs += SpecValue.OrientationSpec(Orientation.Portrait)
+    if kinds.contains(SpecKind.FoldType) then
+      specs += SpecValue.FoldTypeSpec(FoldType.Half)
+    if kinds.contains(SpecKind.BindingMethod) then
+      specs += SpecValue.BindingMethodSpec(BindingMethod.SaddleStitch)
+    if kinds.contains(SpecKind.Pages) then
+      specs += SpecValue.PagesSpec(8)
+    specs.result()
 
   // Update material selection for a specific component role
   def selectMaterial(role: ComponentRole, materialId: MaterialId): Unit = 

@@ -24,8 +24,19 @@ object SpecificationForm:
       s"$name ($widthMm \u00d7 $heightMm mm)"
 
   def apply(): Element =
-    // EventStream that fires when category changes, used to clear all inputs
-    val clearFieldsStream = ProductBuilderViewModel.specResetBus.events.mapTo("")
+    // EventStream that fires when category changes, carries default specs
+    val defaultSpecsStream = ProductBuilderViewModel.specResetBus.events
+
+    // Helper to extract default values from specs
+    def defaultQuantity(specs: List[SpecValue]): String =
+      specs.collectFirst { case SpecValue.QuantitySpec(q) => q.value.toString }.getOrElse("")
+    def defaultPages(specs: List[SpecValue]): String =
+      specs.collectFirst { case SpecValue.PagesSpec(p) => p.toString }.getOrElse("")
+    def defaultSizePresetKey(specs: List[SpecValue]): String =
+      specs.collectFirst { case SpecValue.SizeSpec(dim) =>
+        SizePreset.values.find(p => p.widthMm == dim.widthMm.toInt && p.heightMm == dim.heightMm.toInt)
+          .map(_.key).getOrElse("custom")
+      }.getOrElse("")
 
     // Local Vars for width/height to combine into size spec
     val widthVar = Var("")
@@ -43,11 +54,20 @@ object SpecificationForm:
     div(
       cls := "form-group",
 
-      // Reset local width/height Vars and preset when category changes
-      clearFieldsStream --> { _ =>
-        widthVar.set("")
-        heightVar.set("")
-        sizePresetVar.set("")
+      // Reset local width/height Vars and preset when category changes, apply defaults
+      defaultSpecsStream --> { specs =>
+        specs.collectFirst { case SpecValue.SizeSpec(dim) => dim } match
+          case Some(dim) =>
+            widthVar.set(dim.widthMm.toInt.toString)
+            heightVar.set(dim.heightMm.toInt.toString)
+            val presetKey = SizePreset.values.find(p =>
+              p.widthMm == dim.widthMm.toInt && p.heightMm == dim.heightMm.toInt
+            ).map(_.key).getOrElse("custom")
+            sizePresetVar.set(presetKey)
+          case None =>
+            widthVar.set("")
+            heightVar.set("")
+            sizePresetVar.set("")
       },
 
       // Quantity
@@ -60,7 +80,7 @@ object SpecificationForm:
         input(
           typ := "number",
           placeholder := "e.g., 1000",
-          value <-- clearFieldsStream,
+          value <-- defaultSpecsStream.map(defaultQuantity),
           onInput.mapToValue.map(_.toIntOption) --> { qtyOpt =>
             qtyOpt.foreach { qty =>
               if qty > 0 then
@@ -106,7 +126,7 @@ object SpecificationForm:
             option(placeholderLabel, value := "", selected := currentPreset.isEmpty) ::
             (presetOptions :+ option(customLabel, value := "custom", selected := (currentPreset == "custom")))
           },
-          value <-- clearFieldsStream,
+          value <-- defaultSpecsStream.map(defaultSizePresetKey),
           onChange.mapToValue --> { v =>
             sizePresetVar.set(v)
             SizePreset.values.find(_.key == v) match
@@ -138,7 +158,7 @@ object SpecificationForm:
               case Language.Cs => "Šířka (mm)"
             },
             styleAttr := "flex: 1;",
-            value <-- clearFieldsStream,
+            value <-- widthVar.signal,
             onInput.mapToValue --> { v => widthVar.set(v) },
           ),
           span("\u00d7", styleAttr := "line-height: 40px;"),
@@ -149,7 +169,7 @@ object SpecificationForm:
               case Language.Cs => "Výška (mm)"
             },
             styleAttr := "flex: 1;",
-            value <-- clearFieldsStream,
+            value <-- heightVar.signal,
             onInput.mapToValue --> { v => heightVar.set(v) },
           ),
         ),
@@ -158,14 +178,17 @@ object SpecificationForm:
       // Pages (for multi-page products)
       div(
         cls := "form-group",
+        display <-- requiredSpecs.map(kinds =>
+          if kinds.contains(SpecKind.Pages) then "block" else "none"
+        ),
         label(child.text <-- lang.map {
-          case Language.En => "Number of Pages (optional, for booklets/brochures):"
-          case Language.Cs => "Počet stran (volitelné, pro brožurky/brožury):"
+          case Language.En => "Number of Pages:"
+          case Language.Cs => "Počet stran:"
         }),
         input(
           typ := "number",
           placeholder := "e.g., 8",
-          value <-- clearFieldsStream,
+          value <-- defaultSpecsStream.map(defaultPages),
           onInput.mapToValue.map(_.toIntOption) --> { pagesOpt =>
             pagesOpt.foreach { pages =>
               if pages > 0 then
@@ -212,7 +235,6 @@ object SpecificationForm:
                 , value := "landscape", selected := (currentValue == "landscape")),
             )
           },
-          value <-- clearFieldsStream,
           onChange.mapToValue --> { value =>
             value match
               case "portrait" =>
@@ -249,10 +271,9 @@ object SpecificationForm:
                 case Language.Cs => "-- Vyberte typ skladu --"
               , value := "", selected := currentValue.isEmpty) ::
             FoldType.values.map { ft =>
-              option(ft.toString, value := ft.toString, selected := (ft.toString == currentValue))
+              option(foldTypeLabel(ft, l), value := ft.toString, selected := (ft.toString == currentValue))
             }.toList
           },
-          value <-- clearFieldsStream,
           onChange.mapToValue --> { value =>
             if value.nonEmpty then
               FoldType.values.find(_.toString == value).foreach { ft =>
@@ -284,10 +305,9 @@ object SpecificationForm:
                 case Language.Cs => "-- Vyberte typ vazby --"
               , value := "", selected := currentValue.isEmpty) ::
             BindingMethod.values.map { bm =>
-              option(bm.toString, value := bm.toString, selected := (bm.toString == currentValue))
+              option(bindingMethodLabel(bm, l), value := bm.toString, selected := (bm.toString == currentValue))
             }.toList
           },
-          value <-- clearFieldsStream,
           onChange.mapToValue --> { value =>
             if value.nonEmpty then
               BindingMethod.values.find(_.toString == value).foreach { bm =>
@@ -308,3 +328,20 @@ object SpecificationForm:
         }),
       ),
     )
+
+  private def foldTypeLabel(ft: FoldType, lang: Language): String = ft match
+    case FoldType.Half        => lang match { case Language.En => "Half Fold";    case Language.Cs => "Půlený sklad" }
+    case FoldType.Tri         => lang match { case Language.En => "Tri-Fold";     case Language.Cs => "Trojsklad" }
+    case FoldType.Gate        => lang match { case Language.En => "Gate Fold";    case Language.Cs => "Bránový sklad" }
+    case FoldType.Accordion   => lang match { case Language.En => "Accordion";    case Language.Cs => "Harmonika" }
+    case FoldType.ZFold       => lang match { case Language.En => "Z-Fold";       case Language.Cs => "Z-sklad" }
+    case FoldType.RollFold    => lang match { case Language.En => "Roll Fold";    case Language.Cs => "Rolový sklad" }
+    case FoldType.FrenchFold  => lang match { case Language.En => "French Fold";  case Language.Cs => "Francouzský sklad" }
+    case FoldType.CrossFold   => lang match { case Language.En => "Cross Fold";   case Language.Cs => "Křížový sklad" }
+
+  private def bindingMethodLabel(bm: BindingMethod, lang: Language): String = bm match
+    case BindingMethod.SaddleStitch    => lang match { case Language.En => "Saddle Stitch";    case Language.Cs => "V1 – sešitová vazba" }
+    case BindingMethod.PerfectBinding  => lang match { case Language.En => "Perfect Binding";  case Language.Cs => "V2 – lepená vazba" }
+    case BindingMethod.SpiralBinding   => lang match { case Language.En => "Spiral Binding";   case Language.Cs => "Kroužková vazba" }
+    case BindingMethod.WireOBinding    => lang match { case Language.En => "Wire-O Binding";   case Language.Cs => "Wire-O vazba" }
+    case BindingMethod.CaseBinding     => lang match { case Language.En => "Case Binding";     case Language.Cs => "V8 – tuhá vazba" }
