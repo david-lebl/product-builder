@@ -12,7 +12,7 @@ object InkConfigSelector:
       cls := "form-group",
       label(child.text <-- lang.map {
         case Language.En => "Ink Configuration:"
-        case Language.Cs => "Konfigurace inkoustu:"
+        case Language.Cs => "Barevnost:"
       }),
       select(
         children <-- ProductBuilderViewModel.selectedInkConfig(role).combineWith(lang).map { case (selectedConfig, l) =>

@@ -34,7 +34,7 @@ object ConfigurationForm:
         cls := "form-section",
         h3(child.text <-- lang.map {
           case Language.En => "3. Configure Components"
-          case Language.Cs => "3. Nakonfigurujte komponenty"
+          case Language.Cs => "3. Specifikace výroby"
         }),
         children <-- ProductBuilderViewModel.componentRoles.combineWith(lang).map { case (roles, l) =>
           if roles.isEmpty then

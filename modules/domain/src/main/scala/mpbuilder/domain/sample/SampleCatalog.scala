@@ -456,7 +456,7 @@ object SampleCatalog:
       ),
     )),
     requiredSpecKinds = Set(SpecKind.Size, SpecKind.Quantity),
-    allowedPrintingMethodIds = Set(offsetId, digitalId, letterpressId),
+    allowedPrintingMethodIds = Set(digitalId, letterpressId),
   )
 
   val flyers: ProductCategory = ProductCategory(
@@ -466,23 +466,23 @@ object SampleCatalog:
       ComponentRole.Main,
       allowedMaterialIds = Set(coated300gsmId, uncoatedBondId) ++
       allCoatedGlossyIds ++ allCoatedMatteIds,
-      allowedFinishIds = Set(matteLaminationId, glossLaminationId, uvCoatingId, varnishId, aqueousCoatingId),
+      allowedFinishIds = Set(matteLaminationId, glossLaminationId, uvCoatingId, varnishId, aqueousCoatingId, roundCornersId),
     )),
     requiredSpecKinds = Set(SpecKind.Size, SpecKind.Quantity, SpecKind.Orientation),
-    allowedPrintingMethodIds = Set(offsetId, digitalId),
+    allowedPrintingMethodIds = Set(digitalId),
   )
 
   val brochures: ProductCategory = ProductCategory(
     id = brochuresId,
-    name = LocalizedString("Brochures", "Brožury"),
+    name = LocalizedString("Brochures", "Skládaný letáky"),
     components = List(ComponentTemplate(
       ComponentRole.Main,
       allowedMaterialIds = Set(coated300gsmId, uncoatedBondId, coatedSilk250gsmId) ++
       allCoatedGlossyIds ++ allCoatedMatteIds,
-      allowedFinishIds = Set(matteLaminationId, glossLaminationId, uvCoatingId, scoringId),
+      allowedFinishIds = Set(matteLaminationId, glossLaminationId, uvCoatingId, scoringId, roundCornersId),
     )),
-    requiredSpecKinds = Set(SpecKind.Size, SpecKind.Quantity, SpecKind.FoldType, SpecKind.Pages),
-    allowedPrintingMethodIds = Set(offsetId, digitalId),
+    requiredSpecKinds = Set(SpecKind.Size, SpecKind.Quantity, SpecKind.FoldType),
+    allowedPrintingMethodIds = Set(digitalId),
   )
 
   val banners: ProductCategory = ProductCategory(
@@ -499,7 +499,7 @@ object SampleCatalog:
 
   val packaging: ProductCategory = ProductCategory(
     id = packagingId,
-    name = LocalizedString("Packaging", "Obaly"),
+    name = LocalizedString("Packaging", "Krabice a obaly"),
     components = List(ComponentTemplate(
       ComponentRole.Main,
       allowedMaterialIds = Set(kraftId, corrugatedId, yupoId),
@@ -511,13 +511,13 @@ object SampleCatalog:
 
   val booklets: ProductCategory = ProductCategory(
     id = bookletsId,
-    name = LocalizedString("Booklets", "Brožurky"),
+    name = LocalizedString("Booklets", "Brožury - Katalogy"),
     components = List(
       ComponentTemplate(
         ComponentRole.Cover,
         allowedMaterialIds = Set(coated300gsmId, coatedSilk250gsmId) ++
           allCoatedGlossyIds ++ allCoatedMatteIds,
-        allowedFinishIds = Set(matteLaminationId, glossLaminationId, uvCoatingId),
+        allowedFinishIds = Set(matteLaminationId, glossLaminationId, uvCoatingId, roundCornersId),
       ),
       ComponentTemplate(
         ComponentRole.Body,
@@ -527,7 +527,7 @@ object SampleCatalog:
       ),
     ),
     requiredSpecKinds = Set(SpecKind.Size, SpecKind.Quantity, SpecKind.Pages, SpecKind.BindingMethod),
-    allowedPrintingMethodIds = Set(offsetId, digitalId),
+    allowedPrintingMethodIds = Set(digitalId),
   )
 
   val calendars: ProductCategory = ProductCategory(
@@ -548,7 +548,7 @@ object SampleCatalog:
       ),
     ),
     requiredSpecKinds = Set(SpecKind.Size, SpecKind.Quantity, SpecKind.Pages, SpecKind.BindingMethod),
-    allowedPrintingMethodIds = Set(offsetId, digitalId),
+    allowedPrintingMethodIds = Set(digitalId),
   )
 
   private val allMaterialIds: Set[MaterialId] = Set(
