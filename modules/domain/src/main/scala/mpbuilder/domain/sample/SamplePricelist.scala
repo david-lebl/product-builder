@@ -272,9 +272,9 @@ object SamplePricelist:
       PricingRule.CuttingSurcharge(costPerCut = Money("0.10")),
 
       // --- Finish surcharges (ID-level, CZK) ---
-      PricingRule.FinishSurcharge(SampleCatalog.matteLaminationId, Money("1")),
-      PricingRule.FinishSurcharge(SampleCatalog.glossLaminationId, Money("1")),
-      PricingRule.FinishSurcharge(SampleCatalog.softTouchCoatingId, Money("1.50")),
+      PricingRule.FinishSurcharge(SampleCatalog.matteLaminationId, Money("6")),
+      PricingRule.FinishSurcharge(SampleCatalog.glossLaminationId, Money("6")),
+      PricingRule.FinishSurcharge(SampleCatalog.softTouchCoatingId, Money("9")),
       PricingRule.FinishSurcharge(SampleCatalog.embossingId, Money("2")),
       PricingRule.FinishSurcharge(SampleCatalog.foilStampingId, Money("3.50")),
 
