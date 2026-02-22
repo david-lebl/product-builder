@@ -91,18 +91,6 @@ object SpecificationForm:
         ),
       ),
 
-      // Observer that updates the spec when both width and height are available
-      // (placed on the parent div so it fires for both presets and custom input)
-      sizePairVar.signal --> { case (widthStr, heightStr) =>
-        (widthStr.toDoubleOption, heightStr.toDoubleOption) match
-          case (Some(w), Some(h)) if w > 0 && h > 0 =>
-            ProductBuilderViewModel.removeSpecification(classOf[SpecValue.SizeSpec])
-            ProductBuilderViewModel.addSpecification(
-              SpecValue.SizeSpec(Dimension(w, h))
-            )
-          case _ => ()
-      },
-
       // Size preset selector
       div(
         cls := "form-group",
@@ -130,6 +118,9 @@ object SpecificationForm:
             SizePreset.values.find(_.key == v) match
               case Some(preset) =>
                 sizePairVar.set((preset.widthMm.toString, preset.heightMm.toString))
+                ProductBuilderViewModel.replaceSpecification(
+                  SpecValue.SizeSpec(Dimension(preset.widthMm.toDouble, preset.heightMm.toDouble))
+                )
               case None =>
                 if v == "custom" then
                   sizePairVar.set(("", ""))
@@ -155,7 +146,14 @@ object SpecificationForm:
             },
             styleAttr := "flex: 1;",
             value <-- widthSignal,
-            onInput.mapToValue --> { v => sizePairVar.update(pair => (v, pair._2)) },
+            onInput.mapToValue --> { v =>
+              val currentH = sizePairVar.now()._2
+              sizePairVar.set((v, currentH))
+              (v.toDoubleOption, currentH.toDoubleOption) match
+                case (Some(w), Some(h)) if w > 0 && h > 0 =>
+                  ProductBuilderViewModel.replaceSpecification(SpecValue.SizeSpec(Dimension(w, h)))
+                case _ => ()
+            },
           ),
           span("\u00d7", styleAttr := "line-height: 40px;"),
           input(
@@ -166,7 +164,14 @@ object SpecificationForm:
             },
             styleAttr := "flex: 1;",
             value <-- heightSignal,
-            onInput.mapToValue --> { v => sizePairVar.update(pair => (pair._1, v)) },
+            onInput.mapToValue --> { v =>
+              val currentW = sizePairVar.now()._1
+              sizePairVar.set((currentW, v))
+              (currentW.toDoubleOption, v.toDoubleOption) match
+                case (Some(w), Some(h)) if w > 0 && h > 0 =>
+                  ProductBuilderViewModel.replaceSpecification(SpecValue.SizeSpec(Dimension(w, h)))
+                case _ => ()
+            },
           ),
         ),
       ),
