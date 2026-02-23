@@ -69,6 +69,7 @@ object CatalogQueryService:
             case CompatibilityRule.FinishCategoryExclusive(_, _)        => true
             case CompatibilityRule.FinishRequiresFinishType(_, _, _)    => true
             case CompatibilityRule.ConfigurationConstraint(_, _, _)     => true
+            case CompatibilityRule.TechnologyConstraint(_, _)           => true
           }
         }
 

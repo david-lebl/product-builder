@@ -67,3 +67,7 @@ enum CompatibilityRule:
       predicate: ConfigurationPredicate,
       reason: String,
   )
+  case TechnologyConstraint(
+      predicate: ConfigurationPredicate,
+      reason: String,
+  )

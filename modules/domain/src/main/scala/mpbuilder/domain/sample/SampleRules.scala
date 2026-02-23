@@ -130,11 +130,14 @@ object SampleRules:
       ConfigurationPredicate.AllowedInkTypes(Set(InkType.CMYK)),
       "Banners only support CMYK ink type",
     ),
-    // Booklets: allowed binding methods
+    // Booklets: allowed binding methods (saddle stitch, perfect binding, spiral, wire-o)
     CompatibilityRule.SpecConstraint(
       cat.bookletsId,
-      SpecPredicate.AllowedBindingMethods(Set(BindingMethod.SaddleStitch, BindingMethod.PerfectBinding)),
-      "Booklets only support saddle stitch or perfect binding",
+      SpecPredicate.AllowedBindingMethods(Set(
+        BindingMethod.SaddleStitch, BindingMethod.PerfectBinding,
+        BindingMethod.SpiralBinding, BindingMethod.WireOBinding,
+      )),
+      "Booklets only support saddle stitch, perfect binding, spiral or wire-o binding",
     ),
     // Booklets: min pages 8
     CompatibilityRule.SpecConstraint(
@@ -178,6 +181,38 @@ object SampleRules:
       cat.yupoId,
       cat.debossingId,
       "Yupo synthetic material cannot be debossed",
+    ),
+    // --- Technology constraints (apply globally regardless of category) ---
+    // Saddle stitch requires page count divisible by 4
+    CompatibilityRule.TechnologyConstraint(
+      ConfigurationPredicate.Or(
+        ConfigurationPredicate.Not(ConfigurationPredicate.BindingMethodIs(Set(BindingMethod.SaddleStitch))),
+        ConfigurationPredicate.Spec(SpecPredicate.PagesDivisibleBy(4)),
+      ),
+      "Saddle stitch binding requires page count divisible by 4",
+    ),
+    // Perfect binding, spiral binding and wire-o binding require page count divisible by 2
+    CompatibilityRule.TechnologyConstraint(
+      ConfigurationPredicate.Or(
+        ConfigurationPredicate.Not(ConfigurationPredicate.BindingMethodIs(
+          Set(BindingMethod.PerfectBinding, BindingMethod.SpiralBinding, BindingMethod.WireOBinding),
+        )),
+        ConfigurationPredicate.Spec(SpecPredicate.PagesDivisibleBy(2)),
+      ),
+      "Perfect binding, spiral and wire-o binding require page count divisible by 2",
+    ),
+    // Saddle stitch on heavy paper (>=300gsm) is limited to 80 pages
+    CompatibilityRule.TechnologyConstraint(
+      ConfigurationPredicate.Not(
+        ConfigurationPredicate.And(
+          ConfigurationPredicate.And(
+            ConfigurationPredicate.BindingMethodIs(Set(BindingMethod.SaddleStitch)),
+            ConfigurationPredicate.HasMinWeight(300),
+          ),
+          ConfigurationPredicate.Not(ConfigurationPredicate.Spec(SpecPredicate.MaxPages(80))),
+        ),
+      ),
+      "Saddle stitch binding on heavy paper (>=300gsm) is limited to 80 pages",
     ),
   )
 

@@ -51,6 +51,7 @@ object SampleCatalog:
   val perforationId: FinishId       = FinishId.unsafe("fin-perforation")
   val roundCornersId: FinishId      = FinishId.unsafe("fin-round-corners")
   val grommetsId: FinishId          = FinishId.unsafe("fin-grommets")
+  val kissCutId: FinishId           = FinishId.unsafe("fin-kiss-cut")
 
   // --- Category IDs ---
   val businessCardsId: CategoryId   = CategoryId.unsafe("cat-business-cards")
@@ -60,6 +61,8 @@ object SampleCatalog:
   val packagingId: CategoryId       = CategoryId.unsafe("cat-packaging")
   val bookletsId: CategoryId        = CategoryId.unsafe("cat-booklets")
   val calendarsId: CategoryId       = CategoryId.unsafe("cat-calendars")
+  val postcardsId: CategoryId       = CategoryId.unsafe("cat-postcards")
+  val stickersId: CategoryId        = CategoryId.unsafe("cat-stickers")
   val freeId: CategoryId            = CategoryId.unsafe("cat-free")
 
   // --- Printing Method IDs ---
@@ -411,6 +414,13 @@ object SampleCatalog:
     side = FinishSide.Both,
   )
 
+  val kissCut: Finish = Finish(
+    id = kissCutId,
+    name = LocalizedString("Kiss Cut", "Výsek bez podkladu"),
+    finishType = FinishType.KissCut,
+    side = FinishSide.Both,
+  )
+
   // --- Reusable Material ID Sets ---
   private val allCoatedGlossyIds: Set[MaterialId] = Set(
     coatedGlossy90gsmId, coatedGlossy115gsmId, coatedGlossy130gsmId,
@@ -527,7 +537,7 @@ object SampleCatalog:
       ),
     ),
     requiredSpecKinds = Set(SpecKind.Size, SpecKind.Quantity, SpecKind.Pages, SpecKind.BindingMethod),
-    allowedPrintingMethodIds = Set(digitalId),
+    allowedPrintingMethodIds = Set(offsetId, digitalId),
   )
 
   val calendars: ProductCategory = ProductCategory(
@@ -559,7 +569,35 @@ object SampleCatalog:
   private val allFinishIds: Set[FinishId] = Set(
     matteLaminationId, glossLaminationId, uvCoatingId, embossingId,
     foilStampingId, dieCutId, varnishId, softTouchCoatingId, aqueousCoatingId,
-    debossingId, scoringId, perforationId, roundCornersId, grommetsId,
+    debossingId, scoringId, perforationId, roundCornersId, grommetsId, kissCutId,
+  )
+
+  val postcards: ProductCategory = ProductCategory(
+    id = postcardsId,
+    name = LocalizedString("Postcards", "Pohlednice"),
+    components = List(ComponentTemplate(
+      ComponentRole.Main,
+      allowedMaterialIds = Set(coated300gsmId, coatedSilk250gsmId, cottonId) ++
+        heavyCoatedGlossyIds ++ heavyCoatedMatteIds,
+      allowedFinishIds = Set(
+        matteLaminationId, glossLaminationId, uvCoatingId, softTouchCoatingId,
+        embossingId, foilStampingId, roundCornersId, aqueousCoatingId,
+      ),
+    )),
+    requiredSpecKinds = Set(SpecKind.Size, SpecKind.Quantity),
+    allowedPrintingMethodIds = Set(offsetId, digitalId),
+  )
+
+  val stickers: ProductCategory = ProductCategory(
+    id = stickersId,
+    name = LocalizedString("Stickers & Labels", "Samolepky a štítky"),
+    components = List(ComponentTemplate(
+      ComponentRole.Main,
+      allowedMaterialIds = Set(adhesiveStockId, yupoId),
+      allowedFinishIds = Set(kissCutId, dieCutId, roundCornersId, uvCoatingId),
+    )),
+    requiredSpecKinds = Set(SpecKind.Size, SpecKind.Quantity),
+    allowedPrintingMethodIds = Set(digitalId, uvInkjetId),
   )
 
   val free: ProductCategory = ProductCategory(
@@ -584,6 +622,8 @@ object SampleCatalog:
       packagingId     -> packaging,
       bookletsId      -> booklets,
       calendarsId     -> calendars,
+      postcardsId     -> postcards,
+      stickersId      -> stickers,
       freeId          -> free,
     ),
     materials = Map(
@@ -631,6 +671,7 @@ object SampleCatalog:
       perforationId      -> perforation,
       roundCornersId     -> roundCorners,
       grommetsId         -> grommets,
+      kissCutId          -> kissCut,
     ),
     printingMethods = Map(
       offsetId      -> offsetMethod,

@@ -145,6 +145,11 @@ object RuleEvaluator:
             case true  => Validation.unit
         else Validation.unit
 
+      case CompatibilityRule.TechnologyConstraint(predicate, reason) =>
+        evaluateConfigurationPredicate(predicate, components, specifications, printingMethod) match
+          case false => Validation.fail(ConfigurationError.TechnologyConstraintViolation(reason))
+          case true  => Validation.unit
+
   private def evaluateSpecPredicate(
       predicate: SpecPredicate,
       specs: ProductSpecifications,
@@ -216,6 +221,14 @@ object RuleEvaluator:
             else Validation.unit
           case _ => Validation.unit
 
+      case SpecPredicate.PagesDivisibleBy(n) =>
+        specs.get(SpecKind.Pages) match
+          case Some(SpecValue.PagesSpec(count)) =>
+            if count % n != 0 then
+              Validation.fail(ConfigurationError.SpecConstraintViolation(categoryId, predicate, reason))
+            else Validation.unit
+          case _ => Validation.unit
+
   def evaluateConfigurationPredicate(
       predicate: ConfigurationPredicate,
       components: List[ProductComponent],
@@ -243,6 +256,10 @@ object RuleEvaluator:
         components.forall { comp =>
           comp.inkConfiguration.front.colorCount <= max && comp.inkConfiguration.back.colorCount <= max
         }
+      case ConfigurationPredicate.BindingMethodIs(methods) =>
+        specifications.get(SpecKind.BindingMethod) match
+          case Some(SpecValue.BindingMethodSpec(method)) => methods.contains(method)
+          case _                                         => false
       case ConfigurationPredicate.And(left, right) =>
         evaluateConfigurationPredicate(left, components, specifications, printingMethod) &&
           evaluateConfigurationPredicate(right, components, specifications, printingMethod)
