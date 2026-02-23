@@ -26,6 +26,7 @@ enum ConfigurationError:
   case InvalidCategoryPrintingMethod(categoryId: CategoryId, printingMethodId: PrintingMethodId)
   case PrintingMethodNotFound(printingMethodId: PrintingMethodId)
   case ConfigurationConstraintViolation(categoryId: CategoryId, reason: String)
+  case TechnologyConstraintViolation(reason: String)
   case InkConfigExceedsMethodColorLimit(printingMethodId: PrintingMethodId, inkConfig: InkConfiguration, maxAllowed: Int, role: ComponentRole)
   case InvalidComponentRoles(categoryId: CategoryId, expectedRoles: Set[ComponentRole], actualRoles: Set[ComponentRole])
   case MissingComponent(categoryId: CategoryId, role: ComponentRole)
@@ -99,6 +100,9 @@ enum ConfigurationError:
     case ConfigurationConstraintViolation(catId, reason) => lang match
       case Language.En => s"Configuration constraint violated for category '${catId.value}': $reason"
       case Language.Cs => s"Porušeno omezení konfigurace pro kategorii '${catId.value}': $reason"
+    case TechnologyConstraintViolation(reason) => lang match
+      case Language.En => s"Technology constraint violated: $reason"
+      case Language.Cs => s"Porušeno technologické omezení: $reason"
     case InkConfigExceedsMethodColorLimit(pmId, inkConfig, maxAllowed, role) => lang match
       case Language.En => s"Ink configuration '${inkConfig.notation}' in component '$role' exceeds printing method '${pmId.value}' maximum of $maxAllowed colors per side"
       case Language.Cs => s"Konfigurace inkoustu '${inkConfig.notation}' v komponentu '$role' překračuje maximum $maxAllowed barev na stranu pro tiskovou metodu '${pmId.value}'"

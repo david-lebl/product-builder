@@ -822,4 +822,153 @@ object ConfigurationBuilderSpec extends ZIOSpecDefault:
         )
       },
     ),
+    suite("technology constraints (binding)")(
+      test("saddle stitch with pages not divisible by 4 is rejected") {
+        val request = ConfigurationRequest(
+          categoryId = SampleCatalog.bookletsId,
+          printingMethodId = SampleCatalog.offsetId,
+          components = List(
+            ComponentRequest(ComponentRole.Cover, SampleCatalog.coated300gsmId, InkConfiguration.cmyk4_4, Nil),
+            ComponentRequest(ComponentRole.Body, SampleCatalog.coatedMatte115gsm.id, InkConfiguration.cmyk4_4, Nil),
+          ),
+          specs = List(
+            SpecValue.SizeSpec(Dimension(210, 148)),
+            SpecValue.QuantitySpec(Quantity.unsafe(500)),
+            SpecValue.PagesSpec(18), // 18 is not divisible by 4
+            SpecValue.BindingMethodSpec(BindingMethod.SaddleStitch),
+          ),
+        )
+        val result = ConfigurationBuilder.build(request, catalog, ruleset, configId)
+        val errors = result.toEither.left.toOption.get.toList
+        assertTrue(errors.exists(_.isInstanceOf[ConfigurationError.TechnologyConstraintViolation]))
+      },
+      test("saddle stitch with pages divisible by 4 succeeds") {
+        val request = ConfigurationRequest(
+          categoryId = SampleCatalog.bookletsId,
+          printingMethodId = SampleCatalog.offsetId,
+          components = List(
+            ComponentRequest(ComponentRole.Cover, SampleCatalog.coated300gsmId, InkConfiguration.cmyk4_4, Nil),
+            ComponentRequest(ComponentRole.Body, SampleCatalog.coatedMatte115gsm.id, InkConfiguration.cmyk4_4, Nil),
+          ),
+          specs = List(
+            SpecValue.SizeSpec(Dimension(210, 148)),
+            SpecValue.QuantitySpec(Quantity.unsafe(500)),
+            SpecValue.PagesSpec(20), // 20 is divisible by 4
+            SpecValue.BindingMethodSpec(BindingMethod.SaddleStitch),
+          ),
+        )
+        val result = ConfigurationBuilder.build(request, catalog, ruleset, configId)
+        assertTrue(result.toEither.isRight)
+      },
+      test("perfect binding with odd page count is rejected") {
+        val request = ConfigurationRequest(
+          categoryId = SampleCatalog.bookletsId,
+          printingMethodId = SampleCatalog.digitalId,
+          components = List(
+            ComponentRequest(ComponentRole.Cover, SampleCatalog.coated300gsmId, InkConfiguration.cmyk4_4, Nil),
+            ComponentRequest(ComponentRole.Body, SampleCatalog.coatedMatte115gsm.id, InkConfiguration.cmyk4_4, Nil),
+          ),
+          specs = List(
+            SpecValue.SizeSpec(Dimension(210, 148)),
+            SpecValue.QuantitySpec(Quantity.unsafe(300)),
+            SpecValue.PagesSpec(41), // 41 is not divisible by 2
+            SpecValue.BindingMethodSpec(BindingMethod.PerfectBinding),
+          ),
+        )
+        val result = ConfigurationBuilder.build(request, catalog, ruleset, configId)
+        val errors = result.toEither.left.toOption.get.toList
+        assertTrue(errors.exists(_.isInstanceOf[ConfigurationError.TechnologyConstraintViolation]))
+      },
+      test("perfect binding with even page count succeeds") {
+        val request = ConfigurationRequest(
+          categoryId = SampleCatalog.bookletsId,
+          printingMethodId = SampleCatalog.digitalId,
+          components = List(
+            ComponentRequest(ComponentRole.Cover, SampleCatalog.coated300gsmId, InkConfiguration.cmyk4_4, Nil),
+            ComponentRequest(ComponentRole.Body, SampleCatalog.coatedMatte115gsm.id, InkConfiguration.cmyk4_4, Nil),
+          ),
+          specs = List(
+            SpecValue.SizeSpec(Dimension(210, 148)),
+            SpecValue.QuantitySpec(Quantity.unsafe(300)),
+            SpecValue.PagesSpec(42), // 42 is divisible by 2
+            SpecValue.BindingMethodSpec(BindingMethod.PerfectBinding),
+          ),
+        )
+        val result = ConfigurationBuilder.build(request, catalog, ruleset, configId)
+        assertTrue(result.toEither.isRight)
+      },
+      test("saddle stitch on heavy paper (>=300gsm) with >80 pages is rejected") {
+        val request = ConfigurationRequest(
+          categoryId = SampleCatalog.bookletsId,
+          printingMethodId = SampleCatalog.offsetId,
+          components = List(
+            ComponentRequest(ComponentRole.Cover, SampleCatalog.coated300gsmId, InkConfiguration.cmyk4_4, Nil),
+            ComponentRequest(ComponentRole.Body, SampleCatalog.coated300gsmId, InkConfiguration.cmyk4_4, Nil),
+          ),
+          specs = List(
+            SpecValue.SizeSpec(Dimension(210, 148)),
+            SpecValue.QuantitySpec(Quantity.unsafe(200)),
+            SpecValue.PagesSpec(84), // 84 pages, divisible by 4 but >80 with heavy stock
+            SpecValue.BindingMethodSpec(BindingMethod.SaddleStitch),
+          ),
+        )
+        val result = ConfigurationBuilder.build(request, catalog, ruleset, configId)
+        val errors = result.toEither.left.toOption.get.toList
+        assertTrue(errors.exists(_.isInstanceOf[ConfigurationError.TechnologyConstraintViolation]))
+      },
+      test("saddle stitch on heavy paper with <=80 pages succeeds") {
+        val request = ConfigurationRequest(
+          categoryId = SampleCatalog.bookletsId,
+          printingMethodId = SampleCatalog.offsetId,
+          components = List(
+            ComponentRequest(ComponentRole.Cover, SampleCatalog.coated300gsmId, InkConfiguration.cmyk4_4, Nil),
+            ComponentRequest(ComponentRole.Body, SampleCatalog.coated300gsmId, InkConfiguration.cmyk4_4, Nil),
+          ),
+          specs = List(
+            SpecValue.SizeSpec(Dimension(210, 148)),
+            SpecValue.QuantitySpec(Quantity.unsafe(200)),
+            SpecValue.PagesSpec(80), // exactly 80 pages, divisible by 4, at the limit
+            SpecValue.BindingMethodSpec(BindingMethod.SaddleStitch),
+          ),
+        )
+        val result = ConfigurationBuilder.build(request, catalog, ruleset, configId)
+        assertTrue(result.toEither.isRight)
+      },
+      test("saddle stitch page divisibility constraint applies in free category too") {
+        val request = ConfigurationRequest(
+          categoryId = SampleCatalog.freeId,
+          printingMethodId = SampleCatalog.digitalId,
+          components = List(
+            ComponentRequest(ComponentRole.Main, SampleCatalog.coatedMatte115gsm.id, InkConfiguration.cmyk4_4, Nil),
+          ),
+          specs = List(
+            SpecValue.SizeSpec(Dimension(210, 148)),
+            SpecValue.QuantitySpec(Quantity.unsafe(100)),
+            SpecValue.PagesSpec(10), // 10 is not divisible by 4
+            SpecValue.BindingMethodSpec(BindingMethod.SaddleStitch),
+          ),
+        )
+        val result = ConfigurationBuilder.build(request, catalog, ruleset, configId)
+        val errors = result.toEither.left.toOption.get.toList
+        assertTrue(errors.exists(_.isInstanceOf[ConfigurationError.TechnologyConstraintViolation]))
+      },
+      test("booklet with spiral binding and divisible-by-2 pages succeeds") {
+        val request = ConfigurationRequest(
+          categoryId = SampleCatalog.bookletsId,
+          printingMethodId = SampleCatalog.digitalId,
+          components = List(
+            ComponentRequest(ComponentRole.Cover, SampleCatalog.coated300gsmId, InkConfiguration.cmyk4_4, Nil),
+            ComponentRequest(ComponentRole.Body, SampleCatalog.coatedMatte115gsm.id, InkConfiguration.cmyk4_4, Nil),
+          ),
+          specs = List(
+            SpecValue.SizeSpec(Dimension(210, 148)),
+            SpecValue.QuantitySpec(Quantity.unsafe(100)),
+            SpecValue.PagesSpec(30), // 30 is divisible by 2 (not 4), valid for spiral
+            SpecValue.BindingMethodSpec(BindingMethod.SpiralBinding),
+          ),
+        )
+        val result = ConfigurationBuilder.build(request, catalog, ruleset, configId)
+        assertTrue(result.toEither.isRight)
+      },
+    ),
   )
