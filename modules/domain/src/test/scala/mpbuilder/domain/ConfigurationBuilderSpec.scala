@@ -971,4 +971,114 @@ object ConfigurationBuilderSpec extends ZIOSpecDefault:
         assertTrue(result.toEither.isRight)
       },
     ),
+    suite("finish overrides")(
+      test("finish side override is applied") {
+        val request = ConfigurationRequest(
+          categoryId = SampleCatalog.businessCardsId,
+          printingMethodId = SampleCatalog.digitalId,
+          components = List(ComponentRequest(
+            role = ComponentRole.Main,
+            materialId = SampleCatalog.coated300gsmId,
+            inkConfiguration = InkConfiguration.cmyk4_4,
+            finishIds = List(SampleCatalog.matteLaminationId),
+            finishOverrides = List(FinishOverride(
+              finishId = SampleCatalog.matteLaminationId,
+              sideOverride = Some(FinishSide.Front),
+            )),
+          )),
+          specs = List(
+            SpecValue.SizeSpec(Dimension(90, 55)),
+            SpecValue.QuantitySpec(Quantity.unsafe(500)),
+          ),
+        )
+        val result = ConfigurationBuilder.build(request, catalog, ruleset, configId)
+        assertTrue(
+          result.toEither.isRight,
+          result.toEither.toOption.get.components.head.finishes.head.side == FinishSide.Front,
+        )
+      },
+      test("finish parameter override is applied") {
+        val request = ConfigurationRequest(
+          categoryId = SampleCatalog.businessCardsId,
+          printingMethodId = SampleCatalog.digitalId,
+          components = List(ComponentRequest(
+            role = ComponentRole.Main,
+            materialId = SampleCatalog.coated300gsmId,
+            inkConfiguration = InkConfiguration.cmyk4_4,
+            finishIds = List(SampleCatalog.roundCornersId),
+            finishOverrides = List(FinishOverride(
+              finishId = SampleCatalog.roundCornersId,
+              parameterOverrides = List(FinishParameter.CornerRadiusMm(5.0)),
+            )),
+          )),
+          specs = List(
+            SpecValue.SizeSpec(Dimension(90, 55)),
+            SpecValue.QuantitySpec(Quantity.unsafe(500)),
+          ),
+        )
+        val result = ConfigurationBuilder.build(request, catalog, ruleset, configId)
+        val finishParams = result.toEither.toOption.get.components.head.finishes.head.parameters
+        assertTrue(
+          result.toEither.isRight,
+          finishParams.exists {
+            case FinishParameter.CornerRadiusMm(r) => r == 5.0
+            case _ => false
+          },
+          finishParams.exists {
+            case FinishParameter.CornerCount(c) => c == 4 // catalog default kept
+            case _ => false
+          },
+        )
+      },
+      test("round corners has default parameters from catalog") {
+        val request = ConfigurationRequest(
+          categoryId = SampleCatalog.businessCardsId,
+          printingMethodId = SampleCatalog.digitalId,
+          components = List(mainComponent(
+            SampleCatalog.coated300gsmId,
+            InkConfiguration.cmyk4_4,
+            List(SampleCatalog.roundCornersId),
+          )),
+          specs = List(
+            SpecValue.SizeSpec(Dimension(90, 55)),
+            SpecValue.QuantitySpec(Quantity.unsafe(500)),
+          ),
+        )
+        val result = ConfigurationBuilder.build(request, catalog, ruleset, configId)
+        val finishParams = result.toEither.toOption.get.components.head.finishes.head.parameters
+        assertTrue(
+          result.toEither.isRight,
+          finishParams.exists {
+            case FinishParameter.CornerRadiusMm(r) => r == 3.0
+            case _ => false
+          },
+          finishParams.exists {
+            case FinishParameter.CornerCount(c) => c == 4
+            case _ => false
+          },
+        )
+      },
+      test("CMYK+White ink configuration validates for stickers") {
+        val request = ConfigurationRequest(
+          categoryId = SampleCatalog.stickersId,
+          printingMethodId = SampleCatalog.uvInkjetId,
+          components = List(ComponentRequest(
+            role = ComponentRole.Main,
+            materialId = SampleCatalog.yupoId,
+            inkConfiguration = InkConfiguration.cmykWhite4_0,
+            finishIds = List(SampleCatalog.kissCutId),
+          )),
+          specs = List(
+            SpecValue.SizeSpec(Dimension(60, 40)),
+            SpecValue.QuantitySpec(Quantity.unsafe(500)),
+          ),
+        )
+        val result = ConfigurationBuilder.build(request, catalog, ruleset, configId)
+        assertTrue(
+          result.toEither.isRight,
+          result.toEither.toOption.get.components.head.inkConfiguration.whiteUnderlay,
+          result.toEither.toOption.get.components.head.inkConfiguration.notation == "4/0+W",
+        )
+      },
+    ),
   )

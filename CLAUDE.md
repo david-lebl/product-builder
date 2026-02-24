@@ -24,7 +24,7 @@ This is a DDD (Domain-Driven Design) product configuration system for the printi
 
 ### Package layout: `mpbuilder.domain`
 
-- **`model/`** — Value objects (opaque type IDs with smart constructors), entities, enums. `ProductConfiguration` is the aggregate root. `InkType`/`InkSetup`/`InkConfiguration` model per-side ink setup (e.g., 4/0, 4/4). `SpecKind.InkConfig` + `SpecValue.InkConfigSpec` replace the former `ColorMode`.
+- **`model/`** — Value objects (opaque type IDs with smart constructors), entities, enums. `ProductConfiguration` is the aggregate root. `InkType`/`InkSetup`/`InkConfiguration` model per-side ink setup (e.g., 4/0, 4/4, 4/0+W for CMYK+White). `FinishParameter` ADT models typed finish parameters (corner radius, corner count). `FinishOverride` allows per-configuration side and parameter overrides.
 - **`rules/`** — `CompatibilityRule` sealed ADT (12 rule variants), `SpecPredicate` and `ConfigurationPredicate` (boolean algebra with And/Or/Not). Rules are data, not code.
 - **`validation/`** — `ConfigurationError` ADT with exhaustive `message` match. `RuleEvaluator` interprets rules. `ConfigurationValidator` runs two-layer validation: structural checks first, then rule evaluation.
 - **`service/`** — `ConfigurationBuilder` resolves IDs from catalog and orchestrates validation. `CatalogQueryService` pre-filters compatible options for UI progressive disclosure.
@@ -81,7 +81,9 @@ ZIO Prelude `Validation` accumulates all errors (not short-circuit). Structural 
 - `Money` is an opaque type over `BigDecimal` — never use `Double` for monetary values
 - `ProductCategory.allowedPrintingMethodIds` empty set means "no restriction" (all methods allowed)
 - `FinishCategory` is derived from `FinishType` via extension method `finishCategory`, not stored on `Finish`
-- `InkConfiguration` models per-side ink setup: `InkSetup(inkType, colorCount)` for front and back. Presets: `cmyk4_4`, `cmyk4_0`, `cmyk4_1`, `mono1_0`, `mono1_1`. Structural validation checks `maxColorCount` against `PrintingMethod.maxColorCount`
+- `InkConfiguration` models per-side ink setup: `InkSetup(inkType, colorCount)` for front and back. `whiteUnderlay: Boolean` tracks CMYK+White configurations. Presets: `cmyk4_4`, `cmyk4_0`, `cmyk4_1`, `mono1_0`, `mono1_1`, `cmykWhite4_0`, `cmykWhite4_4`. Structural validation checks `maxColorCount` (including white) against `PrintingMethod.maxColorCount`
+- `FinishParameter` is a sealed ADT: `CornerRadiusMm(radius: Double)`, `CornerCount(count: Int)`. `Finish.parameters: List[FinishParameter]` carries catalog defaults. `FinishOverride` in `ComponentRequest.finishOverrides` allows per-configuration side and parameter overrides (backward-compatible — `finishOverrides` defaults to empty)
+- `FinishSideFactor` pricing rule: applies `singleSideMultiplier` when a finish is `Front` or `Back` only (not `Both`). Used for lamination and soft-touch coating
 - `CatalogQueryService.compatibleFinishes` takes `printingMethodId: Option[PrintingMethodId]` — `None` means "not yet selected, don't filter by method"
 - Finish pricing precedence: `FinishSurcharge` (by ID) overrides `FinishTypeSurcharge` (by type) for the same finish
 - Template image placeholders use `PhotoElement(imageData = "")` — they're fully interactive `CanvasElement`s, not static template fields

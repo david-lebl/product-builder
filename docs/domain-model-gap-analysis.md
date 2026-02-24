@@ -21,15 +21,18 @@ FinishType (23): Lamination, Overlamination, UVCoating, AqueousCoating, SoftTouc
   DieCut, ContourCut, KissCut, Scoring, Perforation, RoundCorners, Drilling,
   Numbering, Binding, Mounting, Grommets, Hem
 FinishSide: Front, Back, Both
-Finish: id, name, finishType, side
+FinishParameter: CornerRadiusMm(radius), CornerCount(count)  // ADT for typed parameters
+Finish: id, name, finishType, side, parameters (List[FinishParameter])
+FinishOverride: finishId, sideOverride (Option[FinishSide]), parameterOverrides (List[FinishParameter])
 
 // Specifications
 SpecKind: Size, Quantity, Orientation, Bleed, Pages, FoldType, BindingMethod
 FoldType: Half, Tri, Gate, Accordion, ZFold, RollFold, FrenchFold, CrossFold
 BindingMethod: SaddleStitch, PerfectBinding, SpiralBinding, WireOBinding, CaseBinding
-InkType: CMYK, PMS, Grayscale
+InkType: CMYK, PMS, Grayscale, White
 InkSetup: inkType, colorCount
-InkConfiguration: front (InkSetup), back (InkSetup)  // e.g. 4/0, 4/4, 4/1
+InkConfiguration: front (InkSetup), back (InkSetup), whiteUnderlay (Boolean)
+  // e.g. 4/0, 4/4, 4/1, 4/0+W (CMYK+White front only)
 
 // Printing
 PrintingProcessType: Offset, Digital, Letterpress, ScreenPrint, UVCurableInkjet, LatexInkjet, SolventInkjet
@@ -166,8 +169,9 @@ SpecPredicate: MinDimension, MaxDimension, MinQuantity, MaxQuantity,
 
 | Gap | Issue | Impact | Priority |
 |---|---|---|---|
-| **No finish parameters** | Foil color, corner radius, grommet spacing are not modeled | Affects quoting accuracy — gold foil vs silver foil have different costs. Lamination variants are handled via separate `Finish` instances (matte-lam, gloss-lam), which works | Medium |
-| **FinishSide too limited** | Doesn't cover edge (edge painting), spine, or "all edges" (grommets) | Adequate for small-format sheets (Front/Back/Both suffices) | Low |
+| **No finish parameters** | ~~Foil color, corner radius, grommet spacing are not modeled~~ **Resolved**: `FinishParameter` ADT with `CornerRadiusMm(radius)` and `CornerCount(count)`. Extensible for future parameters (foil color, grommet spacing). | ~~Affects quoting accuracy~~ Now modeled for round corners; other finish types can be added incrementally | ✅ Done |
+| **FinishSide not configurable at order time** | ~~Side is fixed in catalog definition~~ **Resolved**: `FinishOverride` with `sideOverride` allows per-configuration side selection. `FinishSideFactor` pricing rule applies single-side multiplier for surface finishes. | Lamination can now be front-only, back-only, or both, with accurate pricing | ✅ Done |
+| **FinishSide enum limited** | Doesn't cover edge (edge painting), spine, or "all edges" (grommets) | Adequate for small-format sheets (Front/Back/Both suffices) | Low |
 
 ### Specification Model
 
@@ -205,7 +209,7 @@ SpecPredicate: MinDimension, MaxDimension, MinQuantity, MaxQuantity,
 
 | # | Gap | Why |
 |---|-----|-----|
-| 2 | **Finish parameters** | Foil color (gold/silver/custom), corner radius, perforation pitch — needed for accurate quoting. Lamination variants already work via separate finish instances. |
+| ~~2~~ | ~~**Finish parameters**~~ | ✅ Resolved — `FinishParameter` ADT (`CornerRadiusMm`, `CornerCount`), `FinishOverride` for per-configuration overrides. |
 | 3 | **Missing material families** | `Synthetic` and `Adhesive` would let rules target these substrates generically instead of by individual material ID. |
 | 4 | **Conditional finish dependencies** | "Add scoring when folding heavy stock" — currently can only reject, not suggest. |
 | 5 | **Missing categories** | Letterheads, Envelopes, Notepads, Greeting Cards, Tickets/Vouchers are common products that should be in the catalog. |
@@ -243,3 +247,6 @@ The following gaps from the original analysis have been implemented:
 - **Binding validation**: Saddle stitch requires pages divisible by 4; other bindings (perfect, spiral, wire-o) require pages divisible by 2; saddle stitch on ≥300gsm stock limited to 80 pages
 - **New categories**: Postcards (heavy coated papers, offset+digital) and Stickers & Labels (adhesive stock + yupo, kiss cut, digital + UV inkjet) added to sample catalog
 - **KissCut finish**: `fin-kiss-cut` added to the sample catalog for sticker/label products
+- **Finish parameters**: `FinishParameter` sealed enum ADT with `CornerRadiusMm(radius: Double)` and `CornerCount(count: Int)`. `Finish.parameters: List[FinishParameter]` with catalog defaults for round corners (3mm radius, 4 corners). `FinishOverride` in `ComponentRequest` allows per-configuration parameter overrides
+- **Finish side configuration**: `FinishOverride.sideOverride: Option[FinishSide]` allows per-configuration side selection (front-only, back-only, or both). `FinishSideFactor` pricing rule applies a multiplier when a finish is applied to a single side instead of both (e.g., 0.60× for single-side lamination)
+- **White ink / CMYK+White**: `InkType.White` added for transparent stickers and dark substrates. `InkConfiguration.whiteUnderlay: Boolean` tracks white ink underlay. Presets `cmykWhite4_0` and `cmykWhite4_4` with notation `4/0+W` and `4/4+W`. `maxColorCount` accounts for white (5 for CMYK+White)

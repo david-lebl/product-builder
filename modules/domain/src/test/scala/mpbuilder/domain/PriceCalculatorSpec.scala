@@ -1009,4 +1009,86 @@ object PriceCalculatorSpec extends ZIOSpecDefault:
         )
       },
     ),
+    suite("finish side pricing")(
+      test("lamination front-only gets single-side multiplier") {
+        val frontOnlyLam = SampleCatalog.matteLamination.copy(side = FinishSide.Front)
+        val config = makeConfig(
+          category = SampleCatalog.businessCards,
+          material = SampleCatalog.coated300gsm,
+          printingMethod = SampleCatalog.digitalMethod,
+          inkConfig = InkConfiguration.cmyk4_4,
+          finishes = List(frontOnlyLam),
+          specs = List(
+            SpecValue.SizeSpec(Dimension(90, 55)),
+            SpecValue.QuantitySpec(Quantity.unsafe(500)),
+          ),
+        )
+
+        val result = PriceCalculator.calculate(config, pricelist)
+        val breakdown = result.toEither.toOption.get
+        val cb = firstBreakdown(breakdown)
+        // Matte lam base = $0.03/unit, single-side factor = 0.60 → $0.018/unit
+        assertTrue(
+          result.toEither.isRight,
+          cb.finishLines.size == 1,
+          cb.finishLines.head.unitPrice == Money("0.03") * BigDecimal("0.60"),
+        )
+      },
+      test("lamination both-sides uses full price") {
+        val config = makeConfig(
+          category = SampleCatalog.businessCards,
+          material = SampleCatalog.coated300gsm,
+          printingMethod = SampleCatalog.digitalMethod,
+          inkConfig = InkConfiguration.cmyk4_4,
+          finishes = List(SampleCatalog.matteLamination), // Both is default
+          specs = List(
+            SpecValue.SizeSpec(Dimension(90, 55)),
+            SpecValue.QuantitySpec(Quantity.unsafe(500)),
+          ),
+        )
+
+        val result = PriceCalculator.calculate(config, pricelist)
+        val breakdown = result.toEither.toOption.get
+        val cb = firstBreakdown(breakdown)
+        assertTrue(
+          result.toEither.isRight,
+          cb.finishLines.size == 1,
+          cb.finishLines.head.unitPrice == Money("0.03"),
+        )
+      },
+    ),
+    suite("white ink configuration")(
+      test("CMYK+White notation includes +W") {
+        assertTrue(
+          InkConfiguration.cmykWhite4_0.notation == "4/0+W",
+          InkConfiguration.cmykWhite4_4.notation == "4/4+W",
+        )
+      },
+      test("CMYK+White maxColorCount includes white") {
+        assertTrue(
+          InkConfiguration.cmykWhite4_0.maxColorCount == 5,
+          InkConfiguration.cmykWhite4_4.maxColorCount == 5,
+        )
+      },
+      test("CMYK+White totalFrontColors includes white") {
+        assertTrue(
+          InkConfiguration.cmykWhite4_0.totalFrontColors == 5,
+          InkConfiguration.cmykWhite4_4.totalFrontColors == 5,
+        )
+      },
+      test("standard CMYK notation unchanged") {
+        assertTrue(
+          InkConfiguration.cmyk4_4.notation == "4/4",
+          InkConfiguration.cmyk4_0.notation == "4/0",
+          InkConfiguration.mono1_0.notation == "1/0",
+        )
+      },
+      test("standard CMYK maxColorCount unchanged") {
+        assertTrue(
+          InkConfiguration.cmyk4_4.maxColorCount == 4,
+          InkConfiguration.cmyk4_0.maxColorCount == 4,
+          InkConfiguration.mono1_0.maxColorCount == 1,
+        )
+      },
+    ),
   )
