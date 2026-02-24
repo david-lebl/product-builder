@@ -2,11 +2,11 @@ package mpbuilder.domain
 
 import zio.test.*
 import zio.prelude.*
-import mpbuilder.domain.model.*
-import mpbuilder.domain.rules.*
-import mpbuilder.domain.validation.*
-import mpbuilder.domain.service.*
-import mpbuilder.domain.sample.*
+import mpbuilder.domain.internal.model.*
+import mpbuilder.domain.internal.rules.*
+import mpbuilder.domain.internal.validation.*
+import mpbuilder.domain.internal.service.*
+import mpbuilder.domain.internal.sample.*
 
 object ConfigurationBuilderSpec extends ZIOSpecDefault:
 

@@ -1,10 +1,10 @@
 package mpbuilder.ui
 
-import mpbuilder.domain.model.*
-import mpbuilder.domain.service.*
-import mpbuilder.domain.validation.*
-import mpbuilder.domain.pricing.*
-import mpbuilder.domain.sample.*
+import mpbuilder.domain.internal.model.*
+import mpbuilder.domain.internal.service.*
+import mpbuilder.domain.internal.validation.*
+import mpbuilder.domain.internal.pricing.*
+import mpbuilder.domain.internal.sample.*
 import zio.prelude.Validation
 import com.raquo.laminar.api.L.*
 import org.scalajs.dom

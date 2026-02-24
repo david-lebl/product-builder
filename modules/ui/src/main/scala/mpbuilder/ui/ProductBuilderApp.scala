@@ -2,8 +2,8 @@ package mpbuilder.ui
 
 import com.raquo.laminar.api.L.*
 import mpbuilder.ui.components.*
-import mpbuilder.domain.model.Language
-import mpbuilder.domain.pricing.{Money, Currency}
+import mpbuilder.domain.internal.model.Language
+import mpbuilder.domain.internal.pricing.{Money, Currency}
 
 object ProductBuilderApp:
   def apply(): Element =

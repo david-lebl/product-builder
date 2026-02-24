@@ -3,7 +3,7 @@ package mpbuilder.ui.calendar
 import com.raquo.laminar.api.L.*
 import mpbuilder.ui.calendar.components.*
 import mpbuilder.ui.ProductBuilderViewModel
-import mpbuilder.domain.model.Language
+import mpbuilder.domain.internal.model.Language
 
 object CalendarBuilderApp {
 

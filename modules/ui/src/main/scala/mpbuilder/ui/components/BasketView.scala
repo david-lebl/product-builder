@@ -2,8 +2,8 @@ package mpbuilder.ui.components
 
 import com.raquo.laminar.api.L.*
 import mpbuilder.ui.ProductBuilderViewModel
-import mpbuilder.domain.pricing.{Money, Currency}
-import mpbuilder.domain.model.{Language, ConfigurationId, ComponentRole}
+import mpbuilder.domain.internal.pricing.{Money, Currency}
+import mpbuilder.domain.internal.model.{Language, ConfigurationId, ComponentRole}
 
 object BasketView:
   def apply(): Element =

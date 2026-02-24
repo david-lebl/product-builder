@@ -2,10 +2,10 @@ package mpbuilder.domain
 
 import zio.test.*
 import zio.prelude.*
-import mpbuilder.domain.model.*
-import mpbuilder.domain.pricing.*
-import mpbuilder.domain.service.*
-import mpbuilder.domain.sample.*
+import mpbuilder.domain.internal.model.*
+import mpbuilder.domain.internal.pricing.*
+import mpbuilder.domain.internal.service.*
+import mpbuilder.domain.internal.sample.*
 
 object BasketServiceSpec extends ZIOSpecDefault:
 

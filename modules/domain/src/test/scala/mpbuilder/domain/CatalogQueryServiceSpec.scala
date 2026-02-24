@@ -1,9 +1,9 @@
 package mpbuilder.domain
 
 import zio.test.*
-import mpbuilder.domain.model.*
-import mpbuilder.domain.service.*
-import mpbuilder.domain.sample.*
+import mpbuilder.domain.internal.model.*
+import mpbuilder.domain.internal.service.*
+import mpbuilder.domain.internal.sample.*
 
 object CatalogQueryServiceSpec extends ZIOSpecDefault:
 

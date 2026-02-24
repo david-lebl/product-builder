@@ -2,7 +2,7 @@ package mpbuilder.ui
 
 import com.raquo.laminar.api.L.*
 import org.scalajs.dom
-import mpbuilder.domain.model.Language
+import mpbuilder.domain.internal.model.Language
 
 object Main:
   def main(args: Array[String]): Unit =

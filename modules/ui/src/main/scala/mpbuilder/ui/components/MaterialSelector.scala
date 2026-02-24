@@ -2,7 +2,7 @@ package mpbuilder.ui.components
 
 import com.raquo.laminar.api.L.*
 import mpbuilder.ui.ProductBuilderViewModel
-import mpbuilder.domain.model.*
+import mpbuilder.domain.internal.model.*
 
 object MaterialSelector:
   def apply(role: ComponentRole): Element =

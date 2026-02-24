@@ -2,7 +2,7 @@ package mpbuilder.ui
 
 import com.raquo.laminar.api.L.*
 import mpbuilder.ui.calendar.CalendarBuilderApp
-import mpbuilder.domain.model.Language
+import mpbuilder.domain.internal.model.Language
 
 sealed trait AppRoute
 object AppRoute {
