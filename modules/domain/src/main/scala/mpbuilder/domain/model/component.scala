@@ -19,9 +19,16 @@ final case class ProductComponent(
     sheetCount: Int,
 )
 
+final case class FinishOverride(
+    finishId: FinishId,
+    sideOverride: Option[FinishSide] = None,
+    parameterOverrides: List[FinishParameter] = List.empty,
+)
+
 final case class ComponentRequest(
     role: ComponentRole,
     materialId: MaterialId,
     inkConfiguration: InkConfiguration,
     finishIds: List[FinishId],
+    finishOverrides: List[FinishOverride] = List.empty,
 )

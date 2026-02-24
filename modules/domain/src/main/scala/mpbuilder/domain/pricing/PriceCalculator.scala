@@ -223,11 +223,18 @@ object PriceCalculator:
       }
       // ID-level takes precedence over type-level
       byId.orElse(byType).map { surcharge =>
+        val sideMultiplier = finish.side match
+          case FinishSide.Both => BigDecimal(1)
+          case _ =>
+            rules.collectFirst {
+              case r: PricingRule.FinishSideFactor if r.finishType == finish.finishType => r.singleSideMultiplier
+            }.getOrElse(BigDecimal(1))
+        val adjustedSurcharge = surcharge * sideMultiplier
         LineItem(
           label = s"Finish: ${finish.name(lang)}",
-          unitPrice = surcharge,
+          unitPrice = adjustedSurcharge,
           quantity = quantity,
-          lineTotal = surcharge * quantity,
+          lineTotal = adjustedSurcharge * quantity,
         )
       }
     }

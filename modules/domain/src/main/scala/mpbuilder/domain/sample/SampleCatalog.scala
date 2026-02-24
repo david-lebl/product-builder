@@ -405,6 +405,10 @@ object SampleCatalog:
     name = LocalizedString("Round Corners", "Zaoblené rohy"),
     finishType = FinishType.RoundCorners,
     side = FinishSide.Both,
+    parameters = List(
+      FinishParameter.CornerRadiusMm(3.0),
+      FinishParameter.CornerCount(4),
+    ),
   )
 
   val grommets: Finish = Finish(

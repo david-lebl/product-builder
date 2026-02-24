@@ -15,7 +15,7 @@ object Quantity:
   extension (q: Quantity) def value: Int = q
 
 enum InkType:
-  case CMYK, PMS, Grayscale, None
+  case CMYK, PMS, Grayscale, White, None
 
 final case class InkSetup(inkType: InkType, colorCount: Int)
 
@@ -25,9 +25,12 @@ object InkSetup:
   val grayscale: InkSetup = InkSetup(InkType.Grayscale, 1)
   def pms(n: Int): InkSetup = InkSetup(InkType.PMS, n)
 
-final case class InkConfiguration(front: InkSetup, back: InkSetup):
-  def notation: String = s"${front.colorCount}/${back.colorCount}"
-  def maxColorCount: Int = math.max(front.colorCount, back.colorCount)
+final case class InkConfiguration(front: InkSetup, back: InkSetup, whiteUnderlay: Boolean = false):
+  def notation: String =
+    val base = s"${front.colorCount}/${back.colorCount}"
+    if whiteUnderlay then s"$base+W" else base
+  def totalFrontColors: Int = front.colorCount + (if whiteUnderlay then 1 else 0)
+  def maxColorCount: Int = math.max(totalFrontColors, back.colorCount)
   def isSingleSided: Boolean = back.inkType == InkType.None
   def isDoubleSided: Boolean = back.inkType != InkType.None
 
@@ -37,6 +40,8 @@ object InkConfiguration:
   val cmyk4_1: InkConfiguration = InkConfiguration(InkSetup.cmyk, InkSetup.grayscale)
   val mono1_0: InkConfiguration = InkConfiguration(InkSetup.grayscale, InkSetup.none)
   val mono1_1: InkConfiguration = InkConfiguration(InkSetup.grayscale, InkSetup.grayscale)
+  val cmykWhite4_0: InkConfiguration = InkConfiguration(InkSetup.cmyk, InkSetup.none, whiteUnderlay = true)
+  val cmykWhite4_4: InkConfiguration = InkConfiguration(InkSetup.cmyk, InkSetup.cmyk, whiteUnderlay = true)
 
 enum Orientation:
   case Portrait, Landscape

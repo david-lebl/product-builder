@@ -42,8 +42,19 @@ object ConfigurationBuilder:
             compReq.finishIds
               .map { fid =>
                 catalog.finishes.get(fid) match
-                  case Some(f) => Validation.succeed(f)
-                  case None    => Validation.fail(ConfigurationError.FinishNotFound(fid))
+                  case Some(f) =>
+                    val overrideOpt = compReq.finishOverrides.find(_.finishId == fid)
+                    val withSide = overrideOpt.flatMap(_.sideOverride) match
+                      case Some(side) => f.copy(side = side)
+                      case None       => f
+                    val withParams = overrideOpt match
+                      case Some(ov) if ov.parameterOverrides.nonEmpty =>
+                        val overrideClasses = ov.parameterOverrides.map(_.getClass).toSet
+                        val kept = withSide.parameters.filterNot(p => overrideClasses.contains(p.getClass))
+                        withSide.copy(parameters = kept ++ ov.parameterOverrides)
+                      case _ => withSide
+                    Validation.succeed(withParams)
+                  case None => Validation.fail(ConfigurationError.FinishNotFound(fid))
               }
               .foldLeft(Validation.succeed(List.empty[Finish]): Validation[ConfigurationError, List[Finish]]) {
                 (accV, finV) => accV.zipWith(finV)(_ :+ _)

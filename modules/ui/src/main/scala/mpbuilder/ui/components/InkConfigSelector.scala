@@ -22,6 +22,8 @@ object InkConfigSelector:
             case Some(c) if c == InkConfiguration.cmyk4_1 => "4/1"
             case Some(c) if c == InkConfiguration.mono1_0 => "1/0"
             case Some(c) if c == InkConfiguration.mono1_1 => "1/1"
+            case Some(c) if c == InkConfiguration.cmykWhite4_0 => "4/0+W"
+            case Some(c) if c == InkConfiguration.cmykWhite4_4 => "4/4+W"
             case _ => ""
           List(
             option(
@@ -54,6 +56,16 @@ object InkConfigSelector:
                 case Language.En => "1/1 Grayscale both sides"
                 case Language.Cs => "1/1 Šedá oboustranně"
               , value := "1/1", selected := (currentValue == "1/1")),
+            option(
+              l match
+                case Language.En => "4/0+W CMYK + White front only"
+                case Language.Cs => "4/0+W CMYK + bílá jen přední strana"
+              , value := "4/0+W", selected := (currentValue == "4/0+W")),
+            option(
+              l match
+                case Language.En => "4/4+W CMYK + White both sides"
+                case Language.Cs => "4/4+W CMYK + bílá oboustranně"
+              , value := "4/4+W", selected := (currentValue == "4/4+W")),
           )
         },
         onChange.mapToValue --> { value =>
@@ -63,6 +75,8 @@ object InkConfigSelector:
             case "4/1" => Some(InkConfiguration.cmyk4_1)
             case "1/0" => Some(InkConfiguration.mono1_0)
             case "1/1" => Some(InkConfiguration.mono1_1)
+            case "4/0+W" => Some(InkConfiguration.cmykWhite4_0)
+            case "4/4+W" => Some(InkConfiguration.cmykWhite4_4)
             case _ => scala.None
           inkConfig.foreach(config => ProductBuilderViewModel.selectInkConfig(role, config))
         },

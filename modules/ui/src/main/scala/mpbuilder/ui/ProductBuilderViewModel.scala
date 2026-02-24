@@ -15,6 +15,8 @@ case class ComponentState(
                            selectedMaterialId: Option[MaterialId] = None,
                            selectedInkConfig: Option[InkConfiguration] = None,
                            selectedFinishIds: Set[FinishId] = Set.empty,
+                           finishSideOverrides: Map[FinishId, FinishSide] = Map.empty,
+                           finishParameterOverrides: Map[FinishId, List[FinishParameter]] = Map.empty,
                          )
 
 /** Application state for the product builder */
@@ -129,9 +131,43 @@ object ProductBuilderViewModel:
           cs.selectedFinishIds - finishId
         else
           cs.selectedFinishIds + finishId
-      state.copy(componentStates = state.componentStates + (role -> cs.copy(selectedFinishIds = newFinishIds)))
+      val newSideOverrides = if newFinishIds.contains(finishId) then cs.finishSideOverrides else cs.finishSideOverrides - finishId
+      val newParamOverrides = if newFinishIds.contains(finishId) then cs.finishParameterOverrides else cs.finishParameterOverrides - finishId
+      state.copy(componentStates = state.componentStates + (role -> cs.copy(
+        selectedFinishIds = newFinishIds,
+        finishSideOverrides = newSideOverrides,
+        finishParameterOverrides = newParamOverrides,
+      )))
     )
     autoRecalculate()
+
+  // Set finish side override for a specific finish
+  def setFinishSide(role: ComponentRole, finishId: FinishId, side: FinishSide): Unit =
+    stateVar.update(state =>
+      val cs = state.componentStates.getOrElse(role, ComponentState(role))
+      state.copy(componentStates = state.componentStates + (role -> cs.copy(
+        finishSideOverrides = cs.finishSideOverrides + (finishId -> side),
+      )))
+    )
+    autoRecalculate()
+
+  // Set finish parameter overrides for a specific finish
+  def setFinishParameters(role: ComponentRole, finishId: FinishId, params: List[FinishParameter]): Unit =
+    stateVar.update(state =>
+      val cs = state.componentStates.getOrElse(role, ComponentState(role))
+      state.copy(componentStates = state.componentStates + (role -> cs.copy(
+        finishParameterOverrides = cs.finishParameterOverrides + (finishId -> params),
+      )))
+    )
+    autoRecalculate()
+
+  // Get finish side overrides for a specific component role
+  def finishSideOverrides(role: ComponentRole): Signal[Map[FinishId, FinishSide]] =
+    state.map(_.componentStates.get(role).map(_.finishSideOverrides).getOrElse(Map.empty))
+
+  // Get finish parameter overrides for a specific component role
+  def finishParameterOverrides(role: ComponentRole): Signal[Map[FinishId, List[FinishParameter]]] =
+    state.map(_.componentStates.get(role).map(_.finishParameterOverrides).getOrElse(Map.empty))
 
   // Select ink configuration for a specific component role
   def selectInkConfig(role: ComponentRole, config: InkConfiguration): Unit = 
@@ -206,11 +242,19 @@ object ProductBuilderViewModel:
     (currentState.selectedCategoryId, currentState.selectedPrintingMethodId) match
       case (Some(categoryId), Some(printingMethodId)) if allHaveMaterial && allHaveInkConfig =>
         val components = currentState.componentStates.values.map { cs =>
+          val overrides = cs.selectedFinishIds.toList.flatMap { fid =>
+            val sideOv = cs.finishSideOverrides.get(fid)
+            val paramOv = cs.finishParameterOverrides.getOrElse(fid, List.empty)
+            if sideOv.isDefined || paramOv.nonEmpty then
+              List(FinishOverride(fid, sideOv, paramOv))
+            else List.empty
+          }
           ComponentRequest(
             role = cs.role,
             materialId = cs.selectedMaterialId.get,
             inkConfiguration = cs.selectedInkConfig.get,
             finishIds = cs.selectedFinishIds.toList,
+            finishOverrides = overrides,
           )
         }.toList
 

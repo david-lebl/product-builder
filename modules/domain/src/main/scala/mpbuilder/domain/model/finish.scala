@@ -23,9 +23,14 @@ object FinishType:
 enum FinishSide:
   case Front, Back, Both
 
+enum FinishParameter:
+  case CornerRadiusMm(radius: Double)
+  case CornerCount(count: Int)
+
 final case class Finish(
     id: FinishId,
     name: LocalizedString,
     finishType: FinishType,
     side: FinishSide,
+    parameters: List[FinishParameter] = List.empty,
 )

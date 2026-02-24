@@ -21,3 +21,4 @@ enum PricingRule:
   case SheetQuantityTier(minSheets: Int, maxSheets: Option[Int], multiplier: BigDecimal)
   case InkConfigurationFactor(frontColorCount: Int, backColorCount: Int, materialMultiplier: BigDecimal)
   case CuttingSurcharge(costPerCut: Money)
+  case FinishSideFactor(finishType: FinishType, singleSideMultiplier: BigDecimal)

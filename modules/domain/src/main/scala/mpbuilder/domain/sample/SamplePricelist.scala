@@ -42,6 +42,10 @@ object SamplePricelist:
       PricingRule.InkConfigurationFactor(1, 0, BigDecimal("0.40")),
       PricingRule.InkConfigurationFactor(1, 1, BigDecimal("0.55")),
 
+      // --- Finish side factors (single-side multiplier for surface finishes) ---
+      PricingRule.FinishSideFactor(FinishType.Lamination, BigDecimal("0.60")),
+      PricingRule.FinishSideFactor(FinishType.SoftTouchCoating, BigDecimal("0.60")),
+
       // --- Quantity tiers ---
       PricingRule.QuantityTier(1, Some(249), BigDecimal("1.0")),
       PricingRule.QuantityTier(250, Some(999), BigDecimal("0.90")),
@@ -118,6 +122,10 @@ object SamplePricelist:
       PricingRule.InkConfigurationFactor(1, 0, BigDecimal("0.55")),
       // 1/1 Mono both sides
       PricingRule.InkConfigurationFactor(1, 1, BigDecimal("0.65")),
+
+      // --- Finish side factors ---
+      PricingRule.FinishSideFactor(FinishType.Lamination, BigDecimal("0.60")),
+      PricingRule.FinishSideFactor(FinishType.SoftTouchCoating, BigDecimal("0.60")),
 
       // --- Quantity tiers (CZK market, steeper volume discounts) ---
       PricingRule.QuantityTier(1, Some(99), BigDecimal("1.0")),
@@ -296,6 +304,10 @@ object SamplePricelist:
       PricingRule.InkConfigurationFactor(4, 1, BigDecimal("0.90")),
       PricingRule.InkConfigurationFactor(1, 0, BigDecimal("0.55")),
       PricingRule.InkConfigurationFactor(1, 1, BigDecimal("0.65")),
+
+      // --- Finish side factors ---
+      PricingRule.FinishSideFactor(FinishType.Lamination, BigDecimal("0.60")),
+      PricingRule.FinishSideFactor(FinishType.SoftTouchCoating, BigDecimal("0.60")),
 
       // --- Sheet quantity tiers (discount based on total physical sheets) ---
       PricingRule.SheetQuantityTier(1, Some(49), BigDecimal("1.0")),
