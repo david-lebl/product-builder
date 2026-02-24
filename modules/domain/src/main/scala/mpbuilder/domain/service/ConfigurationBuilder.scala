@@ -49,8 +49,9 @@ object ConfigurationBuilder:
                       case None       => f
                     val withParams = overrideOpt match
                       case Some(ov) if ov.parameterOverrides.nonEmpty =>
-                        val overrideClasses = ov.parameterOverrides.map(_.getClass).toSet
-                        val kept = withSide.parameters.filterNot(p => overrideClasses.contains(p.getClass))
+                        val kept = withSide.parameters.filterNot { existing =>
+                          ov.parameterOverrides.exists(_.ordinal == existing.ordinal)
+                        }
                         withSide.copy(parameters = kept ++ ov.parameterOverrides)
                       case _ => withSide
                     Validation.succeed(withParams)
