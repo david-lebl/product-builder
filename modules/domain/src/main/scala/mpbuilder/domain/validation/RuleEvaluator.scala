@@ -256,6 +256,10 @@ object RuleEvaluator:
         components.forall { comp =>
           comp.inkConfiguration.front.colorCount <= max && comp.inkConfiguration.back.colorCount <= max
         }
+      case ConfigurationPredicate.HasInkType(inkType) =>
+        components.exists { comp =>
+          comp.inkConfiguration.front.inkType == inkType || comp.inkConfiguration.back.inkType == inkType
+        }
       case ConfigurationPredicate.BindingMethodIs(methods) =>
         specifications.get(SpecKind.BindingMethod) match
           case Some(SpecValue.BindingMethodSpec(method)) => methods.contains(method)

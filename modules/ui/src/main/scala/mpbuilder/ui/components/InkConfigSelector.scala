@@ -17,11 +17,12 @@ object InkConfigSelector:
       select(
         children <-- ProductBuilderViewModel.selectedInkConfig(role).combineWith(lang).map { case (selectedConfig, l) =>
           val currentValue = selectedConfig match
-            case Some(c) if c == InkConfiguration.cmyk4_4 => "4/4"
-            case Some(c) if c == InkConfiguration.cmyk4_0 => "4/0"
-            case Some(c) if c == InkConfiguration.cmyk4_1 => "4/1"
-            case Some(c) if c == InkConfiguration.mono1_0 => "1/0"
-            case Some(c) if c == InkConfiguration.mono1_1 => "1/1"
+            case Some(c) if c == InkConfiguration.cmyk4_4       => "4/4"
+            case Some(c) if c == InkConfiguration.cmyk4_0       => "4/0"
+            case Some(c) if c == InkConfiguration.cmyk4_1       => "4/1"
+            case Some(c) if c == InkConfiguration.mono1_0       => "1/0"
+            case Some(c) if c == InkConfiguration.mono1_1       => "1/1"
+            case Some(c) if c == InkConfiguration.cmyk4_0_white => "4/0+W"
             case _ => ""
           List(
             option(
@@ -54,15 +55,21 @@ object InkConfigSelector:
                 case Language.En => "1/1 Grayscale both sides"
                 case Language.Cs => "1/1 Šedá oboustranně"
               , value := "1/1", selected := (currentValue == "1/1")),
+            option(
+              l match
+                case Language.En => "4/0+W CMYK front + white underlay (transparent material)"
+                case Language.Cs => "4/0+W CMYK přední + bílý podklad (průhledný materiál)"
+              , value := "4/0+W", selected := (currentValue == "4/0+W")),
           )
         },
         onChange.mapToValue --> { value =>
           val inkConfig = value match
-            case "4/4" => Some(InkConfiguration.cmyk4_4)
-            case "4/0" => Some(InkConfiguration.cmyk4_0)
-            case "4/1" => Some(InkConfiguration.cmyk4_1)
-            case "1/0" => Some(InkConfiguration.mono1_0)
-            case "1/1" => Some(InkConfiguration.mono1_1)
+            case "4/4"   => Some(InkConfiguration.cmyk4_4)
+            case "4/0"   => Some(InkConfiguration.cmyk4_0)
+            case "4/1"   => Some(InkConfiguration.cmyk4_1)
+            case "1/0"   => Some(InkConfiguration.mono1_0)
+            case "1/1"   => Some(InkConfiguration.mono1_1)
+            case "4/0+W" => Some(InkConfiguration.cmyk4_0_white)
             case _ => scala.None
           inkConfig.foreach(config => ProductBuilderViewModel.selectInkConfig(role, config))
         },

@@ -19,6 +19,7 @@ object SamplePricelist:
 
       // --- Material area price (for vinyl — per sqm) ---
       PricingRule.MaterialAreaPrice(SampleCatalog.vinylId, Money("18.00")),
+      PricingRule.MaterialAreaPrice(SampleCatalog.clearVinylId, Money("22.00")),
 
       // --- Finish surcharges (ID-level) ---
       PricingRule.FinishSurcharge(SampleCatalog.matteLaminationId, Money("0.03")),
@@ -91,6 +92,7 @@ object SamplePricelist:
 
       // --- Material area price (for vinyl — CZK per sqm) ---
       PricingRule.MaterialAreaPrice(SampleCatalog.vinylId, Money("420")),
+      PricingRule.MaterialAreaPrice(SampleCatalog.clearVinylId, Money("520")),
 
       // --- Finish surcharges (ID-level, CZK) ---
       PricingRule.FinishSurcharge(SampleCatalog.matteLaminationId, Money("1")),
@@ -264,6 +266,7 @@ object SamplePricelist:
 
       // --- Material area price (for vinyl — CZK per sqm) ---
       PricingRule.MaterialAreaPrice(SampleCatalog.vinylId, Money("420")),
+      PricingRule.MaterialAreaPrice(SampleCatalog.clearVinylId, Money("520")),
 
       // --- Material base price (for corrugated — not sheet-fed) ---
       PricingRule.MaterialBasePrice(SampleCatalog.corrugatedId, Money("6")),

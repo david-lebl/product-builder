@@ -14,6 +14,7 @@ object SampleCatalog:
   val yupoId: MaterialId            = MaterialId.unsafe("mat-yupo")
   val adhesiveStockId: MaterialId   = MaterialId.unsafe("mat-adhesive-stock")
   val cottonId: MaterialId          = MaterialId.unsafe("mat-cotton-300gsm")
+  val clearVinylId: MaterialId      = MaterialId.unsafe("mat-clear-vinyl")
 
   // --- Coated Art Paper Glossy IDs ---
   val coatedGlossy90gsmId: MaterialId  = MaterialId.unsafe("mat-coated-glossy-90gsm")
@@ -134,6 +135,14 @@ object SampleCatalog:
     family = MaterialFamily.Paper,
     weight = Some(PaperWeight.unsafe(100)),
     properties = Set(MaterialProperty.Glossy, MaterialProperty.SmoothSurface),
+  )
+
+  val clearVinyl: Material = Material(
+    id = clearVinylId,
+    name = LocalizedString("Clear Adhesive Vinyl", "Průhledný samolepicí vinyl"),
+    family = MaterialFamily.Vinyl,
+    weight = None,
+    properties = Set(MaterialProperty.WaterResistant, MaterialProperty.SmoothSurface, MaterialProperty.Transparent),
   )
 
   val cotton: Material = Material(
@@ -563,7 +572,7 @@ object SampleCatalog:
 
   private val allMaterialIds: Set[MaterialId] = Set(
     coated300gsmId, uncoatedBondId, kraftId, vinylId, corrugatedId,
-    coatedSilk250gsmId, yupoId, adhesiveStockId, cottonId,
+    coatedSilk250gsmId, yupoId, adhesiveStockId, cottonId, clearVinylId,
   ) ++ allCoatedGlossyIds ++ allCoatedMatteIds
 
   private val allFinishIds: Set[FinishId] = Set(
@@ -593,7 +602,7 @@ object SampleCatalog:
     name = LocalizedString("Stickers & Labels", "Samolepky a štítky"),
     components = List(ComponentTemplate(
       ComponentRole.Main,
-      allowedMaterialIds = Set(adhesiveStockId, yupoId),
+      allowedMaterialIds = Set(adhesiveStockId, yupoId, clearVinylId),
       allowedFinishIds = Set(kissCutId, dieCutId, roundCornersId, uvCoatingId),
     )),
     requiredSpecKinds = Set(SpecKind.Size, SpecKind.Quantity),
@@ -636,6 +645,7 @@ object SampleCatalog:
       yupoId              -> yupo,
       adhesiveStockId     -> adhesiveStock,
       cottonId            -> cotton,
+      clearVinylId        -> clearVinyl,
       // Coated Art Paper Glossy
       coatedGlossy90gsmId  -> coatedGlossy90gsm,
       coatedGlossy115gsmId -> coatedGlossy115gsm,

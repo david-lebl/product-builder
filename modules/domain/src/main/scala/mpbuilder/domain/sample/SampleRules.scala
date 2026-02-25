@@ -130,6 +130,17 @@ object SampleRules:
       ConfigurationPredicate.AllowedInkTypes(Set(InkType.CMYK)),
       "Banners only support CMYK ink type",
     ),
+    // White ink requires transparent material or UV inkjet printing
+    CompatibilityRule.TechnologyConstraint(
+      ConfigurationPredicate.Or(
+        ConfigurationPredicate.Not(ConfigurationPredicate.HasInkType(InkType.White)),
+        ConfigurationPredicate.Or(
+          ConfigurationPredicate.HasMaterialProperty(MaterialProperty.Transparent),
+          ConfigurationPredicate.HasPrintingProcess(PrintingProcessType.UVCurableInkjet),
+        ),
+      ),
+      "White ink requires transparent material or UV inkjet printing",
+    ),
     // Booklets: allowed binding methods (saddle stitch, perfect binding, spiral, wire-o)
     CompatibilityRule.SpecConstraint(
       cat.bookletsId,

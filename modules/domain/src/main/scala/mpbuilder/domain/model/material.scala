@@ -6,7 +6,7 @@ enum MaterialFamily:
   case Paper, Vinyl, Cardboard, Fabric
 
 enum MaterialProperty:
-  case Recyclable, WaterResistant, Glossy, Matte, Textured, SmoothSurface
+  case Recyclable, WaterResistant, Glossy, Matte, Textured, SmoothSurface, Transparent
 
 opaque type PaperWeight = Int
 object PaperWeight:
