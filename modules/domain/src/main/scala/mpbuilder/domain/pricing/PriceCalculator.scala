@@ -111,9 +111,16 @@ object PriceCalculator:
           case Some(sp) =>
             specs.get(SpecKind.Size) match
               case Some(SpecValue.SizeSpec(dim)) =>
+                // For saddle-stitch booklets, each folded sheet has a flat (unfolded) width that
+                // is twice the finished page width.  Using the finished page width would overestimate
+                // piecesPerSheet by 2×, halving the reported sheets used.
+                val isSaddleStitchFolded =
+                  specs.get(SpecKind.BindingMethod).contains(SpecValue.BindingMethodSpec(BindingMethod.SaddleStitch)) &&
+                    (comp.role == ComponentRole.Cover || comp.role == ComponentRole.Body)
+                val flatItemW = if isSaddleStitchFolded then dim.widthMm.toDouble * 2 else dim.widthMm.toDouble
                 val pps = SheetNesting.piecesPerSheet(
                   sp.sheetWidthMm, sp.sheetHeightMm,
-                  dim.widthMm.toDouble, dim.heightMm.toDouble,
+                  flatItemW, dim.heightMm.toDouble,
                   sp.bleedMm, sp.gutterMm,
                 )
                 val sheetsUsed = math.ceil(effectiveQuantity.toDouble / pps).toInt
