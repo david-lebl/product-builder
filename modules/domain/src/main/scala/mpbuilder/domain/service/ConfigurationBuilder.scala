@@ -30,7 +30,7 @@ object ConfigurationBuilder:
         case Some(pm) => Validation.succeed(pm)
         case None     => Validation.fail(ConfigurationError.PrintingMethodNotFound(request.printingMethodId))
 
-    val resolvedComponentsV: Validation[ConfigurationError, List[(ComponentRequest, Material, List[Finish])]] =
+    val resolvedComponentsV: Validation[ConfigurationError, List[(ComponentRequest, Material, List[SelectedFinish])]] =
       request.components
         .map { compReq =>
           val materialV: Validation[ConfigurationError, Material] =
@@ -38,20 +38,20 @@ object ConfigurationBuilder:
               case Some(m) => Validation.succeed(m)
               case None    => Validation.fail(ConfigurationError.MaterialNotFound(compReq.materialId))
 
-          val finishesV: Validation[ConfigurationError, List[Finish]] =
-            compReq.finishIds
-              .map { fid =>
-                catalog.finishes.get(fid) match
-                  case Some(f) => Validation.succeed(f)
-                  case None    => Validation.fail(ConfigurationError.FinishNotFound(fid))
+          val finishesV: Validation[ConfigurationError, List[SelectedFinish]] =
+            compReq.finishes
+              .map { sel =>
+                catalog.finishes.get(sel.finishId) match
+                  case Some(f) => Validation.succeed(SelectedFinish(f, sel.params))
+                  case None    => Validation.fail(ConfigurationError.FinishNotFound(sel.finishId))
               }
-              .foldLeft(Validation.succeed(List.empty[Finish]): Validation[ConfigurationError, List[Finish]]) {
+              .foldLeft(Validation.succeed(List.empty[SelectedFinish]): Validation[ConfigurationError, List[SelectedFinish]]) {
                 (accV, finV) => accV.zipWith(finV)(_ :+ _)
               }
 
           materialV.zipWith(finishesV)((mat, fins) => (compReq, mat, fins))
         }
-        .foldLeft(Validation.succeed(List.empty[(ComponentRequest, Material, List[Finish])]): Validation[ConfigurationError, List[(ComponentRequest, Material, List[Finish])]]) {
+        .foldLeft(Validation.succeed(List.empty[(ComponentRequest, Material, List[SelectedFinish])]): Validation[ConfigurationError, List[(ComponentRequest, Material, List[SelectedFinish])]]) {
           (accV, tripV) => accV.zipWith(tripV)(_ :+ _)
         }
 

@@ -17,9 +17,9 @@ object ConfigurationBuilderSpec extends ZIOSpecDefault:
   private def mainComponent(
       materialId: MaterialId,
       inkConfig: InkConfiguration,
-      finishIds: List[FinishId] = Nil,
+      finishes: List[FinishSelection] = Nil,
   ): ComponentRequest =
-    ComponentRequest(ComponentRole.Main, materialId, inkConfig, finishIds)
+    ComponentRequest(ComponentRole.Main, materialId, inkConfig, finishes)
 
   def spec = suite("ConfigurationBuilder")(
     suite("valid configurations")(
@@ -27,7 +27,7 @@ object ConfigurationBuilderSpec extends ZIOSpecDefault:
         val request = ConfigurationRequest(
           categoryId = SampleCatalog.businessCardsId,
           printingMethodId = SampleCatalog.digitalId,
-          components = List(mainComponent(SampleCatalog.coated300gsmId, InkConfiguration.cmyk4_4, List(SampleCatalog.matteLaminationId))),
+          components = List(mainComponent(SampleCatalog.coated300gsmId, InkConfiguration.cmyk4_4, List(FinishSelection(SampleCatalog.matteLaminationId)))),
           specs = List(
             SpecValue.SizeSpec(Dimension(90, 55)),
             SpecValue.QuantitySpec(Quantity.unsafe(500)),
@@ -61,7 +61,7 @@ object ConfigurationBuilderSpec extends ZIOSpecDefault:
         val request = ConfigurationRequest(
           categoryId = SampleCatalog.bannersId,
           printingMethodId = SampleCatalog.uvInkjetId,
-          components = List(mainComponent(SampleCatalog.vinylId, InkConfiguration.cmyk4_4, List(SampleCatalog.uvCoatingId))),
+          components = List(mainComponent(SampleCatalog.vinylId, InkConfiguration.cmyk4_4, List(FinishSelection(SampleCatalog.uvCoatingId)))),
           specs = List(
             SpecValue.SizeSpec(Dimension(1000, 500)),
             SpecValue.QuantitySpec(Quantity.unsafe(10)),
@@ -75,7 +75,7 @@ object ConfigurationBuilderSpec extends ZIOSpecDefault:
         val request = ConfigurationRequest(
           categoryId = SampleCatalog.brochuresId,
           printingMethodId = SampleCatalog.digitalId,
-          components = List(mainComponent(SampleCatalog.coated300gsmId, InkConfiguration.cmyk4_4, List(SampleCatalog.glossLaminationId))),
+          components = List(mainComponent(SampleCatalog.coated300gsmId, InkConfiguration.cmyk4_4, List(FinishSelection(SampleCatalog.glossLaminationId)))),
           specs = List(
             SpecValue.SizeSpec(Dimension(297, 210)),
             SpecValue.QuantitySpec(Quantity.unsafe(1000)),
@@ -92,7 +92,7 @@ object ConfigurationBuilderSpec extends ZIOSpecDefault:
           categoryId = SampleCatalog.bookletsId,
           printingMethodId = SampleCatalog.offsetId,
           components = List(
-            ComponentRequest(ComponentRole.Cover, SampleCatalog.coated300gsmId, InkConfiguration.cmyk4_4, List(SampleCatalog.matteLaminationId)),
+            ComponentRequest(ComponentRole.Cover, SampleCatalog.coated300gsmId, InkConfiguration.cmyk4_4, List(FinishSelection(SampleCatalog.matteLaminationId))),
             ComponentRequest(ComponentRole.Body, SampleCatalog.coated300gsmId, InkConfiguration.cmyk4_4, Nil),
           ),
           specs = List(
@@ -114,7 +114,7 @@ object ConfigurationBuilderSpec extends ZIOSpecDefault:
           categoryId = SampleCatalog.calendarsId,
           printingMethodId = SampleCatalog.digitalId,
           components = List(
-            ComponentRequest(ComponentRole.Cover, SampleCatalog.coatedSilk250gsmId, InkConfiguration.cmyk4_4, List(SampleCatalog.matteLaminationId)),
+            ComponentRequest(ComponentRole.Cover, SampleCatalog.coatedSilk250gsmId, InkConfiguration.cmyk4_4, List(FinishSelection(SampleCatalog.matteLaminationId))),
             ComponentRequest(ComponentRole.Body, SampleCatalog.coatedSilk250gsmId, InkConfiguration.cmyk4_4, Nil),
           ),
           specs = List(
@@ -136,7 +136,7 @@ object ConfigurationBuilderSpec extends ZIOSpecDefault:
         val request = ConfigurationRequest(
           categoryId = SampleCatalog.businessCardsId,
           printingMethodId = SampleCatalog.digitalId,
-          components = List(mainComponent(SampleCatalog.yupoId, InkConfiguration.cmyk4_4, List(SampleCatalog.uvCoatingId))),
+          components = List(mainComponent(SampleCatalog.yupoId, InkConfiguration.cmyk4_4, List(FinishSelection(SampleCatalog.uvCoatingId)))),
           specs = List(
             SpecValue.SizeSpec(Dimension(90, 55)),
             SpecValue.QuantitySpec(Quantity.unsafe(500)),
@@ -156,7 +156,7 @@ object ConfigurationBuilderSpec extends ZIOSpecDefault:
           categoryId = SampleCatalog.bookletsId,
           printingMethodId = SampleCatalog.offsetId,
           components = List(
-            ComponentRequest(ComponentRole.Cover, SampleCatalog.coated300gsmId, InkConfiguration.cmyk4_4, List(SampleCatalog.matteLaminationId)),
+            ComponentRequest(ComponentRole.Cover, SampleCatalog.coated300gsmId, InkConfiguration.cmyk4_4, List(FinishSelection(SampleCatalog.matteLaminationId))),
             ComponentRequest(ComponentRole.Body, SampleCatalog.uncoatedBondId, InkConfiguration.cmyk4_4, Nil),
           ),
           specs = List(
@@ -180,7 +180,7 @@ object ConfigurationBuilderSpec extends ZIOSpecDefault:
           categoryId = SampleCatalog.calendarsId,
           printingMethodId = SampleCatalog.digitalId,
           components = List(
-            ComponentRequest(ComponentRole.Cover, SampleCatalog.coatedSilk250gsmId, InkConfiguration.cmyk4_0, List(SampleCatalog.glossLaminationId)),
+            ComponentRequest(ComponentRole.Cover, SampleCatalog.coatedSilk250gsmId, InkConfiguration.cmyk4_0, List(FinishSelection(SampleCatalog.glossLaminationId))),
             ComponentRequest(ComponentRole.Body, SampleCatalog.coated300gsmId, InkConfiguration.cmyk4_4, Nil),
           ),
           specs = List(
@@ -241,7 +241,7 @@ object ConfigurationBuilderSpec extends ZIOSpecDefault:
           printingMethodId = SampleCatalog.offsetId,
           components = List(
             ComponentRequest(ComponentRole.Cover, SampleCatalog.coated300gsmId, InkConfiguration.cmyk4_4, Nil),
-            ComponentRequest(ComponentRole.Body, SampleCatalog.coated300gsmId, InkConfiguration.cmyk4_4, List(SampleCatalog.matteLaminationId)),
+            ComponentRequest(ComponentRole.Body, SampleCatalog.coated300gsmId, InkConfiguration.cmyk4_4, List(FinishSelection(SampleCatalog.matteLaminationId))),
           ),
           specs = List(
             SpecValue.SizeSpec(Dimension(210, 148)),
@@ -288,7 +288,7 @@ object ConfigurationBuilderSpec extends ZIOSpecDefault:
         val request = ConfigurationRequest(
           categoryId = SampleCatalog.packagingId,
           printingMethodId = SampleCatalog.offsetId,
-          components = List(mainComponent(SampleCatalog.kraftId, InkConfiguration.cmyk4_4, List(SampleCatalog.uvCoatingId))),
+          components = List(mainComponent(SampleCatalog.kraftId, InkConfiguration.cmyk4_4, List(FinishSelection(SampleCatalog.uvCoatingId)))),
           specs = List(
             SpecValue.SizeSpec(Dimension(200, 150)),
             SpecValue.QuantitySpec(Quantity.unsafe(100)),
@@ -305,7 +305,7 @@ object ConfigurationBuilderSpec extends ZIOSpecDefault:
         val request = ConfigurationRequest(
           categoryId = SampleCatalog.packagingId,
           printingMethodId = SampleCatalog.offsetId,
-          components = List(mainComponent(SampleCatalog.kraftId, InkConfiguration.cmyk4_4, List(SampleCatalog.foilStampingId))),
+          components = List(mainComponent(SampleCatalog.kraftId, InkConfiguration.cmyk4_4, List(FinishSelection(SampleCatalog.foilStampingId)))),
           specs = List(
             SpecValue.SizeSpec(Dimension(200, 150)),
             SpecValue.QuantitySpec(Quantity.unsafe(100)),
@@ -322,7 +322,7 @@ object ConfigurationBuilderSpec extends ZIOSpecDefault:
         val request = ConfigurationRequest(
           categoryId = SampleCatalog.businessCardsId,
           printingMethodId = SampleCatalog.digitalId,
-          components = List(mainComponent(SampleCatalog.coated300gsmId, InkConfiguration.cmyk4_4, List(SampleCatalog.matteLaminationId, SampleCatalog.glossLaminationId))),
+          components = List(mainComponent(SampleCatalog.coated300gsmId, InkConfiguration.cmyk4_4, List(FinishSelection(SampleCatalog.matteLaminationId), FinishSelection(SampleCatalog.glossLaminationId)))),
           specs = List(
             SpecValue.SizeSpec(Dimension(90, 55)),
             SpecValue.QuantitySpec(Quantity.unsafe(500)),
@@ -373,7 +373,7 @@ object ConfigurationBuilderSpec extends ZIOSpecDefault:
         val request = ConfigurationRequest(
           categoryId = SampleCatalog.packagingId,
           printingMethodId = SampleCatalog.offsetId,
-          components = List(mainComponent(SampleCatalog.kraftId, InkConfiguration.cmyk4_4, List(SampleCatalog.uvCoatingId, SampleCatalog.foilStampingId))),
+          components = List(mainComponent(SampleCatalog.kraftId, InkConfiguration.cmyk4_4, List(FinishSelection(SampleCatalog.uvCoatingId), FinishSelection(SampleCatalog.foilStampingId)))),
           specs = List(
             SpecValue.SizeSpec(Dimension(200, 150)),
             SpecValue.QuantitySpec(Quantity.unsafe(100)),
@@ -473,7 +473,7 @@ object ConfigurationBuilderSpec extends ZIOSpecDefault:
         val request = ConfigurationRequest(
           categoryId = SampleCatalog.businessCardsId,
           printingMethodId = SampleCatalog.digitalId,
-          components = List(mainComponent(SampleCatalog.uncoatedBondId, InkConfiguration.cmyk4_4, List(SampleCatalog.matteLaminationId))),
+          components = List(mainComponent(SampleCatalog.uncoatedBondId, InkConfiguration.cmyk4_4, List(FinishSelection(SampleCatalog.matteLaminationId)))),
           specs = List(
             SpecValue.SizeSpec(Dimension(90, 55)),
             SpecValue.QuantitySpec(Quantity.unsafe(500)),
@@ -490,7 +490,7 @@ object ConfigurationBuilderSpec extends ZIOSpecDefault:
         val request = ConfigurationRequest(
           categoryId = SampleCatalog.businessCardsId,
           printingMethodId = SampleCatalog.digitalId,
-          components = List(mainComponent(SampleCatalog.coated300gsmId, InkConfiguration.cmyk4_4, List(SampleCatalog.matteLaminationId))),
+          components = List(mainComponent(SampleCatalog.coated300gsmId, InkConfiguration.cmyk4_4, List(FinishSelection(SampleCatalog.matteLaminationId)))),
           specs = List(
             SpecValue.SizeSpec(Dimension(90, 55)),
             SpecValue.QuantitySpec(Quantity.unsafe(500)),
@@ -506,7 +506,7 @@ object ConfigurationBuilderSpec extends ZIOSpecDefault:
         val request = ConfigurationRequest(
           categoryId = SampleCatalog.businessCardsId,
           printingMethodId = SampleCatalog.digitalId,
-          components = List(mainComponent(SampleCatalog.coated300gsmId, InkConfiguration.cmyk4_4, List(SampleCatalog.matteLaminationId, SampleCatalog.softTouchCoatingId))),
+          components = List(mainComponent(SampleCatalog.coated300gsmId, InkConfiguration.cmyk4_4, List(FinishSelection(SampleCatalog.matteLaminationId), FinishSelection(SampleCatalog.softTouchCoatingId)))),
           specs = List(
             SpecValue.SizeSpec(Dimension(90, 55)),
             SpecValue.QuantitySpec(Quantity.unsafe(500)),
@@ -525,7 +525,7 @@ object ConfigurationBuilderSpec extends ZIOSpecDefault:
         val request = ConfigurationRequest(
           categoryId = SampleCatalog.flyersId,
           printingMethodId = SampleCatalog.digitalId,
-          components = List(mainComponent(SampleCatalog.coated300gsmId, InkConfiguration.cmyk4_4, List(SampleCatalog.aqueousCoatingId))),
+          components = List(mainComponent(SampleCatalog.coated300gsmId, InkConfiguration.cmyk4_4, List(FinishSelection(SampleCatalog.aqueousCoatingId)))),
           specs = List(
             SpecValue.SizeSpec(Dimension(210, 297)),
             SpecValue.QuantitySpec(Quantity.unsafe(500)),
@@ -543,7 +543,7 @@ object ConfigurationBuilderSpec extends ZIOSpecDefault:
         val request = ConfigurationRequest(
           categoryId = SampleCatalog.postcardsId,
           printingMethodId = SampleCatalog.offsetId,
-          components = List(mainComponent(SampleCatalog.coated300gsmId, InkConfiguration.cmyk4_4, List(SampleCatalog.aqueousCoatingId))),
+          components = List(mainComponent(SampleCatalog.coated300gsmId, InkConfiguration.cmyk4_4, List(FinishSelection(SampleCatalog.aqueousCoatingId)))),
           specs = List(
             SpecValue.SizeSpec(Dimension(210, 297)),
             SpecValue.QuantitySpec(Quantity.unsafe(500)),
@@ -559,7 +559,7 @@ object ConfigurationBuilderSpec extends ZIOSpecDefault:
         val request = ConfigurationRequest(
           categoryId = SampleCatalog.flyersId,
           printingMethodId = SampleCatalog.digitalId,
-          components = List(mainComponent(SampleCatalog.coated300gsmId, InkConfiguration.cmyk4_4, List(SampleCatalog.varnishId))),
+          components = List(mainComponent(SampleCatalog.coated300gsmId, InkConfiguration.cmyk4_4, List(FinishSelection(SampleCatalog.varnishId)))),
           specs = List(
             SpecValue.SizeSpec(Dimension(210, 297)),
             SpecValue.QuantitySpec(Quantity.unsafe(500)),
@@ -577,7 +577,7 @@ object ConfigurationBuilderSpec extends ZIOSpecDefault:
         val request = ConfigurationRequest(
           categoryId = SampleCatalog.flyersId,
           printingMethodId = SampleCatalog.digitalId,
-          components = List(mainComponent(SampleCatalog.coated300gsmId, InkConfiguration.cmyk4_4, List(SampleCatalog.matteLaminationId, SampleCatalog.varnishId))),
+          components = List(mainComponent(SampleCatalog.coated300gsmId, InkConfiguration.cmyk4_4, List(FinishSelection(SampleCatalog.matteLaminationId), FinishSelection(SampleCatalog.varnishId)))),
           specs = List(
             SpecValue.SizeSpec(Dimension(210, 297)),
             SpecValue.QuantitySpec(Quantity.unsafe(500)),
@@ -662,7 +662,7 @@ object ConfigurationBuilderSpec extends ZIOSpecDefault:
             FinishType.Embossing,
             "Vinyl cannot be embossed",
           ),
-          List(ProductComponent(ComponentRole.Main, SampleCatalog.vinyl, InkConfiguration.cmyk4_4, List(SampleCatalog.embossing), 1)),
+          List(ProductComponent(ComponentRole.Main, SampleCatalog.vinyl, InkConfiguration.cmyk4_4, List(SelectedFinish(SampleCatalog.embossing)), 1)),
           ProductSpecifications.empty,
           SampleCatalog.bannersId,
           SampleCatalog.uvInkjetMethod,
@@ -743,7 +743,7 @@ object ConfigurationBuilderSpec extends ZIOSpecDefault:
         val request = ConfigurationRequest(
           categoryId = SampleCatalog.businessCardsId,
           printingMethodId = SampleCatalog.digitalId,
-          components = List(mainComponent(SampleCatalog.coated300gsmId, InkConfiguration.cmyk4_0, List(SampleCatalog.matteLaminationId))),
+          components = List(mainComponent(SampleCatalog.coated300gsmId, InkConfiguration.cmyk4_0, List(FinishSelection(SampleCatalog.matteLaminationId)))),
           specs = List(
             SpecValue.SizeSpec(Dimension(90, 55)),
             SpecValue.QuantitySpec(Quantity.unsafe(500)),
@@ -790,7 +790,7 @@ object ConfigurationBuilderSpec extends ZIOSpecDefault:
         val request = ConfigurationRequest(
           categoryId = SampleCatalog.businessCardsId,
           printingMethodId = SampleCatalog.digitalId,
-          components = List(mainComponent(SampleCatalog.yupoId, InkConfiguration.cmyk4_4, List(SampleCatalog.embossingId))),
+          components = List(mainComponent(SampleCatalog.yupoId, InkConfiguration.cmyk4_4, List(FinishSelection(SampleCatalog.embossingId)))),
           specs = List(
             SpecValue.SizeSpec(Dimension(90, 55)),
             SpecValue.QuantitySpec(Quantity.unsafe(500)),
@@ -807,7 +807,7 @@ object ConfigurationBuilderSpec extends ZIOSpecDefault:
         val request = ConfigurationRequest(
           categoryId = SampleCatalog.packagingId,
           printingMethodId = SampleCatalog.digitalId,
-          components = List(mainComponent(SampleCatalog.yupoId, InkConfiguration.cmyk4_4, List(SampleCatalog.debossingId))),
+          components = List(mainComponent(SampleCatalog.yupoId, InkConfiguration.cmyk4_4, List(FinishSelection(SampleCatalog.debossingId)))),
           specs = List(
             SpecValue.SizeSpec(Dimension(200, 150)),
             SpecValue.QuantitySpec(Quantity.unsafe(100)),
@@ -964,6 +964,200 @@ object ConfigurationBuilderSpec extends ZIOSpecDefault:
             SpecValue.QuantitySpec(Quantity.unsafe(100)),
             SpecValue.PagesSpec(30), // 30 is divisible by 2 (not 4), valid for spiral
             SpecValue.BindingMethodSpec(BindingMethod.SpiralBinding),
+          ),
+        )
+        val result = ConfigurationBuilder.build(request, catalog, ruleset, configId)
+        assertTrue(result.toEither.isRight)
+      },
+    ),
+    suite("finish parameters")(
+      test("round corners with valid params (4 corners, 5mm radius) succeeds") {
+        val request = ConfigurationRequest(
+          categoryId = SampleCatalog.businessCardsId,
+          printingMethodId = SampleCatalog.digitalId,
+          components = List(mainComponent(
+            SampleCatalog.coated300gsmId,
+            InkConfiguration.cmyk4_4,
+            List(FinishSelection(SampleCatalog.roundCornersId, Some(FinishParameters.RoundCornersParams(4, 5)))),
+          )),
+          specs = List(
+            SpecValue.SizeSpec(Dimension(90, 55)),
+            SpecValue.QuantitySpec(Quantity.unsafe(500)),
+          ),
+        )
+        val result = ConfigurationBuilder.build(request, catalog, ruleset, configId)
+        assertTrue(result.toEither.isRight)
+      },
+      test("round corners with invalid corner count is rejected") {
+        val request = ConfigurationRequest(
+          categoryId = SampleCatalog.businessCardsId,
+          printingMethodId = SampleCatalog.digitalId,
+          components = List(mainComponent(
+            SampleCatalog.coated300gsmId,
+            InkConfiguration.cmyk4_4,
+            List(FinishSelection(SampleCatalog.roundCornersId, Some(FinishParameters.RoundCornersParams(3, 5)))),
+          )),
+          specs = List(
+            SpecValue.SizeSpec(Dimension(90, 55)),
+            SpecValue.QuantitySpec(Quantity.unsafe(500)),
+          ),
+        )
+        val result = ConfigurationBuilder.build(request, catalog, ruleset, configId)
+        val errors = result.toEither.left.toOption.get.toList
+        assertTrue(errors.exists(_.isInstanceOf[ConfigurationError.InvalidFinishParameters]))
+      },
+      test("round corners with out-of-range radius is rejected") {
+        val request = ConfigurationRequest(
+          categoryId = SampleCatalog.businessCardsId,
+          printingMethodId = SampleCatalog.digitalId,
+          components = List(mainComponent(
+            SampleCatalog.coated300gsmId,
+            InkConfiguration.cmyk4_4,
+            List(FinishSelection(SampleCatalog.roundCornersId, Some(FinishParameters.RoundCornersParams(4, 25)))),
+          )),
+          specs = List(
+            SpecValue.SizeSpec(Dimension(90, 55)),
+            SpecValue.QuantitySpec(Quantity.unsafe(500)),
+          ),
+        )
+        val result = ConfigurationBuilder.build(request, catalog, ruleset, configId)
+        val errors = result.toEither.left.toOption.get.toList
+        assertTrue(errors.exists(_.isInstanceOf[ConfigurationError.InvalidFinishParameters]))
+      },
+      test("lamination with front-only side param succeeds") {
+        val request = ConfigurationRequest(
+          categoryId = SampleCatalog.businessCardsId,
+          printingMethodId = SampleCatalog.digitalId,
+          components = List(mainComponent(
+            SampleCatalog.coated300gsmId,
+            InkConfiguration.cmyk4_4,
+            List(FinishSelection(SampleCatalog.matteLaminationId, Some(FinishParameters.LaminationParams(FinishSide.Front)))),
+          )),
+          specs = List(
+            SpecValue.SizeSpec(Dimension(90, 55)),
+            SpecValue.QuantitySpec(Quantity.unsafe(500)),
+          ),
+        )
+        val result = ConfigurationBuilder.build(request, catalog, ruleset, configId)
+        assertTrue(result.toEither.isRight)
+      },
+      test("lamination with Back side param is rejected") {
+        val request = ConfigurationRequest(
+          categoryId = SampleCatalog.businessCardsId,
+          printingMethodId = SampleCatalog.digitalId,
+          components = List(mainComponent(
+            SampleCatalog.coated300gsmId,
+            InkConfiguration.cmyk4_4,
+            List(FinishSelection(SampleCatalog.matteLaminationId, Some(FinishParameters.LaminationParams(FinishSide.Back)))),
+          )),
+          specs = List(
+            SpecValue.SizeSpec(Dimension(90, 55)),
+            SpecValue.QuantitySpec(Quantity.unsafe(500)),
+          ),
+        )
+        val result = ConfigurationBuilder.build(request, catalog, ruleset, configId)
+        val errors = result.toEither.left.toOption.get.toList
+        assertTrue(errors.exists(_.isInstanceOf[ConfigurationError.InvalidFinishParameters]))
+      },
+      test("foil stamping with gold color param succeeds") {
+        val request = ConfigurationRequest(
+          categoryId = SampleCatalog.businessCardsId,
+          printingMethodId = SampleCatalog.digitalId,
+          components = List(mainComponent(
+            SampleCatalog.coated300gsmId,
+            InkConfiguration.cmyk4_4,
+            List(FinishSelection(SampleCatalog.foilStampingId, Some(FinishParameters.FoilStampingParams(FoilColor.Gold)))),
+          )),
+          specs = List(
+            SpecValue.SizeSpec(Dimension(90, 55)),
+            SpecValue.QuantitySpec(Quantity.unsafe(500)),
+          ),
+        )
+        val result = ConfigurationBuilder.build(request, catalog, ruleset, configId)
+        assertTrue(result.toEither.isRight)
+      },
+      test("foil stamping params on wrong finish type is rejected") {
+        val request = ConfigurationRequest(
+          categoryId = SampleCatalog.businessCardsId,
+          printingMethodId = SampleCatalog.digitalId,
+          components = List(mainComponent(
+            SampleCatalog.coated300gsmId,
+            InkConfiguration.cmyk4_4,
+            List(FinishSelection(SampleCatalog.matteLaminationId, Some(FinishParameters.FoilStampingParams(FoilColor.Silver)))),
+          )),
+          specs = List(
+            SpecValue.SizeSpec(Dimension(90, 55)),
+            SpecValue.QuantitySpec(Quantity.unsafe(500)),
+          ),
+        )
+        val result = ConfigurationBuilder.build(request, catalog, ruleset, configId)
+        val errors = result.toEither.left.toOption.get.toList
+        assertTrue(errors.exists(_.isInstanceOf[ConfigurationError.InvalidFinishParameters]))
+      },
+      test("grommet params with valid spacing succeeds") {
+        val request = ConfigurationRequest(
+          categoryId = SampleCatalog.bannersId,
+          printingMethodId = SampleCatalog.uvInkjetId,
+          components = List(mainComponent(
+            SampleCatalog.vinylId,
+            InkConfiguration.cmyk4_4,
+            List(FinishSelection(SampleCatalog.grommetsId, Some(FinishParameters.GrommetParams(500)))),
+          )),
+          specs = List(
+            SpecValue.SizeSpec(Dimension(1000, 500)),
+            SpecValue.QuantitySpec(Quantity.unsafe(5)),
+          ),
+        )
+        val result = ConfigurationBuilder.build(request, catalog, ruleset, configId)
+        assertTrue(result.toEither.isRight)
+      },
+      test("grommet params with zero spacing is rejected") {
+        val request = ConfigurationRequest(
+          categoryId = SampleCatalog.bannersId,
+          printingMethodId = SampleCatalog.uvInkjetId,
+          components = List(mainComponent(
+            SampleCatalog.vinylId,
+            InkConfiguration.cmyk4_4,
+            List(FinishSelection(SampleCatalog.grommetsId, Some(FinishParameters.GrommetParams(0)))),
+          )),
+          specs = List(
+            SpecValue.SizeSpec(Dimension(1000, 500)),
+            SpecValue.QuantitySpec(Quantity.unsafe(5)),
+          ),
+        )
+        val result = ConfigurationBuilder.build(request, catalog, ruleset, configId)
+        val errors = result.toEither.left.toOption.get.toList
+        assertTrue(errors.exists(_.isInstanceOf[ConfigurationError.InvalidFinishParameters]))
+      },
+      test("perforation params with valid pitch succeeds") {
+        val request = ConfigurationRequest(
+          categoryId = SampleCatalog.packagingId,
+          printingMethodId = SampleCatalog.digitalId,
+          components = List(mainComponent(
+            SampleCatalog.kraftId,
+            InkConfiguration.cmyk4_4,
+            List(FinishSelection(SampleCatalog.perforationId, Some(FinishParameters.PerforationParams(5)))),
+          )),
+          specs = List(
+            SpecValue.SizeSpec(Dimension(210, 148)),
+            SpecValue.QuantitySpec(Quantity.unsafe(100)),
+          ),
+        )
+        val result = ConfigurationBuilder.build(request, catalog, ruleset, configId)
+        assertTrue(result.toEither.isRight)
+      },
+      test("finish without params is accepted (params are optional)") {
+        val request = ConfigurationRequest(
+          categoryId = SampleCatalog.businessCardsId,
+          printingMethodId = SampleCatalog.digitalId,
+          components = List(mainComponent(
+            SampleCatalog.coated300gsmId,
+            InkConfiguration.cmyk4_4,
+            List(FinishSelection(SampleCatalog.roundCornersId)),
+          )),
+          specs = List(
+            SpecValue.SizeSpec(Dimension(90, 55)),
+            SpecValue.QuantitySpec(Quantity.unsafe(500)),
           ),
         )
         val result = ConfigurationBuilder.build(request, catalog, ruleset, configId)

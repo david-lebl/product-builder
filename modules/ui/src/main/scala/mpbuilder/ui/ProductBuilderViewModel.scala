@@ -14,7 +14,7 @@ case class ComponentState(
                            role: ComponentRole,
                            selectedMaterialId: Option[MaterialId] = None,
                            selectedInkConfig: Option[InkConfiguration] = None,
-                           selectedFinishIds: Set[FinishId] = Set.empty,
+                           selectedFinishes: Map[FinishId, Option[FinishParameters]] = Map.empty,
                          )
 
 /** Application state for the product builder */
@@ -114,24 +114,39 @@ object ProductBuilderViewModel:
       val cs = state.componentStates.getOrElse(role, ComponentState(role))
       val updated = cs.copy(
         selectedMaterialId = Some(materialId),
-        selectedFinishIds = Set.empty, // Reset finishes when material changes
+        selectedFinishes = Map.empty, // Reset finishes when material changes
       )
       state.copy(componentStates = state.componentStates + (role -> updated))
     )
     autoRecalculate()
 
   // Toggle finish selection for a specific component role
-  def toggleFinish(role: ComponentRole, finishId: FinishId): Unit =
+  def toggleFinish(role: ComponentRole, finishId: FinishId, defaultParams: Option[FinishParameters] = None): Unit =
     stateVar.update(state =>
       val cs = state.componentStates.getOrElse(role, ComponentState(role))
-      val newFinishIds =
-        if cs.selectedFinishIds.contains(finishId) then
-          cs.selectedFinishIds - finishId
+      val newFinishes =
+        if cs.selectedFinishes.contains(finishId) then
+          cs.selectedFinishes - finishId
         else
-          cs.selectedFinishIds + finishId
-      state.copy(componentStates = state.componentStates + (role -> cs.copy(selectedFinishIds = newFinishIds)))
+          cs.selectedFinishes + (finishId -> defaultParams)
+      state.copy(componentStates = state.componentStates + (role -> cs.copy(selectedFinishes = newFinishes)))
     )
     autoRecalculate()
+
+  // Set finish parameters for a specific finish in a component
+  def setFinishParams(role: ComponentRole, finishId: FinishId, params: Option[FinishParameters]): Unit =
+    stateVar.update(state =>
+      val cs = state.componentStates.getOrElse(role, ComponentState(role))
+      if cs.selectedFinishes.contains(finishId) then
+        val newFinishes = cs.selectedFinishes + (finishId -> params)
+        state.copy(componentStates = state.componentStates + (role -> cs.copy(selectedFinishes = newFinishes)))
+      else state
+    )
+    autoRecalculate()
+
+  // Read current finish params (for use in event handlers)
+  def currentFinishParams(role: ComponentRole, finishId: FinishId): Option[FinishParameters] =
+    stateVar.now().componentStates.get(role).flatMap(_.selectedFinishes.get(finishId)).flatten
 
   // Select ink configuration for a specific component role
   def selectInkConfig(role: ComponentRole, config: InkConfiguration): Unit = 
@@ -210,7 +225,7 @@ object ProductBuilderViewModel:
             role = cs.role,
             materialId = cs.selectedMaterialId.get,
             inkConfiguration = cs.selectedInkConfig.get,
-            finishIds = cs.selectedFinishIds.toList,
+            finishes = cs.selectedFinishes.toList.map { case (id, params) => FinishSelection(id, params) },
           )
         }.toList
 
@@ -328,7 +343,10 @@ object ProductBuilderViewModel:
     state.map(_.componentStates.get(role).flatMap(_.selectedMaterialId))
 
   def selectedFinishIds(role: ComponentRole): Signal[Set[FinishId]] =
-    state.map(_.componentStates.get(role).map(_.selectedFinishIds).getOrElse(Set.empty))
+    state.map(_.componentStates.get(role).map(_.selectedFinishes.keySet).getOrElse(Set.empty))
+
+  def selectedFinishParams(role: ComponentRole, finishId: FinishId): Signal[Option[FinishParameters]] =
+    state.map(_.componentStates.get(role).flatMap(_.selectedFinishes.get(finishId)).flatten)
 
   def selectedOrientation: Signal[Option[Orientation]] =
     state.map { s =>

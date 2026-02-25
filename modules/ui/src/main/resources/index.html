@@ -249,6 +249,96 @@
             gap: 10px;
         }
 
+        .finish-list {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .finish-item {
+            border-radius: 6px;
+            overflow: hidden;
+        }
+
+        .finish-item .checkbox-label {
+            border-radius: 6px;
+        }
+
+        .finish-item:has(.finish-params[style*="block"]) .checkbox-label {
+            border-bottom-left-radius: 0;
+            border-bottom-right-radius: 0;
+            border-bottom-color: #c8d0f5;
+        }
+
+        .finish-params {
+            background-color: #f0f4ff;
+            border: 2px solid #c8d0f5;
+            border-top: none;
+            border-bottom-left-radius: 6px;
+            border-bottom-right-radius: 6px;
+            padding: 10px 12px;
+        }
+
+        .finish-params-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 8px;
+        }
+
+        .finish-params-row:last-child {
+            margin-bottom: 0;
+        }
+
+        .finish-params-label {
+            min-width: 110px;
+            font-size: 0.85rem;
+            font-weight: 500;
+            color: #555;
+            margin: 0;
+        }
+
+        .finish-params-input {
+            width: 90px !important;
+            padding: 5px 8px !important;
+            font-size: 0.9rem;
+        }
+
+        .finish-params-select {
+            width: auto !important;
+            min-width: 150px;
+            padding: 5px 8px !important;
+            font-size: 0.9rem;
+        }
+
+        .finish-params-options {
+            display: flex;
+            gap: 10px;
+        }
+
+        .radio-label {
+            display: flex;
+            align-items: center;
+            padding: 4px 10px;
+            border: 1px solid #c8d0f5;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.85rem;
+            margin: 0;
+            background: white;
+            transition: all 0.2s;
+        }
+
+        .radio-label:hover {
+            border-color: #667eea;
+            background-color: #e8edff;
+        }
+
+        .radio-label input[type="radio"] {
+            width: auto;
+            margin-right: 5px;
+        }
+
         .checkbox-label {
             display: flex;
             align-items: center;

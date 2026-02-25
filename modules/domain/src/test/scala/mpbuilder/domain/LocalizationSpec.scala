@@ -129,7 +129,7 @@ object LocalizationSpec extends ZIOSpecDefault:
             role = ComponentRole.Main,
             material = SampleCatalog.coated300gsm,
             inkConfiguration = InkConfiguration.cmyk4_4,
-            finishes = List(SampleCatalog.matteLamination),
+            finishes = List(SelectedFinish(SampleCatalog.matteLamination)),
             sheetCount = 1,
           )),
           specifications = ProductSpecifications.fromSpecs(List(
@@ -155,7 +155,7 @@ object LocalizationSpec extends ZIOSpecDefault:
             role = ComponentRole.Main,
             material = SampleCatalog.coated300gsm,
             inkConfiguration = InkConfiguration.cmyk4_4,
-            finishes = List(SampleCatalog.matteLamination),
+            finishes = List(SelectedFinish(SampleCatalog.matteLamination)),
             sheetCount = 1,
           )),
           specifications = ProductSpecifications.fromSpecs(List(
