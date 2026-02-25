@@ -86,8 +86,8 @@ object BasketView:
                         span(
                           cls := "basket-item-finishes",
                           l match
-                            case Language.En => s" | Finishes: ${allFinishes.map(_.name(l)).mkString(", ")}"
-                            case Language.Cs => s" | Povrchové úpravy: ${allFinishes.map(_.name(l)).mkString(", ")}"
+                            case Language.En => s" | Finishes: ${allFinishes.map(sf => finishDescription(sf, l)).mkString(", ")}"
+                            case Language.Cs => s" | Povrchové úpravy: ${allFinishes.map(sf => finishDescription(sf, l)).mkString(", ")}"
                         )
                       else emptyNode
                     },
@@ -174,3 +174,31 @@ object BasketView:
       case Currency.USD => f"$$${money.value}%.2f"
       case Currency.EUR => f"€${money.value}%.2f"
       case Currency.GBP => f"£${money.value}%.2f"
+
+  private def finishDescription(sf: mpbuilder.domain.model.SelectedFinish, lang: Language): String =
+    import mpbuilder.domain.model.FinishParameters.*
+    import mpbuilder.domain.model.FoilColor.*
+    import mpbuilder.domain.model.FinishSide.*
+    val paramsDesc = sf.params match
+      case None => ""
+      case Some(RoundCornersParams(count, radius)) => lang match
+        case Language.En => s" ($count corners, ${radius}mm radius)"
+        case Language.Cs => s" ($count rohů, ${radius}mm poloměr)"
+      case Some(LaminationParams(Front)) => lang match
+        case Language.En => " (front only)"
+        case Language.Cs => " (pouze přední)"
+      case Some(LaminationParams(_)) => lang match
+        case Language.En => " (both sides)"
+        case Language.Cs => " (obě strany)"
+      case Some(FoilStampingParams(Gold))        => lang match { case Language.En => " (gold)";        case Language.Cs => " (zlatá)" }
+      case Some(FoilStampingParams(Silver))      => lang match { case Language.En => " (silver)";      case Language.Cs => " (stříbrná)" }
+      case Some(FoilStampingParams(Copper))      => lang match { case Language.En => " (copper)";      case Language.Cs => " (měděná)" }
+      case Some(FoilStampingParams(RoseGold))    => lang match { case Language.En => " (rose gold)";   case Language.Cs => " (růžové zlato)" }
+      case Some(FoilStampingParams(Holographic)) => lang match { case Language.En => " (holographic)"; case Language.Cs => " (holografická)" }
+      case Some(GrommetParams(spacing)) => lang match
+        case Language.En => s" (${spacing}mm spacing)"
+        case Language.Cs => s" (rozteč ${spacing}mm)"
+      case Some(PerforationParams(pitch)) => lang match
+        case Language.En => s" (${pitch}mm pitch)"
+        case Language.Cs => s" (rozteč ${pitch}mm)"
+    sf.name(lang) + paramsDesc
