@@ -23,10 +23,10 @@ object ConfigurationBuilderSpec extends ZIOSpecDefault:
 
   def spec = suite("ConfigurationBuilder")(
     suite("valid configurations")(
-      test("build a valid business card configuration with offset printing") {
+      test("build a valid business card configuration with digital printing") {
         val request = ConfigurationRequest(
           categoryId = SampleCatalog.businessCardsId,
-          printingMethodId = SampleCatalog.offsetId,
+          printingMethodId = SampleCatalog.digitalId,
           components = List(mainComponent(SampleCatalog.coated300gsmId, InkConfiguration.cmyk4_4, List(SampleCatalog.matteLaminationId))),
           specs = List(
             SpecValue.SizeSpec(Dimension(90, 55)),
@@ -39,7 +39,7 @@ object ConfigurationBuilderSpec extends ZIOSpecDefault:
           result.toEither.isRight,
           result.toEither.toOption.get.category.name(Language.En) == "Business Cards",
           result.toEither.toOption.get.components.head.material.name(Language.En) == "Coated Art Paper 300gsm",
-          result.toEither.toOption.get.printingMethod.name(Language.En) == "Offset Printing",
+          result.toEither.toOption.get.printingMethod.name(Language.En) == "Digital Printing",
           result.toEither.toOption.get.components.head.finishes.size == 1,
         )
       },
@@ -74,7 +74,7 @@ object ConfigurationBuilderSpec extends ZIOSpecDefault:
       test("build a valid brochure configuration") {
         val request = ConfigurationRequest(
           categoryId = SampleCatalog.brochuresId,
-          printingMethodId = SampleCatalog.offsetId,
+          printingMethodId = SampleCatalog.digitalId,
           components = List(mainComponent(SampleCatalog.coated300gsmId, InkConfiguration.cmyk4_4, List(SampleCatalog.glossLaminationId))),
           specs = List(
             SpecValue.SizeSpec(Dimension(297, 210)),
@@ -321,7 +321,7 @@ object ConfigurationBuilderSpec extends ZIOSpecDefault:
       test("matte and gloss lamination together is rejected") {
         val request = ConfigurationRequest(
           categoryId = SampleCatalog.businessCardsId,
-          printingMethodId = SampleCatalog.offsetId,
+          printingMethodId = SampleCatalog.digitalId,
           components = List(mainComponent(SampleCatalog.coated300gsmId, InkConfiguration.cmyk4_4, List(SampleCatalog.matteLaminationId, SampleCatalog.glossLaminationId))),
           specs = List(
             SpecValue.SizeSpec(Dimension(90, 55)),
@@ -388,7 +388,7 @@ object ConfigurationBuilderSpec extends ZIOSpecDefault:
       test("business card too large is rejected") {
         val request = ConfigurationRequest(
           categoryId = SampleCatalog.businessCardsId,
-          printingMethodId = SampleCatalog.offsetId,
+          printingMethodId = SampleCatalog.digitalId,
           components = List(mainComponent(SampleCatalog.coated300gsmId, InkConfiguration.cmyk4_4)),
           specs = List(
             SpecValue.SizeSpec(Dimension(200, 100)), // Too large
@@ -405,7 +405,7 @@ object ConfigurationBuilderSpec extends ZIOSpecDefault:
       test("business card quantity too low is rejected") {
         val request = ConfigurationRequest(
           categoryId = SampleCatalog.businessCardsId,
-          printingMethodId = SampleCatalog.offsetId,
+          printingMethodId = SampleCatalog.digitalId,
           components = List(mainComponent(SampleCatalog.coated300gsmId, InkConfiguration.cmyk4_4)),
           specs = List(
             SpecValue.SizeSpec(Dimension(90, 55)),
@@ -472,7 +472,7 @@ object ConfigurationBuilderSpec extends ZIOSpecDefault:
       test("lamination on 120gsm bond paper is rejected (weight rule)") {
         val request = ConfigurationRequest(
           categoryId = SampleCatalog.businessCardsId,
-          printingMethodId = SampleCatalog.offsetId,
+          printingMethodId = SampleCatalog.digitalId,
           components = List(mainComponent(SampleCatalog.uncoatedBondId, InkConfiguration.cmyk4_4, List(SampleCatalog.matteLaminationId))),
           specs = List(
             SpecValue.SizeSpec(Dimension(90, 55)),
@@ -489,7 +489,7 @@ object ConfigurationBuilderSpec extends ZIOSpecDefault:
       test("lamination on 300gsm coated paper succeeds (weight rule)") {
         val request = ConfigurationRequest(
           categoryId = SampleCatalog.businessCardsId,
-          printingMethodId = SampleCatalog.offsetId,
+          printingMethodId = SampleCatalog.digitalId,
           components = List(mainComponent(SampleCatalog.coated300gsmId, InkConfiguration.cmyk4_4, List(SampleCatalog.matteLaminationId))),
           specs = List(
             SpecValue.SizeSpec(Dimension(90, 55)),
@@ -505,7 +505,7 @@ object ConfigurationBuilderSpec extends ZIOSpecDefault:
       test("lamination and soft-touch coating together is rejected") {
         val request = ConfigurationRequest(
           categoryId = SampleCatalog.businessCardsId,
-          printingMethodId = SampleCatalog.offsetId,
+          printingMethodId = SampleCatalog.digitalId,
           components = List(mainComponent(SampleCatalog.coated300gsmId, InkConfiguration.cmyk4_4, List(SampleCatalog.matteLaminationId, SampleCatalog.softTouchCoatingId))),
           specs = List(
             SpecValue.SizeSpec(Dimension(90, 55)),
@@ -541,13 +541,12 @@ object ConfigurationBuilderSpec extends ZIOSpecDefault:
       },
       test("aqueous coating with offset press succeeds") {
         val request = ConfigurationRequest(
-          categoryId = SampleCatalog.flyersId,
+          categoryId = SampleCatalog.postcardsId,
           printingMethodId = SampleCatalog.offsetId,
           components = List(mainComponent(SampleCatalog.coated300gsmId, InkConfiguration.cmyk4_4, List(SampleCatalog.aqueousCoatingId))),
           specs = List(
             SpecValue.SizeSpec(Dimension(210, 297)),
             SpecValue.QuantitySpec(Quantity.unsafe(500)),
-            SpecValue.OrientationSpec(Orientation.Portrait),
           ),
         )
 
@@ -559,7 +558,7 @@ object ConfigurationBuilderSpec extends ZIOSpecDefault:
       test("spot varnish without lamination base is rejected") {
         val request = ConfigurationRequest(
           categoryId = SampleCatalog.flyersId,
-          printingMethodId = SampleCatalog.offsetId,
+          printingMethodId = SampleCatalog.digitalId,
           components = List(mainComponent(SampleCatalog.coated300gsmId, InkConfiguration.cmyk4_4, List(SampleCatalog.varnishId))),
           specs = List(
             SpecValue.SizeSpec(Dimension(210, 297)),
@@ -577,7 +576,7 @@ object ConfigurationBuilderSpec extends ZIOSpecDefault:
       test("spot varnish with lamination base succeeds") {
         val request = ConfigurationRequest(
           categoryId = SampleCatalog.flyersId,
-          printingMethodId = SampleCatalog.offsetId,
+          printingMethodId = SampleCatalog.digitalId,
           components = List(mainComponent(SampleCatalog.coated300gsmId, InkConfiguration.cmyk4_4, List(SampleCatalog.matteLaminationId, SampleCatalog.varnishId))),
           specs = List(
             SpecValue.SizeSpec(Dimension(210, 297)),
@@ -743,7 +742,7 @@ object ConfigurationBuilderSpec extends ZIOSpecDefault:
       test("4/0 ink configuration validates successfully") {
         val request = ConfigurationRequest(
           categoryId = SampleCatalog.businessCardsId,
-          printingMethodId = SampleCatalog.offsetId,
+          printingMethodId = SampleCatalog.digitalId,
           components = List(mainComponent(SampleCatalog.coated300gsmId, InkConfiguration.cmyk4_0, List(SampleCatalog.matteLaminationId))),
           specs = List(
             SpecValue.SizeSpec(Dimension(90, 55)),

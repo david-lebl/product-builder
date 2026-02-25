@@ -466,7 +466,7 @@ object SampleCatalog:
       ),
     )),
     requiredSpecKinds = Set(SpecKind.Size, SpecKind.Quantity),
-    allowedPrintingMethodIds = Set(offsetId, digitalId, letterpressId),
+    allowedPrintingMethodIds = Set(digitalId, letterpressId),
   )
 
   val flyers: ProductCategory = ProductCategory(
@@ -479,7 +479,7 @@ object SampleCatalog:
       allowedFinishIds = Set(matteLaminationId, glossLaminationId, uvCoatingId, varnishId, aqueousCoatingId, roundCornersId),
     )),
     requiredSpecKinds = Set(SpecKind.Size, SpecKind.Quantity, SpecKind.Orientation),
-    allowedPrintingMethodIds = Set(offsetId, digitalId),
+    allowedPrintingMethodIds = Set(digitalId),
   )
 
   val brochures: ProductCategory = ProductCategory(
@@ -491,8 +491,8 @@ object SampleCatalog:
       allCoatedGlossyIds ++ allCoatedMatteIds,
       allowedFinishIds = Set(matteLaminationId, glossLaminationId, uvCoatingId, scoringId, roundCornersId),
     )),
-    requiredSpecKinds = Set(SpecKind.Size, SpecKind.Quantity, SpecKind.FoldType, SpecKind.Pages),
-    allowedPrintingMethodIds = Set(offsetId, digitalId),
+    requiredSpecKinds = Set(SpecKind.Size, SpecKind.Quantity, SpecKind.FoldType),
+    allowedPrintingMethodIds = Set(digitalId),
   )
 
   val banners: ProductCategory = ProductCategory(
@@ -509,7 +509,7 @@ object SampleCatalog:
 
   val packaging: ProductCategory = ProductCategory(
     id = packagingId,
-    name = LocalizedString("Packaging", "Obaly"),
+    name = LocalizedString("Packaging", "Krabice a obaly"),
     components = List(ComponentTemplate(
       ComponentRole.Main,
       allowedMaterialIds = Set(kraftId, corrugatedId, yupoId),
