@@ -970,4 +970,56 @@ object ConfigurationBuilderSpec extends ZIOSpecDefault:
         assertTrue(result.toEither.isRight)
       },
     ),
+    suite("white ink (transparent material) validation")(
+      test("CMYK + white underlay on clear vinyl sticker with UV inkjet succeeds") {
+        val request = ConfigurationRequest(
+          categoryId = SampleCatalog.stickersId,
+          printingMethodId = SampleCatalog.uvInkjetId,
+          components = List(mainComponent(SampleCatalog.clearVinylId, InkConfiguration.cmyk4_0_white)),
+          specs = List(
+            SpecValue.SizeSpec(Dimension(100, 100)),
+            SpecValue.QuantitySpec(Quantity.unsafe(50)),
+          ),
+        )
+        val result = ConfigurationBuilder.build(request, catalog, ruleset, configId)
+        assertTrue(result.toEither.isRight)
+      },
+      test("CMYK + white underlay on opaque adhesive stock with digital printing is rejected") {
+        val request = ConfigurationRequest(
+          categoryId = SampleCatalog.stickersId,
+          printingMethodId = SampleCatalog.digitalId,
+          components = List(mainComponent(SampleCatalog.adhesiveStockId, InkConfiguration.cmyk4_0_white)),
+          specs = List(
+            SpecValue.SizeSpec(Dimension(100, 100)),
+            SpecValue.QuantitySpec(Quantity.unsafe(50)),
+          ),
+        )
+        val result = ConfigurationBuilder.build(request, catalog, ruleset, configId)
+        val errors = result.toEither.left.toOption.get.toList
+        assertTrue(errors.exists(_.isInstanceOf[ConfigurationError.TechnologyConstraintViolation]))
+      },
+      test("CMYK + white underlay on clear vinyl with digital printing is rejected (non-UV inkjet)") {
+        val request = ConfigurationRequest(
+          categoryId = SampleCatalog.stickersId,
+          printingMethodId = SampleCatalog.digitalId,
+          components = List(mainComponent(SampleCatalog.clearVinylId, InkConfiguration.cmyk4_0_white)),
+          specs = List(
+            SpecValue.SizeSpec(Dimension(100, 100)),
+            SpecValue.QuantitySpec(Quantity.unsafe(50)),
+          ),
+        )
+        val result = ConfigurationBuilder.build(request, catalog, ruleset, configId)
+        // clear vinyl is transparent, so digital printing + transparent material should pass the rule
+        assertTrue(result.toEither.isRight)
+      },
+      test("InkConfiguration.cmyk4_0_white notation is 4/0+W") {
+        assertTrue(InkConfiguration.cmyk4_0_white.notation == "4/0+W")
+      },
+      test("InkConfiguration.cmyk4_0_white is single-sided") {
+        assertTrue(InkConfiguration.cmyk4_0_white.isSingleSided)
+      },
+      test("InkConfiguration.cmyk4_0_white is not double-sided") {
+        assertTrue(!InkConfiguration.cmyk4_0_white.isDoubleSided)
+      },
+    ),
   )

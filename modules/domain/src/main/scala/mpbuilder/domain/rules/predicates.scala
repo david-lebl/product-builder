@@ -22,6 +22,7 @@ enum ConfigurationPredicate:
   case AllowedInkTypes(inkTypes: Set[InkType])
   case MaxColorCountPerSide(max: Int)
   case BindingMethodIs(methods: Set[BindingMethod])
+  case HasInkType(inkType: InkType)
   case And(left: ConfigurationPredicate, right: ConfigurationPredicate)
   case Or(left: ConfigurationPredicate, right: ConfigurationPredicate)
   case Not(inner: ConfigurationPredicate)
