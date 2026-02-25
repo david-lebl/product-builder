@@ -216,6 +216,66 @@ object PriceCalculatorSpec extends ZIOSpecDefault:
           breakdown.subtotal == Money("60.00"),
         )
       },
+      test("lamination both sides doubles the finish surcharge") {
+        val customPricelist = Pricelist(
+          rules = List(
+            PricingRule.MaterialBasePrice(SampleCatalog.coated300gsmId, Money("0.10")),
+            PricingRule.FinishSurcharge(SampleCatalog.matteLaminationId, Money("0.05")),
+            PricingRule.QuantityTier(1, None, BigDecimal("1.0")),
+          ),
+          currency = Currency.USD,
+          version = "test",
+        )
+        val config = makeConfig(
+          category = SampleCatalog.businessCards,
+          material = SampleCatalog.coated300gsm,
+          printingMethod = SampleCatalog.offsetMethod,
+          inkConfig = InkConfiguration.cmyk4_4,
+          finishes = List(SelectedFinish(SampleCatalog.matteLamination, Some(FinishParameters.LaminationParams(FinishSide.Both)))),
+          specs = List(
+            SpecValue.SizeSpec(Dimension(90, 55)),
+            SpecValue.QuantitySpec(Quantity.unsafe(100)),
+          ),
+        )
+        val result = PriceCalculator.calculate(config, customPricelist)
+        val breakdown = result.toEither.toOption.get
+        val cb = firstBreakdown(breakdown)
+        assertTrue(
+          cb.finishLines.size == 1,
+          cb.finishLines.head.unitPrice == Money("0.10"),   // 0.05 × 2
+          cb.finishLines.head.lineTotal == Money("10.00"),  // 0.10 × 100
+        )
+      },
+      test("lamination front only keeps original surcharge (1×)") {
+        val customPricelist = Pricelist(
+          rules = List(
+            PricingRule.MaterialBasePrice(SampleCatalog.coated300gsmId, Money("0.10")),
+            PricingRule.FinishSurcharge(SampleCatalog.matteLaminationId, Money("0.05")),
+            PricingRule.QuantityTier(1, None, BigDecimal("1.0")),
+          ),
+          currency = Currency.USD,
+          version = "test",
+        )
+        val config = makeConfig(
+          category = SampleCatalog.businessCards,
+          material = SampleCatalog.coated300gsm,
+          printingMethod = SampleCatalog.offsetMethod,
+          inkConfig = InkConfiguration.cmyk4_4,
+          finishes = List(SelectedFinish(SampleCatalog.matteLamination, Some(FinishParameters.LaminationParams(FinishSide.Front)))),
+          specs = List(
+            SpecValue.SizeSpec(Dimension(90, 55)),
+            SpecValue.QuantitySpec(Quantity.unsafe(100)),
+          ),
+        )
+        val result = PriceCalculator.calculate(config, customPricelist)
+        val breakdown = result.toEither.toOption.get
+        val cb = firstBreakdown(breakdown)
+        assertTrue(
+          cb.finishLines.size == 1,
+          cb.finishLines.head.unitPrice == Money("0.05"),   // unchanged
+          cb.finishLines.head.lineTotal == Money("5.00"),   // 0.05 × 100
+        )
+      },
       test("booklet with cover and body priced correctly") {
         // Cover: coated300gsm (0.12) × 1 sheet × 500 = 60.00, matte lam: 0.03 × 500 = 15.00
         // Body: coated300gsm (0.12) × 7 sheets × 500 = 420.00 (saddle stitch 32 pages: (32/4)-1 = 7)

@@ -121,14 +121,14 @@ object ProductBuilderViewModel:
     autoRecalculate()
 
   // Toggle finish selection for a specific component role
-  def toggleFinish(role: ComponentRole, finishId: FinishId): Unit =
+  def toggleFinish(role: ComponentRole, finishId: FinishId, defaultParams: Option[FinishParameters] = None): Unit =
     stateVar.update(state =>
       val cs = state.componentStates.getOrElse(role, ComponentState(role))
       val newFinishes =
         if cs.selectedFinishes.contains(finishId) then
           cs.selectedFinishes - finishId
         else
-          cs.selectedFinishes + (finishId -> None)
+          cs.selectedFinishes + (finishId -> defaultParams)
       state.copy(componentStates = state.componentStates + (role -> cs.copy(selectedFinishes = newFinishes)))
     )
     autoRecalculate()

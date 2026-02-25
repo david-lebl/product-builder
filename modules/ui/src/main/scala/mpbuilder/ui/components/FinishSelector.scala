@@ -52,6 +52,12 @@ object FinishSelector:
     val isSelected = ProductBuilderViewModel.selectedFinishIds(role).map(_.contains(finish.id))
     val currentParams = ProductBuilderViewModel.selectedFinishParams(role, finish.id)
 
+    // Default params to initialize when a parameterized finish is first selected
+    val defaultParams: Option[FinishParameters] = finish.finishType match
+      case FinishType.Lamination | FinishType.Overlamination | FinishType.SoftTouchCoating =>
+        Some(FinishParameters.LaminationParams(FinishSide.Both))
+      case _ => None
+
     div(
       cls := "finish-item",
       label(
@@ -60,7 +66,7 @@ object FinishSelector:
           typ := "checkbox",
           checked <-- isSelected,
           onChange.mapToChecked --> { _ =>
-            ProductBuilderViewModel.toggleFinish(role, finish.id)
+            ProductBuilderViewModel.toggleFinish(role, finish.id, defaultParams)
           },
         ),
         span(finish.name(lang)),

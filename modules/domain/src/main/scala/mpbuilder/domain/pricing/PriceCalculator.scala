@@ -230,11 +230,17 @@ object PriceCalculator:
       }
       // ID-level takes precedence over type-level
       byId.orElse(byType).map { surcharge =>
+        // Lamination (and overlamination / soft-touch coating) applied to both sides
+        // costs twice as much: each side is an independent pass on press.
+        val sideFactor = finish.params match
+          case Some(FinishParameters.LaminationParams(FinishSide.Both)) => BigDecimal(2)
+          case _                                                         => BigDecimal(1)
+        val effectiveSurcharge = surcharge * sideFactor
         LineItem(
           label = s"Finish: ${finish.name(lang)}",
-          unitPrice = surcharge,
+          unitPrice = effectiveSurcharge,
           quantity = quantity,
-          lineTotal = surcharge * quantity,
+          lineTotal = effectiveSurcharge * quantity,
         )
       }
     }
