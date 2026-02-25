@@ -936,11 +936,12 @@ object PriceCalculatorSpec extends ZIOSpecDefault:
         )
       },
       test("multi-component booklet — total sheets determines tier") {
-        // Cover: coated300gsm, 90×55mm, 21 pps, sheetCount=1, effectiveQty=100
-        //   sheetsUsed = ceil(100/21) = 5
-        // Body: coated300gsm, 90×55mm, 21 pps, sheetCount=7, effectiveQty=700
-        //   sheetsUsed = ceil(700/21) = 34
-        // totalSheets = 5 + 34 = 39 → tier 1-49 → multiplier 1.0
+        // Saddle-stitch: each folded sheet has flat width = 2× finished page width (90→180mm).
+        // Cover: coated300gsm, 90×55mm flat=180×55, pps=10, sheetCount=1, effectiveQty=100
+        //   sheetsUsed = ceil(100/10) = 10
+        // Body: coated300gsm, 90×55mm flat=180×55, pps=10, sheetCount=7, effectiveQty=700
+        //   sheetsUsed = ceil(700/10) = 70
+        // totalSheets = 10 + 70 = 80 → tier 50-249 → multiplier 0.90
         val config = ProductConfiguration(
           id = configId,
           category = SampleCatalog.booklets,
@@ -964,10 +965,44 @@ object PriceCalculatorSpec extends ZIOSpecDefault:
         val totalSheets = coverBd.sheetsUsed + bodyBd.sheetsUsed
         assertTrue(
           result.toEither.isRight,
-          coverBd.sheetsUsed == 5,
-          bodyBd.sheetsUsed == 34,
-          totalSheets == 39,
-          breakdown.quantityMultiplier == BigDecimal("1.0"),
+          coverBd.sheetsUsed == 10,
+          bodyBd.sheetsUsed == 70,
+          totalSheets == 80,
+          breakdown.quantityMultiplier == BigDecimal("0.90"),
+        )
+      },
+      test("saddle-stitch 8-page A4 booklet: 10 copies require 20 sheets") {
+        // Each saddle-stitch sheet folds to give 4 A4 pages; flat size = 420×297mm.
+        // On SRA3 (320×450mm) with bleed=3/gutter=2: pps=1 per component.
+        // Cover: sheetCount=1, effectiveQty=10, sheetsUsed=ceil(10/1)=10
+        // Body: sheetCount=(8/4)-1=1, effectiveQty=10, sheetsUsed=ceil(10/1)=10
+        // totalSheets = 20 (matches the expected physical production sheet count)
+        val config = ProductConfiguration(
+          id = configId,
+          category = SampleCatalog.booklets,
+          printingMethod = SampleCatalog.offsetMethod,
+          components = List(
+            ProductComponent(ComponentRole.Cover, SampleCatalog.coated300gsm, InkConfiguration.cmyk4_4, Nil, sheetCount = 1),
+            ProductComponent(ComponentRole.Body, SampleCatalog.coated300gsm, InkConfiguration.cmyk4_4, Nil, sheetCount = 1),
+          ),
+          specifications = ProductSpecifications.fromSpecs(List(
+            SpecValue.SizeSpec(Dimension(210, 297)),
+            SpecValue.QuantitySpec(Quantity.unsafe(10)),
+            SpecValue.PagesSpec(8),
+            SpecValue.BindingMethodSpec(BindingMethod.SaddleStitch),
+          )),
+        )
+
+        val result = PriceCalculator.calculate(config, SamplePricelist.pricelistCzkSheet)
+        val breakdown = result.toEither.toOption.get
+        val coverBd = breakdown.componentBreakdowns.find(_.role == ComponentRole.Cover).get
+        val bodyBd = breakdown.componentBreakdowns.find(_.role == ComponentRole.Body).get
+        val totalSheets = coverBd.sheetsUsed + bodyBd.sheetsUsed
+        assertTrue(
+          result.toEither.isRight,
+          coverBd.sheetsUsed == 10,
+          bodyBd.sheetsUsed == 10,
+          totalSheets == 20,
         )
       },
       test("pricelist with only QuantityTier — uses product quantity (backward compat)") {
