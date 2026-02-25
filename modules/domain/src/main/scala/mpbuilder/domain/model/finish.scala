@@ -29,3 +29,17 @@ final case class Finish(
     finishType: FinishType,
     side: FinishSide,
 )
+
+enum FoilColor:
+  case Gold, Silver, Copper, RoseGold, Holographic
+
+sealed trait FinishParameters
+object FinishParameters:
+  final case class RoundCornersParams(cornerCount: Int, radiusMm: Int) extends FinishParameters
+  final case class LaminationParams(side: FinishSide) extends FinishParameters
+  final case class FoilStampingParams(color: FoilColor) extends FinishParameters
+  final case class GrommetParams(spacingMm: Int) extends FinishParameters
+  final case class PerforationParams(pitchMm: Int) extends FinishParameters
+
+final case class SelectedFinish(finish: Finish, params: Option[FinishParameters] = None):
+  export finish.{id, name, finishType, side}

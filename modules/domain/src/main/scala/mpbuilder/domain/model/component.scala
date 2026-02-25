@@ -15,13 +15,18 @@ final case class ProductComponent(
     role: ComponentRole,
     material: Material,
     inkConfiguration: InkConfiguration,
-    finishes: List[Finish],
+    finishes: List[SelectedFinish],
     sheetCount: Int,
+)
+
+final case class FinishSelection(
+    finishId: FinishId,
+    params: Option[FinishParameters] = None,
 )
 
 final case class ComponentRequest(
     role: ComponentRole,
     materialId: MaterialId,
     inkConfiguration: InkConfiguration,
-    finishIds: List[FinishId],
+    finishes: List[FinishSelection],
 )

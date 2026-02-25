@@ -62,12 +62,18 @@ object ConfigurationValidator:
             else Validation.fail(ConfigurationError.InvalidCategoryFinish(category.id, finish.id, comp.role))
           }
 
+          val finishParamChecks = comp.finishes.flatMap { sf =>
+            sf.params match
+              case None    => Nil
+              case Some(p) => validateFinishParams(sf.finish, p)
+          }
+
           val inkConfigCheck = printingMethod.maxColorCount match
             case Some(max) if comp.inkConfiguration.maxColorCount > max =>
               Validation.fail(ConfigurationError.InkConfigExceedsMethodColorLimit(printingMethod.id, comp.inkConfiguration, max, comp.role))
             case _ => Validation.unit
 
-          materialCheck :: finishChecks ::: List(inkConfigCheck)
+          materialCheck :: finishChecks ::: finishParamChecks ::: List(inkConfigCheck)
     }
 
     val specChecks = category.requiredSpecKinds.toList.map { kind =>
@@ -84,3 +90,44 @@ object ConfigurationValidator:
     allChecks.foldLeft(Validation.unit: Validation[ConfigurationError, Unit])((acc, v) =>
       acc.zipRight(v),
     )
+
+  private def validateFinishParams(
+      finish: Finish,
+      params: FinishParameters,
+  ): List[Validation[ConfigurationError, Unit]] =
+    params match
+      case FinishParameters.RoundCornersParams(cornerCount, radiusMm) =>
+        List(
+          if Set(2, 4).contains(cornerCount) then Validation.unit
+          else Validation.fail(ConfigurationError.InvalidFinishParameters(finish.id, s"cornerCount must be 2 or 4, got $cornerCount")),
+          if radiusMm >= 1 && radiusMm <= 20 then Validation.unit
+          else Validation.fail(ConfigurationError.InvalidFinishParameters(finish.id, s"radiusMm must be between 1 and 20, got $radiusMm")),
+          if finish.finishType == FinishType.RoundCorners then Validation.unit
+          else Validation.fail(ConfigurationError.InvalidFinishParameters(finish.id, s"RoundCornersParams can only be used with RoundCorners finish type")),
+        )
+      case FinishParameters.LaminationParams(side) =>
+        List(
+          if side == FinishSide.Front || side == FinishSide.Both then Validation.unit
+          else Validation.fail(ConfigurationError.InvalidFinishParameters(finish.id, s"Lamination side must be Front or Both, got $side")),
+          if finish.finishType == FinishType.Lamination || finish.finishType == FinishType.Overlamination || finish.finishType == FinishType.SoftTouchCoating then Validation.unit
+          else Validation.fail(ConfigurationError.InvalidFinishParameters(finish.id, s"LaminationParams can only be used with Lamination, Overlamination or SoftTouchCoating finish types")),
+        )
+      case FinishParameters.FoilStampingParams(_) =>
+        List(
+          if finish.finishType == FinishType.FoilStamping then Validation.unit
+          else Validation.fail(ConfigurationError.InvalidFinishParameters(finish.id, s"FoilStampingParams can only be used with FoilStamping finish type")),
+        )
+      case FinishParameters.GrommetParams(spacingMm) =>
+        List(
+          if spacingMm > 0 then Validation.unit
+          else Validation.fail(ConfigurationError.InvalidFinishParameters(finish.id, s"GrommetParams spacingMm must be greater than 0, got $spacingMm")),
+          if finish.finishType == FinishType.Grommets then Validation.unit
+          else Validation.fail(ConfigurationError.InvalidFinishParameters(finish.id, s"GrommetParams can only be used with Grommets finish type")),
+        )
+      case FinishParameters.PerforationParams(pitchMm) =>
+        List(
+          if pitchMm > 0 then Validation.unit
+          else Validation.fail(ConfigurationError.InvalidFinishParameters(finish.id, s"PerforationParams pitchMm must be greater than 0, got $pitchMm")),
+          if finish.finishType == FinishType.Perforation then Validation.unit
+          else Validation.fail(ConfigurationError.InvalidFinishParameters(finish.id, s"PerforationParams can only be used with Perforation finish type")),
+        )

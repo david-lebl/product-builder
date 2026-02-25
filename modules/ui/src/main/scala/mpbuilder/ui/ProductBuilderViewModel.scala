@@ -210,7 +210,7 @@ object ProductBuilderViewModel:
             role = cs.role,
             materialId = cs.selectedMaterialId.get,
             inkConfiguration = cs.selectedInkConfig.get,
-            finishIds = cs.selectedFinishIds.toList,
+            finishes = cs.selectedFinishIds.toList.map(FinishSelection(_)),
           )
         }.toList
 

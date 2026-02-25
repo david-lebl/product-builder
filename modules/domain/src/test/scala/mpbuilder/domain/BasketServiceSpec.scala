@@ -18,7 +18,7 @@ object BasketServiceSpec extends ZIOSpecDefault:
       material: Material,
       printingMethod: PrintingMethod,
       inkConfig: InkConfiguration,
-      finishes: List[Finish],
+      finishes: List[SelectedFinish],
       specs: List[SpecValue],
   ): ProductConfiguration =
     ProductConfiguration(
@@ -63,7 +63,7 @@ object BasketServiceSpec extends ZIOSpecDefault:
           material = SampleCatalog.coated300gsm,
           printingMethod = SampleCatalog.offsetMethod,
           inkConfig = InkConfiguration.cmyk4_4,
-          finishes = List(SampleCatalog.matteLamination),
+          finishes = List(SelectedFinish(SampleCatalog.matteLamination)),
           specs = List(
             SpecValue.SizeSpec(Dimension(90, 55)),
             SpecValue.QuantitySpec(Quantity.unsafe(500)),
@@ -326,7 +326,7 @@ object BasketServiceSpec extends ZIOSpecDefault:
           material = SampleCatalog.coated300gsm,
           printingMethod = SampleCatalog.offsetMethod,
           inkConfig = InkConfiguration.cmyk4_4,
-          finishes = List(SampleCatalog.matteLamination),
+          finishes = List(SelectedFinish(SampleCatalog.matteLamination)),
           specs = List(
             SpecValue.SizeSpec(Dimension(90, 55)),
             SpecValue.QuantitySpec(Quantity.unsafe(500)),
@@ -351,7 +351,7 @@ object BasketServiceSpec extends ZIOSpecDefault:
           material = SampleCatalog.coated300gsm,
           printingMethod = SampleCatalog.offsetMethod,
           inkConfig = InkConfiguration.cmyk4_4,
-          finishes = List(SampleCatalog.matteLamination),
+          finishes = List(SelectedFinish(SampleCatalog.matteLamination)),
           specs = List(
             SpecValue.SizeSpec(Dimension(90, 55)),
             SpecValue.QuantitySpec(Quantity.unsafe(500)),
@@ -388,7 +388,7 @@ object BasketServiceSpec extends ZIOSpecDefault:
           material = SampleCatalog.coated300gsm,
           printingMethod = SampleCatalog.offsetMethod,
           inkConfig = InkConfiguration.cmyk4_4,
-          finishes = List(SampleCatalog.matteLamination),
+          finishes = List(SelectedFinish(SampleCatalog.matteLamination)),
           specs = List(
             SpecValue.SizeSpec(Dimension(90, 55)),
             SpecValue.QuantitySpec(Quantity.unsafe(500)),

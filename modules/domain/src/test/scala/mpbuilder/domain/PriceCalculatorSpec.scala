@@ -17,7 +17,7 @@ object PriceCalculatorSpec extends ZIOSpecDefault:
       material: Material,
       printingMethod: PrintingMethod,
       inkConfig: InkConfiguration,
-      finishes: List[Finish],
+      finishes: List[SelectedFinish],
       specs: List[SpecValue],
   ): ProductConfiguration =
     ProductConfiguration(
@@ -46,7 +46,7 @@ object PriceCalculatorSpec extends ZIOSpecDefault:
           material = SampleCatalog.coated300gsm,
           printingMethod = SampleCatalog.offsetMethod,
           inkConfig = InkConfiguration.cmyk4_4,
-          finishes = List(SampleCatalog.matteLamination),
+          finishes = List(SelectedFinish(SampleCatalog.matteLamination)),
           specs = List(
             SpecValue.SizeSpec(Dimension(90, 55)),
             SpecValue.QuantitySpec(Quantity.unsafe(500)),
@@ -77,7 +77,7 @@ object PriceCalculatorSpec extends ZIOSpecDefault:
           material = SampleCatalog.vinyl,
           printingMethod = SampleCatalog.uvInkjetMethod,
           inkConfig = InkConfiguration.cmyk4_4,
-          finishes = List(SampleCatalog.uvCoating),
+          finishes = List(SelectedFinish(SampleCatalog.uvCoating)),
           specs = List(
             SpecValue.SizeSpec(Dimension(1000, 500)),
             SpecValue.QuantitySpec(Quantity.unsafe(10)),
@@ -125,7 +125,7 @@ object PriceCalculatorSpec extends ZIOSpecDefault:
           material = SampleCatalog.coated300gsm,
           printingMethod = SampleCatalog.offsetMethod,
           inkConfig = InkConfiguration.cmyk4_4,
-          finishes = List(SampleCatalog.embossing, SampleCatalog.foilStamping),
+          finishes = List(SelectedFinish(SampleCatalog.embossing), SelectedFinish(SampleCatalog.foilStamping)),
           specs = List(
             SpecValue.SizeSpec(Dimension(90, 55)),
             SpecValue.QuantitySpec(Quantity.unsafe(500)),
@@ -181,7 +181,7 @@ object PriceCalculatorSpec extends ZIOSpecDefault:
           material = SampleCatalog.coated300gsm,
           printingMethod = SampleCatalog.offsetMethod,
           inkConfig = InkConfiguration.cmyk4_4,
-          finishes = List(SampleCatalog.matteLamination),
+          finishes = List(SelectedFinish(SampleCatalog.matteLamination)),
           specs = List(
             SpecValue.SizeSpec(Dimension(90, 55)),
             SpecValue.QuantitySpec(Quantity.unsafe(100)),
@@ -201,7 +201,7 @@ object PriceCalculatorSpec extends ZIOSpecDefault:
           material = SampleCatalog.coated300gsm,
           printingMethod = SampleCatalog.offsetMethod,
           inkConfig = InkConfiguration.cmyk4_4,
-          finishes = List(SampleCatalog.roundCorners),
+          finishes = List(SelectedFinish(SampleCatalog.roundCorners)),
           specs = List(
             SpecValue.SizeSpec(Dimension(90, 55)),
             SpecValue.QuantitySpec(Quantity.unsafe(500)),
@@ -227,7 +227,7 @@ object PriceCalculatorSpec extends ZIOSpecDefault:
           category = SampleCatalog.booklets,
           printingMethod = SampleCatalog.offsetMethod,
           components = List(
-            ProductComponent(ComponentRole.Cover, SampleCatalog.coated300gsm, InkConfiguration.cmyk4_4, List(SampleCatalog.matteLamination), sheetCount = 1),
+            ProductComponent(ComponentRole.Cover, SampleCatalog.coated300gsm, InkConfiguration.cmyk4_4, List(SelectedFinish(SampleCatalog.matteLamination)), sheetCount = 1),
             ProductComponent(ComponentRole.Body, SampleCatalog.coated300gsm, InkConfiguration.cmyk4_4, Nil, sheetCount = 7),
           ),
           specifications = ProductSpecifications.fromSpecs(List(
@@ -268,7 +268,7 @@ object PriceCalculatorSpec extends ZIOSpecDefault:
           category = SampleCatalog.calendars,
           printingMethod = SampleCatalog.digitalMethod,
           components = List(
-            ProductComponent(ComponentRole.Cover, SampleCatalog.coatedSilk250gsm, InkConfiguration.cmyk4_0, List(SampleCatalog.glossLamination), sheetCount = 1),
+            ProductComponent(ComponentRole.Cover, SampleCatalog.coatedSilk250gsm, InkConfiguration.cmyk4_0, List(SelectedFinish(SampleCatalog.glossLamination)), sheetCount = 1),
             ProductComponent(ComponentRole.Body, SampleCatalog.coated300gsm, InkConfiguration.cmyk4_4, Nil, sheetCount = 6),
           ),
           specifications = ProductSpecifications.fromSpecs(List(
@@ -405,7 +405,7 @@ object PriceCalculatorSpec extends ZIOSpecDefault:
           material = SampleCatalog.coatedSilk250gsm,
           printingMethod = SampleCatalog.digitalMethod,
           inkConfig = InkConfiguration.cmyk4_4,
-          finishes = List(SampleCatalog.matteLamination),
+          finishes = List(SelectedFinish(SampleCatalog.matteLamination)),
           specs = List(
             SpecValue.SizeSpec(Dimension(297, 210)),
             SpecValue.QuantitySpec(Quantity.unsafe(100)),
@@ -429,7 +429,7 @@ object PriceCalculatorSpec extends ZIOSpecDefault:
           material = SampleCatalog.yupo,
           printingMethod = SampleCatalog.digitalMethod,
           inkConfig = InkConfiguration.cmyk4_4,
-          finishes = List(SampleCatalog.uvCoating),
+          finishes = List(SelectedFinish(SampleCatalog.uvCoating)),
           specs = List(
             SpecValue.SizeSpec(Dimension(90, 55)),
             SpecValue.QuantitySpec(Quantity.unsafe(500)),

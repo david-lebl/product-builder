@@ -216,7 +216,7 @@ object PriceCalculator:
     }
 
   private def computeFinishLines(
-      finishes: List[Finish],
+      finishes: List[SelectedFinish],
       rules: List[PricingRule],
       quantity: Int,
       lang: Language,

@@ -30,6 +30,7 @@ enum ConfigurationError:
   case InkConfigExceedsMethodColorLimit(printingMethodId: PrintingMethodId, inkConfig: InkConfiguration, maxAllowed: Int, role: ComponentRole)
   case InvalidComponentRoles(categoryId: CategoryId, expectedRoles: Set[ComponentRole], actualRoles: Set[ComponentRole])
   case MissingComponent(categoryId: CategoryId, role: ComponentRole)
+  case InvalidFinishParameters(finishId: FinishId, reason: String)
 
   def message: String = message(Language.En)
 
@@ -112,3 +113,6 @@ enum ConfigurationError:
     case MissingComponent(catId, role) => lang match
       case Language.En => s"Category '${catId.value}' requires component '$role'"
       case Language.Cs => s"Kategorie '${catId.value}' vyžaduje komponent '$role'"
+    case InvalidFinishParameters(finId, reason) => lang match
+      case Language.En => s"Invalid parameters for finish '${finId.value}': $reason"
+      case Language.Cs => s"Neplatné parametry pro úpravu '${finId.value}': $reason"
