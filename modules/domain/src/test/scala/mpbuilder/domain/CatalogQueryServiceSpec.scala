@@ -242,10 +242,10 @@ object CatalogQueryServiceSpec extends ZIOSpecDefault:
           specs == Set(SpecKind.Size, SpecKind.Quantity),
         )
       },
-      test("brochures require Size, Quantity, FoldType, Pages") {
+      test("brochures require Size, Quantity, FoldType") {
         val specs = CatalogQueryService.requiredSpecifications(SampleCatalog.brochuresId, catalog)
         assertTrue(
-          specs == Set(SpecKind.Size, SpecKind.Quantity, SpecKind.FoldType, SpecKind.Pages),
+          specs == Set(SpecKind.Size, SpecKind.Quantity, SpecKind.FoldType),
         )
       },
       test("booklets require Size, Quantity, Pages, BindingMethod") {
@@ -264,9 +264,9 @@ object CatalogQueryServiceSpec extends ZIOSpecDefault:
         val methods = CatalogQueryService.availablePrintingMethods(SampleCatalog.businessCardsId, catalog)
         val methodIds = methods.map(_.id).toSet
         assertTrue(
-          methodIds.contains(SampleCatalog.offsetId),
           methodIds.contains(SampleCatalog.digitalId),
           methodIds.contains(SampleCatalog.letterpressId),
+          !methodIds.contains(SampleCatalog.offsetId),
           !methodIds.contains(SampleCatalog.uvInkjetId),
         )
       },

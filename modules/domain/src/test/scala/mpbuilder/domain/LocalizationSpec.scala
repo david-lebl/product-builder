@@ -55,7 +55,7 @@ object LocalizationSpec extends ZIOSpecDefault:
           SampleCatalog.businessCards.name(Language.Cs) == "Vizitky",
           SampleCatalog.flyers.name(Language.Cs) == "Letáky",
           SampleCatalog.banners.name(Language.Cs) == "Bannery",
-          SampleCatalog.packaging.name(Language.Cs) == "Obaly",
+          SampleCatalog.packaging.name(Language.Cs) == "Krabice a obaly",
         )
       },
       test("finishes have Czech names") {
