@@ -1,6 +1,7 @@
 package mpbuilder.ui
 
 import mpbuilder.domain.model.*
+import mpbuilder.domain.model.CheckoutStep.*
 import mpbuilder.domain.service.*
 import mpbuilder.domain.validation.*
 import mpbuilder.domain.pricing.*
@@ -37,6 +38,7 @@ case class BuilderState(
                          basketMessage: Option[String] = None,
                          artworkMode: ArtworkMode = ArtworkMode.UploadArtwork(None),
                          basketItemArtwork: Map[ConfigurationId, ArtworkMode] = Map.empty,
+                         checkoutInfo: Option[CheckoutInfo] = None,
                        )
 
 object ProductBuilderViewModel:
@@ -446,3 +448,64 @@ object ProductBuilderViewModel:
 
   def setUploadedFileName(name: Option[String]): Unit =
     stateVar.update(_.copy(artworkMode = ArtworkMode.UploadArtwork(name)))
+
+  // Checkout operations
+  def startCheckout(): Unit =
+    stateVar.update(_.copy(checkoutInfo = Some(CheckoutInfo())))
+
+  def cancelCheckout(): Unit =
+    stateVar.update(_.copy(checkoutInfo = None))
+
+  def updateCheckoutInfo(info: CheckoutInfo): Unit =
+    stateVar.update(_.copy(checkoutInfo = Some(info)))
+
+  def checkoutNextStep(): Unit =
+    stateVar.update { s =>
+      s.checkoutInfo match
+        case Some(info) =>
+          val nextStep = info.step match
+            case CheckoutStep.Authentication  => CheckoutStep.ContactDetails
+            case CheckoutStep.ContactDetails  => CheckoutStep.Delivery
+            case CheckoutStep.Delivery        => CheckoutStep.Payment
+            case CheckoutStep.Payment         => CheckoutStep.Summary
+            case CheckoutStep.Summary         => CheckoutStep.Summary // terminal — order confirmed from this step
+          s.copy(checkoutInfo = Some(info.copy(step = nextStep)))
+        case None => s
+    }
+
+  def checkoutPrevStep(): Unit =
+    stateVar.update { s =>
+      s.checkoutInfo match
+        case Some(info) =>
+          val prevStep = info.step match
+            case CheckoutStep.Authentication  => CheckoutStep.Authentication
+            case CheckoutStep.ContactDetails  => CheckoutStep.Authentication
+            case CheckoutStep.Delivery        => CheckoutStep.ContactDetails
+            case CheckoutStep.Payment         => CheckoutStep.Delivery
+            case CheckoutStep.Summary         => CheckoutStep.Payment
+          s.copy(checkoutInfo = Some(info.copy(step = prevStep)))
+        case None => s
+    }
+
+  /** Available shop pickup locations */
+  val shopLocations: List[ShopLocation] = List(
+    ShopLocation("shop-prague",    LocalizedString("Prague — Wenceslas Square 1",    "Praha — Václavské náměstí 1"),
+                                   LocalizedString("Wenceslas Square 1, 110 00 Prague 1", "Václavské náměstí 1, 110 00 Praha 1")),
+    ShopLocation("shop-brno",      LocalizedString("Brno — Freedom Square 5",        "Brno — náměstí Svobody 5"),
+                                   LocalizedString("Freedom Square 5, 602 00 Brno",  "náměstí Svobody 5, 602 00 Brno")),
+    ShopLocation("shop-ostrava",   LocalizedString("Ostrava — Masaryk Square 3",     "Ostrava — Masarykovo náměstí 3"),
+                                   LocalizedString("Masaryk Square 3, 702 00 Ostrava", "Masarykovo náměstí 3, 702 00 Ostrava")),
+  )
+
+  /** Available courier services */
+  val courierServices: List[CourierService] = List(
+    CourierService("courier-standard", LocalizedString("Standard Delivery",   "Standardní doručení"),
+                                       LocalizedString("3–5 business days",   "3–5 pracovních dní"),
+                                       Money("99.00"), Currency.CZK),
+    CourierService("courier-express",  LocalizedString("Express Delivery",    "Expresní doručení"),
+                                       LocalizedString("1–2 business days",   "1–2 pracovní dny"),
+                                       Money("249.00"), Currency.CZK),
+    CourierService("courier-economy",  LocalizedString("Economy Delivery",    "Ekonomické doručení"),
+                                       LocalizedString("5–10 business days",  "5–10 pracovních dní"),
+                                       Money("49.00"), Currency.CZK),
+  )
