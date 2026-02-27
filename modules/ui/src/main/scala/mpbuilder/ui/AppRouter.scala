@@ -2,12 +2,14 @@ package mpbuilder.ui
 
 import com.raquo.laminar.api.L.*
 import mpbuilder.ui.calendar.CalendarBuilderApp
+import mpbuilder.ui.manufacturing.{ManufacturingQueueView, ManufacturingViewModel}
 import mpbuilder.domain.model.Language
 
 sealed trait AppRoute
 object AppRoute {
-  case object ProductBuilder extends AppRoute
-  case object CalendarBuilder extends AppRoute
+  case object ProductBuilder     extends AppRoute
+  case object CalendarBuilder    extends AppRoute
+  case object ManufacturingQueue extends AppRoute
 }
 
 object AppRouter {
@@ -57,7 +59,7 @@ object AppRouter {
           cls := "nav-link",
           cls <-- currentRoute.map {
             case AppRoute.CalendarBuilder => "active"
-            case _ => ""
+            case _                        => ""
           },
           child.text <-- lang.map {
             case Language.En => "Visual Editor"
@@ -65,12 +67,30 @@ object AppRouter {
           },
           onClick --> { _ => navigateTo(AppRoute.CalendarBuilder) }
         ),
+        button(
+          cls := "nav-link",
+          cls <-- currentRoute.map {
+            case AppRoute.ManufacturingQueue => "active"
+            case _                           => ""
+          },
+          child <-- ManufacturingViewModel.activeOrderCount.combineWith(lang).map { case (count, l) =>
+            span(
+              cls := "nav-mfg-content",
+              span(l match
+                case Language.En => "Manufacturing"
+                case Language.Cs => "Výroba"
+              ),
+              if count > 0 then span(cls := "nav-mfg-badge", count.toString) else emptyNode,
+            )
+          },
+          onClick --> { _ => navigateTo(AppRoute.ManufacturingQueue) }
+        ),
         // Basket button — right side of nav, visible only on ProductBuilder
         button(
           cls := "nav-basket-btn",
           cls <-- currentRoute.map {
             case AppRoute.ProductBuilder => ""
-            case _ => "nav-basket-btn-hidden"
+            case _                       => "nav-basket-btn-hidden"
           },
           child <-- ProductBuilderViewModel.state.combineWith(lang).map { case (state, l) =>
             val count = state.basket.items.size
@@ -90,8 +110,9 @@ object AppRouter {
       
       // Route content
       child <-- currentRoute.map {
-        case AppRoute.ProductBuilder => ProductBuilderApp()
-        case AppRoute.CalendarBuilder => CalendarBuilderApp()
+        case AppRoute.ProductBuilder     => ProductBuilderApp()
+        case AppRoute.CalendarBuilder    => CalendarBuilderApp()
+        case AppRoute.ManufacturingQueue => ManufacturingQueueView()
       }
     )
   }

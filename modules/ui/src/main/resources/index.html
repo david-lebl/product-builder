@@ -548,9 +548,24 @@
             margin-top: 15px;
         }
 
+        .basket-actions-row {
+            display: flex;
+            gap: 10px;
+        }
+
+        .place-order-btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            flex: 1;
+        }
+
+        .place-order-btn:hover {
+            opacity: 0.9;
+            transform: translateY(-1px);
+        }
+
         .clear-basket-btn {
             background: #ff5252;
-            width: 100%;
+            flex: 1;
         }
 
         .clear-basket-btn:hover {
@@ -1423,6 +1438,240 @@
             .basket-btn-label {
                 display: none;
             }
+        }
+
+        /* ─── Nav Manufacturing Badge ─────────────────────────── */
+
+        .nav-mfg-content {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .nav-mfg-badge {
+            background: #ff9800;
+            color: white;
+            border-radius: 50%;
+            min-width: 18px;
+            height: 18px;
+            font-size: 0.7rem;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            padding: 0 3px;
+        }
+
+        /* ─── Manufacturing Queue ─────────────────────────────── */
+
+        .mfg-queue {
+            margin-top: 0;
+        }
+
+        .mfg-filter-bar {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        .mfg-filter-btn {
+            padding: 6px 14px;
+            border-radius: 20px;
+            border: 2px solid #667eea;
+            background: white;
+            color: #667eea;
+            cursor: pointer;
+            font-size: 0.85rem;
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+
+        .mfg-filter-btn:hover {
+            background: #f0f0ff;
+        }
+
+        .mfg-filter-btn.active {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-color: transparent;
+        }
+
+        .mfg-order-list {
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+        }
+
+        .mfg-empty {
+            color: #888;
+            text-align: center;
+            padding: 30px 0;
+        }
+
+        .mfg-order-card {
+            border: 1px solid #e0e0e0;
+            border-radius: 10px;
+            padding: 16px;
+            background: #fafafa;
+        }
+
+        .mfg-order-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 10px;
+        }
+
+        .mfg-order-id strong {
+            font-size: 1rem;
+            color: #444;
+        }
+
+        .mfg-order-badges {
+            display: flex;
+            gap: 6px;
+            flex-wrap: wrap;
+            justify-content: flex-end;
+        }
+
+        .mfg-format-badge,
+        .mfg-status-badge {
+            padding: 3px 10px;
+            border-radius: 12px;
+            font-size: 0.78rem;
+            font-weight: 600;
+        }
+
+        .mfg-format-smallformat {
+            background: #e3f2fd;
+            color: #1565c0;
+        }
+
+        .mfg-format-largeformat {
+            background: #fce4ec;
+            color: #880e4f;
+        }
+
+        .mfg-status-pendingapproval {
+            background: #fff3e0;
+            color: #e65100;
+        }
+
+        .mfg-status-queued {
+            background: #e8f5e9;
+            color: #2e7d32;
+        }
+
+        .mfg-status-inproduction {
+            background: #e8eaf6;
+            color: #283593;
+        }
+
+        .mfg-status-qualitycheck {
+            background: #f3e5f5;
+            color: #6a1b9a;
+        }
+
+        .mfg-status-packaging {
+            background: #e0f7fa;
+            color: #006064;
+        }
+
+        .mfg-status-readyforpickup {
+            background: #f1f8e9;
+            color: #33691e;
+        }
+
+        .mfg-status-completed {
+            background: #e8f5e9;
+            color: #1b5e20;
+        }
+
+        .mfg-status-cancelled {
+            background: #fafafa;
+            color: #757575;
+        }
+
+        .mfg-status-rejected {
+            background: #ffebee;
+            color: #b71c1c;
+        }
+
+        .mfg-order-details {
+            margin-bottom: 12px;
+        }
+
+        .mfg-order-product {
+            font-size: 0.95rem;
+            margin-bottom: 4px;
+            color: #444;
+        }
+
+        .mfg-order-price {
+            font-size: 0.9rem;
+            color: #667eea;
+            font-weight: 600;
+        }
+
+        .mfg-order-notes {
+            font-size: 0.85rem;
+            color: #888;
+            margin-top: 6px;
+        }
+
+        .mfg-order-actions {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .mfg-approval-btns {
+            display: flex;
+            gap: 8px;
+        }
+
+        .mfg-btn {
+            padding: 7px 16px;
+            border-radius: 8px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            cursor: pointer;
+            border: none;
+            transition: all 0.2s;
+        }
+
+        .mfg-btn-approve {
+            background: #4caf50;
+            color: white;
+        }
+
+        .mfg-btn-approve:hover { background: #388e3c; }
+
+        .mfg-btn-reject {
+            background: #f44336;
+            color: white;
+        }
+
+        .mfg-btn-reject:hover { background: #c62828; }
+
+        .mfg-btn-advance {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .mfg-btn-advance:hover { opacity: 0.85; }
+
+        .mfg-btn-cancel {
+            background: transparent;
+            border: 1px solid #bbb;
+            color: #888;
+        }
+
+        .mfg-btn-cancel:hover {
+            background: #ffebee;
+            border-color: #f44336;
+            color: #c62828;
         }
 
         /* ─── Basket Drawer ───────────────────────────────────── */
