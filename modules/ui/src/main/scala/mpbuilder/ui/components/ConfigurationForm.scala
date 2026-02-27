@@ -1,7 +1,7 @@
 package mpbuilder.ui.components
 
 import com.raquo.laminar.api.L.*
-import mpbuilder.ui.ProductBuilderViewModel
+import mpbuilder.ui.{ProductBuilderViewModel, AppRouter, AppRoute, ArtworkMode}
 import mpbuilder.domain.model.*
 
 object ConfigurationForm:
@@ -79,6 +79,106 @@ object ConfigurationForm:
             case Language.Cs => "Ověřit cenu"
           },
           onClick --> { _ => ProductBuilderViewModel.validateConfiguration() },
+        ),
+      ),
+
+      // Artwork section — visible when a valid configuration exists
+      div(
+        cls := "form-section artwork-section",
+        cls("artwork-section--hidden") <-- ProductBuilderViewModel.state.map(_.configuration.isEmpty),
+        h3(child.text <-- lang.map {
+          case Language.En => "5. Provide Artwork"
+          case Language.Cs => "5. Poskytnutí dat"
+        }),
+        div(
+          cls := "artwork-options",
+
+          // Upload Artwork option
+          div(
+            cls := "artwork-option",
+            label(
+              cls := "artwork-option-label",
+              input(
+                typ := "radio",
+                nameAttr := "artworkMode",
+                value := "upload",
+                checked <-- ProductBuilderViewModel.state.map(_.artworkMode match
+                  case ArtworkMode.UploadArtwork(_) => true
+                  case _                            => false
+                ),
+                onChange --> { _ =>
+                  ProductBuilderViewModel.setArtworkMode(ArtworkMode.UploadArtwork(None))
+                },
+              ),
+              child.text <-- lang.map {
+                case Language.En => " Upload Artwork"
+                case Language.Cs => " Nahrát soubor"
+              },
+            ),
+            div(
+              cls := "upload-file-area",
+              cls("upload-file-area--hidden") <-- ProductBuilderViewModel.state.map(_.artworkMode match
+                case ArtworkMode.UploadArtwork(_) => false
+                case _                            => true
+              ),
+              input(
+                typ := "file",
+                cls := "artwork-file-input",
+                accept := ".pdf,.ai,.eps,.png,.jpg,.jpeg,.tiff,.psd",
+                onChange --> { e =>
+                  val fileInput = e.target.asInstanceOf[org.scalajs.dom.html.Input]
+                  val fileName =
+                    if fileInput.files.length > 0 then Some(fileInput.files(0).name)
+                    else None
+                  ProductBuilderViewModel.setUploadedFileName(fileName)
+                },
+              ),
+              child <-- ProductBuilderViewModel.state.combineWith(lang).map { case (state, l) =>
+                state.artworkMode match
+                  case ArtworkMode.UploadArtwork(Some(fileName)) =>
+                    span(cls := "uploaded-file-name", s"📎 $fileName")
+                  case ArtworkMode.UploadArtwork(None) =>
+                    span(cls := "upload-hint", l match
+                      case Language.En => "Accepted formats: PDF, AI, EPS, PNG, JPG, TIFF, PSD"
+                      case Language.Cs => "Povolené formáty: PDF, AI, EPS, PNG, JPG, TIFF, PSD"
+                    )
+                  case ArtworkMode.DesignInEditor => emptyNode
+              },
+            ),
+          ),
+
+          // Design in Visual Editor option
+          div(
+            cls := "artwork-option",
+            label(
+              cls := "artwork-option-label",
+              input(
+                typ := "radio",
+                nameAttr := "artworkMode",
+                value := "design",
+                checked <-- ProductBuilderViewModel.state.map(_.artworkMode == ArtworkMode.DesignInEditor),
+                onChange --> { _ =>
+                  ProductBuilderViewModel.setArtworkMode(ArtworkMode.DesignInEditor)
+                },
+              ),
+              child.text <-- lang.map {
+                case Language.En => " Design in Visual Editor"
+                case Language.Cs => " Navrhnout ve vizuálním editoru"
+              },
+            ),
+            div(
+              cls := "open-editor-area",
+              cls("open-editor-area--hidden") <-- ProductBuilderViewModel.state.map(_.artworkMode != ArtworkMode.DesignInEditor),
+              button(
+                cls := "open-editor-btn",
+                child.text <-- lang.map {
+                  case Language.En => "Open Visual Editor →"
+                  case Language.Cs => "Otevřít vizuální editor →"
+                },
+                onClick --> { _ => AppRouter.navigateTo(AppRoute.CalendarBuilder) },
+              ),
+            ),
+          ),
         ),
       ),
 

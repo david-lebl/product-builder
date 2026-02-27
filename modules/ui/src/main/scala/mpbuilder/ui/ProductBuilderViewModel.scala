@@ -9,6 +9,12 @@ import zio.prelude.Validation
 import com.raquo.laminar.api.L.*
 import org.scalajs.dom
 
+/** How the customer will provide artwork for the configured product */
+sealed trait ArtworkMode
+object ArtworkMode:
+  case class UploadArtwork(fileName: Option[String] = None) extends ArtworkMode
+  case object DesignInEditor extends ArtworkMode
+
 /** Per-component UI state */
 case class ComponentState(
                            role: ComponentRole,
@@ -29,6 +35,8 @@ case class BuilderState(
                          language: Language = Language.En,
                          basket: Basket = Basket(BasketId.unsafe("main-basket"), List.empty),
                          basketMessage: Option[String] = None,
+                         artworkMode: ArtworkMode = ArtworkMode.UploadArtwork(None),
+                         basketItemArtwork: Map[ConfigurationId, ArtworkMode] = Map.empty,
                        )
 
 object ProductBuilderViewModel:
@@ -386,9 +394,12 @@ object ProductBuilderViewModel:
             val msg = lang match
               case Language.En => s"Added to basket (${quantity}×)"
               case Language.Cs => s"Přidáno do košíku (${quantity}×)"
+            val updatedArtwork = currentState.basketItemArtwork + (config.id -> currentState.artworkMode)
             stateVar.update(_.copy(
               basket = updatedBasket,
               basketMessage = Some(msg),
+              basketItemArtwork = updatedArtwork,
+              artworkMode = ArtworkMode.UploadArtwork(None),
             ))
           }
         )
@@ -401,7 +412,8 @@ object ProductBuilderViewModel:
   def removeFromBasket(configId: ConfigurationId): Unit =
     val currentState = stateVar.now()
     val updatedBasket = BasketService.removeItem(currentState.basket, configId)
-    stateVar.update(_.copy(basket = updatedBasket, basketMessage = None))
+    val updatedArtwork = currentState.basketItemArtwork - configId
+    stateVar.update(_.copy(basket = updatedBasket, basketMessage = None, basketItemArtwork = updatedArtwork))
 
   def updateBasketQuantity(configId: ConfigurationId, newQuantity: Int): Unit =
     val currentState = stateVar.now()
@@ -420,10 +432,17 @@ object ProductBuilderViewModel:
   def clearBasket(): Unit =
     val currentState = stateVar.now()
     val clearedBasket = BasketService.clear(currentState.basket)
-    stateVar.update(_.copy(basket = clearedBasket, basketMessage = None))
+    stateVar.update(_.copy(basket = clearedBasket, basketMessage = None, basketItemArtwork = Map.empty))
 
   def basketCalculation: Signal[BasketCalculation] =
     state.map(s => BasketService.calculateTotal(s.basket))
 
   def clearBasketMessage(): Unit =
     stateVar.update(_.copy(basketMessage = None))
+
+  // Artwork operations
+  def setArtworkMode(mode: ArtworkMode): Unit =
+    stateVar.update(_.copy(artworkMode = mode))
+
+  def setUploadedFileName(name: Option[String]): Unit =
+    stateVar.update(_.copy(artworkMode = ArtworkMode.UploadArtwork(name)))
