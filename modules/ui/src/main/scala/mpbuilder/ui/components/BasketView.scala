@@ -1,7 +1,7 @@
 package mpbuilder.ui.components
 
 import com.raquo.laminar.api.L.*
-import mpbuilder.ui.ProductBuilderViewModel
+import mpbuilder.ui.{ProductBuilderViewModel, ArtworkMode}
 import mpbuilder.domain.pricing.{Money, Currency}
 import mpbuilder.domain.model.{Language, ConfigurationId, ComponentRole}
 
@@ -118,6 +118,26 @@ object BasketView:
                       case Language.En => s"Total: ${formatMoney(item.priceBreakdown.total * item.quantity, item.priceBreakdown.currency)}"
                       case Language.Cs => s"Celkem: ${formatMoney(item.priceBreakdown.total * item.quantity, item.priceBreakdown.currency)}"
                     ),
+                  ),
+                  div(
+                    cls := "basket-item-artwork",
+                    state.basketItemArtwork.get(item.configuration.id) match
+                      case Some(ArtworkMode.UploadArtwork(Some(fileName))) =>
+                        span(l match
+                          case Language.En => s"📎 Artwork: $fileName"
+                          case Language.Cs => s"📎 Data: $fileName"
+                        )
+                      case Some(ArtworkMode.UploadArtwork(None)) =>
+                        span(cls := "artwork-pending", l match
+                          case Language.En => "📎 Artwork: not uploaded yet"
+                          case Language.Cs => "📎 Data: ještě nenahrána"
+                        )
+                      case Some(ArtworkMode.DesignInEditor) =>
+                        span(l match
+                          case Language.En => "🎨 Design: created in Visual Editor"
+                          case Language.Cs => "🎨 Design: vytvořen ve vizuálním editoru"
+                        )
+                      case None => emptyNode
                   ),
                 ),
               )
