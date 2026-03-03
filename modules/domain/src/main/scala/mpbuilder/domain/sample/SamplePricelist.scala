@@ -26,12 +26,19 @@ object SamplePricelist:
       PricingRule.FinishSurcharge(SampleCatalog.glossLaminationId, Money("0.03")),
       PricingRule.FinishSurcharge(SampleCatalog.softTouchCoatingId, Money("0.05")),
       PricingRule.FinishSurcharge(SampleCatalog.embossingId, Money("0.08")),
+      PricingRule.FinishSurcharge(SampleCatalog.debossingId, Money("0.08")),
       PricingRule.FinishSurcharge(SampleCatalog.foilStampingId, Money("0.15")),
+      PricingRule.FinishSurcharge(SampleCatalog.dieCutId, Money("0.10")),
+      PricingRule.FinishSurcharge(SampleCatalog.kissCutId, Money("0.05")),
+      PricingRule.FinishSurcharge(SampleCatalog.grommetsId, Money("0.25")),
 
       // --- Finish surcharges (type-level) ---
       PricingRule.FinishTypeSurcharge(FinishType.UVCoating, Money("0.04")),
       PricingRule.FinishTypeSurcharge(FinishType.AqueousCoating, Money("0.02")),
       PricingRule.FinishTypeSurcharge(FinishType.Varnish, Money("0.06")),
+      PricingRule.FinishTypeSurcharge(FinishType.Scoring, Money("0.02")),
+      PricingRule.FinishTypeSurcharge(FinishType.Perforation, Money("0.02")),
+      PricingRule.FinishTypeSurcharge(FinishType.RoundCorners, Money("0.02")),
 
       // --- Printing process surcharge ---
       PricingRule.PrintingProcessSurcharge(PrintingProcessType.Letterpress, Money("0.20")),
@@ -99,7 +106,11 @@ object SamplePricelist:
       PricingRule.FinishSurcharge(SampleCatalog.glossLaminationId, Money("1")),
       PricingRule.FinishSurcharge(SampleCatalog.softTouchCoatingId, Money("1.50")),
       PricingRule.FinishSurcharge(SampleCatalog.embossingId, Money("2")),
+      PricingRule.FinishSurcharge(SampleCatalog.debossingId, Money("2")),
       PricingRule.FinishSurcharge(SampleCatalog.foilStampingId, Money("3.50")),
+      PricingRule.FinishSurcharge(SampleCatalog.dieCutId, Money("3")),
+      PricingRule.FinishSurcharge(SampleCatalog.kissCutId, Money("2")),
+      PricingRule.FinishSurcharge(SampleCatalog.grommetsId, Money("8")),
 
       // --- Finish surcharges (type-level, CZK) ---
       PricingRule.FinishTypeSurcharge(FinishType.UVCoating, Money("1")),
@@ -127,11 +138,25 @@ object SamplePricelist:
       PricingRule.QuantityTier(500, Some(999), BigDecimal("0.45")),
       PricingRule.QuantityTier(1000, None, BigDecimal("0.40")),
 
-      // --- Finish setup fees (one-time machine setup cost, not discounted) ---
+      // --- Finish setup fees (one-time, not discounted) ---
+      // Lamination / coating
       PricingRule.FinishSetupFee(SampleCatalog.matteLaminationId, Money("50")),
       PricingRule.FinishSetupFee(SampleCatalog.glossLaminationId, Money("50")),
       PricingRule.FinishSetupFee(SampleCatalog.softTouchCoatingId, Money("80")),
       PricingRule.FinishTypeSetupFee(FinishType.Lamination, Money("50")),
+      PricingRule.FinishSetupFee(SampleCatalog.uvCoatingId, Money("80")),
+      PricingRule.FinishSetupFee(SampleCatalog.varnishId, Money("120")),
+      // Embossing / stamping — custom die required
+      PricingRule.FinishSetupFee(SampleCatalog.embossingId, Money("350")),
+      PricingRule.FinishSetupFee(SampleCatalog.debossingId, Money("350")),
+      PricingRule.FinishSetupFee(SampleCatalog.foilStampingId, Money("450")),
+      // Cutting — custom die / plotter setup
+      PricingRule.FinishSetupFee(SampleCatalog.dieCutId, Money("600")),
+      PricingRule.FinishSetupFee(SampleCatalog.kissCutId, Money("200")),
+      // Structural — machine/blade setup
+      PricingRule.FinishTypeSetupFee(FinishType.Scoring, Money("50")),
+      PricingRule.FinishTypeSetupFee(FinishType.Perforation, Money("60")),
+      PricingRule.FinishTypeSetupFee(FinishType.RoundCorners, Money("40")),
 
       // --- Minimum order price ---
       PricingRule.MinimumOrderPrice(Money("500")),
@@ -284,12 +309,16 @@ object SamplePricelist:
       PricingRule.CuttingSurcharge(costPerCut = Money("0.10")),
 
       // --- Finish surcharges (ID-level, CZK) ---
+      // Lamination rates are higher on sheet pricelist (more coverage per sheet)
       PricingRule.FinishSurcharge(SampleCatalog.matteLaminationId, Money("6")),
       PricingRule.FinishSurcharge(SampleCatalog.glossLaminationId, Money("6")),
       PricingRule.FinishSurcharge(SampleCatalog.softTouchCoatingId, Money("9")),
       PricingRule.FinishSurcharge(SampleCatalog.embossingId, Money("2")),
+      PricingRule.FinishSurcharge(SampleCatalog.debossingId, Money("2")),
       PricingRule.FinishSurcharge(SampleCatalog.foilStampingId, Money("3.50")),
-
+      PricingRule.FinishSurcharge(SampleCatalog.dieCutId, Money("3")),
+      PricingRule.FinishSurcharge(SampleCatalog.kissCutId, Money("2")),
+      PricingRule.FinishSurcharge(SampleCatalog.grommetsId, Money("8")),
 
       // --- Finish surcharges (type-level, CZK) ---
       PricingRule.FinishTypeSurcharge(FinishType.UVCoating, Money("1")),
@@ -315,11 +344,25 @@ object SamplePricelist:
       PricingRule.SheetQuantityTier(250, Some(999), BigDecimal("0.80")),
       PricingRule.SheetQuantityTier(1000, None, BigDecimal("0.70")),
 
-      // --- Finish setup fees (one-time machine setup cost, not discounted) ---
+      // --- Finish setup fees (one-time, not discounted) ---
+      // Lamination / coating
       PricingRule.FinishSetupFee(SampleCatalog.matteLaminationId, Money("50")),
       PricingRule.FinishSetupFee(SampleCatalog.glossLaminationId, Money("50")),
       PricingRule.FinishSetupFee(SampleCatalog.softTouchCoatingId, Money("80")),
       PricingRule.FinishTypeSetupFee(FinishType.Lamination, Money("50")),
+      PricingRule.FinishSetupFee(SampleCatalog.uvCoatingId, Money("80")),
+      PricingRule.FinishSetupFee(SampleCatalog.varnishId, Money("120")),
+      // Embossing / stamping — custom die required
+      PricingRule.FinishSetupFee(SampleCatalog.embossingId, Money("350")),
+      PricingRule.FinishSetupFee(SampleCatalog.debossingId, Money("350")),
+      PricingRule.FinishSetupFee(SampleCatalog.foilStampingId, Money("450")),
+      // Cutting — custom die / plotter setup
+      PricingRule.FinishSetupFee(SampleCatalog.dieCutId, Money("600")),
+      PricingRule.FinishSetupFee(SampleCatalog.kissCutId, Money("200")),
+      // Structural — machine/blade setup
+      PricingRule.FinishTypeSetupFee(FinishType.Scoring, Money("50")),
+      PricingRule.FinishTypeSetupFee(FinishType.Perforation, Money("60")),
+      PricingRule.FinishTypeSetupFee(FinishType.RoundCorners, Money("40")),
 
       // --- Minimum order price ---
       PricingRule.MinimumOrderPrice(Money("500")),

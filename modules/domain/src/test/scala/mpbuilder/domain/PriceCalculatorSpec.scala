@@ -196,6 +196,14 @@ object PriceCalculatorSpec extends ZIOSpecDefault:
         )
       },
       test("no surcharge for finish with no pricing rule") {
+        val noFinishPricelist = Pricelist(
+          rules = List(
+            PricingRule.MaterialBasePrice(SampleCatalog.coated300gsmId, Money("0.12")),
+            PricingRule.QuantityTier(1, None, BigDecimal("1.0")),
+          ),
+          currency = Currency.USD,
+          version = "test",
+        )
         val config = makeConfig(
           category = SampleCatalog.businessCards,
           material = SampleCatalog.coated300gsm,
@@ -208,7 +216,7 @@ object PriceCalculatorSpec extends ZIOSpecDefault:
           ),
         )
 
-        val result = PriceCalculator.calculate(config, pricelist)
+        val result = PriceCalculator.calculate(config, noFinishPricelist)
         val breakdown = result.toEither.toOption.get
         val cb = firstBreakdown(breakdown)
         assertTrue(
