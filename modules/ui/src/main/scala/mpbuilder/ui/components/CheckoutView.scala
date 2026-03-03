@@ -6,6 +6,7 @@ import mpbuilder.domain.model.*
 import mpbuilder.domain.model.CheckoutStep.*
 import mpbuilder.domain.pricing.{Money, Currency}
 import mpbuilder.domain.service.BasketService
+import mpbuilder.domain.weight.WeightCalculator
 
 object CheckoutView:
 
@@ -586,6 +587,15 @@ object CheckoutView:
     val codeVar = Var(info.discountCode)
     val noteVar = Var(info.note)
 
+    val totalWeightG: Option[Double] =
+      val weights = s.basket.items.flatMap { item =>
+        WeightCalculator.calculate(item.configuration).toOption
+          .map(wb => wb.totalWeightG)
+      }
+      if weights.size == s.basket.items.size && weights.nonEmpty then
+        Some(weights.sum)
+      else None
+
     // Resolve the effective shipping address for display
     val effectiveShipAddr: Address =
       if info.shipToDifferentAddress then
@@ -627,6 +637,13 @@ object CheckoutView:
         span(deliveryLabel(info.deliveryOption, l)),
         span(deliveryCost(info.deliveryOption, l)),
       ),
+      totalWeightG.map { w =>
+        div(
+          cls := "checkout-summary-row",
+          span(if l == Language.Cs then "Odhadovaná hmotnost zásilky:" else "Estimated shipment weight:"),
+          span(if w >= 1000.0 then f"${w / 1000.0}%.3f kg" else f"${w}%.2f g"),
+        )
+      }.getOrElse(emptyNode),
 
       // Payment info
       h3(cls := "checkout-section-title",
