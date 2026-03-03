@@ -36,7 +36,9 @@ object ConfigurationForm:
           case Language.En => "3. Configure Components"
           case Language.Cs => "3. Specifikace výroby"
         }),
-        children <-- ProductBuilderViewModel.componentRoles.combineWith(lang).map { case (roles, l) =>
+        children <-- ProductBuilderViewModel.componentRoles
+          .combineWith(ProductBuilderViewModel.linkedComponents, lang)
+          .map { case (roles, linked, l) =>
           if roles.isEmpty then
             List(
               p(cls := "info-box",
@@ -49,14 +51,47 @@ object ConfigurationForm:
             // Single-component product — no role header needed
             List(componentSection(ComponentRole.Main))
           else
-            // Multi-component product — show labeled sections
-            roles.map { role =>
-              div(
-                cls := "component-section",
-                h4(componentRoleLabel(role, l)),
-                componentSection(role),
+            // Multi-component product — show linked toggle + conditional sections
+            val toggle = div(
+              cls := "form-group linked-components-toggle",
+              label(
+                cls := "checkbox-label",
+                input(
+                  typ := "checkbox",
+                  checked := linked,
+                  onChange.mapToChecked --> { v =>
+                    ProductBuilderViewModel.setLinkedComponents(v)
+                  },
+                ),
+                child.text <-- ProductBuilderViewModel.currentLanguage.map {
+                  case Language.En => " Same material and printing for all components"
+                  case Language.Cs => " Stejný materiál a tisk pro všechny komponenty"
+                },
+              ),
+            )
+            if linked then
+              // Linked: shared material + ink section from the cover role, then per-component finishes
+              val sharedSection = div(
+                MaterialSelector(roles.head),
+                InkConfigSelector(roles.head),
               )
-            }
+              val finishSections = roles.map { role =>
+                div(
+                  cls := "component-section",
+                  h4(componentRoleLabel(role, l)),
+                  FinishSelector(role),
+                )
+              }
+              toggle :: sharedSection :: finishSections
+            else
+              // Separate section per component
+              toggle :: roles.map { role =>
+                div(
+                  cls := "component-section",
+                  h4(componentRoleLabel(role, l)),
+                  componentSection(role),
+                )
+              }
         },
       ),
 

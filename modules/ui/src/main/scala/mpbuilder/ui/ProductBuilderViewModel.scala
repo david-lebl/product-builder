@@ -28,6 +28,7 @@ case class ComponentState(
 case class BuilderState(
                          selectedCategoryId: Option[CategoryId] = None,
                          componentStates: Map[ComponentRole, ComponentState] = Map.empty,
+                         linkedComponents: Boolean = true,
                          selectedPrintingMethodId: Option[PrintingMethodId] = None,
                          specifications: List[SpecValue] = List.empty,
                          validationErrors: List[String] = List.empty,
@@ -94,6 +95,7 @@ object ProductBuilderViewModel:
       state.copy(
         selectedCategoryId = Some(categoryId),
         componentStates = componentStates,
+        linkedComponents = true,
         selectedPrintingMethodId = defaultPrintMethod,
         specifications = defaultSpecs,
         validationErrors = List.empty,
@@ -128,12 +130,18 @@ object ProductBuilderViewModel:
   // Update material selection for a specific component role
   def selectMaterial(role: ComponentRole, materialId: MaterialId): Unit = 
     stateVar.update(state =>
-      val cs = state.componentStates.getOrElse(role, ComponentState(role))
-      val updated = cs.copy(
-        selectedMaterialId = Some(materialId),
-        selectedFinishes = Map.empty, // Reset finishes when material changes
-      )
-      state.copy(componentStates = state.componentStates + (role -> updated))
+      if state.linkedComponents then
+        val newStates = state.componentStates.map { case (r, c) =>
+          r -> c.copy(selectedMaterialId = Some(materialId), selectedFinishes = Map.empty)
+        }
+        state.copy(componentStates = newStates)
+      else
+        val cs = state.componentStates.getOrElse(role, ComponentState(role))
+        val updated = cs.copy(
+          selectedMaterialId = Some(materialId),
+          selectedFinishes = Map.empty, // Reset finishes when material changes
+        )
+        state.copy(componentStates = state.componentStates + (role -> updated))
     )
     autoRecalculate()
 
@@ -146,6 +154,7 @@ object ProductBuilderViewModel:
           cs.selectedFinishes - finishId
         else
           cs.selectedFinishes + (finishId -> defaultParams)
+      // Finishes are always per-component — do not propagate even when components are linked
       state.copy(componentStates = state.componentStates + (role -> cs.copy(selectedFinishes = newFinishes)))
     )
     autoRecalculate()
@@ -156,6 +165,7 @@ object ProductBuilderViewModel:
       val cs = state.componentStates.getOrElse(role, ComponentState(role))
       if cs.selectedFinishes.contains(finishId) then
         val newFinishes = cs.selectedFinishes + (finishId -> params)
+        // Finishes are always per-component — do not propagate even when components are linked
         state.copy(componentStates = state.componentStates + (role -> cs.copy(selectedFinishes = newFinishes)))
       else state
     )
@@ -168,8 +178,14 @@ object ProductBuilderViewModel:
   // Select ink configuration for a specific component role
   def selectInkConfig(role: ComponentRole, config: InkConfiguration): Unit = 
     stateVar.update(state =>
-      val cs = state.componentStates.getOrElse(role, ComponentState(role))
-      state.copy(componentStates = state.componentStates + (role -> cs.copy(selectedInkConfig = Some(config))))
+      if state.linkedComponents then
+        val newStates = state.componentStates.map { case (r, c) =>
+          r -> c.copy(selectedInkConfig = Some(config))
+        }
+        state.copy(componentStates = newStates)
+      else
+        val cs = state.componentStates.getOrElse(role, ComponentState(role))
+        state.copy(componentStates = state.componentStates + (role -> cs.copy(selectedInkConfig = Some(config))))
     )
     autoRecalculate()
 
@@ -305,6 +321,35 @@ object ProductBuilderViewModel:
   // Get component roles for the currently selected category
   def componentRoles: Signal[List[ComponentRole]] =
     state.map(_.componentStates.keys.toList.sortBy(_.ordinal))
+
+  // Whether all components share the same material/ink configuration
+  def linkedComponents: Signal[Boolean] =
+    state.map(_.linkedComponents)
+
+  // Toggle whether all components share the same configuration
+  def setLinkedComponents(linked: Boolean): Unit =
+    stateVar.update { s =>
+      if linked then
+        // Sync material and ink config from the first (master) component to all others.
+        // Finishes remain per-component — they are not shared even when linked.
+        // getOrElse with a fallback is safe: roles are derived from componentStates.keys,
+        // so roles.head is guaranteed to be present in the map.
+        val roles = s.componentStates.keys.toList.sortBy(_.ordinal)
+        if roles.size > 1 then
+          val masterState = s.componentStates.getOrElse(roles.head, ComponentState(roles.head))
+          val syncedStates = s.componentStates.map { case (role, cs) =>
+            role -> cs.copy(
+              selectedMaterialId = masterState.selectedMaterialId,
+              selectedInkConfig = masterState.selectedInkConfig,
+            )
+          }
+          s.copy(linkedComponents = true, componentStates = syncedStates)
+        else
+          s.copy(linkedComponents = true)
+      else
+        s.copy(linkedComponents = false)
+    }
+    autoRecalculate()
 
   // Get available materials for a specific component role
   def availableMaterials(role: ComponentRole): Signal[List[Material]] =
