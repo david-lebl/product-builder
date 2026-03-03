@@ -44,11 +44,16 @@ final case class ContactInfo(
     lastName: String,
     email: String,
     phone: String,
+    /** Company name — if set the customer is treated as a business customer */
     company: Option[String],
+    /** Czech company registration number (IČO) — for business customers */
+    companyRegNo: Option[String],
+    /** Czech VAT number (DIČ) — for business customers */
+    vatId: Option[String],
 )
 
-/** Delivery / shipping address */
-final case class ShippingAddress(
+/** A postal address */
+final case class Address(
     street: String,
     city: String,
     zip: String,
@@ -69,8 +74,13 @@ final case class CheckoutInfo(
     customerType: CustomerType = CustomerType.Guest,
     loginEmail: String = "",
     loginPassword: String = "",
-    contactInfo: ContactInfo = ContactInfo("", "", "", "", None),
-    shippingAddress: ShippingAddress = ShippingAddress("", "", "", ""),
+    contactInfo: ContactInfo = ContactInfo("", "", "", "", None, None, None),
+    /** Invoice / billing address */
+    invoiceAddress: Address = Address("", "", "", ""),
+    /** When true, goods are shipped to the same address as the invoice address */
+    shipToDifferentAddress: Boolean = false,
+    /** Separate shipping address — only used when shipToDifferentAddress is true */
+    shippingAddress: Option[Address] = None,
     discountCode: String = "",
     deliveryOption: Option[DeliveryOption] = None,
     paymentMethod: Option[PaymentMethod] = None,

@@ -163,18 +163,21 @@ object CheckoutView:
 
   private def stepContactDetails(info: CheckoutInfo, l: Language): Element =
     val ci = info.contactInfo
-    val sa = info.shippingAddress
+    val ia = info.invoiceAddress
     val fnVar       = Var(ci.firstName)
     val lnVar       = Var(ci.lastName)
     val emailVar    = Var(ci.email)
     val phoneVar    = Var(ci.phone)
     val companyVar  = Var(ci.company.getOrElse(""))
-    val streetVar   = Var(sa.street)
-    val cityVar     = Var(sa.city)
-    val zipVar      = Var(sa.zip)
-    val countryVar  = Var(sa.country)
-    val codeVar     = Var(info.discountCode)
-    val noteVar     = Var(info.note)
+    val regNoVar    = Var(ci.companyRegNo.getOrElse(""))
+    val vatIdVar    = Var(ci.vatId.getOrElse(""))
+    val streetVar   = Var(ia.street)
+    val cityVar     = Var(ia.city)
+    val zipVar      = Var(ia.zip)
+    val countryVar  = Var(ia.country)
+
+    // VAT fields are shown when a company name is entered
+    val showVatFields: Signal[Boolean] = companyVar.signal.map(_.trim.nonEmpty)
 
     def isValid: Boolean =
       fnVar.now().trim.nonEmpty && lnVar.now().trim.nonEmpty &&
@@ -185,7 +188,7 @@ object CheckoutView:
     div(
       cls := "checkout-card card",
       h2(cls := "checkout-step-title",
-        if l == Language.Cs then "Kontaktní a doručovací údaje" else "Contact & Delivery Details"
+        if l == Language.Cs then "Kontaktní údaje" else "Contact Details"
       ),
 
       // Personal info
@@ -229,9 +232,32 @@ object CheckoutView:
           value <-- companyVar, onInput.mapToValue --> companyVar.writer),
       ),
 
-      // Shipping address
+      // Company VAT fields — shown only when a company name is entered
+      div(
+        cls <-- showVatFields.map(v => if v then "checkout-vat-fields" else "checkout-vat-fields checkout-vat-fields--hidden"),
+        h3(cls := "checkout-section-title",
+          if l == Language.Cs then "Firemní údaje" else "Company Details"
+        ),
+        div(
+          cls := "checkout-form-row",
+          div(
+            cls := "form-group",
+            label(if l == Language.Cs then "IČO" else "Company Reg. No."),
+            input(typ := "text", placeholder := (if l == Language.Cs then "12345678" else "12345678"),
+              value <-- regNoVar, onInput.mapToValue --> regNoVar.writer),
+          ),
+          div(
+            cls := "form-group",
+            label(if l == Language.Cs then "DIČ" else "VAT No."),
+            input(typ := "text", placeholder := (if l == Language.Cs then "CZ12345678" else "CZ12345678"),
+              value <-- vatIdVar, onInput.mapToValue --> vatIdVar.writer),
+          ),
+        ),
+      ),
+
+      // Invoice / billing address
       h3(cls := "checkout-section-title",
-        if l == Language.Cs then "Doručovací adresa" else "Shipping Address"
+        if l == Language.Cs then "Fakturační adresa" else "Invoice Address"
       ),
       div(
         cls := "form-group",
@@ -261,41 +287,6 @@ object CheckoutView:
           value <-- countryVar, onInput.mapToValue --> countryVar.writer),
       ),
 
-      // Discount code
-      h3(cls := "checkout-section-title",
-        if l == Language.Cs then "Slevový kód (nepovinné)" else "Discount Code (optional)"
-      ),
-      div(
-        cls := "checkout-discount-row",
-        input(
-          typ := "text",
-          cls := "checkout-discount-input",
-          placeholder := (if l == Language.Cs then "Zadejte slevový kód" else "Enter discount code"),
-          value <-- codeVar,
-          onInput.mapToValue --> codeVar.writer,
-        ),
-        button(
-          cls := "btn-secondary checkout-discount-apply",
-          if l == Language.Cs then "Použít" else "Apply",
-          // No real integration yet — UI only
-        ),
-      ),
-
-      // Note
-      h3(cls := "checkout-section-title",
-        if l == Language.Cs then "Poznámka k objednávce (nepovinné)" else "Order Note (optional)"
-      ),
-      div(
-        cls := "form-group",
-        textArea(
-          cls := "checkout-note",
-          placeholder := (if l == Language.Cs then "Zvláštní požadavky nebo poznámky k objednávce…"
-                          else "Special requirements or notes for your order…"),
-          value <-- noteVar,
-          onInput.mapToValue --> noteVar.writer,
-        ),
-      ),
-
       checkoutNavButtons(
         l = l,
         onBack = Some(() => ProductBuilderViewModel.checkoutPrevStep()),
@@ -303,20 +294,20 @@ object CheckoutView:
           if isValid then
             ProductBuilderViewModel.updateCheckoutInfo(info.copy(
               contactInfo = ContactInfo(
-                firstName = fnVar.now().trim,
-                lastName  = lnVar.now().trim,
-                email     = emailVar.now().trim,
-                phone     = phoneVar.now().trim,
-                company   = Some(companyVar.now().trim).filter(_.nonEmpty),
+                firstName    = fnVar.now().trim,
+                lastName     = lnVar.now().trim,
+                email        = emailVar.now().trim,
+                phone        = phoneVar.now().trim,
+                company      = optionalNonEmpty(companyVar.now()),
+                companyRegNo = optionalNonEmpty(regNoVar.now()),
+                vatId        = optionalNonEmpty(vatIdVar.now()),
               ),
-              shippingAddress = ShippingAddress(
+              invoiceAddress = Address(
                 street  = streetVar.now().trim,
                 city    = cityVar.now().trim,
                 zip     = zipVar.now().trim,
                 country = countryVar.now().trim,
               ),
-              discountCode = codeVar.now().trim,
-              note         = noteVar.now().trim,
             ))
             ProductBuilderViewModel.checkoutNextStep()
         },
@@ -326,7 +317,20 @@ object CheckoutView:
   // ── Step 3: Delivery ────────────────────────────────────────────────────────
 
   private def stepDelivery(info: CheckoutInfo, l: Language): Element =
-    val selectedVar: Var[Option[DeliveryOption]] = Var(info.deliveryOption)
+    val selectedVar: Var[Option[DeliveryOption]]  = Var(info.deliveryOption)
+    val diffAddrVar: Var[Boolean]                 = Var(info.shipToDifferentAddress)
+    val sa = info.shippingAddress.getOrElse(Address("", "", "", ""))
+    val shipStreetVar  = Var(sa.street)
+    val shipCityVar    = Var(sa.city)
+    val shipZipVar     = Var(sa.zip)
+    val shipCountryVar = Var(sa.country)
+
+    // Shipping address fields are only required when "ship to different address" is checked
+    def isShipAddrValid: Boolean =
+      if diffAddrVar.now() then
+        shipStreetVar.now().trim.nonEmpty && shipCityVar.now().trim.nonEmpty &&
+        shipZipVar.now().trim.nonEmpty    && shipCountryVar.now().trim.nonEmpty
+      else true
 
     div(
       cls := "checkout-card card",
@@ -381,17 +385,115 @@ object CheckoutView:
         },
       ),
 
+      // Shipping address — shown only for courier options
+      div(
+        cls <-- selectedVar.signal.map {
+          case Some(DeliveryOption.PickupAtShop(_)) | None => "checkout-shipping-addr-section checkout-shipping-addr-section--hidden"
+          case _                                           => "checkout-shipping-addr-section"
+        },
+        h3(cls := "checkout-section-title",
+          if l == Language.Cs then "Doručovací adresa" else "Shipping Address"
+        ),
+
+        // Checkbox: ship to different address
+        div(
+          cls := "checkout-diff-addr-row",
+          label(
+            cls := "checkout-diff-addr-label",
+            input(
+              typ := "checkbox",
+              checked <-- diffAddrVar,
+              onClick --> { _ => diffAddrVar.update(!_) },
+            ),
+            if l == Language.Cs then " Doručit na jinou adresu než fakturační"
+            else " Ship to a different address than the invoice address",
+          ),
+        ),
+
+        // Address summary when using invoice address
+        div(
+          cls <-- diffAddrVar.signal.map(d => if d then "checkout-addr-same checkout-addr-same--hidden" else "checkout-addr-same"),
+          span(
+            child.text <-- diffAddrVar.signal.map { _ =>
+              val ia = info.invoiceAddress
+              if ia.street.nonEmpty then
+                s"${ia.street}, ${ia.zip} ${ia.city}, ${ia.country}"
+              else
+                if l == Language.Cs then "(stejná jako fakturační adresa)"
+                else "(same as invoice address)"
+            }
+          ),
+        ),
+
+        // Separate shipping address fields
+        div(
+          cls <-- diffAddrVar.signal.map(d => if d then "checkout-diff-addr-fields" else "checkout-diff-addr-fields checkout-diff-addr-fields--hidden"),
+          div(
+            cls := "form-group",
+            label(if l == Language.Cs then "Ulice a číslo popisné *" else "Street & Number *"),
+            input(typ := "text", placeholder := (if l == Language.Cs then "Ulice 123" else "123 Main Street"),
+              value <-- shipStreetVar, onInput.mapToValue --> shipStreetVar.writer),
+          ),
+          div(
+            cls := "checkout-form-row",
+            div(
+              cls := "form-group",
+              label(if l == Language.Cs then "Město *" else "City *"),
+              input(typ := "text", placeholder := (if l == Language.Cs then "Praha" else "Prague"),
+                value <-- shipCityVar, onInput.mapToValue --> shipCityVar.writer),
+            ),
+            div(
+              cls := "form-group",
+              label(if l == Language.Cs then "PSČ *" else "ZIP / Postal Code *"),
+              input(typ := "text", placeholder := "110 00",
+                value <-- shipZipVar, onInput.mapToValue --> shipZipVar.writer),
+            ),
+          ),
+          div(
+            cls := "form-group",
+            label(if l == Language.Cs then "Země *" else "Country *"),
+            input(typ := "text", placeholder := (if l == Language.Cs then "Česká republika" else "Czech Republic"),
+              value <-- shipCountryVar, onInput.mapToValue --> shipCountryVar.writer),
+          ),
+        ),
+      ),
+
       checkoutNavButtons(
         l = l,
         onBack = Some(() => ProductBuilderViewModel.checkoutPrevStep()),
         onNext = () => {
           selectedVar.now() match
-            case Some(opt) =>
-              ProductBuilderViewModel.updateCheckoutInfo(info.copy(deliveryOption = Some(opt)))
+            case Some(opt) if isShipAddrValid =>
+              val shipAddr =
+                if diffAddrVar.now() then
+                  Some(Address(
+                    street  = shipStreetVar.now().trim,
+                    city    = shipCityVar.now().trim,
+                    zip     = shipZipVar.now().trim,
+                    country = shipCountryVar.now().trim,
+                  ))
+                else None
+              ProductBuilderViewModel.updateCheckoutInfo(info.copy(
+                deliveryOption          = Some(opt),
+                shipToDifferentAddress  = diffAddrVar.now(),
+                shippingAddress         = shipAddr,
+              ))
               ProductBuilderViewModel.checkoutNextStep()
-            case None => // must select a delivery option
+            case _ => // must select a delivery option and fill shipping address if required
         },
-        nextEnabled = selectedVar.signal.map(_.isDefined),
+        nextEnabled = selectedVar.signal.combineWith(
+          diffAddrVar.signal.flatMapSwitch { diff =>
+            if diff then
+              shipStreetVar.signal.combineWith(shipCityVar.signal)
+                .map(t => t._1.trim.nonEmpty && t._2.trim.nonEmpty)
+                .combineWith(
+                  shipZipVar.signal.combineWith(shipCountryVar.signal)
+                    .map(t => t._1.trim.nonEmpty && t._2.trim.nonEmpty)
+                )
+                .map(t => t._1 && t._2)
+            else Val(true)
+          }
+        ).map(t => t._1.isDefined && t._2),
       ),
     )
 
@@ -481,6 +583,15 @@ object CheckoutView:
 
   private def stepSummary(info: CheckoutInfo, s: BuilderState, l: Language): Element =
     val basketCalc = BasketService.calculateTotal(s.basket)
+    val codeVar = Var(info.discountCode)
+    val noteVar = Var(info.note)
+
+    // Resolve the effective shipping address for display
+    val effectiveShipAddr: Address =
+      if info.shipToDifferentAddress then
+        info.shippingAddress.getOrElse(info.invoiceAddress)
+      else
+        info.invoiceAddress
 
     div(
       cls := "checkout-card card",
@@ -526,45 +637,84 @@ object CheckoutView:
         span(paymentLabel(info.paymentMethod, l)),
       ),
 
-      // Contact
+      // Contact / invoice address
       h3(cls := "checkout-section-title",
-        if l == Language.Cs then "Kontakt" else "Contact"
+        if l == Language.Cs then "Kontakt a fakturační adresa" else "Contact & Invoice Address"
       ),
-      div(
-        cls := "checkout-summary-row",
+      div(cls := "checkout-summary-row",
         span(s"${info.contactInfo.firstName} ${info.contactInfo.lastName}"),
       ),
-      div(
-        cls := "checkout-summary-row",
-        span(info.contactInfo.email),
-      ),
-      div(
-        cls := "checkout-summary-row",
-        span(info.contactInfo.phone),
-      ),
+      div(cls := "checkout-summary-row", span(info.contactInfo.email)),
+      div(cls := "checkout-summary-row", span(info.contactInfo.phone)),
       info.contactInfo.company.map { co =>
         div(cls := "checkout-summary-row", span(co))
       }.getOrElse(emptyNode),
-      div(
-        cls := "checkout-summary-row",
-        span(s"${info.shippingAddress.street}, ${info.shippingAddress.zip} ${info.shippingAddress.city}, ${info.shippingAddress.country}"),
+      info.contactInfo.companyRegNo.map { r =>
+        div(cls := "checkout-summary-row",
+          span(if l == Language.Cs then s"IČO: $r" else s"Reg. No.: $r"))
+      }.getOrElse(emptyNode),
+      info.contactInfo.vatId.map { v =>
+        div(cls := "checkout-summary-row",
+          span(if l == Language.Cs then s"DIČ: $v" else s"VAT No.: $v"))
+      }.getOrElse(emptyNode),
+      div(cls := "checkout-summary-row",
+        span(s"${info.invoiceAddress.street}, ${info.invoiceAddress.zip} ${info.invoiceAddress.city}, ${info.invoiceAddress.country}"),
       ),
 
-      // Discount code
-      if info.discountCode.nonEmpty then
+      // Shipping address (only if different)
+      if info.shipToDifferentAddress then
         div(
-          cls := "checkout-summary-row",
-          span("🏷️ " + (if l == Language.Cs then s"Slevový kód: ${info.discountCode}" else s"Discount code: ${info.discountCode}")),
+          h3(cls := "checkout-section-title",
+            if l == Language.Cs then "Doručovací adresa" else "Shipping Address"
+          ),
+          div(cls := "checkout-summary-row",
+            span(s"${effectiveShipAddr.street}, ${effectiveShipAddr.zip} ${effectiveShipAddr.city}, ${effectiveShipAddr.country}"),
+          ),
         )
       else emptyNode,
 
-      // Note
-      if info.note.nonEmpty then
-        div(
-          cls := "checkout-summary-row checkout-summary-note",
-          span("📝 " + info.note),
+      // Discount code — editable in summary
+      h3(cls := "checkout-section-title",
+        if l == Language.Cs then "Slevový kód (nepovinné)" else "Discount Code (optional)"
+      ),
+      div(
+        cls := "checkout-discount-row",
+        input(
+          typ := "text",
+          cls := "checkout-discount-input",
+          placeholder := (if l == Language.Cs then "Zadejte slevový kód" else "Enter discount code"),
+          value <-- codeVar,
+          onInput.mapToValue --> codeVar.writer,
+        ),
+        button(
+          cls := "btn-secondary checkout-discount-apply",
+          if l == Language.Cs then "Použít" else "Apply",
+          // No real integration yet — UI only
+          onClick --> { _ =>
+            ProductBuilderViewModel.updateCheckoutInfo(info.copy(discountCode = codeVar.now().trim))
+          },
+        ),
+      ),
+      if info.discountCode.nonEmpty then
+        p(cls := "checkout-discount-applied",
+          "🏷️ " + (if l == Language.Cs then s"Kód aplikován: ${info.discountCode}" else s"Code applied: ${info.discountCode}")
         )
       else emptyNode,
+
+      // Order note
+      h3(cls := "checkout-section-title",
+        if l == Language.Cs then "Poznámka k objednávce (nepovinné)" else "Order Note (optional)"
+      ),
+      div(
+        cls := "form-group",
+        textArea(
+          cls := "checkout-note",
+          placeholder := (if l == Language.Cs then "Zvláštní požadavky nebo poznámky k objednávce…"
+                          else "Special requirements or notes for your order…"),
+          value <-- noteVar,
+          onInput.mapToValue --> noteVar.writer,
+        ),
+      ),
 
       // Total
       div(
@@ -596,6 +746,8 @@ object CheckoutView:
           cls := "checkout-btn checkout-submit-btn",
           if l == Language.Cs then "✓ Potvrdit objednávku" else "✓ Place Order",
           onClick --> { _ =>
+            // Save note before clearing
+            ProductBuilderViewModel.updateCheckoutInfo(info.copy(note = noteVar.now().trim))
             // UI-only: just show confirmation and clear basket
             ProductBuilderViewModel.clearBasket()
             ProductBuilderViewModel.cancelCheckout()
@@ -606,6 +758,9 @@ object CheckoutView:
     )
 
   // ── Helpers ─────────────────────────────────────────────────────────────────
+
+  /** Returns `Some(s.trim)` if non-empty after trimming, `None` otherwise. */
+  private def optionalNonEmpty(s: String): Option[String] = Some(s.trim).filter(_.nonEmpty)
 
   private def checkoutNavButtons(
     l: Language,

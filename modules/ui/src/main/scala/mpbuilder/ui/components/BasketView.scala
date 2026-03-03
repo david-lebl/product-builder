@@ -172,8 +172,9 @@ object BasketView:
           if state.basket.items.nonEmpty then
             Some(
               div(
+                cls := "basket-actions-row",
                 button(
-                  cls := "checkout-btn",
+                  cls := "checkout-btn basket-checkout-btn",
                   l match
                     case Language.En => "Proceed to Checkout →"
                     case Language.Cs => "Přejít k pokladně →"
@@ -185,11 +186,12 @@ object BasketView:
                   },
                 ),
                 button(
-                  cls := "clear-basket-btn",
-                  l match
-                    case Language.En => "Clear Basket"
+                  cls := "clear-basket-btn clear-basket-icon-btn",
+                  title := (l match
+                    case Language.En => "Clear basket"
                     case Language.Cs => "Vyprázdnit košík"
-                  ,
+                  ),
+                  "🗑",
                   onClick --> { _ =>
                     ProductBuilderViewModel.clearBasket()
                   },
