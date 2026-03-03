@@ -57,7 +57,7 @@
             color: white;
             display: flex;
             align-items: center;
-            padding: 0 20px;
+            padding: 0 max(20px, calc((100% - 1200px) / 2));
             height: var(--top-bar-height);
             gap: 16px;
         }
@@ -742,7 +742,7 @@
         /* App Navigation Styles */
         .app-navigation {
             background: white;
-            padding: 0 20px;
+            padding: 0 max(20px, calc((100% - 1200px) / 2));
             display: flex;
             gap: 0;
             border-bottom: 2px solid #e0e0e0;
@@ -1563,6 +1563,32 @@
         @media (max-width: 480px) {
             .basket-btn-label {
                 display: none;
+            }
+        }
+
+        @media (max-width: 600px) {
+            .top-bar {
+                gap: 8px;
+                padding: 0 12px;
+            }
+            .top-bar-logo {
+                min-width: 0;
+                overflow: hidden;
+                text-overflow: ellipsis;
+            }
+            .top-bar-user > span:not(.top-bar-user-icon) {
+                display: none;
+            }
+            .language-selector select {
+                min-width: auto;
+                padding: 4px;
+                font-size: 0.8rem;
+            }
+            .top-bar .nav-basket-btn {
+                padding: 5px 8px;
+            }
+            .app-navigation {
+                padding: 0 12px;
             }
         }
 
