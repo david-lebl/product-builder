@@ -143,8 +143,9 @@ object PricePreview:
               val isSheetTier = totalSheets > 0
 
               val subtotalAndMultiplierLines = List(
+                hr(cls := "price-subtotal-divider"),
                 div(
-                  cls := "price-line-item",
+                  cls := "price-line-item price-subtotal",
                   span(l match
                     case Language.En => "Subtotal:"
                     case Language.Cs => "Mezisoučet:"
