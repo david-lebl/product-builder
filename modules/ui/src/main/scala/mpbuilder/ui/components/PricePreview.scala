@@ -125,19 +125,16 @@ object PricePreview:
                 roleHeader ++ materialLine ++ sheetsLine ++ cuttingLine ++ inkLine ++ finishLines
               }
 
-              val surchargeLines = breakdown.processSurcharge.map { proc =>
-                div(
-                  cls := "price-line-item",
-                  span(proc.label),
-                  span(formatMoney(proc.lineTotal, cur)),
-                )
-              }.toList ++ breakdown.categorySurcharge.map { cat =>
-                div(
-                  cls := "price-line-item",
-                  span(cat.label),
-                  span(formatMoney(cat.lineTotal, cur)),
-                )
-              }.toList
+              val surchargeLines =
+                List(breakdown.processSurcharge, breakdown.categorySurcharge, breakdown.foldSurcharge, breakdown.bindingSurcharge)
+                  .flatten
+                  .map { item =>
+                    div(
+                      cls := "price-line-item",
+                      span(item.label),
+                      span(formatMoney(item.lineTotal, cur)),
+                    )
+                  }
 
               val totalSheets = breakdown.componentBreakdowns.map(_.sheetsUsed).sum
               val isSheetTier = totalSheets > 0

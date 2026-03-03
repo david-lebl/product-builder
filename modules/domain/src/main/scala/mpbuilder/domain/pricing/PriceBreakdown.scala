@@ -22,6 +22,8 @@ final case class PriceBreakdown(
     componentBreakdowns: List[ComponentBreakdown],
     processSurcharge: Option[LineItem],
     categorySurcharge: Option[LineItem],
+    foldSurcharge: Option[LineItem],
+    bindingSurcharge: Option[LineItem],
     subtotal: Money,
     quantityMultiplier: BigDecimal,
     setupFees: List[LineItem],

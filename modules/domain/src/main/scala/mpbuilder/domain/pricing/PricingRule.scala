@@ -24,5 +24,11 @@ enum PricingRule:
   // One-time machine setup cost; added after the volume-discount multiplier
   case FinishTypeSetupFee(finishType: FinishType, setupCost: Money)
   case FinishSetupFee(finishId: FinishId, setupCost: Money)
+  // Per-unit surcharges for fold type and binding method (discountable, go into subtotal)
+  case FoldTypeSurcharge(foldType: FoldType, surchargePerUnit: Money)
+  case BindingMethodSurcharge(bindingMethod: BindingMethod, surchargePerUnit: Money)
+  // One-time setup fees for fold type and binding method (added after discount)
+  case FoldTypeSetupFee(foldType: FoldType, setupCost: Money)
+  case BindingMethodSetupFee(bindingMethod: BindingMethod, setupCost: Money)
   // Global price floor applied after setup fees
   case MinimumOrderPrice(minTotal: Money)

@@ -310,6 +310,7 @@ object PriceCalculatorSpec extends ZIOSpecDefault:
         val breakdown = result.toEither.toOption.get
         val coverBd = breakdown.componentBreakdowns.find(_.role == ComponentRole.Cover).get
         val bodyBd = breakdown.componentBreakdowns.find(_.role == ComponentRole.Body).get
+        // Saddle stitch surcharge: 0.05 × 500 = 25.00
         assertTrue(
           result.toEither.isRight,
           coverBd.materialLine.quantity == 500,  // 1 sheet × 500
@@ -318,9 +319,11 @@ object PriceCalculatorSpec extends ZIOSpecDefault:
           coverBd.finishLines.head.lineTotal == Money("15.00"),
           bodyBd.materialLine.quantity == 3500,  // 7 sheets × 500
           bodyBd.materialLine.lineTotal == Money("420.00"),
-          breakdown.subtotal == Money("495.00"),
+          breakdown.bindingSurcharge.isDefined,
+          breakdown.bindingSurcharge.get.lineTotal == Money("25.00"),
+          breakdown.subtotal == Money("520.00"),
           breakdown.quantityMultiplier == BigDecimal("0.90"),
-          breakdown.total == Money("445.50"),
+          breakdown.total == Money("468.00"),
         )
       },
       test("calendar with different materials per component") {
@@ -351,14 +354,17 @@ object PriceCalculatorSpec extends ZIOSpecDefault:
         val breakdown = result.toEither.toOption.get
         val coverBd = breakdown.componentBreakdowns.find(_.role == ComponentRole.Cover).get
         val bodyBd = breakdown.componentBreakdowns.find(_.role == ComponentRole.Body).get
+        // Spiral binding surcharge: 0.20 × 100 = 20.00
         assertTrue(
           result.toEither.isRight,
           coverBd.materialLine.unitPrice == Money("0.11"),
           coverBd.materialLine.lineTotal == Money("11.00"),
           bodyBd.materialLine.unitPrice == Money("0.12"),
           bodyBd.materialLine.lineTotal == Money("72.00"),
-          breakdown.subtotal == Money("81.60"),
-          breakdown.total == Money("81.60"),
+          breakdown.bindingSurcharge.isDefined,
+          breakdown.bindingSurcharge.get.lineTotal == Money("20.00"),
+          breakdown.subtotal == Money("101.60"),
+          breakdown.total == Money("101.60"),
         )
       },
       test("4/0 ink configuration applies lower material multiplier than 4/4") {
@@ -487,8 +493,10 @@ object PriceCalculatorSpec extends ZIOSpecDefault:
         val cb = firstBreakdown(breakdown)
         assertTrue(
           cb.materialLine.unitPrice == Money("0.11"),
-          breakdown.subtotal == Money("14.00"),
-          breakdown.total == Money("14.00"),
+          breakdown.bindingSurcharge.isDefined,
+          breakdown.bindingSurcharge.get.lineTotal == Money("20.00"),
+          breakdown.subtotal == Money("34.00"),
+          breakdown.total == Money("34.00"),
         )
       },
       test("Yupo synthetic material priced correctly") {
@@ -1112,6 +1120,200 @@ object PriceCalculatorSpec extends ZIOSpecDefault:
         assertTrue(
           result.toEither.isRight,
           breakdown.quantityMultiplier == BigDecimal("0.90"),
+        )
+      },
+    ),
+    suite("fold type and binding method pricing")(
+      test("FoldTypeSurcharge applied per unit for tri-fold brochure") {
+        val customPricelist = Pricelist(
+          rules = List(
+            PricingRule.MaterialBasePrice(SampleCatalog.coated300gsmId, Money("0.10")),
+            PricingRule.FoldTypeSurcharge(FoldType.Tri, Money("1.00")),
+            PricingRule.QuantityTier(1, None, BigDecimal("1.0")),
+          ),
+          currency = Currency.USD,
+          version = "test",
+        )
+        val config = makeConfig(
+          category = SampleCatalog.businessCards,
+          material = SampleCatalog.coated300gsm,
+          printingMethod = SampleCatalog.offsetMethod,
+          inkConfig = InkConfiguration.cmyk4_4,
+          finishes = Nil,
+          specs = List(
+            SpecValue.SizeSpec(Dimension(210, 99)),
+            SpecValue.QuantitySpec(Quantity.unsafe(100)),
+            SpecValue.FoldTypeSpec(FoldType.Tri),
+          ),
+        )
+        val result = PriceCalculator.calculate(config, customPricelist)
+        val breakdown = result.toEither.toOption.get
+        // material: 0.10 × 100 = 10, fold: 1.00 × 100 = 100, subtotal = 110
+        assertTrue(
+          breakdown.foldSurcharge.isDefined,
+          breakdown.foldSurcharge.get.unitPrice == Money("1.00"),
+          breakdown.foldSurcharge.get.lineTotal == Money("100.00"),
+          breakdown.subtotal == Money("110.00"),
+        )
+      },
+      test("BindingMethodSurcharge applied per unit for perfect-bound booklet") {
+        val customPricelist = Pricelist(
+          rules = List(
+            PricingRule.MaterialBasePrice(SampleCatalog.coated300gsmId, Money("0.10")),
+            PricingRule.BindingMethodSurcharge(BindingMethod.PerfectBinding, Money("5.00")),
+            PricingRule.QuantityTier(1, None, BigDecimal("1.0")),
+          ),
+          currency = Currency.USD,
+          version = "test",
+        )
+        val config = makeConfig(
+          category = SampleCatalog.businessCards,
+          material = SampleCatalog.coated300gsm,
+          printingMethod = SampleCatalog.offsetMethod,
+          inkConfig = InkConfiguration.cmyk4_4,
+          finishes = Nil,
+          specs = List(
+            SpecValue.SizeSpec(Dimension(210, 148)),
+            SpecValue.QuantitySpec(Quantity.unsafe(50)),
+            SpecValue.BindingMethodSpec(BindingMethod.PerfectBinding),
+          ),
+        )
+        val result = PriceCalculator.calculate(config, customPricelist)
+        val breakdown = result.toEither.toOption.get
+        // material: 0.10 × 50 = 5, binding: 5.00 × 50 = 250, subtotal = 255
+        assertTrue(
+          breakdown.bindingSurcharge.isDefined,
+          breakdown.bindingSurcharge.get.unitPrice == Money("5.00"),
+          breakdown.bindingSurcharge.get.lineTotal == Money("250.00"),
+          breakdown.subtotal == Money("255.00"),
+        )
+      },
+      test("fold surcharge is included in subtotal and therefore discounted") {
+        val customPricelist = Pricelist(
+          rules = List(
+            PricingRule.MaterialBasePrice(SampleCatalog.coated300gsmId, Money("1.00")),
+            PricingRule.FoldTypeSurcharge(FoldType.Half, Money("0.50")),
+            PricingRule.QuantityTier(1, None, BigDecimal("0.50")),
+          ),
+          currency = Currency.USD,
+          version = "test",
+        )
+        val config = makeConfig(
+          category = SampleCatalog.businessCards,
+          material = SampleCatalog.coated300gsm,
+          printingMethod = SampleCatalog.offsetMethod,
+          inkConfig = InkConfiguration.cmyk4_4,
+          finishes = Nil,
+          specs = List(
+            SpecValue.SizeSpec(Dimension(210, 99)),
+            SpecValue.QuantitySpec(Quantity.unsafe(100)),
+            SpecValue.FoldTypeSpec(FoldType.Half),
+          ),
+        )
+        val result = PriceCalculator.calculate(config, customPricelist)
+        val breakdown = result.toEither.toOption.get
+        // material: 1.00 × 100 = 100, fold: 0.50 × 100 = 50, subtotal = 150
+        // tier 0.50×: total = 75 (both material and fold are discounted)
+        assertTrue(
+          breakdown.subtotal == Money("150.00"),
+          breakdown.quantityMultiplier == BigDecimal("0.50"),
+          breakdown.total == Money("75.00"),
+        )
+      },
+      test("FoldTypeSetupFee is not discounted by quantity multiplier") {
+        val customPricelist = Pricelist(
+          rules = List(
+            PricingRule.MaterialBasePrice(SampleCatalog.coated300gsmId, Money("0.10")),
+            PricingRule.FoldTypeSetupFee(FoldType.Gate, Money("120")),
+            PricingRule.QuantityTier(1, None, BigDecimal("0.50")),
+          ),
+          currency = Currency.USD,
+          version = "test",
+        )
+        val config = makeConfig(
+          category = SampleCatalog.businessCards,
+          material = SampleCatalog.coated300gsm,
+          printingMethod = SampleCatalog.offsetMethod,
+          inkConfig = InkConfiguration.cmyk4_4,
+          finishes = Nil,
+          specs = List(
+            SpecValue.SizeSpec(Dimension(210, 99)),
+            SpecValue.QuantitySpec(Quantity.unsafe(100)),
+            SpecValue.FoldTypeSpec(FoldType.Gate),
+          ),
+        )
+        val result = PriceCalculator.calculate(config, customPricelist)
+        val breakdown = result.toEither.toOption.get
+        // material: 0.10 × 100 = 10, tier 0.50×: discountedSubtotal = 5
+        // gate fold setup fee: 120 (not discounted)
+        // total = 5 + 120 = 125
+        assertTrue(
+          breakdown.setupFees.exists(_.label.contains("Gate")),
+          breakdown.setupFees.find(_.label.contains("Gate")).get.lineTotal == Money("120"),
+          breakdown.total == Money("125.00"),
+        )
+      },
+      test("BindingMethodSetupFee is not discounted by quantity multiplier") {
+        val customPricelist = Pricelist(
+          rules = List(
+            PricingRule.MaterialBasePrice(SampleCatalog.coated300gsmId, Money("0.10")),
+            PricingRule.BindingMethodSetupFee(BindingMethod.SpiralBinding, Money("100")),
+            PricingRule.QuantityTier(1, None, BigDecimal("0.50")),
+          ),
+          currency = Currency.USD,
+          version = "test",
+        )
+        val config = makeConfig(
+          category = SampleCatalog.businessCards,
+          material = SampleCatalog.coated300gsm,
+          printingMethod = SampleCatalog.offsetMethod,
+          inkConfig = InkConfiguration.cmyk4_4,
+          finishes = Nil,
+          specs = List(
+            SpecValue.SizeSpec(Dimension(210, 148)),
+            SpecValue.QuantitySpec(Quantity.unsafe(100)),
+            SpecValue.BindingMethodSpec(BindingMethod.SpiralBinding),
+          ),
+        )
+        val result = PriceCalculator.calculate(config, customPricelist)
+        val breakdown = result.toEither.toOption.get
+        // material: 0.10 × 100 = 10, tier 0.50×: discountedSubtotal = 5
+        // spiral binding setup fee: 100 (not discounted)
+        // total = 5 + 100 = 105
+        assertTrue(
+          breakdown.setupFees.exists(_.label.contains("Spiral")),
+          breakdown.setupFees.find(_.label.contains("Spiral")).get.lineTotal == Money("100"),
+          breakdown.total == Money("105.00"),
+        )
+      },
+      test("no fold or binding surcharge when specs not present") {
+        val customPricelist = Pricelist(
+          rules = List(
+            PricingRule.MaterialBasePrice(SampleCatalog.coated300gsmId, Money("0.10")),
+            PricingRule.FoldTypeSurcharge(FoldType.Half, Money("1.00")),
+            PricingRule.BindingMethodSurcharge(BindingMethod.SaddleStitch, Money("2.00")),
+            PricingRule.QuantityTier(1, None, BigDecimal("1.0")),
+          ),
+          currency = Currency.USD,
+          version = "test",
+        )
+        val config = makeConfig(
+          category = SampleCatalog.businessCards,
+          material = SampleCatalog.coated300gsm,
+          printingMethod = SampleCatalog.offsetMethod,
+          inkConfig = InkConfiguration.cmyk4_4,
+          finishes = Nil,
+          specs = List(
+            SpecValue.SizeSpec(Dimension(90, 55)),
+            SpecValue.QuantitySpec(Quantity.unsafe(100)),
+          ),
+        )
+        val result = PriceCalculator.calculate(config, customPricelist)
+        val breakdown = result.toEither.toOption.get
+        assertTrue(
+          breakdown.foldSurcharge.isEmpty,
+          breakdown.bindingSurcharge.isEmpty,
+          breakdown.setupFees.isEmpty,
         )
       },
     ),
