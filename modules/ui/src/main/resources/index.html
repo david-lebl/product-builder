@@ -9,6 +9,9 @@
             margin: 0;
             padding: 0;
             box-sizing: border-box;
+            --top-bar-height: 52px;
+            --nav-bar-height: 42px;
+            --header-total-height: calc(var(--top-bar-height) + var(--nav-bar-height));
         }
 
         body {
@@ -55,7 +58,7 @@
             display: flex;
             align-items: center;
             padding: 0 20px;
-            height: 52px;
+            height: var(--top-bar-height);
             gap: 16px;
         }
 
@@ -100,7 +103,7 @@
 
         .language-selector select {
             width: auto;
-            min-width: 80px;
+            min-width: 100px;
             padding: 4px 8px;
             border: 1px solid rgba(255,255,255,0.4);
             border-radius: 4px;
@@ -249,8 +252,8 @@
 
         .price-section {
             position: sticky;
-            top: 110px;
-            max-height: calc(100vh - 130px);
+            top: calc(var(--header-total-height) + 20px);
+            max-height: calc(100vh - var(--header-total-height) - 40px);
             display: flex;
             flex-direction: column;
         }
