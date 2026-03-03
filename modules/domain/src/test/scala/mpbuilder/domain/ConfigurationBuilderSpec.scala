@@ -90,7 +90,7 @@ object ConfigurationBuilderSpec extends ZIOSpecDefault:
       test("build a valid booklet configuration with cover and body") {
         val request = ConfigurationRequest(
           categoryId = SampleCatalog.bookletsId,
-          printingMethodId = SampleCatalog.offsetId,
+          printingMethodId = SampleCatalog.digitalId,
           components = List(
             ComponentRequest(ComponentRole.Cover, SampleCatalog.coated300gsmId, InkConfiguration.cmyk4_4, List(FinishSelection(SampleCatalog.matteLaminationId))),
             ComponentRequest(ComponentRole.Body, SampleCatalog.coated300gsmId, InkConfiguration.cmyk4_4, Nil),
@@ -154,7 +154,7 @@ object ConfigurationBuilderSpec extends ZIOSpecDefault:
       test("valid booklet: cover with matte lam + body with uncoated bond") {
         val request = ConfigurationRequest(
           categoryId = SampleCatalog.bookletsId,
-          printingMethodId = SampleCatalog.offsetId,
+          printingMethodId = SampleCatalog.digitalId,
           components = List(
             ComponentRequest(ComponentRole.Cover, SampleCatalog.coated300gsmId, InkConfiguration.cmyk4_4, List(FinishSelection(SampleCatalog.matteLaminationId))),
             ComponentRequest(ComponentRole.Body, SampleCatalog.uncoatedBondId, InkConfiguration.cmyk4_4, Nil),
@@ -197,7 +197,7 @@ object ConfigurationBuilderSpec extends ZIOSpecDefault:
       test("wrong component roles for category is rejected") {
         val request = ConfigurationRequest(
           categoryId = SampleCatalog.bookletsId,
-          printingMethodId = SampleCatalog.offsetId,
+          printingMethodId = SampleCatalog.digitalId,
           components = List(mainComponent(SampleCatalog.coated300gsmId, InkConfiguration.cmyk4_4)),
           specs = List(
             SpecValue.SizeSpec(Dimension(210, 148)),
@@ -216,7 +216,7 @@ object ConfigurationBuilderSpec extends ZIOSpecDefault:
       test("cover material not in cover template is rejected") {
         val request = ConfigurationRequest(
           categoryId = SampleCatalog.bookletsId,
-          printingMethodId = SampleCatalog.offsetId,
+          printingMethodId = SampleCatalog.digitalId,
           components = List(
             ComponentRequest(ComponentRole.Cover, SampleCatalog.uncoatedBondId, InkConfiguration.cmyk4_4, Nil),
             ComponentRequest(ComponentRole.Body, SampleCatalog.coated300gsmId, InkConfiguration.cmyk4_4, Nil),
@@ -238,7 +238,7 @@ object ConfigurationBuilderSpec extends ZIOSpecDefault:
       test("body finish not in body template is rejected") {
         val request = ConfigurationRequest(
           categoryId = SampleCatalog.bookletsId,
-          printingMethodId = SampleCatalog.offsetId,
+          printingMethodId = SampleCatalog.digitalId,
           components = List(
             ComponentRequest(ComponentRole.Cover, SampleCatalog.coated300gsmId, InkConfiguration.cmyk4_4, Nil),
             ComponentRequest(ComponentRole.Body, SampleCatalog.coated300gsmId, InkConfiguration.cmyk4_4, List(FinishSelection(SampleCatalog.matteLaminationId))),
@@ -260,7 +260,7 @@ object ConfigurationBuilderSpec extends ZIOSpecDefault:
       test("sheet count verification: saddle stitch 16 pages = 3 body sheets") {
         val request = ConfigurationRequest(
           categoryId = SampleCatalog.bookletsId,
-          printingMethodId = SampleCatalog.offsetId,
+          printingMethodId = SampleCatalog.digitalId,
           components = List(
             ComponentRequest(ComponentRole.Cover, SampleCatalog.coated300gsmId, InkConfiguration.cmyk4_4, Nil),
             ComponentRequest(ComponentRole.Body, SampleCatalog.coated300gsmId, InkConfiguration.cmyk4_4, Nil),
@@ -287,7 +287,7 @@ object ConfigurationBuilderSpec extends ZIOSpecDefault:
       test("UV coating on kraft paper is rejected (property-level rule)") {
         val request = ConfigurationRequest(
           categoryId = SampleCatalog.packagingId,
-          printingMethodId = SampleCatalog.offsetId,
+          printingMethodId = SampleCatalog.digitalId,
           components = List(mainComponent(SampleCatalog.kraftId, InkConfiguration.cmyk4_4, List(FinishSelection(SampleCatalog.uvCoatingId)))),
           specs = List(
             SpecValue.SizeSpec(Dimension(200, 150)),
@@ -304,7 +304,7 @@ object ConfigurationBuilderSpec extends ZIOSpecDefault:
       test("foil stamping on kraft paper (no smooth surface) is rejected") {
         val request = ConfigurationRequest(
           categoryId = SampleCatalog.packagingId,
-          printingMethodId = SampleCatalog.offsetId,
+          printingMethodId = SampleCatalog.digitalId,
           components = List(mainComponent(SampleCatalog.kraftId, InkConfiguration.cmyk4_4, List(FinishSelection(SampleCatalog.foilStampingId)))),
           specs = List(
             SpecValue.SizeSpec(Dimension(200, 150)),
@@ -338,7 +338,7 @@ object ConfigurationBuilderSpec extends ZIOSpecDefault:
       test("material not allowed for category is rejected") {
         val request = ConfigurationRequest(
           categoryId = SampleCatalog.businessCardsId,
-          printingMethodId = SampleCatalog.offsetId,
+          printingMethodId = SampleCatalog.digitalId,
           components = List(mainComponent(SampleCatalog.vinylId, InkConfiguration.cmyk4_4)),
           specs = List(
             SpecValue.SizeSpec(Dimension(90, 55)),
@@ -355,7 +355,7 @@ object ConfigurationBuilderSpec extends ZIOSpecDefault:
       test("missing required specs are reported") {
         val request = ConfigurationRequest(
           categoryId = SampleCatalog.businessCardsId,
-          printingMethodId = SampleCatalog.offsetId,
+          printingMethodId = SampleCatalog.digitalId,
           components = List(mainComponent(SampleCatalog.coated300gsmId, InkConfiguration.cmyk4_4)),
           specs = List(
             SpecValue.SizeSpec(Dimension(90, 55)),
@@ -372,7 +372,7 @@ object ConfigurationBuilderSpec extends ZIOSpecDefault:
       test("multiple errors are accumulated") {
         val request = ConfigurationRequest(
           categoryId = SampleCatalog.packagingId,
-          printingMethodId = SampleCatalog.offsetId,
+          printingMethodId = SampleCatalog.digitalId,
           components = List(mainComponent(SampleCatalog.kraftId, InkConfiguration.cmyk4_4, List(FinishSelection(SampleCatalog.uvCoatingId), FinishSelection(SampleCatalog.foilStampingId)))),
           specs = List(
             SpecValue.SizeSpec(Dimension(200, 150)),
@@ -439,7 +439,7 @@ object ConfigurationBuilderSpec extends ZIOSpecDefault:
       test("unknown category returns CategoryNotFound") {
         val request = ConfigurationRequest(
           categoryId = CategoryId.unsafe("cat-nonexistent"),
-          printingMethodId = SampleCatalog.offsetId,
+          printingMethodId = SampleCatalog.digitalId,
           components = List(mainComponent(SampleCatalog.coated300gsmId, InkConfiguration.cmyk4_4)),
           specs = Nil,
         )
@@ -593,7 +593,7 @@ object ConfigurationBuilderSpec extends ZIOSpecDefault:
       test("booklet with invalid binding method is rejected") {
         val request = ConfigurationRequest(
           categoryId = SampleCatalog.bookletsId,
-          printingMethodId = SampleCatalog.offsetId,
+          printingMethodId = SampleCatalog.digitalId,
           components = List(
             ComponentRequest(ComponentRole.Cover, SampleCatalog.coated300gsmId, InkConfiguration.cmyk4_4, Nil),
             ComponentRequest(ComponentRole.Body, SampleCatalog.coated300gsmId, InkConfiguration.cmyk4_4, Nil),
@@ -615,7 +615,7 @@ object ConfigurationBuilderSpec extends ZIOSpecDefault:
       test("booklet with too few pages is rejected") {
         val request = ConfigurationRequest(
           categoryId = SampleCatalog.bookletsId,
-          printingMethodId = SampleCatalog.offsetId,
+          printingMethodId = SampleCatalog.digitalId,
           components = List(
             ComponentRequest(ComponentRole.Cover, SampleCatalog.coated300gsmId, InkConfiguration.cmyk4_4, Nil),
             ComponentRequest(ComponentRole.Body, SampleCatalog.coated300gsmId, InkConfiguration.cmyk4_4, Nil),
@@ -639,7 +639,7 @@ object ConfigurationBuilderSpec extends ZIOSpecDefault:
       test("printing method not allowed for category is rejected") {
         val request = ConfigurationRequest(
           categoryId = SampleCatalog.bannersId,
-          printingMethodId = SampleCatalog.offsetId, // banners only allow UV inkjet
+          printingMethodId = SampleCatalog.digitalId, // banners only allow UV inkjet
           components = List(mainComponent(SampleCatalog.vinylId, InkConfiguration.cmyk4_4)),
           specs = List(
             SpecValue.SizeSpec(Dimension(1000, 500)),
@@ -825,7 +825,7 @@ object ConfigurationBuilderSpec extends ZIOSpecDefault:
       test("saddle stitch with pages not divisible by 4 is rejected") {
         val request = ConfigurationRequest(
           categoryId = SampleCatalog.bookletsId,
-          printingMethodId = SampleCatalog.offsetId,
+          printingMethodId = SampleCatalog.digitalId,
           components = List(
             ComponentRequest(ComponentRole.Cover, SampleCatalog.coated300gsmId, InkConfiguration.cmyk4_4, Nil),
             ComponentRequest(ComponentRole.Body, SampleCatalog.coatedMatte115gsm.id, InkConfiguration.cmyk4_4, Nil),
@@ -844,7 +844,7 @@ object ConfigurationBuilderSpec extends ZIOSpecDefault:
       test("saddle stitch with pages divisible by 4 succeeds") {
         val request = ConfigurationRequest(
           categoryId = SampleCatalog.bookletsId,
-          printingMethodId = SampleCatalog.offsetId,
+          printingMethodId = SampleCatalog.digitalId,
           components = List(
             ComponentRequest(ComponentRole.Cover, SampleCatalog.coated300gsmId, InkConfiguration.cmyk4_4, Nil),
             ComponentRequest(ComponentRole.Body, SampleCatalog.coatedMatte115gsm.id, InkConfiguration.cmyk4_4, Nil),
@@ -899,7 +899,7 @@ object ConfigurationBuilderSpec extends ZIOSpecDefault:
       test("saddle stitch on heavy paper (>=300gsm) with >80 pages is rejected") {
         val request = ConfigurationRequest(
           categoryId = SampleCatalog.bookletsId,
-          printingMethodId = SampleCatalog.offsetId,
+          printingMethodId = SampleCatalog.digitalId,
           components = List(
             ComponentRequest(ComponentRole.Cover, SampleCatalog.coated300gsmId, InkConfiguration.cmyk4_4, Nil),
             ComponentRequest(ComponentRole.Body, SampleCatalog.coated300gsmId, InkConfiguration.cmyk4_4, Nil),
@@ -918,7 +918,7 @@ object ConfigurationBuilderSpec extends ZIOSpecDefault:
       test("saddle stitch on heavy paper with <=80 pages succeeds") {
         val request = ConfigurationRequest(
           categoryId = SampleCatalog.bookletsId,
-          printingMethodId = SampleCatalog.offsetId,
+          printingMethodId = SampleCatalog.digitalId,
           components = List(
             ComponentRequest(ComponentRole.Cover, SampleCatalog.coated300gsmId, InkConfiguration.cmyk4_4, Nil),
             ComponentRequest(ComponentRole.Body, SampleCatalog.coated300gsmId, InkConfiguration.cmyk4_4, Nil),

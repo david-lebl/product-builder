@@ -75,12 +75,16 @@ object ProductBuilderViewModel:
     val defaultSpecs = categoryOpt match
       case Some(cat) => defaultSpecsForCategory(cat)
       case None      => List.empty
+    
+    val defaultPrintMethod = categoryOpt match
+      case Some(value) => defaultPrintMethodForCategory(value)
+      case None => None
 
     stateVar.update(state =>
       state.copy(
         selectedCategoryId = Some(categoryId),
         componentStates = componentStates,
-        selectedPrintingMethodId = None,
+        selectedPrintingMethodId = defaultPrintMethod,
         specifications = defaultSpecs,
         validationErrors = List.empty,
         priceBreakdown = None,
@@ -90,12 +94,15 @@ object ProductBuilderViewModel:
     specResetBus.emit(defaultSpecs)
     autoRecalculate()
   }
+  
+  private def defaultPrintMethodForCategory(cat: ProductCategory): Option[PrintingMethodId] =
+    CatalogQueryService.availablePrintingMethods(cat.id, catalog).headOption.map(_.id)
 
   private def defaultSpecsForCategory(cat: ProductCategory): List[SpecValue] =
     val kinds = cat.requiredSpecKinds
     val specs = List.newBuilder[SpecValue]
     if kinds.contains(SpecKind.Quantity) then
-      specs += SpecValue.QuantitySpec(Quantity.unsafe(1000))
+      specs += SpecValue.QuantitySpec(Quantity.unsafe(1))
     if kinds.contains(SpecKind.Size) then
       specs += SpecValue.SizeSpec(Dimension(210, 297)) // A4
     if kinds.contains(SpecKind.Orientation) then

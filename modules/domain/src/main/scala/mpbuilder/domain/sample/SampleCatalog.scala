@@ -525,7 +525,7 @@ object SampleCatalog:
       allowedFinishIds = Set(matteLaminationId, uvCoatingId, embossingId, foilStampingId, dieCutId, scoringId, perforationId, debossingId),
     )),
     requiredSpecKinds = Set(SpecKind.Size, SpecKind.Quantity),
-    allowedPrintingMethodIds = Set(offsetId, digitalId),
+    allowedPrintingMethodIds = Set(digitalId),
   )
 
   val booklets: ProductCategory = ProductCategory(
@@ -546,7 +546,7 @@ object SampleCatalog:
       ),
     ),
     requiredSpecKinds = Set(SpecKind.Size, SpecKind.Quantity, SpecKind.Pages, SpecKind.BindingMethod),
-    allowedPrintingMethodIds = Set(offsetId, digitalId),
+    allowedPrintingMethodIds = Set(digitalId),
   )
 
   val calendars: ProductCategory = ProductCategory(
