@@ -9,15 +9,18 @@
             margin: 0;
             padding: 0;
             box-sizing: border-box;
+            --top-bar-height: 52px;
+            --nav-bar-height: 42px;
+            --header-total-height: calc(var(--top-bar-height) + var(--nav-bar-height));
         }
 
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
             line-height: 1.6;
             color: #333;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: #f0f2f5;
             min-height: 100vh;
-            padding: 20px;
+            padding: 0;
         }
 
         .container {
@@ -26,9 +29,7 @@
         }
 
         .header {
-            text-align: center;
-            color: white;
-            margin-bottom: 30px;
+            display: none;
         }
 
         .header h1 {
@@ -42,37 +43,104 @@
             opacity: 0.95;
         }
 
-        .language-selector {
-            background: white;
-            border-radius: 8px;
-            padding: 10px 15px;
-            margin-bottom: 20px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        /* ─── Sticky Top Bar ─────────────────────────────────── */
+
+        .top-bar-wrapper {
+            position: sticky;
+            top: 0;
+            z-index: 200;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.12);
+        }
+
+        .top-bar {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
             display: flex;
             align-items: center;
-            gap: 10px;
+            padding: 0 max(20px, calc((100% - 1200px) / 2));
+            height: var(--top-bar-height);
+            gap: 16px;
+        }
+
+        .top-bar-logo {
+            font-size: 1.25rem;
+            font-weight: 700;
+            white-space: nowrap;
+            letter-spacing: -0.3px;
+        }
+
+        .top-bar-spacer {
+            flex: 1;
+        }
+
+        .top-bar-user {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 0.85rem;
+            opacity: 0.9;
+            white-space: nowrap;
+        }
+
+        .top-bar-user-icon {
+            font-size: 1.1rem;
+        }
+
+        .language-selector {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            background: transparent;
+            border-radius: 0;
+            padding: 0;
+            margin: 0;
+            box-shadow: none;
         }
 
         .language-selector label {
-            margin: 0;
-            white-space: nowrap;
-            font-weight: 500;
-            color: #555;
+            display: none;
         }
 
         .language-selector select {
             width: auto;
-            min-width: 120px;
-            padding: 6px 10px;
-            border: 2px solid #e0e0e0;
+            min-width: 100px;
+            padding: 4px 8px;
+            border: 1px solid rgba(255,255,255,0.4);
+            border-radius: 4px;
+            font-size: 0.85rem;
+            background: rgba(255,255,255,0.15);
+            color: white;
+            cursor: pointer;
+        }
+
+        .language-selector select option {
+            color: #333;
+            background: white;
+        }
+
+        .top-bar .nav-basket-btn {
+            background: rgba(255,255,255,0.15);
+            border: 1px solid rgba(255,255,255,0.3);
             border-radius: 6px;
-            font-size: 0.95rem;
+            padding: 5px 12px;
+            margin: 0;
+            color: white;
+            font-size: 0.9rem;
+        }
+
+        .top-bar .nav-basket-btn:hover:not(:disabled) {
+            background: rgba(255,255,255,0.25);
+            transform: none;
+            box-shadow: none;
         }
 
         .main-content {
             display: grid;
             grid-template-columns: 2fr 1fr;
             gap: 20px;
+            padding: 20px;
+            max-width: 1200px;
+            margin: 0 auto;
         }
 
         @media (max-width: 968px) {
@@ -184,11 +252,29 @@
 
         .price-section {
             position: sticky;
-            top: 20px;
+            top: calc(var(--header-total-height) + 20px);
+            max-height: calc(100vh - var(--header-total-height) - 40px);
+            display: flex;
+            flex-direction: column;
+        }
+
+        .price-detail-content {
+            display: flex;
+            flex-direction: column;
+            min-height: 0;
+            flex: 1;
+            overflow: hidden;
+        }
+
+        .price-detail-content > .card:first-child {
+            flex: 1;
+            overflow-y: auto;
+            min-height: 0;
         }
 
         .price-detail-content > .card:not(:first-child) {
-            margin-top: 20px;
+            margin-top: 12px;
+            flex-shrink: 0;
         }
 
         .price-display {
@@ -656,34 +742,40 @@
         /* App Navigation Styles */
         .app-navigation {
             background: white;
-            border-radius: 8px;
-            padding: 10px;
-            margin-bottom: 20px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            padding: 0 max(20px, calc((100% - 1200px) / 2));
             display: flex;
-            gap: 10px;
+            gap: 0;
+            border-bottom: 2px solid #e0e0e0;
         }
 
         .app-navigation .nav-link {
             padding: 10px 20px;
-            background: #d0d0d0;
-            color: #333333;
-            border: 2px solid transparent;
-            border-radius: 6px;
+            background: transparent;
+            color: #555;
+            border: none;
+            border-bottom: 3px solid transparent;
+            border-radius: 0;
             cursor: pointer;
             transition: all 0.2s;
             font-weight: 500;
+            margin-bottom: -2px;
         }
 
         .app-navigation .nav-link:hover {
-            background: #b8b8b8;
-            color: #000000;
+            background: #f5f7ff;
+            color: #667eea;
+        }
+
+        .app-navigation .nav-link:hover:not(:disabled) {
+            transform: none;
+            box-shadow: none;
         }
 
         .app-navigation .nav-link.active {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            border-color: transparent;
+            background: transparent;
+            color: #667eea;
+            border-bottom-color: #667eea;
+            font-weight: 600;
         }
 
         /* ─── Product Type & Format Selectors ────────────────── */
@@ -1434,11 +1526,10 @@
         /* ─── Nav Basket Button ───────────────────────────────── */
 
         .nav-basket-btn {
-            margin-left: auto;
             display: flex;
             align-items: center;
             gap: 4px;
-            padding: 8px 16px;
+            padding: 5px 12px;
         }
 
         .nav-basket-btn-hidden {
@@ -1472,6 +1563,32 @@
         @media (max-width: 480px) {
             .basket-btn-label {
                 display: none;
+            }
+        }
+
+        @media (max-width: 600px) {
+            .top-bar {
+                gap: 8px;
+                padding: 0 12px;
+            }
+            .top-bar-logo {
+                min-width: 0;
+                overflow: hidden;
+                text-overflow: ellipsis;
+            }
+            .top-bar-user > span:not(.top-bar-user-icon) {
+                display: none;
+            }
+            .language-selector select {
+                min-width: auto;
+                padding: 4px;
+                font-size: 0.8rem;
+            }
+            .top-bar .nav-basket-btn {
+                padding: 5px 8px;
+            }
+            .app-navigation {
+                padding: 0 12px;
             }
         }
 
@@ -1612,6 +1729,7 @@
                 max-height: 75vh;
                 overflow-y: auto;
                 border-radius: 12px 12px 0 0;
+                flex-direction: column;
             }
 
             .price-section .card {
@@ -1626,6 +1744,11 @@
 
             .price-detail-content {
                 display: none;
+                overflow: visible;
+            }
+
+            .price-detail-content > .card:first-child {
+                overflow-y: visible;
             }
 
             .price-section.price-expanded .price-detail-content {
@@ -2161,14 +2284,7 @@
     </style>
 </head>
 <body>
-    <div class="container">
-        <div class="header">
-            <h1>Product Builder</h1>
-            <p>Configure and design your custom print products with ease</p>
-        </div>
-
-        <div id="app-root"></div>
-    </div>
+    <div id="app-root"></div>
 
     <script src="main.js"></script>
 </body>
