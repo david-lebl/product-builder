@@ -24,6 +24,8 @@ final case class PriceBreakdown(
     categorySurcharge: Option[LineItem],
     subtotal: Money,
     quantityMultiplier: BigDecimal,
+    setupFees: List[LineItem],
+    minimumApplied: Option[Money],
     total: Money,
     currency: Currency,
 )

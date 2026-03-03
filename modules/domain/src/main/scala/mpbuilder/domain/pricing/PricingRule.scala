@@ -21,3 +21,8 @@ enum PricingRule:
   case SheetQuantityTier(minSheets: Int, maxSheets: Option[Int], multiplier: BigDecimal)
   case InkConfigurationFactor(frontColorCount: Int, backColorCount: Int, materialMultiplier: BigDecimal)
   case CuttingSurcharge(costPerCut: Money)
+  // One-time machine setup cost; added after the volume-discount multiplier
+  case FinishTypeSetupFee(finishType: FinishType, setupCost: Money)
+  case FinishSetupFee(finishId: FinishId, setupCost: Money)
+  // Global price floor applied after setup fees
+  case MinimumOrderPrice(minTotal: Money)

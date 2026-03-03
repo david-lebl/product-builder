@@ -548,12 +548,13 @@ object PriceCalculatorSpec extends ZIOSpecDefault:
         val breakdown = result.toEither.toOption.get
         val cb = firstBreakdown(breakdown)
         // material: 12 × 1 = 12
-        // tier 1-99: 1.0×
-        // total = 12
+        // tier 1-99: 1.0×, no setup fees → billable = 12
+        // minimum 500 triggered → total = 500
         assertTrue(
           result.toEither.isRight,
           cb.materialLine.unitPrice == Money("12"),
-          breakdown.total == Money("12.00"),
+          breakdown.minimumApplied.isDefined,
+          breakdown.total == Money("500.00"),
           breakdown.currency == Currency.CZK,
         )
       },
@@ -574,11 +575,12 @@ object PriceCalculatorSpec extends ZIOSpecDefault:
         val breakdown = result.toEither.toOption.get
         val cb = firstBreakdown(breakdown)
         // material: 15 × 1 = 15
-        // tier 1-99: 1.0×
-        // total = 15
+        // tier 1-99: 1.0×, no setup fees → billable = 15
+        // minimum 500 triggered → total = 500
         assertTrue(
           cb.materialLine.unitPrice == Money("15"),
-          breakdown.total == Money("15.00"),
+          breakdown.minimumApplied.isDefined,
+          breakdown.total == Money("500.00"),
           breakdown.currency == Currency.CZK,
         )
       },
@@ -601,13 +603,14 @@ object PriceCalculatorSpec extends ZIOSpecDefault:
         // material: 12 × 1 = 12
         // ink config 4/0: 12 × (0.85 - 1.0) = -1.80
         // subtotal = 12 + (-1.80) = 10.20
-        // tier 1-99: 1.0×
-        // total = 10.20 (approximates 10 Kč from price table)
+        // tier 1-99: 1.0×, no setup fees → billable = 10.20
+        // minimum 500 triggered → total = 500
         assertTrue(
           cb.inkConfigLine.isDefined,
           cb.inkConfigLine.get.lineTotal == Money("-1.80"),
           breakdown.subtotal == Money("10.20"),
-          breakdown.total == Money("10.20"),
+          breakdown.minimumApplied.isDefined,
+          breakdown.total == Money("500.00"),
         )
       },
       test("flyer with coated glossy 130gsm 4/4 at 1000 pcs applies quantity tier") {
@@ -1101,6 +1104,256 @@ object PriceCalculatorSpec extends ZIOSpecDefault:
         assertTrue(
           result.toEither.isRight,
           breakdown.quantityMultiplier == BigDecimal("0.90"),
+        )
+      },
+    ),
+    suite("setup fees and minimum order price")(
+      test("setup fee added after quantity multiplier, not discounted") {
+        // material: 0.10 × 100 = 10.00
+        // tier 0.50×: discountedSubtotal = 5.00
+        // setup fee: 30.00 (not discounted)
+        // billable = 5.00 + 30.00 = 35.00
+        // no minimum → total = 35.00
+        val customPricelist = Pricelist(
+          rules = List(
+            PricingRule.MaterialBasePrice(SampleCatalog.coated300gsmId, Money("0.10")),
+            PricingRule.FinishSetupFee(SampleCatalog.matteLaminationId, Money("30")),
+            PricingRule.QuantityTier(1, None, BigDecimal("0.50")),
+          ),
+          currency = Currency.USD,
+          version = "test",
+        )
+        val config = makeConfig(
+          category = SampleCatalog.businessCards,
+          material = SampleCatalog.coated300gsm,
+          printingMethod = SampleCatalog.offsetMethod,
+          inkConfig = InkConfiguration.cmyk4_4,
+          finishes = List(SelectedFinish(SampleCatalog.matteLamination)),
+          specs = List(
+            SpecValue.SizeSpec(Dimension(90, 55)),
+            SpecValue.QuantitySpec(Quantity.unsafe(100)),
+          ),
+        )
+        val result = PriceCalculator.calculate(config, customPricelist)
+        val breakdown = result.toEither.toOption.get
+        assertTrue(
+          result.toEither.isRight,
+          breakdown.quantityMultiplier == BigDecimal("0.50"),
+          breakdown.setupFees.size == 1,
+          breakdown.setupFees.head.lineTotal == Money("30"),
+          breakdown.minimumApplied.isEmpty,
+          breakdown.total == Money("35.00"),
+        )
+      },
+      test("ID-level FinishSetupFee overrides type-level FinishTypeSetupFee") {
+        // ID-level: 20; type-level: 99 — ID wins
+        val customPricelist = Pricelist(
+          rules = List(
+            PricingRule.MaterialBasePrice(SampleCatalog.coated300gsmId, Money("0.10")),
+            PricingRule.FinishSetupFee(SampleCatalog.matteLaminationId, Money("20")),
+            PricingRule.FinishTypeSetupFee(FinishType.Lamination, Money("99")),
+            PricingRule.QuantityTier(1, None, BigDecimal("1.0")),
+          ),
+          currency = Currency.USD,
+          version = "test",
+        )
+        val config = makeConfig(
+          category = SampleCatalog.businessCards,
+          material = SampleCatalog.coated300gsm,
+          printingMethod = SampleCatalog.offsetMethod,
+          inkConfig = InkConfiguration.cmyk4_4,
+          finishes = List(SelectedFinish(SampleCatalog.matteLamination)),
+          specs = List(
+            SpecValue.SizeSpec(Dimension(90, 55)),
+            SpecValue.QuantitySpec(Quantity.unsafe(100)),
+          ),
+        )
+        val result = PriceCalculator.calculate(config, customPricelist)
+        val breakdown = result.toEither.toOption.get
+        assertTrue(
+          breakdown.setupFees.size == 1,
+          breakdown.setupFees.head.lineTotal == Money("20"),
+        )
+      },
+      test("type-level FinishTypeSetupFee applies when no ID-level rule") {
+        // No ID-level rule for softTouchCoating → type-level Lamination fee applies
+        val customPricelist = Pricelist(
+          rules = List(
+            PricingRule.MaterialBasePrice(SampleCatalog.coated300gsmId, Money("0.10")),
+            PricingRule.FinishTypeSetupFee(FinishType.SoftTouchCoating, Money("45")),
+            PricingRule.QuantityTier(1, None, BigDecimal("1.0")),
+          ),
+          currency = Currency.USD,
+          version = "test",
+        )
+        val config = makeConfig(
+          category = SampleCatalog.businessCards,
+          material = SampleCatalog.coated300gsm,
+          printingMethod = SampleCatalog.offsetMethod,
+          inkConfig = InkConfiguration.cmyk4_4,
+          finishes = List(SelectedFinish(SampleCatalog.softTouchCoating)),
+          specs = List(
+            SpecValue.SizeSpec(Dimension(90, 55)),
+            SpecValue.QuantitySpec(Quantity.unsafe(100)),
+          ),
+        )
+        val result = PriceCalculator.calculate(config, customPricelist)
+        val breakdown = result.toEither.toOption.get
+        assertTrue(
+          breakdown.setupFees.size == 1,
+          breakdown.setupFees.head.lineTotal == Money("45"),
+        )
+      },
+      test("same finish on two components charged once (deduplication)") {
+        // Matte lamination on both Cover and Body → setup fee charged only once
+        val customPricelist = Pricelist(
+          rules = List(
+            PricingRule.MaterialBasePrice(SampleCatalog.coated300gsmId, Money("0.10")),
+            PricingRule.FinishSetupFee(SampleCatalog.matteLaminationId, Money("50")),
+            PricingRule.QuantityTier(1, None, BigDecimal("1.0")),
+          ),
+          currency = Currency.USD,
+          version = "test",
+        )
+        val config = ProductConfiguration(
+          id = configId,
+          category = SampleCatalog.booklets,
+          printingMethod = SampleCatalog.offsetMethod,
+          components = List(
+            ProductComponent(ComponentRole.Cover, SampleCatalog.coated300gsm, InkConfiguration.cmyk4_4, List(SelectedFinish(SampleCatalog.matteLamination)), sheetCount = 1),
+            ProductComponent(ComponentRole.Body, SampleCatalog.coated300gsm, InkConfiguration.cmyk4_4, List(SelectedFinish(SampleCatalog.matteLamination)), sheetCount = 1),
+          ),
+          specifications = ProductSpecifications.fromSpecs(List(
+            SpecValue.SizeSpec(Dimension(210, 148)),
+            SpecValue.QuantitySpec(Quantity.unsafe(100)),
+            SpecValue.PagesSpec(8),
+            SpecValue.BindingMethodSpec(BindingMethod.SaddleStitch),
+          )),
+        )
+        val result = PriceCalculator.calculate(config, customPricelist)
+        val breakdown = result.toEither.toOption.get
+        assertTrue(
+          breakdown.setupFees.size == 1,
+          breakdown.setupFees.head.lineTotal == Money("50"),
+        )
+      },
+      test("MinimumOrderPrice applied when billable is below floor") {
+        // material: 0.10 × 5 = 0.50, tier 1.0× → discountedSubtotal = 0.50
+        // no setup fees → billable = 0.50
+        // minimum = 100 → total = 100, minimumApplied = Some(0.50)
+        val customPricelist = Pricelist(
+          rules = List(
+            PricingRule.MaterialBasePrice(SampleCatalog.coated300gsmId, Money("0.10")),
+            PricingRule.QuantityTier(1, None, BigDecimal("1.0")),
+            PricingRule.MinimumOrderPrice(Money("100")),
+          ),
+          currency = Currency.USD,
+          version = "test",
+        )
+        val config = makeConfig(
+          category = SampleCatalog.businessCards,
+          material = SampleCatalog.coated300gsm,
+          printingMethod = SampleCatalog.offsetMethod,
+          inkConfig = InkConfiguration.cmyk4_4,
+          finishes = Nil,
+          specs = List(
+            SpecValue.SizeSpec(Dimension(90, 55)),
+            SpecValue.QuantitySpec(Quantity.unsafe(5)),
+          ),
+        )
+        val result = PriceCalculator.calculate(config, customPricelist)
+        val breakdown = result.toEither.toOption.get
+        assertTrue(
+          result.toEither.isRight,
+          breakdown.minimumApplied.isDefined,
+          breakdown.minimumApplied.get == Money("0.50"),
+          breakdown.total == Money("100.00"),
+        )
+      },
+      test("MinimumOrderPrice not applied when billable is above floor") {
+        // material: 0.10 × 2000 = 200, no tier → total = 200 > minimum 100
+        val customPricelist = Pricelist(
+          rules = List(
+            PricingRule.MaterialBasePrice(SampleCatalog.coated300gsmId, Money("0.10")),
+            PricingRule.QuantityTier(1, None, BigDecimal("1.0")),
+            PricingRule.MinimumOrderPrice(Money("100")),
+          ),
+          currency = Currency.USD,
+          version = "test",
+        )
+        val config = makeConfig(
+          category = SampleCatalog.businessCards,
+          material = SampleCatalog.coated300gsm,
+          printingMethod = SampleCatalog.offsetMethod,
+          inkConfig = InkConfiguration.cmyk4_4,
+          finishes = Nil,
+          specs = List(
+            SpecValue.SizeSpec(Dimension(90, 55)),
+            SpecValue.QuantitySpec(Quantity.unsafe(2000)),
+          ),
+        )
+        val result = PriceCalculator.calculate(config, customPricelist)
+        val breakdown = result.toEither.toOption.get
+        assertTrue(
+          result.toEither.isRight,
+          breakdown.minimumApplied.isEmpty,
+          breakdown.total == Money("200.00"),
+        )
+      },
+      test("minimum compared against combined billable (discounted subtotal + setup fees)") {
+        // material: 0.10 × 10 = 1.00, tier 0.50× → discountedSubtotal = 0.50
+        // setup fee: 40 → billable = 40.50
+        // minimum = 100 → floor triggered (40.50 < 100), minimumApplied = Some(40.50)
+        val customPricelist = Pricelist(
+          rules = List(
+            PricingRule.MaterialBasePrice(SampleCatalog.coated300gsmId, Money("0.10")),
+            PricingRule.FinishSetupFee(SampleCatalog.matteLaminationId, Money("40")),
+            PricingRule.QuantityTier(1, None, BigDecimal("0.50")),
+            PricingRule.MinimumOrderPrice(Money("100")),
+          ),
+          currency = Currency.USD,
+          version = "test",
+        )
+        val config = makeConfig(
+          category = SampleCatalog.businessCards,
+          material = SampleCatalog.coated300gsm,
+          printingMethod = SampleCatalog.offsetMethod,
+          inkConfig = InkConfiguration.cmyk4_4,
+          finishes = List(SelectedFinish(SampleCatalog.matteLamination)),
+          specs = List(
+            SpecValue.SizeSpec(Dimension(90, 55)),
+            SpecValue.QuantitySpec(Quantity.unsafe(10)),
+          ),
+        )
+        val result = PriceCalculator.calculate(config, customPricelist)
+        val breakdown = result.toEither.toOption.get
+        assertTrue(
+          result.toEither.isRight,
+          breakdown.setupFees.size == 1,
+          breakdown.minimumApplied.isDefined,
+          breakdown.minimumApplied.get == Money("40.50"),
+          breakdown.total == Money("100.00"),
+        )
+      },
+      test("setupFees empty and minimumApplied is None with old-style pricelist") {
+        // USD pricelist has no setup fee or minimum rules → backward compat
+        val config = makeConfig(
+          category = SampleCatalog.businessCards,
+          material = SampleCatalog.coated300gsm,
+          printingMethod = SampleCatalog.offsetMethod,
+          inkConfig = InkConfiguration.cmyk4_4,
+          finishes = List(SelectedFinish(SampleCatalog.matteLamination)),
+          specs = List(
+            SpecValue.SizeSpec(Dimension(90, 55)),
+            SpecValue.QuantitySpec(Quantity.unsafe(500)),
+          ),
+        )
+        val result = PriceCalculator.calculate(config, pricelist)
+        val breakdown = result.toEither.toOption.get
+        assertTrue(
+          result.toEither.isRight,
+          breakdown.setupFees.isEmpty,
+          breakdown.minimumApplied.isEmpty,
         )
       },
     ),

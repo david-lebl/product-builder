@@ -47,7 +47,19 @@ object PriceCalculator:
           .orElse(findBestQuantityTier(rules, quantity).map(_.multiplier))
           .getOrElse(BigDecimal(1))
 
-        val total = (subtotal * multiplier).rounded
+        val discountedSubtotal = (subtotal * multiplier).rounded
+
+        val allSelectedFinishes = config.components.flatMap(_.finishes)
+        val setupFees = collectSetupFees(allSelectedFinishes, rules, lang)
+        val totalSetupFees = setupFees.map(_.lineTotal).foldLeft(Money.zero)(_ + _)
+        val billable = (discountedSubtotal + totalSetupFees).rounded
+
+        val minimumRule = rules.collectFirst { case r: PricingRule.MinimumOrderPrice => r }
+        val (total, minimumApplied) = minimumRule match
+          case Some(minRule) if billable.value < minRule.minTotal.value =>
+            (minRule.minTotal.rounded, Some(billable))
+          case _ =>
+            (billable, None)
 
         PriceBreakdown(
           componentBreakdowns = componentBreakdowns,
@@ -55,6 +67,8 @@ object PriceCalculator:
           categorySurcharge = categorySurcharge,
           subtotal = subtotal,
           quantityMultiplier = multiplier,
+          setupFees = setupFees,
+          minimumApplied = minimumApplied,
           total = total,
           currency = pricelist.currency,
         )
@@ -214,6 +228,37 @@ object PriceCalculator:
           lineTotal = lineTotal,
         ))
     }
+
+  private def collectSetupFees(
+      finishes: List[SelectedFinish],
+      rules: List[PricingRule],
+      lang: Language,
+  ): List[LineItem] =
+    val uniqueByIdFinishes = finishes.distinctBy(_.id)
+
+    val (idItems, coveredTypes) = uniqueByIdFinishes.foldLeft((List.empty[LineItem], Set.empty[FinishType])) {
+      case ((items, types), finish) =>
+        rules.collectFirst {
+          case r: PricingRule.FinishSetupFee if r.finishId == finish.id => r.setupCost
+        } match
+          case Some(cost) =>
+            (items :+ LineItem(s"Setup: ${finish.name(lang)}", cost, 1, cost), types + finish.finishType)
+          case None =>
+            (items, types)
+    }
+
+    val typeItems = uniqueByIdFinishes
+      .distinctBy(_.finishType)
+      .filterNot(f => coveredTypes.contains(f.finishType))
+      .flatMap { finish =>
+        rules.collectFirst {
+          case r: PricingRule.FinishTypeSetupFee if r.finishType == finish.finishType => r.setupCost
+        }.map { cost =>
+          LineItem(s"Setup: ${finish.name(lang)}", cost, 1, cost)
+        }
+      }
+
+    idItems ++ typeItems
 
   private def computeFinishLines(
       finishes: List[SelectedFinish],

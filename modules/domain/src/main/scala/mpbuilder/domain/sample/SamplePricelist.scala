@@ -126,6 +126,15 @@ object SamplePricelist:
       PricingRule.QuantityTier(100, Some(499), BigDecimal("0.55")),
       PricingRule.QuantityTier(500, Some(999), BigDecimal("0.45")),
       PricingRule.QuantityTier(1000, None, BigDecimal("0.40")),
+
+      // --- Finish setup fees (one-time machine setup cost, not discounted) ---
+      PricingRule.FinishSetupFee(SampleCatalog.matteLaminationId, Money("50")),
+      PricingRule.FinishSetupFee(SampleCatalog.glossLaminationId, Money("50")),
+      PricingRule.FinishSetupFee(SampleCatalog.softTouchCoatingId, Money("80")),
+      PricingRule.FinishTypeSetupFee(FinishType.Lamination, Money("50")),
+
+      // --- Minimum order price ---
+      PricingRule.MinimumOrderPrice(Money("500")),
     ),
     currency = Currency.CZK,
     version = "1.0.0-czk",
@@ -305,6 +314,15 @@ object SamplePricelist:
       PricingRule.SheetQuantityTier(50, Some(249), BigDecimal("0.90")),
       PricingRule.SheetQuantityTier(250, Some(999), BigDecimal("0.80")),
       PricingRule.SheetQuantityTier(1000, None, BigDecimal("0.70")),
+
+      // --- Finish setup fees (one-time machine setup cost, not discounted) ---
+      PricingRule.FinishSetupFee(SampleCatalog.matteLaminationId, Money("50")),
+      PricingRule.FinishSetupFee(SampleCatalog.glossLaminationId, Money("50")),
+      PricingRule.FinishSetupFee(SampleCatalog.softTouchCoatingId, Money("80")),
+      PricingRule.FinishTypeSetupFee(FinishType.Lamination, Money("50")),
+
+      // --- Minimum order price ---
+      PricingRule.MinimumOrderPrice(Money("500")),
     ),
     currency = Currency.CZK,
     version = "1.0.0-czk-sheet",
