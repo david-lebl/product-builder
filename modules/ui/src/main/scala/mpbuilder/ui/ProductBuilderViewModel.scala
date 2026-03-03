@@ -5,6 +5,7 @@ import mpbuilder.domain.model.CheckoutStep.*
 import mpbuilder.domain.service.*
 import mpbuilder.domain.validation.*
 import mpbuilder.domain.pricing.*
+import mpbuilder.domain.weight.{WeightBreakdown, WeightCalculator}
 import mpbuilder.domain.sample.*
 import zio.prelude.Validation
 import com.raquo.laminar.api.L.*
@@ -33,6 +34,7 @@ case class BuilderState(
                          specifications: List[SpecValue] = List.empty,
                          validationErrors: List[String] = List.empty,
                          priceBreakdown: Option[PriceBreakdown] = None,
+                         weightBreakdown: Option[WeightBreakdown] = None,
                          configuration: Option[ProductConfiguration] = None,
                          language: Language = Language.En,
                          basket: Basket = Basket(BasketId.unsafe("main-basket"), List.empty),
@@ -238,6 +240,7 @@ object ProductBuilderViewModel:
         stateVar.update(_.copy(
           validationErrors = List.empty,
           priceBreakdown = None,
+          weightBreakdown = None,
           configuration = None,
         ))
 
@@ -283,6 +286,7 @@ object ProductBuilderViewModel:
               configuration = None,
               validationErrors = errorMessages,
               priceBreakdown = None,
+              weightBreakdown = None,
             ))
           },
           config => {
@@ -295,13 +299,16 @@ object ProductBuilderViewModel:
                   configuration = Some(config),
                   validationErrors = errorMessages,
                   priceBreakdown = None,
+                  weightBreakdown = None,
                 ))
               },
               breakdown => {
+                val weightBreakdownOpt = WeightCalculator.calculate(config).toOption
                 stateVar.update(_.copy(
                   configuration = Some(config),
                   validationErrors = List.empty,
                   priceBreakdown = Some(breakdown),
+                  weightBreakdown = weightBreakdownOpt,
                 ))
               }
             )
@@ -315,6 +322,7 @@ object ProductBuilderViewModel:
           validationErrors = List(msg),
           configuration = None,
           priceBreakdown = None,
+          weightBreakdown = None,
         ))
   }
 

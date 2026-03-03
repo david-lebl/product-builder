@@ -4,6 +4,7 @@ import com.raquo.laminar.api.L.*
 import mpbuilder.ui.ProductBuilderViewModel
 import mpbuilder.domain.pricing.{Money, Currency, ComponentBreakdown}
 import mpbuilder.domain.model.{Language, ComponentRole}
+import mpbuilder.domain.weight.WeightBreakdown
 
 object PricePreview:
   def apply(): Element =
@@ -32,6 +33,26 @@ object PricePreview:
           },
         ),
       ),
+
+      // Weight display (shown when weight can be calculated)
+      child.maybe <-- ProductBuilderViewModel.state.combineWith(lang).map { case (state, l) =>
+        state.weightBreakdown.map { wb =>
+          div(
+            cls := "weight-display",
+            div(cls := "label", if l == Language.Cs then "Hmotnost" else "Weight"),
+            div(
+              cls := "price-line-item",
+              span(if l == Language.Cs then "Na kus:" else "Per item:"),
+              span(formatWeight(wb.weightPerItemG)),
+            ),
+            div(
+              cls := "price-line-item",
+              span(if l == Language.Cs then "Celkem:" else "Total:"),
+              span(formatWeight(wb.totalWeightG)),
+            ),
+          )
+        }
+      },
 
       // Price breakdown
       div(
@@ -166,6 +187,10 @@ object PricePreview:
         },
       ),
     )
+
+  private def formatWeight(grams: Double): String =
+    if grams >= 1000.0 then f"${grams / 1000.0}%.3f kg"
+    else f"${grams}%.2f g"
 
   private def formatMoney(money: Money, currency: Currency): String =
     currency match
