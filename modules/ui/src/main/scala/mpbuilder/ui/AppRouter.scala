@@ -2,12 +2,14 @@ package mpbuilder.ui
 
 import com.raquo.laminar.api.L.*
 import mpbuilder.ui.calendar.CalendarBuilderApp
+import mpbuilder.ui.components.CheckoutView
 import mpbuilder.domain.model.Language
 
 sealed trait AppRoute
 object AppRoute {
   case object ProductBuilder extends AppRoute
   case object CalendarBuilder extends AppRoute
+  case object Checkout extends AppRoute
 }
 
 object AppRouter {
@@ -19,10 +21,10 @@ object AppRouter {
     basketOpen.set(false)
     currentRouteVar.set(route)
   }
-  
+
   def apply(): Element = {
     val lang = ProductBuilderViewModel.currentLanguage
-    
+
     div(
       // Language selector at the top level
       div(
@@ -37,10 +39,13 @@ object AppRouter {
           },
         ),
       ),
-      
-      // Navigation header
+
+      // Navigation header — hidden during checkout
       div(
-        cls := "app-navigation",
+        cls <-- currentRoute.map {
+          case AppRoute.Checkout => "app-navigation app-navigation--hidden"
+          case _                 => "app-navigation"
+        },
         button(
           cls := "nav-link",
           cls <-- currentRoute.map {
@@ -87,11 +92,12 @@ object AppRouter {
           onClick --> { _ => basketOpen.update(!_) },
         ),
       ),
-      
+
       // Route content
       child <-- currentRoute.map {
-        case AppRoute.ProductBuilder => ProductBuilderApp()
+        case AppRoute.ProductBuilder  => ProductBuilderApp()
         case AppRoute.CalendarBuilder => CalendarBuilderApp()
+        case AppRoute.Checkout        => CheckoutView()
       }
     )
   }

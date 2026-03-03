@@ -1,7 +1,7 @@
 package mpbuilder.ui.components
 
 import com.raquo.laminar.api.L.*
-import mpbuilder.ui.{ProductBuilderViewModel, ArtworkMode}
+import mpbuilder.ui.{ProductBuilderViewModel, ArtworkMode, AppRouter, AppRoute}
 import mpbuilder.domain.pricing.{Money, Currency}
 import mpbuilder.domain.model.{Language, ConfigurationId, ComponentRole}
 
@@ -171,15 +171,31 @@ object BasketView:
         child.maybe <-- ProductBuilderViewModel.state.combineWith(lang).map { case (state, l) =>
           if state.basket.items.nonEmpty then
             Some(
-              button(
-                cls := "clear-basket-btn",
-                l match
-                  case Language.En => "Clear Basket"
-                  case Language.Cs => "Vyprázdnit košík"
-                ,
-                onClick --> { _ =>
-                  ProductBuilderViewModel.clearBasket()
-                },
+              div(
+                cls := "basket-actions-row",
+                button(
+                  cls := "checkout-btn basket-checkout-btn",
+                  l match
+                    case Language.En => "Proceed to Checkout →"
+                    case Language.Cs => "Přejít k pokladně →"
+                  ,
+                  onClick --> { _ =>
+                    AppRouter.basketOpen.set(false)
+                    ProductBuilderViewModel.startCheckout()
+                    AppRouter.navigateTo(AppRoute.Checkout)
+                  },
+                ),
+                button(
+                  cls := "clear-basket-btn clear-basket-icon-btn",
+                  title := (l match
+                    case Language.En => "Clear basket"
+                    case Language.Cs => "Vyprázdnit košík"
+                  ),
+                  "🗑",
+                  onClick --> { _ =>
+                    ProductBuilderViewModel.clearBasket()
+                  },
+                ),
               )
             )
           else
