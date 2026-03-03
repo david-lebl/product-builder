@@ -36,7 +36,9 @@ object ConfigurationForm:
           case Language.En => "3. Configure Components"
           case Language.Cs => "3. Specifikace výroby"
         }),
-        children <-- ProductBuilderViewModel.componentRoles.combineWith(lang).map { case (roles, l) =>
+        children <-- ProductBuilderViewModel.componentRoles
+          .combineWith(ProductBuilderViewModel.linkedComponents, lang)
+          .map { case (roles, linked, l) =>
           if roles.isEmpty then
             List(
               p(cls := "info-box",
@@ -49,14 +51,40 @@ object ConfigurationForm:
             // Single-component product — no role header needed
             List(componentSection(ComponentRole.Main))
           else
-            // Multi-component product — show labeled sections
-            roles.map { role =>
-              div(
-                cls := "component-section",
-                h4(componentRoleLabel(role, l)),
-                componentSection(role),
+            // Multi-component product — show linked toggle + conditional sections
+            val toggle = div(
+              cls := "form-group linked-components-toggle",
+              label(
+                cls := "linked-components-label",
+                input(
+                  typ := "checkbox",
+                  checked := linked,
+                  onChange.mapToChecked --> { v =>
+                    ProductBuilderViewModel.setLinkedComponents(v)
+                  },
+                ),
+                child.text <-- ProductBuilderViewModel.currentLanguage.map {
+                  case Language.En => " Same material and printing for all components"
+                  case Language.Cs => " Stejný materiál a tisk pro všechny komponenty"
+                },
+              ),
+            )
+            if linked then
+              // Unified section — selections apply to all components
+              // roles.head is safe: we are in the multi-component branch where roles.size > 1
+              List(
+                toggle,
+                componentSection(roles.head),
               )
-            }
+            else
+              // Separate section per component
+              toggle :: roles.map { role =>
+                div(
+                  cls := "component-section",
+                  h4(componentRoleLabel(role, l)),
+                  componentSection(role),
+                )
+              }
         },
       ),
 
