@@ -154,13 +154,8 @@ object ProductBuilderViewModel:
           cs.selectedFinishes - finishId
         else
           cs.selectedFinishes + (finishId -> defaultParams)
-      if state.linkedComponents then
-        val newStates = state.componentStates.map { case (r, c) =>
-          r -> c.copy(selectedFinishes = newFinishes)
-        }
-        state.copy(componentStates = newStates)
-      else
-        state.copy(componentStates = state.componentStates + (role -> cs.copy(selectedFinishes = newFinishes)))
+      // Finishes are always per-component — do not propagate even when components are linked
+      state.copy(componentStates = state.componentStates + (role -> cs.copy(selectedFinishes = newFinishes)))
     )
     autoRecalculate()
 
@@ -170,14 +165,8 @@ object ProductBuilderViewModel:
       val cs = state.componentStates.getOrElse(role, ComponentState(role))
       if cs.selectedFinishes.contains(finishId) then
         val newFinishes = cs.selectedFinishes + (finishId -> params)
-        if state.linkedComponents then
-          // Propagate the same finish map from the source role to all components
-          val newStates = state.componentStates.map { case (r, c) =>
-            r -> c.copy(selectedFinishes = newFinishes)
-          }
-          state.copy(componentStates = newStates)
-        else
-          state.copy(componentStates = state.componentStates + (role -> cs.copy(selectedFinishes = newFinishes)))
+        // Finishes are always per-component — do not propagate even when components are linked
+        state.copy(componentStates = state.componentStates + (role -> cs.copy(selectedFinishes = newFinishes)))
       else state
     )
     autoRecalculate()
@@ -341,14 +330,18 @@ object ProductBuilderViewModel:
   def setLinkedComponents(linked: Boolean): Unit =
     stateVar.update { s =>
       if linked then
-        // Sync all component states to the first (master) component.
+        // Sync material and ink config from the first (master) component to all others.
+        // Finishes remain per-component — they are not shared even when linked.
         // getOrElse with a fallback is safe: roles are derived from componentStates.keys,
         // so roles.head is guaranteed to be present in the map.
         val roles = s.componentStates.keys.toList.sortBy(_.ordinal)
         if roles.size > 1 then
           val masterState = s.componentStates.getOrElse(roles.head, ComponentState(roles.head))
-          val syncedStates = s.componentStates.map { case (role, _) =>
-            role -> masterState.copy(role = role)
+          val syncedStates = s.componentStates.map { case (role, cs) =>
+            role -> cs.copy(
+              selectedMaterialId = masterState.selectedMaterialId,
+              selectedInkConfig = masterState.selectedInkConfig,
+            )
           }
           s.copy(linkedComponents = true, componentStates = syncedStates)
         else

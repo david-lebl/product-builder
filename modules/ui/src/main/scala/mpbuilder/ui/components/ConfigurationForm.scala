@@ -55,7 +55,7 @@ object ConfigurationForm:
             val toggle = div(
               cls := "form-group linked-components-toggle",
               label(
-                cls := "linked-components-label",
+                cls := "checkbox-label",
                 input(
                   typ := "checkbox",
                   checked := linked,
@@ -70,12 +70,19 @@ object ConfigurationForm:
               ),
             )
             if linked then
-              // Unified section — selections apply to all components
-              // roles.head is safe: we are in the multi-component branch where roles.size > 1
-              List(
-                toggle,
-                componentSection(roles.head),
+              // Linked: shared material + ink section from the cover role, then per-component finishes
+              val sharedSection = div(
+                MaterialSelector(roles.head),
+                InkConfigSelector(roles.head),
               )
+              val finishSections = roles.map { role =>
+                div(
+                  cls := "component-section",
+                  h4(componentRoleLabel(role, l)),
+                  FinishSelector(role),
+                )
+              }
+              toggle :: sharedSection :: finishSections
             else
               // Separate section per component
               toggle :: roles.map { role =>
