@@ -125,26 +125,24 @@ object PricePreview:
                 roleHeader ++ materialLine ++ sheetsLine ++ cuttingLine ++ inkLine ++ finishLines
               }
 
-              val surchargeLines = breakdown.processSurcharge.map { proc =>
-                div(
-                  cls := "price-line-item",
-                  span(proc.label),
-                  span(formatMoney(proc.lineTotal, cur)),
-                )
-              }.toList ++ breakdown.categorySurcharge.map { cat =>
-                div(
-                  cls := "price-line-item",
-                  span(cat.label),
-                  span(formatMoney(cat.lineTotal, cur)),
-                )
-              }.toList
+              val surchargeLines =
+                List(breakdown.processSurcharge, breakdown.categorySurcharge, breakdown.foldSurcharge, breakdown.bindingSurcharge)
+                  .flatten
+                  .map { item =>
+                    div(
+                      cls := "price-line-item",
+                      span(item.label),
+                      span(formatMoney(item.lineTotal, cur)),
+                    )
+                  }
 
               val totalSheets = breakdown.componentBreakdowns.map(_.sheetsUsed).sum
               val isSheetTier = totalSheets > 0
 
-              val totalLines = List(
+              val subtotalAndMultiplierLines = List(
+                hr(cls := "price-subtotal-divider"),
                 div(
-                  cls := "price-line-item",
+                  cls := "price-line-item price-subtotal",
                   span(l match
                     case Language.En => "Subtotal:"
                     case Language.Cs => "Mezisoučet:"
@@ -165,6 +163,28 @@ object PricePreview:
                   ),
                   span(if breakdown.quantityMultiplier < 1.0 then s"-${formatMoney(Money(breakdown.subtotal.value * (1.0 - breakdown.quantityMultiplier)), cur)}" else formatMoney(Money.zero, cur)),
                 ),
+              )
+
+              val setupFeeLines = breakdown.setupFees.map { fee =>
+                div(
+                  cls := "price-line-item",
+                  span(fee.label),
+                  span(formatMoney(fee.lineTotal, cur)),
+                )
+              }
+
+              val minimumLine = breakdown.minimumApplied.map { originalBillable =>
+                div(
+                  cls := "price-line-item price-minimum-indicator",
+                  span(l match
+                    case Language.En => s"Minimum order applied (was ${formatMoney(originalBillable, cur)}):"
+                    case Language.Cs => s"Použito minimální ceny (původně ${formatMoney(originalBillable, cur)}):"
+                  ),
+                  span(""),
+                )
+              }.toList
+
+              val totalLine = List(
                 div(
                   cls := "price-line-item",
                   strong(l match
@@ -174,6 +194,8 @@ object PricePreview:
                   strong(formatMoney(breakdown.total, cur)),
                 ),
               )
+
+              val totalLines = subtotalAndMultiplierLines ++ setupFeeLines ++ minimumLine ++ totalLine
 
               headerLine ++ componentLines ++ surchargeLines ++ totalLines
 

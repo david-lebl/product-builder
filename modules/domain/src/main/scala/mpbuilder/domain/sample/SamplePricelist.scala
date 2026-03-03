@@ -26,12 +26,36 @@ object SamplePricelist:
       PricingRule.FinishSurcharge(SampleCatalog.glossLaminationId, Money("0.03")),
       PricingRule.FinishSurcharge(SampleCatalog.softTouchCoatingId, Money("0.05")),
       PricingRule.FinishSurcharge(SampleCatalog.embossingId, Money("0.08")),
+      PricingRule.FinishSurcharge(SampleCatalog.debossingId, Money("0.08")),
       PricingRule.FinishSurcharge(SampleCatalog.foilStampingId, Money("0.15")),
+      PricingRule.FinishSurcharge(SampleCatalog.dieCutId, Money("0.10")),
+      PricingRule.FinishSurcharge(SampleCatalog.kissCutId, Money("0.05")),
+      PricingRule.FinishSurcharge(SampleCatalog.grommetsId, Money("0.25")),
 
       // --- Finish surcharges (type-level) ---
       PricingRule.FinishTypeSurcharge(FinishType.UVCoating, Money("0.04")),
       PricingRule.FinishTypeSurcharge(FinishType.AqueousCoating, Money("0.02")),
       PricingRule.FinishTypeSurcharge(FinishType.Varnish, Money("0.06")),
+      PricingRule.FinishTypeSurcharge(FinishType.Scoring, Money("0.02")),
+      PricingRule.FinishTypeSurcharge(FinishType.Perforation, Money("0.02")),
+      PricingRule.FinishTypeSurcharge(FinishType.RoundCorners, Money("0.02")),
+
+      // --- Fold type surcharges (per unit, USD) ---
+      PricingRule.FoldTypeSurcharge(FoldType.Half, Money("0.02")),
+      PricingRule.FoldTypeSurcharge(FoldType.Tri, Money("0.03")),
+      PricingRule.FoldTypeSurcharge(FoldType.Gate, Money("0.04")),
+      PricingRule.FoldTypeSurcharge(FoldType.Accordion, Money("0.04")),
+      PricingRule.FoldTypeSurcharge(FoldType.ZFold, Money("0.03")),
+      PricingRule.FoldTypeSurcharge(FoldType.RollFold, Money("0.04")),
+      PricingRule.FoldTypeSurcharge(FoldType.FrenchFold, Money("0.04")),
+      PricingRule.FoldTypeSurcharge(FoldType.CrossFold, Money("0.05")),
+
+      // --- Binding method surcharges (per unit, USD) ---
+      PricingRule.BindingMethodSurcharge(BindingMethod.SaddleStitch, Money("0.05")),
+      PricingRule.BindingMethodSurcharge(BindingMethod.PerfectBinding, Money("0.12")),
+      PricingRule.BindingMethodSurcharge(BindingMethod.SpiralBinding, Money("0.20")),
+      PricingRule.BindingMethodSurcharge(BindingMethod.WireOBinding, Money("0.25")),
+      PricingRule.BindingMethodSurcharge(BindingMethod.CaseBinding, Money("0.60")),
 
       // --- Printing process surcharge ---
       PricingRule.PrintingProcessSurcharge(PrintingProcessType.Letterpress, Money("0.20")),
@@ -99,12 +123,33 @@ object SamplePricelist:
       PricingRule.FinishSurcharge(SampleCatalog.glossLaminationId, Money("1")),
       PricingRule.FinishSurcharge(SampleCatalog.softTouchCoatingId, Money("1.50")),
       PricingRule.FinishSurcharge(SampleCatalog.embossingId, Money("2")),
+      PricingRule.FinishSurcharge(SampleCatalog.debossingId, Money("2")),
       PricingRule.FinishSurcharge(SampleCatalog.foilStampingId, Money("3.50")),
+      PricingRule.FinishSurcharge(SampleCatalog.dieCutId, Money("3")),
+      PricingRule.FinishSurcharge(SampleCatalog.kissCutId, Money("2")),
+      PricingRule.FinishSurcharge(SampleCatalog.grommetsId, Money("8")),
 
       // --- Finish surcharges (type-level, CZK) ---
       PricingRule.FinishTypeSurcharge(FinishType.UVCoating, Money("1")),
       PricingRule.FinishTypeSurcharge(FinishType.AqueousCoating, Money("0.50")),
       PricingRule.FinishTypeSurcharge(FinishType.Varnish, Money("1.50")),
+
+      // --- Fold type surcharges (per unit, CZK) ---
+      PricingRule.FoldTypeSurcharge(FoldType.Half, Money("0.50")),
+      PricingRule.FoldTypeSurcharge(FoldType.Tri, Money("1.00")),
+      PricingRule.FoldTypeSurcharge(FoldType.Gate, Money("1.50")),
+      PricingRule.FoldTypeSurcharge(FoldType.Accordion, Money("1.50")),
+      PricingRule.FoldTypeSurcharge(FoldType.ZFold, Money("1.00")),
+      PricingRule.FoldTypeSurcharge(FoldType.RollFold, Money("1.50")),
+      PricingRule.FoldTypeSurcharge(FoldType.FrenchFold, Money("1.50")),
+      PricingRule.FoldTypeSurcharge(FoldType.CrossFold, Money("2.00")),
+
+      // --- Binding method surcharges (per unit, CZK) ---
+      PricingRule.BindingMethodSurcharge(BindingMethod.SaddleStitch, Money("2")),
+      PricingRule.BindingMethodSurcharge(BindingMethod.PerfectBinding, Money("5")),
+      PricingRule.BindingMethodSurcharge(BindingMethod.SpiralBinding, Money("8")),
+      PricingRule.BindingMethodSurcharge(BindingMethod.WireOBinding, Money("10")),
+      PricingRule.BindingMethodSurcharge(BindingMethod.CaseBinding, Money("25")),
 
       // --- Printing process surcharge (CZK) ---
       PricingRule.PrintingProcessSurcharge(PrintingProcessType.Letterpress, Money("5")),
@@ -126,6 +171,46 @@ object SamplePricelist:
       PricingRule.QuantityTier(100, Some(499), BigDecimal("0.55")),
       PricingRule.QuantityTier(500, Some(999), BigDecimal("0.45")),
       PricingRule.QuantityTier(1000, None, BigDecimal("0.40")),
+
+      // --- Finish setup fees (one-time, not discounted) ---
+      // Lamination / coating
+      PricingRule.FinishSetupFee(SampleCatalog.matteLaminationId, Money("50")),
+      PricingRule.FinishSetupFee(SampleCatalog.glossLaminationId, Money("50")),
+      PricingRule.FinishSetupFee(SampleCatalog.softTouchCoatingId, Money("80")),
+      PricingRule.FinishTypeSetupFee(FinishType.Lamination, Money("50")),
+      PricingRule.FinishSetupFee(SampleCatalog.uvCoatingId, Money("80")),
+      PricingRule.FinishSetupFee(SampleCatalog.varnishId, Money("120")),
+      // Embossing / stamping — custom die required
+      PricingRule.FinishSetupFee(SampleCatalog.embossingId, Money("350")),
+      PricingRule.FinishSetupFee(SampleCatalog.debossingId, Money("350")),
+      PricingRule.FinishSetupFee(SampleCatalog.foilStampingId, Money("450")),
+      // Cutting — custom die / plotter setup
+      PricingRule.FinishSetupFee(SampleCatalog.dieCutId, Money("600")),
+      PricingRule.FinishSetupFee(SampleCatalog.kissCutId, Money("200")),
+      // Structural — machine/blade setup
+      PricingRule.FinishTypeSetupFee(FinishType.Scoring, Money("50")),
+      PricingRule.FinishTypeSetupFee(FinishType.Perforation, Money("60")),
+      PricingRule.FinishTypeSetupFee(FinishType.RoundCorners, Money("40")),
+
+      // --- Fold type setup fees (one-time, not discounted) ---
+      PricingRule.FoldTypeSetupFee(FoldType.Half, Money("80")),
+      PricingRule.FoldTypeSetupFee(FoldType.Tri, Money("100")),
+      PricingRule.FoldTypeSetupFee(FoldType.Gate, Money("120")),
+      PricingRule.FoldTypeSetupFee(FoldType.Accordion, Money("120")),
+      PricingRule.FoldTypeSetupFee(FoldType.ZFold, Money("100")),
+      PricingRule.FoldTypeSetupFee(FoldType.RollFold, Money("120")),
+      PricingRule.FoldTypeSetupFee(FoldType.FrenchFold, Money("120")),
+      PricingRule.FoldTypeSetupFee(FoldType.CrossFold, Money("150")),
+
+      // --- Binding method setup fees (one-time, not discounted) ---
+      PricingRule.BindingMethodSetupFee(BindingMethod.SaddleStitch, Money("80")),
+      PricingRule.BindingMethodSetupFee(BindingMethod.PerfectBinding, Money("150")),
+      PricingRule.BindingMethodSetupFee(BindingMethod.SpiralBinding, Money("100")),
+      PricingRule.BindingMethodSetupFee(BindingMethod.WireOBinding, Money("100")),
+      PricingRule.BindingMethodSetupFee(BindingMethod.CaseBinding, Money("400")),
+
+      // --- Minimum order price ---
+      PricingRule.MinimumOrderPrice(Money("500")),
     ),
     currency = Currency.CZK,
     version = "1.0.0-czk",
@@ -275,12 +360,16 @@ object SamplePricelist:
       PricingRule.CuttingSurcharge(costPerCut = Money("0.10")),
 
       // --- Finish surcharges (ID-level, CZK) ---
+      // Lamination rates are higher on sheet pricelist (more coverage per sheet)
       PricingRule.FinishSurcharge(SampleCatalog.matteLaminationId, Money("6")),
       PricingRule.FinishSurcharge(SampleCatalog.glossLaminationId, Money("6")),
       PricingRule.FinishSurcharge(SampleCatalog.softTouchCoatingId, Money("9")),
       PricingRule.FinishSurcharge(SampleCatalog.embossingId, Money("2")),
+      PricingRule.FinishSurcharge(SampleCatalog.debossingId, Money("2")),
       PricingRule.FinishSurcharge(SampleCatalog.foilStampingId, Money("3.50")),
-
+      PricingRule.FinishSurcharge(SampleCatalog.dieCutId, Money("3")),
+      PricingRule.FinishSurcharge(SampleCatalog.kissCutId, Money("2")),
+      PricingRule.FinishSurcharge(SampleCatalog.grommetsId, Money("8")),
 
       // --- Finish surcharges (type-level, CZK) ---
       PricingRule.FinishTypeSurcharge(FinishType.UVCoating, Money("1")),
@@ -289,6 +378,23 @@ object SamplePricelist:
       PricingRule.FinishTypeSurcharge(FinishType.RoundCorners, Money("0.50")),
       PricingRule.FinishTypeSurcharge(FinishType.Perforation, Money("0.50")),
       PricingRule.FinishTypeSurcharge(FinishType.Scoring, Money("0.50")),
+
+      // --- Fold type surcharges (per unit, CZK) ---
+      PricingRule.FoldTypeSurcharge(FoldType.Half, Money("0.50")),
+      PricingRule.FoldTypeSurcharge(FoldType.Tri, Money("1.00")),
+      PricingRule.FoldTypeSurcharge(FoldType.Gate, Money("1.50")),
+      PricingRule.FoldTypeSurcharge(FoldType.Accordion, Money("1.50")),
+      PricingRule.FoldTypeSurcharge(FoldType.ZFold, Money("1.00")),
+      PricingRule.FoldTypeSurcharge(FoldType.RollFold, Money("1.50")),
+      PricingRule.FoldTypeSurcharge(FoldType.FrenchFold, Money("1.50")),
+      PricingRule.FoldTypeSurcharge(FoldType.CrossFold, Money("2.00")),
+
+      // --- Binding method surcharges (per unit, CZK) ---
+      PricingRule.BindingMethodSurcharge(BindingMethod.SaddleStitch, Money("2")),
+      PricingRule.BindingMethodSurcharge(BindingMethod.PerfectBinding, Money("5")),
+      PricingRule.BindingMethodSurcharge(BindingMethod.SpiralBinding, Money("8")),
+      PricingRule.BindingMethodSurcharge(BindingMethod.WireOBinding, Money("10")),
+      PricingRule.BindingMethodSurcharge(BindingMethod.CaseBinding, Money("25")),
 
       // --- Printing process surcharge (CZK) ---
       PricingRule.PrintingProcessSurcharge(PrintingProcessType.Letterpress, Money("5")),
@@ -305,6 +411,46 @@ object SamplePricelist:
       PricingRule.SheetQuantityTier(50, Some(249), BigDecimal("0.90")),
       PricingRule.SheetQuantityTier(250, Some(999), BigDecimal("0.80")),
       PricingRule.SheetQuantityTier(1000, None, BigDecimal("0.70")),
+
+      // --- Finish setup fees (one-time, not discounted) ---
+      // Lamination / coating
+      PricingRule.FinishSetupFee(SampleCatalog.matteLaminationId, Money("50")),
+      PricingRule.FinishSetupFee(SampleCatalog.glossLaminationId, Money("50")),
+      PricingRule.FinishSetupFee(SampleCatalog.softTouchCoatingId, Money("80")),
+      PricingRule.FinishTypeSetupFee(FinishType.Lamination, Money("50")),
+      PricingRule.FinishSetupFee(SampleCatalog.uvCoatingId, Money("80")),
+      PricingRule.FinishSetupFee(SampleCatalog.varnishId, Money("120")),
+      // Embossing / stamping — custom die required
+      PricingRule.FinishSetupFee(SampleCatalog.embossingId, Money("350")),
+      PricingRule.FinishSetupFee(SampleCatalog.debossingId, Money("350")),
+      PricingRule.FinishSetupFee(SampleCatalog.foilStampingId, Money("450")),
+      // Cutting — custom die / plotter setup
+      PricingRule.FinishSetupFee(SampleCatalog.dieCutId, Money("600")),
+      PricingRule.FinishSetupFee(SampleCatalog.kissCutId, Money("200")),
+      // Structural — machine/blade setup
+      PricingRule.FinishTypeSetupFee(FinishType.Scoring, Money("50")),
+      PricingRule.FinishTypeSetupFee(FinishType.Perforation, Money("60")),
+      PricingRule.FinishTypeSetupFee(FinishType.RoundCorners, Money("40")),
+
+      // --- Fold type setup fees (one-time, not discounted) ---
+      PricingRule.FoldTypeSetupFee(FoldType.Half, Money("80")),
+      PricingRule.FoldTypeSetupFee(FoldType.Tri, Money("100")),
+      PricingRule.FoldTypeSetupFee(FoldType.Gate, Money("120")),
+      PricingRule.FoldTypeSetupFee(FoldType.Accordion, Money("120")),
+      PricingRule.FoldTypeSetupFee(FoldType.ZFold, Money("100")),
+      PricingRule.FoldTypeSetupFee(FoldType.RollFold, Money("120")),
+      PricingRule.FoldTypeSetupFee(FoldType.FrenchFold, Money("120")),
+      PricingRule.FoldTypeSetupFee(FoldType.CrossFold, Money("150")),
+
+      // --- Binding method setup fees (one-time, not discounted) ---
+      PricingRule.BindingMethodSetupFee(BindingMethod.SaddleStitch, Money("80")),
+      PricingRule.BindingMethodSetupFee(BindingMethod.PerfectBinding, Money("150")),
+      PricingRule.BindingMethodSetupFee(BindingMethod.SpiralBinding, Money("100")),
+      PricingRule.BindingMethodSetupFee(BindingMethod.WireOBinding, Money("100")),
+      PricingRule.BindingMethodSetupFee(BindingMethod.CaseBinding, Money("400")),
+
+      // --- Minimum order price ---
+      PricingRule.MinimumOrderPrice(Money("500")),
     ),
     currency = Currency.CZK,
     version = "1.0.0-czk-sheet",

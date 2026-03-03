@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ```bash
 sbt compile          # Compile all sources (domain JVM + JS, UI)
-sbt test             # Run all tests (99 tests, 5 suites)
+sbt test             # Run all tests (186 tests, 5 suites)
 sbt domainJVM/test   # Run domain tests only (faster)
 sbt ui/compile       # Compile UI module only
 sbt ui/fastLinkJS    # Build UI JavaScript (development)
@@ -28,8 +28,8 @@ This is a DDD (Domain-Driven Design) product configuration system for the printi
 - **`rules/`** — `CompatibilityRule` sealed ADT (12 rule variants), `SpecPredicate` and `ConfigurationPredicate` (boolean algebra with And/Or/Not). Rules are data, not code.
 - **`validation/`** — `ConfigurationError` ADT with exhaustive `message` match. `RuleEvaluator` interprets rules. `ConfigurationValidator` runs two-layer validation: structural checks first, then rule evaluation.
 - **`service/`** — `ConfigurationBuilder` resolves IDs from catalog and orchestrates validation. `CatalogQueryService` pre-filters compatible options for UI progressive disclosure.
-- **`pricing/`** — `Money` opaque type (BigDecimal, never Double). `PricingRule` sealed enum (10 variants: base price, area price, sheet price, finish/type/process/category surcharges, quantity tiers, sheet quantity tiers, `InkConfigurationFactor`, cutting surcharge). `PriceCalculator` interprets rules purely. `PricingError` ADT with exhaustive `message` match. `PriceBreakdown` output with `ComponentBreakdown` per component (including optional `inkConfigLine`, `cuttingLine`, and `sheetsUsed`).
-- **`sample/`** — `SampleCatalog` (7 categories, 9 materials, 14 finishes, 4 printing methods), `SampleRules` (24 rules), and `SamplePricelist` (pricing for all materials, key finishes, 4 quantity tiers). Used by tests.
+- **`pricing/`** — `Money` opaque type (BigDecimal, never Double). `PricingRule` sealed enum (17 variants: base/area/sheet material prices, finish/type/process/category/fold/binding surcharges, quantity/sheet tiers, `InkConfigurationFactor`, cutting surcharge, finish/type/fold/binding setup fees, minimum order price). `PriceCalculator` interprets rules purely. `PricingError` ADT with exhaustive `message` match. `PriceBreakdown` output with `ComponentBreakdown` per component (including optional `inkConfigLine`, `cuttingLine`, `sheetsUsed`), plus `setupFees`, `minimumApplied`, `foldSurcharge`, and `bindingSurcharge` fields.
+- **`sample/`** — `SampleCatalog` (7 categories, 9 materials, 14 finishes, 4 printing methods), `SampleRules` (24 rules), and `SamplePricelist` (USD + CZK base + CZK sheet pricelists; full finish/fold/binding surcharges, setup fees, and minimum order price on CZK pricelists). Used by tests.
 
 ### Package layout: `mpbuilder.ui.calendar` (Visual Editor)
 
@@ -56,7 +56,7 @@ ZIO Prelude `Validation` accumulates all errors (not short-circuit). Structural 
 
 ### Pricing approach
 
-`PriceCalculator.calculate` is pure — returns `Validation[PricingError, PriceBreakdown]`. Steps: extract quantity → resolve material unit price (area > sheet > base precedence) → compute `sheetsUsed` per component (for sheet-priced materials) → apply `InkConfigurationFactor` (multiplier on material cost by front/back color counts; 1.0 = no line item) → finish surcharges (ID-level overrides type-level) → process/category surcharges → sum subtotal → apply best tier multiplier (`SheetQuantityTier` if totalSheets > 0 and rules exist, else `QuantityTier` fallback) → round total to 2dp.
+`PriceCalculator.calculate` is pure — returns `Validation[PricingError, PriceBreakdown]`. Steps: extract quantity → resolve material unit price (area > sheet > base precedence) → compute `sheetsUsed` per component (for sheet-priced materials) → apply `InkConfigurationFactor` (multiplier on material cost by front/back color counts; 1.0 = no line item) → finish surcharges (ID-level overrides type-level) → process/category surcharges → fold type surcharge → binding method surcharge → sum subtotal → apply best tier multiplier (`SheetQuantityTier` if totalSheets > 0 and rules exist, else `QuantityTier` fallback) → collect setup fees (finish/fold/binding; ID-level overrides type-level; same finish ID on multiple components charged once) → add setup fees to discounted subtotal → apply `MinimumOrderPrice` floor if configured → round total to 2dp.
 
 ### Adding new pricing rule types
 
@@ -83,6 +83,8 @@ ZIO Prelude `Validation` accumulates all errors (not short-circuit). Structural 
 - `FinishCategory` is derived from `FinishType` via extension method `finishCategory`, not stored on `Finish`
 - `InkConfiguration` models per-side ink setup: `InkSetup(inkType, colorCount)` for front and back. Presets: `cmyk4_4`, `cmyk4_0`, `cmyk4_1`, `mono1_0`, `mono1_1`. Structural validation checks `maxColorCount` against `PrintingMethod.maxColorCount`
 - `CatalogQueryService.compatibleFinishes` takes `printingMethodId: Option[PrintingMethodId]` — `None` means "not yet selected, don't filter by method"
-- Finish pricing precedence: `FinishSurcharge` (by ID) overrides `FinishTypeSurcharge` (by type) for the same finish
+- Finish pricing precedence: `FinishSurcharge` (by ID) overrides `FinishTypeSurcharge` (by type); same for setup fees: `FinishSetupFee` overrides `FinishTypeSetupFee`
+- Setup fees are added after the quantity tier multiplier — they are never volume-discounted. Same finish ID on multiple components is charged once.
+- `MinimumOrderPrice` is applied last (after setup fees), raising the total to the floor only when needed. `minimumApplied` stores the pre-floor amount for UI display.
 - Template image placeholders use `PhotoElement(imageData = "")` — they're fully interactive `CanvasElement`s, not static template fields
 - The format `<select>` in `CalendarBuilderApp` is re-created on each state change (`child <-- ...`), so options must have `selected` attribute set explicitly

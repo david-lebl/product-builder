@@ -24,6 +24,15 @@ object PriceCalculator:
         val processSurcharge = findProcessSurcharge(config.printingMethod, rules, quantity, lang)
         val categorySurcharge = findCategorySurcharge(config.category, rules, quantity, lang)
 
+        val foldType = config.specifications.get(SpecKind.FoldType).collect {
+          case SpecValue.FoldTypeSpec(ft) => ft
+        }
+        val bindingMethod = config.specifications.get(SpecKind.BindingMethod).collect {
+          case SpecValue.BindingMethodSpec(bm) => bm
+        }
+        val foldSurcharge = findFoldSurcharge(foldType, rules, quantity, lang)
+        val bindingSurcharge = findBindingSurcharge(bindingMethod, rules, quantity, lang)
+
         val componentTotals = componentBreakdowns.flatMap { cb =>
           cb.materialLine.lineTotal ::
             cb.cuttingLine.map(_.lineTotal).toList :::
@@ -34,7 +43,9 @@ object PriceCalculator:
         val allLineTotals =
           componentTotals :::
             processSurcharge.map(_.lineTotal).toList :::
-            categorySurcharge.map(_.lineTotal).toList
+            categorySurcharge.map(_.lineTotal).toList :::
+            foldSurcharge.map(_.lineTotal).toList :::
+            bindingSurcharge.map(_.lineTotal).toList
 
         val subtotal = allLineTotals.foldLeft(Money.zero)(_ + _)
 
@@ -47,14 +58,30 @@ object PriceCalculator:
           .orElse(findBestQuantityTier(rules, quantity).map(_.multiplier))
           .getOrElse(BigDecimal(1))
 
-        val total = (subtotal * multiplier).rounded
+        val discountedSubtotal = (subtotal * multiplier).rounded
+
+        val allSelectedFinishes = config.components.flatMap(_.finishes)
+        val setupFees = collectSetupFees(allSelectedFinishes, foldType, bindingMethod, rules, lang)
+        val totalSetupFees = setupFees.map(_.lineTotal).foldLeft(Money.zero)(_ + _)
+        val billable = (discountedSubtotal + totalSetupFees).rounded
+
+        val minimumRule = rules.collectFirst { case r: PricingRule.MinimumOrderPrice => r }
+        val (total, minimumApplied) = minimumRule match
+          case Some(minRule) if billable.value < minRule.minTotal.value =>
+            (minRule.minTotal.rounded, Some(billable))
+          case _ =>
+            (billable, None)
 
         PriceBreakdown(
           componentBreakdowns = componentBreakdowns,
           processSurcharge = processSurcharge,
           categorySurcharge = categorySurcharge,
+          foldSurcharge = foldSurcharge,
+          bindingSurcharge = bindingSurcharge,
           subtotal = subtotal,
           quantityMultiplier = multiplier,
+          setupFees = setupFees,
+          minimumApplied = minimumApplied,
           total = total,
           currency = pricelist.currency,
         )
@@ -214,6 +241,106 @@ object PriceCalculator:
           lineTotal = lineTotal,
         ))
     }
+
+  private def collectSetupFees(
+      finishes: List[SelectedFinish],
+      foldType: Option[FoldType],
+      bindingMethod: Option[BindingMethod],
+      rules: List[PricingRule],
+      lang: Language,
+  ): List[LineItem] =
+    val uniqueByIdFinishes = finishes.distinctBy(_.id)
+
+    val (idItems, coveredTypes) = uniqueByIdFinishes.foldLeft((List.empty[LineItem], Set.empty[FinishType])) {
+      case ((items, types), finish) =>
+        rules.collectFirst {
+          case r: PricingRule.FinishSetupFee if r.finishId == finish.id => r.setupCost
+        } match
+          case Some(cost) =>
+            (items :+ LineItem(s"Setup: ${finish.name(lang)}", cost, 1, cost), types + finish.finishType)
+          case None =>
+            (items, types)
+    }
+
+    val typeItems = uniqueByIdFinishes
+      .distinctBy(_.finishType)
+      .filterNot(f => coveredTypes.contains(f.finishType))
+      .flatMap { finish =>
+        rules.collectFirst {
+          case r: PricingRule.FinishTypeSetupFee if r.finishType == finish.finishType => r.setupCost
+        }.map { cost =>
+          LineItem(s"Setup: ${finish.name(lang)}", cost, 1, cost)
+        }
+      }
+
+    val foldFeeItem = foldType.flatMap { ft =>
+      rules.collectFirst {
+        case r: PricingRule.FoldTypeSetupFee if r.foldType == ft => r.setupCost
+      }.map { cost => LineItem(s"Setup: ${foldTypeName(ft, lang)}", cost, 1, cost) }
+    }.toList
+
+    val bindingFeeItem = bindingMethod.flatMap { bm =>
+      rules.collectFirst {
+        case r: PricingRule.BindingMethodSetupFee if r.bindingMethod == bm => r.setupCost
+      }.map { cost => LineItem(s"Setup: ${bindingMethodName(bm, lang)}", cost, 1, cost) }
+    }.toList
+
+    idItems ++ typeItems ++ foldFeeItem ++ bindingFeeItem
+
+  private def findFoldSurcharge(
+      foldType: Option[FoldType],
+      rules: List[PricingRule],
+      quantity: Int,
+      lang: Language,
+  ): Option[LineItem] =
+    foldType.flatMap { ft =>
+      rules.collectFirst {
+        case r: PricingRule.FoldTypeSurcharge if r.foldType == ft => r.surchargePerUnit
+      }.map { surcharge =>
+        LineItem(
+          label = s"Fold: ${foldTypeName(ft, lang)}",
+          unitPrice = surcharge,
+          quantity = quantity,
+          lineTotal = surcharge * quantity,
+        )
+      }
+    }
+
+  private def findBindingSurcharge(
+      bindingMethod: Option[BindingMethod],
+      rules: List[PricingRule],
+      quantity: Int,
+      lang: Language,
+  ): Option[LineItem] =
+    bindingMethod.flatMap { bm =>
+      rules.collectFirst {
+        case r: PricingRule.BindingMethodSurcharge if r.bindingMethod == bm => r.surchargePerUnit
+      }.map { surcharge =>
+        LineItem(
+          label = s"Binding: ${bindingMethodName(bm, lang)}",
+          unitPrice = surcharge,
+          quantity = quantity,
+          lineTotal = surcharge * quantity,
+        )
+      }
+    }
+
+  private def foldTypeName(ft: FoldType, lang: Language): String = ft match
+    case FoldType.Half       => lang match { case Language.Cs => "Přeložení na půl";    case _ => "Half Fold" }
+    case FoldType.Tri        => lang match { case Language.Cs => "Trojsložení";          case _ => "Tri Fold" }
+    case FoldType.Gate       => lang match { case Language.Cs => "Okénkové složení";    case _ => "Gate Fold" }
+    case FoldType.Accordion  => lang match { case Language.Cs => "Harmonikové složení"; case _ => "Accordion Fold" }
+    case FoldType.ZFold      => lang match { case Language.Cs => "Z-složení";           case _ => "Z-Fold" }
+    case FoldType.RollFold   => lang match { case Language.Cs => "Rolovací složení";    case _ => "Roll Fold" }
+    case FoldType.FrenchFold => lang match { case Language.Cs => "Francouzské složení"; case _ => "French Fold" }
+    case FoldType.CrossFold  => lang match { case Language.Cs => "Křížové složení";     case _ => "Cross Fold" }
+
+  private def bindingMethodName(bm: BindingMethod, lang: Language): String = bm match
+    case BindingMethod.SaddleStitch   => lang match { case Language.Cs => "Sešití na svorky"; case _ => "Saddle Stitch" }
+    case BindingMethod.PerfectBinding => lang match { case Language.Cs => "Lepená vazba";      case _ => "Perfect Binding" }
+    case BindingMethod.SpiralBinding  => lang match { case Language.Cs => "Spirálová vazba";   case _ => "Spiral Binding" }
+    case BindingMethod.WireOBinding   => lang match { case Language.Cs => "Wire-O vazba";      case _ => "Wire-O Binding" }
+    case BindingMethod.CaseBinding    => lang match { case Language.Cs => "Pevná vazba";       case _ => "Case Binding" }
 
   private def computeFinishLines(
       finishes: List[SelectedFinish],
