@@ -3,6 +3,7 @@ package mpbuilder.ui.components
 import com.raquo.laminar.api.L.*
 import mpbuilder.ui.{ProductBuilderViewModel, AppRouter, AppRoute, ArtworkMode}
 import mpbuilder.domain.model.*
+import mpbuilder.uicommon.FormSection
 
 object ConfigurationForm:
   def apply(): Element =
@@ -10,32 +11,29 @@ object ConfigurationForm:
 
     div(
       // Category Selection
-      div(
-        cls := "form-section",
-        h3(child.text <-- lang.map {
+      FormSection(
+        titleMod = child.text <-- lang.map {
           case Language.En => "1. Select Product Category"
           case Language.Cs => "1. Vyberte kategorii produktu"
-        }),
+        },
         CategorySelector(),
       ),
 
       // Printing Method Selection
-      div(
-        cls := "form-section",
-        h3(child.text <-- lang.map {
+      FormSection(
+        titleMod = child.text <-- lang.map {
           case Language.En => "2. Select Printing Method"
           case Language.Cs => "2. Vyberte tiskovou metodu"
-        }),
+        },
         PrintingMethodSelector(),
       ),
 
       // Component Configuration — dynamic sections based on category
-      div(
-        cls := "form-section",
-        h3(child.text <-- lang.map {
+      FormSection(
+        titleMod = child.text <-- lang.map {
           case Language.En => "3. Configure Components"
           case Language.Cs => "3. Specifikace výroby"
-        }),
+        },
         children <-- ProductBuilderViewModel.componentRoles
           .combineWith(ProductBuilderViewModel.linkedComponents, lang)
           .map { case (roles, linked, l) =>
@@ -96,18 +94,16 @@ object ConfigurationForm:
       ),
 
       // Specifications
-      div(
-        cls := "form-section",
-        h3(child.text <-- lang.map {
+      FormSection(
+        titleMod = child.text <-- lang.map {
           case Language.En => "4. Product Specifications"
           case Language.Cs => "4. Specifikace produktu"
-        }),
+        },
         SpecificationForm(),
       ),
 
       // Server Validate Button (price is computed live; this button reserved for future server-side validation)
-      div(
-        cls := "form-section",
+      FormSection.untitled(
         button(
           child.text <-- lang.map {
             case Language.En => "Validate price"
