@@ -2291,6 +2291,335 @@
             font-weight: 500;
             margin-top: 6px;
         }
+
+        /* ═══════════════════════════════════════════════════
+           Catalog Editor styles
+           ═══════════════════════════════════════════════════ */
+
+        .catalog-editor {
+            display: grid;
+            grid-template-columns: 200px 1fr;
+            gap: 20px;
+            padding: 20px max(20px, calc((100% - 1200px) / 2));
+            min-height: calc(100vh - var(--header-total-height, 100px));
+        }
+
+        .catalog-sidebar {
+            background: white;
+            border-radius: 12px;
+            padding: 15px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            position: sticky;
+            top: calc(var(--header-total-height, 100px) + 10px);
+            height: fit-content;
+        }
+
+        .catalog-sidebar h3 {
+            font-size: 1rem;
+            color: #667eea;
+            margin-bottom: 12px;
+            padding-bottom: 8px;
+            border-bottom: 2px solid #667eea;
+        }
+
+        .catalog-nav-item {
+            display: block;
+            width: 100%;
+            padding: 10px 12px;
+            border: none;
+            background: transparent;
+            color: #555;
+            font-size: 0.9rem;
+            text-align: left;
+            border-radius: 6px;
+            cursor: pointer;
+            margin-bottom: 4px;
+            transition: background 0.2s, color 0.2s;
+        }
+
+        .catalog-nav-item:hover {
+            background: #f0f4ff;
+            color: #667eea;
+        }
+
+        .catalog-nav-item.active {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .catalog-main {
+            min-width: 0;
+        }
+
+        .catalog-section {
+            background: white;
+            border-radius: 12px;
+            padding: 25px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        }
+
+        .catalog-section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .catalog-section-header h3 {
+            font-size: 1.2rem;
+            color: #667eea;
+            margin: 0;
+        }
+
+        .catalog-section-header h4 {
+            font-size: 1rem;
+            color: #555;
+            margin: 0;
+        }
+
+        .catalog-item-list {
+            margin-bottom: 20px;
+        }
+
+        .catalog-item-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 14px;
+            border: 1px solid #e0e0e0;
+            border-radius: 6px;
+            margin-bottom: 6px;
+            transition: background 0.2s, border-color 0.2s;
+        }
+
+        .catalog-item-row:hover {
+            background: #f8f9ff;
+            border-color: #c8d0f5;
+        }
+
+        .catalog-item-row.selected {
+            background: #f0f4ff;
+            border-color: #667eea;
+            border-width: 2px;
+        }
+
+        .catalog-item-summary {
+            flex: 1;
+            min-width: 0;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .catalog-item-summary strong {
+            color: #333;
+        }
+
+        .catalog-item-meta {
+            color: #999;
+            font-size: 0.85rem;
+            margin-left: 4px;
+        }
+
+        .catalog-item-actions {
+            display: flex;
+            gap: 6px;
+            margin-left: 12px;
+            flex-shrink: 0;
+        }
+
+        .catalog-btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            transition: transform 0.15s, box-shadow 0.15s;
+        }
+
+        .catalog-btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 3px 10px rgba(102, 126, 234, 0.4);
+        }
+
+        .catalog-btn-small {
+            padding: 4px 10px;
+            font-size: 0.8rem;
+        }
+
+        .catalog-btn-danger {
+            background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
+        }
+
+        .catalog-btn-danger:hover {
+            box-shadow: 0 3px 10px rgba(231, 76, 60, 0.4);
+        }
+
+        .catalog-edit-form {
+            margin-top: 20px;
+            border: 2px solid #667eea;
+        }
+
+        .catalog-edit-form h3 {
+            font-size: 1.1rem;
+            color: #667eea;
+            margin-bottom: 15px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid #e0e0e0;
+        }
+
+        .catalog-checkbox-group {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+        }
+
+        .catalog-checkbox-label {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 5px 10px;
+            border: 1px solid #e0e0e0;
+            border-radius: 4px;
+            font-size: 0.85rem;
+            cursor: pointer;
+            transition: background 0.2s, border-color 0.2s;
+            color: #555;
+            font-weight: 400;
+        }
+
+        .catalog-checkbox-label:hover {
+            background: #f0f4ff;
+            border-color: #c8d0f5;
+        }
+
+        .catalog-checkbox-label input[type="checkbox"] {
+            width: auto;
+            margin: 0;
+        }
+
+        .catalog-localized-group {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+
+        .catalog-localized-field label {
+            font-size: 0.8rem;
+            color: #999;
+            margin-bottom: 2px;
+        }
+
+        .catalog-component-template {
+            padding: 15px;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            margin-bottom: 12px;
+            background: #fafbff;
+        }
+
+        .catalog-message {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 16px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            background: #e3f2fd;
+            border: 1px solid #90caf9;
+            color: #1565c0;
+            font-size: 0.9rem;
+        }
+
+        .catalog-message-close {
+            background: none;
+            border: none;
+            color: #1565c0;
+            font-size: 1.2rem;
+            cursor: pointer;
+            padding: 0 4px;
+        }
+
+        .catalog-pricing-rule {
+            margin-bottom: 8px;
+        }
+
+        .catalog-pricing-rule-form {
+            padding: 12px 16px;
+            background: #f8f9ff;
+            border: 1px solid #e0e0e0;
+            border-top: none;
+            border-radius: 0 0 6px 6px;
+        }
+
+        .catalog-add-rule {
+            margin-bottom: 20px;
+        }
+
+        .catalog-add-rule-row {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .catalog-add-rule-row select {
+            flex: 1;
+        }
+
+        .catalog-quick-actions {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .catalog-export-actions {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        .catalog-json-area {
+            width: 100%;
+            min-height: 120px;
+            padding: 10px;
+            border: 2px solid #e0e0e0;
+            border-radius: 6px;
+            font-family: monospace;
+            font-size: 0.85rem;
+            resize: vertical;
+        }
+
+        .catalog-json-area:focus {
+            border-color: #667eea;
+            outline: none;
+        }
+
+        @media (max-width: 768px) {
+            .catalog-editor {
+                grid-template-columns: 1fr;
+            }
+            .catalog-sidebar {
+                position: static;
+                display: flex;
+                flex-wrap: wrap;
+                gap: 4px;
+            }
+            .catalog-sidebar h3 {
+                width: 100%;
+            }
+            .catalog-nav-item {
+                flex: 1;
+                min-width: 0;
+                text-align: center;
+                font-size: 0.8rem;
+                padding: 8px 6px;
+            }
+            .catalog-localized-group {
+                grid-template-columns: 1fr;
+            }
+        }
     </style>
 </head>
 <body>
