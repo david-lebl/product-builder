@@ -20,6 +20,15 @@ object FormSection:
       mods,
     )
 
+  /** Section without a title heading — just a `div.form-section` wrapper. */
+  def untitled(
+    mods: Modifier[HtmlElement]*,
+  ): HtmlElement =
+    div(
+      cls := "form-section",
+      mods,
+    )
+
   /** Section that can be conditionally hidden via a reactive signal. */
   def conditional(
     titleMod: Modifier[HtmlElement],

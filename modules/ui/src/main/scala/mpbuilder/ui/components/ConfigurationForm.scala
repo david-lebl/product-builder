@@ -103,8 +103,7 @@ object ConfigurationForm:
       ),
 
       // Server Validate Button (price is computed live; this button reserved for future server-side validation)
-      FormSection(
-        titleMod = emptyNode,
+      FormSection.untitled(
         button(
           child.text <-- lang.map {
             case Language.En => "Validate price"

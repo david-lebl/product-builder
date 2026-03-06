@@ -58,9 +58,6 @@ object StepIndicator:
             else if idx == currentIdx then "checkout-step checkout-step--active"
             else "checkout-step"
           },
-          child.text <-- currentIndexSignal.map { currentIdx =>
-            if idx < currentIdx then "✓" else step.number
-          }.map(_ => ""),          // clear — we use spans instead
           span(
             cls := "checkout-step-num",
             child.text <-- currentIndexSignal.map { currentIdx =>
