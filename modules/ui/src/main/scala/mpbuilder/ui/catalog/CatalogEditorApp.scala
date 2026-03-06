@@ -460,8 +460,12 @@ object PricelistEditor:
         div(
           cls := "catalog-item-summary",
           strong(initial.ruleType),
-          span(cls := "catalog-item-meta",
-            initial.fields.toList.take(3).map { case (k, v) => s"$k=$v" }.mkString(" ")),
+          span(cls := "catalog-item-meta", {
+            val fieldDefs = PricingRuleEditState.fieldsForType(initial.ruleType)
+            fieldDefs.take(3).flatMap { case (k, _) =>
+              initial.fields.get(k).map(v => s"$k=$v")
+            }.mkString(" ")
+          }),
         ),
         div(
           cls := "catalog-item-actions",

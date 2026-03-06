@@ -24,12 +24,7 @@ object DomainCodecs:
     val mapEncoder = JsonEncoder[Map[String, String]]
     val mapDecoder = JsonDecoder[Map[String, String]]
     val encoder: JsonEncoder[LocalizedString] = mapEncoder.contramap { ls =>
-      val en = ls(Language.En)
-      val cs = ls(Language.Cs)
-      val result = scala.collection.mutable.Map[String, String]()
-      if en.nonEmpty then result += ("en" -> en)
-      if cs.nonEmpty then result += ("cs" -> cs)
-      result.toMap
+      Map("en" -> ls(Language.En), "cs" -> ls(Language.Cs)).filter(_._2.nonEmpty)
     }
     val decoder: JsonDecoder[LocalizedString] = mapDecoder.map { m =>
       LocalizedString(m.map { case (k, v) => Language.fromCode(k) -> v })
