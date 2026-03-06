@@ -4,6 +4,7 @@ import com.raquo.laminar.api.L.*
 import mpbuilder.ui.calendar.components.*
 import mpbuilder.ui.ProductBuilderViewModel
 import mpbuilder.domain.model.Language
+import mpbuilder.uicommon.TabPanel
 
 object CalendarBuilderApp {
 
@@ -123,38 +124,29 @@ object CalendarBuilderApp {
         div(
           cls := "calendar-sidebar",
 
-          // Tab buttons
-          div(
-            cls := "sidebar-tabs",
-            button(
-              cls := "sidebar-tab-btn",
-              cls <-- sidebarTabVar.signal.map(t => if t == "elements" then "active" else ""),
-              child.text <-- lang.map {
-                case Language.En => "Page Elements"
-                case Language.Cs => "Prvky stránky"
-              },
-              onClick --> { _ => sidebarTabVar.set("elements") }
+          // Sidebar with TabPanel
+          TabPanel(
+            tabs = List(
+              TabPanel.Tab(
+                id = "elements",
+                labelMod = child.text <-- lang.map {
+                  case Language.En => "Page Elements"
+                  case Language.Cs => "Prvky stránky"
+                },
+                content = () => ElementListEditor(),
+              ),
+              TabPanel.Tab(
+                id = "background",
+                labelMod = child.text <-- lang.map {
+                  case Language.En => "Background"
+                  case Language.Cs => "Pozadí"
+                },
+                content = () => BackgroundEditor(),
+              ),
             ),
-            button(
-              cls := "sidebar-tab-btn",
-              cls <-- sidebarTabVar.signal.map(t => if t == "background" then "active" else ""),
-              child.text <-- lang.map {
-                case Language.En => "Background"
-                case Language.Cs => "Pozadí"
-              },
-              onClick --> { _ => sidebarTabVar.set("background") }
-            ),
+            activeTabVar = sidebarTabVar,
+            contentCls = "calendar-controls-card",
           ),
-
-          // Tab content
-          div(
-            cls := "calendar-controls-card",
-            child <-- sidebarTabVar.signal.map {
-              case "elements"   => ElementListEditor()
-              case "background" => BackgroundEditor()
-              case _            => ElementListEditor()
-            }
-          )
         ),
 
         // Center: Calendar page canvas
