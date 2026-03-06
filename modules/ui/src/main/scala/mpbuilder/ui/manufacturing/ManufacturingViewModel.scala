@@ -53,18 +53,13 @@ object ManufacturingViewModel:
     stateVar.update { s =>
       val updated = s.orders.map { o =>
         if o.id == orderId && o.status != OrderStatus.Completed then
-          // Free the station if order was assigned to one
-          o.currentStationId.foreach(sid => freeStationInternal(s, sid))
           o.copy(status = OrderStatus.Cancelled, updatedAt = Date.now().toLong, currentStationId = None)
         else o
       }
-      val stations = updated.find(_.id == orderId).flatMap(_.currentStationId) match
-        case Some(_) => s.stations // already handled
-        case None =>
-          // Free any station that had this order
-          s.stations.map { st =>
-            if st.currentOrderId.contains(orderId) then st.copy(currentOrderId = None) else st
-          }
+      // Free any station that had this order
+      val stations = s.stations.map { st =>
+        if st.currentOrderId.contains(orderId) then st.copy(currentOrderId = None) else st
+      }
       s.copy(orders = updated, stations = stations)
     }
 
@@ -146,10 +141,6 @@ object ManufacturingViewModel:
     }
 
   // ── Helpers ───────────────────────────────────────────────────
-
-  private def freeStationInternal(s: ManufacturingState, stationId: String): Unit =
-    // Note: This is called within update — the caller handles state mutation.
-    ()
 
   /** Add sample orders for demonstration purposes */
   def loadSampleData(): Unit =

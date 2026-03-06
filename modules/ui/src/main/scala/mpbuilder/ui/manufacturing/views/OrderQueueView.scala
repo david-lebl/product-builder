@@ -100,7 +100,7 @@ object OrderQueueView:
                 cls := "mfg-table",
                 thead(
                   tr(
-                    th(if l == Language.Cs then "ID" else "ID"),
+                    th("ID"),
                     th(if l == Language.Cs then "Zákazník" else "Customer"),
                     th(if l == Language.Cs then "Produkt" else "Product"),
                     th(if l == Language.Cs then "Množství" else "Qty"),

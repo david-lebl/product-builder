@@ -2,8 +2,6 @@ package mpbuilder.ui.manufacturing
 
 import mpbuilder.domain.model.Language
 
-import java.time.LocalDateTime
-
 // ── Station types ──────────────────────────────────────────────────
 
 enum StationType:
