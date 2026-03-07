@@ -65,6 +65,10 @@ object ManufacturingViewModel:
   // Station filter dropdown open state
   val stationDropdownOpenVar: Var[Boolean] = Var(false)
 
+  // Disabled stations (manually toggled by operator)
+  val disabledStationsVar: Var[Set[StationId]] = Var(Set.empty)
+  val disabledStations: Signal[Set[StationId]] = disabledStationsVar.signal
+
   def stations: List[Station] = SampleStations.allStations
 
   def navigateTo(r: ManufacturingRoute): Unit = routeVar.set(r)
@@ -94,6 +98,22 @@ object ManufacturingViewModel:
         if o.id == orderId then o.copy(priority = priority) else o
       })
     }
+
+  def toggleStationDisabled(stationId: StationId): Unit =
+    disabledStationsVar.update { current =>
+      if current.contains(stationId) then current - stationId
+      else current + stationId
+    }
+
+  def stationStatus(stationId: StationId): Signal[StationStatus] =
+    disabledStations.combineWith(stationCounts(stationId)).map { case (disabled, counts) =>
+      if disabled.contains(stationId) then StationStatus.Disabled
+      else if counts.getOrElse(OrderStatus.InProgress, 0) > 0 then StationStatus.Busy
+      else StationStatus.Available
+    }
+
+  def recentOrders(limit: Int): Signal[List[ManufacturingOrder]] =
+    state.map(_.orders.sortBy(-_.createdAt).take(limit))
 
   def updateOrderNotes(orderId: ManufacturingOrderId, notes: String): Unit =
     stateVar.update { s =>
