@@ -61,11 +61,6 @@ object ManufacturingViewModel:
       createdAt = now,
       updatedAt = now,
       notes = notes,
-      attachedFiles = List(
-        // Sample attached files for demo purposes
-        AttachedFile("artwork.pdf", "pdf", 2400, now),
-        AttachedFile("proof.jpg", "jpg", 850, now),
-      ),
     )
     nextOrderId += 1
     stateVar.update(s => s.copy(orders = s.orders :+ order))
@@ -248,12 +243,15 @@ object ManufacturingViewModel:
       })
     }
 
+  private def isTerminalStatus(status: OrderStatus): Boolean =
+    status == OrderStatus.Completed || status == OrderStatus.Cancelled
+
   def removeCompletedOrders(): Unit =
     stateVar.update { s =>
-      val removedIds = s.orders.filter(o => o.status == OrderStatus.Completed || o.status == OrderStatus.Cancelled).map(_.id).toSet
+      val removedIds = s.orders.filter(o => isTerminalStatus(o.status)).map(_.id).toSet
       val newSelected = s.selectedOrderId.filterNot(removedIds.contains)
       s.copy(
-        orders = s.orders.filterNot(o => o.status == OrderStatus.Completed || o.status == OrderStatus.Cancelled),
+        orders = s.orders.filterNot(o => isTerminalStatus(o.status)),
         selectedOrderId = newSelected,
       )
     }
@@ -273,6 +271,12 @@ object ManufacturingViewModel:
 
   /** Add sample orders for demonstration purposes */
   def loadSampleData(): Unit =
+    val now = scala.scalajs.js.Date.now().toLong
+    val sampleFiles = List(
+      AttachedFile("artwork.pdf", "pdf", 2400, now),
+      AttachedFile("proof.jpg", "jpg", 850, now),
+    )
+
     addOrder("Acme Corp", "Business Cards 500pcs", 500, OrderPriority.Normal,
       List(StationType.DigitalPrinting, StationType.Cutting), "Standard 90x50mm")
     addOrder("Design Studio", "A3 Posters 100pcs", 100, OrderPriority.High,
@@ -284,3 +288,8 @@ object ManufacturingViewModel:
     addOrder("Premium Press", "Photo Books 50pcs", 50, OrderPriority.Urgent,
       List(StationType.DigitalPrinting, StationType.Lamination, StationType.Binding, StationType.QualityControl, StationType.Packaging),
       "Premium quality — rush order")
+
+    // Attach sample files to demo orders
+    stateVar.update { s =>
+      s.copy(orders = s.orders.map(o => o.copy(attachedFiles = sampleFiles)))
+    }

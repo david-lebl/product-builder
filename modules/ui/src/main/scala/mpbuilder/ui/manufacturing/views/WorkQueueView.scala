@@ -193,9 +193,11 @@ object WorkQueueView:
       ),
     )
 
-  /** Filter orders by selected station types: show orders whose next required
-    * station (or current station) matches any of the selected filter types.
-    * If filter is empty, show all orders.
+  /** Filter orders by selected station types: show orders whose workflow
+    * involves any of the selected filter types (including required, current,
+    * and next pending station types). This broad match helps operators see
+    * orders that will eventually need their station, not just orders currently
+    * at that step. If the filter is empty, show all orders.
     */
   private def filterOrders(s: ManufacturingState): List[ManufacturingOrder] =
     if s.stationFilter.isEmpty then s.orders
