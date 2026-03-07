@@ -3,6 +3,7 @@ package mpbuilder.ui
 import com.raquo.laminar.api.L.*
 import mpbuilder.ui.calendar.CalendarBuilderApp
 import mpbuilder.ui.components.CheckoutView
+import mpbuilder.ui.manufacturing.ManufacturingApp
 import mpbuilder.domain.model.Language
 
 sealed trait AppRoute
@@ -10,6 +11,7 @@ object AppRoute {
   case object ProductBuilder extends AppRoute
   case object CalendarBuilder extends AppRoute
   case object Checkout extends AppRoute
+  case object Manufacturing extends AppRoute
 }
 
 object AppRouter {
@@ -60,6 +62,16 @@ object AppRouter {
             ),
           ),
 
+          // Manufacturing button in top bar
+          button(
+            cls := "nav-mfg-btn",
+            child.text <-- lang.map {
+              case Language.En => "Manufacturing"
+              case Language.Cs => "Vyroba"
+            },
+            onClick --> { _ => navigateTo(AppRoute.Manufacturing) },
+          ),
+
           // Basket button in top bar
           button(
             cls := "nav-basket-btn",
@@ -83,11 +95,11 @@ object AppRouter {
           ),
         ),
 
-        // Navigation bar — hidden during checkout
+        // Navigation bar — hidden during checkout and manufacturing
         div(
           cls <-- currentRoute.map {
-            case AppRoute.Checkout => "app-navigation app-navigation--hidden"
-            case _                 => "app-navigation"
+            case AppRoute.Checkout | AppRoute.Manufacturing => "app-navigation app-navigation--hidden"
+            case _                                          => "app-navigation"
           },
           button(
             cls := "nav-link",
@@ -121,6 +133,7 @@ object AppRouter {
         case AppRoute.ProductBuilder  => ProductBuilderApp()
         case AppRoute.CalendarBuilder => CalendarBuilderApp()
         case AppRoute.Checkout        => CheckoutView()
+        case AppRoute.Manufacturing   => ManufacturingApp()
       }
     )
   }
