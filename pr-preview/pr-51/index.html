@@ -2915,6 +2915,403 @@
 
         .mfg-station-disabled-icon { font-size: 1.2rem; }
 
+        /* ─ Work Queue – split layout ─ */
+
+        .mfg-wq-split {
+            display: flex;
+            gap: 20px;
+            align-items: flex-start;
+        }
+
+        .mfg-wq-table-pane {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .mfg-wq-detail-pane {
+            width: 380px;
+            min-width: 380px;
+            position: sticky;
+            top: calc(var(--header-total-height) + 24px);
+            max-height: calc(100vh - var(--header-total-height) - 48px);
+            overflow-y: auto;
+        }
+
+        .mfg-row-selected {
+            background: #edf2ff !important;
+            outline: 2px solid #4c6ef5;
+            outline-offset: -2px;
+        }
+
+        .mfg-table tbody tr {
+            cursor: pointer;
+        }
+
+        /* ─ Filter bar ─ */
+
+        .mfg-filter-bar {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-wrap: wrap;
+            margin-bottom: 16px;
+            padding: 10px 14px;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+        }
+
+        .mfg-filter-label {
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: #495057;
+            white-space: nowrap;
+        }
+
+        .mfg-filter-chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 4px 12px;
+            border-radius: 16px;
+            border: 1px solid #dee2e6;
+            background: white;
+            color: #495057;
+            font-size: 0.82rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.15s;
+            white-space: nowrap;
+        }
+
+        .mfg-filter-chip:hover:not(:disabled) {
+            background: #f1f3f5;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .mfg-filter-chip.active {
+            background: #4c6ef5;
+            color: white;
+            border-color: #4c6ef5;
+        }
+
+        /* ─ Detail panel ─ */
+
+        .mfg-detail-panel {
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.1);
+            border: 1px solid #e9ecef;
+            overflow: hidden;
+        }
+
+        .mfg-detail-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 14px 16px;
+            background: #f8f9fa;
+            border-bottom: 1px solid #e9ecef;
+        }
+
+        .mfg-detail-header > div {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .mfg-detail-order-id {
+            font-weight: 700;
+            font-size: 1.05rem;
+            color: #4c6ef5;
+        }
+
+        .mfg-detail-close {
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            border: none;
+            background: #e9ecef;
+            color: #495057;
+            font-size: 1.1rem;
+            line-height: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            padding: 0;
+        }
+
+        .mfg-detail-close:hover:not(:disabled) {
+            background: #dee2e6;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .mfg-detail-section {
+            padding: 14px 16px;
+            border-bottom: 1px solid #f1f3f5;
+        }
+
+        .mfg-detail-section:last-child {
+            border-bottom: none;
+        }
+
+        .mfg-detail-section h4 {
+            font-size: 0.88rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: #868e96;
+            margin-bottom: 10px;
+        }
+
+        .mfg-detail-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 6px;
+        }
+
+        .mfg-detail-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            gap: 12px;
+        }
+
+        .mfg-detail-label {
+            font-size: 0.85rem;
+            color: #868e96;
+            white-space: nowrap;
+        }
+
+        .mfg-detail-value {
+            font-size: 0.85rem;
+            color: #333;
+            font-weight: 500;
+            text-align: right;
+        }
+
+        .mfg-detail-notes {
+            margin-top: 8px;
+            padding: 8px 10px;
+            background: #f8f9fa;
+            border-radius: 6px;
+            font-size: 0.85rem;
+        }
+
+        .mfg-detail-notes-label {
+            font-weight: 600;
+            color: #495057;
+            margin-right: 6px;
+        }
+
+        .mfg-detail-empty {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 48px 24px;
+            background: white;
+            border-radius: 10px;
+            border: 2px dashed #dee2e6;
+            text-align: center;
+            color: #868e96;
+        }
+
+        .mfg-detail-empty-icon {
+            font-size: 2.5rem;
+            margin-bottom: 12px;
+        }
+
+        /* ─ Workflow diagram ─ */
+
+        .mfg-workflow {
+            display: flex;
+            flex-direction: column;
+            gap: 0;
+        }
+
+        .mfg-wf-step-container {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+        }
+
+        .mfg-wf-connector {
+            width: 2px;
+            height: 12px;
+            background: #dee2e6;
+            margin-left: 15px;
+        }
+
+        .mfg-wf-connector.completed {
+            background: #51cf66;
+        }
+
+        .mfg-wf-connector.current {
+            background: #4c6ef5;
+        }
+
+        .mfg-wf-step {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 6px 0;
+        }
+
+        .mfg-wf-step-icon {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.82rem;
+            font-weight: 700;
+            flex-shrink: 0;
+        }
+
+        .mfg-wf-step-completed .mfg-wf-step-icon {
+            background: #d3f9d8;
+            color: #2b8a3e;
+        }
+
+        .mfg-wf-step-current .mfg-wf-step-icon {
+            background: #4c6ef5;
+            color: white;
+            box-shadow: 0 0 0 3px rgba(76, 110, 245, 0.3);
+        }
+
+        .mfg-wf-step-pending .mfg-wf-step-icon {
+            background: #f1f3f5;
+            color: #adb5bd;
+        }
+
+        .mfg-wf-step-label {
+            display: flex;
+            flex-direction: column;
+            gap: 1px;
+        }
+
+        .mfg-wf-step-type {
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .mfg-wf-step-pending .mfg-wf-step-type {
+            color: #adb5bd;
+        }
+
+        .mfg-wf-step-station {
+            font-size: 0.78rem;
+            color: #4c6ef5;
+            font-weight: 500;
+        }
+
+        .mfg-wf-step-done {
+            font-size: 0.78rem;
+            color: #2b8a3e;
+        }
+
+        .mfg-wf-step-waiting {
+            font-size: 0.78rem;
+            color: #adb5bd;
+        }
+
+        .mfg-detail-no-workflow {
+            color: #868e96;
+            font-size: 0.88rem;
+        }
+
+        /* ─ Action buttons in detail panel ─ */
+
+        .mfg-detail-actions-section {
+            background: #f8f9fa;
+        }
+
+        .mfg-detail-action-bar {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .mfg-detail-action-buttons {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .mfg-detail-action-buttons .mfg-btn {
+            width: 100%;
+            justify-content: center;
+        }
+
+        .mfg-detail-completed-msg,
+        .mfg-detail-cancelled-msg {
+            text-align: center;
+            padding: 8px;
+            font-size: 0.9rem;
+            color: #868e96;
+        }
+
+        .mfg-detail-completed-msg {
+            color: #2b8a3e;
+            font-weight: 600;
+        }
+
+        /* ─ File list ─ */
+
+        .mfg-file-list {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .mfg-file-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 8px 10px;
+            background: #f8f9fa;
+            border-radius: 6px;
+            border: 1px solid #e9ecef;
+        }
+
+        .mfg-file-icon {
+            font-size: 1.4rem;
+            flex-shrink: 0;
+        }
+
+        .mfg-file-info {
+            flex: 1;
+            min-width: 0;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .mfg-file-name {
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: #333;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .mfg-file-meta {
+            font-size: 0.75rem;
+            color: #868e96;
+        }
+
+        .mfg-detail-no-files {
+            color: #868e96;
+            font-size: 0.88rem;
+        }
+
         /* ─ Responsive ─ */
 
         @media (max-width: 768px) {
@@ -2968,6 +3365,17 @@
 
             .mfg-station-cards {
                 grid-template-columns: 1fr;
+            }
+
+            .mfg-wq-split {
+                flex-direction: column;
+            }
+
+            .mfg-wq-detail-pane {
+                width: 100%;
+                min-width: 100%;
+                position: static;
+                max-height: none;
             }
         }
     </style>
