@@ -48,8 +48,8 @@ object DashboardView:
             p(
               cls := "mfg-empty-message",
               l match
-                case Language.En => "No orders yet. Add some from the Order Queue view."
-                case Language.Cs => "Zatím žádné objednávky. Přidejte je ve frontě objednávek."
+                case Language.En => "No orders yet. Add some from the Work Queue view."
+                case Language.Cs => "Zatím žádné objednávky. Přidejte je v pracovní frontě."
             )
           else
             div(

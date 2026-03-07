@@ -57,8 +57,8 @@ object ManufacturingApp:
         div(
           cls := "mfg-sidebar-footer",
           child.text <-- lang.map {
-            case Language.En => "v0.1 — In-memory queue"
-            case Language.Cs => "v0.1 — Paměťová fronta"
+            case Language.En => "v0.2 — Work Queue"
+            case Language.Cs => "v0.2 — Pracovní fronta"
           },
         ),
       ),
@@ -67,10 +67,10 @@ object ManufacturingApp:
       div(
         cls := "mfg-content",
         child <-- state.map(_.currentRoute).map {
-          case ManufacturingRoute.Dashboard  => DashboardView(state, lang)
-          case ManufacturingRoute.OrderQueue => OrderQueueView(state, lang)
-          case ManufacturingRoute.Stations   => StationsView(state, lang)
-          case _                             => DashboardView(state, lang) // fallback
+          case ManufacturingRoute.Dashboard => DashboardView(state, lang)
+          case ManufacturingRoute.WorkQueue => WorkQueueView(state, lang)
+          case ManufacturingRoute.Stations  => StationsView(state, lang)
+          case _                            => DashboardView(state, lang) // fallback
         },
       ),
     )

@@ -23,6 +23,22 @@ object ManufacturingViewModel:
     if route.isAvailable then
       stateVar.update(_.copy(currentRoute = route))
 
+  // ── Selection & filtering ─────────────────────────────────────
+
+  def selectOrder(orderId: Option[String]): Unit =
+    stateVar.update(_.copy(selectedOrderId = orderId))
+
+  def toggleStationFilter(stationType: StationType): Unit =
+    stateVar.update { s =>
+      val updated =
+        if s.stationFilter.contains(stationType) then s.stationFilter - stationType
+        else s.stationFilter + stationType
+      s.copy(stationFilter = updated)
+    }
+
+  def clearStationFilter(): Unit =
+    stateVar.update(_.copy(stationFilter = Set.empty))
+
   // ── Order CRUD ─────────────────────────────────────────────────
 
   def addOrder(
@@ -45,6 +61,11 @@ object ManufacturingViewModel:
       createdAt = now,
       updatedAt = now,
       notes = notes,
+      attachedFiles = List(
+        // Sample attached files for demo purposes
+        AttachedFile("artwork.pdf", "pdf", 2400, now),
+        AttachedFile("proof.jpg", "jpg", 850, now),
+      ),
     )
     nextOrderId += 1
     stateVar.update(s => s.copy(orders = s.orders :+ order))
@@ -115,6 +136,109 @@ object ManufacturingViewModel:
         case None => s
     }
 
+  /** Unified single-button action: pick up a pending/in-progress order and
+    * auto-assign it to the best available station for its next required step.
+    */
+  def pickupAndStart(orderId: String): Unit =
+    stateVar.update { s =>
+      s.orders.find(_.id == orderId) match
+        case Some(order) if order.status == OrderStatus.Pending || order.status == OrderStatus.InProgress =>
+          val nextRequired = order.requiredStationTypes.filterNot(order.completedStationTypes.contains).headOption
+          nextRequired match
+            case Some(stType) =>
+              val stationOpt = s.stations.find(st =>
+                st.stationType == stType && st.currentOrderId.isEmpty && st.isActive
+              )
+              stationOpt match
+                case Some(station) =>
+                  val updatedOrder = order.copy(
+                    status = OrderStatus.AtStation,
+                    currentStationId = Some(station.id),
+                    updatedAt = Date.now().toLong,
+                  )
+                  val updatedStation = station.copy(currentOrderId = Some(orderId))
+                  s.copy(
+                    orders = s.orders.map(o => if o.id == orderId then updatedOrder else o),
+                    stations = s.stations.map(st => if st.id == station.id then updatedStation else st),
+                  )
+                case None =>
+                  // No available station — just mark InProgress
+                  val updatedOrder = order.copy(
+                    status = OrderStatus.InProgress,
+                    updatedAt = Date.now().toLong,
+                  )
+                  s.copy(orders = s.orders.map(o => if o.id == orderId then updatedOrder else o))
+            case None => s // no more steps
+        case _ => s
+    }
+
+  /** Unified single-button action: complete work at current station and
+    * auto-advance to next required station if available.
+    */
+  def completeAndAdvance(orderId: String): Unit =
+    stateVar.update { s =>
+      s.orders.find(_.id == orderId) match
+        case Some(order) if order.status == OrderStatus.AtStation =>
+          val stationOpt = order.currentStationId.flatMap(sid => s.stations.find(_.id == sid))
+          stationOpt match
+            case Some(station) =>
+              val completedType = station.stationType
+              val newCompleted  = order.completedStationTypes :+ completedType
+              val remaining     = order.requiredStationTypes.filterNot(newCompleted.contains)
+
+              // Free current station
+              val freedStations = s.stations.map(st =>
+                if st.id == station.id then st.copy(currentOrderId = None) else st
+              )
+
+              if remaining.isEmpty then
+                // Order fully completed
+                val updatedOrder = order.copy(
+                  status = OrderStatus.Completed,
+                  currentStationId = None,
+                  completedStationTypes = newCompleted,
+                  updatedAt = Date.now().toLong,
+                )
+                s.copy(
+                  orders = s.orders.map(o => if o.id == orderId then updatedOrder else o),
+                  stations = freedStations,
+                )
+              else
+                // Try to auto-assign to next station
+                val nextType = remaining.head
+                val nextStationOpt = freedStations.find(st =>
+                  st.stationType == nextType && st.currentOrderId.isEmpty && st.isActive
+                )
+                nextStationOpt match
+                  case Some(nextStation) =>
+                    val updatedOrder = order.copy(
+                      status = OrderStatus.AtStation,
+                      currentStationId = Some(nextStation.id),
+                      completedStationTypes = newCompleted,
+                      updatedAt = Date.now().toLong,
+                    )
+                    val updatedStations = freedStations.map(st =>
+                      if st.id == nextStation.id then st.copy(currentOrderId = Some(orderId)) else st
+                    )
+                    s.copy(
+                      orders = s.orders.map(o => if o.id == orderId then updatedOrder else o),
+                      stations = updatedStations,
+                    )
+                  case None =>
+                    val updatedOrder = order.copy(
+                      status = OrderStatus.InProgress,
+                      currentStationId = None,
+                      completedStationTypes = newCompleted,
+                      updatedAt = Date.now().toLong,
+                    )
+                    s.copy(
+                      orders = s.orders.map(o => if o.id == orderId then updatedOrder else o),
+                      stations = freedStations,
+                    )
+            case None => s
+        case _ => s
+    }
+
   def startOrder(orderId: String): Unit =
     stateVar.update { s =>
       s.copy(orders = s.orders.map { o =>
@@ -126,7 +250,12 @@ object ManufacturingViewModel:
 
   def removeCompletedOrders(): Unit =
     stateVar.update { s =>
-      s.copy(orders = s.orders.filterNot(o => o.status == OrderStatus.Completed || o.status == OrderStatus.Cancelled))
+      val removedIds = s.orders.filter(o => o.status == OrderStatus.Completed || o.status == OrderStatus.Cancelled).map(_.id).toSet
+      val newSelected = s.selectedOrderId.filterNot(removedIds.contains)
+      s.copy(
+        orders = s.orders.filterNot(o => o.status == OrderStatus.Completed || o.status == OrderStatus.Cancelled),
+        selectedOrderId = newSelected,
+      )
     }
 
   // ── Station management ────────────────────────────────────────

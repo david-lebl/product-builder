@@ -108,6 +108,15 @@ case class ManufacturingStation(
   isActive: Boolean = true,
 )
 
+// ── Attached file (placeholder for future real file uploads) ───────
+
+case class AttachedFile(
+  name: String,
+  fileType: String, // e.g. "pdf", "jpg", "ai"
+  sizeKb: Int,
+  uploadedAt: Long, // epoch millis
+)
+
 // ── Manufacturing order ────────────────────────────────────────────
 
 case class ManufacturingOrder(
@@ -123,13 +132,14 @@ case class ManufacturingOrder(
   createdAt: Long,    // epoch millis
   updatedAt: Long,    // epoch millis
   notes: String = "",
+  attachedFiles: List[AttachedFile] = List.empty,
 )
 
 // ── Manufacturing sidebar route ────────────────────────────────────
 
 enum ManufacturingRoute:
   case Dashboard
-  case OrderQueue
+  case WorkQueue
   case Stations
   case Employees
   case MaterialStorage
@@ -139,8 +149,8 @@ enum ManufacturingRoute:
   def label(lang: Language): String = (this, lang) match
     case (Dashboard, Language.En)       => "Dashboard"
     case (Dashboard, Language.Cs)       => "Přehled"
-    case (OrderQueue, Language.En)      => "Order Queue"
-    case (OrderQueue, Language.Cs)      => "Fronta objednávek"
+    case (WorkQueue, Language.En)       => "Work Queue"
+    case (WorkQueue, Language.Cs)       => "Pracovní fronta"
     case (Stations, Language.En)        => "Stations"
     case (Stations, Language.Cs)        => "Stanice"
     case (Employees, Language.En)       => "Employees"
@@ -154,7 +164,7 @@ enum ManufacturingRoute:
 
   def icon: String = this match
     case Dashboard       => "📊"
-    case OrderQueue      => "📋"
+    case WorkQueue       => "📋"
     case Stations        => "🏭"
     case Employees       => "👥"
     case MaterialStorage => "📦"
@@ -163,10 +173,10 @@ enum ManufacturingRoute:
 
   /** Whether this route is implemented (vs. future placeholder) */
   def isAvailable: Boolean = this match
-    case Dashboard  => true
-    case OrderQueue => true
-    case Stations   => true
-    case _          => false
+    case Dashboard => true
+    case WorkQueue => true
+    case Stations  => true
+    case _         => false
 
 // ── Manufacturing state ────────────────────────────────────────────
 
@@ -174,6 +184,8 @@ case class ManufacturingState(
   orders: List[ManufacturingOrder],
   stations: List[ManufacturingStation],
   currentRoute: ManufacturingRoute,
+  selectedOrderId: Option[String] = None,
+  stationFilter: Set[StationType] = Set.empty,
 )
 
 object ManufacturingState:
