@@ -133,19 +133,44 @@ Extended the calendar builder into a general visual product editor:
 
 ---
 
+## Completed — Phase 9: Manufacturing UI Module
+
+Internal manufacturing management module with sidebar-based navigation:
+
+- **Order queue** — In-memory order queue for managing incoming manufacturing orders with CRUD operations, priority levels (Low/Normal/High/Urgent), and workflow progression
+- **Production stations** — 10 pre-configured stations across 9 station types (Digital Printing, Offset Printing, Large Format, Cutting, Lamination, Folding, Binding, Quality Control, Packaging)
+- **Station assignment** — Assign orders to available stations, complete work at stations, and track order progress through multi-step manufacturing workflows
+- **Dashboard** — Overview with stats cards (pending/in-progress/completed counts, active stations), recent orders, and station status grid
+- **Sidebar navigation** — Dark-themed sidebar with icon-labeled links; future views (Employees, Material Storage, Pre-storage, Delivery) shown as disabled with "Soon" badges
+- **Internationalization** — Full EN/CS localization for all labels, statuses, and UI text
+- **Sample data** — One-click loading of 5 sample orders with realistic printing industry products and workflows
+- **Responsive design** — Sidebar collapses to icon-only horizontal strip on mobile
+
+---
+
 ## Testing
 
-**99 passing tests** across 5 test suites:
+**186 passing tests** across 5 test suites:
 
 - **ConfigurationBuilderSpec** — 34 tests: valid configs, error accumulation, weight rules, finish dependencies, printing process requirements
 - **CatalogQueryServiceSpec** — 17 tests: material/finish/spec filtering, progressive disclosure
 - **PriceCalculatorSpec** — 14 tests: valid breakdowns, area-based calculation, tier discounts, multiple finishes, precedence, error cases
 - **LocalizationSpec** — 17 tests: `LocalizedString` behavior, Czech translations, error message localization, backward compatibility
 - **BasketServiceSpec** — 17 tests: add/remove/update items, quantity validation, total calculation
+- **UI modules** — No unit tests (verified by compilation and manual testing; see `docs/ui-guide.md`)
 
 ---
 
 ## Roadmap
+
+### Manufacturing — Next Steps
+
+- **HTTP-backed order queue** — Replace in-memory queue with HTTP API for persistent order management
+- **Employee management** — Track employees, assign to stations, manage shifts and availability
+- **Material storage** — Track material inventory, stock levels, consumption per order, reorder alerts
+- **Pre-storage** — Manage completed orders awaiting pickup, storage location tracking
+- **Delivery integration** — Send pickup requests to delivery companies, track shipment status
+- **Queue analytics** — Historical order throughput, station utilization, bottleneck detection
 
 ### Persistence
 
