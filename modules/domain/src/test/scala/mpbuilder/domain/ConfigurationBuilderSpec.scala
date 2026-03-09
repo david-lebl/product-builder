@@ -995,7 +995,7 @@ object ConfigurationBuilderSpec extends ZIOSpecDefault:
           components = List(mainComponent(
             SampleCatalog.coated300gsmId,
             InkConfiguration.cmyk4_4,
-            List(FinishSelection(SampleCatalog.roundCornersId, Some(FinishParameters.RoundCornersParams(3, 5)))),
+            List(FinishSelection(SampleCatalog.roundCornersId, Some(FinishParameters.RoundCornersParams(0, 5)))),
           )),
           specs = List(
             SpecValue.SizeSpec(Dimension(90, 55)),
