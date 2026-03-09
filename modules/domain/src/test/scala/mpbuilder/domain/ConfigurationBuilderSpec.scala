@@ -1216,4 +1216,115 @@ object ConfigurationBuilderSpec extends ZIOSpecDefault:
         assertTrue(!InkConfiguration.cmyk4_0_white.isDoubleSided)
       },
     ),
+    suite("roll-up banners")(
+      test("build a valid roll-up banner with banner only (no stand)") {
+        val request = ConfigurationRequest(
+          categoryId = SampleCatalog.rollUpsId,
+          printingMethodId = SampleCatalog.uvInkjetId,
+          components = List(mainComponent(SampleCatalog.rollUpBannerFilmId, InkConfiguration.cmyk4_0)),
+          specs = List(
+            SpecValue.SizeSpec(Dimension(850, 2000)),
+            SpecValue.QuantitySpec(Quantity.unsafe(1)),
+          ),
+        )
+        val result = ConfigurationBuilder.build(request, catalog, ruleset, configId)
+        assertTrue(
+          result.toEither.isRight,
+          result.toEither.toOption.get.category.name(Language.En) == "Roll-Up Banners",
+          result.toEither.toOption.get.components.size == 1,
+        )
+      },
+      test("build a valid roll-up banner with economy stand") {
+        val request = ConfigurationRequest(
+          categoryId = SampleCatalog.rollUpsId,
+          printingMethodId = SampleCatalog.uvInkjetId,
+          components = List(
+            mainComponent(SampleCatalog.rollUpBannerFilmId, InkConfiguration.cmyk4_0),
+            ComponentRequest(ComponentRole.Stand, SampleCatalog.rollUpStandEconomyId, InkConfiguration.noInk, Nil),
+          ),
+          specs = List(
+            SpecValue.SizeSpec(Dimension(850, 2000)),
+            SpecValue.QuantitySpec(Quantity.unsafe(2)),
+          ),
+        )
+        val result = ConfigurationBuilder.build(request, catalog, ruleset, configId)
+        assertTrue(
+          result.toEither.isRight,
+          result.toEither.toOption.get.components.size == 2,
+          result.toEither.toOption.get.components.find(_.role == ComponentRole.Stand).get.material.name(Language.En) == "Roll-Up Stand Economy",
+        )
+      },
+      test("build a valid roll-up banner with premium stand and overlamination") {
+        val request = ConfigurationRequest(
+          categoryId = SampleCatalog.rollUpsId,
+          printingMethodId = SampleCatalog.uvInkjetId,
+          components = List(
+            mainComponent(SampleCatalog.rollUpBannerFilmId, InkConfiguration.cmyk4_0, List(FinishSelection(SampleCatalog.overlaminationId))),
+            ComponentRequest(ComponentRole.Stand, SampleCatalog.rollUpStandPremiumId, InkConfiguration.noInk, Nil),
+          ),
+          specs = List(
+            SpecValue.SizeSpec(Dimension(1000, 2000)),
+            SpecValue.QuantitySpec(Quantity.unsafe(5)),
+          ),
+        )
+        val result = ConfigurationBuilder.build(request, catalog, ruleset, configId)
+        assertTrue(
+          result.toEither.isRight,
+          result.toEither.toOption.get.components.find(_.role == ComponentRole.Stand).get.material.name(Language.En) == "Roll-Up Stand Premium",
+          result.toEither.toOption.get.components.find(_.role == ComponentRole.Main).get.finishes.size == 1,
+        )
+      },
+      test("roll-up banner too narrow is rejected") {
+        val request = ConfigurationRequest(
+          categoryId = SampleCatalog.rollUpsId,
+          printingMethodId = SampleCatalog.uvInkjetId,
+          components = List(mainComponent(SampleCatalog.rollUpBannerFilmId, InkConfiguration.cmyk4_0)),
+          specs = List(
+            SpecValue.SizeSpec(Dimension(400, 2000)),
+            SpecValue.QuantitySpec(Quantity.unsafe(1)),
+          ),
+        )
+        val result = ConfigurationBuilder.build(request, catalog, ruleset, configId)
+        assertTrue(result.toEither.isLeft)
+      },
+      test("roll-up banner too short is rejected") {
+        val request = ConfigurationRequest(
+          categoryId = SampleCatalog.rollUpsId,
+          printingMethodId = SampleCatalog.uvInkjetId,
+          components = List(mainComponent(SampleCatalog.rollUpBannerFilmId, InkConfiguration.cmyk4_0)),
+          specs = List(
+            SpecValue.SizeSpec(Dimension(850, 1000)),
+            SpecValue.QuantitySpec(Quantity.unsafe(1)),
+          ),
+        )
+        val result = ConfigurationBuilder.build(request, catalog, ruleset, configId)
+        assertTrue(result.toEither.isLeft)
+      },
+      test("roll-up banner with wrong printing method is rejected") {
+        val request = ConfigurationRequest(
+          categoryId = SampleCatalog.rollUpsId,
+          printingMethodId = SampleCatalog.digitalId,
+          components = List(mainComponent(SampleCatalog.rollUpBannerFilmId, InkConfiguration.cmyk4_0)),
+          specs = List(
+            SpecValue.SizeSpec(Dimension(850, 2000)),
+            SpecValue.QuantitySpec(Quantity.unsafe(1)),
+          ),
+        )
+        val result = ConfigurationBuilder.build(request, catalog, ruleset, configId)
+        assertTrue(result.toEither.isLeft)
+      },
+      test("stand material is not allowed in banner Main component") {
+        val request = ConfigurationRequest(
+          categoryId = SampleCatalog.rollUpsId,
+          printingMethodId = SampleCatalog.uvInkjetId,
+          components = List(mainComponent(SampleCatalog.rollUpStandEconomyId, InkConfiguration.noInk)),
+          specs = List(
+            SpecValue.SizeSpec(Dimension(850, 2000)),
+            SpecValue.QuantitySpec(Quantity.unsafe(1)),
+          ),
+        )
+        val result = ConfigurationBuilder.build(request, catalog, ruleset, configId)
+        assertTrue(result.toEither.isLeft)
+      },
+    ),
   )

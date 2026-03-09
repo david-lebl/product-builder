@@ -53,6 +53,7 @@ object SampleCatalog:
   val roundCornersId: FinishId      = FinishId.unsafe("fin-round-corners")
   val grommetsId: FinishId          = FinishId.unsafe("fin-grommets")
   val kissCutId: FinishId           = FinishId.unsafe("fin-kiss-cut")
+  val overlaminationId: FinishId    = FinishId.unsafe("fin-overlamination")
 
   // --- Category IDs ---
   val businessCardsId: CategoryId   = CategoryId.unsafe("cat-business-cards")
@@ -64,7 +65,13 @@ object SampleCatalog:
   val calendarsId: CategoryId       = CategoryId.unsafe("cat-calendars")
   val postcardsId: CategoryId       = CategoryId.unsafe("cat-postcards")
   val stickersId: CategoryId        = CategoryId.unsafe("cat-stickers")
+  val rollUpsId: CategoryId         = CategoryId.unsafe("cat-roll-ups")
   val freeId: CategoryId            = CategoryId.unsafe("cat-free")
+
+  // --- Roll-Up Material IDs ---
+  val rollUpBannerFilmId: MaterialId    = MaterialId.unsafe("mat-rollup-banner-film")
+  val rollUpStandEconomyId: MaterialId  = MaterialId.unsafe("mat-rollup-stand-economy")
+  val rollUpStandPremiumId: MaterialId  = MaterialId.unsafe("mat-rollup-stand-premium")
 
   // --- Printing Method IDs ---
   val offsetId: PrintingMethodId       = PrintingMethodId.unsafe("pm-offset")
@@ -430,6 +437,38 @@ object SampleCatalog:
     side = FinishSide.Both,
   )
 
+  val overlamination: Finish = Finish(
+    id = overlaminationId,
+    name = LocalizedString("Overlamination", "Ochranná laminace"),
+    finishType = FinishType.Overlamination,
+    side = FinishSide.Front,
+  )
+
+  // --- Roll-Up Materials ---
+  val rollUpBannerFilm: Material = Material(
+    id = rollUpBannerFilmId,
+    name = LocalizedString("Polyester Banner Film 510gsm", "Polyesterová fólie pro roll-up 510g"),
+    family = MaterialFamily.Fabric,
+    weight = None,
+    properties = Set(MaterialProperty.WaterResistant, MaterialProperty.SmoothSurface),
+  )
+
+  val rollUpStandEconomy: Material = Material(
+    id = rollUpStandEconomyId,
+    name = LocalizedString("Roll-Up Stand Economy", "Roll-up stojánek Economy"),
+    family = MaterialFamily.Hardware,
+    weight = None,
+    properties = Set.empty,
+  )
+
+  val rollUpStandPremium: Material = Material(
+    id = rollUpStandPremiumId,
+    name = LocalizedString("Roll-Up Stand Premium", "Roll-up stojánek Premium"),
+    family = MaterialFamily.Hardware,
+    weight = None,
+    properties = Set.empty,
+  )
+
   // --- Reusable Material ID Sets ---
   private val allCoatedGlossyIds: Set[MaterialId] = Set(
     coatedGlossy90gsmId, coatedGlossy115gsmId, coatedGlossy130gsmId,
@@ -579,6 +618,7 @@ object SampleCatalog:
     matteLaminationId, glossLaminationId, uvCoatingId, embossingId,
     foilStampingId, dieCutId, varnishId, softTouchCoatingId, aqueousCoatingId,
     debossingId, scoringId, perforationId, roundCornersId, grommetsId, kissCutId,
+    overlaminationId,
   )
 
   val postcards: ProductCategory = ProductCategory(
@@ -609,6 +649,26 @@ object SampleCatalog:
     allowedPrintingMethodIds = Set(digitalId, uvInkjetId),
   )
 
+  val rollUps: ProductCategory = ProductCategory(
+    id = rollUpsId,
+    name = LocalizedString("Roll-Up Banners", "Roll-up bannery"),
+    components = List(
+      ComponentTemplate(
+        ComponentRole.Main,
+        allowedMaterialIds = Set(rollUpBannerFilmId),
+        allowedFinishIds = Set(overlaminationId),
+      ),
+      ComponentTemplate(
+        ComponentRole.Stand,
+        allowedMaterialIds = Set(rollUpStandEconomyId, rollUpStandPremiumId),
+        allowedFinishIds = Set.empty,
+        optional = true,
+      ),
+    ),
+    requiredSpecKinds = Set(SpecKind.Size, SpecKind.Quantity),
+    allowedPrintingMethodIds = Set(uvInkjetId),
+  )
+
   val free: ProductCategory = ProductCategory(
     id = freeId,
     name = LocalizedString("Free Configuration", "Volná konfigurace"),
@@ -633,6 +693,7 @@ object SampleCatalog:
       calendarsId     -> calendars,
       postcardsId     -> postcards,
       stickersId      -> stickers,
+      rollUpsId       -> rollUps,
       freeId          -> free,
     ),
     materials = Map(
@@ -665,6 +726,10 @@ object SampleCatalog:
       coatedMatte250gsmId -> coatedMatte250gsm,
       coatedMatte300gsmId -> coatedMatte300gsm,
       coatedMatte350gsmId -> coatedMatte350gsm,
+      // Roll-Up Materials
+      rollUpBannerFilmId    -> rollUpBannerFilm,
+      rollUpStandEconomyId  -> rollUpStandEconomy,
+      rollUpStandPremiumId  -> rollUpStandPremium,
     ),
     finishes = Map(
       matteLaminationId  -> matteLamination,
@@ -682,6 +747,7 @@ object SampleCatalog:
       roundCornersId     -> roundCorners,
       grommetsId         -> grommets,
       kissCutId          -> kissCut,
+      overlaminationId   -> overlamination,
     ),
     printingMethods = Map(
       offsetId      -> offsetMethod,

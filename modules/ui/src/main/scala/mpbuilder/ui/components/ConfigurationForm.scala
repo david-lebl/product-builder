@@ -268,3 +268,6 @@ object ConfigurationForm:
       case ComponentRole.Body => lang match
         case Language.En => "Body / Inner Pages"
         case Language.Cs => "Vnitřní část / stránky"
+      case ComponentRole.Stand => lang match
+        case Language.En => "Stand / Platform"
+        case Language.Cs => "Stojánek / platforma"

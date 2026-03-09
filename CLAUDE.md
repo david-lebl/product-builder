@@ -29,7 +29,7 @@ This is a DDD (Domain-Driven Design) product configuration system for the printi
 - **`validation/`** — `ConfigurationError` ADT with exhaustive `message` match. `RuleEvaluator` interprets rules. `ConfigurationValidator` runs two-layer validation: structural checks first, then rule evaluation.
 - **`service/`** — `ConfigurationBuilder` resolves IDs from catalog and orchestrates validation. `CatalogQueryService` pre-filters compatible options for UI progressive disclosure.
 - **`pricing/`** — `Money` opaque type (BigDecimal, never Double). `PricingRule` sealed enum (17 variants: base/area/sheet material prices, finish/type/process/category/fold/binding surcharges, quantity/sheet tiers, `InkConfigurationFactor`, cutting surcharge, finish/type/fold/binding setup fees, minimum order price). `PriceCalculator` interprets rules purely. `PricingError` ADT with exhaustive `message` match. `PriceBreakdown` output with `ComponentBreakdown` per component (including optional `inkConfigLine`, `cuttingLine`, `sheetsUsed`), plus `setupFees`, `minimumApplied`, `foldSurcharge`, and `bindingSurcharge` fields.
-- **`sample/`** — `SampleCatalog` (7 categories, 9 materials, 14 finishes, 4 printing methods), `SampleRules` (24 rules), and `SamplePricelist` (USD + CZK base + CZK sheet pricelists; full finish/fold/binding surcharges, setup fees, and minimum order price on CZK pricelists). Used by tests.
+- **`sample/`** — `SampleCatalog` (11 categories, 13 materials, 16 finishes, 4 printing methods), `SampleRules` (29 rules), and `SamplePricelist` (USD + CZK base + CZK sheet pricelists; full finish/fold/binding surcharges, setup fees, and minimum order price on CZK pricelists). Used by tests.
 
 ### Package layout: `mpbuilder.ui.calendar` (Visual Editor)
 

@@ -21,6 +21,12 @@ object SamplePricelist:
       PricingRule.MaterialAreaPrice(SampleCatalog.vinylId, Money("18.00")),
       PricingRule.MaterialAreaPrice(SampleCatalog.clearVinylId, Money("22.00")),
 
+      // --- Roll-Up material prices ---
+      // Banner film: area price (per sqm), stand: base price (per unit)
+      PricingRule.MaterialAreaPrice(SampleCatalog.rollUpBannerFilmId, Money("12.00")),
+      PricingRule.MaterialBasePrice(SampleCatalog.rollUpStandEconomyId, Money("25.00")),
+      PricingRule.MaterialBasePrice(SampleCatalog.rollUpStandPremiumId, Money("55.00")),
+
       // --- Finish surcharges (ID-level) ---
       PricingRule.FinishSurcharge(SampleCatalog.matteLaminationId, Money("0.03")),
       PricingRule.FinishSurcharge(SampleCatalog.glossLaminationId, Money("0.03")),
@@ -39,6 +45,7 @@ object SamplePricelist:
       PricingRule.FinishTypeSurcharge(FinishType.Scoring, Money("0.02")),
       PricingRule.FinishTypeSurcharge(FinishType.Perforation, Money("0.02")),
       PricingRule.FinishTypeSurcharge(FinishType.RoundCorners, Money("0.02")),
+      PricingRule.FinishTypeSurcharge(FinishType.Overlamination, Money("2.50")),
 
       // --- Fold type surcharges (per unit, USD) ---
       PricingRule.FoldTypeSurcharge(FoldType.Half, Money("0.02")),
@@ -118,6 +125,11 @@ object SamplePricelist:
       PricingRule.MaterialAreaPrice(SampleCatalog.vinylId, Money("420")),
       PricingRule.MaterialAreaPrice(SampleCatalog.clearVinylId, Money("520")),
 
+      // --- Roll-Up material prices (CZK) ---
+      PricingRule.MaterialAreaPrice(SampleCatalog.rollUpBannerFilmId, Money("280")),
+      PricingRule.MaterialBasePrice(SampleCatalog.rollUpStandEconomyId, Money("590")),
+      PricingRule.MaterialBasePrice(SampleCatalog.rollUpStandPremiumId, Money("1290")),
+
       // --- Finish surcharges (ID-level, CZK) ---
       PricingRule.FinishSurcharge(SampleCatalog.matteLaminationId, Money("1")),
       PricingRule.FinishSurcharge(SampleCatalog.glossLaminationId, Money("1")),
@@ -133,6 +145,7 @@ object SamplePricelist:
       PricingRule.FinishTypeSurcharge(FinishType.UVCoating, Money("1")),
       PricingRule.FinishTypeSurcharge(FinishType.AqueousCoating, Money("0.50")),
       PricingRule.FinishTypeSurcharge(FinishType.Varnish, Money("1.50")),
+      PricingRule.FinishTypeSurcharge(FinishType.Overlamination, Money("60")),
 
       // --- Fold type surcharges (per unit, CZK) ---
       PricingRule.FoldTypeSurcharge(FoldType.Half, Money("0.50")),
@@ -353,6 +366,11 @@ object SamplePricelist:
       PricingRule.MaterialAreaPrice(SampleCatalog.vinylId, Money("420")),
       PricingRule.MaterialAreaPrice(SampleCatalog.clearVinylId, Money("520")),
 
+      // --- Roll-Up material prices (CZK) ---
+      PricingRule.MaterialAreaPrice(SampleCatalog.rollUpBannerFilmId, Money("280")),
+      PricingRule.MaterialBasePrice(SampleCatalog.rollUpStandEconomyId, Money("590")),
+      PricingRule.MaterialBasePrice(SampleCatalog.rollUpStandPremiumId, Money("1290")),
+
       // --- Material base price (for corrugated — not sheet-fed) ---
       PricingRule.MaterialBasePrice(SampleCatalog.corrugatedId, Money("6")),
 
@@ -378,6 +396,7 @@ object SamplePricelist:
       PricingRule.FinishTypeSurcharge(FinishType.RoundCorners, Money("0.50")),
       PricingRule.FinishTypeSurcharge(FinishType.Perforation, Money("0.50")),
       PricingRule.FinishTypeSurcharge(FinishType.Scoring, Money("0.50")),
+      PricingRule.FinishTypeSurcharge(FinishType.Overlamination, Money("60")),
 
       // --- Fold type surcharges (per unit, CZK) ---
       PricingRule.FoldTypeSurcharge(FoldType.Half, Money("1.00")),
