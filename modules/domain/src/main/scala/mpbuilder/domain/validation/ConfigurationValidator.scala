@@ -33,10 +33,11 @@ object ConfigurationValidator:
   ): Validation[ConfigurationError, Unit] =
     val expectedRoles = category.components.map(_.role).toSet
     val actualRoles = components.map(_.role).toSet
+    val requiredRoles = category.components.filterNot(_.optional).map(_.role).toSet
 
     val roleCheck =
-      if expectedRoles != actualRoles then
-        val missingErrors = (expectedRoles -- actualRoles).toList.map { role =>
+      if !requiredRoles.subsetOf(actualRoles) || !(actualRoles.subsetOf(expectedRoles)) then
+        val missingErrors = (requiredRoles -- actualRoles).toList.map { role =>
           ConfigurationError.MissingComponent(category.id, role)
         }
         val extraError =

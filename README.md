@@ -79,8 +79,8 @@ modules/
 │   │   └── PriceCalculator.scala # Pure pricing interpreter
 │   │
 │   └── sample/                   # Reference implementation
-│       ├── SampleCatalog.scala   # 7 categories, 9 materials, 14 finishes, 4 methods
-│       ├── SampleRules.scala     # 24 compatibility rules
+│       ├── SampleCatalog.scala   # 11 categories, 13 materials, 16 finishes, 4 methods
+│       ├── SampleRules.scala     # 29 compatibility rules
 │       └── SamplePricelist.scala # Pricing for all materials + key finishes
 │
 ├── ui/src/main/scala/mpbuilder/ui/
@@ -356,19 +356,21 @@ Key test suites:
 The included `SampleCatalog` provides a reference implementation:
 
 **Categories:**
-- Business Cards, Flyers, Brochures, Banners, Packaging, Booklets, Calendars
+- Business Cards, Flyers, Brochures, Banners, Packaging, Booklets, Calendars, Postcards, Stickers, **Roll-Up Banners**
 
 **Materials:**
 - Coated Art Paper 300gsm, Uncoated Bond 120gsm, Kraft Card 280gsm, Adhesive Vinyl, Corrugated Board, Coated Silk 250gsm, Yupo Synthetic 200μm, Adhesive Stock 100gsm, Cotton Paper 300gsm
+- Coated Art Paper Glossy (9 weights: 90–350gsm), Coated Art Paper Matte (9 weights: 90–350gsm)
+- **Polyester Banner Film 510gsm** (roll-up printing substrate), **Roll-Up Stand Economy**, **Roll-Up Stand Premium**
 
 **Finishes:**
-- Matte Lamination, Gloss Lamination, UV Coating, Embossing, Foil Stamping, Die Cut, Varnish, Soft Touch Coating, Aqueous Coating, Debossing, Scoring, Perforation, Round Corners, Grommets
+- Matte Lamination, Gloss Lamination, UV Coating, Embossing, Foil Stamping, Die Cut, Varnish, Soft Touch Coating, Aqueous Coating, Debossing, Scoring, Perforation, Round Corners, Grommets, Kiss Cut, **Overlamination**
 
 **Printing Methods:**
 - Offset, Digital, UV Curable Inkjet, Letterpress
 
 **Rules:**
-- 24 compatibility rules covering material-finish restrictions, weight requirements, finish dependencies, property constraints, and spec constraints
+- 29 compatibility rules covering material-finish restrictions, weight requirements, finish dependencies, property constraints, spec constraints, and roll-up size constraints
 
 ## Design Highlights
 

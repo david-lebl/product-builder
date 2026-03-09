@@ -162,6 +162,37 @@ object SampleRules:
       SpecPredicate.MaxPages(96),
       "Booklets must not exceed 96 pages",
     ),
+    // --- Roll-Up rules ---
+    // Roll-Up banners: min width 600mm
+    CompatibilityRule.SpecConstraint(
+      cat.rollUpsId,
+      SpecPredicate.MinDimension(600, 1),
+      "Roll-up banners must be at least 600mm wide",
+    ),
+    // Roll-Up banners: max width 1200mm
+    CompatibilityRule.SpecConstraint(
+      cat.rollUpsId,
+      SpecPredicate.MaxDimension(1200, Int.MaxValue),
+      "Roll-up banners must not exceed 1200mm in width",
+    ),
+    // Roll-Up banners: min height 1600mm
+    CompatibilityRule.SpecConstraint(
+      cat.rollUpsId,
+      SpecPredicate.MinDimension(1, 1600),
+      "Roll-up banners must be at least 1600mm tall",
+    ),
+    // Roll-Up banners: max height 2400mm
+    CompatibilityRule.SpecConstraint(
+      cat.rollUpsId,
+      SpecPredicate.MaxDimension(Int.MaxValue, 2400),
+      "Roll-up banners must not exceed 2400mm in height",
+    ),
+    // Roll-Up banners: only CMYK ink type
+    CompatibilityRule.ConfigurationConstraint(
+      cat.rollUpsId,
+      ConfigurationPredicate.AllowedInkTypes(Set(InkType.CMYK)),
+      "Roll-up banners only support CMYK ink type for the banner",
+    ),
     // --- Calendar rules ---
     // Calendars: allowed binding methods
     CompatibilityRule.SpecConstraint(

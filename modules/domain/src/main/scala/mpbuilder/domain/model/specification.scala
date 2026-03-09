@@ -41,6 +41,7 @@ object InkConfiguration:
   val mono1_0: InkConfiguration = InkConfiguration(InkSetup.grayscale, InkSetup.none)
   val mono1_1: InkConfiguration = InkConfiguration(InkSetup.grayscale, InkSetup.grayscale)
   val cmyk4_0_white: InkConfiguration = InkConfiguration(InkSetup.cmyk, InkSetup.white)
+  val noInk: InkConfiguration = InkConfiguration(InkSetup.none, InkSetup.none)
 
 enum Orientation:
   case Portrait, Landscape

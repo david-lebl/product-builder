@@ -4,11 +4,13 @@ enum ComponentRole:
   case Main
   case Cover
   case Body
+  case Stand
 
 final case class ComponentTemplate(
     role: ComponentRole,
     allowedMaterialIds: Set[MaterialId],
     allowedFinishIds: Set[FinishId],
+    optional: Boolean = false,
 )
 
 final case class ProductComponent(

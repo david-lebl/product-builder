@@ -232,3 +232,6 @@ object PricePreview:
       case ComponentRole.Body => lang match
         case Language.En => "Body"
         case Language.Cs => "Vnitřní část"
+      case ComponentRole.Stand => lang match
+        case Language.En => "Stand"
+        case Language.Cs => "Stojánek"
