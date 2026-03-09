@@ -2,6 +2,7 @@ package mpbuilder.ui
 
 import com.raquo.laminar.api.L.*
 import mpbuilder.ui.calendar.CalendarBuilderApp
+import mpbuilder.ui.catalog.CatalogEditorApp
 import mpbuilder.ui.components.CheckoutView
 import mpbuilder.domain.model.Language
 
@@ -9,6 +10,7 @@ sealed trait AppRoute
 object AppRoute {
   case object ProductBuilder extends AppRoute
   case object CalendarBuilder extends AppRoute
+  case object CatalogEditor extends AppRoute
   case object Checkout extends AppRoute
 }
 
@@ -113,6 +115,18 @@ object AppRouter {
             },
             onClick --> { _ => navigateTo(AppRoute.CalendarBuilder) }
           ),
+          button(
+            cls := "nav-link",
+            cls <-- currentRoute.map {
+              case AppRoute.CatalogEditor => "active"
+              case _ => ""
+            },
+            child.text <-- lang.map {
+              case Language.En => "Catalog Editor"
+              case Language.Cs => "Editor katalogu"
+            },
+            onClick --> { _ => navigateTo(AppRoute.CatalogEditor) }
+          ),
         ),
       ),
 
@@ -120,6 +134,7 @@ object AppRouter {
       child <-- currentRoute.map {
         case AppRoute.ProductBuilder  => ProductBuilderApp()
         case AppRoute.CalendarBuilder => CalendarBuilderApp()
+        case AppRoute.CatalogEditor   => CatalogEditorApp()
         case AppRoute.Checkout        => CheckoutView()
       }
     )
