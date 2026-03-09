@@ -5,7 +5,7 @@ import mpbuilder.ui.{ProductBuilderViewModel, AppRouter, AppRoute, BuilderState}
 import mpbuilder.domain.model.*
 import mpbuilder.domain.model.CheckoutStep.*
 import mpbuilder.domain.pricing.{Money, Currency}
-import mpbuilder.domain.service.BasketService
+import mpbuilder.domain.service.{BasketService, DiscountService}
 import mpbuilder.domain.weight.WeightCalculator
 
 object CheckoutView:
@@ -584,8 +584,8 @@ object CheckoutView:
 
   private def stepSummary(info: CheckoutInfo, s: BuilderState, l: Language): Element =
     val basketCalc = BasketService.calculateTotal(s.basket)
-    val codeVar = Var(info.discountCode)
-    val noteVar = Var(info.note)
+    val codeVar    = Var(info.discountCode)
+    val noteVar    = Var(info.note)
 
     val totalWeightG: Option[Double] =
       val weights = s.basket.items.flatMap { item =>
@@ -602,6 +602,27 @@ object CheckoutView:
         info.shippingAddress.getOrElse(info.invoiceAddress)
       else
         info.invoiceAddress
+
+    // Discount calculation
+    val discountPercent: Option[Int] = DiscountService.lookupPercent(info.discountCode)
+    val discountAmount: Money =
+      discountPercent match
+        case Some(pct) => (basketCalc.total * BigDecimal(pct) / 100).rounded
+        case None      => Money.zero
+    val discountedItemsTotal: Money =
+      discountPercent match
+        case Some(pct) => (basketCalc.total * BigDecimal(100 - pct) / 100).rounded
+        case None      => basketCalc.total
+
+    // Delivery cost
+    val deliveryMoney: Option[Money] = deliveryCostMoney(info.deliveryOption)
+    val currency = basketCalc.currency
+
+    // Grand total = discounted items + delivery
+    val grandTotal: Money =
+      deliveryMoney match
+        case Some(d) => (discountedItemsTotal + d).rounded
+        case None    => discountedItemsTotal
 
     div(
       cls := "checkout-card card",
@@ -706,16 +727,23 @@ object CheckoutView:
         button(
           cls := "btn-secondary checkout-discount-apply",
           if l == Language.Cs then "Použít" else "Apply",
-          // No real integration yet — UI only
           onClick --> { _ =>
             ProductBuilderViewModel.updateCheckoutInfo(info.copy(discountCode = codeVar.now().trim))
           },
         ),
       ),
       if info.discountCode.nonEmpty then
-        p(cls := "checkout-discount-applied",
-          "🏷️ " + (if l == Language.Cs then s"Kód aplikován: ${info.discountCode}" else s"Code applied: ${info.discountCode}")
-        )
+        discountPercent match
+          case Some(pct) =>
+            p(cls := "checkout-discount-applied",
+              "🏷️ " + (if l == Language.Cs then s"Kód aplikován: ${info.discountCode} (–$pct %)"
+                        else s"Code applied: ${info.discountCode} (–$pct %)")
+            )
+          case None =>
+            p(cls := "checkout-discount-invalid",
+              "⚠️ " + (if l == Language.Cs then s"Neplatný slevový kód: ${info.discountCode}"
+                       else s"Invalid discount code: ${info.discountCode}")
+            )
       else emptyNode,
 
       // Order note
@@ -733,11 +761,36 @@ object CheckoutView:
         ),
       ),
 
-      // Total
+      // Price breakdown + total
       div(
-        cls := "checkout-total",
-        span(if l == Language.Cs then "Celkem:" else "Total:"),
-        strong(formatMoney(basketCalc.total, basketCalc.currency)),
+        cls := "checkout-price-breakdown",
+        // Items subtotal row
+        div(
+          cls := "checkout-breakdown-row",
+          span(if l == Language.Cs then "Mezisoučet položek:" else "Items subtotal:"),
+          span(formatMoney(basketCalc.total, currency)),
+        ),
+        // Discount row (only when a valid code is applied)
+        discountPercent match
+          case Some(pct) =>
+            div(
+              cls := "checkout-breakdown-row checkout-breakdown-row--discount",
+              span(if l == Language.Cs then s"Sleva $pct %:" else s"Discount $pct %:"),
+              span("–" + formatMoney(discountAmount, currency)),
+            )
+          case None => emptyNode,
+        // Delivery row
+        div(
+          cls := "checkout-breakdown-row",
+          span(if l == Language.Cs then "Doprava:" else "Delivery:"),
+          span(deliveryCost(info.deliveryOption, l)),
+        ),
+        // Grand total
+        div(
+          cls := "checkout-total",
+          span(if l == Language.Cs then "Celkem:" else "Total:"),
+          strong(formatMoney(grandTotal, currency)),
+        ),
       ),
 
       // Payment note for bank transfer
@@ -828,15 +881,26 @@ object CheckoutView:
   private def deliveryCost(opt: Option[DeliveryOption], l: Language): String =
     opt match
       case Some(DeliveryOption.PickupAtShop(_)) => if l == Language.Cs then "Zdarma" else "Free"
-      case Some(opt) =>
-        val svcId = opt match
-          case DeliveryOption.CourierExpress  => "courier-express"
-          case DeliveryOption.CourierEconomy  => "courier-economy"
-          case _                              => "courier-standard"
-        ProductBuilderViewModel.courierServices.find(_.id == svcId)
+      case Some(o) =>
+        courierServiceFor(o)
           .map(s => formatMoney(s.surcharge, s.currency))
           .getOrElse("—")
       case None => "—"
+
+  /** Returns the numeric delivery cost as `Money`, or `None` for pickup/unknown. */
+  private def deliveryCostMoney(opt: Option[DeliveryOption]): Option[Money] =
+    opt match
+      case Some(DeliveryOption.PickupAtShop(_)) => None
+      case Some(o)                              => courierServiceFor(o).map(_.surcharge)
+      case None                                 => None
+
+  /** Maps a courier `DeliveryOption` to its configured `CourierService`, if any. */
+  private def courierServiceFor(opt: DeliveryOption): Option[mpbuilder.domain.model.CourierService] =
+    val svcId = opt match
+      case DeliveryOption.CourierExpress => "courier-express"
+      case DeliveryOption.CourierEconomy => "courier-economy"
+      case _                             => "courier-standard"
+    ProductBuilderViewModel.courierServices.find(_.id == svcId)
 
   private def paymentLabel(opt: Option[PaymentMethod], l: Language): String =
     opt match
