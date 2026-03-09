@@ -768,6 +768,7 @@ object CheckoutView:
             // UI-only: just show confirmation and clear basket
             ProductBuilderViewModel.clearBasket()
             ProductBuilderViewModel.cancelCheckout()
+            ProductBuilderViewModel.resetProductForm()
             AppRouter.navigateTo(AppRoute.ProductBuilder)
           },
         ),
