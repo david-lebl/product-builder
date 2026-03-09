@@ -109,8 +109,7 @@ object WorkQueueView:
 
   private def collectQueueEntries(state: ManufacturingState, stFilter: Set[StationType], searchQ: String): List[QueueEntry] =
     val lowerSearch = searchQ.toLowerCase.trim
-    var rank = 0
-    val entries = for
+    val raw = for
       order <- state.orders if order.approval == ApprovalStatus.Approved
       item  <- order.items
       wf    <- item.workflow.toList
@@ -121,14 +120,13 @@ object WorkQueueView:
          item.productDescription.toLowerCase.contains(lowerSearch) ||
          item.materialDescription.toLowerCase.contains(lowerSearch) ||
          step.stationType.label.toLowerCase.contains(lowerSearch)
-    yield
-      rank += 1
-      QueueEntry(order, item, step, wf, rank)
-    entries.sortBy(e => (
+    yield QueueEntry(order, item, step, wf, 0)
+    val sorted = raw.sortBy(e => (
       if e.step.status == StepStatus.InProgress then 0 else 1,
       e.order.priority.ordinal,
       e.order.id.value,
     ))
+    sorted.zipWithIndex.map { case (e, idx) => e.copy(recommendedOrder = idx + 1) }
 
   private def renderTable(entries: List[QueueEntry], selectedOrderId: Option[OrderId], selectedItemIdx: Option[Int]): Element =
     val tbl = htmlTag("table")

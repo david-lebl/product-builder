@@ -147,7 +147,7 @@ object DashboardView:
         val ready = stepsForStation.count(_.status == StepStatus.Ready)
         val completed = stepsForStation.count(_.status == StepStatus.Completed)
         val total = stepsForStation.size
-        val utilPct = if total > 0 then ((completed + inProgress) * 100) / total else 0
+        val utilPct = if total > 0 then math.round((completed + inProgress) * 100.0 / total).toInt else 0
         val isActive = inProgress > 0
 
         div(

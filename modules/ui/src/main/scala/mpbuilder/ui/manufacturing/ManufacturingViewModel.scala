@@ -59,15 +59,6 @@ object ManufacturingViewModel:
   def setSearchQuery(query: String): Unit =
     stateVar.update(_.copy(searchQuery = query))
 
-  def setSortColumn(col: WorkQueueSortColumn): Unit =
-    stateVar.update { s =>
-      if s.sortColumn.contains(col) then
-        val newDir = if s.sortDirection == SortDirection.Asc then SortDirection.Desc else SortDirection.Asc
-        s.copy(sortDirection = newDir)
-      else
-        s.copy(sortColumn = Some(col), sortDirection = SortDirection.Asc)
-    }
-
   // ─── Order Approval Actions ───────────────────────────────────────
 
   def approveOrder(orderId: OrderId): Unit =

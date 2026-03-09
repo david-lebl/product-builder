@@ -26,14 +26,6 @@ object ManufacturingRoute:
       case OrderProgress => "📈"
       case Employees     => "👥"
 
-/** Column sort direction */
-enum SortDirection:
-  case Asc, Desc
-
-/** Which column is being sorted in work queue */
-enum WorkQueueSortColumn:
-  case Id, Order, Customer, Product, Material, Status, Priority, CreatedAt, Deadline
-
 /** Aggregate state for the manufacturing UI */
 final case class ManufacturingState(
     orders: List[ManufacturingOrder],
@@ -44,8 +36,6 @@ final case class ManufacturingState(
     stationFilter: Set[StationType],
     searchQuery: String,
     currentEmployeeId: Option[EmployeeId],
-    sortColumn: Option[WorkQueueSortColumn],
-    sortDirection: SortDirection,
 )
 
 object ManufacturingState:
@@ -58,6 +48,4 @@ object ManufacturingState:
     stationFilter = Set.empty,
     searchQuery = "",
     currentEmployeeId = None,
-    sortColumn = None,
-    sortDirection = SortDirection.Asc,
   )
