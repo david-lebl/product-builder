@@ -8,11 +8,6 @@ import mpbuilder.domain.model.*
   */
 object WorkflowGenerator:
 
-  private var stepCounter: Int = 0
-  private def nextStepId(): StepId =
-    stepCounter += 1
-    StepId.unsafe(s"step-$stepCounter")
-
   /** Generate a linear workflow for one order item.
     * Steps are ordered for linear progression:
     * Prepress → Printing → Surface finishes → Cutting → Folding → Binding → QC → Packaging
@@ -24,6 +19,11 @@ object WorkflowGenerator:
   ): ManufacturingWorkflow =
     val steps = scala.collection.mutable.ListBuffer.empty[WorkflowStep]
     var idx = 0
+    var stepCounter = 0
+
+    def nextStepId(): StepId =
+      stepCounter += 1
+      StepId.unsafe(s"step-${orderId.value}-$itemIndex-$stepCounter")
 
     def addStep(stationType: StationType, role: Option[ComponentRole]): Unit =
       steps += WorkflowStep(

@@ -187,16 +187,19 @@ object ManufacturingWorkflow:
       status = if allDone then WorkflowStatus.Completed else workflow.status,
     )
 
-  /** Start (pick up) the current Ready step */
+  /** Start (pick up) the first Ready step only — enforces linear progression */
   def startCurrentStep(workflow: ManufacturingWorkflow, employeeId: Option[EmployeeId]): ManufacturingWorkflow =
-    val updatedSteps = workflow.steps.map { s =>
-      if s.status == StepStatus.Ready then s.copy(status = StepStatus.InProgress, assignedTo = employeeId)
-      else s
-    }
-    workflow.copy(
-      steps = updatedSteps,
-      status = WorkflowStatus.InProgress,
-    )
+    val readyIdx = workflow.steps.indexWhere(_.status == StepStatus.Ready)
+    if readyIdx < 0 then workflow
+    else
+      val updatedSteps = workflow.steps.updated(
+        readyIdx,
+        workflow.steps(readyIdx).copy(status = StepStatus.InProgress, assignedTo = employeeId),
+      )
+      workflow.copy(
+        steps = updatedSteps,
+        status = WorkflowStatus.InProgress,
+      )
 
   /** Get the current active step (first non-completed, non-skipped step) */
   def currentStep(workflow: ManufacturingWorkflow): Option[WorkflowStep] =

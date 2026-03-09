@@ -131,8 +131,7 @@ object OrderQueueView:
           cls := "mfg-priority-selector",
           Priority.values.toList.map { p =>
             button(
-              cls := s"mfg-priority-btn${if order.priority == p then " active" else ""}",
-              cls := s"mfg-priority-${p.toString.toLowerCase}",
+              cls := s"mfg-priority-btn mfg-priority-${p.toString.toLowerCase}${if order.priority == p then " active" else ""}",
               p.label,
               onClick --> { _ => ManufacturingViewModel.setPriority(order.id, p) },
             )

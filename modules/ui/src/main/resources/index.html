@@ -2297,6 +2297,7 @@
            ═══════════════════════════════════════════════════════════ */
 
         .mfg-app {
+            --mfg-sidebar-width: 220px;
             display: flex;
             min-height: calc(100vh - var(--header-total-height));
         }
@@ -2304,8 +2305,8 @@
         /* ─── Sidebar ─────────────────────────────────────────── */
 
         .mfg-sidebar {
-            width: 220px;
-            min-width: 220px;
+            width: var(--mfg-sidebar-width);
+            min-width: var(--mfg-sidebar-width);
             background: #1e293b;
             color: #e2e8f0;
             display: flex;
@@ -2407,7 +2408,7 @@
             padding: 24px;
             overflow-y: auto;
             background: #f0f2f5;
-            max-width: calc(100% - 220px);
+            max-width: calc(100% - var(--mfg-sidebar-width));
         }
 
         /* ─── View headers ────────────────────────────────────── */
