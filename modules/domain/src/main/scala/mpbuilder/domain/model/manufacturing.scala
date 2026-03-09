@@ -220,14 +220,25 @@ final case class ManufacturingOrder(
     approval: ApprovalStatus,
     priority: Priority,
     notes: String,
+    createdAt: String,
+    deadline: Option[String],
 )
 
 /** One item within a manufacturing order */
 final case class ManufacturingOrderItem(
     itemIndex: Int,
     productDescription: String,
+    materialDescription: String,
     quantity: Int,
     workflow: Option[ManufacturingWorkflow],
+    files: List[ManufacturingFile],
+)
+
+/** A file attached to a manufacturing order item */
+final case class ManufacturingFile(
+    name: String,
+    fileType: String,
+    url: String,
 )
 
 /** An employee who works at manufacturing stations */

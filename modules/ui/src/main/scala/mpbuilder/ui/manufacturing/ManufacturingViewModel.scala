@@ -28,21 +28,45 @@ object ManufacturingViewModel:
 
   val currentRoute: Signal[ManufacturingRoute] = state.map(_.selectedRoute)
 
-  val stationFilter: Signal[Option[StationType]] = state.map(_.stationFilter)
+  val stationFilter: Signal[Set[StationType]] = state.map(_.stationFilter)
+
+  val searchQuery: Signal[String] = state.map(_.searchQuery)
 
   // ─── Navigation ───────────────────────────────────────────────────
 
   def navigateTo(route: ManufacturingRoute): Unit =
-    stateVar.update(_.copy(selectedRoute = route, selectedOrderId = None))
+    stateVar.update(_.copy(selectedRoute = route, selectedOrderId = None, selectedItemIndex = None))
 
   def selectOrder(orderId: OrderId): Unit =
-    stateVar.update(_.copy(selectedOrderId = Some(orderId)))
+    stateVar.update(_.copy(selectedOrderId = Some(orderId), selectedItemIndex = None))
+
+  def selectOrderItem(orderId: OrderId, itemIndex: Int): Unit =
+    stateVar.update(_.copy(selectedOrderId = Some(orderId), selectedItemIndex = Some(itemIndex)))
 
   def deselectOrder(): Unit =
-    stateVar.update(_.copy(selectedOrderId = None))
+    stateVar.update(_.copy(selectedOrderId = None, selectedItemIndex = None))
 
-  def setStationFilter(station: Option[StationType]): Unit =
-    stateVar.update(_.copy(stationFilter = station))
+  def toggleStationFilter(station: StationType): Unit =
+    stateVar.update { s =>
+      val updated = if s.stationFilter.contains(station) then s.stationFilter - station
+                    else s.stationFilter + station
+      s.copy(stationFilter = updated)
+    }
+
+  def clearStationFilter(): Unit =
+    stateVar.update(_.copy(stationFilter = Set.empty))
+
+  def setSearchQuery(query: String): Unit =
+    stateVar.update(_.copy(searchQuery = query))
+
+  def setSortColumn(col: WorkQueueSortColumn): Unit =
+    stateVar.update { s =>
+      if s.sortColumn.contains(col) then
+        val newDir = if s.sortDirection == SortDirection.Asc then SortDirection.Desc else SortDirection.Asc
+        s.copy(sortDirection = newDir)
+      else
+        s.copy(sortColumn = Some(col), sortDirection = SortDirection.Asc)
+    }
 
   // ─── Order Approval Actions ───────────────────────────────────────
 
@@ -51,7 +75,6 @@ object ManufacturingViewModel:
       val updated = s.orders.map { order =>
         if order.id == orderId then
           val approvedOrder = order.copy(approval = ApprovalStatus.Approved)
-          // Generate workflows for each item upon approval
           val itemsWithWorkflows = approvedOrder.items.map { item =>
             if item.workflow.isEmpty then
               item.copy(workflow = Some(createDefaultWorkflow(orderId, item.itemIndex, item.productDescription)))
@@ -89,7 +112,6 @@ object ManufacturingViewModel:
 
   // ─── Workflow Step Actions (linear progression) ───────────────────
 
-  /** Pick up and start the current Ready step for a workflow item */
   def pickupAndStart(orderId: OrderId, itemIndex: Int): Unit =
     stateVar.update { s =>
       s.copy(orders = s.orders.map { order =>
@@ -107,7 +129,6 @@ object ManufacturingViewModel:
       })
     }
 
-  /** Complete the current InProgress step and advance the workflow linearly */
   def completeAndAdvance(orderId: OrderId, itemIndex: Int): Unit =
     stateVar.update { s =>
       s.copy(orders = s.orders.map { order =>
@@ -125,26 +146,6 @@ object ManufacturingViewModel:
       })
     }
 
-  /** Add a note to a workflow step */
-  def addStepNote(orderId: OrderId, itemIndex: Int, stepId: StepId, note: String): Unit =
-    stateVar.update { s =>
-      s.copy(orders = s.orders.map { order =>
-        if order.id == orderId then
-          order.copy(items = order.items.map { item =>
-            if item.itemIndex == itemIndex then
-              item.workflow match
-                case Some(wf) =>
-                  val updatedSteps = wf.steps.map { step =>
-                    if step.id == stepId then step.copy(notes = note) else step
-                  }
-                  item.copy(workflow = Some(wf.copy(steps = updatedSteps)))
-                case None => item
-            else item
-          })
-        else order
-      })
-    }
-
   // ─── Helper ───────────────────────────────────────────────────────
 
   private var wfCounter: Int = 100
@@ -154,7 +155,6 @@ object ManufacturingViewModel:
     stepIdCounter += 1
     StepId.unsafe(s"step-$stepIdCounter")
 
-  /** Create a default workflow based on the product description heuristic */
   private def createDefaultWorkflow(orderId: OrderId, itemIndex: Int, description: String): ManufacturingWorkflow =
     wfCounter += 1
     val desc = description.toLowerCase
@@ -209,15 +209,18 @@ object SampleManufacturingData:
   private def mkStep(id: String, st: StationType, idx: Int, status: StepStatus, role: Option[ComponentRole] = None): WorkflowStep =
     WorkflowStep(StepId.unsafe(id), st, role, idx, status, None, "")
 
+  private def mkFile(name: String, fileType: String): ManufacturingFile =
+    ManufacturingFile(name, fileType, s"#file-$name")
+
   val orders: List[ManufacturingOrder] = List(
-    // Order 1: Approved, workflow in progress
     ManufacturingOrder(
       id = OrderId.unsafe("ORD-1042"),
       customerName = "Petr Horák",
       items = List(
         ManufacturingOrderItem(
           itemIndex = 0,
-          productDescription = "500× Business Cards, 350gsm Glossy, CMYK 4/4, Matte Lamination",
+          productDescription = "Business Cards",
+          materialDescription = "350gsm Glossy Coated",
           quantity = 500,
           workflow = Some(ManufacturingWorkflow(
             id = WorkflowId.unsafe("wf-1"),
@@ -234,20 +237,23 @@ object SampleManufacturingData:
             status = WorkflowStatus.InProgress,
             priority = Priority.Rush,
           )),
+          files = List(mkFile("business-cards-front.pdf", "artwork"), mkFile("business-cards-back.pdf", "artwork")),
         ),
       ),
       approval = ApprovalStatus.Approved,
       priority = Priority.Rush,
       notes = "Customer requested rush delivery",
+      createdAt = "2026-03-07 09:15",
+      deadline = Some("2026-03-09 14:00"),
     ),
-    // Order 2: Approved, workflow pending
     ManufacturingOrder(
       id = OrderId.unsafe("ORD-1038"),
       customerName = "Jana Nováková",
       items = List(
         ManufacturingOrderItem(
           itemIndex = 0,
-          productDescription = "200× Brochure A4, 170gsm Matte, CMYK 4/0, Fold, Saddle Stitch Binding",
+          productDescription = "Brochure A4",
+          materialDescription = "170gsm Matte Coated",
           quantity = 200,
           workflow = Some(ManufacturingWorkflow(
             id = WorkflowId.unsafe("wf-2"),
@@ -266,58 +272,69 @@ object SampleManufacturingData:
             status = WorkflowStatus.Pending,
             priority = Priority.Normal,
           )),
+          files = List(mkFile("brochure-cover.pdf", "artwork"), mkFile("brochure-body.pdf", "artwork"), mkFile("brochure-imposed.pdf", "prepress")),
         ),
       ),
       approval = ApprovalStatus.Approved,
       priority = Priority.Normal,
       notes = "",
+      createdAt = "2026-03-06 14:30",
+      deadline = Some("2026-03-10 17:00"),
     ),
-    // Order 3: Pending approval
     ManufacturingOrder(
       id = OrderId.unsafe("ORD-1045"),
       customerName = "Martin Procházka",
       items = List(
         ManufacturingOrderItem(
           itemIndex = 0,
-          productDescription = "1000× Flyers A5, 135gsm Glossy, CMYK 4/0",
+          productDescription = "Flyers A5",
+          materialDescription = "135gsm Glossy Coated",
           quantity = 1000,
           workflow = None,
+          files = List(mkFile("flyers-artwork.pdf", "artwork")),
         ),
         ManufacturingOrderItem(
           itemIndex = 1,
-          productDescription = "500× Stickers, Vinyl, CMYK 4/0, Die Cut",
+          productDescription = "Stickers Die Cut",
+          materialDescription = "Vinyl Adhesive",
           quantity = 500,
           workflow = None,
+          files = List(mkFile("stickers-artwork.pdf", "artwork"), mkFile("stickers-dieline.pdf", "dieline")),
         ),
       ),
       approval = ApprovalStatus.Pending,
       priority = Priority.Normal,
       notes = "",
+      createdAt = "2026-03-08 11:20",
+      deadline = Some("2026-03-12 12:00"),
     ),
-    // Order 4: Pending approval
     ManufacturingOrder(
       id = OrderId.unsafe("ORD-1044"),
       customerName = "Eva Králová",
       items = List(
         ManufacturingOrderItem(
           itemIndex = 0,
-          productDescription = "100× Booklet A5, 200gsm Cover + 120gsm Body, CMYK 4/4, Perfect Binding",
+          productDescription = "Booklet A5",
+          materialDescription = "200gsm Cover + 120gsm Body",
           quantity = 100,
           workflow = None,
+          files = List(mkFile("booklet-cover.pdf", "artwork"), mkFile("booklet-pages.pdf", "artwork")),
         ),
       ),
       approval = ApprovalStatus.Pending,
       priority = Priority.Low,
       notes = "Payment via bank transfer — awaiting confirmation",
+      createdAt = "2026-03-08 08:45",
+      deadline = Some("2026-03-14 17:00"),
     ),
-    // Order 5: Completed
     ManufacturingOrder(
       id = OrderId.unsafe("ORD-1035"),
       customerName = "Tomáš Černý",
       items = List(
         ManufacturingOrderItem(
           itemIndex = 0,
-          productDescription = "300× Posters A3, 200gsm Glossy, CMYK 4/0",
+          productDescription = "Posters A3",
+          materialDescription = "200gsm Glossy Coated",
           quantity = 300,
           workflow = Some(ManufacturingWorkflow(
             id = WorkflowId.unsafe("wf-5"),
@@ -333,10 +350,65 @@ object SampleManufacturingData:
             status = WorkflowStatus.Completed,
             priority = Priority.Normal,
           )),
+          files = List(mkFile("posters-artwork.pdf", "artwork")),
         ),
       ),
       approval = ApprovalStatus.Approved,
       priority = Priority.Normal,
       notes = "",
+      createdAt = "2026-03-05 10:00",
+      deadline = Some("2026-03-08 17:00"),
+    ),
+    ManufacturingOrder(
+      id = OrderId.unsafe("ORD-1046"),
+      customerName = "Lucie Benešová",
+      items = List(
+        ManufacturingOrderItem(
+          itemIndex = 0,
+          productDescription = "Calendars Wall A3",
+          materialDescription = "250gsm Glossy + Spiral",
+          quantity = 50,
+          workflow = Some(ManufacturingWorkflow(
+            id = WorkflowId.unsafe("wf-6"),
+            orderId = OrderId.unsafe("ORD-1046"),
+            orderItemIndex = 0,
+            steps = List(
+              mkStep("s30", StationType.Prepress, 0, StepStatus.Completed),
+              mkStep("s31", StationType.DigitalPrinter, 1, StepStatus.Ready, Some(ComponentRole.Main)),
+              mkStep("s32", StationType.Cutter, 2, StepStatus.Waiting),
+              mkStep("s33", StationType.Binder, 3, StepStatus.Waiting),
+              mkStep("s34", StationType.QualityControl, 4, StepStatus.Waiting),
+              mkStep("s35", StationType.Packaging, 5, StepStatus.Waiting),
+            ),
+            status = WorkflowStatus.InProgress,
+            priority = Priority.Normal,
+          )),
+          files = List(mkFile("calendar-pages.pdf", "artwork")),
+        ),
+      ),
+      approval = ApprovalStatus.Approved,
+      priority = Priority.Normal,
+      notes = "",
+      createdAt = "2026-03-07 16:00",
+      deadline = Some("2026-03-11 17:00"),
+    ),
+    ManufacturingOrder(
+      id = OrderId.unsafe("ORD-1047"),
+      customerName = "Jiří Kolář",
+      items = List(
+        ManufacturingOrderItem(
+          itemIndex = 0,
+          productDescription = "Banners Large Format",
+          materialDescription = "PVC Vinyl 440gsm",
+          quantity = 2,
+          workflow = None,
+          files = List(mkFile("banner-artwork.pdf", "artwork")),
+        ),
+      ),
+      approval = ApprovalStatus.Pending,
+      priority = Priority.Rush,
+      notes = "Event on Saturday — needs express production",
+      createdAt = "2026-03-09 07:30",
+      deadline = Some("2026-03-10 12:00"),
     ),
   )
