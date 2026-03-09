@@ -461,8 +461,8 @@ object ProductBuilderViewModel:
               basket = updatedBasket,
               basketMessage = Some(msg),
               basketItemArtwork = updatedArtwork,
-              artworkMode = ArtworkMode.UploadArtwork(None),
             ))
+            resetProductForm()
           }
         )
       case None =>
@@ -501,6 +501,21 @@ object ProductBuilderViewModel:
 
   def clearBasketMessage(): Unit =
     stateVar.update(_.copy(basketMessage = None))
+
+  /** Reset all product-form fields back to their initial state while preserving basket and language. */
+  def resetProductForm(): Unit =
+    stateVar.update(_.copy(
+      selectedCategoryId = None,
+      componentStates = Map.empty,
+      linkedComponents = true,
+      selectedPrintingMethodId = None,
+      specifications = List.empty,
+      validationErrors = List.empty,
+      priceBreakdown = None,
+      weightBreakdown = None,
+      configuration = None,
+      artworkMode = ArtworkMode.UploadArtwork(None),
+    ))
 
   // Artwork operations
   def setArtworkMode(mode: ArtworkMode): Unit =

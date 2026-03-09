@@ -160,6 +160,13 @@ object ConfigurationForm:
                 typ := "file",
                 cls := "artwork-file-input",
                 accept := ".pdf,.ai,.eps,.png,.jpg,.jpeg,.tiff,.psd",
+                inContext { el =>
+                  ProductBuilderViewModel.state.map(_.artworkMode).changes --> { mode =>
+                    mode match
+                      case ArtworkMode.UploadArtwork(None) => el.ref.value = ""
+                      case _                               =>
+                  }
+                },
                 onChange --> { e =>
                   val fileInput = e.target.asInstanceOf[org.scalajs.dom.html.Input]
                   val fileName =
