@@ -2291,6 +2291,907 @@
             font-weight: 500;
             margin-top: 6px;
         }
+
+        /* ═══════════════════════════════════════════════════════════
+           Manufacturing UI
+           ═══════════════════════════════════════════════════════════ */
+
+        .mfg-app {
+            display: flex;
+            min-height: calc(100vh - var(--header-total-height));
+        }
+
+        /* ─── Sidebar ─────────────────────────────────────────── */
+
+        .mfg-sidebar {
+            width: 220px;
+            min-width: 220px;
+            background: #1e293b;
+            color: #e2e8f0;
+            display: flex;
+            flex-direction: column;
+            padding: 0;
+            position: relative;
+        }
+
+        .mfg-sidebar-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 18px 18px 14px;
+            font-size: 1.15rem;
+            font-weight: 700;
+            letter-spacing: 0.3px;
+            border-bottom: 1px solid #334155;
+        }
+
+        .mfg-sidebar-icon {
+            font-size: 1.3rem;
+        }
+
+        .mfg-nav-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 12px 18px;
+            border: none;
+            background: none;
+            color: #94a3b8;
+            font-size: 0.95rem;
+            cursor: pointer;
+            text-align: left;
+            transition: background 0.15s, color 0.15s;
+            width: 100%;
+        }
+
+        .mfg-nav-item:hover {
+            background: #334155;
+            color: #e2e8f0;
+        }
+
+        .mfg-nav-item.active {
+            background: #2563eb;
+            color: #fff;
+            font-weight: 600;
+        }
+
+        .mfg-nav-icon {
+            font-size: 1.1rem;
+            width: 24px;
+            text-align: center;
+        }
+
+        /* Flow indicator (linear dots on sidebar) */
+        .mfg-flow-indicator {
+            position: absolute;
+            left: 8px;
+            top: 0;
+            width: 6px;
+            height: 100%;
+            pointer-events: none;
+            display: none; /* hidden on mobile */
+        }
+
+        .mfg-flow-line {
+            position: absolute;
+            left: 2px;
+            top: 70px;
+            bottom: 20px;
+            width: 2px;
+            background: #334155;
+        }
+
+        .mfg-flow-dot {
+            position: absolute;
+            left: 0;
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: #475569;
+            transition: background 0.2s, transform 0.2s;
+        }
+
+        .mfg-flow-dot.current {
+            background: #2563eb;
+            transform: scale(1.5);
+        }
+
+        .mfg-flow-dot.past {
+            background: #22c55e;
+        }
+
+        /* ─── Main content ────────────────────────────────────── */
+
+        .mfg-content {
+            flex: 1;
+            padding: 24px;
+            overflow-y: auto;
+            background: #f0f2f5;
+            max-width: calc(100% - 220px);
+        }
+
+        /* ─── View headers ────────────────────────────────────── */
+
+        .mfg-view-header {
+            margin-bottom: 20px;
+        }
+
+        .mfg-view-header h2 {
+            font-size: 1.5rem;
+            color: #1e293b;
+            margin: 0 0 4px;
+        }
+
+        .mfg-view-subtitle {
+            color: #64748b;
+            font-size: 0.95rem;
+            margin: 0;
+        }
+
+        /* ─── Split view (list + detail) ──────────────────────── */
+
+        .mfg-split-view {
+            display: flex;
+            gap: 20px;
+            min-height: 500px;
+        }
+
+        .mfg-order-list {
+            width: 340px;
+            min-width: 300px;
+            overflow-y: auto;
+            max-height: calc(100vh - var(--header-total-height) - 120px);
+        }
+
+        .mfg-detail-panel {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .mfg-list-section {
+            margin-bottom: 16px;
+        }
+
+        .mfg-list-section-title {
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: #64748b;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            padding: 8px 12px;
+        }
+
+        /* ─── Order cards ─────────────────────────────────────── */
+
+        .mfg-order-card {
+            background: #fff;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 12px 14px;
+            margin-bottom: 8px;
+            cursor: pointer;
+            transition: border-color 0.15s, box-shadow 0.15s;
+        }
+
+        .mfg-order-card:hover {
+            border-color: #93c5fd;
+            box-shadow: 0 2px 8px rgba(37, 99, 235, 0.08);
+        }
+
+        .mfg-order-card.selected {
+            border-color: #2563eb;
+            box-shadow: 0 2px 12px rgba(37, 99, 235, 0.15);
+            background: #f0f5ff;
+        }
+
+        .mfg-order-card-header {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 4px;
+        }
+
+        .mfg-order-id {
+            font-weight: 700;
+            font-size: 0.95rem;
+            color: #1e293b;
+        }
+
+        .mfg-order-customer {
+            font-size: 0.9rem;
+            color: #475569;
+            margin-bottom: 2px;
+        }
+
+        .mfg-order-items-count {
+            font-size: 0.85rem;
+            color: #94a3b8;
+        }
+
+        /* ─── Priority badges ─────────────────────────────────── */
+
+        .mfg-priority-badge {
+            font-size: 0.75rem;
+            font-weight: 600;
+            padding: 2px 8px;
+            border-radius: 10px;
+            display: inline-block;
+        }
+
+        .mfg-priority-badge.rush {
+            background: #fef2f2;
+            color: #dc2626;
+            border: 1px solid #fca5a5;
+        }
+
+        .mfg-priority-badge.normal {
+            background: #f0f9ff;
+            color: #2563eb;
+            border: 1px solid #93c5fd;
+        }
+
+        .mfg-priority-badge.low {
+            background: #f8fafc;
+            color: #94a3b8;
+            border: 1px solid #cbd5e1;
+        }
+
+        /* ─── Approval badges ─────────────────────────────────── */
+
+        .mfg-approval-badge {
+            display: inline-block;
+            font-size: 0.8rem;
+            font-weight: 600;
+            padding: 3px 10px;
+            border-radius: 12px;
+            margin-top: 6px;
+        }
+
+        .mfg-approval-pending {
+            background: #fef9c3;
+            color: #a16207;
+            border: 1px solid #fde047;
+        }
+
+        .mfg-approval-approved {
+            background: #dcfce7;
+            color: #16a34a;
+            border: 1px solid #86efac;
+        }
+
+        .mfg-approval-rejected {
+            background: #fef2f2;
+            color: #dc2626;
+            border: 1px solid #fca5a5;
+        }
+
+        .mfg-approval-changesrequested {
+            background: #fff7ed;
+            color: #c2410c;
+            border: 1px solid #fed7aa;
+        }
+
+        /* ─── Order detail panel ──────────────────────────────── */
+
+        .mfg-order-detail {
+            background: #fff;
+            border: 1px solid #e2e8f0;
+            border-radius: 10px;
+            padding: 20px 24px;
+        }
+
+        .mfg-detail-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 16px;
+            flex-wrap: wrap;
+        }
+
+        .mfg-detail-header h3 {
+            font-size: 1.2rem;
+            color: #1e293b;
+            margin: 0;
+        }
+
+        .mfg-detail-customer {
+            color: #64748b;
+            font-size: 0.95rem;
+        }
+
+        .mfg-detail-section {
+            margin-bottom: 16px;
+        }
+
+        .mfg-detail-section h4 {
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: #475569;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+            margin: 0 0 8px;
+        }
+
+        .mfg-item-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 12px;
+            background: #f8fafc;
+            border-radius: 6px;
+            margin-bottom: 4px;
+        }
+
+        .mfg-item-desc {
+            font-size: 0.9rem;
+            color: #1e293b;
+        }
+
+        .mfg-item-qty {
+            font-size: 0.85rem;
+            color: #64748b;
+            font-weight: 600;
+        }
+
+        .mfg-order-notes {
+            font-size: 0.9rem;
+            color: #475569;
+            background: #fffbeb;
+            border: 1px solid #fde68a;
+            border-radius: 6px;
+            padding: 8px 12px;
+            margin: 0;
+        }
+
+        /* ─── Priority selector ───────────────────────────────── */
+
+        .mfg-priority-selector {
+            display: flex;
+            gap: 8px;
+        }
+
+        .mfg-priority-btn {
+            padding: 6px 16px;
+            border-radius: 6px;
+            border: 1px solid #e2e8f0;
+            background: #fff;
+            font-size: 0.85rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+
+        .mfg-priority-btn:hover {
+            border-color: #93c5fd;
+        }
+
+        .mfg-priority-btn.active.mfg-priority-rush {
+            background: #fef2f2;
+            border-color: #fca5a5;
+            color: #dc2626;
+        }
+
+        .mfg-priority-btn.active.mfg-priority-normal {
+            background: #eff6ff;
+            border-color: #93c5fd;
+            color: #2563eb;
+        }
+
+        .mfg-priority-btn.active.mfg-priority-low {
+            background: #f8fafc;
+            border-color: #cbd5e1;
+            color: #64748b;
+        }
+
+        /* ─── Action buttons ──────────────────────────────────── */
+
+        .mfg-detail-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+            padding-top: 16px;
+            border-top: 1px solid #e2e8f0;
+            flex-wrap: wrap;
+        }
+
+        .mfg-btn {
+            padding: 8px 18px;
+            border: none;
+            border-radius: 6px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.15s, transform 0.1s;
+        }
+
+        .mfg-btn:active {
+            transform: scale(0.97);
+        }
+
+        .mfg-btn-primary {
+            background: #2563eb;
+            color: #fff;
+        }
+
+        .mfg-btn-primary:hover {
+            background: #1d4ed8;
+        }
+
+        .mfg-btn-secondary {
+            background: #e2e8f0;
+            color: #1e293b;
+        }
+
+        .mfg-btn-secondary:hover {
+            background: #cbd5e1;
+        }
+
+        .mfg-btn-warning {
+            background: #f59e0b;
+            color: #fff;
+        }
+
+        .mfg-btn-warning:hover {
+            background: #d97706;
+        }
+
+        .mfg-btn-danger {
+            background: #ef4444;
+            color: #fff;
+        }
+
+        .mfg-btn-danger:hover {
+            background: #dc2626;
+        }
+
+        .mfg-empty-detail {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 300px;
+            color: #94a3b8;
+            font-size: 1rem;
+            background: #fff;
+            border: 1px dashed #e2e8f0;
+            border-radius: 10px;
+        }
+
+        /* ─── Station filter toggles ──────────────────────────── */
+
+        .mfg-station-filters {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-wrap: wrap;
+            margin-bottom: 16px;
+            padding: 12px 16px;
+            background: #fff;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+        }
+
+        .mfg-filter-label {
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: #64748b;
+            margin-right: 4px;
+        }
+
+        .mfg-station-toggle {
+            padding: 4px 12px;
+            border: 1px solid #e2e8f0;
+            border-radius: 16px;
+            background: #fff;
+            font-size: 0.8rem;
+            cursor: pointer;
+            transition: all 0.15s;
+            white-space: nowrap;
+        }
+
+        .mfg-station-toggle:hover {
+            border-color: #93c5fd;
+            background: #f0f5ff;
+        }
+
+        .mfg-station-toggle.active {
+            background: #2563eb;
+            color: #fff;
+            border-color: #2563eb;
+        }
+
+        /* ─── Work queue cards ────────────────────────────────── */
+
+        .mfg-work-queue {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .mfg-queue-section-title {
+            font-size: 0.85rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            padding: 6px 0;
+            margin-bottom: 8px;
+        }
+
+        .mfg-queue-section-title.in-progress {
+            color: #2563eb;
+        }
+
+        .mfg-queue-section-title.ready {
+            color: #16a34a;
+        }
+
+        .mfg-queue-card {
+            background: #fff;
+            border: 1px solid #e2e8f0;
+            border-radius: 10px;
+            padding: 14px 18px;
+            transition: border-color 0.15s, box-shadow 0.15s;
+        }
+
+        .mfg-queue-card:hover {
+            box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+        }
+
+        .mfg-queue-card.in-progress {
+            border-left: 4px solid #2563eb;
+            background: #f8faff;
+        }
+
+        .mfg-queue-card-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 8px;
+        }
+
+        .mfg-queue-order-id {
+            font-weight: 700;
+            font-size: 0.9rem;
+            color: #1e293b;
+        }
+
+        .mfg-queue-customer {
+            font-size: 0.85rem;
+            color: #94a3b8;
+            margin-left: auto;
+        }
+
+        .mfg-queue-step-info {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 6px;
+        }
+
+        .mfg-step-icon {
+            font-size: 1.2rem;
+        }
+
+        .mfg-step-name {
+            font-size: 1rem;
+            font-weight: 600;
+            color: #1e293b;
+        }
+
+        .mfg-step-component {
+            font-size: 0.85rem;
+            color: #94a3b8;
+        }
+
+        .mfg-queue-product {
+            font-size: 0.85rem;
+            color: #64748b;
+            margin-bottom: 10px;
+        }
+
+        .mfg-queue-actions {
+            display: flex;
+            gap: 8px;
+            margin-top: 10px;
+        }
+
+        .mfg-empty-queue {
+            text-align: center;
+            color: #94a3b8;
+            padding: 40px;
+            font-size: 1rem;
+        }
+
+        /* ─── Progress bars ───────────────────────────────────── */
+
+        .mfg-progress-bar-container {
+            position: relative;
+            height: 6px;
+            background: #e2e8f0;
+            border-radius: 3px;
+            overflow: hidden;
+            margin-bottom: 4px;
+        }
+
+        .mfg-progress-bar {
+            height: 100%;
+            background: linear-gradient(90deg, #2563eb, #22c55e);
+            border-radius: 3px;
+            transition: width 0.3s ease;
+        }
+
+        .mfg-progress-text {
+            font-size: 0.75rem;
+            color: #94a3b8;
+        }
+
+        /* ─── Order progress view ─────────────────────────────── */
+
+        .mfg-progress-list {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .mfg-progress-card {
+            background: #fff;
+            border: 1px solid #e2e8f0;
+            border-radius: 10px;
+            padding: 16px 20px;
+        }
+
+        .mfg-progress-card-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 14px;
+        }
+
+        .mfg-progress-order-info {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .mfg-pipeline-row {
+            margin-bottom: 14px;
+            padding: 10px 0;
+            border-top: 1px solid #f1f5f9;
+        }
+
+        .mfg-pipeline-row:first-of-type {
+            border-top: none;
+        }
+
+        .mfg-pipeline-item-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .mfg-pipeline-item-name {
+            font-size: 0.9rem;
+            color: #1e293b;
+            font-weight: 500;
+        }
+
+        .mfg-pipeline-pct {
+            font-size: 0.85rem;
+            font-weight: 700;
+            color: #2563eb;
+        }
+
+        .mfg-pipeline-no-workflow {
+            font-size: 0.85rem;
+            color: #94a3b8;
+            font-style: italic;
+        }
+
+        /* Pipeline step chips */
+        .mfg-pipeline-steps {
+            display: flex;
+            gap: 4px;
+            flex-wrap: wrap;
+            margin-bottom: 8px;
+        }
+
+        .mfg-pipeline-step {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 6px 10px;
+            border-radius: 6px;
+            min-width: 60px;
+            font-size: 0.72rem;
+            text-align: center;
+            border: 1px solid #e2e8f0;
+            background: #f8fafc;
+            transition: all 0.15s;
+        }
+
+        .mfg-pipeline-step.completed {
+            background: #dcfce7;
+            border-color: #86efac;
+            color: #16a34a;
+        }
+
+        .mfg-pipeline-step.in-progress {
+            background: #dbeafe;
+            border-color: #93c5fd;
+            color: #2563eb;
+        }
+
+        .mfg-pipeline-step.ready {
+            background: #fef9c3;
+            border-color: #fde047;
+            color: #a16207;
+        }
+
+        .mfg-pipeline-step.failed {
+            background: #fef2f2;
+            border-color: #fca5a5;
+            color: #dc2626;
+        }
+
+        .mfg-pipeline-step.skipped {
+            background: #f1f5f9;
+            border-color: #cbd5e1;
+            color: #94a3b8;
+        }
+
+        .mfg-pipeline-step.waiting {
+            background: #f8fafc;
+            border-color: #e2e8f0;
+            color: #cbd5e1;
+        }
+
+        .mfg-pipeline-step-icon {
+            font-size: 0.9rem;
+            margin-bottom: 2px;
+        }
+
+        .mfg-pipeline-step-label {
+            line-height: 1.2;
+        }
+
+        /* ─── Employees view ──────────────────────────────────── */
+
+        .mfg-employees-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+            gap: 16px;
+        }
+
+        .mfg-employee-card {
+            background: #fff;
+            border: 1px solid #e2e8f0;
+            border-radius: 10px;
+            padding: 16px 20px;
+        }
+
+        .mfg-employee-card.inactive {
+            opacity: 0.6;
+        }
+
+        .mfg-employee-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 14px;
+        }
+
+        .mfg-employee-avatar {
+            font-size: 1.8rem;
+        }
+
+        .mfg-employee-name {
+            font-size: 1.05rem;
+            font-weight: 600;
+            color: #1e293b;
+            display: block;
+        }
+
+        .mfg-employee-status {
+            font-size: 0.8rem;
+            color: #94a3b8;
+        }
+
+        .mfg-employee-status.active {
+            color: #16a34a;
+        }
+
+        .mfg-employee-section h4 {
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: #64748b;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+            margin: 0 0 8px;
+        }
+
+        .mfg-station-caps {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+        }
+
+        .mfg-station-cap {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            padding: 3px 10px;
+            border-radius: 12px;
+            font-size: 0.78rem;
+            background: #f1f5f9;
+            color: #94a3b8;
+            border: 1px solid #e2e8f0;
+        }
+
+        .mfg-station-cap.enabled {
+            background: #dcfce7;
+            color: #16a34a;
+            border-color: #86efac;
+        }
+
+        .mfg-station-cap-icon {
+            font-size: 0.9rem;
+        }
+
+        /* ─── Mobile responsive ───────────────────────────────── */
+
+        @media (max-width: 768px) {
+            .mfg-app {
+                flex-direction: column;
+            }
+
+            .mfg-sidebar {
+                width: 100%;
+                min-width: 100%;
+                flex-direction: row;
+                overflow-x: auto;
+                padding: 0;
+            }
+
+            .mfg-sidebar-header {
+                display: none;
+            }
+
+            .mfg-nav-item {
+                padding: 10px 14px;
+                white-space: nowrap;
+            }
+
+            .mfg-nav-label {
+                font-size: 0.85rem;
+            }
+
+            .mfg-flow-indicator {
+                display: none;
+            }
+
+            .mfg-content {
+                max-width: 100%;
+                padding: 16px;
+            }
+
+            .mfg-split-view {
+                flex-direction: column;
+            }
+
+            .mfg-order-list {
+                width: 100%;
+                min-width: 100%;
+                max-height: 300px;
+            }
+
+            .mfg-station-filters {
+                overflow-x: auto;
+            }
+
+            .mfg-pipeline-steps {
+                overflow-x: auto;
+            }
+        }
     </style>
 </head>
 <body>
