@@ -96,7 +96,7 @@ object FinishSelector:
             ),
             div(
               cls := "finish-params-options",
-              List(2, 4).map { count =>
+              List(1, 2, 3, 4).map { count =>
                 label(
                   cls := "radio-label",
                   input(
@@ -115,8 +115,8 @@ object FinishSelector:
                     },
                   ),
                   span(lang match
-                    case Language.En => s"$count corners"
-                    case Language.Cs => s"$count rohy"
+                    case Language.En => if count == 1 then "1 corner" else s"$count corners"
+                    case Language.Cs => if count == 1 then "1 roh" else s"$count rohy"
                   ),
                 )
               },

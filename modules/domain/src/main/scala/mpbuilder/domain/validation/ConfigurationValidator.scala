@@ -98,8 +98,8 @@ object ConfigurationValidator:
     params match
       case FinishParameters.RoundCornersParams(cornerCount, radiusMm) =>
         List(
-          if Set(2, 4).contains(cornerCount) then Validation.unit
-          else Validation.fail(ConfigurationError.InvalidFinishParameters(finish.id, s"cornerCount must be 2 or 4, got $cornerCount")),
+          if Set(1, 2, 3, 4).contains(cornerCount) then Validation.unit
+          else Validation.fail(ConfigurationError.InvalidFinishParameters(finish.id, s"cornerCount must be 1, 2, 3, or 4, got $cornerCount")),
           if radiusMm >= 1 && radiusMm <= 20 then Validation.unit
           else Validation.fail(ConfigurationError.InvalidFinishParameters(finish.id, s"radiusMm must be between 1 and 20, got $radiusMm")),
           if finish.finishType == FinishType.RoundCorners then Validation.unit
