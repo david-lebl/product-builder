@@ -13,10 +13,19 @@ lazy val commonSettings = Seq(
 
 // Root project (JVM-only, aggregates other projects)
 lazy val root = (project in file("."))
-  .aggregate(domainJVM, domainJS, ui)
+  .aggregate(domainJVM, domainJS, uiFramework, ui)
   .settings(
     name := "material-builder-root",
     publish / skip := true,
+  )
+
+// UI framework — reusable Laminar components (no domain dependency)
+lazy val uiFramework = (project in file("modules/ui-framework"))
+  .enablePlugins(ScalaJSPlugin)
+  .settings(commonSettings)
+  .settings(
+    name := "material-builder-ui-framework",
+    libraryDependencies += "com.raquo" %%% "laminar" % "17.2.0",
   )
 
 // Domain model cross-compiled for JVM and JS
@@ -41,7 +50,7 @@ lazy val domainJS = domain.js
 // UI module (Scala.js only)
 lazy val ui = (project in file("modules/ui"))
   .enablePlugins(ScalaJSPlugin)
-  .dependsOn(domainJS)
+  .dependsOn(domainJS, uiFramework)
   .settings(commonSettings)
   .settings(
     name := "material-builder-ui",

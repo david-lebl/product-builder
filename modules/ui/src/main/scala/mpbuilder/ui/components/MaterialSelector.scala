@@ -3,6 +3,7 @@ package mpbuilder.ui.components
 import com.raquo.laminar.api.L.*
 import mpbuilder.ui.ProductBuilderViewModel
 import mpbuilder.domain.model.*
+import mpbuilder.uikit.fields.{SelectField, SelectOption}
 
 object MaterialSelector:
   def apply(role: ComponentRole): Element =
@@ -11,30 +12,24 @@ object MaterialSelector:
     val lang = ProductBuilderViewModel.currentLanguage
 
     div(
-      cls := "form-group",
-      label(
-        child.text <-- lang.map {
+      SelectField(
+        label = lang.map {
           case Language.En => "Material:"
           case Language.Cs => "Materiál:"
-        }
-      ),
-      select(
-        disabled <-- ProductBuilderViewModel.state.map(_.selectedCategoryId.isEmpty),
-        children <-- availableMaterials.combineWith(selectedMaterialId, lang).map { case (materials, selectedId, l) =>
-          val currentValue = selectedId.map(_.value).getOrElse("")
-          option(
-            l match
-              case Language.En => "-- Select a material --"
-              case Language.Cs => "-- Vyberte materiál --"
-            , value := "", selected := currentValue.isEmpty) ::
-          materials.map { mat =>
-            option(mat.name(l), value := mat.id.value, selected := (mat.id.value == currentValue))
-          }
         },
-        onChange.mapToValue --> { value =>
+        options = availableMaterials.combineWith(lang).map { case (materials, l) =>
+          materials.map(mat => SelectOption(mat.id.value, mat.name(l)))
+        },
+        selected = selectedMaterialId.map(_.map(_.value).getOrElse("")),
+        onChange = Observer[String] { value =>
           if value.nonEmpty then
             ProductBuilderViewModel.selectMaterial(role, MaterialId.unsafe(value))
         },
+        placeholder = lang.map {
+          case Language.En => "-- Select a material --"
+          case Language.Cs => "-- Vyberte materiál --"
+        },
+        disabled = ProductBuilderViewModel.state.map(_.selectedCategoryId.isEmpty),
       ),
       div(
         cls := "info-box",

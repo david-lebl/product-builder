@@ -3,75 +3,56 @@ package mpbuilder.ui.components
 import com.raquo.laminar.api.L.*
 import mpbuilder.ui.ProductBuilderViewModel
 import mpbuilder.domain.model.*
+import mpbuilder.uikit.fields.{SelectField, SelectOption}
 
 object InkConfigSelector:
+  private val presets: List[(String, InkConfiguration)] = List(
+    "4/4"   -> InkConfiguration.cmyk4_4,
+    "4/0"   -> InkConfiguration.cmyk4_0,
+    "4/1"   -> InkConfiguration.cmyk4_1,
+    "1/0"   -> InkConfiguration.mono1_0,
+    "1/1"   -> InkConfiguration.mono1_1,
+    "4/0+W" -> InkConfiguration.cmyk4_0_white,
+  )
+
+  private def presetLabels(key: String, l: Language): String = (key, l) match
+    case ("4/4",   Language.En) => "4/4 CMYK both sides"
+    case ("4/4",   Language.Cs) => "4/4 CMYK oboustranně"
+    case ("4/0",   Language.En) => "4/0 CMYK front only"
+    case ("4/0",   Language.Cs) => "4/0 CMYK jen přední strana"
+    case ("4/1",   Language.En) => "4/1 CMYK front + grayscale back"
+    case ("4/1",   Language.Cs) => "4/1 CMYK přední + šedá zadní"
+    case ("1/0",   Language.En) => "1/0 Grayscale front only"
+    case ("1/0",   Language.Cs) => "1/0 Šedá jen přední strana"
+    case ("1/1",   Language.En) => "1/1 Grayscale both sides"
+    case ("1/1",   Language.Cs) => "1/1 Šedá oboustranně"
+    case ("4/0+W", Language.En) => "4/0+W CMYK front + white underlay (transparent material)"
+    case ("4/0+W", Language.Cs) => "4/0+W CMYK přední + bílý podklad (průhledný materiál)"
+    case _                      => key
+
   def apply(role: ComponentRole): Element =
     val lang = ProductBuilderViewModel.currentLanguage
 
-    div(
-      cls := "form-group",
-      label(child.text <-- lang.map {
+    val selectedValue = ProductBuilderViewModel.selectedInkConfig(role).map { configOpt =>
+      configOpt.flatMap(c => presets.find(_._2 == c).map(_._1)).getOrElse("")
+    }
+
+    SelectField(
+      label = lang.map {
         case Language.En => "Ink Configuration:"
         case Language.Cs => "Barevnost:"
-      }),
-      select(
-        children <-- ProductBuilderViewModel.selectedInkConfig(role).combineWith(lang).map { case (selectedConfig, l) =>
-          val currentValue = selectedConfig match
-            case Some(c) if c == InkConfiguration.cmyk4_4       => "4/4"
-            case Some(c) if c == InkConfiguration.cmyk4_0       => "4/0"
-            case Some(c) if c == InkConfiguration.cmyk4_1       => "4/1"
-            case Some(c) if c == InkConfiguration.mono1_0       => "1/0"
-            case Some(c) if c == InkConfiguration.mono1_1       => "1/1"
-            case Some(c) if c == InkConfiguration.cmyk4_0_white => "4/0+W"
-            case _ => ""
-          List(
-            option(
-              l match
-                case Language.En => "-- Select ink configuration --"
-                case Language.Cs => "-- Vyberte konfiguraci inkoustu --"
-              , value := "", selected := currentValue.isEmpty),
-            option(
-              l match
-                case Language.En => "4/4 CMYK both sides"
-                case Language.Cs => "4/4 CMYK oboustranně"
-              , value := "4/4", selected := (currentValue == "4/4")),
-            option(
-              l match
-                case Language.En => "4/0 CMYK front only"
-                case Language.Cs => "4/0 CMYK jen přední strana"
-              , value := "4/0", selected := (currentValue == "4/0")),
-            option(
-              l match
-                case Language.En => "4/1 CMYK front + grayscale back"
-                case Language.Cs => "4/1 CMYK přední + šedá zadní"
-              , value := "4/1", selected := (currentValue == "4/1")),
-            option(
-              l match
-                case Language.En => "1/0 Grayscale front only"
-                case Language.Cs => "1/0 Šedá jen přední strana"
-              , value := "1/0", selected := (currentValue == "1/0")),
-            option(
-              l match
-                case Language.En => "1/1 Grayscale both sides"
-                case Language.Cs => "1/1 Šedá oboustranně"
-              , value := "1/1", selected := (currentValue == "1/1")),
-            option(
-              l match
-                case Language.En => "4/0+W CMYK front + white underlay (transparent material)"
-                case Language.Cs => "4/0+W CMYK přední + bílý podklad (průhledný materiál)"
-              , value := "4/0+W", selected := (currentValue == "4/0+W")),
-          )
-        },
-        onChange.mapToValue --> { value =>
-          val inkConfig = value match
-            case "4/4"   => Some(InkConfiguration.cmyk4_4)
-            case "4/0"   => Some(InkConfiguration.cmyk4_0)
-            case "4/1"   => Some(InkConfiguration.cmyk4_1)
-            case "1/0"   => Some(InkConfiguration.mono1_0)
-            case "1/1"   => Some(InkConfiguration.mono1_1)
-            case "4/0+W" => Some(InkConfiguration.cmyk4_0_white)
-            case _ => scala.None
-          inkConfig.foreach(config => ProductBuilderViewModel.selectInkConfig(role, config))
-        },
-      ),
+      },
+      options = lang.map { l =>
+        presets.map { case (key, _) => SelectOption(key, presetLabels(key, l)) }
+      },
+      selected = selectedValue,
+      onChange = Observer[String] { value =>
+        presets.find(_._1 == value).foreach { case (_, config) =>
+          ProductBuilderViewModel.selectInkConfig(role, config)
+        }
+      },
+      placeholder = lang.map {
+        case Language.En => "-- Select ink configuration --"
+        case Language.Cs => "-- Vyberte konfiguraci inkoustu --"
+      },
     )

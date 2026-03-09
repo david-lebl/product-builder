@@ -3,6 +3,8 @@ package mpbuilder.ui.components
 import com.raquo.laminar.api.L.*
 import mpbuilder.ui.ProductBuilderViewModel
 import mpbuilder.domain.model.*
+import mpbuilder.uikit.fields.{TextField, SelectField, SelectOption}
+import mpbuilder.uikit.util.Visibility
 
 object SpecificationForm:
   private enum SizePreset(val nameEn: String, val nameCs: String, val widthMm: Int, val heightMm: Int):
@@ -92,46 +94,43 @@ object SpecificationForm:
       ),
 
       // Size preset selector
-      div(
-        cls := "form-group",
-        label(child.text <-- lang.map {
+      SelectField(
+        label = lang.map {
           case Language.En => "Size:"
           case Language.Cs => "Rozměr:"
-        }),
-        select(
-          children <-- sizePresetVar.signal.combineWith(lang).map { case (currentPreset, l) =>
-            val placeholderLabel = l match
-              case Language.En => "-- Select size --"
-              case Language.Cs => "-- Vyberte rozměr --"
-            val customLabel = l match
-              case Language.En => "Custom"
-              case Language.Cs => "Vlastní"
-            val presetOptions = SizePreset.values.toList.map { preset =>
-              option(preset.label(l), value := preset.key, selected := (currentPreset == preset.key))
-            }
-            option(placeholderLabel, value := "", selected := currentPreset.isEmpty) ::
-            (presetOptions :+ option(customLabel, value := "custom", selected := (currentPreset == "custom")))
-          },
-          value <-- defaultSpecsStream.map(defaultSizePresetKey),
-          onChange.mapToValue --> { v =>
-            sizePresetVar.set(v)
-            SizePreset.values.find(_.key == v) match
-              case Some(preset) =>
-                sizePairVar.set((preset.widthMm.toString, preset.heightMm.toString))
-                ProductBuilderViewModel.replaceSpecification(
-                  SpecValue.SizeSpec(Dimension(preset.widthMm.toDouble, preset.heightMm.toDouble))
-                )
-              case None =>
-                if v == "custom" then
-                  sizePairVar.set(("", ""))
-          },
-        ),
+        },
+        options = lang.map { l =>
+          val presetOptions = SizePreset.values.toList.map { preset =>
+            SelectOption(preset.key, preset.label(l))
+          }
+          val customLabel = l match
+            case Language.En => "Custom"
+            case Language.Cs => "Vlastní"
+          presetOptions :+ SelectOption("custom", customLabel)
+        },
+        selected = sizePresetVar.signal,
+        onChange = Observer[String] { v =>
+          sizePresetVar.set(v)
+          SizePreset.values.find(_.key == v) match
+            case Some(preset) =>
+              sizePairVar.set((preset.widthMm.toString, preset.heightMm.toString))
+              ProductBuilderViewModel.replaceSpecification(
+                SpecValue.SizeSpec(Dimension(preset.widthMm.toDouble, preset.heightMm.toDouble))
+              )
+            case None =>
+              if v == "custom" then
+                sizePairVar.set(("", ""))
+        },
+        placeholder = lang.map {
+          case Language.En => "-- Select size --"
+          case Language.Cs => "-- Vyberte rozměr --"
+        },
       ),
 
       // Custom size inputs - visible when "Custom" is selected
       div(
         cls := "form-group",
-        display <-- sizePresetVar.signal.map(p => if p == "custom" then "block" else "none"),
+        Visibility.when(sizePresetVar.signal.map(_ == "custom")),
         label(child.text <-- lang.map {
           case Language.En => "Custom Size (Width x Height in mm):"
           case Language.Cs => "Vlastní rozměr (šířka × výška v mm):"
@@ -179,9 +178,7 @@ object SpecificationForm:
       // Pages (for multi-page products)
       div(
         cls := "form-group",
-        display <-- requiredSpecs.map(kinds =>
-          if kinds.contains(SpecKind.Pages) then "block" else "none"
-        ),
+        Visibility.when(requiredSpecs.map(_.contains(SpecKind.Pages))),
         label(child.text <-- lang.map {
           case Language.En => "Number of Pages:"
           case Language.Cs => "Počet stran:"
@@ -205,9 +202,7 @@ object SpecificationForm:
       // Orientation (required for Flyers)
       div(
         cls := "form-group",
-        display <-- requiredSpecs.map(kinds =>
-          if kinds.contains(SpecKind.Orientation) then "block" else "none"
-        ),
+        Visibility.when(requiredSpecs.map(_.contains(SpecKind.Orientation))),
         label(child.text <-- lang.map {
           case Language.En => "Orientation:"
           case Language.Cs => "Orientace:"
@@ -256,9 +251,7 @@ object SpecificationForm:
       // Fold Type (required for Brochures)
       div(
         cls := "form-group",
-        display <-- requiredSpecs.map(kinds =>
-          if kinds.contains(SpecKind.FoldType) then "block" else "none"
-        ),
+        Visibility.when(requiredSpecs.map(_.contains(SpecKind.FoldType))),
         label(child.text <-- lang.map {
           case Language.En => "Fold Type:"
           case Language.Cs => "Typ skladu:"
@@ -290,9 +283,7 @@ object SpecificationForm:
       // Binding Method (required for Booklets)
       div(
         cls := "form-group",
-        display <-- requiredSpecs.map(kinds =>
-          if kinds.contains(SpecKind.BindingMethod) then "block" else "none"
-        ),
+        Visibility.when(requiredSpecs.map(_.contains(SpecKind.BindingMethod))),
         label(child.text <-- lang.map {
           case Language.En => "Binding Method:"
           case Language.Cs => "Typ vazby:"
