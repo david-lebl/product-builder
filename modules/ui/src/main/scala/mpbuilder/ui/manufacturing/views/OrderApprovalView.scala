@@ -197,9 +197,9 @@ object OrderApprovalView:
 
   private def formatTimestamp(ts: Long): String =
     val d = new scalajs.js.Date(ts.toDouble)
-    val day = d.getDate().toInt.toString.reverse.padTo(2, '0').reverse
-    val month = (d.getMonth().toInt + 1).toString.reverse.padTo(2, '0').reverse
+    val day = f"${d.getDate().toInt}%02d"
+    val month = f"${d.getMonth().toInt + 1}%02d"
     val year = d.getFullYear().toInt
-    val hours = d.getHours().toInt.toString.reverse.padTo(2, '0').reverse
-    val minutes = d.getMinutes().toInt.toString.reverse.padTo(2, '0').reverse
+    val hours = f"${d.getHours().toInt}%02d"
+    val minutes = f"${d.getMinutes().toInt}%02d"
     s"$day.$month.$year $hours:$minutes"

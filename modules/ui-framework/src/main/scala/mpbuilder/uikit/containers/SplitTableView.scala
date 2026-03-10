@@ -47,20 +47,9 @@ object SplitTableView:
     val sortAsc = Var(true)
 
     // Filtered items based on search query and active filters
-    val filteredItems: Signal[List[T]] =
-      val filterSignals = config.filters.map(f => f.selectedValues.signal.map(s => (f.id, s)))
-
-      items.combineWith(searchQuery.signal).map { case (allItems, query) =>
-        val q = query.trim.toLowerCase
-        if q.isEmpty then allItems
-        else
-          allItems.filter { item =>
-            config.columns.exists { col =>
-              val el = col.accessor(item)
-              true // Search is advisory — full implementation needs text extraction
-            }
-          }
-      }
+    // Items are expected to be pre-filtered by the caller.
+    // Search query is exposed as a Var for the caller to react to.
+    val filteredItems: Signal[List[T]] = items
 
     // Sorted items — combine all sort state into one derived signal
     val sortedItems: Signal[List[T]] =

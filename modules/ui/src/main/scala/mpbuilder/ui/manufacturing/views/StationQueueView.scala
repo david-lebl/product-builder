@@ -86,7 +86,9 @@ object StationQueueView:
 
     val sidePanel: Signal[Option[HtmlElement]] =
       selectedStepId.signal.combineWith(ManufacturingViewModel.queueItems).map { case (selId, items) =>
-        selId.flatMap(id => items.find(_.step.id.value == id)).map(renderDetailPanel)
+        selId.flatMap(id => items.find(_.step.id.value == id)).map(qi =>
+          renderDetailPanel(qi, () => selectedStepId.set(None))
+        )
       }
 
     div(
@@ -137,7 +139,7 @@ object StationQueueView:
         case _ => emptyNode,
     )
 
-  private def renderDetailPanel(qi: QueueItem): HtmlElement =
+  private def renderDetailPanel(qi: QueueItem, onClose: () => Unit): HtmlElement =
     import ManufacturingWorkflow.*
     div(
       cls := "queue-detail-panel",
@@ -146,7 +148,7 @@ object StationQueueView:
       button(
         cls := "detail-panel-close",
         "×",
-        onClick --> { _ => ManufacturingViewModel.selectedQueueItemId.set(None) },
+        onClick --> { _ => onClose() },
       ),
 
       // Order header

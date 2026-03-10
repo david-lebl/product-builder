@@ -11,10 +11,12 @@ import mpbuilder.domain.model.*
   */
 object WorkflowGenerator:
 
-  private var stepCounter = 0
-  private def nextStepId(prefix: String): StepId =
-    stepCounter += 1
-    StepId.unsafe(s"$prefix-$stepCounter")
+  /** Step ID counter scoped to a single generate() call. */
+  private class StepIdGen(prefix: String):
+    private var counter = 0
+    def next(): StepId =
+      counter += 1
+      StepId.unsafe(s"$prefix-$counter")
 
   /** Generate a complete manufacturing workflow for a product configuration. */
   def generate(
@@ -26,12 +28,11 @@ object WorkflowGenerator:
       deadline: Option[Long] = None,
       createdAt: Long = System.currentTimeMillis(),
   ): ManufacturingWorkflow =
-    stepCounter = 0
-    val prefix = workflowId.value
+    val gen = StepIdGen(workflowId.value)
 
     // 1. Prepress — always first, no dependencies
     val prepressStep = WorkflowStep(
-      id = nextStepId(prefix),
+      id = gen.next(),
       stationType = StationType.Prepress,
       componentRole = None,
       dependsOn = Set.empty,
@@ -45,18 +46,17 @@ object WorkflowGenerator:
 
     // 2. Per-component steps (printing, finishing, cutting, folding)
     val componentSteps = config.components.flatMap { comp =>
-      generateComponentSteps(prefix, comp, config, prepressStep.id)
+      generateComponentSteps(gen, comp, config, prepressStep.id)
     }
 
     // 3. Cross-component steps (binding, QC, packaging)
-    val allComponentStepIds = componentSteps.map(_.id).toSet
     val lastComponentSteps = findLastStepsPerComponent(componentSteps, config.components)
 
-    val bindingStep = generateBindingStep(prefix, config, lastComponentSteps)
+    val bindingStep = generateBindingStep(gen, config, lastComponentSteps)
     val afterBindingIds = bindingStep.map(s => Set(s.id)).getOrElse(lastComponentSteps)
 
     val qcStep = WorkflowStep(
-      id = nextStepId(prefix),
+      id = gen.next(),
       stationType = StationType.QualityControl,
       componentRole = None,
       dependsOn = afterBindingIds,
@@ -69,7 +69,7 @@ object WorkflowGenerator:
     )
 
     val packagingStep = WorkflowStep(
-      id = nextStepId(prefix),
+      id = gen.next(),
       stationType = StationType.Packaging,
       componentRole = None,
       dependsOn = Set(qcStep.id),
@@ -96,7 +96,7 @@ object WorkflowGenerator:
 
   /** Generate workflow steps for a single product component. */
   private def generateComponentSteps(
-      prefix: String,
+      gen: StepIdGen,
       component: ProductComponent,
       config: ProductConfiguration,
       prepressStepId: StepId,
@@ -107,7 +107,7 @@ object WorkflowGenerator:
     // Printing step — depends on prepress
     val printStation = printingStationFor(config.printingMethod.processType)
     val printStep = WorkflowStep(
-      id = nextStepId(prefix),
+      id = gen.next(),
       stationType = printStation,
       componentRole = Some(role),
       dependsOn = Set(prepressStepId),
@@ -131,7 +131,7 @@ object WorkflowGenerator:
     )
     if surfaceFinishes.nonEmpty then
       val lamStep = WorkflowStep(
-        id = nextStepId(prefix),
+        id = gen.next(),
         stationType = StationType.Laminator,
         componentRole = Some(role),
         dependsOn = Set(lastStepId),
@@ -152,7 +152,7 @@ object WorkflowGenerator:
     )
     if uvFinishes.nonEmpty then
       val uvStep = WorkflowStep(
-        id = nextStepId(prefix),
+        id = gen.next(),
         stationType = StationType.UVCoater,
         componentRole = Some(role),
         dependsOn = Set(lastStepId),
@@ -175,7 +175,7 @@ object WorkflowGenerator:
     )
     if decorativeFinishes.nonEmpty then
       val embossStep = WorkflowStep(
-        id = nextStepId(prefix),
+        id = gen.next(),
         stationType = StationType.EmbossingFoil,
         componentRole = Some(role),
         dependsOn = Set(lastStepId),
@@ -197,7 +197,7 @@ object WorkflowGenerator:
     )
     if needsCutting then
       val cutStep = WorkflowStep(
-        id = nextStepId(prefix),
+        id = gen.next(),
         stationType = StationType.Cutter,
         componentRole = Some(role),
         dependsOn = Set(lastStepId),
@@ -219,7 +219,7 @@ object WorkflowGenerator:
     )
     if largeFormatFinishes.nonEmpty then
       val lfStep = WorkflowStep(
-        id = nextStepId(prefix),
+        id = gen.next(),
         stationType = StationType.LargeFormatFinishing,
         componentRole = Some(role),
         dependsOn = Set(lastStepId),
@@ -237,7 +237,7 @@ object WorkflowGenerator:
     val hasFolding = config.specifications.get(SpecKind.FoldType).isDefined
     if hasFolding && (role == ComponentRole.Main || role == ComponentRole.Body) then
       val foldStep = WorkflowStep(
-        id = nextStepId(prefix),
+        id = gen.next(),
         stationType = StationType.Folder,
         componentRole = Some(role),
         dependsOn = Set(lastStepId),
@@ -254,13 +254,13 @@ object WorkflowGenerator:
 
   /** Generate a binding step if the configuration requires it. */
   private def generateBindingStep(
-      prefix: String,
+      gen: StepIdGen,
       config: ProductConfiguration,
       lastComponentStepIds: Set[StepId],
   ): Option[WorkflowStep] =
     config.specifications.get(SpecKind.BindingMethod).map { _ =>
       WorkflowStep(
-        id = nextStepId(prefix),
+        id = gen.next(),
         stationType = StationType.Binder,
         componentRole = None,
         dependsOn = lastComponentStepIds,
