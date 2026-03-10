@@ -2045,9 +2045,9 @@
             flex-shrink: 0;
         }
 
-        /* ─── Note textarea ───────────────────────────────────── */
+        /* ─── Note textarea (rendered by TextAreaField → .form-group textarea) ── */
 
-        .checkout-note {
+        .form-group textarea {
             width: 100%;
             min-height: 80px;
             padding: 10px 12px;
@@ -2056,9 +2056,10 @@
             font-family: inherit;
             font-size: 0.95rem;
             resize: vertical;
+            box-sizing: border-box;
         }
 
-        .checkout-note:focus {
+        .form-group textarea:focus {
             outline: none;
             border-color: #667eea;
         }
