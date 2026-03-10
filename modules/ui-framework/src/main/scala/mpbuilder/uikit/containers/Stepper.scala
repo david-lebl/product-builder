@@ -17,6 +17,9 @@ object Stepper:
     nextLabel: Signal[String] = Val("Continue →"),
     mods: Modifier[HtmlElement]*
   ): HtmlElement =
+    if steps.isEmpty then
+      return div(cls := "stepper", mods)
+
     val currentIndex = currentStep.signal.map(id => steps.indexWhere(_.id == id).max(0))
 
     div(

@@ -403,7 +403,7 @@ object CheckoutView:
               else "Ship to a different address than the invoice address"
             ),
             checked = diffAddrVar.signal,
-            onChange = Observer[Boolean](_ => diffAddrVar.update(!_)),
+            onChange = Observer[Boolean](v => diffAddrVar.set(v)),
           ),
         ),
 
