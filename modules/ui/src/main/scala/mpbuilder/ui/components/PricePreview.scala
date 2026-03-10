@@ -195,7 +195,19 @@ object PricePreview:
                 ),
               )
 
-              val totalLines = subtotalAndMultiplierLines ++ setupFeeLines ++ minimumLine ++ totalLine
+              val perItemLine =
+                if breakdown.quantity > 1 then
+                  List(div(
+                    cls := "price-line-item",
+                    span(l match
+                      case Language.En => s"Price per item (qty ${breakdown.quantity}):"
+                      case Language.Cs => s"Cena za kus (mn. ${breakdown.quantity}):"
+                    ),
+                    span(formatMoney((breakdown.total / breakdown.quantity).rounded, cur)),
+                  ))
+                else List.empty
+
+              val totalLines = subtotalAndMultiplierLines ++ setupFeeLines ++ minimumLine ++ totalLine ++ perItemLine
 
               headerLine ++ componentLines ++ surchargeLines ++ totalLines
 
