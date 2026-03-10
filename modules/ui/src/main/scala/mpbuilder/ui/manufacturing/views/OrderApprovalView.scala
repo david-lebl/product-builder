@@ -196,6 +196,10 @@ object OrderApprovalView:
     f"${money.value}%.2f CZK"
 
   private def formatTimestamp(ts: Long): String =
-    val date = new java.util.Date(ts)
-    val fmt = new java.text.SimpleDateFormat("dd.MM.yyyy HH:mm")
-    fmt.format(date)
+    val d = new scalajs.js.Date(ts.toDouble)
+    val day = d.getDate().toInt.toString.reverse.padTo(2, '0').reverse
+    val month = (d.getMonth().toInt + 1).toString.reverse.padTo(2, '0').reverse
+    val year = d.getFullYear().toInt
+    val hours = d.getHours().toInt.toString.reverse.padTo(2, '0').reverse
+    val minutes = d.getMinutes().toInt.toString.reverse.padTo(2, '0').reverse
+    s"$day.$month.$year $hours:$minutes"
