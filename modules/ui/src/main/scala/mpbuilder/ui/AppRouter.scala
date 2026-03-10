@@ -3,12 +3,14 @@ package mpbuilder.ui
 import com.raquo.laminar.api.L.*
 import mpbuilder.ui.calendar.CalendarBuilderApp
 import mpbuilder.ui.components.CheckoutView
+import mpbuilder.ui.manufacturing.ManufacturingApp
 import mpbuilder.domain.model.Language
 
 sealed trait AppRoute
 object AppRoute {
   case object ProductBuilder extends AppRoute
   case object CalendarBuilder extends AppRoute
+  case object Manufacturing extends AppRoute
   case object Checkout extends AppRoute
 }
 
@@ -113,6 +115,18 @@ object AppRouter {
             },
             onClick --> { _ => navigateTo(AppRoute.CalendarBuilder) }
           ),
+          button(
+            cls := "nav-link",
+            cls <-- currentRoute.map {
+              case AppRoute.Manufacturing => "active"
+              case _ => ""
+            },
+            child.text <-- lang.map {
+              case Language.En => "Manufacturing"
+              case Language.Cs => "Výroba"
+            },
+            onClick --> { _ => navigateTo(AppRoute.Manufacturing) }
+          ),
         ),
       ),
 
@@ -120,6 +134,7 @@ object AppRouter {
       child <-- currentRoute.map {
         case AppRoute.ProductBuilder  => ProductBuilderApp()
         case AppRoute.CalendarBuilder => CalendarBuilderApp()
+        case AppRoute.Manufacturing   => ManufacturingApp()
         case AppRoute.Checkout        => CheckoutView()
       }
     )
