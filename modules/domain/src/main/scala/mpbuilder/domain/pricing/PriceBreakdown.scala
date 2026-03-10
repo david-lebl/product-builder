@@ -30,4 +30,5 @@ final case class PriceBreakdown(
     minimumApplied: Option[Money],
     total: Money,
     currency: Currency,
+    quantity: Int,
 )

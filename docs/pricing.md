@@ -177,6 +177,7 @@ The calculator returns a `PriceBreakdown` containing:
 | `minimumApplied` | `Some(billable)` when the price floor was triggered, `None` otherwise |
 | `total` | Final price after all steps, rounded to 2dp |
 | `currency` | Currency from the pricelist |
+| `quantity` | Number of items ordered (used to compute per-item price) |
 
 Each `ComponentBreakdown` contains:
 

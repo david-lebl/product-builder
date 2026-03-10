@@ -84,6 +84,7 @@ object PriceCalculator:
           minimumApplied = minimumApplied,
           total = total,
           currency = pricelist.currency,
+          quantity = quantity,
         )
       }
     }
