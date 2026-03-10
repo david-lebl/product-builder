@@ -1,0 +1,299 @@
+package mpbuilder.ui.manufacturing
+
+import com.raquo.laminar.api.L.*
+import mpbuilder.domain.model.*
+import mpbuilder.domain.model.ManufacturingWorkflow.*
+import mpbuilder.domain.model.ManufacturingOrder.*
+import mpbuilder.domain.service.*
+import mpbuilder.domain.sample.*
+import mpbuilder.domain.pricing.{Money, Currency}
+
+/** Reactive state management for the manufacturing UI. */
+object ManufacturingViewModel:
+
+  // --- State ---
+  val currentRoute: Var[ManufacturingRoute] = Var(ManufacturingRoute.Dashboard)
+  val manufacturingOrders: Var[List[ManufacturingOrder]] = Var(generateSampleOrders())
+  val selectedOrderId: Var[Option[String]] = Var(None)
+  val selectedQueueItemId: Var[Option[String]] = Var(None)
+  val searchQuery: Var[String] = Var("")
+
+  // Station queue filters
+  val stationFilter: Var[Set[StationType]] = Var(StationType.values.toSet)
+  val statusFilter: Var[Set[StepStatus]] = Var(Set(StepStatus.Ready, StepStatus.InProgress))
+  val priorityFilter: Var[Set[Priority]] = Var(Priority.values.toSet)
+
+  // Approval filters
+  val approvalStatusFilter: Var[Set[ApprovalStatus]] = Var(Set(ApprovalStatus.Placed, ApprovalStatus.PendingChanges))
+
+  // Progress filters
+  val progressStatusFilter: Var[Set[WorkflowStatus]] = Var(Set(WorkflowStatus.InProgress, WorkflowStatus.Pending))
+
+  // --- Derived signals ---
+
+  val orders: Signal[List[ManufacturingOrder]] = manufacturingOrders.signal
+
+  val dashboardSummary: Signal[DashboardSummary] = orders.map { ords =>
+    DashboardSummary(
+      awaitingApproval = ords.count(_.approvalStatus == ApprovalStatus.Placed),
+      inProduction = ords.count(o => o.approvalStatus == ApprovalStatus.Approved && o.overallStatus == WorkflowStatus.InProgress),
+      readyForDispatch = ords.count(o => o.overallStatus == WorkflowStatus.Completed),
+      overdue = ords.count(o => o.deadline.exists(_ < System.currentTimeMillis())),
+      todaysCompletions = ords.count(o => o.overallStatus == WorkflowStatus.Completed),
+    )
+  }
+
+  val stationStatuses: Signal[List[StationStatus]] = orders.map { ords =>
+    val allSteps = ords.filter(_.approvalStatus == ApprovalStatus.Approved).flatMap(_.workflows).flatMap(_.steps)
+    StationType.values.toList.map { st =>
+      val stepsForStation = allSteps.filter(_.stationType == st)
+      StationStatus(
+        stationType = st,
+        queueDepth = stepsForStation.count(_.status == StepStatus.Ready),
+        hasInProgress = stepsForStation.exists(_.status == StepStatus.InProgress),
+      )
+    }
+  }
+
+  val queueItems: Signal[List[QueueItem]] = orders.combineWith(stationFilter.signal, statusFilter.signal).map {
+    case (ords, stFilter, stStatus) =>
+      val approvedOrders = ords.filter(_.approvalStatus == ApprovalStatus.Approved)
+      for
+        order <- approvedOrders
+        wf <- order.workflows
+        step <- wf.steps
+        if stFilter.contains(step.stationType)
+        if stStatus.contains(step.status)
+      yield QueueItem(step, wf, order)
+  }
+
+  val approvalOrders: Signal[List[ManufacturingOrder]] =
+    orders.combineWith(approvalStatusFilter.signal).map { case (ords, statuses) =>
+      ords.filter(o => statuses.contains(o.approvalStatus))
+    }
+
+  val progressOrders: Signal[List[ManufacturingOrder]] =
+    orders.combineWith(progressStatusFilter.signal).map { case (ords, statuses) =>
+      ords.filter(o => o.approvalStatus == ApprovalStatus.Approved && statuses.contains(o.overallStatus))
+    }
+
+  // --- Actions ---
+
+  def selectOrder(orderId: String): Unit =
+    selectedOrderId.set(Some(orderId))
+
+  def deselectOrder(): Unit =
+    selectedOrderId.set(None)
+
+  def selectQueueItem(stepId: String): Unit =
+    selectedQueueItemId.set(Some(stepId))
+
+  def deselectQueueItem(): Unit =
+    selectedQueueItemId.set(None)
+
+  def approveOrder(orderId: String): Unit =
+    manufacturingOrders.update { ords =>
+      ords.map { mo =>
+        if mo.order.id.value == orderId then
+          val workflows = mo.order.basket.items.zipWithIndex.map { case (item, idx) =>
+            WorkflowGenerator.generate(
+              item.configuration,
+              mo.order.id,
+              idx,
+              WorkflowId.unsafe(s"wf-${orderId}-$idx"),
+              mo.workflows.headOption.map(_.priority).getOrElse(Priority.Normal),
+              mo.deadline,
+              System.currentTimeMillis(),
+            )
+          }
+          mo.copy(
+            approvalStatus = ApprovalStatus.Approved,
+            workflows = workflows,
+          )
+        else mo
+      }
+    }
+
+  def rejectOrder(orderId: String): Unit =
+    manufacturingOrders.update { ords =>
+      ords.map { mo =>
+        if mo.order.id.value == orderId then mo.copy(approvalStatus = ApprovalStatus.Rejected)
+        else mo
+      }
+    }
+
+  def startStep(stepId: String): Unit =
+    manufacturingOrders.update { ords =>
+      ords.map { mo =>
+        mo.copy(workflows = mo.workflows.map { wf =>
+          val updated = wf.copy(
+            steps = wf.steps.map { s =>
+              if s.id.value == stepId && s.status == StepStatus.Ready then
+                s.copy(status = StepStatus.InProgress, startedAt = Some(System.currentTimeMillis()))
+              else s
+            },
+            status = WorkflowStatus.InProgress,
+          )
+          updated
+        })
+      }
+    }
+
+  def completeStep(stepId: String): Unit =
+    manufacturingOrders.update { ords =>
+      ords.map { mo =>
+        mo.copy(workflows = mo.workflows.map { wf =>
+          val updatedSteps = wf.steps.map { s =>
+            if s.id.value == stepId && s.status == StepStatus.InProgress then
+              s.copy(status = StepStatus.Completed, completedAt = Some(System.currentTimeMillis()))
+            else s
+          }
+          val updatedWf = wf.copy(steps = updatedSteps)
+          val evaluated = updatedWf.evaluateReadiness
+          val newStatus =
+            if evaluated.steps.forall(s => s.status == StepStatus.Completed || s.status == StepStatus.Skipped)
+            then WorkflowStatus.Completed
+            else WorkflowStatus.InProgress
+          evaluated.copy(status = newStatus)
+        })
+      }
+    }
+
+  // --- Sample data generation ---
+
+  private def generateSampleOrders(): List[ManufacturingOrder] =
+    val catalog = SampleCatalog.catalog
+    val ruleset = SampleRules.ruleset
+    val now = System.currentTimeMillis()
+
+    def makeOrder(
+        id: String,
+        firstName: String,
+        lastName: String,
+        email: String,
+        items: List[(ProductConfiguration, Int)],
+        approval: ApprovalStatus,
+        deadlineOffset: Long,
+    ): ManufacturingOrder =
+      val pricelist = SamplePricelist.pricelistCzkSheet
+      val basketItems = items.map { case (config, qty) =>
+        val priceResult = mpbuilder.domain.pricing.PriceCalculator.calculate(config, pricelist)
+        val breakdown = priceResult.toEither.toOption.get
+        BasketItem(config, qty, breakdown)
+      }
+      val basket = Basket(BasketId.unsafe(s"basket-$id"), basketItems)
+      val contact = ContactInfo(firstName, lastName, email, "", None, None, None)
+      val checkoutInfo = CheckoutInfo(
+        contactInfo = contact,
+        deliveryOption = Some(DeliveryOption.CourierStandard),
+        paymentMethod = Some(PaymentMethod.BankTransferQR),
+      )
+      val total = basketItems.map(_.priceBreakdown.total).reduce((a, b) => Money(a.value + b.value))
+      val order = Order(OrderId.unsafe(id), basket, checkoutInfo, total, Currency.CZK)
+      val deadline = now + deadlineOffset
+
+      val workflows = if approval == ApprovalStatus.Approved then
+        basketItems.zipWithIndex.map { case (item, idx) =>
+          WorkflowGenerator.generate(
+            item.configuration,
+            order.id,
+            idx,
+            WorkflowId.unsafe(s"wf-$id-$idx"),
+            Priority.Normal,
+            Some(deadline),
+            now - (deadlineOffset / 2),
+          )
+        }
+      else Nil
+
+      ManufacturingOrder(order, workflows, approval, "", now - (deadlineOffset / 4), Some(deadline))
+
+    def buildConfig(
+        catId: CategoryId,
+        pmId: PrintingMethodId,
+        components: List[ComponentRequest],
+        specs: List[SpecValue],
+    ): ProductConfiguration =
+      ConfigurationBuilder.build(
+        ConfigurationRequest(catId, pmId, components, specs),
+        catalog,
+        ruleset,
+        ConfigurationId.unsafe(s"cfg-${catId.value}"),
+      ).toEither.toOption.get
+
+    // Build a few sample configurations
+    val businessCards = buildConfig(
+      SampleCatalog.businessCardsId,
+      SampleCatalog.digitalId,
+      List(ComponentRequest(ComponentRole.Main, SampleCatalog.coated300gsmId, InkConfiguration.cmyk4_4,
+        List(FinishSelection(SampleCatalog.matteLaminationId)))),
+      List(SpecValue.SizeSpec(Dimension(90, 55)), SpecValue.QuantitySpec(Quantity.unsafe(500))),
+    )
+
+    val brochures = buildConfig(
+      SampleCatalog.brochuresId,
+      SampleCatalog.digitalId,
+      List(ComponentRequest(ComponentRole.Main, SampleCatalog.coated300gsmId, InkConfiguration.cmyk4_4, Nil)),
+      List(SpecValue.SizeSpec(Dimension(297, 210)), SpecValue.QuantitySpec(Quantity.unsafe(200)),
+        SpecValue.FoldTypeSpec(FoldType.Tri)),
+    )
+
+    val banners = buildConfig(
+      SampleCatalog.bannersId,
+      SampleCatalog.uvInkjetId,
+      List(ComponentRequest(ComponentRole.Main, SampleCatalog.vinylId, InkConfiguration.cmyk4_0, Nil)),
+      List(SpecValue.SizeSpec(Dimension(1000, 500)), SpecValue.QuantitySpec(Quantity.unsafe(5))),
+    )
+
+    val booklet = buildConfig(
+      SampleCatalog.bookletsId,
+      SampleCatalog.digitalId,
+      List(
+        ComponentRequest(ComponentRole.Cover, SampleCatalog.coatedGlossy250gsmId, InkConfiguration.cmyk4_4,
+          List(FinishSelection(SampleCatalog.matteLaminationId))),
+        ComponentRequest(ComponentRole.Body, SampleCatalog.coatedGlossy115gsmId, InkConfiguration.cmyk4_4, Nil),
+      ),
+      List(SpecValue.SizeSpec(Dimension(210, 297)), SpecValue.QuantitySpec(Quantity.unsafe(100)),
+        SpecValue.PagesSpec(16), SpecValue.BindingMethodSpec(BindingMethod.SaddleStitch)),
+    )
+
+    val stickers = buildConfig(
+      SampleCatalog.stickersId,
+      SampleCatalog.digitalId,
+      List(ComponentRequest(ComponentRole.Main, SampleCatalog.adhesiveStockId, InkConfiguration.cmyk4_0,
+        List(FinishSelection(SampleCatalog.kissCutId)))),
+      List(SpecValue.SizeSpec(Dimension(50, 50)), SpecValue.QuantitySpec(Quantity.unsafe(1000))),
+    )
+
+    val hour = 3600000L
+    val day = 86400000L
+
+    val order1 = makeOrder("ORD-001", "Jan", "Novák", "jan@example.com",
+      List((businessCards, 500)), ApprovalStatus.Approved, 2 * day)
+    val order2 = makeOrder("ORD-002", "Marie", "Svobodová", "marie@example.com",
+      List((brochures, 200)), ApprovalStatus.Approved, 3 * day)
+    val order3 = makeOrder("ORD-003", "Petr", "Dvořák", "petr@example.com",
+      List((banners, 5)), ApprovalStatus.Placed, 5 * day)
+    val order4 = makeOrder("ORD-004", "Eva", "Černá", "eva@example.com",
+      List((booklet, 100)), ApprovalStatus.Approved, 4 * day)
+    val order5 = makeOrder("ORD-005", "Tomáš", "Procházka", "tomas@example.com",
+      List((stickers, 1000), (businessCards, 500)), ApprovalStatus.Placed, 1 * day)
+    val order6 = makeOrder("ORD-006", "Lukáš", "Kučera", "lukas@example.com",
+      List((brochures, 200)), ApprovalStatus.Approved, 6 * hour)
+
+    // Simulate some progress on order1 (prepress completed)
+    val order1WithProgress = order1.copy(
+      workflows = order1.workflows.map { wf =>
+        val updated = wf.copy(
+          steps = wf.steps.map { s =>
+            if s.stationType == StationType.Prepress then
+              s.copy(status = StepStatus.Completed, completedAt = Some(now - hour))
+            else s
+          },
+          status = WorkflowStatus.InProgress,
+        )
+        updated.evaluateReadiness
+      }
+    )
+
+    List(order1WithProgress, order2, order3, order4, order5, order6)
