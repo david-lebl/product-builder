@@ -3,6 +3,8 @@ package mpbuilder.ui.components
 import com.raquo.laminar.api.L.*
 import mpbuilder.ui.{ProductBuilderViewModel, AppRouter, AppRoute, ArtworkMode}
 import mpbuilder.domain.model.*
+import mpbuilder.uikit.fields.CheckboxField
+import mpbuilder.uikit.util.Visibility
 
 object ConfigurationForm:
   def apply(): Element =
@@ -53,20 +55,14 @@ object ConfigurationForm:
           else
             // Multi-component product — show linked toggle + conditional sections
             val toggle = div(
-              cls := "form-group linked-components-toggle",
-              label(
-                cls := "checkbox-label",
-                input(
-                  typ := "checkbox",
-                  checked := linked,
-                  onChange.mapToChecked --> { v =>
-                    ProductBuilderViewModel.setLinkedComponents(v)
-                  },
-                ),
-                child.text <-- ProductBuilderViewModel.currentLanguage.map {
-                  case Language.En => " Same material and printing for all components"
-                  case Language.Cs => " Stejný materiál a tisk pro všechny komponenty"
+              cls := "linked-components-toggle",
+              CheckboxField(
+                label = ProductBuilderViewModel.currentLanguage.map {
+                  case Language.En => "Same material and printing for all components"
+                  case Language.Cs => "Stejný materiál a tisk pro všechny komponenty"
                 },
+                checked = ProductBuilderViewModel.linkedComponents,
+                onChange = Observer[Boolean](v => ProductBuilderViewModel.setLinkedComponents(v)),
               ),
             )
             if linked then
@@ -120,7 +116,7 @@ object ConfigurationForm:
       // Artwork section — visible when a valid configuration exists
       div(
         cls := "form-section artwork-section",
-        cls("artwork-section--hidden") <-- ProductBuilderViewModel.state.map(_.configuration.isEmpty),
+        Visibility.when(ProductBuilderViewModel.state.map(_.configuration.isDefined)),
         h3(child.text <-- lang.map {
           case Language.En => "5. Provide Artwork"
           case Language.Cs => "5. Poskytnutí dat"
@@ -152,10 +148,10 @@ object ConfigurationForm:
             ),
             div(
               cls := "upload-file-area",
-              cls("upload-file-area--hidden") <-- ProductBuilderViewModel.state.map(_.artworkMode match
-                case ArtworkMode.UploadArtwork(_) => false
-                case _                            => true
-              ),
+              Visibility.when(ProductBuilderViewModel.state.map(_.artworkMode match
+                case ArtworkMode.UploadArtwork(_) => true
+                case _                            => false
+              )),
               input(
                 typ := "file",
                 cls := "artwork-file-input",
@@ -203,7 +199,7 @@ object ConfigurationForm:
             ),
             div(
               cls := "open-editor-area",
-              cls("open-editor-area--hidden") <-- ProductBuilderViewModel.state.map(_.artworkMode != ArtworkMode.DesignInEditor),
+              Visibility.when(ProductBuilderViewModel.state.map(_.artworkMode == ArtworkMode.DesignInEditor)),
               button(
                 cls := "open-editor-btn",
                 child.text <-- lang.map {

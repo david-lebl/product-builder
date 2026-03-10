@@ -4,6 +4,7 @@ import com.raquo.laminar.api.L.*
 import mpbuilder.ui.calendar.components.*
 import mpbuilder.ui.ProductBuilderViewModel
 import mpbuilder.domain.model.Language
+import mpbuilder.uikit.containers.{Tabs, TabDef}
 
 object CalendarBuilderApp {
 
@@ -122,39 +123,19 @@ object CalendarBuilderApp {
         // Left sidebar with tabs
         div(
           cls := "calendar-sidebar",
-
-          // Tab buttons
-          div(
-            cls := "sidebar-tabs",
-            button(
-              cls := "sidebar-tab-btn",
-              cls <-- sidebarTabVar.signal.map(t => if t == "elements" then "active" else ""),
-              child.text <-- lang.map {
+          Tabs(
+            tabs = List(
+              TabDef("elements", lang.map {
                 case Language.En => "Page Elements"
                 case Language.Cs => "Prvky stránky"
-              },
-              onClick --> { _ => sidebarTabVar.set("elements") }
-            ),
-            button(
-              cls := "sidebar-tab-btn",
-              cls <-- sidebarTabVar.signal.map(t => if t == "background" then "active" else ""),
-              child.text <-- lang.map {
+              }, () => div(cls := "calendar-controls-card", ElementListEditor())),
+              TabDef("background", lang.map {
                 case Language.En => "Background"
                 case Language.Cs => "Pozadí"
-              },
-              onClick --> { _ => sidebarTabVar.set("background") }
+              }, () => div(cls := "calendar-controls-card", BackgroundEditor())),
             ),
+            activeTab = sidebarTabVar,
           ),
-
-          // Tab content
-          div(
-            cls := "calendar-controls-card",
-            child <-- sidebarTabVar.signal.map {
-              case "elements"   => ElementListEditor()
-              case "background" => BackgroundEditor()
-              case _            => ElementListEditor()
-            }
-          )
         ),
 
         // Center: Calendar page canvas

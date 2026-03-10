@@ -201,113 +201,88 @@ object SpecificationForm:
 
       // Orientation (required for Flyers)
       div(
-        cls := "form-group",
         Visibility.when(requiredSpecs.map(_.contains(SpecKind.Orientation))),
-        label(child.text <-- lang.map {
-          case Language.En => "Orientation:"
-          case Language.Cs => "Orientace:"
-        }),
-        select(
-          children <-- ProductBuilderViewModel.selectedOrientation.combineWith(lang).map { case (selectedOrientation, l) =>
-            val currentValue = selectedOrientation match
-              case Some(Orientation.Portrait) => "portrait"
-              case Some(Orientation.Landscape) => "landscape"
-              case None => ""
+        SelectField(
+          label = lang.map {
+            case Language.En => "Orientation:"
+            case Language.Cs => "Orientace:"
+          },
+          options = lang.map { l =>
             List(
-              option(
-                l match
-                  case Language.En => "-- Select orientation --"
-                  case Language.Cs => "-- Vyberte orientaci --"
-                , value := "", selected := currentValue.isEmpty),
-              option(
-                l match
-                  case Language.En => "Portrait"
-                  case Language.Cs => "Na výšku"
-                , value := "portrait", selected := (currentValue == "portrait")),
-              option(
-                l match
-                  case Language.En => "Landscape"
-                  case Language.Cs => "Na šířku"
-                , value := "landscape", selected := (currentValue == "landscape")),
+              SelectOption("portrait", l match { case Language.En => "Portrait"; case Language.Cs => "Na výšku" }),
+              SelectOption("landscape", l match { case Language.En => "Landscape"; case Language.Cs => "Na šířku" }),
             )
           },
-          onChange.mapToValue --> { value =>
+          selected = ProductBuilderViewModel.selectedOrientation.map {
+            case Some(Orientation.Portrait) => "portrait"
+            case Some(Orientation.Landscape) => "landscape"
+            case None => ""
+          },
+          onChange = Observer[String] { value =>
             value match
               case "portrait" =>
                 ProductBuilderViewModel.removeSpecification(classOf[SpecValue.OrientationSpec])
-                ProductBuilderViewModel.addSpecification(
-                  SpecValue.OrientationSpec(Orientation.Portrait)
-                )
+                ProductBuilderViewModel.addSpecification(SpecValue.OrientationSpec(Orientation.Portrait))
               case "landscape" =>
                 ProductBuilderViewModel.removeSpecification(classOf[SpecValue.OrientationSpec])
-                ProductBuilderViewModel.addSpecification(
-                  SpecValue.OrientationSpec(Orientation.Landscape)
-                )
+                ProductBuilderViewModel.addSpecification(SpecValue.OrientationSpec(Orientation.Landscape))
               case _ => ()
+          },
+          placeholder = lang.map {
+            case Language.En => "-- Select orientation --"
+            case Language.Cs => "-- Vyberte orientaci --"
           },
         ),
       ),
 
       // Fold Type (required for Brochures)
       div(
-        cls := "form-group",
         Visibility.when(requiredSpecs.map(_.contains(SpecKind.FoldType))),
-        label(child.text <-- lang.map {
-          case Language.En => "Fold Type:"
-          case Language.Cs => "Typ skladu:"
-        }),
-        select(
-          children <-- ProductBuilderViewModel.selectedFoldType.combineWith(lang).map { case (selectedFoldType, l) =>
-            val currentValue = selectedFoldType.map(_.toString).getOrElse("")
-            option(
-              l match
-                case Language.En => "-- Select fold type --"
-                case Language.Cs => "-- Vyberte typ skladu --"
-              , value := "", selected := currentValue.isEmpty) ::
-            FoldType.values.map { ft =>
-              option(foldTypeLabel(ft, l), value := ft.toString, selected := (ft.toString == currentValue))
-            }.toList
+        SelectField(
+          label = lang.map {
+            case Language.En => "Fold Type:"
+            case Language.Cs => "Typ skladu:"
           },
-          onChange.mapToValue --> { value =>
+          options = lang.map { l =>
+            FoldType.values.toList.map(ft => SelectOption(ft.toString, foldTypeLabel(ft, l)))
+          },
+          selected = ProductBuilderViewModel.selectedFoldType.map(_.map(_.toString).getOrElse("")),
+          onChange = Observer[String] { value =>
             if value.nonEmpty then
               FoldType.values.find(_.toString == value).foreach { ft =>
                 ProductBuilderViewModel.removeSpecification(classOf[SpecValue.FoldTypeSpec])
-                ProductBuilderViewModel.addSpecification(
-                  SpecValue.FoldTypeSpec(ft)
-                )
+                ProductBuilderViewModel.addSpecification(SpecValue.FoldTypeSpec(ft))
               }
+          },
+          placeholder = lang.map {
+            case Language.En => "-- Select fold type --"
+            case Language.Cs => "-- Vyberte typ skladu --"
           },
         ),
       ),
 
       // Binding Method (required for Booklets)
       div(
-        cls := "form-group",
         Visibility.when(requiredSpecs.map(_.contains(SpecKind.BindingMethod))),
-        label(child.text <-- lang.map {
-          case Language.En => "Binding Method:"
-          case Language.Cs => "Typ vazby:"
-        }),
-        select(
-          children <-- ProductBuilderViewModel.selectedBindingMethod.combineWith(lang).map { case (selectedBindingMethod, l) =>
-            val currentValue = selectedBindingMethod.map(_.toString).getOrElse("")
-            option(
-              l match
-                case Language.En => "-- Select binding method --"
-                case Language.Cs => "-- Vyberte typ vazby --"
-              , value := "", selected := currentValue.isEmpty) ::
-            BindingMethod.values.map { bm =>
-              option(bindingMethodLabel(bm, l), value := bm.toString, selected := (bm.toString == currentValue))
-            }.toList
+        SelectField(
+          label = lang.map {
+            case Language.En => "Binding Method:"
+            case Language.Cs => "Typ vazby:"
           },
-          onChange.mapToValue --> { value =>
+          options = lang.map { l =>
+            BindingMethod.values.toList.map(bm => SelectOption(bm.toString, bindingMethodLabel(bm, l)))
+          },
+          selected = ProductBuilderViewModel.selectedBindingMethod.map(_.map(_.toString).getOrElse("")),
+          onChange = Observer[String] { value =>
             if value.nonEmpty then
               BindingMethod.values.find(_.toString == value).foreach { bm =>
                 ProductBuilderViewModel.removeSpecification(classOf[SpecValue.BindingMethodSpec])
-                ProductBuilderViewModel.addSpecification(
-                  SpecValue.BindingMethodSpec(bm)
-                )
+                ProductBuilderViewModel.addSpecification(SpecValue.BindingMethodSpec(bm))
               }
+          },
+          placeholder = lang.map {
+            case Language.En => "-- Select binding method --"
+            case Language.Cs => "-- Vyberte typ vazby --"
           },
         ),
       ),
