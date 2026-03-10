@@ -27,6 +27,7 @@ object RadioGroup:
                 value := opt.value,
                 checked := (opt.value == sel),
                 com.raquo.laminar.api.L.onChange.mapToValue --> onChange,
+                com.raquo.laminar.api.L.disabled <-- disabled,
               ),
               span(child.text <-- opt.label),
             )

@@ -12,14 +12,11 @@ class FormFieldState[A](
 
   val parsed: Signal[Either[List[String], A]] =
     rawVar.signal.map { raw =>
-      if raw.isEmpty && fieldType.defaultValue == fieldType.parse("").getOrElse(fieldType.defaultValue) then
-        Right(fieldType.defaultValue)
-      else
-        fieldType.parse(raw) match
-          case Left(parseErr) => Left(List(parseErr))
-          case Right(value) =>
-            val errors = validators.flatMap(_.validate(value))
-            if errors.nonEmpty then Left(errors) else Right(value)
+      fieldType.parse(raw) match
+        case Left(parseErr) => Left(List(parseErr))
+        case Right(value) =>
+          val errors = validators.flatMap(_.validate(value))
+          if errors.nonEmpty then Left(errors) else Right(value)
     }
 
   /** Writer that marks the field as touched and updates the raw value. */
