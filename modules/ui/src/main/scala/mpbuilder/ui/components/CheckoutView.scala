@@ -718,16 +718,13 @@ object CheckoutView:
       h3(cls := "checkout-section-title",
         if l == Language.Cs then "Poznámka k objednávce (nepovinné)" else "Order Note (optional)"
       ),
-      div(
-        cls := "checkout-note",
-        TextAreaField(
-          label = Val(""),
-          value = noteVar.signal,
-          onInput = noteVar.writer,
-          placeholder = Val(
-            if l == Language.Cs then "Zvláštní požadavky nebo poznámky k objednávce…"
-            else "Special requirements or notes for your order…"
-          ),
+      TextAreaField(
+        label = Val(""),
+        value = noteVar.signal,
+        onInput = noteVar.writer,
+        placeholder = Val(
+          if l == Language.Cs then "Zvláštní požadavky nebo poznámky k objednávce…"
+          else "Special requirements or notes for your order…"
         ),
       ),
 
