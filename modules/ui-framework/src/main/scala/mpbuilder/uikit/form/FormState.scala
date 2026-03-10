@@ -15,18 +15,39 @@ class FormState[T](
   def fieldAs[A](name: String): FormFieldState[A] =
     fields(name).asInstanceOf[FormFieldState[A]]
 
+  /** Returns a new FormState with the given validators attached to the named field. */
+  def withValidators[A](fieldName: String, validators: FieldValidator[A]*): FormState[T] =
+    val existing = fieldAs[A](fieldName)
+    val updated = new FormFieldState[A](
+      existing.name,
+      existing.rawVar,
+      existing.fieldType,
+      existing.validators ++ validators.toList,
+    )
+    new FormState[T](fields.updated(fieldName, updated), fieldOrder, construct)
+
+  /** Marks all fields as touched, causing all validation errors to become visible. */
+  def touchAll(): Unit =
+    fields.values.foreach(_.asInstanceOf[FormFieldState[Any]].touch())
+
   val validated: Signal[Either[Map[String, List[String]], T]] =
     val fieldSignals: List[Signal[(String, Either[List[String], Any])]] =
       fieldOrder.map { name =>
         fields(name).parsed.map(name -> _)
       }
-    // Combine all field signals
     Signal.sequence(fieldSignals).map { results =>
       val errors = results.collect { case (name, Left(errs)) => name -> errs }.toMap
       if errors.nonEmpty then Left(errors)
       else
         val values = results.collect { case (name, Right(v)) => name -> v }.toMap
         Right(construct(values))
+    }
+
+  /** All current validation error messages across all fields (flattened). */
+  val allErrors: Signal[List[String]] =
+    validated.map {
+      case Right(_)     => Nil
+      case Left(errors) => errors.values.flatten.toList
     }
 
 object FormState:

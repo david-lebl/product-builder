@@ -8,6 +8,8 @@ class FormFieldState[A](
   val fieldType: FieldType[A],
   val validators: List[FieldValidator[A]],
 ):
+  private val touchedVar: Var[Boolean] = Var(false)
+
   val parsed: Signal[Either[List[String], A]] =
     rawVar.signal.map { raw =>
       if raw.isEmpty && fieldType.defaultValue == fieldType.parse("").getOrElse(fieldType.defaultValue) then
@@ -20,14 +22,23 @@ class FormFieldState[A](
             if errors.nonEmpty then Left(errors) else Right(value)
     }
 
+  /** Writer that marks the field as touched and updates the raw value. */
+  val touchedWriter: Observer[String] = Observer[String] { v =>
+    rawVar.set(v)
+    touchedVar.set(true)
+  }
+
+  /** Shows the first error only after the field has been touched. */
   val firstError: Signal[Option[String]] =
-    parsed.map {
-      case Left(errs) => errs.headOption
-      case Right(_)   => None
+    parsed.combineWith(touchedVar.signal).map {
+      case (Left(errs), true) => errs.headOption
+      case _                  => None
     }
 
   val value: Signal[A] =
     parsed.map(_.getOrElse(fieldType.defaultValue))
+
+  def touch(): Unit = touchedVar.set(true)
 
 object FormFieldState:
   def apply[A](name: String, validators: FieldValidator[A]*)(using ft: FieldType[A]): FormFieldState[A] =
