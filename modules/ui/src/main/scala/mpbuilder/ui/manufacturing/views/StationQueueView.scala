@@ -2,7 +2,7 @@ package mpbuilder.ui.manufacturing.views
 
 import com.raquo.laminar.api.L.*
 import mpbuilder.domain.manufacturing.*
-import mpbuilder.ui.manufacturing.ManufacturingViewModel
+import mpbuilder.ui.manufacturing.{ManufacturingViewModel, ManufacturingUiState}
 import mpbuilder.uikit.containers.{SplitTableView, ColumnDef, RowAction}
 
 object StationQueueView:
@@ -10,10 +10,18 @@ object StationQueueView:
   def apply(): HtmlElement =
     val vm = ManufacturingViewModel
 
+    // Filter state (local to this view)
+    val statusFilterVar:   Var[Set[OrderStatus]]   = Var(Set.empty)
+    val priorityFilterVar: Var[Set[OrderPriority]] = Var(Set.empty)
+
     // Orders that are actively in the workflow (have a current station)
     val activeOrders: Signal[List[ManufacturingOrder]] =
-      vm.state.map { s =>
-        s.mfgState.orders.filter(o => o.currentStationId.isDefined && !o.isFullyCompleted)
+      vm.state.combineWith(statusFilterVar.signal).combineWith(priorityFilterVar.signal).map {
+        (s: ManufacturingUiState, statusFilter: Set[OrderStatus], priorityFilter: Set[OrderPriority]) =>
+          s.mfgState.orders
+            .filter(o => o.currentStationId.isDefined && !o.isFullyCompleted)
+            .filter(o => statusFilter.isEmpty  || o.currentStatus.exists(statusFilter.contains))
+            .filter(o => priorityFilter.isEmpty || priorityFilter.contains(o.priority))
       }
 
     val columns: List[ColumnDef[ManufacturingOrder]] = List(
@@ -96,6 +104,35 @@ object StationQueueView:
         ),
       ).flatten
 
+    val filterBarEl: HtmlElement = div(
+      cls := "filter-bar",
+      span(cls := "filter-label", "Status:"),
+      List(OrderStatus.Queued, OrderStatus.InProgress, OrderStatus.OnHold).map { st =>
+        button(
+          cls <-- statusFilterVar.signal.map(f =>
+            if f.contains(st) then "filter-chip filter-chip--active" else "filter-chip"
+          ),
+          st.toString,
+          onClick --> { _ =>
+            statusFilterVar.update(f => if f.contains(st) then f - st else f + st)
+          },
+        )
+      },
+      div(cls := "filter-divider"),
+      span(cls := "filter-label", "Priority:"),
+      List(OrderPriority.Urgent, OrderPriority.High, OrderPriority.Normal, OrderPriority.Low).map { p =>
+        button(
+          cls <-- priorityFilterVar.signal.map(f =>
+            if f.contains(p) then "filter-chip filter-chip--active" else "filter-chip"
+          ),
+          p.toString,
+          onClick --> { _ =>
+            priorityFilterVar.update(f => if f.contains(p) then f - p else f + p)
+          },
+        )
+      },
+    )
+
     SplitTableView[ManufacturingOrder](
       rows = activeOrders,
       columns = columns,
@@ -111,7 +148,7 @@ object StationQueueView:
               o.configuration.category.name.value.toLowerCase.contains(lq)
             }
       },
-      filterBar = None,
+      filterBar = Some(filterBarEl),
       detailPanel = selectedRow => stationQueuePanel(selectedRow, vm),
       rowActions = rowActions,
       emptyMessage = Val("No active orders in the queue"),

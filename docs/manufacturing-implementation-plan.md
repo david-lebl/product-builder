@@ -1,6 +1,6 @@
 # Manufacturing UI Implementation Plan
 
-## Status: All phases complete (2026-03-10)
+## Status: Phases 1–4 + CSS + Filter Bar complete (2026-03-10)
 
 ---
 
@@ -138,11 +138,34 @@ Tab navigation (Dashboard / Station Queue / Order Approval / Order Progress) wit
 
 ---
 
+## Phase 5 — CSS Styling ✅
+
+All manufacturing CSS added to `modules/ui/src/main/resources/index.html`.
+
+Styled classes:
+- Manufacturing app shell: `.manufacturing-app`, `.manufacturing-tabs`, `.mfg-tab`, `.mfg-tab--active`
+- Dashboard: `.dashboard-cards`, `.summary-card`, card color variants, `.station-strip`, `.station-card`, `.station-badge`
+- Table: `.data-table`, `.data-table-th/td`, `.data-table-row--selected`, `.sort-indicator`
+- Row actions: `.row-action`, `.row-action--destructive`
+- Badges: `.priority-badge--*`, `.status-badge--*`, `.deadline-overdue/urgent`
+- SplitTableView: `.split-table-view`, `.split-table-toolbar`, `.split-table-panel`, panel open/close animation
+- Detail panel: heading/customer/product labels, `.detail-notes`, step chain (horizontal + vertical)
+- Progress bar: `.progress-bar-container`, `.progress-bar-track`, `.progress-bar-fill` (gradient fill)
+- Checklist: `.checklist-item`, `.checklist-item--done`, check icon colour
+- Filter bar: `.filter-bar`, `.filter-chip`, `.filter-chip--active`, `.filter-divider`
+
+## Phase 6 — Filter Bar ✅
+
+**StationQueueView.scala**: Added local `Var[Set[OrderStatus]]` + `Var[Set[OrderPriority]]` with toggle chips:
+- Status chips: Queued / InProgress / OnHold
+- Priority chips: Urgent / High / Normal / Low
+- Multi-select (empty = show all); chips are wired directly into the `activeOrders` signal via `combineWith`
+
 ## Future Work
 
 - [ ] Add `WorkflowStatus` to `ManufacturingOrder` for approval/rejection tracking
-- [ ] CSS styling for manufacturing views (`.mfg-tab`, `.summary-card`, `.step-chain`, `.progress-bar-*`, etc.)
-- [ ] Station filter bar in StationQueueView (by StationType, OrderStatus, OrderPriority)
+- [ ] Filter bar in OrderProgressView and OrderApprovalView
+- [ ] Station type filter in StationQueueView
 - [ ] Deadline date picker / range filter
 - [ ] Real-time updates (WebSocket or polling integration)
 - [ ] Print job notes editing inline

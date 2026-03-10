@@ -119,8 +119,8 @@ object OrderProgressView:
     div(
       cls := "progress-bar-container",
       div(
-        cls   := "progress-bar-fill",
-        styleAttr := s"width: ${pct}%",
+        cls := "progress-bar-track",
+        div(cls := "progress-bar-fill", styleAttr := s"width: ${pct}%"),
       ),
       span(cls := "progress-bar-label", s"$done/$total"),
     )
