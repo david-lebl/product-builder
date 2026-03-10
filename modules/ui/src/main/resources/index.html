@@ -1421,6 +1421,46 @@
             font-weight: 600;
         }
 
+        /* ─── Calendar Sidebar UI-Kit Tabs ──────────────────── */
+
+        .calendar-sidebar .tabs {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .calendar-sidebar .tabs-bar {
+            display: flex;
+            gap: 0;
+            margin-bottom: 12px;
+            border-bottom: 2px solid #e0e0e0;
+        }
+
+        .calendar-sidebar .tab-button {
+            flex: 1;
+            padding: 8px 12px;
+            font-size: 0.85rem;
+            background: #f0f0f0;
+            color: #555;
+            border: none;
+            border-bottom: 2px solid transparent;
+            cursor: pointer;
+            transition: all 0.2s;
+            margin-bottom: -2px;
+            border-radius: 6px 6px 0 0;
+        }
+
+        .calendar-sidebar .tab-button:hover {
+            background: #e0e0f0;
+            transform: none;
+        }
+
+        .calendar-sidebar .tab-button--active {
+            background: white;
+            color: #667eea;
+            border-bottom-color: #667eea;
+            font-weight: 600;
+        }
+
         /* ─── Horizontal Page Navigation Strip ──────────────── */
 
         .page-navigation-strip {
@@ -2045,9 +2085,9 @@
             flex-shrink: 0;
         }
 
-        /* ─── Note textarea ───────────────────────────────────── */
+        /* ─── Note textarea (rendered by TextAreaField → .form-group textarea) ── */
 
-        .checkout-note {
+        .form-group textarea {
             width: 100%;
             min-height: 80px;
             padding: 10px 12px;
@@ -2056,9 +2096,10 @@
             font-family: inherit;
             font-size: 0.95rem;
             resize: vertical;
+            box-sizing: border-box;
         }
 
-        .checkout-note:focus {
+        .form-group textarea:focus {
             outline: none;
             border-color: #667eea;
         }
@@ -2249,7 +2290,7 @@
             margin-bottom: 12px;
         }
 
-        .checkout-diff-addr-label {
+        .checkout-diff-addr-row .checkbox-label {
             display: flex;
             align-items: center;
             gap: 8px;
@@ -2259,7 +2300,7 @@
             font-weight: 500;
         }
 
-        .checkout-diff-addr-label input[type="checkbox"] {
+        .checkout-diff-addr-row .checkbox-label input[type="checkbox"] {
             width: auto;
             margin: 0;
             cursor: pointer;

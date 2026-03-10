@@ -1,0 +1,405 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>UI Kit Showcase</title>
+  <style>
+    /* ── Base reset & typography ─────────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      font-size: 14px;
+      color: #333;
+      background: #f5f5f5;
+    }
+
+    h1, h2, h3 { margin-top: 0; }
+    p { margin: 0 0 0.75rem; }
+    code { font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace; font-size: 0.85em; background: #eee; padding: 0.1em 0.3em; border-radius: 3px; }
+    button { cursor: pointer; }
+
+    /* ── Showcase layout ─────────────────────────────────────────────── */
+    .uikit-showcase {
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 2rem 1.5rem;
+    }
+
+    .uikit-showcase > h1 {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      font-size: 2rem;
+      margin-bottom: 0.25rem;
+    }
+
+    .showcase-section {
+      padding: 1.5rem 0;
+      border-bottom: 1px solid #e0e0e0;
+    }
+
+    .showcase-section:last-child {
+      border-bottom: none;
+    }
+
+    .showcase-row {
+      display: flex;
+      gap: 1rem;
+      align-items: flex-start;
+      flex-wrap: wrap;
+      margin: 0.75rem 0;
+    }
+
+    .showcase-output {
+      background: #f0f0f0;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      padding: 0.5rem 0.75rem;
+      font-family: "SFMono-Regular", Consolas, monospace;
+      font-size: 0.85em;
+      color: #555;
+      min-height: 2rem;
+      margin: 0.5rem 0;
+    }
+
+    .showcase-code {
+      background: #1e1e2e;
+      color: #cdd6f4;
+      border-radius: 6px;
+      padding: 1rem 1.25rem;
+      font-family: "SFMono-Regular", Consolas, monospace;
+      font-size: 0.82em;
+      overflow-x: auto;
+      white-space: pre;
+      margin: 0.75rem 0;
+    }
+
+    .showcase-visibility-box {
+      background: linear-gradient(135deg, #667eea22, #764ba222);
+      border: 2px dashed #667eea88;
+      border-radius: 6px;
+      padding: 1rem;
+      margin: 0.5rem 0;
+    }
+
+    /* ── Form groups & fields ────────────────────────────────────────── */
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 0.3rem;
+      margin-bottom: 0.75rem;
+    }
+
+    .form-group label {
+      font-weight: 600;
+      font-size: 0.85em;
+      color: #555;
+    }
+
+    .form-group input[type="text"],
+    .form-group input[type="email"],
+    .form-group input[type="number"],
+    .form-group input[type="password"],
+    .form-group textarea,
+    .form-group select {
+      padding: 0.45rem 0.65rem;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      font-size: 0.95em;
+      font-family: inherit;
+      transition: border-color 0.15s;
+      background: #fff;
+    }
+
+    .form-group input:focus,
+    .form-group textarea:focus,
+    .form-group select:focus {
+      outline: none;
+      border-color: #667eea;
+      box-shadow: 0 0 0 2px #667eea33;
+    }
+
+    .form-group textarea {
+      resize: vertical;
+      min-height: 80px;
+    }
+
+    .field-error {
+      color: #dc3545;
+      font-size: 0.8em;
+      margin-top: 0.15rem;
+    }
+
+    /* ── Checkbox & radio ────────────────────────────────────────────── */
+    .checkbox-label {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      cursor: pointer;
+      user-select: none;
+      margin-bottom: 0.5rem;
+    }
+
+    .checkbox-label input[type="checkbox"] {
+      width: 16px;
+      height: 16px;
+      cursor: pointer;
+      accent-color: #667eea;
+    }
+
+    .radio-group {
+      display: flex;
+      flex-direction: column;
+      gap: 0.4rem;
+      margin-bottom: 0.75rem;
+    }
+
+    .radio-group > label:first-child {
+      font-weight: 600;
+      font-size: 0.85em;
+      color: #555;
+      margin-bottom: 0.2rem;
+    }
+
+    .radio-label {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      cursor: pointer;
+      user-select: none;
+    }
+
+    .radio-label input[type="radio"] {
+      width: 15px;
+      height: 15px;
+      cursor: pointer;
+      accent-color: #667eea;
+    }
+
+    /* ── Tabs ────────────────────────────────────────────────────────── */
+    .tabs {
+      margin: 0.75rem 0;
+    }
+
+    .tabs-bar {
+      display: flex;
+      gap: 0;
+      border-bottom: 2px solid #e0e0e0;
+      margin-bottom: 1rem;
+    }
+
+    .tab-button {
+      padding: 0.5rem 1.1rem;
+      border: none;
+      background: none;
+      font-size: 0.9em;
+      font-family: inherit;
+      color: #666;
+      cursor: pointer;
+      border-bottom: 2px solid transparent;
+      margin-bottom: -2px;
+      transition: color 0.15s, border-color 0.15s;
+    }
+
+    .tab-button:hover {
+      color: #667eea;
+    }
+
+    .tab-button--active {
+      color: #667eea;
+      font-weight: 600;
+      border-bottom-color: #667eea;
+    }
+
+    .tabs-content {
+      padding: 0.25rem 0;
+    }
+
+    /* ── Stepper ─────────────────────────────────────────────────────── */
+    .stepper {
+      margin: 0.75rem 0;
+    }
+
+    .stepper-bar {
+      display: flex;
+      align-items: center;
+      gap: 0;
+      margin-bottom: 1.5rem;
+      counter-reset: step;
+    }
+
+    .stepper-step {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      flex: 1;
+      cursor: pointer;
+    }
+
+    .stepper-step:not(:last-child)::after {
+      content: "";
+      flex: 1;
+      height: 2px;
+      background: #e0e0e0;
+      margin: 0 0.5rem;
+    }
+
+    .stepper-step--done:not(:last-child)::after {
+      background: #667eea;
+    }
+
+    .stepper-step-num {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      background: #e0e0e0;
+      color: #777;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.8em;
+      font-weight: 700;
+      flex-shrink: 0;
+      transition: background 0.2s, color 0.2s;
+    }
+
+    .stepper-step--active .stepper-step-num {
+      background: #667eea;
+      color: #fff;
+    }
+
+    .stepper-step--done .stepper-step-num {
+      background: #764ba2;
+      color: #fff;
+    }
+
+    .stepper-step-label {
+      font-size: 0.85em;
+      color: #666;
+      white-space: nowrap;
+    }
+
+    .stepper-step--active .stepper-step-label {
+      color: #667eea;
+      font-weight: 600;
+    }
+
+    .stepper-step--done .stepper-step-label {
+      color: #764ba2;
+    }
+
+    .stepper-content {
+      background: #fff;
+      border: 1px solid #e0e0e0;
+      border-radius: 6px;
+      padding: 1.25rem;
+      margin-bottom: 1rem;
+    }
+
+    .stepper-nav {
+      display: flex;
+      gap: 0.75rem;
+      justify-content: flex-end;
+    }
+
+    .stepper-nav button {
+      padding: 0.4rem 1rem;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      background: #fff;
+      font-size: 0.9em;
+      font-family: inherit;
+      cursor: pointer;
+      transition: background 0.15s, border-color 0.15s;
+    }
+
+    .stepper-nav button:hover {
+      border-color: #667eea;
+      color: #667eea;
+    }
+
+    .stepper-nav button:last-child {
+      background: linear-gradient(135deg, #667eea, #764ba2);
+      color: #fff;
+      border: none;
+    }
+
+    .stepper-nav button:last-child:hover {
+      opacity: 0.9;
+    }
+
+    /* ── Validation display ──────────────────────────────────────────── */
+    .success-message {
+      background: #d4edda;
+      border: 1px solid #c3e6cb;
+      border-radius: 4px;
+      padding: 0.6rem 0.9rem;
+      color: #155724;
+      font-size: 0.9em;
+      margin: 0.5rem 0;
+    }
+
+    .error-message {
+      background: #f8d7da;
+      border: 1px solid #f5c6cb;
+      border-radius: 4px;
+      padding: 0.6rem 0.9rem;
+      color: #721c24;
+      font-size: 0.9em;
+      margin: 0.5rem 0;
+    }
+
+    .error-list {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+    }
+
+    .error-list li {
+      padding: 0.2rem 0;
+    }
+
+    .error-list li::before {
+      content: "• ";
+      color: #dc3545;
+    }
+
+    /* ── Form derivation ─────────────────────────────────────────────── */
+    .form-derived {
+      background: #fff;
+      border: 1px solid #e0e0e0;
+      border-radius: 6px;
+      padding: 1.25rem;
+      margin: 0.75rem 0;
+    }
+
+    /* ── Generic button styles ───────────────────────────────────────── */
+    button.checkout-btn,
+    .showcase-section button {
+      padding: 0.4rem 0.9rem;
+      border: 1px solid #667eea;
+      border-radius: 4px;
+      background: #fff;
+      color: #667eea;
+      font-size: 0.88em;
+      font-family: inherit;
+      cursor: pointer;
+      transition: background 0.15s, color 0.15s;
+    }
+
+    button.checkout-btn:hover,
+    .showcase-section button:hover {
+      background: #667eea;
+      color: #fff;
+    }
+  </style>
+</head>
+<body>
+  <div id="app-root"></div>
+  <script type="module" src="main.js"></script>
+</body>
+</html>

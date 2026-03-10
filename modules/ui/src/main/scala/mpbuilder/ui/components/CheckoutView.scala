@@ -7,6 +7,8 @@ import mpbuilder.domain.model.CheckoutStep.*
 import mpbuilder.domain.pricing.{Money, Currency}
 import mpbuilder.domain.service.{BasketService, DiscountService}
 import mpbuilder.domain.weight.WeightCalculator
+import mpbuilder.uikit.fields.{TextField, CheckboxField, TextAreaField}
+import mpbuilder.uikit.util.Visibility
 
 object CheckoutView:
 
@@ -124,25 +126,19 @@ object CheckoutView:
             if l == Language.Cs then "Přihlaste se ke svému účtu pro rychlejší objednávku a přístup k historii objednávek."
             else "Sign in to your account for a faster checkout and access to your order history."
           ),
-          div(
-            cls := "form-group",
-            label(if l == Language.Cs then "E-mail" else "Email"),
-            input(
-              typ := "email",
-              placeholder := (if l == Language.Cs then "vas@email.cz" else "your@email.com"),
-              value <-- loginEmailVar,
-              onInput.mapToValue --> loginEmailVar.writer,
-            ),
+          TextField(
+            label = Val(if l == Language.Cs then "E-mail" else "Email"),
+            value = loginEmailVar.signal,
+            onInput = loginEmailVar.writer,
+            inputType = "email",
+            placeholder = Val(if l == Language.Cs then "vas@email.cz" else "your@email.com"),
           ),
-          div(
-            cls := "form-group",
-            label(if l == Language.Cs then "Heslo" else "Password"),
-            input(
-              typ := "password",
-              placeholder := "••••••••",
-              value <-- loginPasswordVar,
-              onInput.mapToValue --> loginPasswordVar.writer,
-            ),
+          TextField(
+            label = Val(if l == Language.Cs then "Heslo" else "Password"),
+            value = loginPasswordVar.signal,
+            onInput = loginPasswordVar.writer,
+            inputType = "password",
+            placeholder = Val("••••••••"),
           ),
           button(
             cls := "checkout-btn",
@@ -198,39 +194,41 @@ object CheckoutView:
       ),
       div(
         cls := "checkout-form-row",
-        div(
-          cls := "form-group",
-          label(if l == Language.Cs then "Jméno *" else "First Name *"),
-          input(typ := "text", placeholder := (if l == Language.Cs then "Jan" else "John"),
-            value <-- fnVar, onInput.mapToValue --> fnVar.writer),
+        TextField(
+          label = Val(if l == Language.Cs then "Jméno *" else "First Name *"),
+          value = fnVar.signal,
+          onInput = fnVar.writer,
+          placeholder = Val(if l == Language.Cs then "Jan" else "John"),
         ),
-        div(
-          cls := "form-group",
-          label(if l == Language.Cs then "Příjmení *" else "Last Name *"),
-          input(typ := "text", placeholder := (if l == Language.Cs then "Novák" else "Smith"),
-            value <-- lnVar, onInput.mapToValue --> lnVar.writer),
+        TextField(
+          label = Val(if l == Language.Cs then "Příjmení *" else "Last Name *"),
+          value = lnVar.signal,
+          onInput = lnVar.writer,
+          placeholder = Val(if l == Language.Cs then "Novák" else "Smith"),
         ),
       ),
       div(
         cls := "checkout-form-row",
-        div(
-          cls := "form-group",
-          label(if l == Language.Cs then "E-mail *" else "Email *"),
-          input(typ := "email", placeholder := (if l == Language.Cs then "jan@email.cz" else "john@email.com"),
-            value <-- emailVar, onInput.mapToValue --> emailVar.writer),
+        TextField(
+          label = Val(if l == Language.Cs then "E-mail *" else "Email *"),
+          value = emailVar.signal,
+          onInput = emailVar.writer,
+          inputType = "email",
+          placeholder = Val(if l == Language.Cs then "jan@email.cz" else "john@email.com"),
         ),
-        div(
-          cls := "form-group",
-          label(if l == Language.Cs then "Telefon *" else "Phone *"),
-          input(typ := "tel", placeholder := "+420 123 456 789",
-            value <-- phoneVar, onInput.mapToValue --> phoneVar.writer),
+        TextField(
+          label = Val(if l == Language.Cs then "Telefon *" else "Phone *"),
+          value = phoneVar.signal,
+          onInput = phoneVar.writer,
+          inputType = "tel",
+          placeholder = Val("+420 123 456 789"),
         ),
       ),
-      div(
-        cls := "form-group",
-        label(if l == Language.Cs then "Firma (nepovinné)" else "Company (optional)"),
-        input(typ := "text", placeholder := (if l == Language.Cs then "Vaše firma s.r.o." else "Your Company Ltd."),
-          value <-- companyVar, onInput.mapToValue --> companyVar.writer),
+      TextField(
+        label = Val(if l == Language.Cs then "Firma (nepovinné)" else "Company (optional)"),
+        value = companyVar.signal,
+        onInput = companyVar.writer,
+        placeholder = Val(if l == Language.Cs then "Vaše firma s.r.o." else "Your Company Ltd."),
       ),
 
       // Company VAT fields — shown only when a company name is entered
@@ -241,17 +239,17 @@ object CheckoutView:
         ),
         div(
           cls := "checkout-form-row",
-          div(
-            cls := "form-group",
-            label(if l == Language.Cs then "IČO" else "Company Reg. No."),
-            input(typ := "text", placeholder := (if l == Language.Cs then "12345678" else "12345678"),
-              value <-- regNoVar, onInput.mapToValue --> regNoVar.writer),
+          TextField(
+            label = Val(if l == Language.Cs then "IČO" else "Company Reg. No."),
+            value = regNoVar.signal,
+            onInput = regNoVar.writer,
+            placeholder = Val(if l == Language.Cs then "12345678" else "12345678"),
           ),
-          div(
-            cls := "form-group",
-            label(if l == Language.Cs then "DIČ" else "VAT No."),
-            input(typ := "text", placeholder := (if l == Language.Cs then "CZ12345678" else "CZ12345678"),
-              value <-- vatIdVar, onInput.mapToValue --> vatIdVar.writer),
+          TextField(
+            label = Val(if l == Language.Cs then "DIČ" else "VAT No."),
+            value = vatIdVar.signal,
+            onInput = vatIdVar.writer,
+            placeholder = Val(if l == Language.Cs then "CZ12345678" else "CZ12345678"),
           ),
         ),
       ),
@@ -260,32 +258,32 @@ object CheckoutView:
       h3(cls := "checkout-section-title",
         if l == Language.Cs then "Fakturační adresa" else "Invoice Address"
       ),
-      div(
-        cls := "form-group",
-        label(if l == Language.Cs then "Ulice a číslo popisné *" else "Street & Number *"),
-        input(typ := "text", placeholder := (if l == Language.Cs then "Ulice 123" else "123 Main Street"),
-          value <-- streetVar, onInput.mapToValue --> streetVar.writer),
+      TextField(
+        label = Val(if l == Language.Cs then "Ulice a číslo popisné *" else "Street & Number *"),
+        value = streetVar.signal,
+        onInput = streetVar.writer,
+        placeholder = Val(if l == Language.Cs then "Ulice 123" else "123 Main Street"),
       ),
       div(
         cls := "checkout-form-row",
-        div(
-          cls := "form-group",
-          label(if l == Language.Cs then "Město *" else "City *"),
-          input(typ := "text", placeholder := (if l == Language.Cs then "Praha" else "Prague"),
-            value <-- cityVar, onInput.mapToValue --> cityVar.writer),
+        TextField(
+          label = Val(if l == Language.Cs then "Město *" else "City *"),
+          value = cityVar.signal,
+          onInput = cityVar.writer,
+          placeholder = Val(if l == Language.Cs then "Praha" else "Prague"),
         ),
-        div(
-          cls := "form-group",
-          label(if l == Language.Cs then "PSČ *" else "ZIP / Postal Code *"),
-          input(typ := "text", placeholder := "110 00",
-            value <-- zipVar, onInput.mapToValue --> zipVar.writer),
+        TextField(
+          label = Val(if l == Language.Cs then "PSČ *" else "ZIP / Postal Code *"),
+          value = zipVar.signal,
+          onInput = zipVar.writer,
+          placeholder = Val("110 00"),
         ),
       ),
-      div(
-        cls := "form-group",
-        label(if l == Language.Cs then "Země *" else "Country *"),
-        input(typ := "text", placeholder := (if l == Language.Cs then "Česká republika" else "Czech Republic"),
-          value <-- countryVar, onInput.mapToValue --> countryVar.writer),
+      TextField(
+        label = Val(if l == Language.Cs then "Země *" else "Country *"),
+        value = countryVar.signal,
+        onInput = countryVar.writer,
+        placeholder = Val(if l == Language.Cs then "Česká republika" else "Czech Republic"),
       ),
 
       checkoutNavButtons(
@@ -399,15 +397,13 @@ object CheckoutView:
         // Checkbox: ship to different address
         div(
           cls := "checkout-diff-addr-row",
-          label(
-            cls := "checkout-diff-addr-label",
-            input(
-              typ := "checkbox",
-              checked <-- diffAddrVar,
-              onClick --> { _ => diffAddrVar.update(!_) },
+          CheckboxField(
+            label = Val(
+              if l == Language.Cs then "Doručit na jinou adresu než fakturační"
+              else "Ship to a different address than the invoice address"
             ),
-            if l == Language.Cs then " Doručit na jinou adresu než fakturační"
-            else " Ship to a different address than the invoice address",
+            checked = diffAddrVar.signal,
+            onChange = Observer[Boolean](v => diffAddrVar.set(v)),
           ),
         ),
 
@@ -429,32 +425,32 @@ object CheckoutView:
         // Separate shipping address fields
         div(
           cls <-- diffAddrVar.signal.map(d => if d then "checkout-diff-addr-fields" else "checkout-diff-addr-fields checkout-diff-addr-fields--hidden"),
-          div(
-            cls := "form-group",
-            label(if l == Language.Cs then "Ulice a číslo popisné *" else "Street & Number *"),
-            input(typ := "text", placeholder := (if l == Language.Cs then "Ulice 123" else "123 Main Street"),
-              value <-- shipStreetVar, onInput.mapToValue --> shipStreetVar.writer),
+          TextField(
+            label = Val(if l == Language.Cs then "Ulice a číslo popisné *" else "Street & Number *"),
+            value = shipStreetVar.signal,
+            onInput = shipStreetVar.writer,
+            placeholder = Val(if l == Language.Cs then "Ulice 123" else "123 Main Street"),
           ),
           div(
             cls := "checkout-form-row",
-            div(
-              cls := "form-group",
-              label(if l == Language.Cs then "Město *" else "City *"),
-              input(typ := "text", placeholder := (if l == Language.Cs then "Praha" else "Prague"),
-                value <-- shipCityVar, onInput.mapToValue --> shipCityVar.writer),
+            TextField(
+              label = Val(if l == Language.Cs then "Město *" else "City *"),
+              value = shipCityVar.signal,
+              onInput = shipCityVar.writer,
+              placeholder = Val(if l == Language.Cs then "Praha" else "Prague"),
             ),
-            div(
-              cls := "form-group",
-              label(if l == Language.Cs then "PSČ *" else "ZIP / Postal Code *"),
-              input(typ := "text", placeholder := "110 00",
-                value <-- shipZipVar, onInput.mapToValue --> shipZipVar.writer),
+            TextField(
+              label = Val(if l == Language.Cs then "PSČ *" else "ZIP / Postal Code *"),
+              value = shipZipVar.signal,
+              onInput = shipZipVar.writer,
+              placeholder = Val("110 00"),
             ),
           ),
-          div(
-            cls := "form-group",
-            label(if l == Language.Cs then "Země *" else "Country *"),
-            input(typ := "text", placeholder := (if l == Language.Cs then "Česká republika" else "Czech Republic"),
-              value <-- shipCountryVar, onInput.mapToValue --> shipCountryVar.writer),
+          TextField(
+            label = Val(if l == Language.Cs then "Země *" else "Country *"),
+            value = shipCountryVar.signal,
+            onInput = shipCountryVar.writer,
+            placeholder = Val(if l == Language.Cs then "Česká republika" else "Czech Republic"),
           ),
         ),
       ),
@@ -722,7 +718,7 @@ object CheckoutView:
           cls := "checkout-discount-input",
           placeholder := (if l == Language.Cs then "Zadejte slevový kód" else "Enter discount code"),
           value <-- codeVar,
-          onInput.mapToValue --> codeVar.writer,
+          com.raquo.laminar.api.L.onInput.mapToValue --> codeVar.writer,
         ),
         button(
           cls := "btn-secondary checkout-discount-apply",
@@ -750,14 +746,13 @@ object CheckoutView:
       h3(cls := "checkout-section-title",
         if l == Language.Cs then "Poznámka k objednávce (nepovinné)" else "Order Note (optional)"
       ),
-      div(
-        cls := "form-group",
-        textArea(
-          cls := "checkout-note",
-          placeholder := (if l == Language.Cs then "Zvláštní požadavky nebo poznámky k objednávce…"
-                          else "Special requirements or notes for your order…"),
-          value <-- noteVar,
-          onInput.mapToValue --> noteVar.writer,
+      TextAreaField(
+        label = Val(""),
+        value = noteVar.signal,
+        onInput = noteVar.writer,
+        placeholder = Val(
+          if l == Language.Cs then "Zvláštní požadavky nebo poznámky k objednávce…"
+          else "Special requirements or notes for your order…"
         ),
       ),
 

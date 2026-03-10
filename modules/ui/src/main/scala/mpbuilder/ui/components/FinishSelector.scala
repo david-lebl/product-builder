@@ -3,6 +3,7 @@ package mpbuilder.ui.components
 import com.raquo.laminar.api.L.*
 import mpbuilder.ui.ProductBuilderViewModel
 import mpbuilder.domain.model.*
+import mpbuilder.uikit.util.Visibility
 
 object FinishSelector:
   def apply(role: ComponentRole): Element =
@@ -85,7 +86,7 @@ object FinishSelector:
       case FinishType.RoundCorners =>
         div(
           cls := "finish-params",
-          display <-- isSelected.map(s => if s then "block" else "none"),
+          Visibility.when(isSelected),
           div(
             cls := "finish-params-row",
             span(
@@ -155,7 +156,7 @@ object FinishSelector:
       case FinishType.Lamination | FinishType.Overlamination | FinishType.SoftTouchCoating =>
         div(
           cls := "finish-params",
-          display <-- isSelected.map(s => if s then "block" else "none"),
+          Visibility.when(isSelected),
           div(
             cls := "finish-params-row",
             span(
@@ -196,7 +197,7 @@ object FinishSelector:
       case FinishType.FoilStamping =>
         div(
           cls := "finish-params",
-          display <-- isSelected.map(s => if s then "block" else "none"),
+          Visibility.when(isSelected),
           div(
             cls := "finish-params-row",
             span(
@@ -229,7 +230,7 @@ object FinishSelector:
       case FinishType.Grommets =>
         div(
           cls := "finish-params",
-          display <-- isSelected.map(s => if s then "block" else "none"),
+          Visibility.when(isSelected),
           div(
             cls := "finish-params-row",
             span(
@@ -259,7 +260,7 @@ object FinishSelector:
       case FinishType.Perforation =>
         div(
           cls := "finish-params",
-          display <-- isSelected.map(s => if s then "block" else "none"),
+          Visibility.when(isSelected),
           div(
             cls := "finish-params-row",
             span(
