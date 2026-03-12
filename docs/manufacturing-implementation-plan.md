@@ -178,16 +178,85 @@
 
 ---
 
-## Phase 5 — Employee & Machine Management (Future)
+## Phase 5 ✅ — Employee & Machine Management
 
-**Not yet implemented**
+**Status: Complete**
 
-1. Employee profiles with station capabilities
-2. Machine registry with status tracking (Online/Offline/Maintenance)
-3. Machine setup tracking for batch affinity scoring
-4. Employee login/selection in the UI
-5. "My In-Progress Jobs" section on dashboard (filtered by current employee)
-6. Employee settings view with station capability toggles
+### Implemented
+
+1. **`ManagementError.scala`** — Error ADT in `mpbuilder.domain.service`:
+   - 7 error variants: `EmployeeNotFound`, `EmployeeNameEmpty`, `EmployeeAlreadyExists`, `EmployeeNoCapabilities`, `MachineNotFound`, `MachineNameEmpty`, `MachineAlreadyExists`
+   - Exhaustive `message` match for both English and Czech
+
+2. **`EmployeeManagementService.scala`** — Pure service in `mpbuilder.domain.service`:
+   - `addEmployee` — validates ID uniqueness, name non-empty, capabilities non-empty
+   - `updateEmployee` — updates name and active status with validation
+   - `updateCapabilities` — changes station capabilities with non-empty validation
+   - `toggleActive` — toggles active/inactive status
+   - `removeEmployee` — removes employee with existence check
+   - All operations return `Validation[ManagementError, List[Employee]]`
+
+3. **`MachineManagementService.scala`** — Pure service in `mpbuilder.domain.service`:
+   - `addMachine` — validates ID uniqueness and name non-empty, trims inputs
+   - `updateMachine` — updates name and notes with validation
+   - `changeStatus` — transitions machine between Online/Offline/Maintenance
+   - `changeStationType` — reassigns machine to a different station type
+   - `removeMachine` — removes machine with existence check
+   - All operations return `Validation[ManagementError, List[Machine]]`
+
+4. **`MachineStatus` extensions** — Added `displayName` and `icon` to `MachineStatus` enum (Online 🟢, Offline 🔴, Maintenance 🟡)
+
+5. **`EmployeeManagementServiceSpec.scala`** — 17 tests covering:
+   - `addEmployee`: success, duplicate ID, empty name, empty capabilities, name trimming
+   - `updateEmployee`: success, not found, empty name
+   - `updateCapabilities`: success, empty set, not found
+   - `toggleActive`: active→inactive, inactive→active, not found
+   - `removeEmployee`: success, not found
+   - Error messages: all 7 error variants have En/Cs translations
+
+6. **`MachineManagementServiceSpec.scala`** — 16 tests covering:
+   - `addMachine`: success, duplicate ID, empty name, trimming
+   - `updateMachine`: success, not found, empty name
+   - `changeStatus`: to Offline, to Maintenance, not found
+   - `changeStationType`: success, not found
+   - `removeMachine`: success, not found
+   - `MachineStatus` extensions: display names, icons
+
+7. **`ManufacturingRoute` update** — Enabled `Employees` route (was "coming soon"), added `Machines` route
+
+8. **`ManufacturingViewModel` updates**:
+   - Employee/machine state: `employees`, `machines`, `currentEmployeeId`, `selectedEmployeeId`, `selectedMachineId` Vars
+   - `currentEmployee` derived signal (resolves ID to Employee)
+   - `myInProgressJobs` signal — filters steps assigned to current employee
+   - `startStep` now assigns current employee to step via `assignedTo`
+   - Employee actions: `addEmployee`, `toggleEmployeeActive`, `updateEmployeeCapabilities`, `setCurrentEmployee`
+   - Machine actions: `addMachine`, `changeMachineStatus`, `updateMachineNotes`
+   - Sample data: 5 employees with different capabilities, 8 machines with different statuses
+
+9. **`EmployeesView.scala`** — Employee management view:
+   - Uses `SplitTableView` with active/inactive filter
+   - Current employee selector (dropdown) at the top
+   - Columns: Name, Status, Stations (chip list), Actions
+   - Activate/Deactivate inline actions
+   - Side panel with employee detail and station capability toggles (click to add/remove)
+
+10. **`MachinesView.scala`** — Machine registry view:
+    - Uses `SplitTableView` with status and station type filters
+    - Columns: Machine name, Station Type, Status (with icon), Notes, Actions
+    - Status change actions: Online/Maintenance/Offline buttons
+    - Side panel with machine detail, notes, and status controls
+
+11. **`DashboardView` update** — "My In-Progress Jobs" section:
+    - Shown when logged in as an employee
+    - Lists steps the current employee has claimed (InProgress + assignedTo match)
+    - Each job shows order, station, product, and a [Complete] button
+    - Empty state message when no jobs in progress
+
+12. **CSS** — Added styles for:
+    - `btn-warning` (amber, for maintenance/deactivation actions)
+    - Employee selector, station capability chips, capability toggle grid
+    - Machine name, notes preview, station type display, status controls
+    - "My In-Progress Jobs" section with empty state
 
 ---
 

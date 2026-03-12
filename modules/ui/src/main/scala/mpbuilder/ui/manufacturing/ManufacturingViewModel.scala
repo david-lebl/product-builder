@@ -29,6 +29,13 @@ object ManufacturingViewModel:
   // Progress filters
   val progressStatusFilter: Var[Set[WorkflowStatus]] = Var(Set(WorkflowStatus.InProgress, WorkflowStatus.Pending))
 
+  // Employee & Machine state
+  val employees: Var[List[Employee]] = Var(generateSampleEmployees())
+  val machines: Var[List[Machine]] = Var(generateSampleMachines())
+  val currentEmployeeId: Var[Option[EmployeeId]] = Var(Some(EmployeeId.unsafe("emp-1")))
+  val selectedEmployeeId: Var[Option[String]] = Var(None)
+  val selectedMachineId: Var[Option[String]] = Var(None)
+
   // --- Derived signals ---
 
   val orders: Signal[List[ManufacturingOrder]] = manufacturingOrders.signal
@@ -77,6 +84,28 @@ object ManufacturingViewModel:
       ords.filter(o => o.approvalStatus == ApprovalStatus.Approved && statuses.contains(o.overallStatus))
     }
 
+  /** Current employee (resolved from currentEmployeeId). */
+  val currentEmployee: Signal[Option[Employee]] =
+    currentEmployeeId.signal.combineWith(employees.signal).map { case (optId, emps) =>
+      optId.flatMap(id => emps.find(_.id == id))
+    }
+
+  /** Steps currently claimed by the logged-in employee. */
+  val myInProgressJobs: Signal[List[QueueItem]] =
+    orders.combineWith(currentEmployeeId.signal).map { case (ords, optEmpId) =>
+      optEmpId match
+        case None => Nil
+        case Some(empId) =>
+          val approvedOrders = ords.filter(_.approvalStatus == ApprovalStatus.Approved)
+          for
+            order <- approvedOrders
+            wf <- order.workflows
+            step <- wf.steps
+            if step.status == StepStatus.InProgress
+            if step.assignedTo.contains(empId)
+          yield QueueItem(step, wf, order)
+    }
+
   // --- Actions ---
 
   def selectOrder(orderId: String): Unit =
@@ -123,13 +152,14 @@ object ManufacturingViewModel:
     }
 
   def startStep(stepId: String): Unit =
+    val empId = currentEmployeeId.now()
     manufacturingOrders.update { ords =>
       ords.map { mo =>
         mo.copy(workflows = mo.workflows.map { wf =>
           val updated = wf.copy(
             steps = wf.steps.map { s =>
               if s.id.value == stepId && s.status == StepStatus.Ready then
-                s.copy(status = StepStatus.InProgress, startedAt = Some(System.currentTimeMillis()))
+                s.copy(status = StepStatus.InProgress, assignedTo = empId, startedAt = Some(System.currentTimeMillis()))
               else s
             },
             status = WorkflowStatus.InProgress,
@@ -157,6 +187,59 @@ object ManufacturingViewModel:
           evaluated.copy(status = newStatus)
         })
       }
+    }
+
+  // --- Employee & Machine Actions ---
+
+  def selectEmployee(employeeId: String): Unit =
+    selectedEmployeeId.set(Some(employeeId))
+
+  def deselectEmployee(): Unit =
+    selectedEmployeeId.set(None)
+
+  def selectMachine(machineId: String): Unit =
+    selectedMachineId.set(Some(machineId))
+
+  def deselectMachine(): Unit =
+    selectedMachineId.set(None)
+
+  def setCurrentEmployee(empId: Option[EmployeeId]): Unit =
+    currentEmployeeId.set(empId)
+
+  def addEmployee(id: EmployeeId, name: String, capabilities: Set[StationType]): Unit =
+    employees.update { emps =>
+      EmployeeManagementService.addEmployee(emps, id, name, capabilities)
+        .toEither.getOrElse(emps)
+    }
+
+  def toggleEmployeeActive(id: EmployeeId): Unit =
+    employees.update { emps =>
+      EmployeeManagementService.toggleActive(emps, id)
+        .toEither.getOrElse(emps)
+    }
+
+  def updateEmployeeCapabilities(id: EmployeeId, capabilities: Set[StationType]): Unit =
+    employees.update { emps =>
+      EmployeeManagementService.updateCapabilities(emps, id, capabilities)
+        .toEither.getOrElse(emps)
+    }
+
+  def addMachine(id: MachineId, name: String, stationType: StationType): Unit =
+    machines.update { ms =>
+      MachineManagementService.addMachine(ms, id, name, stationType)
+        .toEither.getOrElse(ms)
+    }
+
+  def changeMachineStatus(id: MachineId, status: MachineStatus): Unit =
+    machines.update { ms =>
+      MachineManagementService.changeStatus(ms, id, status)
+        .toEither.getOrElse(ms)
+    }
+
+  def updateMachineNotes(id: MachineId, name: String, notes: String): Unit =
+    machines.update { ms =>
+      MachineManagementService.updateMachine(ms, id, name, notes)
+        .toEither.getOrElse(ms)
     }
 
   // --- Sample data generation ---
@@ -297,3 +380,97 @@ object ManufacturingViewModel:
     )
 
     List(order1WithProgress, order2, order3, order4, order5, order6)
+
+  private def generateSampleEmployees(): List[Employee] =
+    List(
+      Employee(
+        EmployeeId.unsafe("emp-1"),
+        "Jan Novák",
+        Set(StationType.DigitalPrinter, StationType.Cutter, StationType.Laminator),
+        isActive = true,
+      ),
+      Employee(
+        EmployeeId.unsafe("emp-2"),
+        "Marie Svobodová",
+        Set(StationType.Prepress, StationType.QualityControl),
+        isActive = true,
+      ),
+      Employee(
+        EmployeeId.unsafe("emp-3"),
+        "Petr Dvořák",
+        Set(StationType.OffsetPress, StationType.LargeFormatPrinter, StationType.Cutter),
+        isActive = true,
+      ),
+      Employee(
+        EmployeeId.unsafe("emp-4"),
+        "Eva Černá",
+        Set(StationType.Folder, StationType.Binder, StationType.Packaging),
+        isActive = true,
+      ),
+      Employee(
+        EmployeeId.unsafe("emp-5"),
+        "Tomáš Procházka",
+        Set(StationType.UVCoater, StationType.EmbossingFoil, StationType.LargeFormatFinishing),
+        isActive = false,
+      ),
+    )
+
+  private def generateSampleMachines(): List[Machine] =
+    List(
+      Machine(
+        MachineId.unsafe("mach-1"),
+        "Konica Minolta C4080",
+        StationType.DigitalPrinter,
+        MachineStatus.Online,
+        "CMYK calibrated, 300gsm coated loaded",
+      ),
+      Machine(
+        MachineId.unsafe("mach-2"),
+        "Konica Minolta C3080",
+        StationType.DigitalPrinter,
+        MachineStatus.Maintenance,
+        "Fuser replacement scheduled",
+      ),
+      Machine(
+        MachineId.unsafe("mach-3"),
+        "Heidelberg Speedmaster 52",
+        StationType.OffsetPress,
+        MachineStatus.Online,
+        "",
+      ),
+      Machine(
+        MachineId.unsafe("mach-4"),
+        "Zünd G3 L-2500",
+        StationType.Cutter,
+        MachineStatus.Online,
+        "Kiss-cut blade installed",
+      ),
+      Machine(
+        MachineId.unsafe("mach-5"),
+        "GMP QTOPIC-380",
+        StationType.Laminator,
+        MachineStatus.Online,
+        "Matte film loaded",
+      ),
+      Machine(
+        MachineId.unsafe("mach-6"),
+        "Roland TrueVIS VG3-640",
+        StationType.LargeFormatPrinter,
+        MachineStatus.Online,
+        "",
+      ),
+      Machine(
+        MachineId.unsafe("mach-7"),
+        "Duplo DC-618",
+        StationType.Folder,
+        MachineStatus.Offline,
+        "Paper jam — awaiting service",
+      ),
+      Machine(
+        MachineId.unsafe("mach-8"),
+        "Horizon BQ-470",
+        StationType.Binder,
+        MachineStatus.Online,
+        "Perfect binding setup",
+      ),
+    )

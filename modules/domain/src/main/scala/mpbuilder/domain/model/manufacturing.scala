@@ -257,6 +257,17 @@ final case class Employee(
 enum MachineStatus:
   case Online, Offline, Maintenance
 
+object MachineStatus:
+  extension (ms: MachineStatus) def displayName: String = ms match
+    case Online      => "Online"
+    case Offline     => "Offline"
+    case Maintenance => "Maintenance"
+
+  extension (ms: MachineStatus) def icon: String = ms match
+    case Online      => "🟢"
+    case Offline     => "🔴"
+    case Maintenance => "🟡"
+
 /** A registered machine */
 final case class Machine(
     id: MachineId,

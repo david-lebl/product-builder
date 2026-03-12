@@ -3202,6 +3202,178 @@
             color: #334155;
         }
 
+        /* --- btn-warning --- */
+        .btn-warning { background: #f59e0b; color: #fff; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-weight: 600; }
+        .btn-warning:hover { background: #d97706; }
+        .btn-warning.btn-sm { padding: 4px 12px; font-size: 0.78rem; }
+
+        /* --- Employee & Machine views --- */
+        .current-employee-selector {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 16px;
+            padding: 10px 14px;
+            background: #fff;
+            border-radius: 8px;
+            border: 1px solid #e2e8f0;
+        }
+
+        .current-employee-label {
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: #64748b;
+            white-space: nowrap;
+        }
+
+        .current-employee-select {
+            padding: 6px 10px;
+            border: 1px solid #e2e8f0;
+            border-radius: 6px;
+            font-size: 0.85rem;
+            color: #1e293b;
+            background: #f8fafc;
+            cursor: pointer;
+            min-width: 200px;
+        }
+
+        .current-employee-select:focus {
+            outline: none;
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.15);
+        }
+
+        .station-caps-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 4px;
+        }
+
+        .station-cap-chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 3px;
+            padding: 2px 8px;
+            background: #f1f5f9;
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            font-size: 0.72rem;
+            color: #475569;
+            white-space: nowrap;
+        }
+
+        .employee-actions, .machine-actions {
+            display: flex;
+            gap: 6px;
+            align-items: center;
+        }
+
+        .capability-toggles {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+        }
+
+        .capability-toggle {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            padding: 6px 10px;
+            border-radius: 6px;
+            border: 1px solid #e2e8f0;
+            background: #f8fafc;
+            cursor: pointer;
+            font-size: 0.8rem;
+            color: #94a3b8;
+            transition: all 0.15s;
+        }
+
+        .capability-toggle:hover {
+            border-color: #3b82f6;
+            color: #3b82f6;
+        }
+
+        .capability-toggle--active {
+            background: #eff6ff;
+            border-color: #3b82f6;
+            color: #1e40af;
+            font-weight: 600;
+        }
+
+        .capability-toggle-icon {
+            font-size: 1rem;
+        }
+
+        .capability-toggle-name {
+            font-size: 0.78rem;
+        }
+
+        .machine-name {
+            font-weight: 600;
+            color: #1e293b;
+        }
+
+        .machine-notes-preview {
+            font-size: 0.82rem;
+            color: #64748b;
+            max-width: 200px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            display: block;
+        }
+
+        .machine-station-type {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 0.9rem;
+        }
+
+        .machine-status-controls {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .machine-status-controls button {
+            padding: 6px 14px;
+            border-radius: 6px;
+            border: 1px solid #e2e8f0;
+            cursor: pointer;
+            font-size: 0.82rem;
+            font-weight: 600;
+        }
+
+        .machine-status-controls button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .text-muted {
+            color: #94a3b8;
+            font-style: italic;
+        }
+
+        .employee-name {
+            font-weight: 600;
+            color: #1e293b;
+        }
+
+        .dashboard-my-jobs {
+            margin-top: 20px;
+        }
+
+        .dashboard-my-jobs-empty {
+            padding: 16px;
+            color: #64748b;
+            font-size: 0.9rem;
+            background: #fff;
+            border-radius: 8px;
+            border: 1px dashed #e2e8f0;
+            text-align: center;
+        }
+
         /* --- Responsive --- */
         @media (max-width: 900px) {
             .manufacturing-app {
