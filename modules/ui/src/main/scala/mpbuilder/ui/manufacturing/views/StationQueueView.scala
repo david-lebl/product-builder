@@ -13,16 +13,24 @@ object StationQueueView:
     // Filter state (local to this view)
     val statusFilterVar:   Var[Set[OrderStatus]]   = Var(Set.empty)
     val priorityFilterVar: Var[Set[OrderPriority]] = Var(Set.empty)
+    val stationFilterVar:  Var[Set[StationType]]   = Var(Set.empty)
 
     // Orders that are actively in the workflow (have a current station)
     val activeOrders: Signal[List[ManufacturingOrder]] =
-      vm.state.combineWith(statusFilterVar.signal).combineWith(priorityFilterVar.signal).map {
-        (s: ManufacturingUiState, statusFilter: Set[OrderStatus], priorityFilter: Set[OrderPriority]) =>
-          s.mfgState.orders
-            .filter(o => o.currentStationId.isDefined && !o.isFullyCompleted)
-            .filter(o => statusFilter.isEmpty  || o.currentStatus.exists(statusFilter.contains))
-            .filter(o => priorityFilter.isEmpty || priorityFilter.contains(o.priority))
-      }
+      vm.state
+        .combineWith(statusFilterVar.signal)
+        .combineWith(priorityFilterVar.signal)
+        .combineWith(stationFilterVar.signal)
+        .map {
+          (s: ManufacturingUiState, statusFilter: Set[OrderStatus], priorityFilter: Set[OrderPriority], stationFilter: Set[StationType]) =>
+            s.mfgState.orders
+              .filter(o => o.currentStationId.isDefined && !o.isFullyCompleted)
+              .filter(o => statusFilter.isEmpty  || o.currentStatus.exists(statusFilter.contains))
+              .filter(o => priorityFilter.isEmpty || priorityFilter.contains(o.priority))
+              .filter(o => stationFilter.isEmpty  || o.currentStationId.exists { sid =>
+                s.mfgState.stations.find(_.id == sid).exists(st => stationFilter.contains(st.stationType))
+              })
+        }
 
     val columns: List[ColumnDef[ManufacturingOrder]] = List(
       ColumnDef(
@@ -130,6 +138,21 @@ object StationQueueView:
             priorityFilterVar.update(f => if f.contains(p) then f - p else f + p)
           },
         )
+      },
+      div(cls := "filter-divider"),
+      span(cls := "filter-label", "Station:"),
+      children <-- vm.state.map { s =>
+        s.mfgState.stations.map(_.stationType).distinct.map { st =>
+          button(
+            cls <-- stationFilterVar.signal.map(f =>
+              if f.contains(st) then "filter-chip filter-chip--active" else "filter-chip"
+            ),
+            st.toString,
+            onClick --> { _ =>
+              stationFilterVar.update(f => if f.contains(st) then f - st else f + st)
+            },
+          )
+        }
       },
     )
 

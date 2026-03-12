@@ -2,7 +2,7 @@ package mpbuilder.ui.manufacturing.views
 
 import com.raquo.laminar.api.L.*
 import mpbuilder.domain.manufacturing.*
-import mpbuilder.ui.manufacturing.ManufacturingViewModel
+import mpbuilder.ui.manufacturing.{ManufacturingViewModel, ManufacturingUiState}
 import mpbuilder.uikit.containers.{SplitTableView, ColumnDef, RowAction}
 
 object OrderProgressView:
@@ -10,10 +10,19 @@ object OrderProgressView:
   def apply(): HtmlElement =
     val vm = ManufacturingViewModel
 
-    // Active orders: in workflow but not fully done
+    val statusFilterVar: Var[Set[OrderStatus]] = Var(Set.empty)
+
+    // Orders in workflow or fully completed, filtered by selected status chips
     val progressOrders: Signal[List[ManufacturingOrder]] =
-      vm.state.map { s =>
-        s.mfgState.orders.filter(o => o.currentStationId.isDefined || o.isFullyCompleted)
+      vm.state.combineWith(statusFilterVar.signal).map {
+        (s: ManufacturingUiState, statusFilter: Set[OrderStatus]) =>
+          s.mfgState.orders
+            .filter(o => o.currentStationId.isDefined || o.isFullyCompleted)
+            .filter(o =>
+              statusFilter.isEmpty ||
+              o.currentStatus.exists(statusFilter.contains) ||
+              (statusFilter.contains(OrderStatus.Completed) && o.isFullyCompleted && o.currentStationId.isEmpty)
+            )
       }
 
     val columns: List[ColumnDef[ManufacturingOrder]] = List(
@@ -92,6 +101,20 @@ object OrderProgressView:
         ),
       ).flatten
 
+    val filterBarEl: HtmlElement = div(
+      cls := "filter-bar",
+      span(cls := "filter-label", "Status:"),
+      List(OrderStatus.InProgress, OrderStatus.OnHold, OrderStatus.Completed).map { st =>
+        button(
+          cls <-- statusFilterVar.signal.map(f =>
+            if f.contains(st) then "filter-chip filter-chip--active" else "filter-chip"
+          ),
+          st.toString,
+          onClick --> { _ => statusFilterVar.update(f => if f.contains(st) then f - st else f + st) },
+        )
+      },
+    )
+
     SplitTableView[ManufacturingOrder](
       rows = progressOrders,
       columns = columns,
@@ -106,7 +129,7 @@ object OrderProgressView:
               o.orderId.value.toLowerCase.contains(lq)
             }
       },
-      filterBar = None,
+      filterBar = Some(filterBarEl),
       detailPanel = selectedRow => progressDetailPanel(selectedRow, vm),
       rowActions = rowActions,
       emptyMessage = Val("No orders in progress"),

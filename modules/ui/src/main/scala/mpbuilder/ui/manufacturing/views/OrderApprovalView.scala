@@ -10,7 +10,13 @@ object OrderApprovalView:
   def apply(): HtmlElement =
     val vm = ManufacturingViewModel
 
-    val approvalOrders: Signal[List[ManufacturingOrder]] = vm.pendingApprovalOrders
+    val priorityFilterVar: Var[Set[OrderPriority]] = Var(Set.empty)
+
+    val approvalOrders: Signal[List[ManufacturingOrder]] =
+      vm.pendingApprovalOrders.combineWith(priorityFilterVar.signal).map {
+        (orders: List[ManufacturingOrder], priorityFilter: Set[OrderPriority]) =>
+          orders.filter(o => priorityFilter.isEmpty || priorityFilter.contains(o.priority))
+      }
 
     val columns: List[ColumnDef[ManufacturingOrder]] = List(
       ColumnDef(
@@ -72,6 +78,20 @@ object OrderApprovalView:
       RowAction[ManufacturingOrder](Val("Reject"),  row => vm.holdOrder(row.id),   isDestructive = true),
     )
 
+    val filterBarEl: HtmlElement = div(
+      cls := "filter-bar",
+      span(cls := "filter-label", "Priority:"),
+      List(OrderPriority.Urgent, OrderPriority.High, OrderPriority.Normal, OrderPriority.Low).map { p =>
+        button(
+          cls <-- priorityFilterVar.signal.map(f =>
+            if f.contains(p) then "filter-chip filter-chip--active" else "filter-chip"
+          ),
+          p.toString,
+          onClick --> { _ => priorityFilterVar.update(f => if f.contains(p) then f - p else f + p) },
+        )
+      },
+    )
+
     SplitTableView[ManufacturingOrder](
       rows = approvalOrders,
       columns = columns,
@@ -87,7 +107,7 @@ object OrderApprovalView:
               o.configuration.category.name.value.toLowerCase.contains(lq)
             }
       },
-      filterBar = None,
+      filterBar = Some(filterBarEl),
       detailPanel = selectedRow => approvalDetailPanel(selectedRow),
       rowActions = rowActions,
       emptyMessage = Val("No orders awaiting approval"),
