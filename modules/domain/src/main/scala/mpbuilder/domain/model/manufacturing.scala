@@ -136,6 +136,154 @@ enum ApprovalStatus:
   case PendingChanges
   case OnHold
 
+/** Payment verification status */
+enum PaymentStatus:
+  case Pending, Confirmed, Failed
+
+object PaymentStatus:
+  extension (ps: PaymentStatus) def displayName: String = ps match
+    case Pending   => "Pending"
+    case Confirmed => "Confirmed"
+    case Failed    => "Failed"
+
+  extension (ps: PaymentStatus) def icon: String = ps match
+    case Pending   => "⏳"
+    case Confirmed => "✅"
+    case Failed    => "❌"
+
+/** Artwork check flag status */
+enum CheckStatus:
+  case NotChecked, Passed, Warning, Failed
+
+object CheckStatus:
+  extension (cs: CheckStatus) def displayName: String = cs match
+    case NotChecked => "Not Checked"
+    case Passed     => "Passed"
+    case Warning    => "Warning"
+    case Failed     => "Failed"
+
+  extension (cs: CheckStatus) def icon: String = cs match
+    case NotChecked => "⬜"
+    case Passed     => "✅"
+    case Warning    => "⚠️"
+    case Failed     => "❌"
+
+/** Artwork review check for prepress file validation */
+final case class ArtworkCheck(
+    resolution: CheckStatus,
+    bleed: CheckStatus,
+    colorProfile: CheckStatus,
+    notes: String,
+)
+
+object ArtworkCheck:
+  val unchecked: ArtworkCheck = ArtworkCheck(CheckStatus.NotChecked, CheckStatus.NotChecked, CheckStatus.NotChecked, "")
+
+  extension (ac: ArtworkCheck)
+    def isFullyPassed: Boolean =
+      ac.resolution == CheckStatus.Passed && ac.bleed == CheckStatus.Passed && ac.colorProfile == CheckStatus.Passed
+
+    def hasIssues: Boolean =
+      ac.resolution == CheckStatus.Failed || ac.bleed == CheckStatus.Failed || ac.colorProfile == CheckStatus.Failed
+
+    def hasWarnings: Boolean =
+      !ac.hasIssues && (ac.resolution == CheckStatus.Warning || ac.bleed == CheckStatus.Warning || ac.colorProfile == CheckStatus.Warning)
+
+// --- Fulfilment Types ---
+
+/** Packaging type selection for order dispatch */
+enum PackagingType:
+  case Box, Envelope, Roll, Tube, Custom
+
+object PackagingType:
+  extension (pt: PackagingType) def displayName: String = pt match
+    case Box      => "Box"
+    case Envelope => "Envelope"
+    case Roll     => "Roll"
+    case Tube     => "Tube"
+    case Custom   => "Custom"
+
+/** Fulfilment status for the dispatch workflow */
+enum FulfilmentStatus:
+  case NotStarted, InProgress, Completed
+
+/** Status of an individual collected item */
+final case class CollectedItem(
+    itemIndex: Int,
+    collected: Boolean,
+    verifiedBy: Option[EmployeeId],
+)
+
+/** Quality check sign-off record */
+final case class QualitySignOff(
+    passed: Boolean,
+    signedBy: Option[EmployeeId],
+    notes: String,
+)
+
+object QualitySignOff:
+  val empty: QualitySignOff = QualitySignOff(passed = false, signedBy = None, notes = "")
+
+/** Packaging details for shipping */
+final case class PackagingInfo(
+    packagingType: Option[PackagingType],
+    dimensionsCm: Option[String],
+    weightKg: Option[String],
+)
+
+object PackagingInfo:
+  val empty: PackagingInfo = PackagingInfo(None, None, None)
+
+/** Dispatch confirmation record */
+final case class DispatchInfo(
+    dispatched: Boolean,
+    trackingNumber: String,
+    dispatchedAt: Option[Long],
+    dispatchedBy: Option[EmployeeId],
+)
+
+object DispatchInfo:
+  val empty: DispatchInfo = DispatchInfo(dispatched = false, "", None, None)
+
+/** Complete fulfilment checklist for an order */
+final case class FulfilmentChecklist(
+    collectedItems: List[CollectedItem],
+    qualitySignOff: QualitySignOff,
+    packagingInfo: PackagingInfo,
+    dispatchInfo: DispatchInfo,
+)
+
+object FulfilmentChecklist:
+  def create(itemCount: Int): FulfilmentChecklist =
+    val count = Math.max(0, itemCount)
+    FulfilmentChecklist(
+      collectedItems = (0 until count).map(i => CollectedItem(i, collected = false, verifiedBy = None)).toList,
+      qualitySignOff = QualitySignOff.empty,
+      packagingInfo = PackagingInfo.empty,
+      dispatchInfo = DispatchInfo.empty,
+    )
+
+  extension (fc: FulfilmentChecklist)
+    def allItemsCollected: Boolean = fc.collectedItems.forall(_.collected)
+    def isQualityPassed: Boolean = fc.qualitySignOff.passed
+    def isPackaged: Boolean = fc.packagingInfo.packagingType.isDefined
+    def isDispatched: Boolean = fc.dispatchInfo.dispatched
+
+    def status: FulfilmentStatus =
+      if fc.isDispatched then FulfilmentStatus.Completed
+      else if fc.collectedItems.exists(_.collected) || fc.isQualityPassed || fc.isPackaged
+      then FulfilmentStatus.InProgress
+      else FulfilmentStatus.NotStarted
+
+    def completedStepsCount: Int =
+      val s1 = if fc.allItemsCollected then 1 else 0
+      val s2 = if fc.isQualityPassed then 1 else 0
+      val s3 = if fc.isPackaged then 1 else 0
+      val s4 = if fc.isDispatched then 1 else 0
+      s1 + s2 + s3 + s4
+
+    def totalStepsCount: Int = 4
+
 // --- Manufacturing Data Types ---
 
 /** A single step in a manufacturing workflow */
@@ -206,6 +354,10 @@ final case class ManufacturingOrder(
     approvalNotes: String,
     createdAt: Long,
     deadline: Option[Long],
+    priority: Priority = Priority.Normal,
+    paymentStatus: PaymentStatus = PaymentStatus.Pending,
+    artworkCheck: ArtworkCheck = ArtworkCheck.unchecked,
+    fulfilment: Option[FulfilmentChecklist] = None,
 )
 
 object ManufacturingOrder:
@@ -245,6 +397,12 @@ object ManufacturingOrder:
         val first = s"${items.head.quantity}× ${items.head.configuration.category.name(Language.En)}"
         s"${items.size} items: $first…"
 
+    def isReadyForDispatch: Boolean =
+      mo.workflows.nonEmpty && mo.workflows.forall(_.status == WorkflowStatus.Completed)
+
+    def isDispatched: Boolean =
+      mo.fulfilment.exists(_.isDispatched)
+
 /** An employee in the manufacturing system */
 final case class Employee(
     id: EmployeeId,
@@ -256,6 +414,17 @@ final case class Employee(
 /** Machine status */
 enum MachineStatus:
   case Online, Offline, Maintenance
+
+object MachineStatus:
+  extension (ms: MachineStatus) def displayName: String = ms match
+    case Online      => "Online"
+    case Offline     => "Offline"
+    case Maintenance => "Maintenance"
+
+  extension (ms: MachineStatus) def icon: String = ms match
+    case Online      => "🟢"
+    case Offline     => "🔴"
+    case Maintenance => "🟡"
 
 /** A registered machine */
 final case class Machine(

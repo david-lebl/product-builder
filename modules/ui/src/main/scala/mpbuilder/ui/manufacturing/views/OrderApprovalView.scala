@@ -3,6 +3,9 @@ package mpbuilder.ui.manufacturing.views
 import com.raquo.laminar.api.L.*
 import mpbuilder.domain.model.*
 import mpbuilder.domain.model.ManufacturingOrder.*
+import mpbuilder.domain.model.ArtworkCheck.*
+import mpbuilder.domain.model.CheckStatus.*
+import mpbuilder.domain.model.PaymentStatus.*
 import mpbuilder.domain.pricing.Money
 import mpbuilder.ui.manufacturing.*
 import mpbuilder.uikit.containers.*
@@ -21,13 +24,21 @@ object OrderApprovalView:
       selectedValues = Var(Set(ApprovalStatus.Placed.toString, ApprovalStatus.PendingChanges.toString)),
     )
 
+    val paymentFilterDef = FilterDef(
+      id = "payment",
+      label = "Payment",
+      options = Val(PaymentStatus.values.toList.map(s => (s.toString, s.displayName))),
+      selectedValues = Var(PaymentStatus.values.toSet.map(_.toString)),
+    )
+
     val filteredOrders: Signal[List[ManufacturingOrder]] =
       ManufacturingViewModel.orders
-        .combineWith(statusFilterDef.selectedValues.signal, searchVar.signal)
-        .map { case (ords, statuses, query) =>
+        .combineWith(statusFilterDef.selectedValues.signal, paymentFilterDef.selectedValues.signal, searchVar.signal)
+        .map { case (ords, statuses, payStatuses, query) =>
           val q = query.trim.toLowerCase
           ords
             .filter(mo => statuses.contains(mo.approvalStatus.toString))
+            .filter(mo => payStatuses.contains(mo.paymentStatus.toString))
             .filter { mo =>
               q.isEmpty ||
               mo.order.id.value.toLowerCase.contains(q) ||
@@ -43,12 +54,14 @@ object OrderApprovalView:
         ColumnDef("Customer", mo => span(mo.customerName), Some(_.customerName)),
         ColumnDef("Items", mo => span(mo.itemSummary)),
         ColumnDef("Total", mo => span(cls := "price-value", formatMoney(mo.order.total)),
-          Some(mo => f"${mo.order.total.value}%.2f")),
+          Some(mo => f"${mo.order.total.value}%.2f"), Some("100px")),
+        ColumnDef("Payment", mo => paymentBadge(mo.paymentStatus), Some(_.paymentStatus.toString), Some("100px")),
+        ColumnDef("Artwork", mo => artworkIndicator(mo.artworkCheck), width = Some("90px")),
         ColumnDef("Status", mo => approvalBadge(mo.approvalStatus), Some(_.approvalStatus.toString), Some("130px")),
         ColumnDef("Actions", mo => approvalActions(mo), width = Some("200px")),
       ),
       rowKey = _.order.id.value,
-      filters = List(statusFilterDef),
+      filters = List(statusFilterDef, paymentFilterDef),
       searchPlaceholder = "Search orders, customers…",
       onRowSelect = Some(mo => selectedId.set(Some(mo.order.id.value))),
       emptyMessage = "No orders matching your filters",
@@ -80,6 +93,19 @@ object OrderApprovalView:
       case ApprovalStatus.OnHold         => ("On Hold", "badge badge-warning")
     span(cls := cls_, text)
 
+  private def paymentBadge(status: PaymentStatus): HtmlElement =
+    val (text, cls_) = status match
+      case PaymentStatus.Confirmed => ("✅ Paid", "badge badge-completed")
+      case PaymentStatus.Pending   => ("⏳ Pending", "badge badge-pending")
+      case PaymentStatus.Failed    => ("❌ Failed", "badge badge-error")
+    span(cls := cls_, text)
+
+  private def artworkIndicator(ac: ArtworkCheck): HtmlElement =
+    if ac.isFullyPassed then span(cls := "badge badge-completed", "✅ OK")
+    else if ac.hasIssues then span(cls := "badge badge-error", "❌ Issue")
+    else if ac.hasWarnings then span(cls := "badge badge-warning", "⚠️ Warn")
+    else span(cls := "badge badge-muted", "⬜ Unchecked")
+
   private def approvalActions(mo: ManufacturingOrder): HtmlElement =
     div(
       cls := "approval-actions",
@@ -97,6 +123,14 @@ object OrderApprovalView:
               onClick.stopPropagation --> { _ => ManufacturingViewModel.rejectOrder(mo.order.id.value) },
             ),
           )
+        case ApprovalStatus.OnHold =>
+          List(
+            button(
+              cls := "btn-success btn-sm",
+              "✓ Approve",
+              onClick.stopPropagation --> { _ => ManufacturingViewModel.approveOrder(mo.order.id.value) },
+            ),
+          )
         case _ => List(emptyNode),
     )
 
@@ -108,6 +142,71 @@ object OrderApprovalView:
         cls := "detail-panel-header",
         h3(mo.order.id.value),
         approvalBadge(mo.approvalStatus),
+      ),
+
+      // Priority & Deadline assignment
+      div(
+        cls := "detail-panel-section",
+        h4("Priority & Deadline"),
+        div(
+          cls := "approval-priority-controls",
+          span(cls := "approval-control-label", "Priority: "),
+          Priority.values.toList.map { p =>
+            button(
+              cls := (if mo.priority == p then "priority-btn priority-btn--active" else "priority-btn"),
+              cls := (p match
+                case Priority.Rush   => " priority-btn--rush"
+                case Priority.Normal => " priority-btn--normal"
+                case Priority.Low    => " priority-btn--low"
+              ),
+              p.displayName,
+              onClick --> { _ => ManufacturingViewModel.setOrderPriority(mo.order.id.value, p) },
+            )
+          },
+        ),
+        div(
+          cls := "approval-deadline-display",
+          span(cls := "approval-control-label", "Deadline: "),
+          mo.deadline match
+            case Some(dl) =>
+              span(formatTimestamp(dl))
+            case None =>
+              span(cls := "text-muted", "Not set"),
+        ),
+      ),
+
+      // Payment status
+      div(
+        cls := "detail-panel-section",
+        h4("Payment"),
+        div(
+          cls := "approval-payment-controls",
+          PaymentStatus.values.toList.map { ps =>
+            button(
+              cls := (if mo.paymentStatus == ps then "payment-btn payment-btn--active" else "payment-btn"),
+              s"${ps.icon} ${ps.displayName}",
+              onClick --> { _ => ManufacturingViewModel.setPaymentStatus(mo.order.id.value, ps) },
+            )
+          },
+        ),
+      ),
+
+      // Artwork check section
+      div(
+        cls := "detail-panel-section",
+        h4("Artwork Review"),
+        div(
+          cls := "artwork-check-grid",
+          artworkCheckRow("Resolution", mo.artworkCheck.resolution, mo.order.id.value,
+            (ac, s) => ac.copy(resolution = s)),
+          artworkCheckRow("Bleed", mo.artworkCheck.bleed, mo.order.id.value,
+            (ac, s) => ac.copy(bleed = s)),
+          artworkCheckRow("Color Profile", mo.artworkCheck.colorProfile, mo.order.id.value,
+            (ac, s) => ac.copy(colorProfile = s)),
+        ),
+        if mo.artworkCheck.notes.nonEmpty then
+          p(cls := "artwork-notes", mo.artworkCheck.notes)
+        else emptyNode,
       ),
 
       // Customer info
@@ -174,6 +273,16 @@ object OrderApprovalView:
         span(cls := "price-value price-value--large", formatMoney(mo.order.total)),
       ),
 
+      // Approval notes
+      div(
+        cls := "detail-panel-section",
+        h4("Internal Notes"),
+        if mo.approvalNotes.nonEmpty then
+          p(cls := "approval-notes-text", mo.approvalNotes)
+        else
+          p(cls := "text-muted", "No notes"),
+      ),
+
       // Actions
       if mo.approvalStatus == ApprovalStatus.Placed || mo.approvalStatus == ApprovalStatus.PendingChanges then
         div(
@@ -184,12 +293,64 @@ object OrderApprovalView:
             onClick --> { _ => ManufacturingViewModel.approveOrder(mo.order.id.value) },
           ),
           button(
+            cls := "btn-warning",
+            "⏸ Hold",
+            onClick --> { _ => ManufacturingViewModel.holdOrder(mo.order.id.value) },
+          ),
+          button(
             cls := "btn-danger",
             "✗ Reject Order",
             onClick --> { _ => ManufacturingViewModel.rejectOrder(mo.order.id.value) },
           ),
         )
+      else if mo.approvalStatus == ApprovalStatus.OnHold then
+        div(
+          cls := "detail-panel-actions",
+          button(
+            cls := "btn-success",
+            "✓ Approve Order",
+            onClick --> { _ => ManufacturingViewModel.approveOrder(mo.order.id.value) },
+          ),
+          button(
+            cls := "btn-warning",
+            "📝 Request Changes",
+            onClick --> { _ => ManufacturingViewModel.requestChanges(mo.order.id.value) },
+          ),
+        )
       else emptyNode,
+    )
+
+  private def artworkCheckRow(
+      label: String,
+      currentStatus: CheckStatus,
+      orderId: String,
+      updater: (ArtworkCheck, CheckStatus) => ArtworkCheck,
+  ): HtmlElement =
+    div(
+      cls := "artwork-check-row",
+      span(cls := "artwork-check-label", label),
+      div(
+        cls := "artwork-check-buttons",
+        CheckStatus.values.toList.map { cs =>
+          button(
+            cls := (if currentStatus == cs then "artwork-btn artwork-btn--active" else "artwork-btn"),
+            cls := (cs match
+              case CheckStatus.Passed     => " artwork-btn--passed"
+              case CheckStatus.Warning    => " artwork-btn--warning"
+              case CheckStatus.Failed     => " artwork-btn--failed"
+              case CheckStatus.NotChecked => " artwork-btn--unchecked"
+            ),
+            cs.icon,
+            title := cs.displayName,
+            onClick --> { _ =>
+              ManufacturingViewModel.manufacturingOrders.now().find(_.order.id.value == orderId).foreach { mo =>
+                val updated = updater(mo.artworkCheck, cs)
+                ManufacturingViewModel.updateArtworkCheck(orderId, updated)
+              }
+            },
+          )
+        },
+      ),
     )
 
   private def formatMoney(money: Money): String =

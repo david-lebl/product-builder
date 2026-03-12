@@ -29,6 +29,13 @@ object ManufacturingViewModel:
   // Progress filters
   val progressStatusFilter: Var[Set[WorkflowStatus]] = Var(Set(WorkflowStatus.InProgress, WorkflowStatus.Pending))
 
+  // Employee & Machine state
+  val employees: Var[List[Employee]] = Var(generateSampleEmployees())
+  val machines: Var[List[Machine]] = Var(generateSampleMachines())
+  val currentEmployeeId: Var[Option[EmployeeId]] = Var(Some(EmployeeId.unsafe("emp-1")))
+  val selectedEmployeeId: Var[Option[String]] = Var(None)
+  val selectedMachineId: Var[Option[String]] = Var(None)
+
   // --- Derived signals ---
 
   val orders: Signal[List[ManufacturingOrder]] = manufacturingOrders.signal
@@ -77,6 +84,28 @@ object ManufacturingViewModel:
       ords.filter(o => o.approvalStatus == ApprovalStatus.Approved && statuses.contains(o.overallStatus))
     }
 
+  /** Current employee (resolved from currentEmployeeId). */
+  val currentEmployee: Signal[Option[Employee]] =
+    currentEmployeeId.signal.combineWith(employees.signal).map { case (optId, emps) =>
+      optId.flatMap(id => emps.find(_.id == id))
+    }
+
+  /** Steps currently claimed by the logged-in employee. */
+  val myInProgressJobs: Signal[List[QueueItem]] =
+    orders.combineWith(currentEmployeeId.signal).map { case (ords, optEmpId) =>
+      optEmpId match
+        case None => Nil
+        case Some(empId) =>
+          val approvedOrders = ords.filter(_.approvalStatus == ApprovalStatus.Approved)
+          for
+            order <- approvedOrders
+            wf <- order.workflows
+            step <- wf.steps
+            if step.status == StepStatus.InProgress
+            if step.assignedTo.contains(empId)
+          yield QueueItem(step, wf, order)
+    }
+
   // --- Actions ---
 
   def selectOrder(orderId: String): Unit =
@@ -101,7 +130,7 @@ object ManufacturingViewModel:
               mo.order.id,
               idx,
               WorkflowId.unsafe(s"wf-${orderId}-$idx"),
-              mo.workflows.headOption.map(_.priority).getOrElse(Priority.Normal),
+              mo.priority,
               mo.deadline,
               System.currentTimeMillis(),
             )
@@ -122,14 +151,71 @@ object ManufacturingViewModel:
       }
     }
 
+  def holdOrder(orderId: String): Unit =
+    manufacturingOrders.update { ords =>
+      ords.map { mo =>
+        if mo.order.id.value == orderId then mo.copy(approvalStatus = ApprovalStatus.OnHold)
+        else mo
+      }
+    }
+
+  def requestChanges(orderId: String): Unit =
+    manufacturingOrders.update { ords =>
+      ords.map { mo =>
+        if mo.order.id.value == orderId then mo.copy(approvalStatus = ApprovalStatus.PendingChanges)
+        else mo
+      }
+    }
+
+  def setOrderPriority(orderId: String, priority: Priority): Unit =
+    manufacturingOrders.update { ords =>
+      ords.map { mo =>
+        if mo.order.id.value == orderId then mo.copy(priority = priority)
+        else mo
+      }
+    }
+
+  def setOrderDeadline(orderId: String, deadline: Option[Long]): Unit =
+    manufacturingOrders.update { ords =>
+      ords.map { mo =>
+        if mo.order.id.value == orderId then mo.copy(deadline = deadline)
+        else mo
+      }
+    }
+
+  def setPaymentStatus(orderId: String, status: PaymentStatus): Unit =
+    manufacturingOrders.update { ords =>
+      ords.map { mo =>
+        if mo.order.id.value == orderId then mo.copy(paymentStatus = status)
+        else mo
+      }
+    }
+
+  def updateArtworkCheck(orderId: String, artworkCheck: ArtworkCheck): Unit =
+    manufacturingOrders.update { ords =>
+      ords.map { mo =>
+        if mo.order.id.value == orderId then mo.copy(artworkCheck = artworkCheck)
+        else mo
+      }
+    }
+
+  def setApprovalNotes(orderId: String, notes: String): Unit =
+    manufacturingOrders.update { ords =>
+      ords.map { mo =>
+        if mo.order.id.value == orderId then mo.copy(approvalNotes = notes)
+        else mo
+      }
+    }
+
   def startStep(stepId: String): Unit =
+    val empId = currentEmployeeId.now()
     manufacturingOrders.update { ords =>
       ords.map { mo =>
         mo.copy(workflows = mo.workflows.map { wf =>
           val updated = wf.copy(
             steps = wf.steps.map { s =>
               if s.id.value == stepId && s.status == StepStatus.Ready then
-                s.copy(status = StepStatus.InProgress, startedAt = Some(System.currentTimeMillis()))
+                s.copy(status = StepStatus.InProgress, assignedTo = empId, startedAt = Some(System.currentTimeMillis()))
               else s
             },
             status = WorkflowStatus.InProgress,
@@ -142,7 +228,7 @@ object ManufacturingViewModel:
   def completeStep(stepId: String): Unit =
     manufacturingOrders.update { ords =>
       ords.map { mo =>
-        mo.copy(workflows = mo.workflows.map { wf =>
+        val updatedMo = mo.copy(workflows = mo.workflows.map { wf =>
           val updatedSteps = wf.steps.map { s =>
             if s.id.value == stepId && s.status == StepStatus.InProgress then
               s.copy(status = StepStatus.Completed, completedAt = Some(System.currentTimeMillis()))
@@ -156,7 +242,128 @@ object ManufacturingViewModel:
             else WorkflowStatus.InProgress
           evaluated.copy(status = newStatus)
         })
+        maybeCreateFulfilmentChecklist(updatedMo)
       }
+    }
+
+  /** Auto-create fulfilment checklist when all workflows are completed. */
+  private def maybeCreateFulfilmentChecklist(mo: ManufacturingOrder): ManufacturingOrder =
+    if mo.isReadyForDispatch && mo.fulfilment.isEmpty then
+      mo.copy(fulfilment = Some(FulfilmentChecklist.create(mo.order.basket.items.size)))
+    else mo
+
+  // --- Fulfilment Actions ---
+
+  def toggleItemCollected(orderId: String, itemIndex: Int): Unit =
+    manufacturingOrders.update { ords =>
+      ords.map { mo =>
+        if mo.order.id.value == orderId then
+          val empId = currentEmployeeId.now()
+          mo.copy(fulfilment = mo.fulfilment.map { fc =>
+            fc.copy(collectedItems = fc.collectedItems.map { ci =>
+              if ci.itemIndex == itemIndex then ci.copy(collected = !ci.collected, verifiedBy = empId)
+              else ci
+            })
+          })
+        else mo
+      }
+    }
+
+  def signOffQuality(orderId: String, passed: Boolean, notes: String): Unit =
+    manufacturingOrders.update { ords =>
+      ords.map { mo =>
+        if mo.order.id.value == orderId then
+          val empId = currentEmployeeId.now()
+          mo.copy(fulfilment = mo.fulfilment.map { fc =>
+            fc.copy(qualitySignOff = QualitySignOff(passed, empId, notes))
+          })
+        else mo
+      }
+    }
+
+  def setPackaging(orderId: String, packagingType: PackagingType, dimensions: String, weight: String): Unit =
+    manufacturingOrders.update { ords =>
+      ords.map { mo =>
+        if mo.order.id.value == orderId then
+          mo.copy(fulfilment = mo.fulfilment.map { fc =>
+            fc.copy(packagingInfo = PackagingInfo(
+              Some(packagingType),
+              if dimensions.trim.nonEmpty then Some(dimensions.trim) else None,
+              if weight.trim.nonEmpty then Some(weight.trim) else None,
+            ))
+          })
+        else mo
+      }
+    }
+
+  def confirmDispatch(orderId: String, trackingNumber: String): Unit =
+    manufacturingOrders.update { ords =>
+      ords.map { mo =>
+        if mo.order.id.value == orderId then
+          val empId = currentEmployeeId.now()
+          mo.copy(fulfilment = mo.fulfilment.map { fc =>
+            fc.copy(dispatchInfo = DispatchInfo(
+              dispatched = true,
+              trackingNumber.trim,
+              Some(System.currentTimeMillis()),
+              empId,
+            ))
+          })
+        else mo
+      }
+    }
+
+  // --- Employee & Machine Actions ---
+
+  def selectEmployee(employeeId: String): Unit =
+    selectedEmployeeId.set(Some(employeeId))
+
+  def deselectEmployee(): Unit =
+    selectedEmployeeId.set(None)
+
+  def selectMachine(machineId: String): Unit =
+    selectedMachineId.set(Some(machineId))
+
+  def deselectMachine(): Unit =
+    selectedMachineId.set(None)
+
+  def setCurrentEmployee(empId: Option[EmployeeId]): Unit =
+    currentEmployeeId.set(empId)
+
+  def addEmployee(id: EmployeeId, name: String, capabilities: Set[StationType]): Unit =
+    employees.update { emps =>
+      EmployeeManagementService.addEmployee(emps, id, name, capabilities)
+        .toEither.getOrElse(emps)
+    }
+
+  def toggleEmployeeActive(id: EmployeeId): Unit =
+    employees.update { emps =>
+      EmployeeManagementService.toggleActive(emps, id)
+        .toEither.getOrElse(emps)
+    }
+
+  def updateEmployeeCapabilities(id: EmployeeId, capabilities: Set[StationType]): Unit =
+    employees.update { emps =>
+      EmployeeManagementService.updateCapabilities(emps, id, capabilities)
+        .toEither.getOrElse(emps)
+    }
+
+  def addMachine(id: MachineId, name: String, stationType: StationType): Unit =
+    machines.update { ms =>
+      MachineManagementService.addMachine(ms, id, name, stationType)
+        .toEither.getOrElse(ms)
+    }
+
+  def changeMachineStatus(id: MachineId, status: MachineStatus): Unit =
+    machines.update { ms =>
+      MachineManagementService.changeStatus(ms, id, status)
+        .toEither.getOrElse(ms)
+    }
+
+  def updateMachineNotes(id: MachineId, name: String, notes: String): Unit =
+    machines.update { ms =>
+      MachineManagementService.updateMachine(ms, id, name, notes)
+        .toEither.getOrElse(ms)
     }
 
   // --- Sample data generation ---
@@ -270,16 +477,28 @@ object ManufacturingViewModel:
 
     val order1 = makeOrder("ORD-001", "Jan", "Novák", "jan@example.com",
       List((businessCards, 500)), ApprovalStatus.Approved, 2 * day)
+      .copy(priority = Priority.Normal, paymentStatus = PaymentStatus.Confirmed,
+        artworkCheck = ArtworkCheck(CheckStatus.Passed, CheckStatus.Passed, CheckStatus.Passed, "Files OK"))
     val order2 = makeOrder("ORD-002", "Marie", "Svobodová", "marie@example.com",
       List((brochures, 200)), ApprovalStatus.Approved, 3 * day)
+      .copy(priority = Priority.Normal, paymentStatus = PaymentStatus.Confirmed,
+        artworkCheck = ArtworkCheck(CheckStatus.Passed, CheckStatus.Passed, CheckStatus.Passed, ""))
     val order3 = makeOrder("ORD-003", "Petr", "Dvořák", "petr@example.com",
       List((banners, 5)), ApprovalStatus.Placed, 5 * day)
+      .copy(paymentStatus = PaymentStatus.Pending,
+        artworkCheck = ArtworkCheck(CheckStatus.NotChecked, CheckStatus.NotChecked, CheckStatus.NotChecked, ""))
     val order4 = makeOrder("ORD-004", "Eva", "Černá", "eva@example.com",
       List((booklet, 100)), ApprovalStatus.Approved, 4 * day)
+      .copy(priority = Priority.Rush, paymentStatus = PaymentStatus.Confirmed,
+        artworkCheck = ArtworkCheck(CheckStatus.Passed, CheckStatus.Passed, CheckStatus.Warning, "sRGB color profile — converted to CMYK"))
     val order5 = makeOrder("ORD-005", "Tomáš", "Procházka", "tomas@example.com",
       List((stickers, 1000), (businessCards, 500)), ApprovalStatus.Placed, 1 * day)
+      .copy(priority = Priority.Rush, paymentStatus = PaymentStatus.Pending,
+        artworkCheck = ArtworkCheck(CheckStatus.Failed, CheckStatus.Passed, CheckStatus.NotChecked, "Resolution only 72 DPI — customer needs to resend"))
     val order6 = makeOrder("ORD-006", "Lukáš", "Kučera", "lukas@example.com",
       List((brochures, 200)), ApprovalStatus.Approved, 6 * hour)
+      .copy(priority = Priority.Low, paymentStatus = PaymentStatus.Confirmed,
+        artworkCheck = ArtworkCheck(CheckStatus.Passed, CheckStatus.Passed, CheckStatus.Passed, ""))
 
     // Simulate some progress on order1 (prepress completed)
     val order1WithProgress = order1.copy(
@@ -297,3 +516,97 @@ object ManufacturingViewModel:
     )
 
     List(order1WithProgress, order2, order3, order4, order5, order6)
+
+  private def generateSampleEmployees(): List[Employee] =
+    List(
+      Employee(
+        EmployeeId.unsafe("emp-1"),
+        "Jan Novák",
+        Set(StationType.DigitalPrinter, StationType.Cutter, StationType.Laminator),
+        isActive = true,
+      ),
+      Employee(
+        EmployeeId.unsafe("emp-2"),
+        "Marie Svobodová",
+        Set(StationType.Prepress, StationType.QualityControl),
+        isActive = true,
+      ),
+      Employee(
+        EmployeeId.unsafe("emp-3"),
+        "Petr Dvořák",
+        Set(StationType.OffsetPress, StationType.LargeFormatPrinter, StationType.Cutter),
+        isActive = true,
+      ),
+      Employee(
+        EmployeeId.unsafe("emp-4"),
+        "Eva Černá",
+        Set(StationType.Folder, StationType.Binder, StationType.Packaging),
+        isActive = true,
+      ),
+      Employee(
+        EmployeeId.unsafe("emp-5"),
+        "Tomáš Procházka",
+        Set(StationType.UVCoater, StationType.EmbossingFoil, StationType.LargeFormatFinishing),
+        isActive = false,
+      ),
+    )
+
+  private def generateSampleMachines(): List[Machine] =
+    List(
+      Machine(
+        MachineId.unsafe("mach-1"),
+        "Konica Minolta C4080",
+        StationType.DigitalPrinter,
+        MachineStatus.Online,
+        "CMYK calibrated, 300gsm coated loaded",
+      ),
+      Machine(
+        MachineId.unsafe("mach-2"),
+        "Konica Minolta C3080",
+        StationType.DigitalPrinter,
+        MachineStatus.Maintenance,
+        "Fuser replacement scheduled",
+      ),
+      Machine(
+        MachineId.unsafe("mach-3"),
+        "Heidelberg Speedmaster 52",
+        StationType.OffsetPress,
+        MachineStatus.Online,
+        "",
+      ),
+      Machine(
+        MachineId.unsafe("mach-4"),
+        "Zünd G3 L-2500",
+        StationType.Cutter,
+        MachineStatus.Online,
+        "Kiss-cut blade installed",
+      ),
+      Machine(
+        MachineId.unsafe("mach-5"),
+        "GMP QTOPIC-380",
+        StationType.Laminator,
+        MachineStatus.Online,
+        "Matte film loaded",
+      ),
+      Machine(
+        MachineId.unsafe("mach-6"),
+        "Roland TrueVIS VG3-640",
+        StationType.LargeFormatPrinter,
+        MachineStatus.Online,
+        "",
+      ),
+      Machine(
+        MachineId.unsafe("mach-7"),
+        "Duplo DC-618",
+        StationType.Folder,
+        MachineStatus.Offline,
+        "Paper jam — awaiting service",
+      ),
+      Machine(
+        MachineId.unsafe("mach-8"),
+        "Horizon BQ-470",
+        StationType.Binder,
+        MachineStatus.Online,
+        "Perfect binding setup",
+      ),
+    )

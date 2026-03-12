@@ -93,6 +93,54 @@ object DashboardView:
           ),
         ),
       ),
+
+      // My In-Progress Jobs section (shown when logged in as an employee)
+      child <-- ManufacturingViewModel.currentEmployee.combineWith(ManufacturingViewModel.myInProgressJobs).map {
+        case (Some(emp), jobs) =>
+          div(
+            cls := "dashboard-my-jobs",
+            h3(cls := "dashboard-section-title", s"My In-Progress Jobs (${emp.name})"),
+            if jobs.isEmpty then
+              div(cls := "dashboard-my-jobs-empty", "No jobs currently in progress — pick one from the Station Queue!")
+            else
+              table(
+                cls := "dashboard-table",
+                thead(
+                  tr(
+                    th("Order"),
+                    th("Station"),
+                    th("Product"),
+                    th("Actions"),
+                  ),
+                ),
+                tbody(
+                  jobs.map { qi =>
+                    tr(
+                      cls := "dashboard-table-row",
+                      td(cls := "dashboard-td", qi.order.order.id.value),
+                      td(cls := "dashboard-td",
+                        span(cls := "station-label",
+                          span(cls := "station-label-icon", qi.step.stationType.icon),
+                          qi.step.stationType.displayName,
+                        ),
+                      ),
+                      td(cls := "dashboard-td", qi.order.itemSummary),
+                      td(cls := "dashboard-td",
+                        button(
+                          cls := "btn-success btn-sm",
+                          "✓ Complete",
+                          onClick.stopPropagation --> { _ =>
+                            ManufacturingViewModel.completeStep(qi.step.id.value)
+                          },
+                        ),
+                      ),
+                    )
+                  },
+                ),
+              ),
+          )
+        case _ => emptyNode
+      },
     )
 
   private def summaryCard(title: String, value: String, icon: String, modifier: String): HtmlElement =

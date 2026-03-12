@@ -42,7 +42,9 @@ object ManufacturingApp:
           case ManufacturingRoute.StationQueue  => StationQueueView()
           case ManufacturingRoute.OrderApproval => OrderApprovalView()
           case ManufacturingRoute.OrderProgress => OrderProgressView()
-          case ManufacturingRoute.Employees     => div(cls := "manufacturing-placeholder", "Employees view — coming soon")
+          case ManufacturingRoute.Employees     => EmployeesView()
+          case ManufacturingRoute.Machines      => MachinesView()
+          case ManufacturingRoute.Analytics     => AnalyticsView()
         },
       ),
     )
