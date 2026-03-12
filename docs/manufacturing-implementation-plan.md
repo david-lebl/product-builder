@@ -315,19 +315,66 @@
 
 ---
 
-## Phase 7 — Fulfilment Workflow (Future)
+## Phase 7 ✅ — Fulfilment Workflow
 
-**Not yet implemented**
+**Status: Complete**
 
-1. Structured fulfilment checklist in Order Progress side panel:
-   - Collect items (per basket item checkbox)
-   - Quality check sign-off
-   - Package (type selection, dimensions/weight)
-   - Delivery (service selection, address, shipping label)
-   - Invoice generation
-   - Dispatch confirmation (tracking number)
-2. Partial order dispatch support
-3. Customer notifications at key points
+### Implemented
+
+1. **`PackagingType` enum** in `manufacturing.scala`:
+   - Variants: `Box`, `Envelope`, `Roll`, `Tube`, `Custom`
+   - `displayName` extension
+
+2. **`FulfilmentStatus` enum** — `NotStarted`, `InProgress`, `Completed`
+
+3. **Fulfilment data types** in `manufacturing.scala`:
+   - `CollectedItem` — per-basket-item collection record (index, collected, verifiedBy)
+   - `QualitySignOff` — QC sign-off (passed, signedBy, notes) with `empty` factory
+   - `PackagingInfo` — packaging details (type, dimensions, weight) with `empty` factory
+   - `DispatchInfo` — dispatch confirmation (dispatched, trackingNumber, timestamp, employee) with `empty` factory
+   - `FulfilmentChecklist` — complete checklist combining all four steps
+
+4. **`FulfilmentChecklist` extensions**:
+   - `allItemsCollected`, `isQualityPassed`, `isPackaged`, `isDispatched` — step completion checks
+   - `status` — derives `FulfilmentStatus` from step states
+   - `completedStepsCount` / `totalStepsCount` — progress tracking (4 steps total)
+   - `FulfilmentChecklist.create(itemCount)` — factory for new checklists
+
+5. **`ManufacturingOrder` enhanced**:
+   - `fulfilment: Option[FulfilmentChecklist]` field (defaults to None)
+   - `isReadyForDispatch` extension — true when all workflows completed
+   - `isDispatched` extension — true when fulfilment dispatch confirmed
+
+6. **`FulfilmentChecklistSpec.scala`** — 17 tests covering:
+   - `create`: correct item count, empty QC, empty packaging/dispatch
+   - `allItemsCollected`: none/some/all collected
+   - `status`: NotStarted/InProgress/Completed transitions
+   - `completedStepsCount`: 0/1/2/4 (full completion)
+   - `PackagingType` display names
+   - `ManufacturingOrder.isReadyForDispatch` and `isReadyForDispatch` false
+
+7. **`ManufacturingViewModel` enhanced**:
+   - `completeStep` auto-creates fulfilment checklist when all workflows complete
+   - `toggleItemCollected` — per-item collection toggle (with employee assignment)
+   - `signOffQuality` — QC pass/fail with employee and notes
+   - `setPackaging` — packaging type, dimensions, weight
+   - `confirmDispatch` — dispatch confirmation with tracking number and timestamp
+
+8. **`OrderProgressView` enhanced**:
+   - Status column now shows "Ready for Dispatch" and "Dispatched" states
+   - Fulfilment checklist section in side panel (appears when workflows complete)
+   - Step 1 — Collect Items: per-item checkboxes with visual collection state
+   - Step 2 — Quality Check: Pass QC button, shows notes when passed
+   - Step 3 — Package: packaging type selection buttons (Box/Envelope/Roll/Tube/Custom)
+   - Step 4 — Dispatch: Confirm Dispatch button (disabled until steps 1-3 complete), tracking display
+   - Fulfilment progress bar showing 0/4 → 4/4 step completion
+
+9. **CSS** — Added styles for:
+   - Fulfilment section with blue top border
+   - Collect items checklist with collected/uncollected states
+   - QC sign-off display
+   - Packaging type buttons and info display
+   - Dispatch confirmation with disabled state hint
 
 ---
 

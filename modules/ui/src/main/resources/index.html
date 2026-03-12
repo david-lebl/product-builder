@@ -3497,6 +3497,123 @@
             border: 1px solid #e2e8f0;
         }
 
+        /* --- Fulfilment Checklist --- */
+        .fulfilment-section {
+            border-top: 2px solid #3b82f6;
+            margin-top: 16px;
+            padding-top: 12px;
+        }
+
+        .fulfilment-progress {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .fulfilment-progress-text {
+            font-size: 0.82rem;
+            font-weight: 600;
+            color: #475569;
+            white-space: nowrap;
+        }
+
+        .fulfilment-collect-items {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .fulfilment-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 10px;
+            border-radius: 6px;
+            border: 1px solid #e2e8f0;
+            background: #fff;
+            cursor: pointer;
+        }
+
+        .fulfilment-item input[type="checkbox"] {
+            cursor: pointer;
+        }
+
+        .fulfilment-item--collected {
+            background: #f0fdf4;
+            border-color: #86efac;
+        }
+
+        .fulfilment-item-name {
+            font-size: 0.85rem;
+            color: #334155;
+        }
+
+        .fulfilment-item-check {
+            margin-left: auto;
+            color: #22c55e;
+            font-weight: 700;
+        }
+
+        .fulfilment-qc-passed {
+            color: #16a34a;
+            font-size: 0.85rem;
+        }
+
+        .fulfilment-qc-notes {
+            font-size: 0.82rem;
+            color: #64748b;
+            font-style: italic;
+            margin-top: 4px;
+        }
+
+        .fulfilment-qc-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .fulfilment-packaging-info {
+            font-size: 0.85rem;
+            color: #334155;
+        }
+
+        .fulfilment-packaging-info p {
+            margin: 2px 0;
+        }
+
+        .fulfilment-packaging-buttons {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+        }
+
+        .fulfilment-dispatch-info {
+            color: #16a34a;
+            font-size: 0.85rem;
+        }
+
+        .fulfilment-dispatch-info p {
+            margin: 4px 0 0;
+            font-size: 0.82rem;
+            color: #64748b;
+        }
+
+        .fulfilment-dispatch-actions {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .fulfilment-dispatch-actions button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .fulfilment-dispatch-hint {
+            font-size: 0.78rem;
+            color: #94a3b8;
+            font-style: italic;
+        }
+
         /* --- Responsive --- */
         @media (max-width: 900px) {
             .manufacturing-app {

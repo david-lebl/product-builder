@@ -228,7 +228,7 @@ object ManufacturingViewModel:
   def completeStep(stepId: String): Unit =
     manufacturingOrders.update { ords =>
       ords.map { mo =>
-        mo.copy(workflows = mo.workflows.map { wf =>
+        val updatedMo = mo.copy(workflows = mo.workflows.map { wf =>
           val updatedSteps = wf.steps.map { s =>
             if s.id.value == stepId && s.status == StepStatus.InProgress then
               s.copy(status = StepStatus.Completed, completedAt = Some(System.currentTimeMillis()))
@@ -242,6 +242,71 @@ object ManufacturingViewModel:
             else WorkflowStatus.InProgress
           evaluated.copy(status = newStatus)
         })
+        // Auto-create fulfilment checklist when all workflows are completed
+        if updatedMo.isReadyForDispatch && updatedMo.fulfilment.isEmpty then
+          updatedMo.copy(fulfilment = Some(FulfilmentChecklist.create(updatedMo.order.basket.items.size)))
+        else updatedMo
+      }
+    }
+
+  // --- Fulfilment Actions ---
+
+  def toggleItemCollected(orderId: String, itemIndex: Int): Unit =
+    manufacturingOrders.update { ords =>
+      ords.map { mo =>
+        if mo.order.id.value == orderId then
+          val empId = currentEmployeeId.now()
+          mo.copy(fulfilment = mo.fulfilment.map { fc =>
+            fc.copy(collectedItems = fc.collectedItems.map { ci =>
+              if ci.itemIndex == itemIndex then ci.copy(collected = !ci.collected, verifiedBy = empId)
+              else ci
+            })
+          })
+        else mo
+      }
+    }
+
+  def signOffQuality(orderId: String, passed: Boolean, notes: String): Unit =
+    manufacturingOrders.update { ords =>
+      ords.map { mo =>
+        if mo.order.id.value == orderId then
+          val empId = currentEmployeeId.now()
+          mo.copy(fulfilment = mo.fulfilment.map { fc =>
+            fc.copy(qualitySignOff = QualitySignOff(passed, empId, notes))
+          })
+        else mo
+      }
+    }
+
+  def setPackaging(orderId: String, packagingType: PackagingType, dimensions: String, weight: String): Unit =
+    manufacturingOrders.update { ords =>
+      ords.map { mo =>
+        if mo.order.id.value == orderId then
+          mo.copy(fulfilment = mo.fulfilment.map { fc =>
+            fc.copy(packagingInfo = PackagingInfo(
+              Some(packagingType),
+              if dimensions.trim.nonEmpty then Some(dimensions.trim) else None,
+              if weight.trim.nonEmpty then Some(weight.trim) else None,
+            ))
+          })
+        else mo
+      }
+    }
+
+  def confirmDispatch(orderId: String, trackingNumber: String): Unit =
+    manufacturingOrders.update { ords =>
+      ords.map { mo =>
+        if mo.order.id.value == orderId then
+          val empId = currentEmployeeId.now()
+          mo.copy(fulfilment = mo.fulfilment.map { fc =>
+            fc.copy(dispatchInfo = DispatchInfo(
+              dispatched = true,
+              trackingNumber.trim,
+              Some(System.currentTimeMillis()),
+              empId,
+            ))
+          })
+        else mo
       }
     }
 
