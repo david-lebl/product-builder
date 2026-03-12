@@ -260,15 +260,58 @@
 
 ---
 
-## Phase 6 — Order Approval Enhancements (Future)
+## Phase 6 ✅ — Order Approval Enhancements
 
-**Not yet implemented**
+**Status: Complete**
 
-1. Artwork review workflow (file check flags: resolution, bleed, color profile)
-2. Payment verification integration
-3. Priority and deadline assignment at approval time
-4. In-house order creation modal (embedding the product builder)
-5. Customer contact workflow for artwork issues
+### Implemented
+
+1. **`PaymentStatus` enum** in `manufacturing.scala`:
+   - Variants: `Pending`, `Confirmed`, `Failed`
+   - `displayName` and `icon` extensions
+
+2. **`CheckStatus` enum** in `manufacturing.scala`:
+   - Variants: `NotChecked`, `Passed`, `Warning`, `Failed`
+   - `displayName` and `icon` extensions
+
+3. **`ArtworkCheck` case class** in `manufacturing.scala`:
+   - Fields: `resolution`, `bleed`, `colorProfile` (all `CheckStatus`), `notes`
+   - `ArtworkCheck.unchecked` factory for initial state
+   - `isFullyPassed`, `hasIssues`, `hasWarnings` extension methods
+
+4. **`ManufacturingOrder` enhanced** — added fields (with defaults for backward compatibility):
+   - `priority: Priority` — order-level priority for workflow generation
+   - `paymentStatus: PaymentStatus` — payment verification status
+   - `artworkCheck: ArtworkCheck` — prepress file validation flags
+
+5. **`ArtworkCheckSpec.scala`** — 15 tests covering:
+   - Unchecked defaults
+   - `isFullyPassed` (all passed, partial, unchecked)
+   - `hasIssues` (resolution/bleed/colorProfile failures, no failures)
+   - `hasWarnings` (warnings without failures, with failures, all passed)
+   - `CheckStatus` and `PaymentStatus` extension display names and icons
+
+6. **`ManufacturingViewModel` enhanced**:
+   - New actions: `holdOrder`, `requestChanges`, `setOrderPriority`, `setOrderDeadline`, `setPaymentStatus`, `updateArtworkCheck`, `setApprovalNotes`
+   - `approveOrder` now uses order-level `priority` (instead of workflow-level)
+   - Sample data includes varied payment statuses (Confirmed/Pending) and artwork checks (Passed/Failed/Warning/NotChecked)
+
+7. **`OrderApprovalView` enhanced**:
+   - New table columns: Payment (status badge), Artwork (summary indicator)
+   - Payment filter (Pending/Confirmed/Failed) added to filter bar
+   - Side panel — Priority & Deadline section: clickable priority buttons (Rush/Normal/Low) with visual state
+   - Side panel — Payment section: clickable payment status buttons with verification flow
+   - Side panel — Artwork Review section: per-flag check buttons (Resolution/Bleed/Color Profile × NotChecked/Passed/Warning/Failed)
+   - Side panel — Internal Notes section with approval notes display
+   - Enhanced approval actions: Hold, Request Changes buttons alongside Approve/Reject
+   - On Hold orders can be approved or sent back to PendingChanges
+
+8. **CSS** — Added styles for:
+   - Priority buttons (Rush=red, Normal=blue, Low=green active states)
+   - Payment status buttons
+   - Artwork check grid with flag buttons (color-coded by status)
+   - Artwork notes display (yellow sidebar)
+   - Approval notes section
 
 ---
 

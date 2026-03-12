@@ -130,7 +130,7 @@ object ManufacturingViewModel:
               mo.order.id,
               idx,
               WorkflowId.unsafe(s"wf-${orderId}-$idx"),
-              mo.workflows.headOption.map(_.priority).getOrElse(Priority.Normal),
+              mo.priority,
               mo.deadline,
               System.currentTimeMillis(),
             )
@@ -147,6 +147,62 @@ object ManufacturingViewModel:
     manufacturingOrders.update { ords =>
       ords.map { mo =>
         if mo.order.id.value == orderId then mo.copy(approvalStatus = ApprovalStatus.Rejected)
+        else mo
+      }
+    }
+
+  def holdOrder(orderId: String): Unit =
+    manufacturingOrders.update { ords =>
+      ords.map { mo =>
+        if mo.order.id.value == orderId then mo.copy(approvalStatus = ApprovalStatus.OnHold)
+        else mo
+      }
+    }
+
+  def requestChanges(orderId: String): Unit =
+    manufacturingOrders.update { ords =>
+      ords.map { mo =>
+        if mo.order.id.value == orderId then mo.copy(approvalStatus = ApprovalStatus.PendingChanges)
+        else mo
+      }
+    }
+
+  def setOrderPriority(orderId: String, priority: Priority): Unit =
+    manufacturingOrders.update { ords =>
+      ords.map { mo =>
+        if mo.order.id.value == orderId then mo.copy(priority = priority)
+        else mo
+      }
+    }
+
+  def setOrderDeadline(orderId: String, deadline: Option[Long]): Unit =
+    manufacturingOrders.update { ords =>
+      ords.map { mo =>
+        if mo.order.id.value == orderId then mo.copy(deadline = deadline)
+        else mo
+      }
+    }
+
+  def setPaymentStatus(orderId: String, status: PaymentStatus): Unit =
+    manufacturingOrders.update { ords =>
+      ords.map { mo =>
+        if mo.order.id.value == orderId then mo.copy(paymentStatus = status)
+        else mo
+      }
+    }
+
+  def updateArtworkCheck(orderId: String, artworkCheck: ArtworkCheck): Unit =
+    manufacturingOrders.update { ords =>
+      ords.map { mo =>
+        if mo.order.id.value == orderId then mo.copy(artworkCheck = artworkCheck)
+        else mo
+      }
+    }
+
+  def setApprovalNotes(orderId: String, notes: String): Unit =
+    manufacturingOrders.update { ords =>
+      ords.map { mo =>
+        if mo.order.id.value == orderId then mo.copy(approvalNotes = notes)
         else mo
       }
     }
@@ -353,16 +409,28 @@ object ManufacturingViewModel:
 
     val order1 = makeOrder("ORD-001", "Jan", "Novák", "jan@example.com",
       List((businessCards, 500)), ApprovalStatus.Approved, 2 * day)
+      .copy(priority = Priority.Normal, paymentStatus = PaymentStatus.Confirmed,
+        artworkCheck = ArtworkCheck(CheckStatus.Passed, CheckStatus.Passed, CheckStatus.Passed, "Files OK"))
     val order2 = makeOrder("ORD-002", "Marie", "Svobodová", "marie@example.com",
       List((brochures, 200)), ApprovalStatus.Approved, 3 * day)
+      .copy(priority = Priority.Normal, paymentStatus = PaymentStatus.Confirmed,
+        artworkCheck = ArtworkCheck(CheckStatus.Passed, CheckStatus.Passed, CheckStatus.Passed, ""))
     val order3 = makeOrder("ORD-003", "Petr", "Dvořák", "petr@example.com",
       List((banners, 5)), ApprovalStatus.Placed, 5 * day)
+      .copy(paymentStatus = PaymentStatus.Pending,
+        artworkCheck = ArtworkCheck(CheckStatus.NotChecked, CheckStatus.NotChecked, CheckStatus.NotChecked, ""))
     val order4 = makeOrder("ORD-004", "Eva", "Černá", "eva@example.com",
       List((booklet, 100)), ApprovalStatus.Approved, 4 * day)
+      .copy(priority = Priority.Rush, paymentStatus = PaymentStatus.Confirmed,
+        artworkCheck = ArtworkCheck(CheckStatus.Passed, CheckStatus.Passed, CheckStatus.Warning, "sRGB color profile — converted to CMYK"))
     val order5 = makeOrder("ORD-005", "Tomáš", "Procházka", "tomas@example.com",
       List((stickers, 1000), (businessCards, 500)), ApprovalStatus.Placed, 1 * day)
+      .copy(priority = Priority.Rush, paymentStatus = PaymentStatus.Pending,
+        artworkCheck = ArtworkCheck(CheckStatus.Failed, CheckStatus.Passed, CheckStatus.NotChecked, "Resolution only 72 DPI — customer needs to resend"))
     val order6 = makeOrder("ORD-006", "Lukáš", "Kučera", "lukas@example.com",
       List((brochures, 200)), ApprovalStatus.Approved, 6 * hour)
+      .copy(priority = Priority.Low, paymentStatus = PaymentStatus.Confirmed,
+        artworkCheck = ArtworkCheck(CheckStatus.Passed, CheckStatus.Passed, CheckStatus.Passed, ""))
 
     // Simulate some progress on order1 (prepress completed)
     val order1WithProgress = order1.copy(
