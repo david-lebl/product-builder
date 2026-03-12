@@ -44,6 +44,7 @@ object ManufacturingApp:
           case ManufacturingRoute.OrderProgress => OrderProgressView()
           case ManufacturingRoute.Employees     => EmployeesView()
           case ManufacturingRoute.Machines      => MachinesView()
+          case ManufacturingRoute.Analytics     => AnalyticsView()
         },
       ),
     )

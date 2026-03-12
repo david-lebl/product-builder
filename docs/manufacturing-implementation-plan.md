@@ -378,17 +378,45 @@
 
 ---
 
-## Phase 8 — Analytics & Reporting (Future)
+## Phase 8 ✅ — Analytics & Reporting
 
-**Not yet implemented**
+**Status: Complete**
 
-1. Analytics dashboard view:
-   - Average time per station type
-   - Bottleneck identification
-   - Employee throughput
-   - On-time delivery rate
-2. Estimated completion time calculation
-3. Batch affinity suggestions
+### Implemented
+
+1. **`AnalyticsService.scala`** — Pure analytics service in `mpbuilder.domain.service`:
+   - `averageTimePerStation` — computes average step duration per station type from completed steps
+   - `bottleneckStation` — identifies station with most Ready steps (queue depth)
+   - `employeeThroughput` — counts completed steps per employee
+   - `onTimeDeliveryRate` — fraction of completed orders that met their deadline
+   - `computeSummary` — aggregates all metrics into `AnalyticsSummary`
+
+2. **Analytics data types**:
+   - `AnalyticsSummary` — total/completed/inProgress orders, avg time, on-time rate, bottleneck, station metrics, employee metrics
+   - `StationMetric` — per-station: completed steps, avg time, queue depth, in progress
+   - `EmployeeMetric` — per-employee: completed steps, stations worked
+
+3. **`AnalyticsServiceSpec.scala`** — 13 tests covering:
+   - `averageTimePerStation`: avg calculation, non-completed ignored, empty result
+   - `bottleneckStation`: most ready steps, no ready steps
+   - `employeeThroughput`: per-employee counts, unassigned ignored
+   - `onTimeDeliveryRate`: no completed, no deadline, on-time, late, 50/50 mix
+   - `computeSummary`: full summary computation with station and employee metrics
+
+4. **`AnalyticsView.scala`** — Analytics dashboard view:
+   - KPI cards row: Total Orders, Completed, In Progress, On-Time Rate, Avg Step Time
+   - Bottleneck alert banner (amber, shown when queue depth > 1)
+   - Station Performance table: station, completed, avg time, queue, in progress, load indicator
+   - Employee Throughput table: name, completed steps (with visual bar), stations worked (chip list)
+   - Load indicators: Idle/Light/Moderate/Heavy with color coding
+
+5. **`ManufacturingRoute.Analytics`** — Added to sidebar navigation
+
+6. **CSS** — Added styles for:
+   - KPI cards grid with responsive layout
+   - Bottleneck alert banner (amber/gold)
+   - Analytics tables with station cells and bar indicators
+   - Load indicator badges (idle/light/moderate/heavy color coding)
 
 ---
 

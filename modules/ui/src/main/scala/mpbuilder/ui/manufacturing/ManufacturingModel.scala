@@ -10,6 +10,7 @@ enum ManufacturingRoute(val label: String, val icon: String, val isAvailable: Bo
   case OrderProgress  extends ManufacturingRoute("Order Progress", "📦")
   case Employees      extends ManufacturingRoute("Employees", "👥")
   case Machines       extends ManufacturingRoute("Machines", "⚙️")
+  case Analytics      extends ManufacturingRoute("Analytics", "📈")
 
 /** Summary card data for the dashboard. */
 final case class DashboardSummary(
