@@ -242,12 +242,15 @@ object ManufacturingViewModel:
             else WorkflowStatus.InProgress
           evaluated.copy(status = newStatus)
         })
-        // Auto-create fulfilment checklist when all workflows are completed
-        if updatedMo.isReadyForDispatch && updatedMo.fulfilment.isEmpty then
-          updatedMo.copy(fulfilment = Some(FulfilmentChecklist.create(updatedMo.order.basket.items.size)))
-        else updatedMo
+        maybeCreateFulfilmentChecklist(updatedMo)
       }
     }
+
+  /** Auto-create fulfilment checklist when all workflows are completed. */
+  private def maybeCreateFulfilmentChecklist(mo: ManufacturingOrder): ManufacturingOrder =
+    if mo.isReadyForDispatch && mo.fulfilment.isEmpty then
+      mo.copy(fulfilment = Some(FulfilmentChecklist.create(mo.order.basket.items.size)))
+    else mo
 
   // --- Fulfilment Actions ---
 

@@ -93,8 +93,8 @@ object OrderProgressView:
     span(cls := cls_, text)
 
   private def orderStatusBadge(mo: ManufacturingOrder): HtmlElement =
-    if mo.isDispatched then span(cls := "badge badge-info", "🚚 Dispatched")
-    else if mo.isReadyForDispatch then span(cls := "badge badge-completed", "📦 Ready for Dispatch")
+    if mo.isDispatched then span(cls := "badge badge-completed", "🚚 Dispatched")
+    else if mo.isReadyForDispatch then span(cls := "badge badge-ready", "📦 Ready for Dispatch")
     else workflowStatusBadge(mo.overallStatus)
 
   private def progressBar(mo: ManufacturingOrder): HtmlElement =

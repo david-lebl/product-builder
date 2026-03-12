@@ -254,12 +254,14 @@ final case class FulfilmentChecklist(
 )
 
 object FulfilmentChecklist:
-  def create(itemCount: Int): FulfilmentChecklist = FulfilmentChecklist(
-    collectedItems = (0 until itemCount).map(i => CollectedItem(i, collected = false, verifiedBy = None)).toList,
-    qualitySignOff = QualitySignOff.empty,
-    packagingInfo = PackagingInfo.empty,
-    dispatchInfo = DispatchInfo.empty,
-  )
+  def create(itemCount: Int): FulfilmentChecklist =
+    val count = Math.max(0, itemCount)
+    FulfilmentChecklist(
+      collectedItems = (0 until count).map(i => CollectedItem(i, collected = false, verifiedBy = None)).toList,
+      qualitySignOff = QualitySignOff.empty,
+      packagingInfo = PackagingInfo.empty,
+      dispatchInfo = DispatchInfo.empty,
+    )
 
   extension (fc: FulfilmentChecklist)
     def allItemsCollected: Boolean = fc.collectedItems.forall(_.collected)

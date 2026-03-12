@@ -18,7 +18,7 @@ object AnalyticsService:
     completedSteps
       .groupBy(_.stationType)
       .map { case (st, steps) =>
-        val durations = steps.map(s => s.completedAt.get - s.startedAt.get)
+        val durations = steps.flatMap(s => for { start <- s.startedAt; end <- s.completedAt } yield end - start)
         st -> (if durations.nonEmpty then durations.sum / durations.size else 0L)
       }
 
@@ -120,8 +120,8 @@ object AnalyticsService:
     }
 
     val avgCompletionTimeMs =
-      if completedSteps.isEmpty then 0L
-      else completedSteps.map(s => s.completedAt.get - s.startedAt.get).sum / completedSteps.size
+      val durations = completedSteps.flatMap(s => for { start <- s.startedAt; end <- s.completedAt } yield end - start)
+      if durations.isEmpty then 0L else durations.sum / durations.size
 
     AnalyticsSummary(
       totalOrders = approvedOrders.size,

@@ -104,6 +104,7 @@ object AnalyticsView:
           ),
           tbody(
             children <-- analyticsSignal.map { summary =>
+              val maxSteps = summary.employeeMetrics.map(_.completedSteps).maxOption.getOrElse(1)
               summary.employeeMetrics.sortBy(-_.completedSteps).map { m =>
                 tr(
                   td(cls := "employee-name", m.employeeName),
@@ -113,7 +114,7 @@ object AnalyticsView:
                         cls := "analytics-bar-cell",
                         div(
                           cls := "analytics-bar",
-                          width := s"${Math.min(m.completedSteps * 20, 100)}%",
+                          width := s"${(m.completedSteps * 100) / maxSteps}%",
                         ),
                         span(m.completedSteps.toString),
                       )
