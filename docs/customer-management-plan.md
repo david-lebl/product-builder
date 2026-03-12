@@ -280,7 +280,7 @@ Since there's no backend, this would be seeded from `ManufacturingOrder` data li
 
 ## Implementation Phases
 
-### Phase 1 — Customer Domain Model & Management Service
+### Phase 1 — Customer Domain Model & Management Service ✅
 
 **Domain scope:** Core customer entity, CRUD service, and `Order` model extension.
 
@@ -320,9 +320,13 @@ Since there's no backend, this would be seeded from `ManufacturingOrder` data li
 
 **Estimated: ~15-20 tests**
 
+**Implementation notes:**
+- 24 tests in `CustomerManagementServiceSpec` covering CRUD, validation, duplicate detection, error messages, and enum display names
+- 10 sample agency customers in `SampleCustomers` with varied tiers, statuses, notes, and tags
+
 ---
 
-### Phase 2 — Customer-Specific Pricing Model & Engine
+### Phase 2 — Customer-Specific Pricing Model & Engine ✅
 
 **Domain scope:** Pricing overlay model, integration with `PriceCalculator`.
 
@@ -366,6 +370,14 @@ With Option B (modified pricelist), comparison is done by computing two separate
 - Price comparison (base vs. customer)
 
 **Estimated: ~15-20 tests**
+
+**Implementation notes:**
+- Option B (modified pricelist) was implemented via `CustomerPricelistResolver.resolve(basePricelist, customerPricing, categoryId)`
+- The `categoryId` parameter is optional — used to apply category-level discounts to material prices for the target category
+- `Percentage.applyTo(money)` computes `money * (1 - percentage/100)` — returns the discounted price
+- `Customer` model extended with `pricing: CustomerPricing` field
+- `SampleCustomers` updated with diverse pricing configurations (global discounts, material/category/finish discounts, fixed prices, custom tiers)
+- 28 tests in `CustomerPricelistResolverSpec` covering: empty pricing, global discount, material-specific discount, fixed material price (including currency mismatch), category discount with precedence, finish discount, custom quantity tiers, minimum order override, price comparison, combined discounts, and `Percentage` type validation
 
 ---
 
@@ -603,16 +615,16 @@ Phase 7: Customer-Aware Product Builder ◄──────┘  │
 Phase 8: Order History View ◄──────────────────────┘
 ```
 
-| Phase | Domain | UI | Tests | Dependencies |
-|-------|--------|-----|-------|-------------|
-| 1 — Customer Model | `customer.scala`, `CustomerManagementService`, `Order` extension | — | ~15-20 | None |
-| 2 — Customer Pricing | `CustomerPricing`, `CustomerPricelistResolver` | — | ~15-20 | Phase 1 |
-| 3 — Production Cost | `ProductionCost`, `ProductionCostCalculator` | — | ~10-12 | Phase 2 |
-| 4 — Discount Codes | `DiscountCode`, `DiscountCodeService` | — | ~18-22 | None (parallel with 1-3) |
-| 5 — Login Model | `LoginSession`, `LoginService` | — | ~12-15 | Phase 1 |
-| 6 — Customer Mgmt UI | — | `CustomersView`, `DiscountCodesView` | — | Phases 1-5 |
-| 7 — Builder Integration | — | `LoginWidget`, PricePreview, Checkout, `CustomerType` migration | — | Phases 5, 6 |
-| 8 — Order History | — | `OrderHistoryView` | — | Phase 7 |
+| Phase | Domain | UI | Tests | Dependencies | Status |
+|-------|--------|-----|-------|-------------|--------|
+| 1 — Customer Model | `customer.scala`, `CustomerManagementService`, `Order` extension | — | 24 | None | ✅ Done |
+| 2 — Customer Pricing | `CustomerPricing`, `CustomerPricelistResolver` | — | 28 | Phase 1 | ✅ Done |
+| 3 — Production Cost | `ProductionCost`, `ProductionCostCalculator` | — | ~10-12 | Phase 2 | |
+| 4 — Discount Codes | `DiscountCode`, `DiscountCodeService` | — | ~18-22 | None (parallel with 1-3) | |
+| 5 — Login Model | `LoginSession`, `LoginService` | — | ~12-15 | Phase 1 | |
+| 6 — Customer Mgmt UI | — | `CustomersView`, `DiscountCodesView` | — | Phases 1-5 | |
+| 7 — Builder Integration | — | `LoginWidget`, PricePreview, Checkout, `CustomerType` migration | — | Phases 5, 6 | |
+| 8 — Order History | — | `OrderHistoryView` | — | Phase 7 | |
 
 **Total estimated new tests: ~70-90**
 

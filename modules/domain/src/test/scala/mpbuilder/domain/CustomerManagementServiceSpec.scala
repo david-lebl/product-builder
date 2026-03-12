@@ -2,6 +2,7 @@ package mpbuilder.domain
 
 import zio.test.*
 import mpbuilder.domain.model.*
+import mpbuilder.domain.pricing.CustomerPricing
 import mpbuilder.domain.service.*
 import mpbuilder.domain.sample.SampleCustomers
 
@@ -24,6 +25,7 @@ object CustomerManagementServiceSpec extends ZIOSpecDefault:
     companyInfo = Some(CompanyInfo(companyName, businessId, None, "Contact Person")),
     contactInfo = ContactInfo(firstName, lastName, email, "+420 000 000 000", Some(companyName), Some(businessId), None),
     address = Address("Street 1", "City", "10000", "CZ"),
+    pricing = CustomerPricing.empty,
     internalNotes = Nil,
     createdAt = 1700000000000L,
     lastOrderAt = None,
@@ -75,6 +77,7 @@ object CustomerManagementServiceSpec extends ZIOSpecDefault:
           companyInfo = None,
           contactInfo = ContactInfo("Test", "User", "nocompany@test.cz", "+420 000 000 000", None, None, None),
           address = Address("Street 1", "City", "10000", "CZ"),
+          pricing = CustomerPricing.empty,
           internalNotes = Nil,
           createdAt = 1700000000000L,
           lastOrderAt = None,
@@ -99,6 +102,7 @@ object CustomerManagementServiceSpec extends ZIOSpecDefault:
           companyInfo = Some(CompanyInfo("Valid Co", "  ", None, "Contact")),
           contactInfo = ContactInfo("Test", "User", "emptybiz@test.cz", "+420 000 000 000", None, None, None),
           address = Address("Street 1", "City", "10000", "CZ"),
+          pricing = CustomerPricing.empty,
           internalNotes = Nil,
           createdAt = 1700000000000L,
           lastOrderAt = None,

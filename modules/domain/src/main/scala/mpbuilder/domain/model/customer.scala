@@ -1,5 +1,7 @@
 package mpbuilder.domain.model
 
+import mpbuilder.domain.pricing.CustomerPricing
+
 /** Status of a customer account */
 enum CustomerStatus:
   case Active, Inactive, Suspended, PendingApproval
@@ -44,6 +46,7 @@ final case class Customer(
     companyInfo: Option[CompanyInfo],
     contactInfo: ContactInfo,
     address: Address,
+    pricing: CustomerPricing,
     internalNotes: List[CustomerNote],
     createdAt: Long,
     lastOrderAt: Option[Long],
