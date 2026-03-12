@@ -43,8 +43,11 @@ object DashboardView:
               else "station-tile station-tile--idle"
             div(
               cls := statusCls,
-              span(cls := "station-tile-icon", ss.stationType.icon),
-              span(cls := "station-tile-name", ss.stationType.displayName),
+              div(
+                cls := "station-tile-header",
+                span(cls := "station-tile-icon", ss.stationType.icon),
+                span(cls := "station-tile-name", ss.stationType.displayName),
+              ),
               span(cls := "station-tile-count",
                 if ss.queueDepth > 0 then s"${ss.queueDepth} in queue"
                 else if ss.hasInProgress then "Working"

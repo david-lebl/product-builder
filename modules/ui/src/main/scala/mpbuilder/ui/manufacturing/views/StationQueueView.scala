@@ -151,11 +151,16 @@ object StationQueueView:
         onClick --> { _ => onClose() },
       ),
 
-      // Order header
+      // Order header with status + priority badges
       div(
         cls := "detail-panel-header",
         h3(qi.order.order.id.value),
         span(cls := "detail-panel-customer", qi.order.customerName),
+      ),
+      div(
+        cls := "detail-panel-badges",
+        stepStatusBadge(qi.step.status),
+        priorityBadge(qi.workflow.priority),
       ),
 
       // Current step info
@@ -164,33 +169,64 @@ object StationQueueView:
         h4("Current Step"),
         div(cls := "detail-step-info",
           span(cls := "detail-step-station", qi.step.stationType.icon, " ", qi.step.stationType.displayName),
-          stepStatusBadge(qi.step.status),
         ),
         if qi.step.notes.nonEmpty then p(cls := "detail-step-notes", qi.step.notes) else emptyNode,
       ),
 
-      // Workflow progress
+      // Action buttons for current step
+      div(
+        cls := "detail-panel-section detail-panel-step-actions",
+        qi.step.status match
+          case StepStatus.Ready =>
+            button(
+              cls := "btn-primary",
+              "▶ Start Work",
+              onClick --> { _ => ManufacturingViewModel.startStep(qi.step.id.value) },
+            )
+          case StepStatus.InProgress =>
+            button(
+              cls := "btn-success",
+              "✓ Mark Complete",
+              onClick --> { _ => ManufacturingViewModel.completeStep(qi.step.id.value) },
+            )
+          case _ => emptyNode,
+      ),
+
+      // Workflow progress — timeline style
       div(
         cls := "detail-panel-section",
         h4("Workflow Progress"),
         div(
-          cls := "workflow-steps-list",
-          qi.workflow.steps.map { step =>
-            val stepCls = step.status match
-              case StepStatus.Completed  => "workflow-step-item workflow-step-item--completed"
-              case StepStatus.InProgress => "workflow-step-item workflow-step-item--active"
-              case StepStatus.Ready      => "workflow-step-item workflow-step-item--ready"
-              case _                     => "workflow-step-item"
+          cls := "workflow-timeline",
+          qi.workflow.steps.zipWithIndex.map { case (step, idx) =>
+            val isLast = idx == qi.workflow.steps.size - 1
+            val isCurrent = step.id == qi.step.id
+            val dotCls = step.status match
+              case StepStatus.Completed  => "timeline-dot timeline-dot--completed"
+              case StepStatus.InProgress => "timeline-dot timeline-dot--active"
+              case StepStatus.Ready      => "timeline-dot timeline-dot--ready"
+              case StepStatus.Failed     => "timeline-dot timeline-dot--failed"
+              case _                     => "timeline-dot timeline-dot--waiting"
+            val rowCls = if isCurrent then "timeline-row timeline-row--current" else "timeline-row"
             div(
-              cls := stepCls,
-              span(cls := "workflow-step-icon", step.status match
-                case StepStatus.Completed  => "✓"
-                case StepStatus.InProgress => "▶"
-                case StepStatus.Ready      => "○"
-                case _                     => "·"
+              cls := rowCls,
+              div(
+                cls := "timeline-left",
+                div(cls := dotCls,
+                  step.status match
+                    case StepStatus.Completed  => "✓"
+                    case StepStatus.InProgress => "▶"
+                    case StepStatus.Ready      => "○"
+                    case StepStatus.Failed     => "✗"
+                    case _                     => "·"
+                ),
+                if !isLast then div(cls := "timeline-line") else emptyNode,
               ),
-              span(cls := "workflow-step-name", step.stationType.displayName),
-              step.componentRole.map(r => span(cls := "workflow-step-role", s"(${r})")).getOrElse(emptyNode),
+              div(
+                cls := "timeline-content",
+                span(cls := "timeline-step-name", step.stationType.displayName),
+                step.componentRole.map(r => span(cls := "timeline-step-role", s"(${r.toString.toLowerCase})")).getOrElse(emptyNode),
+              ),
             )
           },
         ),
