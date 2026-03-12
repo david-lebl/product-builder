@@ -130,27 +130,51 @@
 
 ---
 
-## Phase 4 — Workflow Engine State Transitions (Future)
+## Phase 4 ✅ — Workflow Engine State Transitions
 
-**Not yet implemented**
+**Status: Complete**
 
-1. **`WorkflowEngine`** — Formal state transition service with `Validation[WorkflowError, ManufacturingWorkflow]`:
-   - `startStep(wf, stepId, employeeId)` — validates step is Ready, sets InProgress
-   - `completeStep(wf, stepId)` — validates step is InProgress, promotes downstream steps
-   - `failStep(wf, stepId, reason)` — marks as Failed, sets workflow OnHold
-   - `skipStep(wf, stepId)` — marks as Skipped for optional steps
-   - `resetStep(wf, stepId)` — resets to Ready for rework scenarios
-   - Enforces DAG constraints (can't start a step whose dependencies aren't met)
-   - Returns accumulated validation errors (not short-circuit)
+### Implemented
 
-2. **`WorkflowError`** ADT with exhaustive `message` match
+1. **`WorkflowError.scala`** — Error ADT in `mpbuilder.domain.service`:
+   - 9 error variants: `StepNotFound`, `StepNotReady`, `StepNotInProgress`, `StepAlreadyCompleted`, `StepAlreadySkipped`, `DependenciesNotMet`, `WorkflowNotActive`, `StepCannotBeSkipped`, `StepCannotBeReset`
+   - Exhaustive `message` match for both English and Czech
 
-3. **`QueueScorer`** — Priority calculation:
-   - Deadline urgency (0–100 based on hours until deadline)
-   - Priority boost (Rush=30, Normal=0, Low=-10)
-   - Completeness boost (0–20 based on % steps done)
-   - Batch affinity (0–15 if matches current machine setup)
-   - FIFO tiebreaker (age in minutes)
+2. **`WorkflowEngine.scala`** — Pure state transition service in `mpbuilder.domain.service`:
+   - `startStep(wf, stepId, employeeId)` — validates step is Ready + dependencies met, sets InProgress, assigns employee
+   - `completeStep(wf, stepId)` — validates step is InProgress, promotes downstream steps via `promoteReadySteps`, derives workflow status
+   - `failStep(wf, stepId, reason)` — marks as Failed, sets workflow OnHold, appends failure reason to notes
+   - `skipStep(wf, stepId)` — marks Waiting/Ready as Skipped for optional stations, promotes downstream steps; required stations (Prepress, QC, Packaging) cannot be skipped
+   - `resetStep(wf, stepId)` — resets Completed/Failed/Skipped to Ready for rework, sets `isRework` flag, reverts downstream steps to Waiting, transitions workflow from OnHold/Completed back to InProgress
+   - All operations return `Validation[WorkflowError, ManufacturingWorkflow]`
+   - DAG constraint enforcement (dependencies must be Completed/Skipped before starting)
+   - Automatic downstream step promotion after completion/skip
+   - Automatic workflow status derivation (Pending → InProgress → Completed / OnHold)
+
+3. **`QueueScorer.scala`** — Pure priority calculation service in `mpbuilder.domain.service`:
+   - `QueueScore` case class: `deadlineUrgency` (0–100), `priorityBoost` (Rush=30, Normal=0, Low=-10), `completenessBoost` (0–20), `batchAffinity` (0–15), `ageMinutes` (FIFO tiebreaker)
+   - `score(workflow, now)` — calculates composite score for a workflow
+   - `scoreWithAffinity(workflow, step, now, currentMaterialId, stepMaterialId)` — adds batch affinity scoring
+   - `sortByScore` — sorts scored items by descending total, then descending age
+   - Deadline urgency tiers: overdue=100, ≤2h=95, ≤8h=80, ≤24h=60, ≤48h=40, ≤72h=20, >72h=5
+
+4. **`WorkflowEngineSpec.scala`** — 27 tests covering:
+   - `startStep`: Ready→InProgress, Pending→InProgress workflow promotion, step-not-found/not-ready/completed/cancelled validation
+   - `completeStep`: InProgress→Completed, downstream promotion, workflow Completed detection
+   - `failStep`: InProgress→Failed, workflow→OnHold, failure notes
+   - `skipStep`: Ready→Skipped, downstream promotion, required station rejection, InProgress rejection
+   - `resetStep`: Completed/Failed→Ready with rework flag, downstream reversion, OnHold→InProgress
+   - DAG enforcement: unmet dependencies prevent start
+   - Multi-component workflow: binding step readiness after component completion
+   - Error messages: all 9 error variants have En/Cs translations
+
+5. **`QueueScorerSpec.scala`** — 24 tests covering:
+   - Deadline urgency tiers (all 8 levels)
+   - Priority boost (Rush/Normal/Low)
+   - Completeness boost (0%/80%/100%)
+   - Batch affinity (match/mismatch/none)
+   - Age calculation (normal/negative)
+   - Composite scoring (Rush+overdue > Normal+comfortable, sort order, FIFO tiebreaker)
 
 ---
 
