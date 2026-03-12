@@ -2,7 +2,7 @@
 
 ## Vision
 
-A custom product builder for the printing industry that lets customers configure products from categories, materials, finishes, and specifications — with declarative compatibility rules ensuring only valid combinations are possible. Includes a photo calendar editor for designing custom calendar pages.
+A domain-driven product configuration and manufacturing management system for the printing industry. Customers configure products from categories, materials, finishes, and specifications — with declarative compatibility rules ensuring only valid combinations are possible. Includes a visual product editor for designing calendars, photo books, and wall pictures, a shopping basket with checkout, and a full manufacturing workflow management system for print shop operators.
 
 ## Tech Stack
 
@@ -37,10 +37,10 @@ The core domain layer is fully implemented and tested:
 Declarative pricing layer following the same rules-as-data pattern:
 
 - **Money** — Opaque type over `BigDecimal` (never `Double`), rounding to 2dp with `HALF_UP`
-- **PricingRule** — Sealed enum with 7 variants: `MaterialBasePrice`, `MaterialAreaPrice`, `FinishSurcharge`, `FinishTypeSurcharge`, `PrintingProcessSurcharge`, `CategorySurcharge`, `QuantityTier`
-- **PriceCalculator** — Pure interpreter: config + pricelist → `Validation[PricingError, PriceBreakdown]`. Supports area-based pricing (large-format), ID-over-type finish surcharge precedence, and quantity tier discounts
-- **PriceBreakdown** — Detailed output with line items for material, finishes, process/category surcharges, subtotal, multiplier, and rounded total
-- **Sample data** — Prices for all 9 materials (flat + area-based for vinyl), surcharges for key finishes, letterpress process surcharge, 4 quantity tiers (1.0×/0.90×/0.80×/0.70×)
+- **PricingRule** — Sealed enum with 17 variants covering material (base/area/sheet), finish surcharges, process/category surcharges, ink configuration factor, cutting, fold/binding surcharges, quantity/sheet tiers, setup fees, and minimum order price
+- **PriceCalculator** — Pure interpreter: config + pricelist → `Validation[PricingError, PriceBreakdown]`. Supports area-based pricing (large-format), sheet-based pricing with nesting, ID-over-type finish surcharge precedence, and quantity tier discounts
+- **PriceBreakdown** — Detailed output with per-component line items, setup fees, and rounded total
+- **Sample data** — USD + CZK pricelists with full finish/fold/binding surcharges and setup fees
 - **Documentation** — See `docs/pricing.md` for detailed explanation with worked examples
 
 ---
@@ -56,7 +56,7 @@ Interactive web UI for configuring print products:
 - **Live validation** — Immediate feedback on incompatible selections with detailed error messages
 - **Price calculation** — Real-time pricing with full breakdown (material, finishes, surcharges, quantity discounts)
 - **Modern design** — Responsive layout with gradient purple theme, sticky price preview, info boxes, and visual feedback
-- **Sample catalog** — Pre-loaded with 7 categories, 9 materials, 14 finishes, 4 printing methods, 24 compatibility rules, and full pricelist
+- **Sample catalog** — Pre-loaded with 11 categories, 13 materials, 16 finishes, 4 printing methods, 29 compatibility rules, and full pricelists
 - **Deployment** — GitHub Actions workflow builds Scala.js and deploys to GitHub Pages
 
 See `docs/ui-guide.md` for build and run instructions.
@@ -83,7 +83,7 @@ Expanded sample data based on printing domain analysis:
 - **Calendars** category — Wire-bound/spiral-only with 12–28 pages constraint
 - **New materials** — Yupo Synthetic 200μm, Cotton Paper 300gsm, Coated Silk 250gsm, Adhesive Stock 100gsm
 - **New finishes** — Soft Touch Coating, Aqueous Coating, Debossing, Scoring, Perforation, Round Corners, Grommets
-- **Rules** expanded from 10 → 24 with material-finish incompatibilities, weight constraints, and calendar-specific rules
+- **Rules** expanded from 10 → 29 with material-finish incompatibilities, weight constraints, and calendar-specific rules
 - **Pricing** updated for all new materials and finishes
 
 ---
@@ -133,15 +133,90 @@ Extended the calendar builder into a general visual product editor:
 
 ---
 
+## Completed — Manufacturing Phase 1: Core Domain Model & Workflow Generator
+
+Full manufacturing domain model and automatic workflow generation:
+
+- **14 station types** — Prepress, Digital Printer, Offset Press, Large Format Printer, Letterpress, Cutter, Laminator, UV Coater, Embossing/Foil, Folder, Binder, Large Format Finishing, Quality Control, Packaging
+- **DAG-based `ManufacturingWorkflow`** — `WorkflowStep` nodes with dependency edges, status tracking, employee/machine assignment
+- **`WorkflowGenerator`** — Derives step sequence and DAG from `ProductConfiguration` (printing method → station mapping, finishes → finishing steps, cross-component binding/QC/packaging)
+- Opaque type IDs: `WorkflowId`, `StepId`, `EmployeeId`, `MachineId`
+
+## Completed — Manufacturing Phase 2: Shared UI Framework
+
+- **`SplitTableView`** — Domain-agnostic sortable data table with generic type parameter, column definitions, filter chips, search, row selection with side panel
+- Reusable across all manufacturing views
+
+## Completed — Manufacturing Phase 3: Manufacturing UI Views
+
+7 operational views for print shop management:
+
+- **Dashboard** — Summary cards, station status strip (14 tiles), recent orders table, "My In-Progress Jobs"
+- **Station Queue** — Primary operator view with station/status/priority filters, Start/Complete actions, side panel with workflow progress
+- **Order Approval** — Manager/prepress view with approval queue, side panel with full order details
+- **Order Progress** — Fulfilment tracking with progress bars, deadline urgency coloring, workflow visualization
+- **Employees** — Employee profiles with station capability toggles
+- **Machines** — Machine registry with Online/Offline/Maintenance status controls
+- **Analytics** — KPI cards, station performance, employee throughput, bottleneck alerts
+- Sidebar navigation, client-side routing, responsive mobile layout
+
+## Completed — Manufacturing Phase 4: Workflow Engine
+
+Pure state machine over `ManufacturingWorkflow` returning `Validation[WorkflowError, ManufacturingWorkflow]`:
+
+- **`startStep`** — Ready → InProgress, assigns employee, enforces DAG dependencies
+- **`completeStep`** — InProgress → Completed, auto-promotes downstream Waiting → Ready
+- **`failStep`** — InProgress → Failed, workflow → OnHold, appends failure reason
+- **`skipStep`** — Waiting/Ready → Skipped (Prepress, QC, Packaging non-skippable)
+- **`resetStep`** — Completed/Failed/Skipped → Ready with `isRework` flag, reverts downstream to Waiting
+- **`QueueScorer`** — Advisory priority scoring: deadline urgency, priority boost, completeness, batch affinity, age tiebreaker
+- **`WorkflowError`** ADT — 9 variants with English and Czech messages
+
+## Completed — Manufacturing Phase 5: Employee & Machine Management
+
+- **`EmployeeManagementService`** — Pure CRUD: add, update, toggle active, update capabilities, remove
+- **`MachineManagementService`** — Pure CRUD: add, update, change status, change station type, remove
+- **`ManagementError`** ADT — 7 variants with English and Czech messages
+- **UI** — `EmployeesView` with capability toggle grid, `MachinesView` with status controls, Dashboard "My In-Progress Jobs"
+
+## Completed — Manufacturing Phase 6: Order Approval Enhancements
+
+- **`ArtworkCheck`** — Per-file validation flags (resolution, bleed, color profile) with `CheckStatus` enum
+- **`PaymentStatus`** enum — Pending/Confirmed/Failed
+- Order-level **priority** drives workflow generation
+- **Enhanced approval panel** — artwork review buttons, payment verification, priority selector, Hold/Request Changes
+
+## Completed — Manufacturing Phase 7: Fulfilment Workflow
+
+- **`FulfilmentChecklist`** — 4-step dispatch model: collect items → quality sign-off → packaging → dispatch (gated)
+- Auto-created when all workflows reach Completed
+- Progress bar (0/4 → 4/4) in Order Progress view
+
+## Completed — Manufacturing Phase 8: Analytics & Reporting
+
+- **`AnalyticsService`** — Pure: `averageTimePerStation`, `bottleneckStation`, `employeeThroughput`, `onTimeDeliveryRate`
+- KPI cards, station performance table with load indicators, employee throughput with bars, bottleneck alert banner
+
+---
+
 ## Testing
 
-**99 passing tests** across 5 test suites:
+**341 passing tests** across 14 test suites:
 
-- **ConfigurationBuilderSpec** — 34 tests: valid configs, error accumulation, weight rules, finish dependencies, printing process requirements
-- **CatalogQueryServiceSpec** — 17 tests: material/finish/spec filtering, progressive disclosure
-- **PriceCalculatorSpec** — 14 tests: valid breakdowns, area-based calculation, tier discounts, multiple finishes, precedence, error cases
-- **LocalizationSpec** — 17 tests: `LocalizedString` behavior, Czech translations, error message localization, backward compatibility
-- **BasketServiceSpec** — 17 tests: add/remove/update items, quantity validation, total calculation
+- **ConfigurationBuilderSpec** — 34 tests
+- **CatalogQueryServiceSpec** — 17 tests
+- **PriceCalculatorSpec** — 14 tests
+- **LocalizationSpec** — 17 tests
+- **BasketServiceSpec** — 17 tests
+- **WorkflowGeneratorSpec** — 19 tests
+- **WorkflowEngineSpec** — 27 tests
+- **QueueScorerSpec** — 24 tests
+- **EmployeeManagementServiceSpec** — 17 tests
+- **MachineManagementServiceSpec** — 16 tests
+- **ArtworkCheckSpec** — 15 tests
+- **FulfilmentChecklistSpec** — 17 tests
+- **AnalyticsServiceSpec** — 13 tests
+- **WeightCalculatorSpec** — weight calculation
 
 ---
 
@@ -158,6 +233,6 @@ Extended the calendar builder into a general visual product editor:
 
 - API layer (ZIO HTTP or similar) for server-side validation and pricing
 - Admin interface for managing catalogs, rules, and pricelists without code changes
-- Order submission workflow
 - PDF proof generation
 - Integration with print production systems
+- Invoice management and customer management views
