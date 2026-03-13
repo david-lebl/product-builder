@@ -469,34 +469,31 @@ With Option B (modified pricelist), comparison is done by computing two separate
 
 ---
 
-### Phase 5 — Agency Login Domain Model
+### Phase 5 — Agency Login Domain Model ✅
 
 **Domain scope:** OTP-based login for agency customers.
 
 **Model (`model/login.scala`):**
-- `SessionId` opaque type
-- `LoginSession` case class
-- `OtpRequest`, `OtpToken` case classes
+- `SessionId` opaque type (added to `login.scala` alongside other login types)
+- `LoginSession` case class: `sessionId`, `customerId`, `createdAt`, `expiresAt`
+- `OtpRequest` case class: `customerId`, `identifier`, `identifierType`, `requestedAt`
+- `OtpToken` case class: `customerId`, `token`, `createdAt`, `expiresAt`
 - `IdentifierType` enum: `BusinessId`, `VatId`, `Email` — with `LocalizedString` display names (3 values x 2 languages)
 
 **Service (`service/LoginService.scala`):**
-- `lookupCustomer(identifier, identifierType, customers): Validation[LoginError, Customer]`
-- `generateOtp(customer): OtpToken` (pure — generates deterministic token from customer ID + timestamp for testability, real randomness injected at UI layer)
-- `validateOtp(inputToken, otpToken): Validation[LoginError, LoginSession]`
+- `lookupCustomer(identifier, identifierType, customers): Validation[LoginError, Customer]` — case-insensitive email lookup, trims whitespace, rejects Inactive/Suspended/PendingApproval
+- `generateOtp(customer, now): OtpToken` — pure, deterministic 6-digit token from customer ID + timestamp; 5-minute validity
+- `validateOtp(inputToken, otpToken, now): Validation[LoginError, LoginSession]` — validates expiry and token match; 24-hour session validity
 - `isSessionValid(session, now): Boolean`
 
 **Error (`service/LoginError.scala`):**
-- `CustomerNotFound`, `OtpExpired`, `OtpInvalid`, `CustomerInactive`, `CustomerSuspended`, `SessionExpired`
-- Bilingual messages
+- Full ADT: `CustomerNotFound`, `OtpExpired`, `OtpInvalid`, `CustomerInactive`, `CustomerSuspended`, `SessionExpired`
+- Bilingual messages (English + Czech)
 
 **Tests (`LoginServiceSpec`):**
-- Customer lookup by business ID, VAT, email
-- Customer not found
-- Inactive/suspended customer rejection
-- OTP validation (valid, expired, wrong token)
-- Session validity check
+- 20 tests covering: customer lookup (by business ID, VAT ID, email, case-insensitive, whitespace trimming), customer rejection (not found, inactive, suspended, pending-approval), OTP generation (6-digit format, deterministic, different timestamps → different tokens), OTP validation (correct, expired, wrong token, whitespace trimming), session validity (valid, expired, exact boundary), bilingual display names and error messages
 
-**Estimated: ~12-15 tests**
+**Estimated: ~12-15 tests** → **Actual: 20 tests**
 
 ---
 
@@ -723,7 +720,7 @@ Phase 9: Catalog Configuration UI ─── (standalone, parallel)
 | 2 — Customer Pricing | `CustomerPricing`, `CustomerPricelistResolver` | — | 28 | Phase 1 | ✅ Done |
 | 3 — Production Cost | `ProductionCost`, `ProductionCostCalculator` | — | 15 | Phase 2 | ✅ Done |
 | 4 — Discount Codes | `DiscountCode`, `DiscountCodeService` | — | 29 | None (parallel with 1-3) | ✅ Done |
-| 5 — Login Model | `LoginSession`, `LoginService` | — | ~12-15 | Phase 1 | |
+| 5 — Login Model | `LoginSession`, `LoginService` | — | 20 | Phase 1 | ✅ Done |
 | 6 — Customer Mgmt UI | — | `CustomersView`, `DiscountCodesView` | — | Phases 1-5 | |
 | 7 — Builder Integration | — | `LoginWidget`, PricePreview, Checkout, `CustomerType` migration | — | Phases 5, 6 | |
 | 8 — Order History | — | `OrderHistoryView` | — | Phase 7 | |
