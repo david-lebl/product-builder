@@ -86,6 +86,206 @@
             font-size: 1.1rem;
         }
 
+        /* ─── Login Widget (top bar) ────────────────────────── */
+
+        .login-widget {
+            position: relative;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.85rem;
+            white-space: nowrap;
+        }
+
+        .login-widget-guest {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            color: rgba(255,255,255,0.9);
+            cursor: default;
+        }
+
+        .login-widget-guest-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            position: relative;
+        }
+
+        .login-widget-guest-icon {
+            font-size: 1.1rem;
+        }
+
+        .login-widget-guest-label {
+            font-size: 0.85rem;
+        }
+
+        .login-widget-login-trigger {
+            background: rgba(255,255,255,0.15);
+            border: 1px solid rgba(255,255,255,0.3);
+            border-radius: 4px;
+            padding: 3px 10px;
+            color: white;
+            font-size: 0.78rem;
+            cursor: pointer;
+            transition: background 0.15s;
+        }
+
+        .login-widget-login-trigger:hover {
+            background: rgba(255,255,255,0.28);
+        }
+
+        /* Popup overlay for the login form */
+        .login-widget-popup-backdrop {
+            position: fixed;
+            inset: 0;
+            z-index: 299;
+        }
+
+        .login-widget-popup {
+            position: absolute;
+            top: calc(100% + 8px);
+            right: 0;
+            z-index: 300;
+            background: white;
+            color: #333;
+            border-radius: 10px;
+            box-shadow: 0 8px 30px rgba(0,0,0,0.18);
+            padding: 18px 20px;
+            min-width: 300px;
+            max-width: 360px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .login-widget-popup-title {
+            font-size: 0.95rem;
+            font-weight: 700;
+            color: #333;
+            margin: 0;
+        }
+
+        .login-widget-popup-hint {
+            font-size: 0.78rem;
+            color: #888;
+            margin: 0;
+        }
+
+        .login-widget-popup select,
+        .login-widget-popup input[type="text"] {
+            width: 100%;
+            padding: 7px 10px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 0.85rem;
+            color: #333;
+            background: #fafafa;
+            box-sizing: border-box;
+        }
+
+        .login-widget-popup select:focus,
+        .login-widget-popup input[type="text"]:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 2px rgba(102,126,234,0.15);
+        }
+
+        .login-widget-otp-input {
+            font-family: monospace;
+            letter-spacing: 6px;
+            text-align: center;
+            font-size: 1.2rem !important;
+        }
+
+        .login-widget-otp-hint {
+            font-size: 0.75rem;
+            color: #667eea;
+            background: #f0f2ff;
+            border-radius: 6px;
+            padding: 6px 10px;
+            margin: 0;
+        }
+
+        .login-widget-error {
+            font-size: 0.8rem;
+            color: #dc2626;
+            background: #fef2f2;
+            border-radius: 6px;
+            padding: 6px 10px;
+            margin: 0;
+        }
+
+        .login-widget-popup-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .login-widget-popup-submit {
+            flex: 1;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            padding: 8px 14px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: opacity 0.15s;
+        }
+
+        .login-widget-popup-submit:hover {
+            opacity: 0.88;
+        }
+
+        .login-widget-popup-cancel {
+            background: #f1f5f9;
+            color: #64748b;
+            border: none;
+            border-radius: 6px;
+            padding: 8px 14px;
+            font-size: 0.85rem;
+            cursor: pointer;
+            transition: background 0.15s;
+        }
+
+        .login-widget-popup-cancel:hover {
+            background: #e2e8f0;
+        }
+
+        /* Logged-in state in top bar */
+        .login-widget-logged-in {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .login-widget-company {
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: white;
+        }
+
+        .login-widget-logged-in .badge {
+            font-size: 0.7rem;
+            padding: 2px 8px;
+        }
+
+        .login-widget-logout {
+            background: rgba(255,255,255,0.15);
+            border: 1px solid rgba(255,255,255,0.3);
+            border-radius: 4px;
+            padding: 3px 10px;
+            color: white;
+            font-size: 0.78rem;
+            cursor: pointer;
+            transition: background 0.15s;
+        }
+
+        .login-widget-logout:hover {
+            background: rgba(255,255,255,0.28);
+        }
+
         .language-selector {
             display: flex;
             align-items: center;
@@ -295,6 +495,35 @@
         .price-display .amount {
             font-size: 2.5rem;
             font-weight: bold;
+        }
+
+        .price-base-strikethrough {
+            text-decoration: line-through;
+            opacity: 0.6;
+            font-size: 1.1rem;
+            margin-bottom: 4px;
+        }
+
+        .price-customer-price {
+            font-size: 2rem !important;
+            font-weight: bold;
+        }
+
+        .price-savings {
+            background: rgba(255,255,255,0.2);
+            border-radius: 20px;
+            padding: 4px 14px;
+            font-size: 0.85rem;
+            margin-top: 6px;
+            display: inline-block;
+        }
+
+        .basket-item-savings {
+            font-size: 0.78rem;
+            color: #059669;
+            font-weight: 600;
+            display: block;
+            margin-bottom: 2px;
         }
 
         .price-breakdown {
@@ -2032,6 +2261,66 @@
             display: flex;
             flex-direction: column;
             gap: 10px;
+        }
+
+        .checkout-auth-tabbed {
+            gap: 0;
+            padding: 0;
+            overflow: hidden;
+        }
+
+        /* Tab bar inside the sign-in card */
+        .checkout-auth-tabs {
+            display: flex;
+            border-bottom: 2px solid #e0e0e0;
+        }
+
+        .checkout-auth-tab {
+            flex: 1;
+            padding: 10px 14px;
+            border: none;
+            background: #f8fafc;
+            color: #64748b;
+            font-size: 0.88rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background 0.15s, color 0.15s;
+        }
+
+        .checkout-auth-tab:first-child {
+            border-radius: 8px 0 0 0;
+        }
+
+        .checkout-auth-tab:last-child {
+            border-radius: 0 8px 0 0;
+        }
+
+        .checkout-auth-tab--active {
+            background: white;
+            color: #667eea;
+            font-weight: 600;
+            border-bottom: 2px solid white;
+            margin-bottom: -2px;
+        }
+
+        .checkout-auth-tab:hover:not(.checkout-auth-tab--active) {
+            background: #f1f5f9;
+            color: #475569;
+        }
+
+        .checkout-auth-tab-content {
+            padding: 16px 18px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        /* Agency login inside checkout tab — remove outer card border/bg */
+        .checkout-auth-tabbed .checkout-auth-option,
+        .checkout-auth-tabbed .checkout-agency-login {
+            border: none;
+            border-radius: 0;
+            padding: 16px 18px;
         }
 
         .checkout-auth-option h3 {
@@ -4368,6 +4657,212 @@
             color: #64748b;
             font-size: 0.85rem;
             margin-bottom: 2px;
+        }
+
+        /* ─── Order History ─────────────────────────────────── */
+
+        .order-history-page {
+            padding: 20px max(20px, calc((100% - 1200px) / 2));
+        }
+
+        .order-history-page .card {
+            max-width: 100%;
+        }
+
+        .order-history-empty {
+            text-align: center;
+            padding: 40px 20px;
+            color: #666;
+        }
+
+        .order-history-summary {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        .order-history-summary-card {
+            flex: 1;
+            min-width: 100px;
+            text-align: center;
+            padding: 14px 10px;
+            border-radius: 10px;
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+        }
+
+        .order-history-summary-count {
+            font-size: 1.6rem;
+            font-weight: 700;
+            color: #334155;
+        }
+
+        .order-history-summary-label {
+            font-size: 0.78rem;
+            color: #64748b;
+            margin-top: 2px;
+        }
+
+        .order-history-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.88rem;
+        }
+
+        .order-history-table thead th {
+            text-align: left;
+            padding: 10px 12px;
+            background: #f8fafc;
+            border-bottom: 2px solid #e2e8f0;
+            color: #64748b;
+            font-weight: 600;
+            font-size: 0.78rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .order-history-row {
+            cursor: pointer;
+            transition: background 0.12s;
+        }
+
+        .order-history-row td {
+            padding: 10px 12px;
+            border-bottom: 1px solid #f1f5f9;
+            vertical-align: middle;
+        }
+
+        .order-history-row:hover {
+            background: #f8fafc;
+        }
+
+        .order-history-row--expanded {
+            background: #f0f4ff;
+        }
+
+        .order-id-cell {
+            font-family: monospace;
+            font-size: 0.8rem;
+            color: #667eea;
+        }
+
+        .order-expand-icon {
+            color: #94a3b8;
+            font-size: 0.75rem;
+        }
+
+        .order-history-detail-row td {
+            padding: 0;
+            border-bottom: 2px solid #e2e8f0;
+        }
+
+        .order-history-detail {
+            padding: 16px 20px;
+            background: #fafbfe;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .order-history-detail h4 {
+            margin: 0 0 8px;
+            font-size: 0.85rem;
+            color: #475569;
+        }
+
+        .order-history-status-steps {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+
+        .order-status-step {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            font-size: 0.78rem;
+            color: #94a3b8;
+        }
+
+        .order-status-step--done {
+            color: #059669;
+        }
+
+        .order-status-step--current {
+            color: #667eea;
+            font-weight: 700;
+        }
+
+        .order-status-step-dot {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 22px;
+            height: 22px;
+            border-radius: 50%;
+            font-size: 0.7rem;
+            font-weight: 700;
+            background: #e2e8f0;
+            color: #64748b;
+        }
+
+        .order-status-step--done .order-status-step-dot {
+            background: #dcfce7;
+            color: #059669;
+        }
+
+        .order-status-step--current .order-status-step-dot {
+            background: #e0e7ff;
+            color: #667eea;
+        }
+
+        .order-history-item-detail {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 6px 0;
+            border-bottom: 1px solid #f1f5f9;
+        }
+
+        .order-history-item-material {
+            color: #94a3b8;
+            font-size: 0.8rem;
+        }
+
+        .order-history-item-price {
+            font-weight: 600;
+            color: #334155;
+        }
+
+        .order-history-tracking-number {
+            font-family: monospace;
+            font-size: 0.88rem;
+            color: #667eea;
+        }
+
+        .order-history-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        /* ─── Checkout Agency Login Card ────────────────────── */
+
+        .checkout-agency-login {
+            border: 2px solid #667eea;
+            background: #fafbfe;
+        }
+
+        .checkout-agency-login h3 {
+            color: #667eea !important;
+        }
+
+        .checkout-agency-login .login-widget-otp-hint {
+            font-size: 0.8rem;
+        }
+
+        .checkout-customer-info {
+            margin-bottom: 8px;
         }
 
     </style>

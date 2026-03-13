@@ -24,14 +24,38 @@ object PricePreview:
           case Language.En => "Total Price"
           case Language.Cs => "Celková cena"
         }),
-        div(
-          cls := "amount",
-          child.text <-- ProductBuilderViewModel.state.map { state =>
-            state.priceBreakdown match
-              case Some(breakdown) => formatMoney(breakdown.total, breakdown.currency)
-              case None => "0,00 Kč"
-          },
-        ),
+        // When customer logged in: show base price (strikethrough), customer price, and savings
+        child <-- ProductBuilderViewModel.state.combineWith(lang).map { case (state, l) =>
+          (state.priceBreakdown, state.basePriceBreakdown) match
+            case (Some(breakdown), Some(baseBreakdown)) =>
+              // Customer is logged in — show dual pricing
+              val savings = Money(baseBreakdown.total.value - breakdown.total.value)
+              val savingsPct = if baseBreakdown.total.value > BigDecimal(0) then
+                (savings.value * 100 / baseBreakdown.total.value).setScale(1, BigDecimal.RoundingMode.HALF_UP)
+              else BigDecimal(0)
+              div(
+                div(cls := "price-base-strikethrough",
+                  span(formatMoney(baseBreakdown.total, baseBreakdown.currency)),
+                ),
+                div(cls := "amount price-customer-price",
+                  l match
+                    case Language.En => s"Your price: ${formatMoney(breakdown.total, breakdown.currency)}"
+                    case Language.Cs => s"Vaše cena: ${formatMoney(breakdown.total, breakdown.currency)}",
+                ),
+                if savings.value > BigDecimal(0) then
+                  div(cls := "price-savings",
+                    l match
+                      case Language.En => s"You save: ${formatMoney(savings, breakdown.currency)} ($savingsPct%)"
+                      case Language.Cs => s"Ušetříte: ${formatMoney(savings, breakdown.currency)} ($savingsPct%)",
+                  )
+                else emptyNode,
+              )
+            case (Some(breakdown), None) =>
+              // No customer logged in — standard pricing
+              div(cls := "amount", formatMoney(breakdown.total, breakdown.currency))
+            case _ =>
+              div(cls := "amount", "0,00 Kč")
+        },
       ),
 
       // Weight display (shown when weight can be calculated)

@@ -2,7 +2,7 @@ package mpbuilder.ui
 
 import com.raquo.laminar.api.L.*
 import mpbuilder.ui.calendar.CalendarBuilderApp
-import mpbuilder.ui.components.CheckoutView
+import mpbuilder.ui.components.{CheckoutView, LoginWidget, OrderHistoryView}
 import mpbuilder.ui.manufacturing.ManufacturingApp
 import mpbuilder.ui.catalog.CatalogEditorApp
 import mpbuilder.ui.customers.CustomerManagementApp
@@ -16,6 +16,7 @@ object AppRoute {
   case object Manufacturing extends AppRoute
   case object CatalogEditor extends AppRoute
   case object CustomerManagement extends AppRoute
+  case object OrderHistory extends AppRoute
 }
 
 object AppRouter {
@@ -42,15 +43,8 @@ object AppRouter {
           span(cls := "top-bar-logo", "Product Builder"),
           div(cls := "top-bar-spacer"),
 
-          // User indicator
-          div(
-            cls := "top-bar-user",
-            span(cls := "top-bar-user-icon", "👤"),
-            span(child.text <-- lang.map {
-              case Language.En => "Guest"
-              case Language.Cs => "Host"
-            }),
-          ),
+          // Login widget — replaces the generic user indicator
+          LoginWidget(),
 
           // Language selector
           div(
@@ -166,6 +160,7 @@ object AppRouter {
         case AppRoute.Manufacturing   => ManufacturingApp()
         case AppRoute.CatalogEditor   => CatalogEditorApp()
         case AppRoute.CustomerManagement => CustomerManagementApp()
+        case AppRoute.OrderHistory    => OrderHistoryView()
       }
     )
   }
