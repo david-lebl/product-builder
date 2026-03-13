@@ -1,7 +1,7 @@
 package mpbuilder.ui.components
 
 import com.raquo.laminar.api.L.*
-import mpbuilder.ui.{ProductBuilderViewModel, AppRouter, AppRoute, BuilderState}
+import mpbuilder.ui.{ProductBuilderViewModel, AppRouter, AppRoute, BuilderState, LoginState}
 import mpbuilder.domain.model.*
 import mpbuilder.domain.model.CheckoutStep.*
 import mpbuilder.domain.pricing.{Money, Currency}
@@ -57,13 +57,20 @@ object CheckoutView:
   // ── Step indicator ─────────────────────────────────────────────────────────
 
   private def checkoutStepBar(current: CheckoutStep, l: Language): Element =
-    val steps: List[(CheckoutStep, String, String)] = List(
+    val isLoggedIn = ProductBuilderViewModel.stateVar.now().loginState match
+      case _: LoginState.LoggedIn => true
+      case _                      => false
+
+    val allSteps: List[(CheckoutStep, String, String)] = List(
       (Authentication, "1", if l == Language.Cs then "Přihlášení"   else "Sign In"),
       (ContactDetails, "2", if l == Language.Cs then "Kontakt"      else "Contact"),
       (Delivery,       "3", if l == Language.Cs then "Doprava"      else "Delivery"),
       (Payment,        "4", if l == Language.Cs then "Platba"       else "Payment"),
       (Summary,        "5", if l == Language.Cs then "Shrnutí"      else "Summary"),
     )
+
+    // When logged in, skip the Authentication step
+    val steps = if isLoggedIn then allSteps.filterNot(_._1 == Authentication) else allSteps
     val ordinal = current.ordinal
     div(
       cls := "checkout-steps",
@@ -706,6 +713,31 @@ object CheckoutView:
           ),
         )
       else emptyNode,
+
+      // Customer tier and discount info (shown when logged in)
+      s.loginState match
+        case LoginState.LoggedIn(customer, _) =>
+          div(
+            cls := "checkout-customer-info",
+            h3(cls := "checkout-section-title",
+              if l == Language.Cs then "Zákaznický účet" else "Customer Account"
+            ),
+            div(cls := "checkout-summary-row",
+              span(if l == Language.Cs then "Firma:" else "Company:"),
+              span(customer.companyInfo.map(_.companyName).getOrElse("—")),
+            ),
+            div(cls := "checkout-summary-row",
+              span(if l == Language.Cs then "Úroveň:" else "Tier:"),
+              span(customer.tier.displayName(l)),
+            ),
+            customer.pricing.globalDiscount.map { pct =>
+              div(cls := "checkout-summary-row",
+                span(if l == Language.Cs then "Globální sleva:" else "Global discount:"),
+                span(s"${pct.value}%"),
+              )
+            }.getOrElse(emptyNode),
+          )
+        case _ => emptyNode,
 
       // Discount code — editable in summary
       h3(cls := "checkout-section-title",
