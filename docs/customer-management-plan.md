@@ -607,6 +607,91 @@ With Option B (modified pricelist), comparison is done by computing two separate
 
 ---
 
+## Phase 9 — Catalog Configuration UI with JSON Persistence ✅
+
+**Goal:** Provide an admin UI for creating and editing a custom product catalog, compatibility rules, and pricelists — with full JSON export/import for persistence. This enables non-developers to configure the system without code changes.
+
+**Dependencies:** None (standalone, parallel with all other phases)
+
+### 9.1 JSON Codec Infrastructure (Domain)
+
+**File: `codec/DomainCodecs.scala`**
+
+Added `zio-json` (v0.7.3) to the cross-compiled domain module and created comprehensive JSON codecs for all domain types:
+
+- **Opaque type IDs** — `CategoryId`, `MaterialId`, `FinishId`, `PrintingMethodId`, `ConfigurationId` (encoded as JSON strings)
+- **Enums** — `MaterialFamily`, `MaterialProperty`, `FinishType`, `FinishSide`, `ComponentRole`, `PrintingProcessType`, `SpecKind`, `Currency`, `InkType`, `Orientation`, `FoldType`, `BindingMethod` (encoded as string names)
+- **Value objects** — `Money` (BigDecimal), `PaperWeight` (Int), `Quantity` (Int), `LocalizedString` (Map[String,String])
+- **Entities** — `Material`, `Finish`, `PrintingMethod`, `ProductCategory`, `ComponentTemplate`
+- **Rules** — `SpecPredicate`, `ConfigurationPredicate` (recursive ADT with And/Or/Not), `CompatibilityRule` (14 variants), `CompatibilityRuleset`
+- **Pricing** — `PricingRule` (18 variants), `Pricelist`
+- **Catalog** — `ProductCatalog` (with ID-keyed map codecs)
+- **Export container** — `CatalogExport` (catalog + ruleset + pricelists)
+
+**Tests: 27 round-trip tests** covering IDs, enums, value objects, entities, rules (including nested predicates), pricing rules, and full catalog/export serialization with sample data.
+
+### 9.2 Abstract ADT-Derived Form Components
+
+**File: `catalog/FormComponents.scala`**
+
+Reusable form components that leverage Scala's enum system for type-safe UI generation:
+
+| Component | Description |
+|-----------|-------------|
+| `textField` | Simple labeled text input |
+| `numberField` | Numeric text input |
+| `optionalNumberField` | Number input with `Option[Int]` binding |
+| `enumSelect[E]` | Dropdown for any Scala 3 enum (optional selection) |
+| `enumSelectRequired[E]` | Dropdown for any Scala 3 enum (required selection) |
+| `enumCheckboxSet[E]` | Checkbox set for selecting `Set[E]` from enum values |
+| `idCheckboxSet[Id]` | Checkbox set for selecting `Set[Id]` from available entities |
+| `localizedStringEditor` | Dual-language (EN/CS) text inputs for `LocalizedString` |
+| `moneyField` | BigDecimal input for `Money` values |
+| `actionButton` / `dangerButton` | Styled action buttons |
+| `sectionHeader` | Section heading |
+
+These components are generic — `enumSelect`, `enumCheckboxSet`, and `idCheckboxSet` work with any Scala 3 enum or opaque type ID, reducing boilerplate across all editor views.
+
+### 9.3 Catalog Editor UI
+
+**Architecture:**
+
+```
+CatalogEditorApp.scala          — Main view with sidebar navigation
+CatalogEditorModel.scala        — CatalogSection enum, EditState ADT, CatalogEditorState
+CatalogEditorViewModel.scala    — Reactive state (Var[CatalogEditorState]) with CRUD operations
+views/
+  CategoryEditorView.scala      — Categories with nested ComponentTemplate editors
+  MaterialEditorView.scala      — Materials with family/weight/properties
+  FinishEditorView.scala        — Finishes with type/side selection
+  PrintingMethodEditorView.scala — Printing methods with process type/max colors
+  RulesEditorView.scala         — Compatibility rules with per-type form editors
+  PricelistEditorView.scala     — Multi-pricelist management with per-type pricing rule editors
+  ExportImportView.scala        — JSON export/import with catalog statistics
+```
+
+**Sections (7 sidebar tabs):**
+
+1. **📦 Categories** — CRUD with nested `ComponentTemplate` editing (role, allowed materials/finishes, optional flag)
+2. **📄 Materials** — CRUD with family, weight, material properties
+3. **✨ Finishes** — CRUD with finish type and side
+4. **🖨 Printing Methods** — CRUD with process type and max color count
+5. **📏 Rules** — Add/edit/remove compatibility rules; rule type selector with contextual form fields for each of the 14 rule variants
+6. **💰 Pricelist** — Multi-pricelist support (currency tabs), add/edit/remove pricing rules for each of the 18 rule variants
+7. **📤 Export/Import** — Export current state to JSON, import from JSON, load sample data, catalog statistics display
+
+**Route:** `AppRoute.CatalogEditor` accessible via "Catalog Editor" / "Editor katalogu" navigation button.
+
+**Key design decisions:**
+- **In-memory state** — All edits are held in `Var[CatalogEditorState]` until exported. No auto-persistence.
+- **Sample data loading** — "Load Sample Data" button populates with the full `SampleCatalog` + `SampleRules` + `SamplePricelist` for quick testing.
+- **Rule editors are exhaustive** — All 14 compatibility rule types and 18 pricing rule types have form editors with appropriate field sets.
+- **No upstream dependency** — The catalog editor is fully standalone; it does not modify the live `ProductBuilderViewModel.catalog`.
+
+**Estimated: ~1,500 lines (UI) + ~200 lines (codecs) + ~250 lines (tests)**
+
+---
+
 ## Phase Summary & Dependencies
 
 ```
@@ -627,6 +712,9 @@ Phase 7: Customer-Aware Product Builder ◄──────┘  │
           (Login + Pricing in Configurator)        │
                                                    │
 Phase 8: Order History View ◄──────────────────────┘
+
+Phase 9: Catalog Configuration UI ─── (standalone, parallel)
+          (JSON Persistence)
 ```
 
 | Phase | Domain | UI | Tests | Dependencies | Status |
@@ -639,8 +727,9 @@ Phase 8: Order History View ◄────────────────�
 | 6 — Customer Mgmt UI | — | `CustomersView`, `DiscountCodesView` | — | Phases 1-5 | |
 | 7 — Builder Integration | — | `LoginWidget`, PricePreview, Checkout, `CustomerType` migration | — | Phases 5, 6 | |
 | 8 — Order History | — | `OrderHistoryView` | — | Phase 7 | |
+| 9 — Catalog Config UI | `DomainCodecs` (zio-json) | `CatalogEditorApp`, `FormComponents`, 7 editor views | 27 | None (parallel) | ✅ Done |
 
-**Total estimated new tests: ~70-90**
+**Total estimated new tests: ~100-120** (including 27 codec tests from Phase 9)
 
 ---
 
@@ -695,6 +784,24 @@ mpbuilder.domain
     ├── SampleCustomers.scala       [NEW — Phase 1]
     ├── SampleProductionCosts.scala [NEW — Phase 3]
     └── SampleDiscountCodes.scala   [NEW — Phase 4]
+├── codec/
+│   └── DomainCodecs.scala          [NEW — Phase 9]
+│       ├── JSON codecs for all domain types (zio-json)
+│       └── CatalogExport (catalog + ruleset + pricelists)
+
+mpbuilder.ui.catalog                [NEW — Phase 9]
+├── CatalogEditorApp.scala          (main editor view with sidebar)
+├── CatalogEditorModel.scala        (CatalogSection, EditState, CatalogEditorState)
+├── CatalogEditorViewModel.scala    (reactive CRUD + JSON import/export)
+├── FormComponents.scala            (ADT-derived form components)
+└── views/
+    ├── CategoryEditorView.scala
+    ├── MaterialEditorView.scala
+    ├── FinishEditorView.scala
+    ├── PrintingMethodEditorView.scala
+    ├── RulesEditorView.scala
+    ├── PricelistEditorView.scala
+    └── ExportImportView.scala
 ```
 
 ---

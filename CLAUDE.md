@@ -38,6 +38,18 @@ This is a DDD (Domain-Driven Design) product configuration system for the printi
 - **`CalendarBuilderApp.scala`** — Main visual editor view with product type/format selectors, sidebar tabs, and layout.
 - **`components/`** — `CalendarPageCanvas` (interactive canvas with drag/resize/rotate), `ElementListEditor` (element management with type-specific form editors), `BackgroundEditor` (page background settings), `PageNavigation` (horizontal scrollable page strip).
 
+### Package layout: `mpbuilder.ui.catalog` (Catalog Editor)
+
+- **`CatalogEditorApp.scala`** — Main editor view with sidebar navigation (7 sections).
+- **`CatalogEditorModel.scala`** — `CatalogSection` enum, `EditState` ADT, `CatalogEditorState` aggregate.
+- **`CatalogEditorViewModel.scala`** — Reactive state management with CRUD for all catalog entities, JSON import/export via `DomainCodecs`.
+- **`FormComponents.scala`** — ADT-derived form components: `enumSelect`, `enumSelectRequired`, `enumCheckboxSet`, `idCheckboxSet`, `localizedStringEditor`, `moneyField`.
+- **`views/`** — Per-entity editor views: `CategoryEditorView`, `MaterialEditorView`, `FinishEditorView`, `PrintingMethodEditorView`, `RulesEditorView`, `PricelistEditorView`, `ExportImportView`.
+
+### Package layout: `mpbuilder.domain.codec`
+
+- **`DomainCodecs.scala`** — JSON codecs (zio-json) for all domain types: IDs, enums, value objects, entities, rules (14 variants), predicates (recursive ADT), pricing rules (18 variants), catalog, pricelist. Includes `CatalogExport` container type.
+
 ### Key data flow
 
 `ConfigurationRequest` → resolve IDs from `ProductCatalog` → `ConfigurationValidator.validate` (structural + rules) → `ProductConfiguration` → `PriceCalculator.calculate` (config + pricelist) → `PriceBreakdown`
