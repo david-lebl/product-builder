@@ -39,9 +39,12 @@ object CheckoutView:
             )
 
           case Some(info) =>
+            val isLoggedIn = s.loginState match
+              case _: LoginState.LoggedIn => true
+              case _                      => false
             div(
               // Step indicator
-              checkoutStepBar(info.step, l),
+              checkoutStepBar(info.step, l, isLoggedIn),
 
               // Step content
               info.step match
@@ -56,11 +59,7 @@ object CheckoutView:
 
   // ── Step indicator ─────────────────────────────────────────────────────────
 
-  private def checkoutStepBar(current: CheckoutStep, l: Language): Element =
-    val isLoggedIn = ProductBuilderViewModel.stateVar.now().loginState match
-      case _: LoginState.LoggedIn => true
-      case _                      => false
-
+  private def checkoutStepBar(current: CheckoutStep, l: Language, isLoggedIn: Boolean): Element =
     val allSteps: List[(CheckoutStep, String, String)] = List(
       (Authentication, "1", if l == Language.Cs then "Přihlášení"   else "Sign In"),
       (ContactDetails, "2", if l == Language.Cs then "Kontakt"      else "Contact"),
