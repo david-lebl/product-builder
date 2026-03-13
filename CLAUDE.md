@@ -38,13 +38,17 @@ This is a DDD (Domain-Driven Design) product configuration system for the printi
 - **`CalendarBuilderApp.scala`** — Main visual editor view with product type/format selectors, sidebar tabs, and layout.
 - **`components/`** — `CalendarPageCanvas` (interactive canvas with drag/resize/rotate), `ElementListEditor` (element management with type-specific form editors), `BackgroundEditor` (page background settings), `PageNavigation` (horizontal scrollable page strip).
 
+### Package layout: `mpbuilder.uikit.form` (UI Framework — Form Components)
+
+- **`FormComponents.scala`** — Generic ADT-derived form components: `textField`, `numberField`, `optionalNumberField`, `enumSelect`, `enumSelectRequired`, `enumCheckboxSet`, `idCheckboxSet`, `actionButton`, `dangerButton`, `sectionHeader`. Domain-agnostic — works with any Scala 3 enum or opaque type.
+
 ### Package layout: `mpbuilder.ui.catalog` (Catalog Editor)
 
-- **`CatalogEditorApp.scala`** — Main editor view with sidebar navigation (7 sections).
+- **`CatalogEditorApp.scala`** — Main editor view with ManufacturingApp-style dark sidebar navigation (7 sections). Sample catalog + CZK pricelist loaded by default.
 - **`CatalogEditorModel.scala`** — `CatalogSection` enum, `EditState` ADT, `CatalogEditorState` aggregate.
 - **`CatalogEditorViewModel.scala`** — Reactive state management with CRUD for all catalog entities, JSON import/export via `DomainCodecs`.
-- **`FormComponents.scala`** — ADT-derived form components: `enumSelect`, `enumSelectRequired`, `enumCheckboxSet`, `idCheckboxSet`, `localizedStringEditor`, `moneyField`.
-- **`views/`** — Per-entity editor views: `CategoryEditorView`, `MaterialEditorView`, `FinishEditorView`, `PrintingMethodEditorView`, `RulesEditorView`, `PricelistEditorView`, `ExportImportView`.
+- **`FormComponents.scala`** — Re-exports generic components from ui-framework and adds domain-specific: `localizedStringEditor`, `moneyField`.
+- **`views/`** — Per-entity editor views using `SplitTableView`: `CategoryEditorView`, `MaterialEditorView`, `FinishEditorView`, `PrintingMethodEditorView`, `RulesEditorView`, `PricelistEditorView`, `ExportImportView`.
 
 ### Package layout: `mpbuilder.domain.codec`
 

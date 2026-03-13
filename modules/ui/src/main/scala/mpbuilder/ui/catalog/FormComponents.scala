@@ -7,8 +7,9 @@ import mpbuilder.domain.pricing.*
 
 /** Domain-specific form components that extend the generic ui-framework FormComponents.
   *
-  * Generic components (textField, numberField, enumSelect, enumCheckboxSet, idCheckboxSet,
-  * actionButton, dangerButton, sectionHeader) are re-exported from `mpbuilder.uikit.form.FormComponents`.
+  * Generic components (textField, numberField, optionalNumberField, enumSelect, enumSelectRequired,
+  * enumCheckboxSet, idCheckboxSet, actionButton, dangerButton, sectionHeader) are re-exported
+  * from `mpbuilder.uikit.form.FormComponents`.
   *
   * This object adds domain-aware components: `localizedStringEditor` and `moneyField`.
   */
