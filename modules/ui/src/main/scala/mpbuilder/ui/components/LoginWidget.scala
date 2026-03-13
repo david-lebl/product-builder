@@ -34,12 +34,16 @@ object LoginWidget:
       },
     )
 
+  /** Stages of the checkout agency login mini-flow */
+  private enum CheckoutLoginStage:
+    case Identifier, Otp
+
   /** Agency login form that can be embedded in the checkout view. */
   def checkoutAgencyLogin(info: CheckoutInfo, l: Language): Element =
     val identifierVar = Var("")
     val typeVar = Var(IdentifierType.Email)
     val otpVar = Var("")
-    val stageVar: Var[String] = Var("identifier") // "identifier" | "otp"
+    val stageVar: Var[CheckoutLoginStage] = Var(CheckoutLoginStage.Identifier)
     val errorVar: Var[Option[String]] = Var(None)
     val otpHintVar: Var[Option[String]] = Var(None)
 
@@ -52,7 +56,7 @@ object LoginWidget:
       ),
 
       child <-- stageVar.signal.map {
-        case "identifier" =>
+        case CheckoutLoginStage.Identifier =>
           div(
             select(
               value <-- typeVar.signal.map(_.toString),
@@ -88,14 +92,14 @@ object LoginWidget:
                     ))
                     otpHintVar.set(Some(otp.token))
                     errorVar.set(None)
-                    stageVar.set("otp")
+                    stageVar.set(CheckoutLoginStage.Otp)
                   },
                 )
               },
             ),
           )
 
-        case _ => // "otp"
+        case CheckoutLoginStage.Otp =>
           val currentOtpToken = ProductBuilderViewModel.stateVar.now().loginState match
             case LoginState.EnteringOtp(_, token, _, _) => Some(token)
             case _ => None
@@ -131,9 +135,7 @@ object LoginWidget:
               onClick --> { _ =>
                 currentOtpToken match
                   case Some(otpToken) =>
-                    // Accept empty OTP as valid (mock)
-                    val input = if otpVar.now().trim.isEmpty then otpToken.token else otpVar.now()
-                    ProductBuilderViewModel.submitOtp(input)
+                    ProductBuilderViewModel.submitOtp(otpVar.now())
                     // Check if login succeeded
                     ProductBuilderViewModel.stateVar.now().loginState match
                       case LoginState.LoggedIn(customer, _) =>
@@ -161,7 +163,7 @@ object LoginWidget:
               cls := "btn-secondary",
               if l == Language.Cs then "← Zpět" else "← Back",
               onClick --> { _ =>
-                stageVar.set("identifier")
+                stageVar.set(CheckoutLoginStage.Identifier)
                 errorVar.set(None)
                 otpVar.set("")
               },
@@ -324,8 +326,7 @@ object LoginWidget:
             case Language.En => "Verify →"
             case Language.Cs => "Ověřit →",
           onClick --> { _ =>
-            val input = if otpVar.now().trim.isEmpty then otpToken.token else otpVar.now()
-            ProductBuilderViewModel.submitOtp(input)
+            ProductBuilderViewModel.submitOtp(otpVar.now())
             ProductBuilderViewModel.stateVar.now().loginState match
               case _: LoginState.LoggedIn => popupOpen.set(false)
               case _ => ()
