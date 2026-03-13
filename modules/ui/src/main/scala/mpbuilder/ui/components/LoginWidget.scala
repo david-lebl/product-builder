@@ -176,6 +176,7 @@ object LoginWidget:
 
   private def guestView(l: Language): Element =
     div(
+      cls := "login-widget-guest-row",
       div(
         cls := "login-widget-guest",
         span(cls := "login-widget-guest-icon", "👤"),
@@ -199,6 +200,7 @@ object LoginWidget:
 
   private def guestWithPopup(popup: Element, l: Language): Element =
     div(
+      cls := "login-widget-guest-row",
       div(
         cls := "login-widget-guest",
         span(cls := "login-widget-guest-icon", "👤"),

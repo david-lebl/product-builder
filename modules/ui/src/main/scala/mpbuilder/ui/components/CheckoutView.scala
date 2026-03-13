@@ -90,9 +90,13 @@ object CheckoutView:
 
   // ── Step 1: Authentication ──────────────────────────────────────────────────
 
+  private val TabSignIn = "signin"
+  private val TabAgency = "agency"
+
   private def stepAuthentication(info: CheckoutInfo, l: Language): Element =
     val loginEmailVar    = Var(info.loginEmail)
     val loginPasswordVar = Var(info.loginPassword)
+    val activeTabVar: Var[String] = Var(TabSignIn)
 
     div(
       cls := "checkout-card card",
@@ -104,7 +108,7 @@ object CheckoutView:
       div(
         cls := "checkout-auth-options",
 
-        // Guest option
+        // ── Card 1: Guest ──
         div(
           cls := "checkout-auth-option",
           h3(if l == Language.Cs then "Pokračovat jako host" else "Continue as Guest"),
@@ -126,46 +130,73 @@ object CheckoutView:
 
         div(cls := "checkout-auth-divider", if l == Language.Cs then "nebo" else "or"),
 
-        // Registered user login
+        // ── Card 2: Sign In (tabbed: registered + agency) ──
         div(
-          cls := "checkout-auth-option",
-          h3(if l == Language.Cs then "Přihlásit se" else "Sign In"),
-          p(cls := "checkout-auth-desc",
-            if l == Language.Cs then "Přihlaste se ke svému účtu pro rychlejší objednávku a přístup k historii objednávek."
-            else "Sign in to your account for a faster checkout and access to your order history."
+          cls := "checkout-auth-option checkout-auth-tabbed",
+
+          // Tab bar
+          div(
+            cls := "checkout-auth-tabs",
+            button(
+              cls <-- activeTabVar.signal.map(t =>
+                if t == TabSignIn then "checkout-auth-tab checkout-auth-tab--active"
+                else "checkout-auth-tab"
+              ),
+              if l == Language.Cs then "Přihlásit se" else "Sign In",
+              onClick --> { _ => activeTabVar.set(TabSignIn) },
+            ),
+            button(
+              cls <-- activeTabVar.signal.map(t =>
+                if t == TabAgency then "checkout-auth-tab checkout-auth-tab--active"
+                else "checkout-auth-tab"
+              ),
+              if l == Language.Cs then "🔑 Agentura" else "🔑 Agency",
+              onClick --> { _ => activeTabVar.set(TabAgency) },
+            ),
           ),
-          TextField(
-            label = Val(if l == Language.Cs then "E-mail" else "Email"),
-            value = loginEmailVar.signal,
-            onInput = loginEmailVar.writer,
-            inputType = "email",
-            placeholder = Val(if l == Language.Cs then "vas@email.cz" else "your@email.com"),
-          ),
-          TextField(
-            label = Val(if l == Language.Cs then "Heslo" else "Password"),
-            value = loginPasswordVar.signal,
-            onInput = loginPasswordVar.writer,
-            inputType = "password",
-            placeholder = Val("••••••••"),
-          ),
-          button(
-            cls := "checkout-btn",
-            if l == Language.Cs then "Přihlásit se →" else "Sign In →",
-            onClick --> { _ =>
-              ProductBuilderViewModel.updateCheckoutInfo(info.copy(
-                customerType = CustomerType.Registered,
-                loginEmail = loginEmailVar.now(),
-                loginPassword = loginPasswordVar.now(),
-              ))
-              ProductBuilderViewModel.checkoutNextStep()
-            },
-          ),
+
+          // Tab content
+          child <-- activeTabVar.signal.map {
+
+            case TabAgency =>
+              LoginWidget.checkoutAgencyLogin(info, l)
+
+            case _ => // TabSignIn
+              div(
+                cls := "checkout-auth-tab-content",
+                p(cls := "checkout-auth-desc",
+                  if l == Language.Cs then "Přihlaste se ke svému účtu pro rychlejší objednávku a přístup k historii objednávek."
+                  else "Sign in to your account for a faster checkout and access to your order history."
+                ),
+                TextField(
+                  label = Val(if l == Language.Cs then "E-mail" else "Email"),
+                  value = loginEmailVar.signal,
+                  onInput = loginEmailVar.writer,
+                  inputType = "email",
+                  placeholder = Val(if l == Language.Cs then "vas@email.cz" else "your@email.com"),
+                ),
+                TextField(
+                  label = Val(if l == Language.Cs then "Heslo" else "Password"),
+                  value = loginPasswordVar.signal,
+                  onInput = loginPasswordVar.writer,
+                  inputType = "password",
+                  placeholder = Val("••••••••"),
+                ),
+                button(
+                  cls := "checkout-btn",
+                  if l == Language.Cs then "Přihlásit se →" else "Sign In →",
+                  onClick --> { _ =>
+                    ProductBuilderViewModel.updateCheckoutInfo(info.copy(
+                      customerType = CustomerType.Registered,
+                      loginEmail = loginEmailVar.now(),
+                      loginPassword = loginPasswordVar.now(),
+                    ))
+                    ProductBuilderViewModel.checkoutNextStep()
+                  },
+                ),
+              )
+          },
         ),
-
-        div(cls := "checkout-auth-divider", if l == Language.Cs then "nebo" else "or"),
-
-        // Agency OTP login
-        LoginWidget.checkoutAgencyLogin(info, l),
       ),
     )
 
