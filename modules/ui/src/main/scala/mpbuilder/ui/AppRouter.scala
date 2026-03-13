@@ -4,6 +4,7 @@ import com.raquo.laminar.api.L.*
 import mpbuilder.ui.calendar.CalendarBuilderApp
 import mpbuilder.ui.components.CheckoutView
 import mpbuilder.ui.manufacturing.ManufacturingApp
+import mpbuilder.ui.catalog.CatalogEditorApp
 import mpbuilder.domain.model.Language
 
 sealed trait AppRoute
@@ -12,6 +13,7 @@ object AppRoute {
   case object CalendarBuilder extends AppRoute
   case object Checkout extends AppRoute
   case object Manufacturing extends AppRoute
+  case object CatalogEditor extends AppRoute
 }
 
 object AppRouter {
@@ -88,7 +90,7 @@ object AppRouter {
         // Navigation bar — hidden during checkout
         div(
           cls <-- currentRoute.map {
-            case AppRoute.Checkout | AppRoute.Manufacturing => "app-navigation app-navigation--hidden"
+            case AppRoute.Checkout | AppRoute.Manufacturing | AppRoute.CatalogEditor => "app-navigation app-navigation--hidden"
             case _                                          => "app-navigation"
           },
           button(
@@ -127,6 +129,18 @@ object AppRouter {
             },
             onClick --> { _ => navigateTo(AppRoute.Manufacturing) }
           ),
+          button(
+            cls := "nav-link",
+            cls <-- currentRoute.map {
+              case AppRoute.CatalogEditor => "active"
+              case _ => ""
+            },
+            child.text <-- lang.map {
+              case Language.En => "Catalog Editor"
+              case Language.Cs => "Editor katalogu"
+            },
+            onClick --> { _ => navigateTo(AppRoute.CatalogEditor) }
+          ),
         ),
       ),
 
@@ -136,6 +150,7 @@ object AppRouter {
         case AppRoute.CalendarBuilder => CalendarBuilderApp()
         case AppRoute.Checkout        => CheckoutView()
         case AppRoute.Manufacturing   => ManufacturingApp()
+        case AppRoute.CatalogEditor   => CatalogEditorApp()
       }
     )
   }

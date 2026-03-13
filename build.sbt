@@ -38,6 +38,7 @@ lazy val domain = crossProject(JVMPlatform, JSPlatform)
     libraryDependencies ++= Seq(
       "dev.zio" %%% "zio"          % "2.1.16",
       "dev.zio" %%% "zio-prelude"  % "1.0.0-RC39",
+      "dev.zio" %%% "zio-json"     % "0.7.3",
       "dev.zio" %%% "zio-test"     % "2.1.16" % Test,
       "dev.zio" %%% "zio-test-sbt" % "2.1.16" % Test,
     ),
