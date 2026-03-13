@@ -113,10 +113,16 @@ object PricelistEditorView:
     val backColorVar = Var(extractBackColor(existing).map(_.toString).getOrElse("4"))
     val foldTypeVar = Var(extractFoldType(existing).getOrElse(FoldType.Half))
     val bindingMethodVar = Var(extractBindingMethod(existing).getOrElse(BindingMethod.SaddleStitch))
+    val sheetWidthVar = Var(extractSheetWidth(existing).map(_.toString).getOrElse("700"))
+    val sheetHeightVar = Var(extractSheetHeight(existing).map(_.toString).getOrElse("1000"))
+    val bleedVar = Var(extractBleed(existing).map(_.toString).getOrElse("3"))
+    val gutterVar = Var(extractGutter(existing).map(_.toString).getOrElse("2"))
 
     val ruleTypes = List(
-      "MaterialBasePrice", "MaterialAreaPrice", "FinishSurcharge", "FinishTypeSurcharge",
-      "PrintingProcessSurcharge", "CategorySurcharge", "QuantityTier", "InkConfigurationFactor",
+      "MaterialBasePrice", "MaterialAreaPrice", "MaterialSheetPrice",
+      "FinishSurcharge", "FinishTypeSurcharge",
+      "PrintingProcessSurcharge", "CategorySurcharge",
+      "QuantityTier", "SheetQuantityTier", "InkConfigurationFactor",
       "CuttingSurcharge", "FinishTypeSetupFee", "FinishSetupFee", "FoldTypeSurcharge",
       "BindingMethodSurcharge", "FoldTypeSetupFee", "BindingMethodSetupFee", "MinimumOrderPrice",
     )
@@ -139,8 +145,17 @@ object PricelistEditorView:
       // Contextual fields based on rule type
       child <-- ruleTypeVar.signal.map { rt =>
         div(
-          if Set("MaterialBasePrice", "MaterialAreaPrice").contains(rt) then
+          if Set("MaterialBasePrice", "MaterialAreaPrice", "MaterialSheetPrice").contains(rt) then
             FormComponents.textField("Material ID", materialIdVar.signal, materialIdVar.writer)
+          else emptyNode,
+
+          if rt == "MaterialSheetPrice" then
+            div(
+              FormComponents.numberField("Sheet Width (mm)", sheetWidthVar.signal, sheetWidthVar.writer),
+              FormComponents.numberField("Sheet Height (mm)", sheetHeightVar.signal, sheetHeightVar.writer),
+              FormComponents.numberField("Bleed (mm)", bleedVar.signal, bleedVar.writer),
+              FormComponents.numberField("Gutter (mm)", gutterVar.signal, gutterVar.writer),
+            )
           else emptyNode,
 
           if Set("FinishSurcharge", "FinishSetupFee").contains(rt) then
@@ -159,10 +174,10 @@ object PricelistEditorView:
             FormComponents.textField("Category ID", categoryIdVar.signal, categoryIdVar.writer)
           else emptyNode,
 
-          if Set("QuantityTier").contains(rt) then
+          if Set("QuantityTier", "SheetQuantityTier").contains(rt) then
             div(
-              FormComponents.numberField("Min Quantity", minQtyVar.signal, minQtyVar.writer),
-              FormComponents.numberField("Max Quantity (empty = ∞)", maxQtyVar.signal, maxQtyVar.writer),
+              FormComponents.numberField(if rt == "SheetQuantityTier" then "Min Sheets" else "Min Quantity", minQtyVar.signal, minQtyVar.writer),
+              FormComponents.numberField(if rt == "SheetQuantityTier" then "Max Sheets (empty = ∞)" else "Max Quantity (empty = ∞)", maxQtyVar.signal, maxQtyVar.writer),
               FormComponents.numberField("Multiplier", multiplierVar.signal, multiplierVar.writer),
             )
           else emptyNode,
@@ -183,7 +198,7 @@ object PricelistEditorView:
             FormComponents.enumSelectRequired[BindingMethod]("Binding Method", BindingMethod.values, bindingMethodVar.signal, bindingMethodVar.writer)
           else emptyNode,
 
-          if !Set("QuantityTier", "InkConfigurationFactor").contains(rt) then
+          if !Set("QuantityTier", "SheetQuantityTier", "InkConfigurationFactor").contains(rt) then
             FormComponents.numberField("Amount", amountVar.signal, amountVar.writer)
           else emptyNode,
         )
@@ -192,7 +207,14 @@ object PricelistEditorView:
       div(
         cls := "form-actions",
         FormComponents.actionButton("Save", () => {
-          buildPricingRule(ruleTypeVar.now(), materialIdVar.now(), finishIdVar.now(), amountVar.now(), finishTypeVar.now(), processTypeVar.now(), categoryIdVar.now(), minQtyVar.now(), maxQtyVar.now(), multiplierVar.now(), frontColorVar.now(), backColorVar.now(), foldTypeVar.now(), bindingMethodVar.now()).foreach { rule =>
+          buildPricingRule(
+            ruleTypeVar.now(), materialIdVar.now(), finishIdVar.now(), amountVar.now(),
+            finishTypeVar.now(), processTypeVar.now(), categoryIdVar.now(),
+            minQtyVar.now(), maxQtyVar.now(), multiplierVar.now(),
+            frontColorVar.now(), backColorVar.now(),
+            foldTypeVar.now(), bindingMethodVar.now(),
+            sheetWidthVar.now(), sheetHeightVar.now(), bleedVar.now(), gutterVar.now(),
+          ).foreach { rule =>
             if existing.isDefined then CatalogEditorViewModel.updatePricingRule(index, rule)
             else CatalogEditorViewModel.addPricingRule(rule)
           }
@@ -209,12 +231,22 @@ object PricelistEditorView:
     minQty: String, maxQty: String, multiplier: String,
     frontColor: String, backColor: String,
     foldType: FoldType, bindingMethod: BindingMethod,
+    sheetWidth: String, sheetHeight: String, bleed: String, gutter: String,
   ): Option[PricingRule] =
     val money = scala.util.Try(Money(BigDecimal(amount))).toOption
     val mult = scala.util.Try(BigDecimal(multiplier)).toOption
     ruleType match
       case "MaterialBasePrice" => money.filter(_ => materialId.nonEmpty).map(m => PricingRule.MaterialBasePrice(MaterialId.unsafe(materialId), m))
       case "MaterialAreaPrice" => money.filter(_ => materialId.nonEmpty).map(m => PricingRule.MaterialAreaPrice(MaterialId.unsafe(materialId), m))
+      case "MaterialSheetPrice" =>
+        for
+          m <- money
+          if materialId.nonEmpty
+          sw <- sheetWidth.toDoubleOption
+          sh <- sheetHeight.toDoubleOption
+          bl <- bleed.toDoubleOption
+          gt <- gutter.toDoubleOption
+        yield PricingRule.MaterialSheetPrice(MaterialId.unsafe(materialId), m, sw, sh, bl, gt)
       case "FinishSurcharge" => money.filter(_ => finishId.nonEmpty).map(m => PricingRule.FinishSurcharge(FinishId.unsafe(finishId), m))
       case "FinishTypeSurcharge" => money.map(m => PricingRule.FinishTypeSurcharge(finishType, m))
       case "PrintingProcessSurcharge" => money.map(m => PricingRule.PrintingProcessSurcharge(processType, m))
@@ -224,6 +256,11 @@ object PricelistEditorView:
           m <- mult
           min <- minQty.toIntOption
         yield PricingRule.QuantityTier(min, maxQty.toIntOption, m)
+      case "SheetQuantityTier" =>
+        for
+          m <- mult
+          min <- minQty.toIntOption
+        yield PricingRule.SheetQuantityTier(min, maxQty.toIntOption, m)
       case "InkConfigurationFactor" =>
         for
           m <- mult
@@ -264,6 +301,7 @@ object PricelistEditorView:
   private def extractPricingMaterialId(rule: Option[PricingRule]): Option[String] = rule.collect {
     case r: PricingRule.MaterialBasePrice => r.materialId.value
     case r: PricingRule.MaterialAreaPrice => r.materialId.value
+    case r: PricingRule.MaterialSheetPrice => r.materialId.value
   }
 
   private def extractPricingFinishId(rule: Option[PricingRule]): Option[String] = rule.collect {
@@ -274,6 +312,7 @@ object PricelistEditorView:
   private def extractPricingAmount(rule: Option[PricingRule]): Option[BigDecimal] = rule.collect {
     case r: PricingRule.MaterialBasePrice => r.unitPrice.value
     case r: PricingRule.MaterialAreaPrice => r.pricePerSqMeter.value
+    case r: PricingRule.MaterialSheetPrice => r.pricePerSheet.value
     case r: PricingRule.FinishSurcharge => r.surchargePerUnit.value
     case r: PricingRule.FinishTypeSurcharge => r.surchargePerUnit.value
     case r: PricingRule.PrintingProcessSurcharge => r.surchargePerUnit.value
@@ -303,14 +342,17 @@ object PricelistEditorView:
 
   private def extractMinQty(rule: Option[PricingRule]): Option[Int] = rule.collect {
     case r: PricingRule.QuantityTier => r.minQuantity
+    case r: PricingRule.SheetQuantityTier => r.minSheets
   }
 
   private def extractMaxQty(rule: Option[PricingRule]): Option[Int] = rule.collect {
     case r: PricingRule.QuantityTier => r.maxQuantity
+    case r: PricingRule.SheetQuantityTier => r.maxSheets
   }.flatten
 
   private def extractMultiplier(rule: Option[PricingRule]): Option[BigDecimal] = rule.collect {
     case r: PricingRule.QuantityTier => r.multiplier
+    case r: PricingRule.SheetQuantityTier => r.multiplier
     case r: PricingRule.InkConfigurationFactor => r.materialMultiplier
   }
 
@@ -330,4 +372,20 @@ object PricelistEditorView:
   private def extractBindingMethod(rule: Option[PricingRule]): Option[BindingMethod] = rule.collect {
     case r: PricingRule.BindingMethodSurcharge => r.bindingMethod
     case r: PricingRule.BindingMethodSetupFee => r.bindingMethod
+  }
+
+  private def extractSheetWidth(rule: Option[PricingRule]): Option[Double] = rule.collect {
+    case r: PricingRule.MaterialSheetPrice => r.sheetWidthMm
+  }
+
+  private def extractSheetHeight(rule: Option[PricingRule]): Option[Double] = rule.collect {
+    case r: PricingRule.MaterialSheetPrice => r.sheetHeightMm
+  }
+
+  private def extractBleed(rule: Option[PricingRule]): Option[Double] = rule.collect {
+    case r: PricingRule.MaterialSheetPrice => r.bleedMm
+  }
+
+  private def extractGutter(rule: Option[PricingRule]): Option[Double] = rule.collect {
+    case r: PricingRule.MaterialSheetPrice => r.gutterMm
   }

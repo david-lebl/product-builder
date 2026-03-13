@@ -83,15 +83,22 @@ object RulesEditorView:
     val finishIdVar = Var(extractFinishId(existing).getOrElse(""))
     val reasonVar = Var(extractReason(existing).getOrElse(""))
     val finishTypeVar = Var(extractFinishType(existing).getOrElse(FinishType.Lamination))
+    val finishTypeBVar = Var(extractFinishTypeB(existing).getOrElse(FinishType.UVCoating))
     val materialPropertyVar = Var(extractMaterialProperty(existing).getOrElse(MaterialProperty.Glossy))
     val materialFamilyVar = Var(extractMaterialFamily(existing).getOrElse(MaterialFamily.Paper))
     val minWeightVar = Var(extractMinWeight(existing).map(_.toString).getOrElse("200"))
+    val finishIdBVar = Var(extractFinishIdB(existing).getOrElse(""))
+    val categoryIdVar = Var(extractCategoryId(existing).getOrElse(""))
+    val finishCategoryVar = Var(extractFinishCategory(existing).getOrElse(FinishCategory.Surface))
+    val requiredFinishIdsVar = Var(extractRequiredFinishIds(existing).getOrElse(""))
+    val processTypesVar = Var(extractProcessTypes(existing).getOrElse(""))
 
     val ruleTypes = List(
       "MaterialFinishIncompatible",
       "MaterialRequiresFinish",
       "FinishRequiresMaterialProperty",
       "FinishMutuallyExclusive",
+      "SpecConstraint",
       "MaterialPropertyFinishTypeIncompatible",
       "MaterialFamilyFinishTypeIncompatible",
       "MaterialWeightFinishType",
@@ -99,6 +106,8 @@ object RulesEditorView:
       "FinishCategoryExclusive",
       "FinishRequiresFinishType",
       "FinishRequiresPrintingProcess",
+      "ConfigurationConstraint",
+      "TechnologyConstraint",
     )
 
     div(
@@ -130,10 +139,38 @@ object RulesEditorView:
         else emptyNode
       },
 
+      // Second Finish ID field (for mutual exclusion)
+      child <-- ruleTypeVar.signal.map { rt =>
+        if Set("FinishMutuallyExclusive").contains(rt) then
+          FormComponents.textField("Finish ID B", finishIdBVar.signal, finishIdBVar.writer)
+        else emptyNode
+      },
+
+      // Required finish IDs (comma-separated)
+      child <-- ruleTypeVar.signal.map { rt =>
+        if rt == "MaterialRequiresFinish" then
+          FormComponents.textField("Required Finish IDs (comma-separated)", requiredFinishIdsVar.signal, requiredFinishIdsVar.writer)
+        else emptyNode
+      },
+
+      // Category ID field
+      child <-- ruleTypeVar.signal.map { rt =>
+        if Set("SpecConstraint", "ConfigurationConstraint").contains(rt) then
+          FormComponents.textField("Category ID", categoryIdVar.signal, categoryIdVar.writer)
+        else emptyNode
+      },
+
       // Finish type field
       child <-- ruleTypeVar.signal.map { rt =>
         if Set("MaterialPropertyFinishTypeIncompatible", "MaterialFamilyFinishTypeIncompatible", "MaterialWeightFinishType", "FinishTypeMutuallyExclusive", "FinishRequiresFinishType", "FinishRequiresPrintingProcess").contains(rt) then
           FormComponents.enumSelectRequired[FinishType]("Finish Type", FinishType.values, finishTypeVar.signal, finishTypeVar.writer)
+        else emptyNode
+      },
+
+      // Second finish type (for FinishTypeMutuallyExclusive)
+      child <-- ruleTypeVar.signal.map { rt =>
+        if rt == "FinishTypeMutuallyExclusive" then
+          FormComponents.enumSelectRequired[FinishType]("Finish Type B", FinishType.values, finishTypeBVar.signal, finishTypeBVar.writer)
         else emptyNode
       },
 
@@ -158,12 +195,33 @@ object RulesEditorView:
         else emptyNode
       },
 
+      // Finish category (for FinishCategoryExclusive)
+      child <-- ruleTypeVar.signal.map { rt =>
+        if rt == "FinishCategoryExclusive" then
+          FormComponents.enumSelectRequired[FinishCategory]("Finish Category", FinishCategory.values, finishCategoryVar.signal, finishCategoryVar.writer)
+        else emptyNode
+      },
+
+      // Required process types (comma-separated)
+      child <-- ruleTypeVar.signal.map { rt =>
+        if rt == "FinishRequiresPrintingProcess" then
+          FormComponents.textField("Required Process Types (comma-separated)", processTypesVar.signal, processTypesVar.writer, "e.g. Digital,Offset")
+        else emptyNode
+      },
+
       FormComponents.textField("Reason", reasonVar.signal, reasonVar.writer, "Explanation for this rule"),
 
       div(
         cls := "form-actions",
         FormComponents.actionButton("Save", () => {
-          buildRule(ruleTypeVar.now(), materialIdVar.now(), finishIdVar.now(), reasonVar.now(), finishTypeVar.now(), materialPropertyVar.now(), materialFamilyVar.now(), minWeightVar.now().toIntOption.getOrElse(200)).foreach { rule =>
+          buildRule(
+            ruleTypeVar.now(), materialIdVar.now(), finishIdVar.now(), finishIdBVar.now(),
+            reasonVar.now(), finishTypeVar.now(), finishTypeBVar.now(),
+            materialPropertyVar.now(), materialFamilyVar.now(),
+            minWeightVar.now().toIntOption.getOrElse(200),
+            categoryIdVar.now(), finishCategoryVar.now(),
+            requiredFinishIdsVar.now(), processTypesVar.now(),
+          ).foreach { rule =>
             if existing.isDefined then CatalogEditorViewModel.updateRule(index, rule)
             else CatalogEditorViewModel.addRule(rule)
           }
@@ -178,25 +236,52 @@ object RulesEditorView:
     ruleType: String,
     materialId: String,
     finishId: String,
+    finishIdB: String,
     reason: String,
     finishType: FinishType,
+    finishTypeB: FinishType,
     materialProperty: MaterialProperty,
     materialFamily: MaterialFamily,
     minWeight: Int,
+    categoryId: String,
+    finishCategory: FinishCategory,
+    requiredFinishIds: String,
+    processTypes: String,
   ): Option[CompatibilityRule] =
     ruleType match
       case "MaterialFinishIncompatible" if materialId.nonEmpty && finishId.nonEmpty =>
         Some(CompatibilityRule.MaterialFinishIncompatible(MaterialId.unsafe(materialId), FinishId.unsafe(finishId), reason))
+      case "MaterialRequiresFinish" if materialId.nonEmpty && requiredFinishIds.nonEmpty =>
+        val ids = requiredFinishIds.split(",").map(_.trim).filter(_.nonEmpty).map(FinishId.unsafe).toSet
+        Some(CompatibilityRule.MaterialRequiresFinish(MaterialId.unsafe(materialId), ids, reason))
       case "FinishRequiresMaterialProperty" if finishId.nonEmpty =>
         Some(CompatibilityRule.FinishRequiresMaterialProperty(FinishId.unsafe(finishId), materialProperty, reason))
+      case "FinishMutuallyExclusive" if finishId.nonEmpty && finishIdB.nonEmpty =>
+        Some(CompatibilityRule.FinishMutuallyExclusive(FinishId.unsafe(finishId), FinishId.unsafe(finishIdB), reason))
+      case "SpecConstraint" if categoryId.nonEmpty =>
+        // Default to a MinQuantity(1) predicate — users can edit JSON for complex predicates
+        Some(CompatibilityRule.SpecConstraint(CategoryId.unsafe(categoryId), SpecPredicate.MinQuantity(1), reason))
       case "MaterialPropertyFinishTypeIncompatible" =>
         Some(CompatibilityRule.MaterialPropertyFinishTypeIncompatible(materialProperty, finishType, reason))
       case "MaterialFamilyFinishTypeIncompatible" =>
         Some(CompatibilityRule.MaterialFamilyFinishTypeIncompatible(materialFamily, finishType, reason))
       case "MaterialWeightFinishType" =>
         Some(CompatibilityRule.MaterialWeightFinishType(finishType, minWeight, reason))
+      case "FinishTypeMutuallyExclusive" =>
+        Some(CompatibilityRule.FinishTypeMutuallyExclusive(finishType, finishTypeB, reason))
+      case "FinishCategoryExclusive" =>
+        Some(CompatibilityRule.FinishCategoryExclusive(finishCategory, reason))
       case "FinishRequiresFinishType" if finishId.nonEmpty =>
         Some(CompatibilityRule.FinishRequiresFinishType(FinishId.unsafe(finishId), finishType, reason))
+      case "FinishRequiresPrintingProcess" if processTypes.nonEmpty =>
+        val pts = processTypes.split(",").map(_.trim).filter(_.nonEmpty).flatMap(s => scala.util.Try(PrintingProcessType.valueOf(s)).toOption).toSet
+        Some(CompatibilityRule.FinishRequiresPrintingProcess(finishType, pts, reason))
+      case "ConfigurationConstraint" if categoryId.nonEmpty =>
+        // Default to HasMinWeight(200) — users can edit JSON for complex predicates
+        Some(CompatibilityRule.ConfigurationConstraint(CategoryId.unsafe(categoryId), ConfigurationPredicate.HasMinWeight(200), reason))
+      case "TechnologyConstraint" =>
+        // Default to HasMinWeight(200) — users can edit JSON for complex predicates
+        Some(CompatibilityRule.TechnologyConstraint(ConfigurationPredicate.HasMinWeight(200), reason))
       case _ => None
 
   // Helper extractors for populating forms from existing rules
@@ -262,4 +347,29 @@ object RulesEditorView:
 
   private def extractMinWeight(rule: Option[CompatibilityRule]): Option[Int] = rule.collect {
     case r: CompatibilityRule.MaterialWeightFinishType => r.minWeightGsm
+  }
+
+  private def extractFinishIdB(rule: Option[CompatibilityRule]): Option[String] = rule.collect {
+    case r: CompatibilityRule.FinishMutuallyExclusive => r.finishIdB.value
+  }
+
+  private def extractFinishTypeB(rule: Option[CompatibilityRule]): Option[FinishType] = rule.collect {
+    case r: CompatibilityRule.FinishTypeMutuallyExclusive => r.finishTypeB
+  }
+
+  private def extractCategoryId(rule: Option[CompatibilityRule]): Option[String] = rule.collect {
+    case r: CompatibilityRule.SpecConstraint => r.categoryId.value
+    case r: CompatibilityRule.ConfigurationConstraint => r.categoryId.value
+  }
+
+  private def extractFinishCategory(rule: Option[CompatibilityRule]): Option[FinishCategory] = rule.collect {
+    case r: CompatibilityRule.FinishCategoryExclusive => r.category
+  }
+
+  private def extractRequiredFinishIds(rule: Option[CompatibilityRule]): Option[String] = rule.collect {
+    case r: CompatibilityRule.MaterialRequiresFinish => r.requiredFinishIds.map(_.value).mkString(", ")
+  }
+
+  private def extractProcessTypes(rule: Option[CompatibilityRule]): Option[String] = rule.collect {
+    case r: CompatibilityRule.FinishRequiresPrintingProcess => r.requiredProcessTypes.map(_.toString).mkString(", ")
   }
