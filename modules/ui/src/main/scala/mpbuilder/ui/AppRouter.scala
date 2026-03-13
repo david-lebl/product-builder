@@ -90,8 +90,8 @@ object AppRouter {
         // Navigation bar — hidden during checkout
         div(
           cls <-- currentRoute.map {
-            case AppRoute.Checkout | AppRoute.Manufacturing | AppRoute.CatalogEditor => "app-navigation app-navigation--hidden"
-            case _                                          => "app-navigation"
+            case AppRoute.Checkout => "app-navigation app-navigation--hidden"
+            case _                 => "app-navigation"
           },
           button(
             cls := "nav-link",
