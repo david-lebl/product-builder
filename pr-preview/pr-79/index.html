@@ -3999,7 +3999,185 @@
             width: 100%;
         }
 
-        /* Entity styling in tables */
+        /* Catalog detail panel tabs — underline style matching visual editor */
+        .catalog-detail-panel .tabs {
+            display: flex;
+            flex-direction: column;
+            flex: 1;
+            min-height: 0;
+            overflow: hidden;
+        }
+
+        .catalog-detail-panel .tabs-bar {
+            display: flex;
+            gap: 0;
+            border-bottom: 2px solid #e2e8f0;
+            margin-bottom: 0;
+            flex-shrink: 0;
+        }
+
+        .catalog-detail-panel .tab-button {
+            flex: 1;
+            padding: 8px 12px;
+            font-size: 0.8rem;
+            background: transparent;
+            color: #64748b;
+            border: none;
+            border-bottom: 2px solid transparent;
+            cursor: pointer;
+            transition: color 0.15s, border-bottom-color 0.15s;
+            margin-bottom: -2px;
+            border-radius: 0;
+            font-weight: 500;
+        }
+
+        .catalog-detail-panel .tab-button:hover {
+            color: #1e293b;
+            background: #f8fafc;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .catalog-detail-panel .tab-button--active {
+            color: #667eea;
+            border-bottom-color: #667eea;
+            font-weight: 600;
+            background: transparent;
+        }
+
+        .catalog-detail-panel .tabs-content {
+            flex: 1;
+            overflow-y: auto;
+        }
+
+        /* Customer notes */
+        .notes-list {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            margin-bottom: 16px;
+        }
+
+        .note-item {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 6px;
+            padding: 10px 12px;
+        }
+
+        .note-meta {
+            display: flex;
+            gap: 6px;
+            font-size: 0.75rem;
+            color: #94a3b8;
+            margin-bottom: 4px;
+        }
+
+        .note-date { font-weight: 500; }
+        .note-author { color: #64748b; }
+
+        .note-text {
+            font-size: 0.85rem;
+            color: #334155;
+            margin: 0;
+            white-space: pre-wrap;
+        }
+
+        .empty-notes, .empty-state {
+            color: #94a3b8;
+            font-size: 0.85rem;
+            font-style: italic;
+            text-align: center;
+            padding: 16px 0;
+        }
+
+        /* Customer orders */
+        .orders-list {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .order-item {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 6px;
+            padding: 10px 12px;
+        }
+
+        .order-item-header {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 4px;
+        }
+
+        .order-id {
+            font-family: 'Fira Code', 'Cascadia Code', monospace;
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: #334155;
+        }
+
+        .order-item-details {
+            display: flex;
+            gap: 12px;
+            font-size: 0.75rem;
+            color: #64748b;
+        }
+
+        /* Customer pricing rules */
+        .pricing-summary {
+            font-size: 0.85rem;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .pricing-summary h4, .pricing-summary h5 {
+            color: #475569;
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            margin: 4px 0;
+        }
+
+        .pricing-rules-list {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            margin-bottom: 8px;
+        }
+
+        .pricing-rule-row, .pricing-rule-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 8px;
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 4px;
+            font-size: 0.8rem;
+        }
+
+        .pricing-rule-label {
+            flex: 1;
+            color: #334155;
+            font-family: 'Fira Code', 'Cascadia Code', monospace;
+            font-size: 0.78rem;
+        }
+
+        .pricing-add-row {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            padding: 8px;
+            background: #f1f5f9;
+            border-radius: 6px;
+            margin-top: 4px;
+        }
+
+
         .entity-id {
             font-family: 'Fira Code', 'Cascadia Code', monospace;
             font-size: 0.8rem;
