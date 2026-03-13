@@ -380,11 +380,11 @@ object CustomersView:
       child <-- ManufacturingViewModel.orders.map { allOrders =>
         val customerOrders = allOrders.filter(_.order.customerId.contains(customer.id))
         if customerOrders.isEmpty then
-          p(cls := "empty-notes", "No orders found for this customer.")
+          p(cls := "empty-state", "No orders found for this customer.")
         else
           div(
             cls := "orders-list",
-            customerOrders.sortBy(-_.createdAt).map { mo =>
+            customerOrders.sortBy(_.createdAt)(Ordering.Long.reverse).map { mo =>
               div(
                 cls := "order-item",
                 div(cls := "order-item-header",
