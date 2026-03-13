@@ -4,7 +4,7 @@ import mpbuilder.domain.pricing.{Money, Currency}
 
 /** How the customer is interacting with the shop */
 enum CustomerType:
-  case Guest, Registered, RegisteredCorporate
+  case Guest, Registered, RegisteredCorporate, Agency
 
 /** Delivery option selected by the customer */
 enum DeliveryOption:
@@ -94,4 +94,5 @@ final case class Order(
     checkoutInfo: CheckoutInfo,
     total: Money,
     currency: Currency,
+    customerId: Option[CustomerId] = None,
 )

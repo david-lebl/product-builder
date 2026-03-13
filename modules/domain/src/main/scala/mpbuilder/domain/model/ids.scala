@@ -71,3 +71,23 @@ object OrderId:
   def unsafe(value: String): OrderId = value
 
   extension (id: OrderId) def value: String = id
+
+opaque type CustomerId = String
+object CustomerId:
+  def apply(value: String): Validation[String, CustomerId] =
+    if value.nonEmpty then Validation.succeed(value)
+    else Validation.fail("CustomerId must not be empty")
+
+  def unsafe(value: String): CustomerId = value
+
+  extension (id: CustomerId) def value: String = id
+
+opaque type DiscountCodeId = String
+object DiscountCodeId:
+  def apply(value: String): Validation[String, DiscountCodeId] =
+    if value.nonEmpty then Validation.succeed(value)
+    else Validation.fail("DiscountCodeId must not be empty")
+
+  def unsafe(value: String): DiscountCodeId = value
+
+  extension (id: DiscountCodeId) def value: String = id

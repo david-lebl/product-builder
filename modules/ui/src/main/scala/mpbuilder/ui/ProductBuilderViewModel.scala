@@ -11,6 +11,14 @@ import zio.prelude.Validation
 import com.raquo.laminar.api.L.*
 import org.scalajs.dom
 
+/** Current state of the agency login flow */
+sealed trait LoginState
+object LoginState:
+  case object LoggedOut extends LoginState
+  case class EnteringIdentifier(identifier: String, identifierType: IdentifierType, error: Option[String]) extends LoginState
+  case class EnteringOtp(customer: Customer, otpToken: OtpToken, otpInput: String, error: Option[String]) extends LoginState
+  case class LoggedIn(customer: Customer, session: LoginSession) extends LoginState
+
 /** How the customer will provide artwork for the configured product */
 sealed trait ArtworkMode
 object ArtworkMode:
@@ -34,6 +42,7 @@ case class BuilderState(
                          specifications: List[SpecValue] = List.empty,
                          validationErrors: List[String] = List.empty,
                          priceBreakdown: Option[PriceBreakdown] = None,
+                         basePriceBreakdown: Option[PriceBreakdown] = None,
                          weightBreakdown: Option[WeightBreakdown] = None,
                          configuration: Option[ProductConfiguration] = None,
                          language: Language = Language.En,
@@ -42,6 +51,7 @@ case class BuilderState(
                          artworkMode: ArtworkMode = ArtworkMode.UploadArtwork(None),
                          basketItemArtwork: Map[ConfigurationId, ArtworkMode] = Map.empty,
                          checkoutInfo: Option[CheckoutInfo] = None,
+                         loginState: LoginState = LoginState.LoggedOut,
                        )
 
 object ProductBuilderViewModel:
@@ -49,12 +59,27 @@ object ProductBuilderViewModel:
   val catalog: ProductCatalog = SampleCatalog.catalog
   val ruleset = SampleRules.ruleset
   val pricelist = SamplePricelist.pricelistCzkSheet
+  val allCustomers: List[Customer] = SampleCustomers.all
 
   val stateVar: Var[BuilderState] = Var(BuilderState())
   val state: Signal[BuilderState] = stateVar.signal
 
   // Event bus that fires when category changes, carries default specs for the category
   val specResetBus: EventBus[List[SpecValue]] = new EventBus[List[SpecValue]]
+
+  // ── Customer / login signals ─────────────────────────────────────────
+  val loginState: Signal[LoginState] = state.map(_.loginState)
+
+  val currentCustomer: Signal[Option[Customer]] = loginState.map {
+    case LoginState.LoggedIn(customer, _) => Some(customer)
+    case _                                => None
+  }
+
+  val customerPricelist: Signal[Option[Pricelist]] = currentCustomer.combineWith(state).map {
+    case (Some(customer), s) =>
+      Some(CustomerPricelistResolver.resolve(pricelist, customer.pricing, s.selectedCategoryId))
+    case _ => None
+  }
 
   // Get current language
   def currentLanguage: Signal[Language] = state.map(_.language)
@@ -240,6 +265,7 @@ object ProductBuilderViewModel:
         stateVar.update(_.copy(
           validationErrors = List.empty,
           priceBreakdown = None,
+          basePriceBreakdown = None,
           weightBreakdown = None,
           configuration = None,
         ))
@@ -286,12 +312,26 @@ object ProductBuilderViewModel:
               configuration = None,
               validationErrors = errorMessages,
               priceBreakdown = None,
+              basePriceBreakdown = None,
               weightBreakdown = None,
             ))
           },
           config => {
             // Validation succeeded, calculate price
-            val priceResult = PriceCalculator.calculate(config, pricelist, lang)
+            // Determine which pricelist to use for final pricing
+            val customerPl = currentState.loginState match
+              case LoginState.LoggedIn(customer, _) =>
+                Some(CustomerPricelistResolver.resolve(pricelist, customer.pricing, Some(categoryId)))
+              case _ => None
+
+            val effectivePl = customerPl.getOrElse(pricelist)
+            val priceResult = PriceCalculator.calculate(config, effectivePl, lang)
+
+            // Also compute the base price for comparison when customer is logged in
+            val basePriceResult = customerPl match
+              case Some(_) => PriceCalculator.calculate(config, pricelist, lang).toOption
+              case None    => None
+
             priceResult.fold(
               errors => {
                 val errorMessages = errors.map(_.message(lang)).toList
@@ -299,6 +339,7 @@ object ProductBuilderViewModel:
                   configuration = Some(config),
                   validationErrors = errorMessages,
                   priceBreakdown = None,
+                  basePriceBreakdown = None,
                   weightBreakdown = None,
                 ))
               },
@@ -308,6 +349,7 @@ object ProductBuilderViewModel:
                   configuration = Some(config),
                   validationErrors = List.empty,
                   priceBreakdown = Some(breakdown),
+                  basePriceBreakdown = basePriceResult,
                   weightBreakdown = weightBreakdownOpt,
                 ))
               }
@@ -322,6 +364,7 @@ object ProductBuilderViewModel:
           validationErrors = List(msg),
           configuration = None,
           priceBreakdown = None,
+          basePriceBreakdown = None,
           weightBreakdown = None,
         ))
   }
@@ -512,6 +555,7 @@ object ProductBuilderViewModel:
       specifications = List.empty,
       validationErrors = List.empty,
       priceBreakdown = None,
+      basePriceBreakdown = None,
       weightBreakdown = None,
       configuration = None,
       artworkMode = ArtworkMode.UploadArtwork(None),
@@ -526,7 +570,20 @@ object ProductBuilderViewModel:
 
   // Checkout operations
   def startCheckout(): Unit =
-    stateVar.update(_.copy(checkoutInfo = Some(CheckoutInfo())))
+    val current = stateVar.now()
+    current.loginState match
+      case LoginState.LoggedIn(customer, _) =>
+        // Pre-fill from customer data, skip Authentication step
+        val ci = customer.contactInfo
+        val addr = customer.address
+        stateVar.update(_.copy(checkoutInfo = Some(CheckoutInfo(
+          step = CheckoutStep.ContactDetails,
+          customerType = CustomerType.Agency,
+          contactInfo = ci,
+          invoiceAddress = addr,
+        ))))
+      case _ =>
+        stateVar.update(_.copy(checkoutInfo = Some(CheckoutInfo())))
 
   def cancelCheckout(): Unit =
     stateVar.update(_.copy(checkoutInfo = None))
@@ -552,9 +609,14 @@ object ProductBuilderViewModel:
     stateVar.update { s =>
       s.checkoutInfo match
         case Some(info) =>
+          val isLoggedIn = s.loginState match
+            case _: LoginState.LoggedIn => true
+            case _                      => false
           val prevStep = info.step match
             case CheckoutStep.Authentication  => CheckoutStep.Authentication
-            case CheckoutStep.ContactDetails  => CheckoutStep.Authentication
+            case CheckoutStep.ContactDetails  =>
+              if isLoggedIn then CheckoutStep.ContactDetails // can't go back past auth when logged in
+              else CheckoutStep.Authentication
             case CheckoutStep.Delivery        => CheckoutStep.ContactDetails
             case CheckoutStep.Payment         => CheckoutStep.Delivery
             case CheckoutStep.Summary         => CheckoutStep.Payment
@@ -584,3 +646,62 @@ object ProductBuilderViewModel:
                                        LocalizedString("5–10 business days",  "5–10 pracovních dní"),
                                        Money("49.00"), Currency.CZK),
   )
+
+  // ── Login / logout ─────────────────────────────────────────────────────
+
+  def startLogin(): Unit =
+    stateVar.update(_.copy(
+      loginState = LoginState.EnteringIdentifier("", IdentifierType.Email, None),
+    ))
+
+  def cancelLogin(): Unit =
+    stateVar.update(_.copy(loginState = LoginState.LoggedOut))
+
+  def submitIdentifier(identifier: String, identifierType: IdentifierType): Unit =
+    val result = LoginService.lookupCustomer(identifier, identifierType, allCustomers)
+    result.fold(
+      errors => {
+        val msg = errors.map(_.message).toList.mkString(", ")
+        stateVar.update(_.copy(
+          loginState = LoginState.EnteringIdentifier(identifier, identifierType, Some(msg)),
+        ))
+      },
+      customer => {
+        val now = System.currentTimeMillis()
+        val otp = LoginService.generateOtp(customer, now)
+        stateVar.update(_.copy(
+          loginState = LoginState.EnteringOtp(customer, otp, "", None),
+        ))
+      },
+    )
+
+  def submitOtp(otpInput: String): Unit =
+    val current = stateVar.now().loginState
+    current match
+      case LoginState.EnteringOtp(customer, otpToken, _, _) =>
+        val now = System.currentTimeMillis()
+        // Mock/demo: accept empty OTP by auto-filling with the actual token
+        val effectiveInput = if otpInput.trim.isEmpty then otpToken.token else otpInput
+        val result = LoginService.validateOtp(effectiveInput, otpToken, now)
+        result.fold(
+          errors => {
+            val msg = errors.map(_.message).toList.mkString(", ")
+            stateVar.update(_.copy(
+              loginState = LoginState.EnteringOtp(customer, otpToken, otpInput, Some(msg)),
+            ))
+          },
+          session => {
+            stateVar.update(_.copy(
+              loginState = LoginState.LoggedIn(customer, session),
+            ))
+            autoRecalculate()
+          },
+        )
+      case _ => ()
+
+  def logoutCustomer(): Unit =
+    stateVar.update(_.copy(
+      loginState = LoginState.LoggedOut,
+      basePriceBreakdown = None,
+    ))
+    autoRecalculate()
