@@ -105,6 +105,13 @@
             cursor: default;
         }
 
+        .login-widget-guest-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            position: relative;
+        }
+
         .login-widget-guest-icon {
             font-size: 1.1rem;
         }
@@ -2254,6 +2261,66 @@
             display: flex;
             flex-direction: column;
             gap: 10px;
+        }
+
+        .checkout-auth-tabbed {
+            gap: 0;
+            padding: 0;
+            overflow: hidden;
+        }
+
+        /* Tab bar inside the sign-in card */
+        .checkout-auth-tabs {
+            display: flex;
+            border-bottom: 2px solid #e0e0e0;
+        }
+
+        .checkout-auth-tab {
+            flex: 1;
+            padding: 10px 14px;
+            border: none;
+            background: #f8fafc;
+            color: #64748b;
+            font-size: 0.88rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background 0.15s, color 0.15s;
+        }
+
+        .checkout-auth-tab:first-child {
+            border-radius: 8px 0 0 0;
+        }
+
+        .checkout-auth-tab:last-child {
+            border-radius: 0 8px 0 0;
+        }
+
+        .checkout-auth-tab--active {
+            background: white;
+            color: #667eea;
+            font-weight: 600;
+            border-bottom: 2px solid white;
+            margin-bottom: -2px;
+        }
+
+        .checkout-auth-tab:hover:not(.checkout-auth-tab--active) {
+            background: #f1f5f9;
+            color: #475569;
+        }
+
+        .checkout-auth-tab-content {
+            padding: 16px 18px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        /* Agency login inside checkout tab — remove outer card border/bg */
+        .checkout-auth-tabbed .checkout-auth-option,
+        .checkout-auth-tabbed .checkout-agency-login {
+            border: none;
+            border-radius: 0;
+            padding: 16px 18px;
         }
 
         .checkout-auth-option h3 {
