@@ -1,8 +1,8 @@
 package mpbuilder.ui.components
 
 import com.raquo.laminar.api.L.*
-import mpbuilder.ui.{ProductBuilderViewModel, ArtworkMode, AppRouter, AppRoute}
-import mpbuilder.domain.pricing.{Money, Currency}
+import mpbuilder.ui.{ProductBuilderViewModel, ArtworkMode, AppRouter, AppRoute, LoginState}
+import mpbuilder.domain.pricing.{Money, Currency, PriceCalculator, CustomerPricelistResolver}
 import mpbuilder.domain.model.{Language, ConfigurationId, ComponentRole}
 
 object BasketView:
@@ -110,6 +110,24 @@ object BasketView:
                   ),
                   div(
                     cls := "basket-item-price",
+                    // When customer logged in: show savings per item
+                    state.loginState match
+                      case LoginState.LoggedIn(customer, _) =>
+                        val basePl = ProductBuilderViewModel.pricelist
+                        val customerPl = CustomerPricelistResolver.resolve(basePl, customer.pricing, Some(item.configuration.category.id))
+                        val basePriceOpt = PriceCalculator.calculate(item.configuration, basePl, l).toOption
+                        val customerPriceOpt = PriceCalculator.calculate(item.configuration, customerPl, l).toOption
+                        (basePriceOpt, customerPriceOpt) match
+                          case (Some(baseBd), Some(custBd)) if baseBd.total.value > custBd.total.value =>
+                            val savings = Money(baseBd.total.value - custBd.total.value)
+                            span(cls := "basket-item-savings",
+                              l match
+                                case Language.En => s"Save ${formatMoney(savings, baseBd.currency)}/item"
+                                case Language.Cs => s"Ušetříte ${formatMoney(savings, baseBd.currency)}/ks",
+                            )
+                          case _ => emptyNode
+                      case _ => emptyNode
+                    ,
                     span(cls := "unit-price", l match
                       case Language.En => s"Unit: ${formatMoney(item.priceBreakdown.total, item.priceBreakdown.currency)}"
                       case Language.Cs => s"Jednotka: ${formatMoney(item.priceBreakdown.total, item.priceBreakdown.currency)}"

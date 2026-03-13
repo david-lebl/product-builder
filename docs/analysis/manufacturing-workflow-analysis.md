@@ -312,83 +312,209 @@ For MVP, machines can be omitted — employees just pick jobs and the system tra
 
 ## 8. UI Views
 
-### 8.1 Station Queue View (primary operator view)
+### Design principle: simplified linear workflow presentation
 
-The main screen for a production employee:
+Although the underlying step model is a **DAG**, the UI should present workflow progress as a **linear sequence** wherever possible. For the majority of products a linear step chain is accurate enough and far easier to understand at a glance. DAG branching (e.g., parallel cover/body paths) is collapsed into a single progress bar per item and expanded only on demand in the detail side panel. Keep the UI simple first; complexity is exposed progressively.
 
-```
-┌─────────────────────────────────────────────────────────┐
-│  My Stations: [Digital Printer ✓] [Laminator ✓] [Cutter]│  ← filter toggles
-├─────────────────────────────────────────────────────────┤
-│  Sort: Priority (default) │ Deadline │ Material batch    │
-├─────────────────────────────────────────────────────────┤
-│                                                         │
-│  🔴 RUSH  Order #1042 — Business Cards (Main)          │
-│  Step: Digital Print │ 350gsm Glossy │ CMYK 4/4         │
-│  Deadline: Today 14:00 │ Qty: 500                       │
-│  [Start Job]                                            │
-│                                                         │
-│  🟡  Order #1038 — Brochure (Main)                     │
-│  Step: Digital Print │ 170gsm Matte │ CMYK 4/0          │
-│  Deadline: Tomorrow │ Qty: 200                          │
-│  💡 2 more jobs on same material                        │  ← batch hint
-│  [Start Job]                                            │
-│                                                         │
-│  🟢  Order #1035 — Flyers (Main)                       │
-│  Step: Lamination (Matte) │ after printing              │
-│  Deadline: Thu │ Qty: 1000                              │
-│  [Start Job]                                            │
-│                                                         │
-└─────────────────────────────────────────────────────────┘
-```
+### Shared UI-framework components
 
-Key features:
-- **Station type filter toggles** at the top — employee enables the stations they're currently working
-- **Unified queue** across selected station types, sorted by priority score
-- **Batch hints** — system detects when multiple Ready jobs share material/finish
-- **One-tap start** — claims the job, starts timer
-- **In-progress section** at the top showing currently claimed jobs with [Complete] / [Problem] actions
+All table-based views share a **universal `SplitTableView` component** defined in `modules/ui-framework` (`mpbuilder.uikit`). This component is domain-agnostic and provides:
 
-### 8.2 Order Approval View (manager/prepress)
+- **Sortable data table** — column definitions with `header`, `accessor`, `sortable`, `width`; client-side multi-column sort
+- **Search field** — full-text filter across all string-valued columns, debounced
+- **Filter bar** — pluggable filter chips/dropdowns above the table; multi-select choice boxes for high-cardinality filters
+- **Side panel** — opens horizontally (default) or vertically on narrow screens when a row is selected; renders an arbitrary `HtmlElement`; width is user-resizable
+- **Row actions** — inline action buttons in the last column; configurable per row
 
-```
-┌─────────────────────────────────────────────────────────┐
-│  Pending Approval (7)                                   │
-├─────────────────────────────────────────────────────────┤
-│  Order #1045 — 3 items │ Jan Novák │ Courier Express    │
-│  Total: 2,450 CZK │ Payment: Card (confirmed)          │
-│  Items: 500× Business Cards, 200× Brochures, 100× Flyers│
-│  [Review] [Approve All] [Reject]                        │
-│                                                         │
-│  Order #1044 — 1 item │ Guest │ Pickup                  │
-│  Total: 890 CZK │ Payment: Bank Transfer (⏳ pending)   │
-│  Items: 1000× Stickers                                  │
-│  ⚠️ Payment not confirmed                               │
-│  [Review] [Hold for Payment]                            │
-└─────────────────────────────────────────────────────────┘
-```
+This component must be implemented before any of the manufacturing views below, and is reused across Station Queue, Order Approval, Order Progress, and future views.
 
-### 8.3 Order Progress View (manager dashboard)
+---
 
-Shows all active orders with a visual pipeline:
+### 8.1 Dashboard View (landing page for shop staff)
 
-```
-Order #1042 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-  Business Cards  [✓ Prepress] [▶ Printing] [○ Cutting] [○ QC] [○ Pack]
-  Deadline: Today 14:00  🔴 RUSH
+The first screen an employee or manager sees. Gives an at-a-glance status of the whole shop.
 
-Order #1038 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-  Brochure        [✓ Prepress] [✓ Printing] [▶ Lamination] [○ Cut] [○ Fold] [○ QC] [○ Pack]
-  Deadline: Tomorrow  🟡
-```
+**Summary cards (top row)**
+| Card | Content |
+|---|---|
+| Awaiting Approval | Count of orders in Placed/PendingChanges status |
+| In Production | Count of workflows currently InProgress |
+| Ready for Dispatch | Count of orders where all workflows are complete |
+| Overdue | Count of orders past their deadline |
+| Today's completions | Count of orders completed today |
 
-### 8.4 Analytics View (owner)
+**Station status strip**
+A compact row of station tiles (one per `StationType`). Each tile shows:
+- Station name
+- Queue depth (Ready steps count)
+- Whether any machine for that type is currently InProgress
+- Color indicator: green (idle, queue empty), blue (working), orange (queue > threshold), red (machine offline)
+
+**Recent orders table** (last ~20 orders, any status)
+Columns: Order ID, Customer, Items, Total, Status, Last updated. Clicking a row opens it in the Order Progress detail. No full-text search needed here — it's a recency feed, not a search surface.
+
+**My in-progress jobs** (only shown when logged in as an employee)
+A short list of steps the current user has claimed but not yet completed, with [Complete] / [Problem] inline actions. Ensures an employee always sees their own open work without navigating away.
+
+---
+
+### 8.2 Station Queue View (primary operator view)
+
+The main working screen for production staff. Implemented using `SplitTableView`.
+
+**Filter bar**
+- **Station type** — multi-select; defaults to the employee's own `stationCapabilities`
+- **Status** — multi-select: Ready, InProgress (my jobs first)
+- **Priority** — multi-select: Rush, Normal, Low
+- **Deadline** — choice: All, Today, Tomorrow, This week, Overdue
+- **Search** — full-text over Order ID, customer name, product name, material name
+
+**Table columns** (sortable unless noted)
+
+| Column | Notes |
+|---|---|
+| Priority | Color-coded badge (Rush 🔴 / Normal 🟡 / Low 🟢); sort default |
+| Order ID | Clickable; opens detail panel |
+| Order # | Sequential human order number |
+| Customer | Name and contact shortcut |
+| Product | Product name + short spec description (material, ink config) |
+| Current station | Station type for this step |
+| Status | Step status with timestamp of last change |
+| Deadline | Relative ("Today 14:00", "Tomorrow", "Overdue") |
+| Actions | [Start] / [Complete] / [Problem] depending on step status |
+
+**Side panel** (opens when a row is selected)
+
+The side panel shows full order detail without leaving the queue view:
+
+- **Order header** — order ID, customer name, contact info, delivery method, total
+- **Files for printing** — list of attached files (customer artwork, prepress output, proofs) with download/preview links; upload action for prepress staff
+- **Workflow progress** — linearised step chain for each basket item: `[✓ Prepress] [▶ Printing] [○ Cutting] [○ QC] [○ Pack]`; expand to full DAG on demand
+- **Workflow timeline** — chronological event log: step started, completed, who, when, notes
+- **Related items** — other basket items in the same order, each with their own mini-progress bar
+- **Notes** — free-text notes added at approval or during production; add-note inline action
+
+**Batch hint row**
+When ≥ 2 Ready steps in the current filtered view share the same material, the table inserts a soft divider: `💡 3 jobs on 170gsm Matte Art — consider batching`.
+
+**In-progress section**
+Steps the current employee has claimed appear in a pinned top section above the main sorted list, with [Complete] / [Problem] actions prominent.
+
+---
+
+### 8.3 Order Approval View (manager / prepress)
+
+Implemented using `SplitTableView`. The approval queue also doubles as the entry point for creating **in-house orders** on behalf of customers who request via phone or email.
+
+**Filter bar**
+- **Status** — multi-select: Placed, Pending Changes, On Hold, Rejected (defaults to Placed + Pending Changes)
+- **Date range** — choice: Today, Yesterday, This week, Last week, This month, Custom range
+- **Payment status** — multi-select: Confirmed, Pending, Failed
+- **Delivery method** — multi-select: Pickup, Courier Standard, Courier Express
+- **Search** — full-text over Order ID, customer name, item product name
+
+**Table columns**
+
+| Column | Notes |
+|---|---|
+| Order ID | |
+| Date | Order placement date/time |
+| Customer | Name; "(Guest)" for unauthenticated |
+| Items | Count + summary, e.g. "3 items: 500× Cards, 200× Brochures…" |
+| Total | Formatted currency |
+| Payment | Status badge: Confirmed ✓ / Pending ⏳ / Failed ✗ |
+| Delivery | Method + address shortcut |
+| Status | Approval status badge |
+| Actions | [Review] [Approve] [Reject] [Hold] |
+
+**Side panel**
+Full order detail: all basket items with product specs, pricing breakdown per item, uploaded artwork thumbnails with file check flags (resolution, bleed, color profile), customer contact, payment reference, delivery info, internal notes.
+
+**Creating an in-house order**
+An **[+ New Order]** button (top-right of the view) opens a modal/drawer overlaying the current view. Inside:
+- Search or select an existing customer, or enter contact details for a new one
+- The existing **product builder** is embedded (or a simplified equivalent in the future) to configure and price the product
+- On confirm, the order is created with status `Placed` and appears in the approval queue immediately, ready for standard approval flow
+
+---
+
+### 8.4 Order Progress View (manager / fulfilment)
+
+Shows all active orders with workflow progress. Also the primary screen for **order completion, quality check, packaging, and dispatch**.
+
+Implemented using `SplitTableView` with the same filter pattern.
+
+**Filter bar**
+- **Workflow status** — multi-select: In Production, Ready for Dispatch, On Hold, Completed
+- **Date range** — same presets as approval view
+- **Priority** — multi-select
+- **Search** — full-text
+
+**Table columns**
+
+| Column | Notes |
+|---|---|
+| Order ID | |
+| Customer | |
+| Items | Count |
+| Progress | Mini progress bar: completed steps / total steps |
+| Current bottleneck | Station where the oldest Ready step is waiting |
+| Status | Workflow aggregate status |
+| Deadline | Relative with urgency color |
+| Actions | Context-sensitive |
+
+**Side panel — fulfilment workflow**
+
+When an order is **Ready for Dispatch**, the side panel presents a structured fulfilment checklist:
+
+1. **Collect items** — checklist of basket items; each can be marked as physically collected and verified against the order
+2. **Quality check sign-off** — final QC checkbox with employee signature, notes, and optional photo attachment
+3. **Package** — packaging type selection (box, envelope, roll); dimensions/weight input for shipping calculation
+4. **Order delivery** — integrated delivery service selection (or manual courier entry); auto-fill address from order; generate shipping label
+5. **Create delivery document / invoice** — generate a printable delivery note and/or invoice PDF; fields pre-filled from order and customer data; invoice number assigned; status updated to Dispatched
+6. **Dispatch confirmation** — mark as dispatched, enter tracking number if applicable; triggers customer notification
+
+**Order progress visualization**
+Linearised per-item step chains (same as station queue side panel), but oriented horizontally across the full panel width for easy scanning. For multi-item orders, each item gets its own row.
+
+---
+
+### 8.5 Analytics View (owner)
 
 - Average time per station type
 - Bottleneck identification (which station has the longest queue)
 - Employee throughput
 - On-time delivery rate
 - Popular batching opportunities
+
+---
+
+### 8.6 Invoices & Customer Management (future)
+
+**Invoice view**
+- Table of all generated invoices (order ID, customer, date, amount, status: Draft / Sent / Paid / Overdue)
+- Filter by status, date range, customer
+- Create/edit invoice, download PDF, mark as paid, send reminder
+- Linked back to the originating order in Order Progress View
+
+**Customer management view**
+- Table of all customers (name, email, phone, order count, total spend, last order)
+- Search + filter (active/inactive, date of last order)
+- Customer detail: contact info, order history, notes, price tier / discount flag
+- Create/edit customer record
+- Used by the in-house order creation flow
+
+---
+
+### 8.7 Station Configuration View (future)
+
+Allows a manager or admin to configure the station setup for the shop:
+
+- List of registered machines with their type, name, and current status
+- Enable / disable individual stations (e.g., take a machine offline for maintenance)
+- Assign employees to station types
+- Set capacity thresholds for queue-depth warnings on the dashboard
+- Add / remove machine records as the shop's equipment changes
 
 ---
 
@@ -513,19 +639,29 @@ Extends the existing pure domain model. No effects, Scala.js compatible.
 
 ### Phase 4 — UI (Laminar)
 
-1. **Station Queue View** — Laminar reactive UI, `Var[List[ReadyStep]]` updated from backend
-2. **Order Approval View** — review queue with artwork preview
-3. **Order Progress View** — pipeline visualization per order
-4. **Employee settings** — station capability toggles
+All table-based views depend on the shared `SplitTableView` component in `ui-framework`, which must be built first.
+
+1. **`SplitTableView` in `ui-framework`** — domain-agnostic sortable table with search field, filter bar, and resizable side panel. Defined in `mpbuilder.uikit.containers`. Reused by all manufacturing views.
+2. **Dashboard View** — summary cards, station status strip, recent orders feed, my in-progress jobs section
+3. **Station Queue View** — operator table with station/priority/deadline filters, full side panel (files, workflow progress, timeline, related items)
+4. **Order Approval View** — approval table with status/date/payment filters; in-house order creation modal embedding the product builder
+5. **Order Progress View** — active orders table with fulfilment side panel (collect → QC → package → delivery → invoice)
+6. **Employee settings** — station capability toggles, profile
 
 ### Phase 5 — Enhancements
 
 1. Estimated completion time calculation
 2. Customer notifications
-3. Analytics dashboard
+3. Analytics / reporting dashboard
 4. Drying/curing time tracking
 5. External vendor (outsourcing) steps
 6. Imposition and ganging support
+
+### Phase 6 — Future Views
+
+1. **Invoice view** — invoice table, PDF generation, payment status tracking
+2. **Customer management view** — customer table, order history, contact management
+3. **Station configuration view** — machine registry, enable/disable stations, employee-station assignments
 
 ---
 
@@ -541,3 +677,9 @@ Extends the existing pure domain model. No effects, Scala.js compatible.
 | Ganging | **Deferred** | High complexity, low MVP value |
 | Domain purity | **Pure functions** | Consistent with existing architecture, Scala.js compatible |
 | Workflow generation | **Derived from ProductConfiguration** | Single source of truth — pricing and manufacturing use same data |
+| UI workflow presentation | **Linear by default, DAG on demand** | Simpler and sufficient for most products; DAG detail available in side panel |
+| Reusable table component | **`SplitTableView` in ui-framework** | All views share the same sortable table + search + filter + side panel; no per-view duplication |
+| In-house order creation | **Button + modal in Approval View** | Reuses existing product builder; fits the approval staff's natural workflow |
+| Fulfilment (packaging/dispatch/invoice) | **Checklist in Order Progress side panel** | Keeps a single screen for end-to-end order management without a separate fulfilment app |
+| Invoices & customer management | **Deferred to Phase 6** | Not needed for MVP production tracking; can be added without structural changes |
+| Station configuration | **Deferred to Phase 6** | Manual setup is sufficient early on; UI config becomes valuable as station count grows |

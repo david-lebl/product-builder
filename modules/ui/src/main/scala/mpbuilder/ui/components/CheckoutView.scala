@@ -1,7 +1,7 @@
 package mpbuilder.ui.components
 
 import com.raquo.laminar.api.L.*
-import mpbuilder.ui.{ProductBuilderViewModel, AppRouter, AppRoute, BuilderState}
+import mpbuilder.ui.{ProductBuilderViewModel, AppRouter, AppRoute, BuilderState, LoginState}
 import mpbuilder.domain.model.*
 import mpbuilder.domain.model.CheckoutStep.*
 import mpbuilder.domain.pricing.{Money, Currency}
@@ -39,9 +39,12 @@ object CheckoutView:
             )
 
           case Some(info) =>
+            val isLoggedIn = s.loginState match
+              case _: LoginState.LoggedIn => true
+              case _                      => false
             div(
               // Step indicator
-              checkoutStepBar(info.step, l),
+              checkoutStepBar(info.step, l, isLoggedIn),
 
               // Step content
               info.step match
@@ -56,14 +59,17 @@ object CheckoutView:
 
   // ── Step indicator ─────────────────────────────────────────────────────────
 
-  private def checkoutStepBar(current: CheckoutStep, l: Language): Element =
-    val steps: List[(CheckoutStep, String, String)] = List(
+  private def checkoutStepBar(current: CheckoutStep, l: Language, isLoggedIn: Boolean): Element =
+    val allSteps: List[(CheckoutStep, String, String)] = List(
       (Authentication, "1", if l == Language.Cs then "Přihlášení"   else "Sign In"),
       (ContactDetails, "2", if l == Language.Cs then "Kontakt"      else "Contact"),
       (Delivery,       "3", if l == Language.Cs then "Doprava"      else "Delivery"),
       (Payment,        "4", if l == Language.Cs then "Platba"       else "Payment"),
       (Summary,        "5", if l == Language.Cs then "Shrnutí"      else "Summary"),
     )
+
+    // When logged in, skip the Authentication step
+    val steps = if isLoggedIn then allSteps.filterNot(_._1 == Authentication) else allSteps
     val ordinal = current.ordinal
     div(
       cls := "checkout-steps",
@@ -83,9 +89,13 @@ object CheckoutView:
 
   // ── Step 1: Authentication ──────────────────────────────────────────────────
 
+  private val TabSignIn = "signin"
+  private val TabAgency = "agency"
+
   private def stepAuthentication(info: CheckoutInfo, l: Language): Element =
     val loginEmailVar    = Var(info.loginEmail)
     val loginPasswordVar = Var(info.loginPassword)
+    val activeTabVar: Var[String] = Var(TabSignIn)
 
     div(
       cls := "checkout-card card",
@@ -94,9 +104,10 @@ object CheckoutView:
         else "Sign In or Continue as Guest"
       ),
 
-      // Guest option
       div(
         cls := "checkout-auth-options",
+
+        // ── Card 1: Guest ──
         div(
           cls := "checkout-auth-option",
           h3(if l == Language.Cs then "Pokračovat jako host" else "Continue as Guest"),
@@ -118,40 +129,72 @@ object CheckoutView:
 
         div(cls := "checkout-auth-divider", if l == Language.Cs then "nebo" else "or"),
 
-        // Registered user login
+        // ── Card 2: Sign In (tabbed: registered + agency) ──
         div(
-          cls := "checkout-auth-option",
-          h3(if l == Language.Cs then "Přihlásit se" else "Sign In"),
-          p(cls := "checkout-auth-desc",
-            if l == Language.Cs then "Přihlaste se ke svému účtu pro rychlejší objednávku a přístup k historii objednávek."
-            else "Sign in to your account for a faster checkout and access to your order history."
+          cls := "checkout-auth-option checkout-auth-tabbed",
+
+          // Tab bar
+          div(
+            cls := "checkout-auth-tabs",
+            button(
+              cls <-- activeTabVar.signal.map(t =>
+                if t == TabSignIn then "checkout-auth-tab checkout-auth-tab--active"
+                else "checkout-auth-tab"
+              ),
+              if l == Language.Cs then "Přihlásit se" else "Sign In",
+              onClick --> { _ => activeTabVar.set(TabSignIn) },
+            ),
+            button(
+              cls <-- activeTabVar.signal.map(t =>
+                if t == TabAgency then "checkout-auth-tab checkout-auth-tab--active"
+                else "checkout-auth-tab"
+              ),
+              if l == Language.Cs then "🔑 Agentura" else "🔑 Agency",
+              onClick --> { _ => activeTabVar.set(TabAgency) },
+            ),
           ),
-          TextField(
-            label = Val(if l == Language.Cs then "E-mail" else "Email"),
-            value = loginEmailVar.signal,
-            onInput = loginEmailVar.writer,
-            inputType = "email",
-            placeholder = Val(if l == Language.Cs then "vas@email.cz" else "your@email.com"),
-          ),
-          TextField(
-            label = Val(if l == Language.Cs then "Heslo" else "Password"),
-            value = loginPasswordVar.signal,
-            onInput = loginPasswordVar.writer,
-            inputType = "password",
-            placeholder = Val("••••••••"),
-          ),
-          button(
-            cls := "checkout-btn",
-            if l == Language.Cs then "Přihlásit se →" else "Sign In →",
-            onClick --> { _ =>
-              ProductBuilderViewModel.updateCheckoutInfo(info.copy(
-                customerType = CustomerType.Registered,
-                loginEmail = loginEmailVar.now(),
-                loginPassword = loginPasswordVar.now(),
-              ))
-              ProductBuilderViewModel.checkoutNextStep()
-            },
-          ),
+
+          // Tab content
+          child <-- activeTabVar.signal.map {
+
+            case TabAgency =>
+              LoginWidget.checkoutAgencyLogin(info, l)
+
+            case _ => // TabSignIn
+              div(
+                cls := "checkout-auth-tab-content",
+                p(cls := "checkout-auth-desc",
+                  if l == Language.Cs then "Přihlaste se ke svému účtu pro rychlejší objednávku a přístup k historii objednávek."
+                  else "Sign in to your account for a faster checkout and access to your order history."
+                ),
+                TextField(
+                  label = Val(if l == Language.Cs then "E-mail" else "Email"),
+                  value = loginEmailVar.signal,
+                  onInput = loginEmailVar.writer,
+                  inputType = "email",
+                  placeholder = Val(if l == Language.Cs then "vas@email.cz" else "your@email.com"),
+                ),
+                TextField(
+                  label = Val(if l == Language.Cs then "Heslo" else "Password"),
+                  value = loginPasswordVar.signal,
+                  onInput = loginPasswordVar.writer,
+                  inputType = "password",
+                  placeholder = Val("••••••••"),
+                ),
+                button(
+                  cls := "checkout-btn",
+                  if l == Language.Cs then "Přihlásit se →" else "Sign In →",
+                  onClick --> { _ =>
+                    ProductBuilderViewModel.updateCheckoutInfo(info.copy(
+                      customerType = CustomerType.Registered,
+                      loginEmail = loginEmailVar.now(),
+                      loginPassword = loginPasswordVar.now(),
+                    ))
+                    ProductBuilderViewModel.checkoutNextStep()
+                  },
+                ),
+              )
+          },
         ),
       ),
     )
@@ -706,6 +749,31 @@ object CheckoutView:
           ),
         )
       else emptyNode,
+
+      // Customer tier and discount info (shown when logged in)
+      s.loginState match
+        case LoginState.LoggedIn(customer, _) =>
+          div(
+            cls := "checkout-customer-info",
+            h3(cls := "checkout-section-title",
+              if l == Language.Cs then "Zákaznický účet" else "Customer Account"
+            ),
+            div(cls := "checkout-summary-row",
+              span(if l == Language.Cs then "Firma:" else "Company:"),
+              span(customer.companyInfo.map(_.companyName).getOrElse("—")),
+            ),
+            div(cls := "checkout-summary-row",
+              span(if l == Language.Cs then "Úroveň:" else "Tier:"),
+              span(customer.tier.displayName(l)),
+            ),
+            customer.pricing.globalDiscount.map { pct =>
+              div(cls := "checkout-summary-row",
+                span(if l == Language.Cs then "Globální sleva:" else "Global discount:"),
+                span(s"${pct.value}%"),
+              )
+            }.getOrElse(emptyNode),
+          )
+        case _ => emptyNode,
 
       // Discount code — editable in summary
       h3(cls := "checkout-section-title",
