@@ -5,56 +5,73 @@ import mpbuilder.domain.model.*
 import mpbuilder.domain.rules.*
 import mpbuilder.ui.catalog.*
 import mpbuilder.uikit.fields.SelectOption
+import mpbuilder.uikit.containers.*
 
-/** Editor view for managing Compatibility Rules.
+/** Editor view for managing Compatibility Rules using SplitTableView.
   *
-  * Rules are displayed as a summary list; each rule type has its own form editor.
+  * Rules are displayed as a summary table; each rule type has its own form editor.
   */
 object RulesEditorView:
 
+  private case class IndexedRule(rule: CompatibilityRule, index: Int)
+
   def apply(): HtmlElement =
-    div(
-      cls := "catalog-section",
-      div(
-        cls := "catalog-section-header",
-        h3("Compatibility Rules"),
-        FormComponents.actionButton("+ Add Rule", () =>
-          CatalogEditorViewModel.setEditState(EditState.CreatingRule)
-        ),
-      ),
+    val searchVar = Var("")
+    val selectedKey: Var[Option[String]] = Var(None)
 
-      div(
-        cls := "catalog-entity-list",
-        children <-- CatalogEditorViewModel.rules.map { rules =>
-          if rules.isEmpty then List(p(cls := "empty-message", "No compatibility rules defined."))
-          else rules.zipWithIndex.map { case (rule, idx) => ruleRow(rule, idx) }
-        },
-      ),
+    val indexedRules: Signal[List[IndexedRule]] =
+      CatalogEditorViewModel.rules.combineWith(searchVar.signal).map { case (rules, query) =>
+        val q = query.trim.toLowerCase
+        val indexed = rules.zipWithIndex.map { case (r, i) => IndexedRule(r, i) }
+        if q.isEmpty then indexed
+        else indexed.filter(ir => ruleSummary(ir.rule).toLowerCase.contains(q) || ruleTypeName(ir.rule).toLowerCase.contains(q))
+      }
 
-      child <-- CatalogEditorViewModel.editState.combineWith(CatalogEditorViewModel.rules).map {
-        case (EditState.CreatingRule, _) => ruleForm(None, -1)
-        case (EditState.EditingRule(idx), rules) =>
-          rules.lift(idx).map(r => ruleForm(Some(r), idx)).getOrElse(emptyNode)
-        case _ => emptyNode
-      },
+    val tableConfig = SplitTableConfig[IndexedRule](
+      columns = List(
+        ColumnDef("#", ir => span(cls := "entity-id", s"${ir.index + 1}"), width = Some("50px")),
+        ColumnDef("Type", ir => span(cls := "entity-name", ruleTypeName(ir.rule)), Some(ir => ruleTypeName(ir.rule)), Some("220px")),
+        ColumnDef("Summary", ir => span(ruleSummary(ir.rule))),
+        ColumnDef("", ir => div(
+          cls := "entity-actions",
+          button(cls := "btn btn-sm btn-danger", "✕", onClick.stopPropagation --> { _ =>
+            CatalogEditorViewModel.removeRule(ir.index)
+          }),
+        ), width = Some("50px")),
+      ),
+      rowKey = ir => ir.index.toString,
+      searchPlaceholder = "Search rules…",
+      onRowSelect = Some(ir => {
+        selectedKey.set(Some(ir.index.toString))
+        CatalogEditorViewModel.setEditState(EditState.EditingRule(ir.index))
+      }),
+      emptyMessage = "No compatibility rules defined.",
     )
 
-  private def ruleRow(rule: CompatibilityRule, index: Int): HtmlElement =
+    val sidePanel: Signal[Option[HtmlElement]] =
+      CatalogEditorViewModel.editState.combineWith(CatalogEditorViewModel.rules).map {
+        case (EditState.CreatingRule, _) =>
+          Some(ruleForm(None, -1))
+        case (EditState.EditingRule(idx), rules) =>
+          rules.lift(idx).map(r => ruleForm(Some(r), idx))
+        case _ => None
+      }
+
     div(
-      cls := "catalog-entity-row",
-      div(
-        cls := "entity-info",
-        span(cls := "entity-id", s"#${index + 1}"),
-        span(cls := "entity-name", ruleSummary(rule)),
-      ),
-      div(
-        cls := "entity-actions",
-        button(cls := "btn btn-sm", "Edit", onClick --> { _ =>
-          CatalogEditorViewModel.setEditState(EditState.EditingRule(index))
-        }),
-        button(cls := "btn btn-sm btn-danger", "Remove", onClick --> { _ =>
-          CatalogEditorViewModel.removeRule(index)
-        }),
+      cls := "catalog-section",
+      h2(cls := "manufacturing-view-title", "Compatibility Rules"),
+      SplitTableView(
+        config = tableConfig,
+        items = indexedRules,
+        selectedKey = selectedKey.signal,
+        searchQuery = searchVar,
+        sidePanel = sidePanel,
+        headerActions = Some(
+          FormComponents.actionButton("+ Add Rule", () => {
+            selectedKey.set(None)
+            CatalogEditorViewModel.setEditState(EditState.CreatingRule)
+          })
+        ),
       ),
     )
 
@@ -111,9 +128,15 @@ object RulesEditorView:
     )
 
     div(
-      cls := "catalog-edit-form",
-      h4(if existing.isDefined then "Edit Rule" else "New Rule"),
+      cls := "catalog-detail-panel",
+      button(cls := "detail-panel-close", "×", onClick --> { _ =>
+        CatalogEditorViewModel.setEditState(EditState.None)
+      }),
+      div(cls := "detail-panel-header",
+        h3(if existing.isDefined then "Edit Rule" else "New Rule"),
+      ),
 
+      div(cls := "detail-panel-section",
       div(
         cls := "form-group",
         com.raquo.laminar.api.L.label("Rule Type"),
@@ -210,9 +233,10 @@ object RulesEditorView:
       },
 
       FormComponents.textField("Reason", reasonVar.signal, reasonVar.writer, "Explanation for this rule"),
+      ), // close detail-panel-section
 
       div(
-        cls := "form-actions",
+        cls := "detail-panel-actions",
         FormComponents.actionButton("Save", () => {
           buildRule(
             ruleTypeVar.now(), materialIdVar.now(), finishIdVar.now(), finishIdBVar.now(),

@@ -4,77 +4,89 @@ import com.raquo.laminar.api.L.*
 import mpbuilder.domain.model.*
 import mpbuilder.domain.pricing.*
 import mpbuilder.ui.catalog.*
+import mpbuilder.uikit.containers.*
 
-/** Editor view for managing Pricelists and their Pricing Rules. */
+/** Editor view for managing Pricelists and their Pricing Rules using SplitTableView. */
 object PricelistEditorView:
 
+  private case class IndexedPricingRule(rule: PricingRule, index: Int)
+
   def apply(): HtmlElement =
+    val searchVar = Var("")
+    val selectedKey: Var[Option[String]] = Var(None)
+
+    val indexedRules: Signal[List[IndexedPricingRule]] =
+      CatalogEditorViewModel.pricingRules.combineWith(searchVar.signal).map { case (rules, query) =>
+        val q = query.trim.toLowerCase
+        val indexed = rules.zipWithIndex.map { case (r, i) => IndexedPricingRule(r, i) }
+        if q.isEmpty then indexed
+        else indexed.filter(ir => pricingRuleSummary(ir.rule).toLowerCase.contains(q) || pricingRuleTypeName(ir.rule).toLowerCase.contains(q))
+      }
+
+    val tableConfig = SplitTableConfig[IndexedPricingRule](
+      columns = List(
+        ColumnDef("#", ir => span(cls := "entity-id", s"${ir.index + 1}"), width = Some("50px")),
+        ColumnDef("Type", ir => span(cls := "entity-name", pricingRuleTypeName(ir.rule)), Some(ir => pricingRuleTypeName(ir.rule)), Some("200px")),
+        ColumnDef("Summary", ir => span(pricingRuleSummary(ir.rule))),
+        ColumnDef("", ir => div(
+          cls := "entity-actions",
+          button(cls := "btn btn-sm btn-danger", "✕", onClick.stopPropagation --> { _ =>
+            CatalogEditorViewModel.removePricingRule(ir.index)
+          }),
+        ), width = Some("50px")),
+      ),
+      rowKey = ir => ir.index.toString,
+      searchPlaceholder = "Search pricing rules…",
+      onRowSelect = Some(ir => {
+        selectedKey.set(Some(ir.index.toString))
+        CatalogEditorViewModel.setEditState(EditState.EditingPricingRule(ir.index))
+      }),
+      emptyMessage = "No pricing rules defined for this pricelist.",
+    )
+
+    val sidePanel: Signal[Option[HtmlElement]] =
+      CatalogEditorViewModel.editState.combineWith(CatalogEditorViewModel.pricingRules).map {
+        case (EditState.CreatingPricingRule, _) =>
+          Some(pricingRuleForm(None, -1))
+        case (EditState.EditingPricingRule(idx), rules) =>
+          rules.lift(idx).map(r => pricingRuleForm(Some(r), idx))
+        case _ => None
+      }
+
     div(
       cls := "catalog-section",
+      h2(cls := "manufacturing-view-title", "Pricelists"),
 
-      // Pricelist selector
+      // Pricelist selector tabs
       div(
-        cls := "catalog-section-header",
-        h3("Pricelists"),
-        div(
-          cls := "pricelist-tabs",
-          children <-- CatalogEditorViewModel.state.map { s =>
-            s.pricelists.zipWithIndex.map { case (pl, idx) =>
-              button(
-                cls := (if idx == s.selectedPricelistIndex then "btn btn-sm btn-active" else "btn btn-sm"),
-                s"${pl.currency} v${pl.version}",
-                onClick --> { _ => CatalogEditorViewModel.selectPricelist(idx) },
-              )
-            } :+ button(
-              cls := "btn btn-sm",
-              "+ Add Pricelist",
-              onClick --> { _ => CatalogEditorViewModel.addPricelist(Currency.USD) },
+        cls := "pricelist-tabs",
+        children <-- CatalogEditorViewModel.state.map { s =>
+          s.pricelists.zipWithIndex.map { case (pl, idx) =>
+            button(
+              cls := (if idx == s.selectedPricelistIndex then "btn btn-sm btn-active" else "btn btn-sm"),
+              s"${pl.currency} v${pl.version}",
+              onClick --> { _ => CatalogEditorViewModel.selectPricelist(idx) },
             )
-          },
-        ),
-      ),
-
-      // Pricing rules for selected pricelist
-      div(
-        cls := "catalog-section-header",
-        h4("Pricing Rules"),
-        FormComponents.actionButton("+ Add Pricing Rule", () =>
-          CatalogEditorViewModel.setEditState(EditState.CreatingPricingRule)
-        ),
-      ),
-
-      div(
-        cls := "catalog-entity-list",
-        children <-- CatalogEditorViewModel.pricingRules.map { rules =>
-          if rules.isEmpty then List(p(cls := "empty-message", "No pricing rules defined for this pricelist."))
-          else rules.zipWithIndex.map { case (rule, idx) => pricingRuleRow(rule, idx) }
+          } :+ button(
+            cls := "btn btn-sm",
+            "+ Add Pricelist",
+            onClick --> { _ => CatalogEditorViewModel.addPricelist(Currency.USD) },
+          )
         },
       ),
 
-      child <-- CatalogEditorViewModel.editState.combineWith(CatalogEditorViewModel.pricingRules).map {
-        case (EditState.CreatingPricingRule, _) => pricingRuleForm(None, -1)
-        case (EditState.EditingPricingRule(idx), rules) =>
-          rules.lift(idx).map(r => pricingRuleForm(Some(r), idx)).getOrElse(emptyNode)
-        case _ => emptyNode
-      },
-    )
-
-  private def pricingRuleRow(rule: PricingRule, index: Int): HtmlElement =
-    div(
-      cls := "catalog-entity-row",
-      div(
-        cls := "entity-info",
-        span(cls := "entity-id", s"#${index + 1}"),
-        span(cls := "entity-name", pricingRuleSummary(rule)),
-      ),
-      div(
-        cls := "entity-actions",
-        button(cls := "btn btn-sm", "Edit", onClick --> { _ =>
-          CatalogEditorViewModel.setEditState(EditState.EditingPricingRule(index))
-        }),
-        button(cls := "btn btn-sm btn-danger", "Remove", onClick --> { _ =>
-          CatalogEditorViewModel.removePricingRule(index)
-        }),
+      SplitTableView(
+        config = tableConfig,
+        items = indexedRules,
+        selectedKey = selectedKey.signal,
+        searchQuery = searchVar,
+        sidePanel = sidePanel,
+        headerActions = Some(
+          FormComponents.actionButton("+ Add Pricing Rule", () => {
+            selectedKey.set(None)
+            CatalogEditorViewModel.setEditState(EditState.CreatingPricingRule)
+          })
+        ),
       ),
     )
 
@@ -128,8 +140,14 @@ object PricelistEditorView:
     )
 
     div(
-      cls := "catalog-edit-form",
-      h4(if existing.isDefined then "Edit Pricing Rule" else "New Pricing Rule"),
+      cls := "catalog-detail-panel",
+      button(cls := "detail-panel-close", "×", onClick --> { _ =>
+        CatalogEditorViewModel.setEditState(EditState.None)
+      }),
+      div(cls := "detail-panel-header",
+        h3(if existing.isDefined then "Edit Pricing Rule" else "New Pricing Rule"),
+      ),
+      div(cls := "detail-panel-section",
 
       div(
         cls := "form-group",
@@ -204,8 +222,10 @@ object PricelistEditorView:
         )
       },
 
+      ), // close detail-panel-section
+
       div(
-        cls := "form-actions",
+        cls := "detail-panel-actions",
         FormComponents.actionButton("Save", () => {
           buildPricingRule(
             ruleTypeVar.now(), materialIdVar.now(), finishIdVar.now(), amountVar.now(),

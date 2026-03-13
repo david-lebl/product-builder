@@ -3,54 +3,72 @@ package mpbuilder.ui.catalog.views
 import com.raquo.laminar.api.L.*
 import mpbuilder.domain.model.*
 import mpbuilder.ui.catalog.*
+import mpbuilder.uikit.containers.*
 
-/** Editor view for managing Finishes in the catalog. */
+/** Editor view for managing Finishes in the catalog using SplitTableView. */
 object FinishEditorView:
 
   def apply(): HtmlElement =
-    div(
-      cls := "catalog-section",
-      div(
-        cls := "catalog-section-header",
-        h3("Finishes"),
-        FormComponents.actionButton("+ Add Finish", () =>
-          CatalogEditorViewModel.setEditState(EditState.CreatingFinish)
-        ),
-      ),
+    val searchVar = Var("")
+    val selectedId: Var[Option[String]] = Var(None)
 
-      div(
-        cls := "catalog-entity-list",
-        children <-- CatalogEditorViewModel.finishes.map { fins =>
-          if fins.isEmpty then List(p(cls := "empty-message", "No finishes defined."))
-          else fins.map(finishRow)
-        },
-      ),
+    val filteredFinishes: Signal[List[Finish]] =
+      CatalogEditorViewModel.finishes.combineWith(searchVar.signal).map { case (fins, query) =>
+        val q = query.trim.toLowerCase
+        if q.isEmpty then fins
+        else fins.filter { f =>
+          f.id.value.toLowerCase.contains(q) ||
+          f.name.value.toLowerCase.contains(q) ||
+          f.finishType.toString.toLowerCase.contains(q)
+        }
+      }
 
-      child <-- CatalogEditorViewModel.editState.combineWith(CatalogEditorViewModel.catalog).map {
-        case (EditState.CreatingFinish, _) => finishForm(None)
-        case (EditState.EditingFinish(id), cat) =>
-          cat.finishes.get(id).map(f => finishForm(Some(f))).getOrElse(emptyNode)
-        case _ => emptyNode
-      },
+    val tableConfig = SplitTableConfig[Finish](
+      columns = List(
+        ColumnDef("ID", f => span(cls := "entity-id", f.id.value), Some(_.id.value), Some("160px")),
+        ColumnDef("Name", f => span(f.name.value), Some(_.name.value)),
+        ColumnDef("Type", f => span(f.finishType.toString), Some(_.finishType.toString), Some("120px")),
+        ColumnDef("Side", f => span(f.side.toString), Some(_.side.toString), Some("80px")),
+        ColumnDef("", f => div(
+          cls := "entity-actions",
+          button(cls := "btn btn-sm btn-danger", "✕", onClick.stopPropagation --> { _ =>
+            CatalogEditorViewModel.removeFinish(f.id)
+          }),
+        ), width = Some("50px")),
+      ),
+      rowKey = _.id.value,
+      searchPlaceholder = "Search finishes…",
+      onRowSelect = Some(f => {
+        selectedId.set(Some(f.id.value))
+        CatalogEditorViewModel.setEditState(EditState.EditingFinish(f.id))
+      }),
+      emptyMessage = "No finishes defined.",
     )
 
-  private def finishRow(fin: Finish): HtmlElement =
+    val sidePanel: Signal[Option[HtmlElement]] =
+      CatalogEditorViewModel.editState.combineWith(CatalogEditorViewModel.catalog).map {
+        case (EditState.CreatingFinish, _) =>
+          Some(finishForm(None))
+        case (EditState.EditingFinish(id), cat) =>
+          cat.finishes.get(id).map(f => finishForm(Some(f)))
+        case _ => None
+      }
+
     div(
-      cls := "catalog-entity-row",
-      div(
-        cls := "entity-info",
-        span(cls := "entity-id", fin.id.value),
-        span(cls := "entity-name", fin.name.value),
-        span(cls := "entity-detail", s"${fin.finishType} · ${fin.side}"),
-      ),
-      div(
-        cls := "entity-actions",
-        button(cls := "btn btn-sm", "Edit", onClick --> { _ =>
-          CatalogEditorViewModel.setEditState(EditState.EditingFinish(fin.id))
-        }),
-        button(cls := "btn btn-sm btn-danger", "Remove", onClick --> { _ =>
-          CatalogEditorViewModel.removeFinish(fin.id)
-        }),
+      cls := "catalog-section",
+      h2(cls := "manufacturing-view-title", "Finishes"),
+      SplitTableView(
+        config = tableConfig,
+        items = filteredFinishes,
+        selectedKey = selectedId.signal,
+        searchQuery = searchVar,
+        sidePanel = sidePanel,
+        headerActions = Some(
+          FormComponents.actionButton("+ Add Finish", () => {
+            selectedId.set(None)
+            CatalogEditorViewModel.setEditState(EditState.CreatingFinish)
+          })
+        ),
       ),
     )
 
@@ -62,23 +80,32 @@ object FinishEditorView:
     val sideVar = Var(existing.map(_.side).getOrElse(FinishSide.Both))
 
     div(
-      cls := "catalog-edit-form",
-      h4(if existing.isDefined then "Edit Finish" else "New Finish"),
+      cls := "catalog-detail-panel",
 
-      FormComponents.textField("ID", idVar.signal, idVar.writer, "e.g. matte-lamination"),
-      FormComponents.textField("Name (EN)", nameEnVar.signal, nameEnVar.writer),
-      FormComponents.textField("Name (CS)", nameCsVar.signal, nameCsVar.writer),
+      button(cls := "detail-panel-close", "×", onClick --> { _ =>
+        CatalogEditorViewModel.setEditState(EditState.None)
+      }),
 
-      FormComponents.enumSelectRequired[FinishType](
-        "Finish Type", FinishType.values, finishTypeVar.signal, finishTypeVar.writer,
+      div(cls := "detail-panel-header",
+        h3(if existing.isDefined then "Edit Finish" else "New Finish"),
       ),
 
-      FormComponents.enumSelectRequired[FinishSide](
-        "Side", FinishSide.values, sideVar.signal, sideVar.writer,
+      div(cls := "detail-panel-section",
+        FormComponents.textField("ID", idVar.signal, idVar.writer, "e.g. matte-lamination"),
+        FormComponents.textField("Name (EN)", nameEnVar.signal, nameEnVar.writer),
+        FormComponents.textField("Name (CS)", nameCsVar.signal, nameCsVar.writer),
+
+        FormComponents.enumSelectRequired[FinishType](
+          "Finish Type", FinishType.values, finishTypeVar.signal, finishTypeVar.writer,
+        ),
+
+        FormComponents.enumSelectRequired[FinishSide](
+          "Side", FinishSide.values, sideVar.signal, sideVar.writer,
+        ),
       ),
 
       div(
-        cls := "form-actions",
+        cls := "detail-panel-actions",
         FormComponents.actionButton("Save", () => {
           val id = idVar.now()
           if id.nonEmpty && nameEnVar.now().nonEmpty then

@@ -3,54 +3,72 @@ package mpbuilder.ui.catalog.views
 import com.raquo.laminar.api.L.*
 import mpbuilder.domain.model.*
 import mpbuilder.ui.catalog.*
+import mpbuilder.uikit.containers.*
 
-/** Editor view for managing Printing Methods in the catalog. */
+/** Editor view for managing Printing Methods in the catalog using SplitTableView. */
 object PrintingMethodEditorView:
 
   def apply(): HtmlElement =
-    div(
-      cls := "catalog-section",
-      div(
-        cls := "catalog-section-header",
-        h3("Printing Methods"),
-        FormComponents.actionButton("+ Add Printing Method", () =>
-          CatalogEditorViewModel.setEditState(EditState.CreatingPrintingMethod)
-        ),
-      ),
+    val searchVar = Var("")
+    val selectedId: Var[Option[String]] = Var(None)
 
-      div(
-        cls := "catalog-entity-list",
-        children <-- CatalogEditorViewModel.printingMethods.map { pms =>
-          if pms.isEmpty then List(p(cls := "empty-message", "No printing methods defined."))
-          else pms.map(pmRow)
-        },
-      ),
+    val filteredMethods: Signal[List[PrintingMethod]] =
+      CatalogEditorViewModel.printingMethods.combineWith(searchVar.signal).map { case (pms, query) =>
+        val q = query.trim.toLowerCase
+        if q.isEmpty then pms
+        else pms.filter { pm =>
+          pm.id.value.toLowerCase.contains(q) ||
+          pm.name.value.toLowerCase.contains(q) ||
+          pm.processType.toString.toLowerCase.contains(q)
+        }
+      }
 
-      child <-- CatalogEditorViewModel.editState.combineWith(CatalogEditorViewModel.catalog).map {
-        case (EditState.CreatingPrintingMethod, _) => pmForm(None)
-        case (EditState.EditingPrintingMethod(id), cat) =>
-          cat.printingMethods.get(id).map(pm => pmForm(Some(pm))).getOrElse(emptyNode)
-        case _ => emptyNode
-      },
+    val tableConfig = SplitTableConfig[PrintingMethod](
+      columns = List(
+        ColumnDef("ID", pm => span(cls := "entity-id", pm.id.value), Some(_.id.value), Some("160px")),
+        ColumnDef("Name", pm => span(pm.name.value), Some(_.name.value)),
+        ColumnDef("Process", pm => span(pm.processType.toString), Some(_.processType.toString), Some("100px")),
+        ColumnDef("Max Colors", pm => span(pm.maxColorCount.map(_.toString).getOrElse("∞")), width = Some("100px")),
+        ColumnDef("", pm => div(
+          cls := "entity-actions",
+          button(cls := "btn btn-sm btn-danger", "✕", onClick.stopPropagation --> { _ =>
+            CatalogEditorViewModel.removePrintingMethod(pm.id)
+          }),
+        ), width = Some("50px")),
+      ),
+      rowKey = _.id.value,
+      searchPlaceholder = "Search printing methods…",
+      onRowSelect = Some(pm => {
+        selectedId.set(Some(pm.id.value))
+        CatalogEditorViewModel.setEditState(EditState.EditingPrintingMethod(pm.id))
+      }),
+      emptyMessage = "No printing methods defined.",
     )
 
-  private def pmRow(pm: PrintingMethod): HtmlElement =
+    val sidePanel: Signal[Option[HtmlElement]] =
+      CatalogEditorViewModel.editState.combineWith(CatalogEditorViewModel.catalog).map {
+        case (EditState.CreatingPrintingMethod, _) =>
+          Some(pmForm(None))
+        case (EditState.EditingPrintingMethod(id), cat) =>
+          cat.printingMethods.get(id).map(pm => pmForm(Some(pm)))
+        case _ => None
+      }
+
     div(
-      cls := "catalog-entity-row",
-      div(
-        cls := "entity-info",
-        span(cls := "entity-id", pm.id.value),
-        span(cls := "entity-name", pm.name.value),
-        span(cls := "entity-detail", s"${pm.processType} · max colors: ${pm.maxColorCount.map(_.toString).getOrElse("∞")}"),
-      ),
-      div(
-        cls := "entity-actions",
-        button(cls := "btn btn-sm", "Edit", onClick --> { _ =>
-          CatalogEditorViewModel.setEditState(EditState.EditingPrintingMethod(pm.id))
-        }),
-        button(cls := "btn btn-sm btn-danger", "Remove", onClick --> { _ =>
-          CatalogEditorViewModel.removePrintingMethod(pm.id)
-        }),
+      cls := "catalog-section",
+      h2(cls := "manufacturing-view-title", "Printing Methods"),
+      SplitTableView(
+        config = tableConfig,
+        items = filteredMethods,
+        selectedKey = selectedId.signal,
+        searchQuery = searchVar,
+        sidePanel = sidePanel,
+        headerActions = Some(
+          FormComponents.actionButton("+ Add Printing Method", () => {
+            selectedId.set(None)
+            CatalogEditorViewModel.setEditState(EditState.CreatingPrintingMethod)
+          })
+        ),
       ),
     )
 
@@ -62,21 +80,30 @@ object PrintingMethodEditorView:
     val maxColorVar = Var(existing.flatMap(_.maxColorCount).map(_.toString).getOrElse(""))
 
     div(
-      cls := "catalog-edit-form",
-      h4(if existing.isDefined then "Edit Printing Method" else "New Printing Method"),
+      cls := "catalog-detail-panel",
 
-      FormComponents.textField("ID", idVar.signal, idVar.writer, "e.g. digital-printing"),
-      FormComponents.textField("Name (EN)", nameEnVar.signal, nameEnVar.writer),
-      FormComponents.textField("Name (CS)", nameCsVar.signal, nameCsVar.writer),
+      button(cls := "detail-panel-close", "×", onClick --> { _ =>
+        CatalogEditorViewModel.setEditState(EditState.None)
+      }),
 
-      FormComponents.enumSelectRequired[PrintingProcessType](
-        "Process Type", PrintingProcessType.values, processTypeVar.signal, processTypeVar.writer,
+      div(cls := "detail-panel-header",
+        h3(if existing.isDefined then "Edit Printing Method" else "New Printing Method"),
       ),
 
-      FormComponents.numberField("Max Color Count", maxColorVar.signal, maxColorVar.writer),
+      div(cls := "detail-panel-section",
+        FormComponents.textField("ID", idVar.signal, idVar.writer, "e.g. digital-printing"),
+        FormComponents.textField("Name (EN)", nameEnVar.signal, nameEnVar.writer),
+        FormComponents.textField("Name (CS)", nameCsVar.signal, nameCsVar.writer),
+
+        FormComponents.enumSelectRequired[PrintingProcessType](
+          "Process Type", PrintingProcessType.values, processTypeVar.signal, processTypeVar.writer,
+        ),
+
+        FormComponents.numberField("Max Color Count", maxColorVar.signal, maxColorVar.writer),
+      ),
 
       div(
-        cls := "form-actions",
+        cls := "detail-panel-actions",
         FormComponents.actionButton("Save", () => {
           val id = idVar.now()
           if id.nonEmpty && nameEnVar.now().nonEmpty then

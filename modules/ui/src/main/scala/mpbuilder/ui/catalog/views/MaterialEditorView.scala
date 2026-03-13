@@ -3,57 +3,73 @@ package mpbuilder.ui.catalog.views
 import com.raquo.laminar.api.L.*
 import mpbuilder.domain.model.*
 import mpbuilder.ui.catalog.*
+import mpbuilder.uikit.containers.*
 
-/** Editor view for managing Materials in the catalog. */
+/** Editor view for managing Materials in the catalog using SplitTableView. */
 object MaterialEditorView:
 
   def apply(): HtmlElement =
-    div(
-      cls := "catalog-section",
-      div(
-        cls := "catalog-section-header",
-        h3("Materials"),
-        FormComponents.actionButton("+ Add Material", () =>
-          CatalogEditorViewModel.setEditState(EditState.CreatingMaterial)
-        ),
-      ),
+    val searchVar = Var("")
+    val selectedId: Var[Option[String]] = Var(None)
 
-      // Material list
-      div(
-        cls := "catalog-entity-list",
-        children <-- CatalogEditorViewModel.materials.map { mats =>
-          if mats.isEmpty then List(p(cls := "empty-message", "No materials defined. Add one or load sample data."))
-          else mats.map(materialRow)
-        },
-      ),
+    val filteredMaterials: Signal[List[Material]] =
+      CatalogEditorViewModel.materials.combineWith(searchVar.signal).map { case (mats, query) =>
+        val q = query.trim.toLowerCase
+        if q.isEmpty then mats
+        else mats.filter { m =>
+          m.id.value.toLowerCase.contains(q) ||
+          m.name.value.toLowerCase.contains(q) ||
+          m.family.toString.toLowerCase.contains(q)
+        }
+      }
 
-      // Edit form
-      child <-- CatalogEditorViewModel.editState.combineWith(CatalogEditorViewModel.catalog).map {
-        case (EditState.CreatingMaterial, _) => materialForm(None)
-        case (EditState.EditingMaterial(id), cat) =>
-          cat.materials.get(id).map(m => materialForm(Some(m))).getOrElse(emptyNode)
-        case _ => emptyNode
-      },
+    val tableConfig = SplitTableConfig[Material](
+      columns = List(
+        ColumnDef("ID", m => span(cls := "entity-id", m.id.value), Some(_.id.value), Some("140px")),
+        ColumnDef("Name", m => span(m.name.value), Some(_.name.value)),
+        ColumnDef("Family", m => span(m.family.toString), Some(_.family.toString), Some("100px")),
+        ColumnDef("Weight", m => span(m.weight.map(w => s"${w.gsm}gsm").getOrElse("—")), width = Some("80px")),
+        ColumnDef("Properties", m => span(cls := "entity-tags", m.properties.map(_.toString).mkString(", "))),
+        ColumnDef("", m => div(
+          cls := "entity-actions",
+          button(cls := "btn btn-sm btn-danger", "✕", onClick.stopPropagation --> { _ =>
+            CatalogEditorViewModel.removeMaterial(m.id)
+          }),
+        ), width = Some("50px")),
+      ),
+      rowKey = _.id.value,
+      searchPlaceholder = "Search materials…",
+      onRowSelect = Some(m => {
+        selectedId.set(Some(m.id.value))
+        CatalogEditorViewModel.setEditState(EditState.EditingMaterial(m.id))
+      }),
+      emptyMessage = "No materials defined. Add one or load sample data.",
     )
 
-  private def materialRow(mat: Material): HtmlElement =
+    val sidePanel: Signal[Option[HtmlElement]] =
+      CatalogEditorViewModel.editState.combineWith(CatalogEditorViewModel.catalog).map {
+        case (EditState.CreatingMaterial, _) =>
+          Some(materialForm(None))
+        case (EditState.EditingMaterial(id), cat) =>
+          cat.materials.get(id).map(m => materialForm(Some(m)))
+        case _ => None
+      }
+
     div(
-      cls := "catalog-entity-row",
-      div(
-        cls := "entity-info",
-        span(cls := "entity-id", mat.id.value),
-        span(cls := "entity-name", mat.name.value),
-        span(cls := "entity-detail", s"${mat.family} ${mat.weight.map(w => s"${w.gsm}gsm").getOrElse("")}"),
-        span(cls := "entity-tags", mat.properties.map(_.toString).mkString(", ")),
-      ),
-      div(
-        cls := "entity-actions",
-        button(cls := "btn btn-sm", "Edit", onClick --> { _ =>
-          CatalogEditorViewModel.setEditState(EditState.EditingMaterial(mat.id))
-        }),
-        button(cls := "btn btn-sm btn-danger", "Remove", onClick --> { _ =>
-          CatalogEditorViewModel.removeMaterial(mat.id)
-        }),
+      cls := "catalog-section",
+      h2(cls := "manufacturing-view-title", "Materials"),
+      SplitTableView(
+        config = tableConfig,
+        items = filteredMaterials,
+        selectedKey = selectedId.signal,
+        searchQuery = searchVar,
+        sidePanel = sidePanel,
+        headerActions = Some(
+          FormComponents.actionButton("+ Add Material", () => {
+            selectedId.set(None)
+            CatalogEditorViewModel.setEditState(EditState.CreatingMaterial)
+          })
+        ),
       ),
     )
 
@@ -66,26 +82,34 @@ object MaterialEditorView:
     val propsVar = Var(existing.map(_.properties).getOrElse(Set.empty[MaterialProperty]))
 
     div(
-      cls := "catalog-edit-form",
-      h4(if existing.isDefined then "Edit Material" else "New Material"),
+      cls := "catalog-detail-panel",
 
-      FormComponents.textField("ID", idVar.signal, idVar.writer, "e.g. coated-300gsm"),
+      button(cls := "detail-panel-close", "×", onClick --> { _ =>
+        CatalogEditorViewModel.setEditState(EditState.None)
+      }),
 
-      FormComponents.textField("Name (EN)", nameEnVar.signal, nameEnVar.writer),
-      FormComponents.textField("Name (CS)", nameCsVar.signal, nameCsVar.writer),
-
-      FormComponents.enumSelectRequired[MaterialFamily](
-        "Family", MaterialFamily.values, familyVar.signal, familyVar.writer,
+      div(cls := "detail-panel-header",
+        h3(if existing.isDefined then "Edit Material" else "New Material"),
       ),
 
-      FormComponents.numberField("Weight (gsm)", weightVar.signal, weightVar.writer),
+      div(cls := "detail-panel-section",
+        FormComponents.textField("ID", idVar.signal, idVar.writer, "e.g. coated-300gsm"),
+        FormComponents.textField("Name (EN)", nameEnVar.signal, nameEnVar.writer),
+        FormComponents.textField("Name (CS)", nameCsVar.signal, nameCsVar.writer),
 
-      FormComponents.enumCheckboxSet[MaterialProperty](
-        "Properties", MaterialProperty.values, propsVar.signal, propsVar.writer,
+        FormComponents.enumSelectRequired[MaterialFamily](
+          "Family", MaterialFamily.values, familyVar.signal, familyVar.writer,
+        ),
+
+        FormComponents.numberField("Weight (gsm)", weightVar.signal, weightVar.writer),
+
+        FormComponents.enumCheckboxSet[MaterialProperty](
+          "Properties", MaterialProperty.values, propsVar.signal, propsVar.writer,
+        ),
       ),
 
       div(
-        cls := "form-actions",
+        cls := "detail-panel-actions",
         FormComponents.actionButton("Save", () => {
           val id = idVar.now()
           if id.nonEmpty && nameEnVar.now().nonEmpty then

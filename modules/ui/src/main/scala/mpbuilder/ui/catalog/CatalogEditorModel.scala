@@ -3,6 +3,7 @@ package mpbuilder.ui.catalog
 import mpbuilder.domain.model.*
 import mpbuilder.domain.pricing.*
 import mpbuilder.domain.rules.*
+import mpbuilder.domain.sample.*
 
 /** Which section of the catalog editor is currently active. */
 enum CatalogSection:
@@ -38,9 +39,9 @@ final case class CatalogEditorState(
 
 object CatalogEditorState:
   def initial: CatalogEditorState = CatalogEditorState(
-    catalog = ProductCatalog(Map.empty, Map.empty, Map.empty, Map.empty),
-    ruleset = CompatibilityRuleset(Nil, "1.0"),
-    pricelists = List(Pricelist(Nil, Currency.USD, "1.0")),
+    catalog = SampleCatalog.catalog,
+    ruleset = SampleRules.ruleset,
+    pricelists = List(SamplePricelist.pricelistCzk, SamplePricelist.pricelist),
     activeSection = CatalogSection.Categories,
     editState = EditState.None,
     selectedPricelistIndex = 0,

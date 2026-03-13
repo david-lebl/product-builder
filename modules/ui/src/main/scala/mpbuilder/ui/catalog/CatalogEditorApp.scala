@@ -5,7 +5,8 @@ import mpbuilder.ui.catalog.views.*
 
 /** Main catalog editor application.
   *
-  * Provides a sidebar navigation for switching between catalog entity types
+  * Uses the same dark-sidebar layout as ManufacturingApp for visual consistency.
+  * Provides sidebar navigation for switching between catalog entity types
   * (Categories, Materials, Finishes, Printing Methods, Rules, Pricelist)
   * and an export/import section for JSON persistence.
   */
@@ -14,13 +15,6 @@ object CatalogEditorApp:
   def apply(): HtmlElement =
     div(
       cls := "catalog-editor-app",
-
-      // Header
-      div(
-        cls := "catalog-header",
-        h1("Catalog Editor"),
-        p("Configure your product catalog, compatibility rules, and pricelists."),
-      ),
 
       // Status message bar
       child <-- CatalogEditorViewModel.statusMessage.map {
@@ -33,23 +27,32 @@ object CatalogEditorApp:
         case None => emptyNode
       },
 
-      // Main layout: sidebar + content
+      // Main layout: sidebar + content (ManufacturingApp-style)
       div(
         cls := "catalog-layout",
 
-        // Sidebar navigation
-        div(
+        // Dark sidebar navigation
+        htmlTag("nav")(
           cls := "catalog-sidebar",
-          CatalogSection.values.toList.map { section =>
-            button(
-              cls <-- CatalogEditorViewModel.activeSection.map { active =>
-                if active == section then "catalog-nav-btn catalog-nav-btn--active"
-                else "catalog-nav-btn"
-              },
-              sectionLabel(section),
-              onClick --> { _ => CatalogEditorViewModel.setSection(section) },
-            )
-          },
+          div(
+            cls := "catalog-sidebar-header",
+            span(cls := "catalog-sidebar-icon", "📋"),
+            span(cls := "catalog-sidebar-title", "Catalog"),
+          ),
+          div(
+            cls := "catalog-sidebar-nav",
+            CatalogSection.values.toList.map { section =>
+              button(
+                cls <-- CatalogEditorViewModel.activeSection.map { active =>
+                  if active == section then "catalog-nav-btn catalog-nav-btn--active"
+                  else "catalog-nav-btn"
+                },
+                span(cls := "catalog-nav-icon", sectionIcon(section)),
+                span(cls := "catalog-nav-label", sectionName(section)),
+                onClick --> { _ => CatalogEditorViewModel.setSection(section) },
+              )
+            },
+          ),
         ),
 
         // Content area
@@ -68,11 +71,20 @@ object CatalogEditorApp:
       ),
     )
 
-  private def sectionLabel(section: CatalogSection): String = section match
-    case CatalogSection.Categories     => "📦 Categories"
-    case CatalogSection.Materials      => "📄 Materials"
-    case CatalogSection.Finishes       => "✨ Finishes"
-    case CatalogSection.PrintingMethods => "🖨 Printing Methods"
-    case CatalogSection.Rules          => "📏 Rules"
-    case CatalogSection.Pricelist      => "💰 Pricelist"
-    case CatalogSection.Export         => "📤 Export / Import"
+  private def sectionIcon(section: CatalogSection): String = section match
+    case CatalogSection.Categories     => "📦"
+    case CatalogSection.Materials      => "📄"
+    case CatalogSection.Finishes       => "✨"
+    case CatalogSection.PrintingMethods => "🖨"
+    case CatalogSection.Rules          => "📏"
+    case CatalogSection.Pricelist      => "💰"
+    case CatalogSection.Export         => "📤"
+
+  private def sectionName(section: CatalogSection): String = section match
+    case CatalogSection.Categories     => "Categories"
+    case CatalogSection.Materials      => "Materials"
+    case CatalogSection.Finishes       => "Finishes"
+    case CatalogSection.PrintingMethods => "Printing Methods"
+    case CatalogSection.Rules          => "Rules"
+    case CatalogSection.Pricelist      => "Pricelist"
+    case CatalogSection.Export         => "Export / Import"

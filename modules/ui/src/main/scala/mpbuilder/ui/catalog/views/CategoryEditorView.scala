@@ -3,8 +3,9 @@ package mpbuilder.ui.catalog.views
 import com.raquo.laminar.api.L.*
 import mpbuilder.domain.model.*
 import mpbuilder.ui.catalog.*
+import mpbuilder.uikit.containers.*
 
-/** Editor view for managing Product Categories in the catalog.
+/** Editor view for managing Product Categories in the catalog using SplitTableView.
   *
   * Categories are the most complex entity because they include ComponentTemplates
   * with cross-references to materials and finishes.
@@ -12,52 +13,65 @@ import mpbuilder.ui.catalog.*
 object CategoryEditorView:
 
   def apply(): HtmlElement =
-    div(
-      cls := "catalog-section",
-      div(
-        cls := "catalog-section-header",
-        h3("Product Categories"),
-        FormComponents.actionButton("+ Add Category", () =>
-          CatalogEditorViewModel.setEditState(EditState.CreatingCategory)
-        ),
-      ),
+    val searchVar = Var("")
+    val selectedId: Var[Option[String]] = Var(None)
 
-      div(
-        cls := "catalog-entity-list",
-        children <-- CatalogEditorViewModel.categories.map { cats =>
-          if cats.isEmpty then List(p(cls := "empty-message", "No categories defined. Add one or load sample data."))
-          else cats.map(categoryRow)
-        },
-      ),
+    val filteredCategories: Signal[List[ProductCategory]] =
+      CatalogEditorViewModel.categories.combineWith(searchVar.signal).map { case (cats, query) =>
+        val q = query.trim.toLowerCase
+        if q.isEmpty then cats
+        else cats.filter { c =>
+          c.id.value.toLowerCase.contains(q) ||
+          c.name.value.toLowerCase.contains(q)
+        }
+      }
 
-      child <-- CatalogEditorViewModel.editState.combineWith(CatalogEditorViewModel.catalog).map {
-        case (EditState.CreatingCategory, _) => categoryForm(None)
-        case (EditState.EditingCategory(id), cat) =>
-          cat.categories.get(id).map(c => categoryForm(Some(c))).getOrElse(emptyNode)
-        case _ => emptyNode
-      },
+    val tableConfig = SplitTableConfig[ProductCategory](
+      columns = List(
+        ColumnDef("ID", c => span(cls := "entity-id", c.id.value), Some(_.id.value), Some("150px")),
+        ColumnDef("Name", c => span(c.name.value), Some(_.name.value)),
+        ColumnDef("Components", c => span(s"${c.components.size}"), width = Some("100px")),
+        ColumnDef("Specs", c => span(cls := "entity-tags", c.requiredSpecKinds.map(_.toString).mkString(", "))),
+        ColumnDef("", c => div(
+          cls := "entity-actions",
+          button(cls := "btn btn-sm btn-danger", "✕", onClick.stopPropagation --> { _ =>
+            CatalogEditorViewModel.removeCategory(c.id)
+          }),
+        ), width = Some("50px")),
+      ),
+      rowKey = _.id.value,
+      searchPlaceholder = "Search categories…",
+      onRowSelect = Some(c => {
+        selectedId.set(Some(c.id.value))
+        CatalogEditorViewModel.setEditState(EditState.EditingCategory(c.id))
+      }),
+      emptyMessage = "No categories defined. Add one or load sample data.",
     )
 
-  private def categoryRow(cat: ProductCategory): HtmlElement =
+    val sidePanel: Signal[Option[HtmlElement]] =
+      CatalogEditorViewModel.editState.combineWith(CatalogEditorViewModel.catalog).map {
+        case (EditState.CreatingCategory, _) =>
+          Some(categoryForm(None))
+        case (EditState.EditingCategory(id), cat) =>
+          cat.categories.get(id).map(c => categoryForm(Some(c)))
+        case _ => None
+      }
+
     div(
-      cls := "catalog-entity-row",
-      div(
-        cls := "entity-info",
-        span(cls := "entity-id", cat.id.value),
-        span(cls := "entity-name", cat.name.value),
-        span(cls := "entity-detail", s"${cat.components.size} component(s)"),
-        span(cls := "entity-tags",
-          s"Specs: ${cat.requiredSpecKinds.map(_.toString).mkString(", ")}"
+      cls := "catalog-section",
+      h2(cls := "manufacturing-view-title", "Product Categories"),
+      SplitTableView(
+        config = tableConfig,
+        items = filteredCategories,
+        selectedKey = selectedId.signal,
+        searchQuery = searchVar,
+        sidePanel = sidePanel,
+        headerActions = Some(
+          FormComponents.actionButton("+ Add Category", () => {
+            selectedId.set(None)
+            CatalogEditorViewModel.setEditState(EditState.CreatingCategory)
+          })
         ),
-      ),
-      div(
-        cls := "entity-actions",
-        button(cls := "btn btn-sm", "Edit", onClick --> { _ =>
-          CatalogEditorViewModel.setEditState(EditState.EditingCategory(cat.id))
-        }),
-        button(cls := "btn btn-sm btn-danger", "Remove", onClick --> { _ =>
-          CatalogEditorViewModel.removeCategory(cat.id)
-        }),
       ),
     )
 
@@ -72,31 +86,39 @@ object CategoryEditorView:
     ))
 
     div(
-      cls := "catalog-edit-form",
-      h4(if existing.isDefined then "Edit Category" else "New Category"),
+      cls := "catalog-detail-panel",
 
-      FormComponents.textField("ID", idVar.signal, idVar.writer, "e.g. business-cards"),
-      FormComponents.textField("Name (EN)", nameEnVar.signal, nameEnVar.writer),
-      FormComponents.textField("Name (CS)", nameCsVar.signal, nameCsVar.writer),
+      button(cls := "detail-panel-close", "×", onClick --> { _ =>
+        CatalogEditorViewModel.setEditState(EditState.None)
+      }),
 
-      FormComponents.enumCheckboxSet[SpecKind](
-        "Required Specifications", SpecKind.values, specKindsVar.signal, specKindsVar.writer,
+      div(cls := "detail-panel-header",
+        h3(if existing.isDefined then "Edit Category" else "New Category"),
       ),
 
-      // Printing method selection — show IDs from catalog
-      FormComponents.idCheckboxSet[PrintingMethodId](
-        "Allowed Printing Methods (empty = all)",
-        CatalogEditorViewModel.printingMethods.map(_.map(pm => pm.id -> pm.name.value)),
-        printingMethodIdsVar.signal,
-        printingMethodIdsVar.writer,
-        _.value,
-        PrintingMethodId.unsafe,
+      div(cls := "detail-panel-section",
+        FormComponents.textField("ID", idVar.signal, idVar.writer, "e.g. business-cards"),
+        FormComponents.textField("Name (EN)", nameEnVar.signal, nameEnVar.writer),
+        FormComponents.textField("Name (CS)", nameCsVar.signal, nameCsVar.writer),
+
+        FormComponents.enumCheckboxSet[SpecKind](
+          "Required Specifications", SpecKind.values, specKindsVar.signal, specKindsVar.writer,
+        ),
+
+        FormComponents.idCheckboxSet[PrintingMethodId](
+          "Allowed Printing Methods (empty = all)",
+          CatalogEditorViewModel.printingMethods.map(_.map(pm => pm.id -> pm.name.value)),
+          printingMethodIdsVar.signal,
+          printingMethodIdsVar.writer,
+          _.value,
+          PrintingMethodId.unsafe,
+        ),
       ),
 
       // Component templates
       div(
-        cls := "form-group",
-        com.raquo.laminar.api.L.label("Component Templates"),
+        cls := "detail-panel-section",
+        h4("Component Templates"),
         children <-- componentsVar.signal.map { comps =>
           comps.zipWithIndex.map { case (comp, idx) =>
             componentTemplateEditor(comp, idx, componentsVar)
@@ -112,7 +134,7 @@ object CategoryEditorView:
       ),
 
       div(
-        cls := "form-actions",
+        cls := "detail-panel-actions",
         FormComponents.actionButton("Save", () => {
           val id = idVar.now()
           if id.nonEmpty && nameEnVar.now().nonEmpty then
