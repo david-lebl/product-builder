@@ -101,9 +101,10 @@ object CheckoutView:
         else "Sign In or Continue as Guest"
       ),
 
-      // Guest option
       div(
         cls := "checkout-auth-options",
+
+        // Guest option
         div(
           cls := "checkout-auth-option",
           h3(if l == Language.Cs then "Pokračovat jako host" else "Continue as Guest"),
@@ -160,6 +161,11 @@ object CheckoutView:
             },
           ),
         ),
+
+        div(cls := "checkout-auth-divider", if l == Language.Cs then "nebo" else "or"),
+
+        // Agency OTP login
+        LoginWidget.checkoutAgencyLogin(info, l),
       ),
     )
 

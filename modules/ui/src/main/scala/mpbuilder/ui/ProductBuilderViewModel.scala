@@ -680,7 +680,9 @@ object ProductBuilderViewModel:
     current match
       case LoginState.EnteringOtp(customer, otpToken, _, _) =>
         val now = System.currentTimeMillis()
-        val result = LoginService.validateOtp(otpInput, otpToken, now)
+        // Mock/demo: accept empty OTP by auto-filling with the actual token
+        val effectiveInput = if otpInput.trim.isEmpty then otpToken.token else otpInput
+        val result = LoginService.validateOtp(effectiveInput, otpToken, now)
         result.fold(
           errors => {
             val msg = errors.map(_.message).toList.mkString(", ")

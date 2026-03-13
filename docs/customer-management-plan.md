@@ -568,9 +568,11 @@ With Option B (modified pricelist), comparison is done by computing two separate
 
 **Login widget (`components/LoginWidget.scala`):**
 - Displayed in the product builder header area
-- States: logged out → entering identifier → entering OTP → logged in
+- Logged-out state shows "👤 Guest" status with "🔑 Login" button that opens a popup dropdown
+- Login popup: identifier type select + input field + demo hints (e.g. `jan@printshoppro.cz`)
+- OTP popup: shows generated token as hint, accepts empty OTP (mock/demo mode)
 - Logged-in state shows: company name, tier badge, logout button
-- Login state persisted in `localStorage`
+- Agency login also available in Checkout Step 1 (Authentication) alongside Guest and Registered options
 
 **ProductBuilderViewModel extensions:**
 - `currentCustomer: Var[Option[Customer]]` — the logged-in agency customer
@@ -608,16 +610,19 @@ Added `LoginState` sealed ADT (LoggedOut/EnteringIdentifier/EnteringOtp/LoggedIn
 - `checkoutPrevStep()` prevents navigating back to Authentication when logged in
 
 **LoginWidget (`components/LoginWidget.scala`):**
-- Compact widget in top bar replacing the "Guest" user indicator
-- States: logged out (button) → identifier entry (select type + input + OTP send) → OTP entry (6-digit) → logged in (company name + tier badge + logout)
-- Uses `LoginService.lookupCustomer` and `LoginService.validateOtp` from domain layer
+- Shows "👤 Guest" status in top bar with "🔑 Login" button
+- Login popup: identifier type selector + input field + demo hints (`jan@printshoppro.cz` / IČO `12345678`)
+- OTP popup: shows generated token as demo hint, accepts empty OTP (mock mode — auto-fills with actual token)
+- Logged-in state: company name + tier badge (Gold/Silver/etc.) + Logout button
+- `checkoutAgencyLogin()` method provides the same login flow as a checkout card for Checkout Step 1
 
 **PricePreview updates:**
 - When customer logged in: strikethrough base price, highlighted "Your price", "You save: X CZK (Y%)" summary
 - When not logged in: standard single-price display
 
 **CheckoutView updates:**
-- Authentication step skipped when customer logged in (step bar and navigation)
+- Authentication step shows 3 options: Guest / Registered / Agency Login (with OTP flow)
+- Authentication step skipped when customer already logged in via top bar (step bar and navigation)
 - Customer tier and discount info shown in Summary step
 - Contact/address pre-filled from Customer data
 
