@@ -43,104 +43,48 @@ object OrderHistoryView:
     val lang = ProductBuilderViewModel.currentLanguage
     val expandedOrderId: Var[Option[String]] = Var(None)
 
+    // Derived signal: customer orders filtered by logged-in customer
+    val customerOrdersSignal: Signal[List[ManufacturingOrder]] =
+      ProductBuilderViewModel.currentCustomer.combineWith(ManufacturingViewModel.manufacturingOrders.signal).map {
+        case (Some(customer), allOrders) =>
+          allOrders.filter(_.order.customerId.contains(customer.id)).sortBy(-_.createdAt)
+        case _ => List.empty
+      }
+
     div(
       cls := "order-history-page",
 
       child <-- ProductBuilderViewModel.loginState.combineWith(lang).map { case (loginState, l) =>
         loginState match
-          case LoginState.LoggedIn(customer, _) =>
-            val customerOrders = ManufacturingViewModel.manufacturingOrders.now()
-              .filter(_.order.customerId.contains(customer.id))
-              .sortBy(-_.createdAt)
-
+          case _: LoginState.LoggedIn =>
             div(
               cls := "card",
-              h2(l match
+              h2(child.text <-- lang.map {
                 case Language.En => "Order History"
                 case Language.Cs => "Historie objednávek"
-              ),
+              }),
 
-              if customerOrders.isEmpty then
-                div(
-                  cls := "order-history-empty",
-                  p(l match
-                    case Language.En => "You have no orders yet."
-                    case Language.Cs => "Zatím nemáte žádné objednávky."
-                  ),
-                  button(
-                    cls := "checkout-btn",
-                    l match
-                      case Language.En => "Start Shopping →"
-                      case Language.Cs => "Začít nakupovat →",
-                    onClick --> { _ => AppRouter.navigateTo(AppRoute.ProductBuilder) },
-                  ),
-                )
-              else
-                div(
-                  cls := "order-history-list",
-
-                  // Status summary bar
-                  div(
-                    cls := "order-history-summary",
-                    statusSummaryCard(customerOrders, OrderHistoryStatus.Placed, l),
-                    statusSummaryCard(customerOrders, OrderHistoryStatus.InProduction, l),
-                    statusSummaryCard(customerOrders, OrderHistoryStatus.Completed, l),
-                    statusSummaryCard(customerOrders, OrderHistoryStatus.Dispatched, l),
-                  ),
-
-                  // Orders table
-                  table(
-                    cls := "order-history-table",
-                    thead(
-                      tr(
-                        th(l match { case Language.En => "Order"; case Language.Cs => "Objednávka" }),
-                        th(l match { case Language.En => "Date"; case Language.Cs => "Datum" }),
-                        th(l match { case Language.En => "Items"; case Language.Cs => "Položky" }),
-                        th(l match { case Language.En => "Total"; case Language.Cs => "Celkem" }),
-                        th(l match { case Language.En => "Status"; case Language.Cs => "Stav" }),
-                        th(l match { case Language.En => "Tracking"; case Language.Cs => "Sledování" }),
-                        th(""),
+              // Content: either empty state or orders list
+              child <-- customerOrdersSignal.combineWith(expandedOrderId.signal).map { case (orders, expandedId) =>
+                val l2 = ProductBuilderViewModel.stateVar.now().language
+                  if orders.isEmpty then
+                    div(
+                      cls := "order-history-empty",
+                      p(l2 match
+                        case Language.En => "You have no orders yet."
+                        case Language.Cs => "Zatím nemáte žádné objednávky."
                       ),
-                    ),
-                    tbody(
-                      customerOrders.flatMap { mo =>
-                        val status = OrderHistoryStatus.fromManufacturingOrder(mo)
-                        val isExpanded = expandedOrderId.now().contains(mo.order.id.value)
-                        val dateStr = formatDate(mo.createdAt)
-
-                        val mainRow = tr(
-                          cls := (if isExpanded then "order-history-row order-history-row--expanded" else "order-history-row"),
-                          onClick --> { _ =>
-                            expandedOrderId.update {
-                              case Some(id) if id == mo.order.id.value => None
-                              case _ => Some(mo.order.id.value)
-                            }
-                          },
-                          td(cls := "order-id-cell", mo.order.id.value),
-                          td(dateStr),
-                          td(mo.itemSummary),
-                          td(formatMoney(mo.order.total, mo.order.currency)),
-                          td(span(cls := status.badgeClass, status.label(l))),
-                          td(
-                            mo.fulfilment.flatMap(f =>
-                              if f.dispatchInfo.trackingNumber.nonEmpty then Some(f.dispatchInfo.trackingNumber)
-                              else None
-                            ).getOrElse("—")
-                          ),
-                          td(
-                            span(cls := "order-expand-icon", if isExpanded then "▲" else "▼"),
-                          ),
-                        )
-
-                        val detailRow = if isExpanded then
-                          List(orderDetailRow(mo, status, l))
-                        else List.empty
-
-                        mainRow :: detailRow
-                      },
-                    ),
-                  ),
-                ),
+                      button(
+                        cls := "checkout-btn",
+                        l2 match
+                          case Language.En => "Start Shopping →"
+                          case Language.Cs => "Začít nakupovat →",
+                        onClick --> { _ => AppRouter.navigateTo(AppRoute.ProductBuilder) },
+                      ),
+                    )
+                  else
+                    ordersListView(orders, expandedId, expandedOrderId, l2)
+              },
             )
 
           case _ =>
@@ -159,6 +103,78 @@ object OrderHistoryView:
               ),
             )
       },
+    )
+
+  private def ordersListView(
+      orders: List[ManufacturingOrder],
+      expandedId: Option[String],
+      expandedOrderId: Var[Option[String]],
+      l: Language,
+  ): Element =
+    div(
+      cls := "order-history-list",
+
+      // Status summary bar
+      div(
+        cls := "order-history-summary",
+        statusSummaryCard(orders, OrderHistoryStatus.Placed, l),
+        statusSummaryCard(orders, OrderHistoryStatus.InProduction, l),
+        statusSummaryCard(orders, OrderHistoryStatus.Completed, l),
+        statusSummaryCard(orders, OrderHistoryStatus.Dispatched, l),
+      ),
+
+      // Orders table
+      table(
+        cls := "order-history-table",
+        thead(
+          tr(
+            th(l match { case Language.En => "Order"; case Language.Cs => "Objednávka" }),
+            th(l match { case Language.En => "Date"; case Language.Cs => "Datum" }),
+            th(l match { case Language.En => "Items"; case Language.Cs => "Položky" }),
+            th(l match { case Language.En => "Total"; case Language.Cs => "Celkem" }),
+            th(l match { case Language.En => "Status"; case Language.Cs => "Stav" }),
+            th(l match { case Language.En => "Tracking"; case Language.Cs => "Sledování" }),
+            th(""),
+          ),
+        ),
+        tbody(
+          orders.flatMap { mo =>
+            val status = OrderHistoryStatus.fromManufacturingOrder(mo)
+            val isExpanded = expandedId.contains(mo.order.id.value)
+            val dateStr = formatDate(mo.createdAt)
+
+            val mainRow = tr(
+              cls := (if isExpanded then "order-history-row order-history-row--expanded" else "order-history-row"),
+              onClick --> { _ =>
+                expandedOrderId.update {
+                  case Some(id) if id == mo.order.id.value => None
+                  case _ => Some(mo.order.id.value)
+                }
+              },
+              td(cls := "order-id-cell", mo.order.id.value),
+              td(dateStr),
+              td(mo.itemSummary),
+              td(formatMoney(mo.order.total, mo.order.currency)),
+              td(span(cls := status.badgeClass, status.label(l))),
+              td(
+                mo.fulfilment.flatMap(f =>
+                  if f.dispatchInfo.trackingNumber.nonEmpty then Some(f.dispatchInfo.trackingNumber)
+                  else None
+                ).getOrElse("—")
+              ),
+              td(
+                span(cls := "order-expand-icon", if isExpanded then "▲" else "▼"),
+              ),
+            )
+
+            val detailRow = if isExpanded then
+              List(orderDetailRow(mo, status, l))
+            else List.empty
+
+            mainRow :: detailRow
+          },
+        ),
+      ),
     )
 
   private def statusSummaryCard(

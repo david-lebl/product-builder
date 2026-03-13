@@ -562,7 +562,7 @@ With Option B (modified pricelist), comparison is done by computing two separate
 
 ---
 
-### Phase 7 — Customer-Aware Product Builder UI
+### Phase 7 — Customer-Aware Product Builder UI ✅
 
 **UI scope:** Login widget, customer pricing integration in configurator.
 
@@ -596,9 +596,38 @@ With Option B (modified pricelist), comparison is done by computing two separate
 
 **Estimated: ~400-500 lines of UI changes**
 
+**Implementation details:**
+
+Added `LoginState` sealed ADT (LoggedOut/EnteringIdentifier/EnteringOtp/LoggedIn) to `ProductBuilderViewModel.scala`. Extended `BuilderState` with `loginState` and `basePriceBreakdown` fields.
+
+**ProductBuilderViewModel extensions:**
+- `loginState: Signal[LoginState]`, `currentCustomer: Signal[Option[Customer]]`, `customerPricelist: Signal[Option[Pricelist]]`
+- `startLogin()`, `cancelLogin()`, `submitIdentifier(identifier, identifierType)`, `submitOtp(otpInput)`, `logoutCustomer()`
+- `validateConfiguration()` now computes customer pricelist via `CustomerPricelistResolver` when logged in, and also stores `basePriceBreakdown` for comparison display
+- `startCheckout()` pre-fills `CheckoutInfo` from `Customer.contactInfo` and `Customer.address` when logged in, starting at `ContactDetails` step
+- `checkoutPrevStep()` prevents navigating back to Authentication when logged in
+
+**LoginWidget (`components/LoginWidget.scala`):**
+- Compact widget in top bar replacing the "Guest" user indicator
+- States: logged out (button) → identifier entry (select type + input + OTP send) → OTP entry (6-digit) → logged in (company name + tier badge + logout)
+- Uses `LoginService.lookupCustomer` and `LoginService.validateOtp` from domain layer
+
+**PricePreview updates:**
+- When customer logged in: strikethrough base price, highlighted "Your price", "You save: X CZK (Y%)" summary
+- When not logged in: standard single-price display
+
+**CheckoutView updates:**
+- Authentication step skipped when customer logged in (step bar and navigation)
+- Customer tier and discount info shown in Summary step
+- Contact/address pre-filled from Customer data
+
+**BasketView updates:**
+- Per-item savings display when customer logged in ("Save X CZK/item")
+- Uses `CustomerPricelistResolver` + `PriceCalculator` to compute base vs customer price per item
+
 ---
 
-### Phase 8 — Order History View (Customer-Facing)
+### Phase 8 — Order History View (Customer-Facing) ✅
 
 **UI scope:** Agency customers can see past orders from the product builder.
 
@@ -617,6 +646,23 @@ With Option B (modified pricelist), comparison is done by computing two separate
 - Map manufacturing statuses (`ApprovalStatus` / `WorkflowStatus`) to customer-facing `OrderHistoryStatus`
 
 **Estimated: ~300-400 lines**
+
+**Implementation details:**
+
+**`OrderHistoryStatus` enum** (in `OrderHistoryView.scala`):
+- Customer-facing statuses: `Placed`, `InProduction`, `Completed`, `Dispatched`
+- `fromManufacturingOrder(mo)` maps internal `ApprovalStatus`/`WorkflowStatus`/`FulfilmentChecklist` to customer-facing status
+- Each status has localized labels (EN/CS) and badge CSS class
+
+**`AppRoute.OrderHistory`** added to `AppRouter`, routed to `OrderHistoryView()`
+
+**`OrderHistoryView` (`components/OrderHistoryView.scala`):**
+- Filters `ManufacturingOrder` list by `Order.customerId` matching logged-in customer
+- Status summary cards (4 counts: Placed, In Production, Completed, Dispatched)
+- Table with columns: Order ID, Date, Items, Total, Status badge, Tracking number
+- Expandable rows with: order progress step indicator, item details with per-item pricing, tracking number, **Reorder** button
+- Not-logged-in state shows message and back-to-shop button
+- Empty state with "Start Shopping" CTA
 
 ---
 
@@ -738,8 +784,8 @@ Phase 9: Catalog Configuration UI ─── (standalone, parallel)
 | 4 — Discount Codes | `DiscountCode`, `DiscountCodeService` | — | 29 | None (parallel with 1-3) | ✅ Done |
 | 5 — Login Model | `LoginSession`, `LoginService` | — | 20 | Phase 1 | ✅ Done |
 | 6 — Customer Mgmt UI | — | `CustomerManagementApp`, `CustomersView`, `CustomerPricingView`, `DiscountCodesView` | — | Phases 1-5 | ✅ Done |
-| 7 — Builder Integration | — | `LoginWidget`, PricePreview, Checkout, `CustomerType` migration | — | Phases 5, 6 | |
-| 8 — Order History | — | `OrderHistoryView` | — | Phase 7 | |
+| 7 — Builder Integration | — | `LoginWidget`, PricePreview, Checkout, `CustomerType` migration | — | Phases 5, 6 | ✅ Done |
+| 8 — Order History | — | `OrderHistoryView` | — | Phase 7 | ✅ Done |
 | 9 — Catalog Config UI | `DomainCodecs` (zio-json) | `CatalogEditorApp`, `FormComponents`, 7 editor views | 27 | None (parallel) | ✅ Done |
 
 **Total estimated new tests: ~100-120** (including 27 codec tests from Phase 9)
