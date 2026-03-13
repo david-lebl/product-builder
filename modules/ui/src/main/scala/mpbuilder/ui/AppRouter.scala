@@ -5,6 +5,7 @@ import mpbuilder.ui.calendar.CalendarBuilderApp
 import mpbuilder.ui.components.CheckoutView
 import mpbuilder.ui.manufacturing.ManufacturingApp
 import mpbuilder.ui.catalog.CatalogEditorApp
+import mpbuilder.ui.customers.CustomerManagementApp
 import mpbuilder.domain.model.Language
 
 sealed trait AppRoute
@@ -14,6 +15,7 @@ object AppRoute {
   case object Checkout extends AppRoute
   case object Manufacturing extends AppRoute
   case object CatalogEditor extends AppRoute
+  case object CustomerManagement extends AppRoute
 }
 
 object AppRouter {
@@ -141,6 +143,18 @@ object AppRouter {
             },
             onClick --> { _ => navigateTo(AppRoute.CatalogEditor) }
           ),
+          button(
+            cls := "nav-link",
+            cls <-- currentRoute.map {
+              case AppRoute.CustomerManagement => "active"
+              case _ => ""
+            },
+            child.text <-- lang.map {
+              case Language.En => "Customers"
+              case Language.Cs => "Zákazníci"
+            },
+            onClick --> { _ => navigateTo(AppRoute.CustomerManagement) }
+          ),
         ),
       ),
 
@@ -151,6 +165,7 @@ object AppRouter {
         case AppRoute.Checkout        => CheckoutView()
         case AppRoute.Manufacturing   => ManufacturingApp()
         case AppRoute.CatalogEditor   => CatalogEditorApp()
+        case AppRoute.CustomerManagement => CustomerManagementApp()
       }
     )
   }
