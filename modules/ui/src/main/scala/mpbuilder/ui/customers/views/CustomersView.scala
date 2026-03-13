@@ -4,6 +4,7 @@ import com.raquo.laminar.api.L.*
 import mpbuilder.domain.model.*
 import mpbuilder.domain.pricing.*
 import mpbuilder.ui.customers.*
+import mpbuilder.ui.manufacturing.ManufacturingViewModel
 import mpbuilder.uikit.containers.*
 import mpbuilder.uikit.form.FormComponents
 
@@ -12,7 +13,7 @@ import mpbuilder.uikit.form.FormComponents
   * Table columns: Company Name, Contact, Tier (badge), Status (badge), Email
   * Filter chips: by tier, by status
   * Search: company name, business ID, email
-  * Side panel tabs: Details, Pricing, Notes
+  * Side panel tabs: Details, Pricing, Notes, Orders
   */
 object CustomersView:
 
@@ -53,12 +54,10 @@ object CustomersView:
         ), Some(c => c.companyInfo.map(_.companyName).getOrElse(c.contactInfo.lastName))),
         ColumnDef("Contact", c => span(s"${c.contactInfo.firstName} ${c.contactInfo.lastName}"),
           Some(c => c.contactInfo.lastName)),
-        ColumnDef("Tier", c => span(cls := "entity-tag", c.tier.displayName.value),
+        ColumnDef("Tier", c => tierBadge(c.tier),
           Some(_.tier.toString), Some("90px")),
-        ColumnDef("Status", c => span(
-          cls := s"entity-tag entity-tag--${c.status.toString.toLowerCase}",
-          c.status.displayName.value,
-        ), Some(_.status.toString), Some("120px")),
+        ColumnDef("Status", c => statusBadge(c.status),
+          Some(_.status.toString), Some("130px")),
         ColumnDef("Email", c => span(c.contactInfo.email), Some(_.contactInfo.email)),
         ColumnDef("", c => div(
           cls := "entity-actions",
@@ -117,7 +116,25 @@ object CustomersView:
       ),
     )
 
-  // ── Detail panel with tabs ─────────────────────────────────────────────
+  // ── Badge helpers ──────────────────────────────────────────────────────
+
+  private def tierBadge(tier: CustomerTier): HtmlElement =
+    val cls_ = tier match
+      case CustomerTier.Standard => "badge badge-muted"
+      case CustomerTier.Silver   => "badge badge-info"
+      case CustomerTier.Gold     => "badge badge-warning"
+      case CustomerTier.Platinum => "badge badge-active"
+    span(cls := cls_, tier.displayName.value)
+
+  private def statusBadge(status: CustomerStatus): HtmlElement =
+    val cls_ = status match
+      case CustomerStatus.Active          => "badge badge-completed"
+      case CustomerStatus.Inactive        => "badge badge-muted"
+      case CustomerStatus.Suspended       => "badge badge-error"
+      case CustomerStatus.PendingApproval => "badge badge-pending"
+    span(cls := cls_, status.displayName.value)
+
+  // ── Detail panel with Tabs component from ui-framework ─────────────────
 
   private def customerDetailPanel(customer: Customer): HtmlElement =
     val activeTab = Var("details")
@@ -135,40 +152,21 @@ object CustomersView:
         )),
         div(
           cls := "detail-panel-badges",
-          span(cls := "entity-tag", customer.tier.displayName.value),
-          span(cls := s"entity-tag entity-tag--${customer.status.toString.toLowerCase}",
-            customer.status.displayName.value),
+          tierBadge(customer.tier),
+          statusBadge(customer.status),
         ),
       ),
 
-      // Tab navigation
-      div(
-        cls := "detail-panel-tabs",
-        tabButton("Details", "details", activeTab),
-        tabButton("Pricing", "pricing", activeTab),
-        tabButton("Notes", "notes", activeTab),
+      // Use Tabs component from ui-framework
+      Tabs(
+        tabs = List(
+          TabDef("details", Val("Details"), () => detailsTab(customer)),
+          TabDef("pricing", Val("Pricing"), () => pricingTab(customer)),
+          TabDef("notes", Val("Notes"), () => notesTab(customer)),
+          TabDef("orders", Val("Orders"), () => ordersTab(customer)),
+        ),
+        activeTab = activeTab,
       ),
-
-      // Tab content
-      div(
-        cls := "detail-panel-tab-content",
-        child <-- activeTab.signal.map {
-          case "details" => detailsTab(customer)
-          case "pricing" => pricingTab(customer)
-          case "notes"   => notesTab(customer)
-          case _         => emptyNode
-        },
-      ),
-    )
-
-  private def tabButton(label: String, tabId: String, activeTab: Var[String]): HtmlElement =
-    button(
-      cls <-- activeTab.signal.map(active =>
-        if active == tabId then "detail-tab-btn detail-tab-btn--active"
-        else "detail-tab-btn"
-      ),
-      label,
-      onClick --> { _ => activeTab.set(tabId) },
     )
 
   // ── Details tab ────────────────────────────────────────────────────────
@@ -251,70 +249,72 @@ object CustomersView:
       ),
     )
 
-  // ── Pricing tab ────────────────────────────────────────────────────────
+  // ── Pricing tab (read-only summary — edit via Customer Pricing sidebar section) ──
 
   private def pricingTab(customer: Customer): HtmlElement =
-    val globalDiscountVar = Var(customer.pricing.globalDiscount.map(_.value.toString).getOrElse(""))
-
     div(
       cls := "detail-panel-section",
 
-      FormComponents.sectionHeader("Customer Pricing"),
-
-      FormComponents.textField("Global Discount (%)", globalDiscountVar.signal, globalDiscountVar.writer, "e.g. 10"),
+      FormComponents.sectionHeader("Customer Pricing Summary"),
 
       div(
         cls := "pricing-summary",
-        h4("Current Configuration"),
         customer.pricing.globalDiscount.map { d =>
-          p(s"Global discount: ${d.value}%")
-        }.getOrElse(p("No global discount")),
+          p(span(cls := "badge badge-info", s"Global: ${d.value}%"))
+        }.getOrElse(p(cls := "text-muted", "No global discount configured")),
         if customer.pricing.categoryDiscounts.nonEmpty then
           div(
             h5("Category Discounts"),
-            ul(customer.pricing.categoryDiscounts.toList.map { case (catId, pct) =>
-              li(s"${catId.value}: ${pct.value}%")
-            }),
+            customer.pricing.categoryDiscounts.toList.map { case (catId, pct) =>
+              div(cls := "pricing-rule-item",
+                span(cls := "pricing-rule-label", catId.value),
+                span(cls := "badge badge-info", s"${pct.value}%"),
+              )
+            },
           )
         else emptyNode,
         if customer.pricing.materialDiscounts.nonEmpty then
           div(
             h5("Material Discounts"),
-            ul(customer.pricing.materialDiscounts.toList.map { case (matId, pct) =>
-              li(s"${matId.value}: ${pct.value}%")
-            }),
+            customer.pricing.materialDiscounts.toList.map { case (matId, pct) =>
+              div(cls := "pricing-rule-item",
+                span(cls := "pricing-rule-label", matId.value),
+                span(cls := "badge badge-info", s"${pct.value}%"),
+              )
+            },
           )
         else emptyNode,
         if customer.pricing.fixedMaterialPrices.nonEmpty then
           div(
             h5("Fixed Material Prices"),
-            ul(customer.pricing.fixedMaterialPrices.toList.map { case (matId, price) =>
-              li(s"${matId.value}: ${price.amount.value} ${price.currency}")
-            }),
+            customer.pricing.fixedMaterialPrices.toList.map { case (matId, price) =>
+              div(cls := "pricing-rule-item",
+                span(cls := "pricing-rule-label", matId.value),
+                span(cls := "badge badge-warning", s"${price.amount.value} ${price.currency}"),
+              )
+            },
           )
         else emptyNode,
         if customer.pricing.finishDiscounts.nonEmpty then
           div(
             h5("Finish Discounts"),
-            ul(customer.pricing.finishDiscounts.toList.map { case (finId, pct) =>
-              li(s"${finId.value}: ${pct.value}%")
-            }),
+            customer.pricing.finishDiscounts.toList.map { case (finId, pct) =>
+              div(cls := "pricing-rule-item",
+                span(cls := "pricing-rule-label", finId.value),
+                span(cls := "badge badge-info", s"${pct.value}%"),
+              )
+            },
           )
         else emptyNode,
+        customer.pricing.minimumOrderOverride.map { min =>
+          div(
+            h5("Minimum Order Override"),
+            span(cls := "badge badge-warning", s"${min.value}"),
+          )
+        }.getOrElse(emptyNode),
       ),
 
-      div(
-        cls := "detail-panel-actions",
-        FormComponents.actionButton("Update Global Discount", () => {
-          val pctStr = globalDiscountVar.now().trim
-          val newGlobal = if pctStr.isEmpty then None
-            else scala.util.Try(BigDecimal(pctStr)).toOption.map(Percentage.unsafe)
-          CustomerManagementViewModel.updateCustomerPricing(
-            customer.id,
-            customer.pricing.copy(globalDiscount = newGlobal),
-          )
-        }),
-      ),
+      p(cls := "text-muted", "To edit pricing, use the Customer Pricing section in the sidebar."),
     )
 
   // ── Notes tab ──────────────────────────────────────────────────────────
@@ -368,6 +368,48 @@ object CustomersView:
         }),
       ),
     )
+
+  // ── Orders tab ─────────────────────────────────────────────────────────
+
+  private def ordersTab(customer: Customer): HtmlElement =
+    div(
+      cls := "detail-panel-section",
+
+      FormComponents.sectionHeader("Order History"),
+
+      child <-- ManufacturingViewModel.orders.map { allOrders =>
+        val customerOrders = allOrders.filter(_.order.customerId.contains(customer.id))
+        if customerOrders.isEmpty then
+          p(cls := "empty-notes", "No orders found for this customer.")
+        else
+          div(
+            cls := "orders-list",
+            customerOrders.sortBy(-_.createdAt).map { mo =>
+              div(
+                cls := "order-item",
+                div(cls := "order-item-header",
+                  span(cls := "order-id", mo.order.id.value),
+                  orderStatusBadge(mo),
+                ),
+                div(cls := "order-item-details",
+                  span(s"Items: ${mo.order.basket.items.size}"),
+                  span(s"Total: ${mo.order.total.value}"),
+                  span(formatTimestamp(mo.createdAt)),
+                ),
+              )
+            },
+          )
+      },
+    )
+
+  private def orderStatusBadge(mo: ManufacturingOrder): HtmlElement =
+    val (text, cls_) = mo.approvalStatus match
+      case ApprovalStatus.Placed         => ("Placed", "badge badge-pending")
+      case ApprovalStatus.Approved       => ("Approved", "badge badge-completed")
+      case ApprovalStatus.Rejected       => ("Rejected", "badge badge-error")
+      case ApprovalStatus.PendingChanges => ("Pending Changes", "badge badge-warning")
+      case ApprovalStatus.OnHold         => ("On Hold", "badge badge-muted")
+    span(cls := cls_, text)
 
   // ── New customer form ──────────────────────────────────────────────────
 

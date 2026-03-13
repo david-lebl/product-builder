@@ -57,17 +57,20 @@ object CustomerManagementApp:
         div(
           cls := "catalog-content",
           child <-- CustomerManagementViewModel.activeSection.map {
-            case CustomerSection.Customers     => CustomersView()
-            case CustomerSection.DiscountCodes => DiscountCodesView()
+            case CustomerSection.Customers       => CustomersView()
+            case CustomerSection.CustomerPricing => CustomerPricingView()
+            case CustomerSection.DiscountCodes   => DiscountCodesView()
           },
         ),
       ),
     )
 
   private def sectionIcon(section: CustomerSection): String = section match
-    case CustomerSection.Customers     => "👤"
-    case CustomerSection.DiscountCodes => "🏷️"
+    case CustomerSection.Customers       => "👤"
+    case CustomerSection.CustomerPricing => "💰"
+    case CustomerSection.DiscountCodes   => "🏷️"
 
   private def sectionName(section: CustomerSection): String = section match
-    case CustomerSection.Customers     => "Customers"
-    case CustomerSection.DiscountCodes => "Discount Codes"
+    case CustomerSection.Customers       => "Customers"
+    case CustomerSection.CustomerPricing => "Customer Pricing"
+    case CustomerSection.DiscountCodes   => "Discount Codes"

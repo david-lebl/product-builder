@@ -4,7 +4,7 @@ import mpbuilder.domain.model.*
 
 /** Which section of the customer management UI is currently active. */
 enum CustomerSection:
-  case Customers, DiscountCodes
+  case Customers, CustomerPricing, DiscountCodes
 
 /** Edit state for the customer management UI — tracks which entity is being edited. */
 enum CustomerEditState:
