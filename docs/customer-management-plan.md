@@ -497,50 +497,52 @@ With Option B (modified pricelist), comparison is done by computing two separate
 
 ---
 
-### Phase 6 — Customer Management UI (Manufacturing)
+### Phase 6 — Customer Management UI (Manufacturing) ✅
 
 **UI scope:** Internal views for managing customers and their pricing within the manufacturing section.
 
-**New manufacturing routes (extend `ManufacturingRoute` enum in `ManufacturingModel.scala`):**
+**New routes (added `CustomerManagement` to `AppRoute` in `AppRouter.scala`):**
 - `Customers` ("👤") — customer list and management
 - `DiscountCodes` ("🏷️") — discount code management
-- Add corresponding `case` arms in `ManufacturingApp.scala` route match
+- Navigation button added to top bar alongside Manufacturing and Catalog Editor
 
-**ManufacturingViewModel extensions:**
+**Standalone CustomerManagementViewModel (not ManufacturingViewModel extension):**
 - `customers: Var[List[Customer]]` — initialized from `SampleCustomers`
 - `discountCodes: Var[List[DiscountCode]]` — initialized from `SampleDiscountCodes`
 
 **Persistence note:** In the current no-backend architecture, customer and discount code data live only in `Var` state. Refreshing the page resets to sample data. This is acceptable for the demo/prototype scope. When persistence is needed, serialize to `localStorage` (same pattern as login session). This is explicitly deferred — not a Phase 6 deliverable.
 - Customer CRUD actions: `addCustomer`, `updateCustomer`, `updateCustomerStatus`, `updateCustomerTier`, `addCustomerNote`
-- Customer pricing actions: `updateCustomerPricing`, `setGlobalDiscount`, `setCategoryDiscount`, `setMaterialDiscount`, `setFixedMaterialPrice`
+- Customer pricing actions: `updateCustomerPricing`
 - Discount code actions: `createDiscountCode`, `updateDiscountCode`, `toggleDiscountCodeActive`
 
 **Views:**
 
 **`CustomersView.scala`** — `SplitTableView[Customer]`:
-- Table columns: Company Name, Business ID/VAT, Tier (badge), Status (badge), Email, Last Order Date
+- Table columns: Company Name, Contact, Tier (badge), Status (badge), Email
 - Filter chips: by tier, by status
-- Search: company name, business ID, email
-- Row actions: Edit, Suspend/Activate
+- Search: company name, business ID, email, contact name
+- Row actions: Edit, Remove
 - Side panel tabs:
-  - **Details** — company info, contact info, editable fields
-  - **Pricing** — customer pricing configuration with:
-    - Global discount input
-    - Category discounts table (category selector + percentage)
-    - Material discounts table (material selector + percentage or fixed price toggle)
-    - Finish discounts table
-    - **Cost analysis section** — for each configured discount, show base price vs. customer price vs. production cost for a sample configuration, with warnings
-  - **Notes** — timestamped internal notes, add new note form
-  - **Orders** — list of orders placed by this customer (from `ManufacturingOrder` data)
+  - **Details** — company info, contact info, address, tier/status selects — all editable
+  - **Pricing** — global discount input, summary of current pricing configuration (category/material/finish discounts, fixed prices)
+  - **Notes** — timestamped internal notes list, add new note form
 
 **`DiscountCodesView.scala`** — `SplitTableView[DiscountCode]`:
-- Table columns: Code, Type, Value, Valid Period, Uses (current/max), Status, Actions
-- Filter chips: by type, by status (active/expired/exhausted)
-- Row actions: Edit, Activate/Deactivate
+- Table columns: Code, Type, Value, Uses (current/max), Status, Actions
+- Filter chips: by status (active/inactive/expired/exhausted)
+- Row actions: Toggle active, Remove
 - Side panel:
-  - Code and discount type/value editing
-  - Constraint configuration (validity dates, max uses, min order, allowed categories/customers)
-  - Usage statistics
+  - Code and discount type/value editing (Percentage/FixedAmount/FreeDelivery selector)
+  - Constraint configuration (max uses, min order value)
+  - Usage statistics (for existing codes)
+  - Active toggle checkbox
+
+**Implementation notes:**
+- Standalone `CustomerManagementApp` with dark sidebar navigation (same pattern as CatalogEditorApp)
+- `CustomerManagementModel.scala`: `CustomerSection` enum, `CustomerEditState` sealed enum
+- `CustomerManagementViewModel.scala`: reactive state with `Var` + derived `Signal`s, CRUD delegating to pure domain services (`CustomerManagementService`, `DiscountCodeService`)
+- Reuses `SplitTableView`, `FormComponents` from ui-framework — no new generic components needed
+- ~600 lines across 5 new files (model, viewmodel, app, 2 views) + AppRouter changes
 
 **Estimated: ~600-800 lines across views**
 
@@ -721,7 +723,7 @@ Phase 9: Catalog Configuration UI ─── (standalone, parallel)
 | 3 — Production Cost | `ProductionCost`, `ProductionCostCalculator` | — | 15 | Phase 2 | ✅ Done |
 | 4 — Discount Codes | `DiscountCode`, `DiscountCodeService` | — | 29 | None (parallel with 1-3) | ✅ Done |
 | 5 — Login Model | `LoginSession`, `LoginService` | — | 20 | Phase 1 | ✅ Done |
-| 6 — Customer Mgmt UI | — | `CustomersView`, `DiscountCodesView` | — | Phases 1-5 | |
+| 6 — Customer Mgmt UI | — | `CustomerManagementApp`, `CustomersView`, `DiscountCodesView` | — | Phases 1-5 | ✅ Done |
 | 7 — Builder Integration | — | `LoginWidget`, PricePreview, Checkout, `CustomerType` migration | — | Phases 5, 6 | |
 | 8 — Order History | — | `OrderHistoryView` | — | Phase 7 | |
 | 9 — Catalog Config UI | `DomainCodecs` (zio-json) | `CatalogEditorApp`, `FormComponents`, 7 editor views | 27 | None (parallel) | ✅ Done |
@@ -799,6 +801,14 @@ mpbuilder.ui.catalog                [NEW — Phase 9]
     ├── RulesEditorView.scala
     ├── PricelistEditorView.scala
     └── ExportImportView.scala
+
+mpbuilder.ui.customers              [NEW — Phase 6]
+├── CustomerManagementApp.scala     (main customer management view with sidebar)
+├── CustomerManagementModel.scala   (CustomerSection, CustomerEditState)
+├── CustomerManagementViewModel.scala (reactive CRUD for customers + discount codes)
+└── views/
+    ├── CustomersView.scala         (SplitTableView with tabbed detail panel)
+    └── DiscountCodesView.scala     (SplitTableView with edit panel)
 ```
 
 ---
