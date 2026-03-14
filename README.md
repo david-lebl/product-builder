@@ -205,6 +205,7 @@ sbt ui/fastLinkJS
 
 mkdir -p dist
 cp modules/ui/src/main/resources/index.html dist/
+cp modules/ui/src/main/resources/*.css dist/
 cp modules/ui/target/scala-3.3.3/material-builder-ui-fastopt/main.js dist/
 
 cd dist && python3 -m http.server 8080

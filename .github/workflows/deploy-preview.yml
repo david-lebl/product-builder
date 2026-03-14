@@ -39,6 +39,7 @@ jobs:
         run: |
           mkdir -p _site
           cp modules/ui/src/main/resources/index.html _site/
+          cp modules/ui/src/main/resources/*.css _site/
           cp modules/ui/target/scala-*/material-builder-ui-opt/main.js _site/
 
       - name: Deploy PR Preview
