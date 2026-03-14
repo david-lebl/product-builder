@@ -3,12 +3,12 @@
 .top-bar-wrapper {
     position: sticky;
     top: 0;
-    z-index: 200;
+    z-index: var(--z-topbar);
     box-shadow: 0 2px 8px rgba(0,0,0,0.12);
 }
 
 .top-bar {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: var(--color-primary-gradient);
     color: white;
     display: flex;
     align-items: center;
@@ -76,14 +76,14 @@
     background: white;
     border-radius: 12px;
     padding: 25px;
-    box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+    box-shadow: var(--shadow-card);
 }
 
 .card h2 {
     font-size: 1.5rem;
     margin-bottom: 20px;
-    color: #667eea;
-    border-bottom: 2px solid #667eea;
+    color: var(--color-primary);
+    border-bottom: 2px solid var(--color-primary);
     padding-bottom: 10px;
 }
 /* App Navigation Styles */
@@ -92,7 +92,7 @@
     padding: 0 max(20px, calc((100% - 1200px) / 2));
     display: flex;
     gap: 0;
-    border-bottom: 2px solid #e0e0e0;
+    border-bottom: 2px solid var(--color-border);
 }
 
 .app-navigation .nav-link {
@@ -110,7 +110,7 @@
 
 .app-navigation .nav-link:hover {
     background: #f5f7ff;
-    color: #667eea;
+    color: var(--color-primary);
 }
 
 .app-navigation .nav-link:hover:not(:disabled) {
@@ -120,7 +120,7 @@
 
 .app-navigation .nav-link.active {
     background: transparent;
-    color: #667eea;
-    border-bottom-color: #667eea;
+    color: var(--color-primary);
+    border-bottom-color: var(--color-primary);
     font-weight: 600;
 }

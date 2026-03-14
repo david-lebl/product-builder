@@ -14,7 +14,7 @@
 .badge-error { background: #fee2e2; color: #991b1b; }
 .badge-warning { background: #ffedd5; color: #9a3412; }
 .badge-info { background: #e0e7ff; color: #3730a3; }
-.badge-muted { background: #f1f5f9; color: #64748b; }
+.badge-muted { background: var(--color-surface); color: var(--color-text-muted); }
 .badge-ready { background: #ecfdf5; color: #065f46; }
 
 /* --- SplitTableView --- */
@@ -78,7 +78,7 @@
 .split-table-filter-label {
     font-size: 0.78rem;
     font-weight: 600;
-    color: #64748b;
+    color: var(--color-text-muted);
     white-space: nowrap;
 }
 
@@ -132,7 +132,7 @@
     text-align: left;
     font-size: 0.78rem;
     font-weight: 600;
-    color: #64748b;
+    color: var(--color-text-muted);
     text-transform: uppercase;
     letter-spacing: 0.5px;
     border-bottom: 2px solid #e2e8f0;
@@ -176,7 +176,7 @@
     padding: 10px 14px;
     font-size: 0.85rem;
     color: #334155;
-    border-bottom: 1px solid #f1f5f9;
+    border-bottom: 1px solid var(--color-surface);
     vertical-align: middle;
 }
 

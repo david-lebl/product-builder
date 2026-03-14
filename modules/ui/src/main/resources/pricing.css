@@ -26,7 +26,7 @@
 }
 
 .price-display {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: var(--color-primary-gradient);
     color: white;
     padding: 20px;
     border-radius: 8px;
@@ -82,7 +82,7 @@
     display: flex;
     justify-content: space-between;
     padding: 8px 0;
-    border-bottom: 1px solid #e0e0e0;
+    border-bottom: 1px solid var(--color-border);
 }
 
 .price-line-item:last-child {
@@ -90,7 +90,7 @@
     font-weight: 600;
     font-size: 1.1rem;
     padding-top: 12px;
-    border-top: 2px solid #667eea;
+    border-top: 2px solid var(--color-primary);
 }
 
 .price-subtotal-divider {
@@ -105,7 +105,7 @@
 
 .component-role-header {
     margin: 16px 0 4px 0;
-    color: #667eea;
+    color: var(--color-primary);
     font-size: 0.95rem;
     font-weight: 600;
 }
@@ -118,7 +118,7 @@
     padding: 15px;
     background: #f5f7ff;
     border-radius: 8px;
-    border: 2px solid #e0e0e0;
+    border: 2px solid var(--color-border);
 }
 
 .selector-group {
@@ -138,7 +138,7 @@
 .format-select {
     padding: 8px 10px;
     font-size: 0.95rem;
-    border: 2px solid #e0e0e0;
+    border: 2px solid var(--color-border);
     border-radius: 6px;
 }
 

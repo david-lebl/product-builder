@@ -51,14 +51,14 @@
 .login-widget-popup-backdrop {
     position: fixed;
     inset: 0;
-    z-index: 299;
+    z-index: var(--z-login-backdrop);
 }
 
 .login-widget-popup {
     position: absolute;
     top: calc(100% + 8px);
     right: 0;
-    z-index: 300;
+    z-index: var(--z-drawer);
     background: white;
     color: #333;
     border-radius: 10px;
@@ -99,7 +99,7 @@
 .login-widget-popup select:focus,
 .login-widget-popup input[type="text"]:focus {
     outline: none;
-    border-color: #667eea;
+    border-color: var(--color-primary);
     box-shadow: 0 0 0 2px rgba(102,126,234,0.15);
 }
 
@@ -112,7 +112,7 @@
 
 .login-widget-otp-hint {
     font-size: 0.75rem;
-    color: #667eea;
+    color: var(--color-primary);
     background: #f0f2ff;
     border-radius: 6px;
     padding: 6px 10px;
@@ -121,7 +121,7 @@
 
 .login-widget-error {
     font-size: 0.8rem;
-    color: #dc2626;
+    color: var(--color-error);
     background: #fef2f2;
     border-radius: 6px;
     padding: 6px 10px;
@@ -135,7 +135,7 @@
 
 .login-widget-popup-submit {
     flex: 1;
-    background: linear-gradient(135deg, #667eea, #764ba2);
+    background: var(--color-primary-gradient);
     color: white;
     border: none;
     border-radius: 6px;
@@ -151,8 +151,8 @@
 }
 
 .login-widget-popup-cancel {
-    background: #f1f5f9;
-    color: #64748b;
+    background: var(--color-surface);
+    color: var(--color-text-muted);
     border: none;
     border-radius: 6px;
     padding: 8px 14px;

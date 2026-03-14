@@ -15,8 +15,8 @@
 
 .checkout-step-title {
     font-size: 1.4rem;
-    color: #667eea;
-    border-bottom: 2px solid #667eea;
+    color: var(--color-primary);
+    border-bottom: 2px solid var(--color-primary);
     padding-bottom: 10px;
     margin-bottom: 20px;
 }
@@ -27,7 +27,7 @@
     color: #444;
     margin: 20px 0 10px;
     padding-bottom: 5px;
-    border-bottom: 1px solid #e0e0e0;
+    border-bottom: 1px solid var(--color-border);
 }
 
 /* ─── Step bar ────────────────────────────────────────── */
@@ -40,7 +40,7 @@
     border-radius: 12px;
     padding: 16px 20px;
     margin-bottom: 20px;
-    box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+    box-shadow: var(--shadow-card);
     gap: 4px;
 }
 
@@ -61,18 +61,18 @@
     justify-content: center;
     font-weight: bold;
     font-size: 0.9rem;
-    background: #e0e0e0;
+    background: var(--color-border);
     color: #999;
     transition: background 0.2s, color 0.2s;
 }
 
 .checkout-step--active .checkout-step-num {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: var(--color-primary-gradient);
     color: white;
 }
 
 .checkout-step--done .checkout-step-num {
-    background: #4caf50;
+    background: var(--color-success);
     color: white;
 }
 
@@ -84,12 +84,12 @@
 }
 
 .checkout-step--active .checkout-step-label {
-    color: #667eea;
+    color: var(--color-primary);
     font-weight: 600;
 }
 
 .checkout-step--done .checkout-step-label {
-    color: #4caf50;
+    color: var(--color-success);
 }
 
 @media (max-width: 500px) {
@@ -111,7 +111,7 @@
 
 .checkout-auth-option {
     flex: 1;
-    border: 2px solid #e0e0e0;
+    border: 2px solid var(--color-border);
     border-radius: 10px;
     padding: 18px;
     display: flex;
@@ -128,7 +128,7 @@
 /* Tab bar inside the sign-in card */
 .checkout-auth-tabs {
     display: flex;
-    border-bottom: 2px solid #e0e0e0;
+    border-bottom: 2px solid var(--color-border);
 }
 
 .checkout-auth-tab {
@@ -136,7 +136,7 @@
     padding: 10px 14px;
     border: none;
     background: #f8fafc;
-    color: #64748b;
+    color: var(--color-text-muted);
     font-size: 0.88rem;
     font-weight: 500;
     cursor: pointer;
@@ -153,14 +153,14 @@
 
 .checkout-auth-tab--active {
     background: white;
-    color: #667eea;
+    color: var(--color-primary);
     font-weight: 600;
     border-bottom: 2px solid white;
     margin-bottom: -2px;
 }
 
 .checkout-auth-tab:hover:not(.checkout-auth-tab--active) {
-    background: #f1f5f9;
+    background: var(--color-surface);
     color: #475569;
 }
 
@@ -236,7 +236,7 @@
     width: 100%;
     min-height: 80px;
     padding: 10px 12px;
-    border: 2px solid #e0e0e0;
+    border: 2px solid var(--color-border);
     border-radius: 8px;
     font-family: inherit;
     font-size: 0.95rem;
@@ -246,7 +246,7 @@
 
 .form-group textarea:focus {
     outline: none;
-    border-color: #667eea;
+    border-color: var(--color-primary);
 }
 
 /* ─── Delivery / Payment option cards ─────────────────── */
@@ -258,7 +258,7 @@
 }
 
 .checkout-option {
-    border: 2px solid #e0e0e0;
+    border: 2px solid var(--color-border);
     border-radius: 10px;
     padding: 14px 16px;
     cursor: pointer;
@@ -266,12 +266,12 @@
 }
 
 .checkout-option:hover:not(.checkout-option--future) {
-    border-color: #667eea;
+    border-color: var(--color-primary);
     background: #f5f7ff;
 }
 
 .checkout-option--selected {
-    border-color: #667eea;
+    border-color: var(--color-primary);
     background: #f0f3ff;
 }
 
@@ -294,7 +294,7 @@
 .checkout-option-price {
     font-size: 0.87rem;
     font-weight: 600;
-    color: #667eea;
+    color: var(--color-primary);
     margin-top: 4px;
 }
 
@@ -333,7 +333,7 @@
 
 .checkout-summary-item-price {
     font-weight: 600;
-    color: #667eea;
+    color: var(--color-primary);
 }
 
 .checkout-summary-row {
@@ -353,10 +353,10 @@
     justify-content: space-between;
     align-items: center;
     font-size: 1.2rem;
-    color: #667eea;
+    color: var(--color-primary);
     margin-top: 12px;
     padding-top: 10px;
-    border-top: 2px solid #667eea;
+    border-top: 2px solid var(--color-primary);
 }
 
 .checkout-qr-note {
@@ -373,7 +373,7 @@
 }
 
 .checkout-btn {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: var(--color-primary-gradient);
     color: white;
     border: none;
     border-radius: 8px;
@@ -412,7 +412,7 @@
 }
 
 .btn-secondary:hover:not(:disabled) {
-    background: #e0e0e0;
+    background: var(--color-border);
 }
 
 /* ─── VAT / company fields ────────────────────────────── */
@@ -489,7 +489,7 @@
 
 .checkout-price-breakdown {
     margin-top: 20px;
-    border-top: 1px solid #e0e0e0;
+    border-top: 1px solid var(--color-border);
     padding-top: 12px;
 }
 
@@ -508,12 +508,12 @@
 /* ─── Checkout Agency Login Card ────────────────────── */
 
 .checkout-agency-login {
-    border: 2px solid #667eea;
+    border: 2px solid var(--color-primary);
     background: #fafbfe;
 }
 
 .checkout-agency-login h3 {
-    color: #667eea !important;
+    color: var(--color-primary) !important;
 }
 
 .checkout-agency-login .login-widget-otp-hint {

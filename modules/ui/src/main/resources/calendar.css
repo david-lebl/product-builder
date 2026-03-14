@@ -3,7 +3,7 @@
     background: white;
     border-radius: 12px;
     padding: 20px;
-    box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+    box-shadow: var(--shadow-card);
 }
 
 .calendar-header {
@@ -12,7 +12,7 @@
 }
 
 .calendar-header h1 {
-    color: #667eea;
+    color: var(--color-primary);
     font-size: 2rem;
     margin-bottom: 10px;
 }
@@ -37,7 +37,7 @@
 
 /* Sidebar Styles */
 .calendar-sidebar {
-    border-right: 2px solid #e0e0e0;
+    border-right: 2px solid var(--color-border);
     padding-right: 20px;
     max-height: 700px;
     overflow-y: auto;
@@ -51,7 +51,7 @@
 
 .calendar-controls-card h4,
 .calendar-controls-card h5 {
-    color: #667eea;
+    color: var(--color-primary);
     margin-bottom: 12px;
     font-size: 1rem;
 }
@@ -59,7 +59,7 @@
 .calendar-controls-card hr {
     margin: 20px 0;
     border: none;
-    border-top: 1px solid #e0e0e0;
+    border-top: 1px solid var(--color-border);
 }
 
 /* ─── Unified Element Editor ─────────────────────────── */
@@ -84,8 +84,8 @@
     white-space: nowrap;
 }
 
-.add-photo-btn { background: #667eea; }
-.add-text-btn  { background: #4caf50; }
+.add-photo-btn { background: var(--color-primary); }
+.add-text-btn  { background: var(--color-success); }
 .add-rect-btn  { background: #ff9800; }
 .add-line-btn  { background: #795548; }
 .add-clipart-btn { background: #9c27b0; }
@@ -107,7 +107,7 @@
 
 .element-item {
     background: white;
-    border: 2px solid #e0e0e0;
+    border: 2px solid var(--color-border);
     border-radius: 6px;
     padding: 6px 8px;
     margin-bottom: 6px;
@@ -120,7 +120,7 @@
 }
 
 .element-item.selected {
-    border-color: #667eea;
+    border-color: var(--color-primary);
     background: #f5f7ff;
 }
 
@@ -153,13 +153,13 @@
     padding: 2px 5px;
     font-size: 0.75rem;
     min-width: 22px;
-    background: #e0e0e0;
+    background: var(--color-border);
     color: #333;
     border-radius: 4px;
 }
 
 .element-action-btn:hover {
-    background: #667eea;
+    background: var(--color-primary);
     color: white;
     transform: none;
 }
@@ -170,7 +170,7 @@
 }
 
 .element-delete-btn:hover {
-    background: #ff5252;
+    background: var(--color-error);
     color: white;
 }
 
@@ -241,7 +241,7 @@
     padding: 4px 8px;
     font-size: 0.8rem;
     min-width: 28px;
-    background: #e0e0e0;
+    background: var(--color-border);
     color: #333;
     border-radius: 4px;
     text-align: center;
@@ -253,7 +253,7 @@
 }
 
 .format-btn.active {
-    background: #667eea;
+    background: var(--color-primary);
     color: white;
 }
 
@@ -309,7 +309,7 @@
     padding: 0;
     font-size: 16px;
     font-weight: bold;
-    background: #e0e0e0;
+    background: var(--color-border);
     color: #333;
     border-radius: 4px;
     display: flex;
@@ -320,7 +320,7 @@
 }
 
 .zoom-btn:hover {
-    background: #667eea;
+    background: var(--color-primary);
     color: white;
     transform: none;
 }
@@ -363,7 +363,7 @@
     width: 100%;
     padding: 6px;
     font-size: 0.8rem;
-    background: #e0e0e0;
+    background: var(--color-border);
     color: #333;
 }
 
@@ -395,7 +395,7 @@
 .calendar-canvas {
     width: 100%;
     background: white;
-    border: 2px solid #e0e0e0;
+    border: 2px solid var(--color-border);
     border-radius: 8px;
     box-shadow: 0 4px 8px rgba(0,0,0,0.1);
     overflow: hidden;
@@ -444,7 +444,7 @@
 }
 
 .calendar-element.selected {
-    border-color: #667eea;
+    border-color: var(--color-primary);
     border-style: solid;
 }
 
@@ -490,11 +490,11 @@
     position: absolute;
     width: 10px;
     height: 10px;
-    background: #667eea;
+    background: var(--color-primary);
     border: 2px solid white;
     border-radius: 2px;
     pointer-events: all;
-    z-index: 20;
+    z-index: var(--z-handles);
 }
 
 .resize-handle-nw { top: -5px;    left: -5px;   cursor: nw-resize; }
@@ -528,14 +528,14 @@
     transform: translateX(-50%);
     display: flex;
     gap: 4px;
-    z-index: 30;
+    z-index: var(--z-rotate);
     pointer-events: all;
 }
 
 .rotate-btn {
     width: 28px;
     height: 28px;
-    background: #667eea;
+    background: var(--color-primary);
     color: white;
     border: 2px solid white;
     border-radius: 50%;
@@ -545,7 +545,7 @@
     cursor: pointer;
     font-size: 18px;
     font-weight: bold;
-    z-index: 30;
+    z-index: var(--z-rotate);
     pointer-events: all;
     box-shadow: 0 2px 6px rgba(0,0,0,0.3);
     line-height: 1;
@@ -553,7 +553,7 @@
 }
 
 .rotate-btn:hover {
-    background: #764ba2;
+    background: var(--color-primary-dark);
     transform: scale(1.15);
 }
 
@@ -563,7 +563,7 @@
     display: flex;
     gap: 0;
     margin-bottom: 12px;
-    border-bottom: 2px solid #e0e0e0;
+    border-bottom: 2px solid var(--color-border);
 }
 
 .sidebar-tab-btn {
@@ -587,8 +587,8 @@
 
 .sidebar-tab-btn.active {
     background: white;
-    color: #667eea;
-    border-bottom-color: #667eea;
+    color: var(--color-primary);
+    border-bottom-color: var(--color-primary);
     font-weight: 600;
 }
 
@@ -603,7 +603,7 @@
     display: flex;
     gap: 0;
     margin-bottom: 12px;
-    border-bottom: 2px solid #e0e0e0;
+    border-bottom: 2px solid var(--color-border);
 }
 
 .calendar-sidebar .tab-button {
@@ -627,8 +627,8 @@
 
 .calendar-sidebar .tab-button--active {
     background: white;
-    color: #667eea;
-    border-bottom-color: #667eea;
+    color: var(--color-primary);
+    border-bottom-color: var(--color-primary);
     font-weight: 600;
 }
 
@@ -642,7 +642,7 @@
     padding: 12px 15px;
     background: #f9f9f9;
     border-radius: 8px;
-    border: 2px solid #e0e0e0;
+    border: 2px solid var(--color-border);
 }
 
 .nav-strip-btn {
@@ -685,7 +685,7 @@
     flex-shrink: 0;
     width: 56px;
     background: white;
-    border: 2px solid #e0e0e0;
+    border: 2px solid var(--color-border);
     border-radius: 6px;
     padding: 6px 4px;
     text-align: center;
@@ -694,18 +694,18 @@
 }
 
 .page-thumbnail-item:hover {
-    border-color: #667eea;
+    border-color: var(--color-primary);
 }
 
 .page-thumbnail-item.active {
-    border-color: #667eea;
+    border-color: var(--color-primary);
     background: #f5f7ff;
 }
 
 .page-thumbnail-item .thumbnail-number {
     font-size: 1rem;
     font-weight: bold;
-    color: #667eea;
+    color: var(--color-primary);
 }
 
 .page-thumbnail-item .thumbnail-label {
@@ -722,14 +722,14 @@
 .calendar-footer {
     margin-top: 30px;
     padding-top: 20px;
-    border-top: 2px solid #e0e0e0;
+    border-top: 2px solid var(--color-border);
     display: flex;
     gap: 15px;
     justify-content: center;
 }
 
 .reset-btn {
-    background: #ff5252;
+    background: var(--color-error);
 }
 
 .reset-btn:hover {
