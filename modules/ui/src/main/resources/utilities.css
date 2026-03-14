@@ -62,6 +62,125 @@ button:disabled {
     color: #666666 !important;
 }
 
+/* ─── Shared Button Classes ──────────────────────────── */
+
+.btn {
+    padding: 6px 14px;
+    border: 1px solid #d1d5db;
+    border-radius: 6px;
+    background: #fff;
+    color: #374151;
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition: all 0.15s;
+}
+
+.btn:hover {
+    background: #f3f4f6;
+}
+
+.btn-primary {
+    background: #3b82f6;
+    color: #fff;
+    border-color: #3b82f6;
+}
+
+.btn-primary:hover {
+    background: #2563eb;
+}
+
+.btn-secondary {
+    background: #f0f0f0;
+    color: #555;
+    border: none;
+    border-radius: 8px;
+    padding: 12px 20px;
+    font-size: 1rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.btn-secondary:hover:not(:disabled) {
+    background: var(--color-border);
+}
+
+.btn-success {
+    background: var(--color-success);
+    color: #fff;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: 600;
+}
+
+.btn-success:hover {
+    background: var(--color-success);
+}
+
+.btn-danger {
+    background: var(--color-error);
+    color: #fff;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: 600;
+}
+
+.btn-danger:hover {
+    background: var(--color-error);
+}
+
+/* Outlined danger when used with .btn base */
+.btn.btn-danger {
+    background: #fff;
+    color: var(--color-error);
+    border-color: #fecaca;
+}
+
+.btn.btn-danger:hover {
+    background: #fef2f2;
+}
+
+.btn-warning {
+    background: #f59e0b;
+    color: #fff;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: 600;
+}
+
+.btn-warning:hover {
+    background: #d97706;
+}
+
+.btn-sm {
+    padding: 4px 12px;
+    font-size: 0.78rem;
+    border-radius: 4px;
+    border: none;
+    cursor: pointer;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.btn-success.btn-sm,
+.btn-danger.btn-sm,
+.btn-warning.btn-sm {
+    padding: 4px 12px;
+    font-size: 0.78rem;
+}
+
+.btn-active {
+    background: #3b82f6;
+    color: #fff;
+    border-color: #3b82f6;
+}
+
 .error-message {
     background-color: #ffebee;
     color: #c62828;
