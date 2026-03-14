@@ -32,6 +32,7 @@ Copy the compiled files to a distribution directory:
 ```bash
 mkdir -p dist
 cp modules/ui/src/main/resources/index.html dist/
+cp modules/ui/src/main/resources/*.css dist/
 cp modules/ui/target/scala-3.3.3/material-builder-ui-fastopt/main.js dist/
 ```
 
@@ -73,9 +74,12 @@ For production deployment, use fullOptimization:
 
 ```bash
 sbt ui/fullLinkJS
-```
 
-Then copy from `modules/ui/target/scala-3.3.3/material-builder-ui-opt/` instead.
+mkdir -p dist
+cp modules/ui/src/main/resources/index.html dist/
+cp modules/ui/src/main/resources/*.css dist/
+cp modules/ui/target/scala-3.3.3/material-builder-ui-opt/main.js dist/
+```
 
 ## Testing
 
@@ -248,7 +252,7 @@ Note: In sandboxed MCP environments, localhost servers may not be accessible fro
 Check that `main.js` is properly copied to the `dist/` directory and accessible at `/main.js`.
 
 ### "Cannot find module" Errors
-Make sure you're serving from the `dist/` directory and that both `index.html` and `main.js` are present.
+Make sure you're serving from the `dist/` directory and that `index.html`, `main.js`, and all CSS files are present.
 
 ### Compilation Errors
 Ensure you're using Scala 3.3.3 (specified in `build.sbt`). Scala 3.8.x has compatibility issues with Scala.js.
