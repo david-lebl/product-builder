@@ -133,12 +133,12 @@ Chimney supports Scala 3.3+ and Scala.js with full feature parity.
 c.copy(constraints = c.constraints.copy(currentUses = c.constraints.currentUses + 1))
 ```
 
-**After — Extension method on DiscountCode:**
+**After — Instance method on DiscountCode:**
 ```scala
-// In discount.scala
-extension (dc: DiscountCode)
+// In discount.scala — method defined inside the case class body
+final case class DiscountCode(...):
   def withIncrementedUsage: DiscountCode =
-    dc.copy(constraints = dc.constraints.copy(currentUses = dc.constraints.currentUses + 1))
+    copy(constraints = constraints.copy(currentUses = constraints.currentUses + 1))
 
 // DiscountCodeService.scala:110
 c.withIncrementedUsage
@@ -152,14 +152,16 @@ c.withIncrementedUsage
 page.copy(template = page.template.copy(background = PageBackground.SolidColor(color)))
 ```
 
-**After — Helper methods on CalendarPage:**
+**After — Instance methods on CalendarPage:**
 ```scala
-// In CalendarModel.scala
-extension (page: CalendarPage)
+// In CalendarModel.scala — methods defined inside the case class body
+case class CalendarPage(...):
   def withBackground(bg: PageBackground): CalendarPage =
-    page.copy(template = page.template.copy(background = bg))
+    copy(template = template.copy(background = bg))
   def withTemplateType(tt: CalendarTemplateType): CalendarPage =
-    page.copy(template = page.template.copy(templateType = tt))
+    copy(template = template.copy(templateType = tt))
+  def withMonthFieldText(text: String): CalendarPage =
+    copy(template = template.copy(monthField = template.monthField.copy(text = text)))
 
 // CalendarViewModel.scala:293
 page.withBackground(PageBackground.SolidColor(color))
@@ -172,12 +174,13 @@ page.withBackground(PageBackground.SolidColor(color))
 state.copy(componentStates = state.componentStates + (role -> cs.copy(selectedFinishes = newFinishes)))
 ```
 
-**After — Extension methods on BuilderState:**
+**After — Instance methods on BuilderState:**
 ```scala
-extension (state: BuilderState)
+// In ProductBuilderViewModel.scala — methods defined inside the case class body
+case class BuilderState(...):
   def updateComponentState(role: ComponentRole)(f: ComponentState => ComponentState): BuilderState =
-    val cs = state.componentStates.getOrElse(role, ComponentState(role))
-    state.copy(componentStates = state.componentStates + (role -> f(cs)))
+    val cs = componentStates.getOrElse(role, ComponentState(role))
+    copy(componentStates = componentStates + (role -> f(cs)))
 
 // Usage:
 state.updateComponentState(role)(_.copy(selectedFinishes = newFinishes))
@@ -188,16 +191,16 @@ state.updateComponentState(role)(_.copy(selectedFinishes = newFinishes))
 s.copy(checkoutInfo = Some(info.copy(step = nextStep)))
 ```
 
-**After — Extension on BuilderState:**
+**After — Instance method on BuilderState:**
 ```scala
-extension (state: BuilderState)
-  def updateCheckoutStep(step: CheckoutStep): BuilderState =
-    state.checkoutInfo match
-      case Some(info) => state.copy(checkoutInfo = Some(info.copy(step = step)))
-      case None       => state
+case class BuilderState(...):
+  def withCheckoutStep(step: CheckoutStep): BuilderState =
+    checkoutInfo match
+      case Some(info) => copy(checkoutInfo = Some(info.copy(step = step)))
+      case None       => this
 
 // Usage:
-s.updateCheckoutStep(nextStep)
+s.withCheckoutStep(nextStep)
 ```
 
 ### 2.6 Where Chimney Shines (Future)
