@@ -34,7 +34,10 @@ final case class DiscountCode(
     isActive: Boolean,
     createdBy: Option[EmployeeId],
     createdAt: Long,
-)
+):
+  /** Increment the usage counter in the nested constraints. */
+  def withIncrementedUsage: DiscountCode =
+    copy(constraints = constraints.copy(currentUses = constraints.currentUses + 1))
 
 /** Result of applying a discount code to a subtotal */
 final case class DiscountResult(

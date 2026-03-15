@@ -289,16 +289,12 @@ object CalendarViewModel {
 
   def setBackgroundColor(color: String): Unit =
     stateVar.update(s =>
-      s.updateCurrentPage(page =>
-        page.copy(template = page.template.copy(background = PageBackground.SolidColor(color)))
-      )
+      s.updateCurrentPage(_.withBackground(PageBackground.SolidColor(color)))
     )
 
   def setBackgroundImage(imageData: String): Unit =
     stateVar.update(s =>
-      s.updateCurrentPage(page =>
-        page.copy(template = page.template.copy(background = PageBackground.BackgroundImage(imageData)))
-      )
+      s.updateCurrentPage(_.withBackground(PageBackground.BackgroundImage(imageData)))
     )
 
   def applyBackgroundToAllPages(): Unit =
@@ -309,9 +305,7 @@ object CalendarViewModel {
 
   def setTemplateType(templateType: CalendarTemplateType): Unit =
     stateVar.update(s =>
-      s.updateCurrentPage(page =>
-        page.copy(template = page.template.copy(templateType = templateType))
-      )
+      s.updateCurrentPage(_.withTemplateType(templateType))
     )
 
   def applyTemplateToAllPages(): Unit =

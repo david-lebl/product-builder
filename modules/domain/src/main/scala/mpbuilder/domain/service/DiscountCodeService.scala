@@ -106,8 +106,7 @@ object DiscountCodeService:
   ): Validation[DiscountCodeError, List[DiscountCode]] =
     for _ <- validateCodeIdExists(codes, codeId)
     yield codes.map { c =>
-      if c.id == codeId then
-        c.copy(constraints = c.constraints.copy(currentUses = c.constraints.currentUses + 1))
+      if c.id == codeId then c.withIncrementedUsage
       else c
     }
 
