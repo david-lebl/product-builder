@@ -173,7 +173,18 @@ case class CalendarPage(
   pageNumber: Int,
   template: CalendarTemplate,
   elements: List[CanvasElement] = List.empty,
-)
+):
+  /** Update the background of this page's template. */
+  def withBackground(bg: PageBackground): CalendarPage =
+    copy(template = template.copy(background = bg))
+
+  /** Update the template type of this page's template. */
+  def withTemplateType(tt: CalendarTemplateType): CalendarPage =
+    copy(template = template.copy(templateType = tt))
+
+  /** Update the month field text of this page's template. */
+  def withMonthFieldText(text: String): CalendarPage =
+    copy(template = template.copy(monthField = template.monthField.copy(text = text)))
 
 /** Complete calendar state */
 case class CalendarState(
@@ -207,15 +218,11 @@ case class CalendarState(
 
   /** Apply a background to all pages */
   def applyBackgroundToAll(bg: PageBackground): CalendarState =
-    copy(pages = pages.map(page =>
-      page.copy(template = page.template.copy(background = bg))
-    ))
+    copy(pages = pages.map(_.withBackground(bg)))
 
   /** Apply a template type to all pages */
   def applyTemplateTypeToAll(tt: CalendarTemplateType): CalendarState =
-    copy(pages = pages.map(page =>
-      page.copy(template = page.template.copy(templateType = tt))
-    ))
+    copy(pages = pages.map(_.withTemplateType(tt)))
 }
 
 object CalendarState {
@@ -244,20 +251,14 @@ object CalendarState {
       case VisualProductType.MonthlyCalendar =>
         val months = monthNames(lang)
         val updatedPages = state.pages.zipWithIndex.map { case (page, index) =>
-          val updatedTemplate = page.template.copy(
-            monthField = page.template.monthField.copy(text = months(index))
-          )
-          page.copy(template = updatedTemplate)
+          page.withMonthFieldText(months(index))
         }
         state.copy(pages = updatedPages)
 
       case VisualProductType.WeeklyCalendar =>
         val weekLabel = if lang == "cs" then "Týden" else "Week"
         val updatedPages = state.pages.zipWithIndex.map { case (page, index) =>
-          val updatedTemplate = page.template.copy(
-            monthField = page.template.monthField.copy(text = s"$weekLabel ${index + 1}")
-          )
-          page.copy(template = updatedTemplate)
+          page.withMonthFieldText(s"$weekLabel ${index + 1}")
         }
         state.copy(pages = updatedPages)
 
@@ -266,10 +267,7 @@ object CalendarState {
         val updatedPages = state.pages.zipWithIndex.map { case (page, index) =>
           val startWeek = index * 2 + 1
           val endWeek = startWeek + 1
-          val updatedTemplate = page.template.copy(
-            monthField = page.template.monthField.copy(text = s"$weeksLabel $startWeek–$endWeek")
-          )
-          page.copy(template = updatedTemplate)
+          page.withMonthFieldText(s"$weeksLabel $startWeek–$endWeek")
         }
         state.copy(pages = updatedPages)
 

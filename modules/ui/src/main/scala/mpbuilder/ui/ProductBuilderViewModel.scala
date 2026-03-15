@@ -52,7 +52,17 @@ case class BuilderState(
                          basketItemArtwork: Map[ConfigurationId, ArtworkMode] = Map.empty,
                          checkoutInfo: Option[CheckoutInfo] = None,
                          loginState: LoginState = LoginState.LoggedOut,
-                       )
+                       ):
+  /** Update a single component's state, creating a default if absent. */
+  def updateComponentState(role: ComponentRole)(f: ComponentState => ComponentState): BuilderState =
+    val cs = componentStates.getOrElse(role, ComponentState(role))
+    copy(componentStates = componentStates + (role -> f(cs)))
+
+  /** Update the checkout step if checkout is active. */
+  def withCheckoutStep(step: CheckoutStep): BuilderState =
+    checkoutInfo match
+      case Some(info) => copy(checkoutInfo = Some(info.copy(step = step)))
+      case None       => this
 
 object ProductBuilderViewModel:
 
@@ -182,7 +192,7 @@ object ProductBuilderViewModel:
         else
           cs.selectedFinishes + (finishId -> defaultParams)
       // Finishes are always per-component — do not propagate even when components are linked
-      state.copy(componentStates = state.componentStates + (role -> cs.copy(selectedFinishes = newFinishes)))
+      state.updateComponentState(role)(_.copy(selectedFinishes = newFinishes))
     )
     autoRecalculate()
 
@@ -193,7 +203,7 @@ object ProductBuilderViewModel:
       if cs.selectedFinishes.contains(finishId) then
         val newFinishes = cs.selectedFinishes + (finishId -> params)
         // Finishes are always per-component — do not propagate even when components are linked
-        state.copy(componentStates = state.componentStates + (role -> cs.copy(selectedFinishes = newFinishes)))
+        state.updateComponentState(role)(_.copy(selectedFinishes = newFinishes))
       else state
     )
     autoRecalculate()
@@ -211,8 +221,7 @@ object ProductBuilderViewModel:
         }
         state.copy(componentStates = newStates)
       else
-        val cs = state.componentStates.getOrElse(role, ComponentState(role))
-        state.copy(componentStates = state.componentStates + (role -> cs.copy(selectedInkConfig = Some(config))))
+        state.updateComponentState(role)(_.copy(selectedInkConfig = Some(config)))
     )
     autoRecalculate()
 
@@ -601,7 +610,7 @@ object ProductBuilderViewModel:
             case CheckoutStep.Delivery        => CheckoutStep.Payment
             case CheckoutStep.Payment         => CheckoutStep.Summary
             case CheckoutStep.Summary         => CheckoutStep.Summary // terminal — order confirmed from this step
-          s.copy(checkoutInfo = Some(info.copy(step = nextStep)))
+          s.withCheckoutStep(nextStep)
         case None => s
     }
 
@@ -620,7 +629,7 @@ object ProductBuilderViewModel:
             case CheckoutStep.Delivery        => CheckoutStep.ContactDetails
             case CheckoutStep.Payment         => CheckoutStep.Delivery
             case CheckoutStep.Summary         => CheckoutStep.Payment
-          s.copy(checkoutInfo = Some(info.copy(step = prevStep)))
+          s.withCheckoutStep(prevStep)
         case None => s
     }
 
