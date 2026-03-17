@@ -16,6 +16,9 @@ object CustomerPortalView:
   /** Toast message shown after an action. */
   private val toastMessage: Var[Option[(String, Long)]] = Var(None)
 
+  /** Time window for recent orders (30 days in milliseconds). */
+  private val RecentOrderWindowMs = 30L * 24 * 60 * 60 * 1000
+
   def apply(): Element =
     val lang = ProductBuilderViewModel.currentLanguage
 
@@ -28,14 +31,13 @@ object CustomerPortalView:
       }
 
     val now = System.currentTimeMillis()
-    val thirtyDaysMs = 30L * 24 * 60 * 60 * 1000
 
     val activeOrdersSignal: Signal[List[ManufacturingOrder]] =
       customerOrdersSignal.map(_.filter(mo => !mo.isDispatched))
 
     val recentOrdersSignal: Signal[List[ManufacturingOrder]] =
       customerOrdersSignal.map(_.filter(mo =>
-        mo.isDispatched && mo.createdAt > (now - thirtyDaysMs)
+        mo.isDispatched && mo.createdAt > (now - RecentOrderWindowMs)
       ))
 
     div(
@@ -414,7 +416,7 @@ object CustomerPortalView:
         deliveryStep("📦",
           if l == Language.En then "Packaged" else "Zabaleno",
           fc.isPackaged),
-        deliveryStepConnector(fc.isDispatched),
+        deliveryStepConnector(fc.isPackaged),
         deliveryStep("🚚",
           if l == Language.En then "Dispatched" else "Odesláno",
           fc.isDispatched),
@@ -428,8 +430,8 @@ object CustomerPortalView:
       span(cls := "portal-delivery-step-label", label),
     )
 
-  private def deliveryStepConnector(nextDone: Boolean): Element =
-    div(cls := (if nextDone then "portal-delivery-connector portal-delivery-connector--done" else "portal-delivery-connector"))
+  private def deliveryStepConnector(isDone: Boolean): Element =
+    div(cls := (if isDone then "portal-delivery-connector portal-delivery-connector--done" else "portal-delivery-connector"))
 
   // ── Order Detail (Expanded) ──────────────────────────────────────────
 
