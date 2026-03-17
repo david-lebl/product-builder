@@ -11,6 +11,11 @@ object MaterialSelector:
     val selectedMaterialId = ProductBuilderViewModel.selectedMaterialId(role)
     val lang = ProductBuilderViewModel.currentLanguage
 
+    val selectedDescription: Signal[Option[LocalizedString]] =
+      selectedMaterialId.combineWith(availableMaterials).map { case (selId, mats) =>
+        selId.flatMap(id => mats.find(_.id == id)).flatMap(_.description)
+      }
+
     div(
       SelectField(
         label = lang.map {
@@ -31,6 +36,7 @@ object MaterialSelector:
         },
         disabled = ProductBuilderViewModel.state.map(_.selectedCategoryId.isEmpty),
       ),
+      HelpInfo.fromSignal(selectedDescription, lang),
       div(
         cls := "info-box",
         child.maybe <-- availableMaterials.combineWith(lang).map { case (materials, l) =>

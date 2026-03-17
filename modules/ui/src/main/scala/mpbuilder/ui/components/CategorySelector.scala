@@ -11,21 +11,29 @@ object CategorySelector:
     val selectedCategoryId = ProductBuilderViewModel.state.map(_.selectedCategoryId)
     val lang = ProductBuilderViewModel.currentLanguage
 
-    SelectField(
-      label = lang.map {
-        case Language.En => "Category:"
-        case Language.Cs => "Kategorie:"
-      },
-      options = lang.map { l =>
-        categories.map(cat => SelectOption(cat.id.value, cat.name(l)))
-      },
-      selected = selectedCategoryId.map(_.map(_.value).getOrElse("")),
-      onChange = Observer[String] { value =>
-        if value.nonEmpty then
-          ProductBuilderViewModel.selectCategory(CategoryId.unsafe(value))
-      },
-      placeholder = lang.map {
-        case Language.En => "-- Select a category --"
-        case Language.Cs => "-- Vyberte kategorii --"
-      },
+    val selectedDescription: Signal[Option[LocalizedString]] =
+      selectedCategoryId.map { selId =>
+        selId.flatMap(id => categories.find(_.id == id)).flatMap(_.description)
+      }
+
+    div(
+      SelectField(
+        label = lang.map {
+          case Language.En => "Category:"
+          case Language.Cs => "Kategorie:"
+        },
+        options = lang.map { l =>
+          categories.map(cat => SelectOption(cat.id.value, cat.name(l)))
+        },
+        selected = selectedCategoryId.map(_.map(_.value).getOrElse("")),
+        onChange = Observer[String] { value =>
+          if value.nonEmpty then
+            ProductBuilderViewModel.selectCategory(CategoryId.unsafe(value))
+        },
+        placeholder = lang.map {
+          case Language.En => "-- Select a category --"
+          case Language.Cs => "-- Vyberte kategorii --"
+        },
+      ),
+      HelpInfo.fromSignal(selectedDescription, lang),
     )

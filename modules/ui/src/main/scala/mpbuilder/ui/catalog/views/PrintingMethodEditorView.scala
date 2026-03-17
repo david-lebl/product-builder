@@ -78,6 +78,8 @@ object PrintingMethodEditorView:
     val nameCsVar = Var(existing.map(_.name(Language.Cs)).getOrElse(""))
     val processTypeVar = Var(existing.map(_.processType).getOrElse(PrintingProcessType.Digital))
     val maxColorVar = Var(existing.flatMap(_.maxColorCount).map(_.toString).getOrElse(""))
+    val descEnVar = Var(existing.flatMap(_.description).map(_(Language.En)).getOrElse(""))
+    val descCsVar = Var(existing.flatMap(_.description).map(_(Language.Cs)).getOrElse(""))
 
     div(
       cls := "catalog-detail-panel",
@@ -100,6 +102,10 @@ object PrintingMethodEditorView:
         ),
 
         FormComponents.numberField("Max Color Count", maxColorVar.signal, maxColorVar.writer),
+
+        h4("Help Description"),
+        FormComponents.textAreaField("Description (EN)", descEnVar.signal, descEnVar.writer, "Describe this printing method for customers..."),
+        FormComponents.textAreaField("Description (CS)", descCsVar.signal, descCsVar.writer, "Popis tiskové metody pro zákazníky..."),
       ),
 
       div(
@@ -107,11 +113,13 @@ object PrintingMethodEditorView:
         FormComponents.actionButton("Save", () => {
           val id = idVar.now()
           if id.nonEmpty && nameEnVar.now().nonEmpty then
+            val desc = if descEnVar.now().nonEmpty then Some(LocalizedString(descEnVar.now(), descCsVar.now())) else None
             val pm = PrintingMethod(
               id = PrintingMethodId.unsafe(id),
               name = LocalizedString(nameEnVar.now(), nameCsVar.now()),
               processType = processTypeVar.now(),
               maxColorCount = maxColorVar.now().toIntOption,
+              description = desc,
             )
             if existing.isDefined then CatalogEditorViewModel.updatePrintingMethod(pm)
             else CatalogEditorViewModel.addPrintingMethod(pm)

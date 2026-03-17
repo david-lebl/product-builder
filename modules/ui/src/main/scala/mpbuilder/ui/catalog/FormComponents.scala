@@ -17,7 +17,7 @@ object FormComponents:
 
   // Re-export all generic components
   export mpbuilder.uikit.form.FormComponents.{textField, numberField, optionalNumberField,
-    enumSelect, enumSelectRequired, enumCheckboxSet, idCheckboxSet,
+    textAreaField, enumSelect, enumSelectRequired, enumCheckboxSet, idCheckboxSet,
     actionButton, dangerButton, sectionHeader}
 
   // ── LocalizedString editor ───────────────────────────────────────────────

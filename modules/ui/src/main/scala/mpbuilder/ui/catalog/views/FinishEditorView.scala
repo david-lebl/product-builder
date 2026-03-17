@@ -78,6 +78,8 @@ object FinishEditorView:
     val nameCsVar = Var(existing.map(_.name(Language.Cs)).getOrElse(""))
     val finishTypeVar = Var(existing.map(_.finishType).getOrElse(FinishType.Lamination))
     val sideVar = Var(existing.map(_.side).getOrElse(FinishSide.Both))
+    val descEnVar = Var(existing.flatMap(_.description).map(_(Language.En)).getOrElse(""))
+    val descCsVar = Var(existing.flatMap(_.description).map(_(Language.Cs)).getOrElse(""))
 
     div(
       cls := "catalog-detail-panel",
@@ -102,6 +104,10 @@ object FinishEditorView:
         FormComponents.enumSelectRequired[FinishSide](
           "Side", FinishSide.values, sideVar.signal, sideVar.writer,
         ),
+
+        h4("Help Description"),
+        FormComponents.textAreaField("Description (EN)", descEnVar.signal, descEnVar.writer, "Describe this finish for customers..."),
+        FormComponents.textAreaField("Description (CS)", descCsVar.signal, descCsVar.writer, "Popis povrchové úpravy pro zákazníky..."),
       ),
 
       div(
@@ -109,11 +115,13 @@ object FinishEditorView:
         FormComponents.actionButton("Save", () => {
           val id = idVar.now()
           if id.nonEmpty && nameEnVar.now().nonEmpty then
+            val desc = if descEnVar.now().nonEmpty then Some(LocalizedString(descEnVar.now(), descCsVar.now())) else None
             val fin = Finish(
               id = FinishId.unsafe(id),
               name = LocalizedString(nameEnVar.now(), nameCsVar.now()),
               finishType = finishTypeVar.now(),
               side = sideVar.now(),
+              description = desc,
             )
             if existing.isDefined then CatalogEditorViewModel.updateFinish(fin)
             else CatalogEditorViewModel.addFinish(fin)

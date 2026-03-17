@@ -72,6 +72,7 @@ object FinishSelector:
         ),
         span(finish.name(lang)),
       ),
+      HelpInfo(finish.description, ProductBuilderViewModel.currentLanguage),
       finishParamsForm(finish, role, isSelected, currentParams, lang),
     )
 

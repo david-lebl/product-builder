@@ -38,6 +38,19 @@ object FormComponents:
       inputType = "number",
     )
 
+  def textAreaField(
+    label: String,
+    value: Signal[String],
+    onInput: Observer[String],
+    placeholder: String = "",
+  ): HtmlElement =
+    TextAreaField(
+      label = Val(label),
+      value = value,
+      onInput = onInput,
+      placeholder = Val(placeholder),
+    )
+
   def optionalNumberField(
     label: String,
     value: Signal[Option[Int]],
