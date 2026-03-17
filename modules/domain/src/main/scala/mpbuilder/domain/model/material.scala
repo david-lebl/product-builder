@@ -24,4 +24,5 @@ final case class Material(
     family: MaterialFamily,
     weight: Option[PaperWeight],
     properties: Set[MaterialProperty],
+    description: Option[LocalizedString] = None,
 )
