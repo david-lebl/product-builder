@@ -1,4 +1,4 @@
-/* ─── Catalog Editor (ManufacturingApp-style) ──────────────────── */
+/* ─── Catalog Editor ──────────────────────────────────────────────── */
 
 .catalog-editor-app {
     display: flex;
@@ -27,99 +27,7 @@
     padding: 0 4px;
 }
 
-.catalog-layout {
-    display: grid;
-    grid-template-columns: 220px 1fr;
-    flex: 1;
-}
-
-/* Dark sidebar matching manufacturing sidebar */
-.catalog-sidebar {
-    background: #0f172a;
-    display: flex;
-    flex-direction: column;
-    position: sticky;
-    top: var(--top-bar-height);
-    height: calc(100vh - var(--top-bar-height));
-    overflow-y: auto;
-}
-
-.catalog-sidebar-header {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    padding: 20px 20px 16px;
-    border-bottom: 1px solid var(--color-text);
-}
-
-.catalog-sidebar-icon {
-    font-size: 1.4rem;
-}
-
-.catalog-sidebar-title {
-    font-size: 1.1rem;
-    font-weight: 700;
-    color: var(--color-surface);
-    letter-spacing: 0.3px;
-}
-
-.catalog-sidebar-nav {
-    display: flex;
-    flex-direction: column;
-    padding: 8px 0;
-    gap: 2px;
-}
-
-.catalog-nav-btn {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    width: 100%;
-    padding: 10px 20px;
-    border: none;
-    background: transparent;
-    color: #94a3b8;
-    font-size: 0.88rem;
-    cursor: pointer;
-    text-align: left;
-    transition: all 0.15s;
-}
-
-.catalog-nav-btn:hover {
-    background: var(--color-text);
-    color: #e2e8f0;
-}
-
-.catalog-nav-btn--active {
-    background: #1e40af;
-    color: #fff;
-    font-weight: 600;
-}
-
-.catalog-nav-btn--active:hover {
-    background: #1d4ed8;
-}
-
-.catalog-nav-icon {
-    font-size: 1.1rem;
-    width: 22px;
-    text-align: center;
-}
-
-.catalog-nav-label {
-    white-space: nowrap;
-}
-
-.catalog-content {
-    padding: 24px 32px;
-    overflow-y: auto;
-}
-
-.catalog-section {
-    max-width: none;
-}
-
-/* Wider side panel for catalog editors (480px vs 360px manufacturing default) */
+/* Wider side panel for catalog/customer editors (480px vs 360px default) */
 .catalog-editor-app .split-table-content--with-panel {
     grid-template-columns: 1fr 480px;
 }
