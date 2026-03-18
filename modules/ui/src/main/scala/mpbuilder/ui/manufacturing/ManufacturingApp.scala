@@ -2,41 +2,32 @@ package mpbuilder.ui.manufacturing
 
 import com.raquo.laminar.api.L.*
 import mpbuilder.ui.manufacturing.views.*
+import mpbuilder.uikit.containers.{SideNav, SideNavItem}
 
 /** Main manufacturing application with sidebar navigation. */
 object ManufacturingApp:
 
   def apply(): HtmlElement =
     div(
-      cls := "manufacturing-app",
+      cls := "app-sidebar-layout",
 
       // Sidebar navigation
-      htmlTag("nav")(
-        cls := "manufacturing-sidebar",
-        div(
-          cls := "manufacturing-sidebar-header",
-          span(cls := "manufacturing-sidebar-icon", "🏭"),
-          span(cls := "manufacturing-sidebar-title", "Manufacturing"),
-        ),
-        div(
-          cls := "manufacturing-sidebar-nav",
-          ManufacturingRoute.values.filter(_.isAvailable).toList.map { route =>
-            button(
-              cls <-- ManufacturingViewModel.currentRoute.signal.map { current =>
-                if current == route then "manufacturing-nav-item manufacturing-nav-item--active"
-                else "manufacturing-nav-item"
-              },
-              span(cls := "manufacturing-nav-icon", route.icon),
-              span(cls := "manufacturing-nav-label", route.label),
-              onClick --> { _ => ManufacturingViewModel.currentRoute.set(route) },
-            )
-          },
-        ),
+      SideNav(
+        icon = "🏭",
+        title = "Manufacturing",
+        items = ManufacturingRoute.values.filter(_.isAvailable).toList.map { route =>
+          SideNavItem(
+            icon = route.icon,
+            label = route.label,
+            isActive = ManufacturingViewModel.currentRoute.signal.map(_ == route),
+            onClick = () => ManufacturingViewModel.currentRoute.set(route),
+          )
+        },
       ),
 
       // Main content area
       div(
-        cls := "manufacturing-content",
+        cls := "app-sidebar-content",
         child <-- ManufacturingViewModel.currentRoute.signal.map {
           case ManufacturingRoute.Dashboard     => DashboardView()
           case ManufacturingRoute.StationQueue  => StationQueueView()

@@ -196,6 +196,142 @@
     background: #fff;
 }
 
+/* --- AppSidebarLayout + SideNav component --- */
+
+/* Outer layout: 240px sidebar + content area */
+.app-sidebar-layout {
+    display: grid;
+    grid-template-columns: 240px 1fr;
+    min-height: calc(100vh - var(--top-bar-height));
+    flex: 1; /* fills space when inside a flex-column wrapper */
+}
+
+/* Dark sidebar nav */
+.app-sidebar {
+    background: var(--color-text);
+    color: #e2e8f0;
+    padding: 0;
+    position: sticky;
+    top: var(--top-bar-height);
+    height: calc(100vh - var(--top-bar-height));
+    overflow-y: auto;
+}
+
+.app-sidebar-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 20px 16px 16px;
+    border-bottom: 1px solid #334155;
+}
+
+.app-sidebar-header-icon {
+    font-size: 1.5rem;
+}
+
+.app-sidebar-header-title {
+    font-size: 1.1rem;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+}
+
+.app-sidebar-nav {
+    padding: 8px 0;
+}
+
+.app-sidebar-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    padding: 10px 16px;
+    border: none;
+    background: transparent;
+    color: #94a3b8;
+    font-size: 0.9rem;
+    cursor: pointer;
+    text-align: left;
+    transition: all 0.15s;
+}
+
+.app-sidebar-item:hover {
+    background: #334155;
+    color: #e2e8f0;
+}
+
+.app-sidebar-item--active {
+    background: #3b82f6;
+    color: #fff;
+    font-weight: 600;
+}
+
+.app-sidebar-item--active:hover {
+    background: #2563eb;
+}
+
+.app-sidebar-item-icon {
+    font-size: 1.1rem;
+    width: 24px;
+    text-align: center;
+}
+
+.app-sidebar-item-label {
+    white-space: nowrap;
+}
+
+/* Content area to the right of the sidebar */
+.app-sidebar-content {
+    padding: 24px;
+    background: var(--color-surface);
+    overflow-y: auto;
+}
+
+/* Responsive: sidebar becomes a fixed bottom nav bar on narrow viewports */
+@media (max-width: 900px) {
+    .app-sidebar-layout {
+        grid-template-columns: 1fr;
+    }
+
+    .app-sidebar {
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        top: auto;
+        height: auto;
+        z-index: var(--z-mobile-footer);
+        display: flex;
+        flex-direction: row;
+        overflow-x: auto;
+        padding: 0;
+    }
+
+    .app-sidebar-header {
+        display: none;
+    }
+
+    .app-sidebar-nav {
+        display: flex;
+        flex-direction: row;
+        padding: 0;
+        width: 100%;
+    }
+
+    .app-sidebar-item {
+        flex-direction: column;
+        flex: 1;
+        justify-content: center;
+        padding: 8px 6px;
+        font-size: 0.7rem;
+        gap: 2px;
+    }
+
+    .app-sidebar-content {
+        padding: 16px;
+        padding-bottom: 80px;
+    }
+}
+
 /* --- Checkbox Set (FormComponents) --- */
 .checkbox-set {
     display: flex;

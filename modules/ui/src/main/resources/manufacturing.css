@@ -2,87 +2,6 @@
    Manufacturing UI Styles
    ========================================= */
 
-/* --- Manufacturing App Layout --- */
-.manufacturing-app {
-    display: grid;
-    grid-template-columns: 240px 1fr;
-    min-height: calc(100vh - var(--top-bar-height));
-}
-
-.manufacturing-sidebar {
-    background: var(--color-text);
-    color: #e2e8f0;
-    padding: 0;
-    position: sticky;
-    top: var(--top-bar-height);
-    height: calc(100vh - var(--top-bar-height));
-    overflow-y: auto;
-}
-
-.manufacturing-sidebar-header {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    padding: 20px 16px 16px;
-    border-bottom: 1px solid #334155;
-}
-
-.manufacturing-sidebar-icon {
-    font-size: 1.5rem;
-}
-
-.manufacturing-sidebar-title {
-    font-size: 1.1rem;
-    font-weight: 700;
-    letter-spacing: 0.5px;
-}
-
-.manufacturing-sidebar-nav {
-    padding: 8px 0;
-}
-
-.manufacturing-nav-item {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    width: 100%;
-    padding: 10px 16px;
-    border: none;
-    background: transparent;
-    color: #94a3b8;
-    font-size: 0.9rem;
-    cursor: pointer;
-    text-align: left;
-    transition: all 0.15s;
-}
-
-.manufacturing-nav-item:hover {
-    background: #334155;
-    color: #e2e8f0;
-}
-
-.manufacturing-nav-item--active {
-    background: #3b82f6;
-    color: #fff;
-    font-weight: 600;
-}
-
-.manufacturing-nav-item--active:hover {
-    background: #2563eb;
-}
-
-.manufacturing-nav-icon {
-    font-size: 1.1rem;
-    width: 24px;
-    text-align: center;
-}
-
-.manufacturing-content {
-    padding: 24px;
-    background: var(--color-surface);
-    overflow-y: auto;
-}
-
 .manufacturing-view-title {
     font-size: 1.4rem;
     font-weight: 700;
@@ -1166,49 +1085,6 @@
 
 /* --- Responsive --- */
 @media (max-width: 900px) {
-    .manufacturing-app {
-        grid-template-columns: 1fr;
-    }
-
-    .manufacturing-sidebar {
-        position: fixed;
-        bottom: 0;
-        left: 0;
-        right: 0;
-        top: auto;
-        height: auto;
-        z-index: var(--z-mobile-footer);
-        display: flex;
-        flex-direction: row;
-        overflow-x: auto;
-        padding: 0;
-    }
-
-    .manufacturing-sidebar-header {
-        display: none;
-    }
-
-    .manufacturing-sidebar-nav {
-        display: flex;
-        flex-direction: row;
-        padding: 0;
-        width: 100%;
-    }
-
-    .manufacturing-nav-item {
-        flex-direction: column;
-        flex: 1;
-        justify-content: center;
-        padding: 8px 6px;
-        font-size: 0.7rem;
-        gap: 2px;
-    }
-
-    .manufacturing-content {
-        padding: 16px;
-        padding-bottom: 80px;
-    }
-
     .split-table-content--with-panel {
         grid-template-columns: 1fr;
     }
