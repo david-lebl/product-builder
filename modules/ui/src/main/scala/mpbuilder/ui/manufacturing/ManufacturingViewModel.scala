@@ -381,6 +381,7 @@ object ManufacturingViewModel:
         items: List[(ProductConfiguration, Int)],
         approval: ApprovalStatus,
         deadlineOffset: Long,
+        customerId: Option[CustomerId] = None,
     ): ManufacturingOrder =
       val pricelist = SamplePricelist.pricelistCzkSheet
       val basketItems = items.map { case (config, qty) =>
@@ -396,7 +397,7 @@ object ManufacturingViewModel:
         paymentMethod = Some(PaymentMethod.BankTransferQR),
       )
       val total = basketItems.map(_.priceBreakdown.total).reduce((a, b) => Money(a.value + b.value))
-      val order = Order(OrderId.unsafe(id), basket, checkoutInfo, total, Currency.CZK)
+      val order = Order(OrderId.unsafe(id), basket, checkoutInfo, total, Currency.CZK, customerId)
       val deadline = now + deadlineOffset
 
       val workflows = if approval == ApprovalStatus.Approved then
@@ -515,7 +516,77 @@ object ManufacturingViewModel:
       }
     )
 
-    List(order1WithProgress, order2, order3, order4, order5, order6)
+    // ── Sample orders for Print Shop Pro (IČO 12345678) ─────────────────
+    val pspId = Some(SampleCustomers.printShopProId)
+    val pspContact = ContactInfo("Jan", "Novák", "jan@printshoppro.cz", "+420 123 456 789",
+      Some("Print Shop Pro s.r.o."), Some("12345678"), Some("CZ12345678"))
+
+    // PSP-001: Business Cards — approved, in production, payment confirmed, artwork OK
+    val pspOrder1Raw = makeOrder("PSP-001", "Jan", "Novák", "jan@printshoppro.cz",
+      List((businessCards, 1000)), ApprovalStatus.Approved, 3 * day, pspId)
+      .copy(priority = Priority.Normal, paymentStatus = PaymentStatus.Confirmed,
+        artworkCheck = ArtworkCheck(CheckStatus.Passed, CheckStatus.Passed, CheckStatus.Passed, "Files OK"))
+    val pspOrder1 = pspOrder1Raw.copy(
+      order = pspOrder1Raw.order.copy(checkoutInfo = pspOrder1Raw.order.checkoutInfo.copy(contactInfo = pspContact)),
+      workflows = pspOrder1Raw.workflows.map { wf =>
+        val updated = wf.copy(
+          steps = wf.steps.map { s =>
+            if s.stationType == StationType.Prepress || s.stationType == StationType.DigitalPrinter then
+              s.copy(status = StepStatus.Completed, completedAt = Some(now - 2 * hour))
+            else s
+          },
+          status = WorkflowStatus.InProgress,
+        )
+        updated.evaluateReadiness
+      }
+    )
+
+    // PSP-002: Brochures — artwork changes requested (PendingChanges), payment confirmed
+    val pspOrder2Raw = makeOrder("PSP-002", "Jan", "Novák", "jan@printshoppro.cz",
+      List((brochures, 300)), ApprovalStatus.PendingChanges, 5 * day, pspId)
+      .copy(paymentStatus = PaymentStatus.Confirmed,
+        artworkCheck = ArtworkCheck(CheckStatus.Failed, CheckStatus.Passed, CheckStatus.Warning,
+          "Resolution only 72 DPI — please resend at 300 DPI minimum. Color profile is sRGB, needs CMYK conversion."),
+        approvalNotes = "Artwork files require corrections before we can proceed. Please re-upload with higher resolution.")
+    val pspOrder2 = pspOrder2Raw.copy(
+      order = pspOrder2Raw.order.copy(checkoutInfo = pspOrder2Raw.order.checkoutInfo.copy(contactInfo = pspContact))
+    )
+
+    // PSP-003: Stickers — placed, awaiting payment, artwork not checked
+    val pspOrder3Raw = makeOrder("PSP-003", "Jan", "Novák", "jan@printshoppro.cz",
+      List((stickers, 500)), ApprovalStatus.Placed, 7 * day, pspId)
+      .copy(paymentStatus = PaymentStatus.Pending,
+        artworkCheck = ArtworkCheck.unchecked)
+    val pspOrder3 = pspOrder3Raw.copy(
+      order = pspOrder3Raw.order.copy(checkoutInfo = pspOrder3Raw.order.checkoutInfo.copy(contactInfo = pspContact))
+    )
+
+    // PSP-004: Booklets — fully dispatched (appears in "Recent Orders" last 30 days)
+    val pspOrder4Raw = makeOrder("PSP-004", "Jan", "Novák", "jan@printshoppro.cz",
+      List((booklet, 50)), ApprovalStatus.Approved, day, pspId)
+      .copy(priority = Priority.Normal, paymentStatus = PaymentStatus.Confirmed,
+        artworkCheck = ArtworkCheck(CheckStatus.Passed, CheckStatus.Passed, CheckStatus.Passed, "All checks passed"),
+        fulfilment = Some(FulfilmentChecklist(
+          collectedItems = List(CollectedItem(0, collected = true, verifiedBy = Some(EmployeeId.unsafe("emp-1")))),
+          qualitySignOff = QualitySignOff(passed = true, signedBy = Some(EmployeeId.unsafe("emp-2")), notes = "Quality OK"),
+          packagingInfo = PackagingInfo(Some(PackagingType.Box), Some("30×20×5 cm"), Some("0.8")),
+          dispatchInfo = DispatchInfo(dispatched = true, trackingNumber = "CZ123456789CZ",
+            dispatchedAt = Some(now - 2 * day), dispatchedBy = Some(EmployeeId.unsafe("emp-1"))),
+        ))
+      )
+    val pspOrder4Completed = pspOrder4Raw.copy(
+      order = pspOrder4Raw.order.copy(checkoutInfo = pspOrder4Raw.order.checkoutInfo.copy(contactInfo = pspContact)),
+      workflows = pspOrder4Raw.workflows.map(wf =>
+        wf.copy(
+          status = WorkflowStatus.Completed,
+          steps = wf.steps.map(s => s.copy(status = StepStatus.Completed, completedAt = Some(now - 3 * day))),
+        )
+      ),
+      createdAt = now - 10 * day,
+    )
+
+    List(order1WithProgress, order2, order3, order4, order5, order6,
+      pspOrder1, pspOrder2, pspOrder3, pspOrder4Completed)
 
   private def generateSampleEmployees(): List[Employee] =
     List(

@@ -123,7 +123,7 @@ object CustomerPortalView:
         (mo.overallStatus == WorkflowStatus.InProgress || mo.overallStatus == WorkflowStatus.Pending)
     )
     val readyForDelivery = activeOrders.count(mo =>
-      mo.overallStatus == WorkflowStatus.Completed && !mo.isDispatched
+      mo.workflows.nonEmpty && mo.overallStatus == WorkflowStatus.Completed && !mo.isDispatched
     )
 
     div(

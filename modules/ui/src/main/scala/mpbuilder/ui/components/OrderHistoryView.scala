@@ -30,9 +30,10 @@ enum OrderHistoryStatus:
 object OrderHistoryStatus:
   def fromManufacturingOrder(mo: ManufacturingOrder): OrderHistoryStatus =
     if mo.isDispatched then OrderHistoryStatus.Dispatched
-    else if mo.overallStatus == WorkflowStatus.Completed then OrderHistoryStatus.Completed
+    else if mo.workflows.nonEmpty && mo.overallStatus == WorkflowStatus.Completed then OrderHistoryStatus.Completed
     else if mo.approvalStatus == ApprovalStatus.Approved &&
-            (mo.overallStatus == WorkflowStatus.InProgress || mo.overallStatus == WorkflowStatus.Pending)
+            (mo.overallStatus == WorkflowStatus.InProgress || mo.overallStatus == WorkflowStatus.Pending ||
+             mo.workflows.isEmpty)
     then OrderHistoryStatus.InProduction
     else OrderHistoryStatus.Placed
 
