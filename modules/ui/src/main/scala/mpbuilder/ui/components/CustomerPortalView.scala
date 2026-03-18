@@ -295,7 +295,7 @@ object CustomerPortalView:
           // Resend payment info — shown when payment is not confirmed
           if mo.paymentStatus != PaymentStatus.Confirmed then
             button(
-              cls := "btn btn-sm btn-warning",
+              cls := "btn btn-warning",
               l match
                 case Language.En => "💳 Resend Payment Info"
                 case Language.Cs => "💳 Znovu odeslat platební údaje",
@@ -309,7 +309,7 @@ object CustomerPortalView:
           // Re-upload artwork — shown when approval is PendingChanges
           if mo.approvalStatus == ApprovalStatus.PendingChanges then
             button(
-              cls := "btn btn-sm btn-primary",
+              cls := "btn btn-primary",
               l match
                 case Language.En => "🎨 Re-upload Artwork"
                 case Language.Cs => "🎨 Znovu nahrát podklady",
