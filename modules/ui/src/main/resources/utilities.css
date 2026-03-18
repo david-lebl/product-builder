@@ -330,6 +330,128 @@ button:disabled {
     border-radius: 6px;
     margin-top: 10px;
 }
+
+/* ── Help Info Component ───────────────────────────────────────────── */
+.help-info-wrapper {
+    display: inline-flex;
+    align-items: center;
+    position: relative;
+    vertical-align: middle;
+}
+
+.help-info-wrapper--inline {
+    margin-left: 4px;
+}
+
+.help-info-trigger {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    border: 1.5px solid var(--color-primary);
+    background: transparent;
+    color: var(--color-primary);
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+    padding: 0;
+    margin-left: 6px;
+    transition: all 0.2s;
+    flex-shrink: 0;
+}
+
+.help-info-trigger:hover {
+    background: var(--color-primary);
+    color: white;
+}
+
+.help-info-trigger--small {
+    width: 18px;
+    height: 18px;
+    font-size: 11px;
+    margin-left: 4px;
+}
+
+.help-info-popup {
+    display: none;
+    position: absolute;
+    top: calc(100% + 6px);
+    left: 0;
+    z-index: var(--z-drawer, 500);
+    min-width: 260px;
+    max-width: 380px;
+    background: white;
+    border: 1px solid var(--color-border);
+    border-radius: var(--border-radius-md, 8px);
+    box-shadow: var(--shadow-card, 0 4px 12px rgba(0,0,0,0.15));
+    padding: 14px 16px;
+    animation: helpInfoFadeIn 0.15s ease-out;
+}
+
+.help-info-popup--visible {
+    display: block;
+}
+
+.help-info-popup-content {
+    font-size: 0.88rem;
+    line-height: 1.5;
+    color: var(--color-text);
+}
+
+.help-info-popup-content p {
+    margin: 0;
+}
+
+.help-info-popup-close {
+    position: absolute;
+    top: 6px;
+    right: 8px;
+    background: none;
+    border: none;
+    font-size: 16px;
+    cursor: pointer;
+    color: var(--color-text-muted);
+    padding: 0;
+    width: auto;
+    line-height: 1;
+}
+
+.help-info-popup-close:hover {
+    color: var(--color-text);
+}
+
+.help-info-backdrop {
+    display: none;
+    position: fixed;
+    inset: 0;
+    z-index: calc(var(--z-drawer, 500) - 1);
+}
+
+.help-info-backdrop--visible {
+    display: block;
+}
+
+/* Label with help info - horizontal layout */
+.label-with-help {
+    display: flex;
+    align-items: center;
+    gap: 0;
+}
+
+/* Item with inline help - for selected option details */
+.item-with-help {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+}
+
+@keyframes helpInfoFadeIn {
+    from { opacity: 0; transform: translateY(-4px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
 .step-indicator {
     display: flex;
     justify-content: space-between;

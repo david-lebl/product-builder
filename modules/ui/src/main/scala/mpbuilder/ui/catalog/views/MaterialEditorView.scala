@@ -80,6 +80,8 @@ object MaterialEditorView:
     val familyVar = Var(existing.map(_.family).getOrElse(MaterialFamily.Paper))
     val weightVar = Var(existing.flatMap(_.weight).map(_.gsm.toString).getOrElse(""))
     val propsVar = Var(existing.map(_.properties).getOrElse(Set.empty[MaterialProperty]))
+    val descEnVar = Var(existing.flatMap(_.description).map(_(Language.En)).getOrElse(""))
+    val descCsVar = Var(existing.flatMap(_.description).map(_(Language.Cs)).getOrElse(""))
 
     div(
       cls := "catalog-detail-panel",
@@ -106,6 +108,9 @@ object MaterialEditorView:
         FormComponents.enumCheckboxSet[MaterialProperty](
           "Properties", MaterialProperty.values, propsVar.signal, propsVar.writer,
         ),
+
+        FormComponents.textField("Description (EN)", descEnVar.signal, descEnVar.writer, "Help text for customers"),
+        FormComponents.textField("Description (CS)", descCsVar.signal, descCsVar.writer, "Nápověda pro zákazníky"),
       ),
 
       div(
@@ -113,12 +118,16 @@ object MaterialEditorView:
         FormComponents.actionButton("Save", () => {
           val id = idVar.now()
           if id.nonEmpty && nameEnVar.now().nonEmpty then
+            val descEn = descEnVar.now().trim
+            val descCs = descCsVar.now().trim
+            val desc = if descEn.nonEmpty then Some(LocalizedString(descEn, descCs)) else None
             val mat = Material(
               id = MaterialId.unsafe(id),
               name = LocalizedString(nameEnVar.now(), nameCsVar.now()),
               family = familyVar.now(),
               weight = weightVar.now().toIntOption.map(PaperWeight.unsafe),
               properties = propsVar.now(),
+              description = desc,
             )
             if existing.isDefined then CatalogEditorViewModel.updateMaterial(mat)
             else CatalogEditorViewModel.addMaterial(mat)

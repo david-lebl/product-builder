@@ -70,7 +70,10 @@ object FinishSelector:
             ProductBuilderViewModel.toggleFinish(role, finish.id, defaultParams)
           },
         ),
-        span(finish.name(lang)),
+        span(cls := "item-with-help",
+          span(finish.name(lang)),
+          finish.description.map(desc => HelpInfo(desc, lang)).getOrElse(emptyNode),
+        ),
       ),
       finishParamsForm(finish, role, isSelected, currentParams, lang),
     )

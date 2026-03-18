@@ -448,6 +448,12 @@ object ProductBuilderViewModel:
           List.empty
     }
 
+  // Description of the currently selected category
+  def selectedCategoryDescription: Signal[Option[LocalizedString]] =
+    state.map { s =>
+      s.selectedCategoryId.flatMap(id => catalog.categories.get(id)).flatMap(_.description)
+    }
+
   // Per-component signals
   def selectedInkConfig(role: ComponentRole): Signal[Option[InkConfiguration]] =
     state.map(_.componentStates.get(role).flatMap(_.selectedInkConfig))

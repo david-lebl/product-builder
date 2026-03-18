@@ -84,6 +84,8 @@ object CategoryEditorView:
     val componentsVar = Var(existing.map(_.components).getOrElse(
       List(ComponentTemplate(ComponentRole.Main, Set.empty, Set.empty))
     ))
+    val descEnVar = Var(existing.flatMap(_.description).map(_(Language.En)).getOrElse(""))
+    val descCsVar = Var(existing.flatMap(_.description).map(_(Language.Cs)).getOrElse(""))
 
     div(
       cls := "catalog-detail-panel",
@@ -100,6 +102,9 @@ object CategoryEditorView:
         FormComponents.textField("ID", idVar.signal, idVar.writer, "e.g. business-cards"),
         FormComponents.textField("Name (EN)", nameEnVar.signal, nameEnVar.writer),
         FormComponents.textField("Name (CS)", nameCsVar.signal, nameCsVar.writer),
+
+        FormComponents.textField("Description (EN)", descEnVar.signal, descEnVar.writer, "Help text for customers"),
+        FormComponents.textField("Description (CS)", descCsVar.signal, descCsVar.writer, "Nápověda pro zákazníky"),
 
         FormComponents.enumCheckboxSet[SpecKind](
           "Required Specifications", SpecKind.values, specKindsVar.signal, specKindsVar.writer,
@@ -138,12 +143,16 @@ object CategoryEditorView:
         FormComponents.actionButton("Save", () => {
           val id = idVar.now()
           if id.nonEmpty && nameEnVar.now().nonEmpty then
+            val descEn = descEnVar.now().trim
+            val descCs = descCsVar.now().trim
+            val desc = if descEn.nonEmpty then Some(LocalizedString(descEn, descCs)) else None
             val cat = ProductCategory(
               id = CategoryId.unsafe(id),
               name = LocalizedString(nameEnVar.now(), nameCsVar.now()),
               components = componentsVar.now(),
               requiredSpecKinds = specKindsVar.now(),
               allowedPrintingMethodIds = printingMethodIdsVar.now(),
+              description = desc,
             )
             if existing.isDefined then CatalogEditorViewModel.updateCategory(cat)
             else CatalogEditorViewModel.addCategory(cat)

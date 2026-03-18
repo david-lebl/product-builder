@@ -8,4 +8,5 @@ final case class PrintingMethod(
     name: LocalizedString,
     processType: PrintingProcessType,
     maxColorCount: Option[Int],
+    description: Option[LocalizedString] = None,
 )

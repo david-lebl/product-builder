@@ -11,12 +11,23 @@ object MaterialSelector:
     val selectedMaterialId = ProductBuilderViewModel.selectedMaterialId(role)
     val lang = ProductBuilderViewModel.currentLanguage
 
+    // Description of the currently selected material
+    val selectedMaterialDesc: Signal[Option[LocalizedString]] =
+      availableMaterials.combineWith(selectedMaterialId).map { case (mats, selId) =>
+        selId.flatMap(id => mats.find(_.id == id)).flatMap(_.description)
+      }
+
     div(
-      SelectField(
-        label = lang.map {
+      div(
+        cls := "label-with-help",
+        label(child.text <-- lang.map {
           case Language.En => "Material:"
           case Language.Cs => "Materiál:"
-        },
+        }),
+        HelpInfo.fromSignal(selectedMaterialDesc, lang),
+      ),
+      SelectField(
+        label = Val(""),
         options = availableMaterials.combineWith(lang).map { case (materials, l) =>
           materials.map(mat => SelectOption(mat.id.value, mat.name(l)))
         },
