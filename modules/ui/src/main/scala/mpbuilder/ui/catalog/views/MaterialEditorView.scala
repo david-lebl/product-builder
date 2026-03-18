@@ -118,16 +118,13 @@ object MaterialEditorView:
         FormComponents.actionButton("Save", () => {
           val id = idVar.now()
           if id.nonEmpty && nameEnVar.now().nonEmpty then
-            val descEn = descEnVar.now().trim
-            val descCs = descCsVar.now().trim
-            val desc = if descEn.nonEmpty then Some(LocalizedString(descEn, descCs)) else None
             val mat = Material(
               id = MaterialId.unsafe(id),
               name = LocalizedString(nameEnVar.now(), nameCsVar.now()),
               family = familyVar.now(),
               weight = weightVar.now().toIntOption.map(PaperWeight.unsafe),
               properties = propsVar.now(),
-              description = desc,
+              description = FormComponents.optionalDescription(descEnVar.now(), descCsVar.now()),
             )
             if existing.isDefined then CatalogEditorViewModel.updateMaterial(mat)
             else CatalogEditorViewModel.addMaterial(mat)

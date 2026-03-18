@@ -143,16 +143,13 @@ object CategoryEditorView:
         FormComponents.actionButton("Save", () => {
           val id = idVar.now()
           if id.nonEmpty && nameEnVar.now().nonEmpty then
-            val descEn = descEnVar.now().trim
-            val descCs = descCsVar.now().trim
-            val desc = if descEn.nonEmpty then Some(LocalizedString(descEn, descCs)) else None
             val cat = ProductCategory(
               id = CategoryId.unsafe(id),
               name = LocalizedString(nameEnVar.now(), nameCsVar.now()),
               components = componentsVar.now(),
               requiredSpecKinds = specKindsVar.now(),
               allowedPrintingMethodIds = printingMethodIdsVar.now(),
-              description = desc,
+              description = FormComponents.optionalDescription(descEnVar.now(), descCsVar.now()),
             )
             if existing.isDefined then CatalogEditorViewModel.updateCategory(cat)
             else CatalogEditorViewModel.addCategory(cat)

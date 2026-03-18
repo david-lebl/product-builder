@@ -78,3 +78,13 @@ object FormComponents:
       },
       inputType = "number",
     )
+
+  // ── Description helper ──────────────────────────────────────────────────
+
+  /** Builds an `Option[LocalizedString]` from EN/CS description text fields.
+    * Returns `None` if the English text is blank.
+    */
+  def optionalDescription(enText: String, csText: String): Option[LocalizedString] =
+    val en = enText.trim
+    val cs = csText.trim
+    if en.nonEmpty then Some(LocalizedString(en, cs)) else None

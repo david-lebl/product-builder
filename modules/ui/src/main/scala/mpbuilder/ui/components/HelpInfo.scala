@@ -11,6 +11,9 @@ import mpbuilder.domain.model.*
   */
 object HelpInfo:
 
+  private def toggleCls(base: String, isOpen: Signal[Boolean]): Binder[HtmlElement] =
+    cls <-- isOpen.map(open => if open then s"$base ${base}--visible" else base)
+
   /** Static help popup — shows a fixed description string.
     *
     * @param description the localized help text to display
@@ -26,7 +29,7 @@ object HelpInfo:
         onClick.preventDefault --> { _ => isOpen.update(!_) },
       ),
       div(
-        cls <-- isOpen.signal.map(open => if open then "help-info-popup help-info-popup--visible" else "help-info-popup"),
+        toggleCls("help-info-popup", isOpen.signal),
         div(
           cls := "help-info-popup-content",
           p(description(lang)),
@@ -37,9 +40,8 @@ object HelpInfo:
           onClick.preventDefault --> { _ => isOpen.set(false) },
         ),
       ),
-      // Backdrop to close popup when clicking outside
       div(
-        cls <-- isOpen.signal.map(open => if open then "help-info-backdrop help-info-backdrop--visible" else "help-info-backdrop"),
+        toggleCls("help-info-backdrop", isOpen.signal),
         onClick --> { _ => isOpen.set(false) },
       ),
     )
@@ -66,7 +68,7 @@ object HelpInfo:
         }
       },
       div(
-        cls <-- isOpen.signal.map(open => if open then "help-info-popup help-info-popup--visible" else "help-info-popup"),
+        toggleCls("help-info-popup", isOpen.signal),
         div(
           cls := "help-info-popup-content",
           child.text <-- descriptionSignal.combineWith(lang).map { case (descOpt, l) =>
@@ -80,7 +82,7 @@ object HelpInfo:
         ),
       ),
       div(
-        cls <-- isOpen.signal.map(open => if open then "help-info-backdrop help-info-backdrop--visible" else "help-info-backdrop"),
+        toggleCls("help-info-backdrop", isOpen.signal),
         onClick --> { _ => isOpen.set(false) },
       ),
     )
