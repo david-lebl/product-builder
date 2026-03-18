@@ -2,7 +2,7 @@ package mpbuilder.ui
 
 import com.raquo.laminar.api.L.*
 import mpbuilder.ui.calendar.CalendarBuilderApp
-import mpbuilder.ui.components.{CheckoutView, LoginWidget, OrderHistoryView}
+import mpbuilder.ui.components.{CheckoutView, CustomerPortalView, LoginWidget, OrderHistoryView}
 import mpbuilder.ui.manufacturing.ManufacturingApp
 import mpbuilder.ui.catalog.CatalogEditorApp
 import mpbuilder.ui.customers.CustomerManagementApp
@@ -17,6 +17,7 @@ object AppRoute {
   case object CatalogEditor extends AppRoute
   case object CustomerManagement extends AppRoute
   case object OrderHistory extends AppRoute
+  case object CustomerPortal extends AppRoute
 }
 
 object AppRouter {
@@ -149,6 +150,25 @@ object AppRouter {
             },
             onClick --> { _ => navigateTo(AppRoute.CustomerManagement) }
           ),
+
+          // My Orders — visible only when logged in
+          child <-- ProductBuilderViewModel.loginState.combineWith(lang).map { case (ls, l) =>
+            ls match
+              case _: LoginState.LoggedIn =>
+                button(
+                  cls := "nav-link",
+                  cls <-- currentRoute.map {
+                    case AppRoute.CustomerPortal => "active"
+                    case _ => ""
+                  },
+                  child.text <-- lang.map {
+                    case Language.En => "My Orders"
+                    case Language.Cs => "Moje objednávky"
+                  },
+                  onClick --> { _ => navigateTo(AppRoute.CustomerPortal) }
+                )
+              case _ => emptyNode
+          },
         ),
       ),
 
@@ -161,6 +181,7 @@ object AppRouter {
         case AppRoute.CatalogEditor   => CatalogEditorApp()
         case AppRoute.CustomerManagement => CustomerManagementApp()
         case AppRoute.OrderHistory    => OrderHistoryView()
+        case AppRoute.CustomerPortal  => CustomerPortalView()
       }
     )
   }
