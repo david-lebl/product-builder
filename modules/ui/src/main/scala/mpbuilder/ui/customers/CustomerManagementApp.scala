@@ -2,11 +2,13 @@ package mpbuilder.ui.customers
 
 import com.raquo.laminar.api.L.*
 import mpbuilder.ui.customers.views.*
+import mpbuilder.uikit.containers.{SideNav, SideNavItem}
 
 /** Main customer management application.
   *
-  * Uses the same dark-sidebar layout as ManufacturingApp and CatalogEditorApp
-  * for visual consistency. Provides sidebar navigation for Customers and Discount Codes.
+  * Uses the shared SideNav component from ui-framework for visual consistency
+  * with ManufacturingApp and CatalogEditorApp. Provides sidebar navigation
+  * for Customers and Discount Codes.
   */
 object CustomerManagementApp:
 
@@ -27,35 +29,25 @@ object CustomerManagementApp:
 
       // Main layout: sidebar + content
       div(
-        cls := "catalog-layout",
+        cls := "app-sidebar-layout",
 
-        // Dark sidebar navigation
-        htmlTag("nav")(
-          cls := "catalog-sidebar",
-          div(
-            cls := "catalog-sidebar-header",
-            span(cls := "catalog-sidebar-icon", "👤"),
-            span(cls := "catalog-sidebar-title", "Customers"),
-          ),
-          div(
-            cls := "catalog-sidebar-nav",
-            CustomerSection.values.toList.map { section =>
-              button(
-                cls <-- CustomerManagementViewModel.activeSection.map { active =>
-                  if active == section then "catalog-nav-btn catalog-nav-btn--active"
-                  else "catalog-nav-btn"
-                },
-                span(cls := "catalog-nav-icon", sectionIcon(section)),
-                span(cls := "catalog-nav-label", sectionName(section)),
-                onClick --> { _ => CustomerManagementViewModel.setSection(section) },
-              )
-            },
-          ),
+        // Sidebar navigation
+        SideNav(
+          icon = "👤",
+          title = "Customers",
+          items = CustomerSection.values.toList.map { section =>
+            SideNavItem(
+              icon = sectionIcon(section),
+              label = sectionName(section),
+              isActive = CustomerManagementViewModel.activeSection.map(_ == section),
+              onClick = () => CustomerManagementViewModel.setSection(section),
+            )
+          },
         ),
 
         // Content area
         div(
-          cls := "catalog-content",
+          cls := "app-sidebar-content",
           child <-- CustomerManagementViewModel.activeSection.map {
             case CustomerSection.Customers       => CustomersView()
             case CustomerSection.CustomerPricing => CustomerPricingView()
