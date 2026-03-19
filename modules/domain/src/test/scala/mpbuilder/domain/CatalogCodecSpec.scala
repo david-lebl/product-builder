@@ -117,6 +117,22 @@ object CatalogCodecSpec extends ZIOSpecDefault:
         val decoded = json.fromJson[Material]
         assertTrue(decoded == Right(mat))
       },
+      test("Material with description round-trips") {
+        val mat = Material(
+          id = MaterialId.unsafe("mat-desc"),
+          name = LocalizedString("Test", "Test"),
+          family = MaterialFamily.Paper,
+          weight = None,
+          properties = Set.empty,
+          description = Some(LocalizedString("A test material", "Testovací materiál")),
+        )
+        val json = mat.toJson
+        val decoded = json.fromJson[Material]
+        assertTrue(
+          decoded == Right(mat),
+          decoded.map(_.description.map(_(Language.En))) == Right(Some("A test material")),
+        )
+      },
       test("Finish round-trips") {
         val fin = Finish(
           id = FinishId.unsafe("fin-1"),

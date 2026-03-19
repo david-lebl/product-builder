@@ -75,6 +75,71 @@ object LocalizationSpec extends ZIOSpecDefault:
         )
       },
     ),
+    suite("Description fields")(
+      test("materials have bilingual descriptions") {
+        val desc = SampleCatalog.coated300gsm.description
+        assertTrue(
+          desc.isDefined,
+          desc.get(Language.En).contains("coated art paper"),
+          desc.get(Language.Cs).contains("křídový papír"),
+        )
+      },
+      test("roll-up economy and premium have distinct descriptions") {
+        val econ = SampleCatalog.rollUpStandEconomy.description
+        val prem = SampleCatalog.rollUpStandPremium.description
+        assertTrue(
+          econ.isDefined,
+          prem.isDefined,
+          econ.get(Language.En).contains("Budget-friendly"),
+          prem.get(Language.En).contains("Professional-grade"),
+          econ.get(Language.En) != prem.get(Language.En),
+        )
+      },
+      test("finishes have bilingual descriptions") {
+        val matteDesc = SampleCatalog.matteLamination.description
+        val glossDesc = SampleCatalog.glossLamination.description
+        assertTrue(
+          matteDesc.isDefined,
+          glossDesc.isDefined,
+          matteDesc.get(Language.En).contains("matte film"),
+          glossDesc.get(Language.En).contains("Shiny protective film"),
+          matteDesc.get(Language.Cs).nonEmpty,
+          glossDesc.get(Language.Cs).nonEmpty,
+        )
+      },
+      test("printing methods have bilingual descriptions") {
+        val offset = SampleCatalog.offsetMethod.description
+        val digital = SampleCatalog.digitalMethod.description
+        assertTrue(
+          offset.isDefined,
+          digital.isDefined,
+          offset.get(Language.En).contains("plates"),
+          digital.get(Language.En).contains("toner or inkjet"),
+        )
+      },
+      test("categories have bilingual descriptions") {
+        val bc = SampleCatalog.businessCards.description
+        val banners = SampleCatalog.banners.description
+        assertTrue(
+          bc.isDefined,
+          banners.isDefined,
+          bc.get(Language.En).contains("business cards"),
+          banners.get(Language.En).contains("vinyl banners"),
+          bc.get(Language.Cs).nonEmpty,
+          banners.get(Language.Cs).nonEmpty,
+        )
+      },
+      test("description is optional with None default") {
+        val mat = Material(
+          id = MaterialId.unsafe("test-mat"),
+          name = LocalizedString("Test"),
+          family = MaterialFamily.Paper,
+          weight = None,
+          properties = Set.empty,
+        )
+        assertTrue(mat.description.isEmpty)
+      },
+    ),
     suite("ConfigurationError Czech messages")(
       test("CategoryNotFound message in Czech") {
         val err = ConfigurationError.CategoryNotFound(CategoryId.unsafe("cat-test"))
