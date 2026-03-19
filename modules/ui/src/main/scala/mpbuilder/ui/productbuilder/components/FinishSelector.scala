@@ -2,6 +2,7 @@ package mpbuilder.ui.productbuilder.components
 
 import com.raquo.laminar.api.L.*
 import mpbuilder.ui.productbuilder.ProductBuilderViewModel
+import mpbuilder.uikit.feedback.HelpInfo
 import mpbuilder.domain.model.*
 import mpbuilder.uikit.util.Visibility
 
@@ -12,11 +13,18 @@ object FinishSelector:
 
     div(
       cls := "form-group",
-      label(
-        child.text <-- lang.map {
-          case Language.En => "Finishes (select multiple):"
-          case Language.Cs => "Povrchové úpravy (vyberte více):"
-        }
+      div(
+        cls := "label-with-help",
+        label(
+          child.text <-- lang.map {
+            case Language.En => "Finishes (select multiple):"
+            case Language.Cs => "Povrchové úpravy (vyberte více):"
+          }
+        ),
+        HelpInfo(lang.map {
+          case Language.En => "Optional post-print treatments and finishing operations. These enhance the look, feel, and durability of the printed product. You can select multiple finishes."
+          case Language.Cs => "Volitelné dokončovací operace po tisku. Vylepšují vzhled, hmat a odolnost tištěného produktu. Můžete vybrat více povrchových úprav."
+        }),
       ),
       div(
         cls := "finish-list",
@@ -70,7 +78,16 @@ object FinishSelector:
             ProductBuilderViewModel.toggleFinish(role, finish.id, defaultParams)
           },
         ),
-        span(finish.name(lang)),
+        span(
+          cls := "finish-label-with-help",
+          span(finish.name(lang)),
+          finish.description match
+            case Some(desc) =>
+              HelpInfo.fromSignal(Val(Some(desc(lang))))
+            case None =>
+              span()
+          ,
+        ),
       ),
       finishParamsForm(finish, role, isSelected, currentParams, lang),
     )

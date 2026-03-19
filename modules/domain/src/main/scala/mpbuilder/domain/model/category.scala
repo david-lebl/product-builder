@@ -9,6 +9,7 @@ final case class ProductCategory(
     components: List[ComponentTemplate],
     requiredSpecKinds: Set[SpecKind],
     allowedPrintingMethodIds: Set[PrintingMethodId],
+    description: Option[LocalizedString] = None,
 )
 
 object ProductCategory:

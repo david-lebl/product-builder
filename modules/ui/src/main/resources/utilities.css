@@ -221,7 +221,6 @@ button:disabled {
 
 .finish-item {
     border-radius: 6px;
-    overflow: hidden;
 }
 
 .finish-item .checkbox-label {
@@ -387,4 +386,43 @@ button:disabled {
 .step-label {
     font-size: 0.9rem;
     color: #666;
+}
+
+/* ── Help Information (layout) ───────────────────────────────────────── */
+
+.label-with-help {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.finish-label-with-help {
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+    flex: 1;
+}
+
+.finish-label-with-help .help-info-wrapper {
+    margin-left: auto;
+}
+
+.selector-with-help {
+    position: relative;
+}
+
+.selector-help-buttons {
+    position: absolute;
+    top: 0;
+    right: 0;
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    height: 24px;
+}
+
+/* Ensure popups from right-aligned buttons don't overflow right */
+.selector-help-buttons .help-info-popup {
+    left: auto;
+    right: 0;
 }

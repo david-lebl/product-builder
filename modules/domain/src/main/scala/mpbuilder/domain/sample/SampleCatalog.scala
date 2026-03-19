@@ -86,6 +86,10 @@ object SampleCatalog:
     family = MaterialFamily.Paper,
     weight = Some(PaperWeight.unsafe(300)),
     properties = Set(MaterialProperty.Glossy, MaterialProperty.SmoothSurface, MaterialProperty.Recyclable),
+    description = Some(LocalizedString(
+      "Premium coated art paper with a smooth, glossy surface. Ideal for business cards and high-quality print materials where vibrant colors and sharp detail are important.",
+      "Prémiový křídový papír s hladkým lesklým povrchem. Ideální pro vizitky a kvalitní tiskové materiály, kde záleží na sytých barvách a ostrých detailech.",
+    )),
   )
 
   val uncoatedBond: Material = Material(
@@ -94,6 +98,10 @@ object SampleCatalog:
     family = MaterialFamily.Paper,
     weight = Some(PaperWeight.unsafe(120)),
     properties = Set(MaterialProperty.Matte, MaterialProperty.Recyclable),
+    description = Some(LocalizedString(
+      "Natural, uncoated paper with a soft matte feel. Easy to write on, making it perfect for letterheads, forms, and materials that require a handwritten note.",
+      "Přírodní nenatíraný papír s jemným matným povrchem. Snadno se na něj píše, ideální pro hlavičkové papíry, formuláře a materiály vyžadující ruční poznámky.",
+    )),
   )
 
   val kraft: Material = Material(
@@ -102,6 +110,10 @@ object SampleCatalog:
     family = MaterialFamily.Paper,
     weight = Some(PaperWeight.unsafe(250)),
     properties = Set(MaterialProperty.Textured, MaterialProperty.Recyclable),
+    description = Some(LocalizedString(
+      "Eco-friendly brown kraft paper with a distinctive natural texture. Popular for organic brands, eco packaging, and rustic design aesthetics.",
+      "Ekologický hnědý kraftový papír s výraznou přírodní texturou. Oblíbený pro bio značky, eko balení a rustikální designový styl.",
+    )),
   )
 
   val vinyl: Material = Material(
@@ -110,6 +122,10 @@ object SampleCatalog:
     family = MaterialFamily.Vinyl,
     weight = None,
     properties = Set(MaterialProperty.WaterResistant, MaterialProperty.Glossy, MaterialProperty.SmoothSurface),
+    description = Some(LocalizedString(
+      "Durable, weather-resistant adhesive vinyl for outdoor banners, vehicle wraps, and signage. Resistant to UV, rain, and temperature changes.",
+      "Odolný, povětrnostně stálý samolepicí vinyl pro venkovní bannery, polepy vozidel a značení. Odolný vůči UV, dešti a změnám teploty.",
+    )),
   )
 
   val corrugated: Material = Material(
@@ -118,6 +134,10 @@ object SampleCatalog:
     family = MaterialFamily.Cardboard,
     weight = None,
     properties = Set(MaterialProperty.Recyclable, MaterialProperty.Textured),
+    description = Some(LocalizedString(
+      "Sturdy corrugated cardboard for packaging and displays. Lightweight yet strong, with excellent structural rigidity for boxes and protective packaging.",
+      "Pevná vlnitá lepenka pro balení a displeje. Lehká, ale pevná, s vynikající strukturální tuhostí pro krabice a ochranné obaly.",
+    )),
   )
 
   val coatedSilk250gsm: Material = Material(
@@ -126,6 +146,10 @@ object SampleCatalog:
     family = MaterialFamily.Paper,
     weight = Some(PaperWeight.unsafe(250)),
     properties = Set(MaterialProperty.Matte, MaterialProperty.SmoothSurface, MaterialProperty.Recyclable),
+    description = Some(LocalizedString(
+      "Semi-matte coated paper with a silky smooth finish. Reduces glare while maintaining excellent color reproduction. Great for brochures and catalogs.",
+      "Polopololesklý křídový papír s hedvábně hladkým povrchem. Snižuje odlesky při zachování vynikající reprodukce barev. Skvělý pro brožury a katalogy.",
+    )),
   )
 
   val yupo: Material = Material(
@@ -134,6 +158,10 @@ object SampleCatalog:
     family = MaterialFamily.Paper,
     weight = Some(PaperWeight.unsafe(200)),
     properties = Set(MaterialProperty.WaterResistant, MaterialProperty.SmoothSurface),
+    description = Some(LocalizedString(
+      "Waterproof synthetic paper that won't tear, wrinkle, or yellow. Perfect for outdoor menus, maps, tags, and applications requiring extreme durability.",
+      "Voděodolný syntetický papír, který se netrhá, nekrčí ani nežloutne. Ideální pro venkovní jídelníčky, mapy, štítky a aplikace vyžadující extrémní odolnost.",
+    )),
   )
 
   val adhesiveStock: Material = Material(
@@ -142,6 +170,10 @@ object SampleCatalog:
     family = MaterialFamily.Paper,
     weight = Some(PaperWeight.unsafe(100)),
     properties = Set(MaterialProperty.Glossy, MaterialProperty.SmoothSurface),
+    description = Some(LocalizedString(
+      "Self-adhesive label stock with a glossy face. Suitable for product labels, stickers, and decals with a peel-and-stick backing.",
+      "Samolepicí materiál s lesklým povrchem. Vhodný pro produktové štítky, samolepky a obtisky s odlepovacím podkladem.",
+    )),
   )
 
   val clearVinyl: Material = Material(
@@ -150,6 +182,10 @@ object SampleCatalog:
     family = MaterialFamily.Vinyl,
     weight = None,
     properties = Set(MaterialProperty.WaterResistant, MaterialProperty.SmoothSurface, MaterialProperty.Transparent),
+    description = Some(LocalizedString(
+      "Transparent self-adhesive vinyl for window graphics, clear labels, and overlay applications where see-through effect is desired.",
+      "Průhledný samolepicí vinyl pro okenní grafiku, průhledné štítky a překryvné aplikace, kde je žádoucí průhledný efekt.",
+    )),
   )
 
   val cotton: Material = Material(
@@ -158,6 +194,10 @@ object SampleCatalog:
     family = MaterialFamily.Paper,
     weight = Some(PaperWeight.unsafe(300)),
     properties = Set(MaterialProperty.Textured, MaterialProperty.Recyclable),
+    description = Some(LocalizedString(
+      "Luxurious cotton paper with a distinctive textured feel. Made from cotton fibers for a premium tactile experience. Perfect for high-end business cards and invitations.",
+      "Luxusní bavlněný papír s výrazným hmatovým dojmem. Vyrobený z bavlněných vláken pro prémiový hmatový zážitek. Ideální pro luxusní vizitky a pozvánky.",
+    )),
   )
 
   // --- Coated Art Paper Glossy ---
@@ -308,6 +348,10 @@ object SampleCatalog:
     name = LocalizedString("Offset Printing", "Ofsetový tisk"),
     processType = PrintingProcessType.Offset,
     maxColorCount = Some(6),
+    description = Some(LocalizedString(
+      "Traditional high-quality printing using plates. Best for large runs (500+) with consistent color accuracy. Supports Pantone spot colors for precise brand matching.",
+      "Tradiční vysoce kvalitní tisk pomocí tiskových desek. Nejlepší pro velké náklady (500+) s konzistentní přesností barev. Podporuje přímé barvy Pantone pro přesné shody značek.",
+    )),
   )
 
   val digitalMethod: PrintingMethod = PrintingMethod(
@@ -315,6 +359,10 @@ object SampleCatalog:
     name = LocalizedString("Digital Printing", "Digitální tisk"),
     processType = PrintingProcessType.Digital,
     maxColorCount = None,
+    description = Some(LocalizedString(
+      "Modern toner or inkjet-based printing. Cost-effective for short runs and variable data. No plate setup required — ideal for quick turnaround and personalized prints.",
+      "Moderní tisk na bázi toneru nebo inkoustu. Ekonomický pro malé náklady a variabilní data. Nevyžaduje přípravu tiskových desek — ideální pro rychlou realizaci a personalizované tisky.",
+    )),
   )
 
   val uvInkjetMethod: PrintingMethod = PrintingMethod(
@@ -322,6 +370,10 @@ object SampleCatalog:
     name = LocalizedString("UV Curable Inkjet", "UV inkoustový tisk"),
     processType = PrintingProcessType.UVCurableInkjet,
     maxColorCount = None,
+    description = Some(LocalizedString(
+      "Wide-format inkjet printing with UV-cured inks. Produces durable, scratch-resistant output for banners, signage, and outdoor graphics. Excellent on vinyl and rigid substrates.",
+      "Velkoformátový inkoustový tisk s UV vytvrzovanými inkousty. Produkuje odolný, proti poškrábání odolný výstup pro bannery, značení a venkovní grafiku. Vynikající na vinylu a tuhých materiálech.",
+    )),
   )
 
   val letterpressMethod: PrintingMethod = PrintingMethod(
@@ -329,6 +381,10 @@ object SampleCatalog:
     name = LocalizedString("Letterpress", "Knihtisk"),
     processType = PrintingProcessType.Letterpress,
     maxColorCount = Some(2),
+    description = Some(LocalizedString(
+      "Artisan relief printing that presses ink into thick paper creating a debossed tactile impression. Limited to 1–2 colors. Premium choice for luxury business cards and invitations.",
+      "Řemeslný reliéfní tisk, který vtlačuje inkoust do silného papíru a vytváří hmatatelný dojem. Omezeno na 1–2 barvy. Prémiová volba pro luxusní vizitky a pozvánky.",
+    )),
   )
 
   // --- Finishes ---
@@ -337,6 +393,10 @@ object SampleCatalog:
     name = LocalizedString("Matte Lamination", "Matná laminace"),
     finishType = FinishType.Lamination,
     side = FinishSide.Both,
+    description = Some(LocalizedString(
+      "Protective matte film applied to the surface. Provides a smooth, non-reflective finish with a velvety feel. Reduces glare and fingerprints.",
+      "Ochranná matná fólie aplikovaná na povrch. Poskytuje hladký, nereflexní povrch s hedvábným dojmem. Snižuje odlesky a otisky prstů.",
+    )),
   )
 
   val glossLamination: Finish = Finish(
@@ -344,6 +404,10 @@ object SampleCatalog:
     name = LocalizedString("Gloss Lamination", "Lesklá laminace"),
     finishType = FinishType.Lamination,
     side = FinishSide.Both,
+    description = Some(LocalizedString(
+      "Shiny protective film that enhances color vibrancy and contrast. Makes images pop with a high-gloss mirror-like finish. Adds durability and water resistance.",
+      "Lesklá ochranná fólie, která zvyšuje sytost barev a kontrast. Dodává obrázkům výraznost s vysoce lesklým zrcadlovým povrchem. Přidává odolnost a voděodolnost.",
+    )),
   )
 
   val uvCoating: Finish = Finish(
@@ -351,6 +415,10 @@ object SampleCatalog:
     name = LocalizedString("UV Coating", "UV lak"),
     finishType = FinishType.UVCoating,
     side = FinishSide.Front,
+    description = Some(LocalizedString(
+      "Liquid coating cured with ultraviolet light. Provides a high-gloss, scratch-resistant surface. Can be applied as full coverage or spot UV for selective highlighting.",
+      "Tekutý lak vytvrzený ultrafialovým světlem. Poskytuje vysoce lesklý povrch odolný proti poškrábání. Lze aplikovat plošně nebo jako parciální UV pro selektivní zvýraznění.",
+    )),
   )
 
   val embossing: Finish = Finish(
@@ -358,6 +426,10 @@ object SampleCatalog:
     name = LocalizedString("Embossing", "Slepotisk"),
     finishType = FinishType.Embossing,
     side = FinishSide.Front,
+    description = Some(LocalizedString(
+      "Raised relief pressing that creates a 3D tactile effect on the paper surface. Adds a premium, luxurious feel to logos, text, or patterns.",
+      "Reliéfní lisování, které vytváří 3D hmatový efekt na povrchu papíru. Dodává prémiový, luxusní dojem logům, textu nebo vzorům.",
+    )),
   )
 
   val foilStamping: Finish = Finish(
@@ -365,6 +437,10 @@ object SampleCatalog:
     name = LocalizedString("Foil Stamping", "Ražba fólií"),
     finishType = FinishType.FoilStamping,
     side = FinishSide.Front,
+    description = Some(LocalizedString(
+      "Metallic or colored foil pressed onto the surface using heat and pressure. Available in gold, silver, copper, rose gold, and holographic. Creates an eye-catching luxurious accent.",
+      "Kovová nebo barevná fólie vtlačená na povrch pomocí tepla a tlaku. K dispozici ve zlaté, stříbrné, měděné, růžovozlaté a holografické. Vytváří poutavý luxusní akcent.",
+    )),
   )
 
   val dieCut: Finish = Finish(
@@ -372,6 +448,10 @@ object SampleCatalog:
     name = LocalizedString("Die Cut", "Výsek"),
     finishType = FinishType.DieCut,
     side = FinishSide.Both,
+    description = Some(LocalizedString(
+      "Custom shape cutting using a metal die. Allows creating unique product shapes beyond standard rectangles — rounded edges, windows, or custom contours.",
+      "Řezání do vlastního tvaru pomocí kovové formy. Umožňuje vytvořit jedinečné tvary produktů mimo standardní obdélníky — zaoblené hrany, okénka nebo vlastní kontury.",
+    )),
   )
 
   val varnish: Finish = Finish(
@@ -379,6 +459,10 @@ object SampleCatalog:
     name = LocalizedString("Spot Varnish", "Parciální lak"),
     finishType = FinishType.Varnish,
     side = FinishSide.Front,
+    description = Some(LocalizedString(
+      "Selective glossy coating applied to specific areas (logos, images, text) to create contrast against a matte background. Adds depth and visual interest.",
+      "Selektivní lesklý lak aplikovaný na konkrétní oblasti (loga, obrázky, text) pro vytvoření kontrastu oproti matnému pozadí. Přidává hloubku a vizuální zajímavost.",
+    )),
   )
 
   val softTouchCoating: Finish = Finish(
@@ -386,6 +470,10 @@ object SampleCatalog:
     name = LocalizedString("Soft Touch Coating", "Soft touch laminace"),
     finishType = FinishType.SoftTouchCoating,
     side = FinishSide.Both,
+    description = Some(LocalizedString(
+      "Luxurious velvet-like coating that feels like suede. Creates an ultra-premium tactile experience. Subdues colors slightly for an elegant, sophisticated look.",
+      "Luxusní sametový povlak, který na dotek připomíná semiš. Vytváří ultra-prémiový hmatový zážitek. Mírně tlumí barvy pro elegantní, sofistikovaný vzhled.",
+    )),
   )
 
   val aqueousCoating: Finish = Finish(
@@ -393,6 +481,10 @@ object SampleCatalog:
     name = LocalizedString("Aqueous Coating", "Disperzní lak"),
     finishType = FinishType.AqueousCoating,
     side = FinishSide.Both,
+    description = Some(LocalizedString(
+      "Water-based protective coating applied during printing. Eco-friendly option that provides basic scuff protection and enhances print quality. Fast-drying and recyclable.",
+      "Ochranný lak na vodní bázi aplikovaný během tisku. Ekologická volba, která poskytuje základní ochranu proti oděru a zlepšuje kvalitu tisku. Rychleschnoucí a recyklovatelný.",
+    )),
   )
 
   val debossing: Finish = Finish(
@@ -400,6 +492,10 @@ object SampleCatalog:
     name = LocalizedString("Debossing", "Slepotisk do hloubky"),
     finishType = FinishType.Debossing,
     side = FinishSide.Front,
+    description = Some(LocalizedString(
+      "Pressed indentation creating a sunken relief in the paper. The opposite of embossing — pushes the design into the material for a subtle, elegant tactile effect.",
+      "Vtlačený otisk vytvářející zapuštěný reliéf v papíru. Opak slepotisku — vtlačuje design do materiálu pro jemný, elegantní hmatový efekt.",
+    )),
   )
 
   val scoring: Finish = Finish(
@@ -407,6 +503,10 @@ object SampleCatalog:
     name = LocalizedString("Scoring", "Bigování"),
     finishType = FinishType.Scoring,
     side = FinishSide.Both,
+    description = Some(LocalizedString(
+      "Creased line pressed into the paper to enable clean, precise folding without cracking. Essential for thick paper stocks and folded products like brochures.",
+      "Rýha vtlačená do papíru pro čisté, přesné skládání bez praskání. Nezbytné pro silné papíry a skládané produkty jako brožury.",
+    )),
   )
 
   val perforation: Finish = Finish(
@@ -414,6 +514,10 @@ object SampleCatalog:
     name = LocalizedString("Perforation", "Perforace"),
     finishType = FinishType.Perforation,
     side = FinishSide.Both,
+    description = Some(LocalizedString(
+      "Line of tiny holes punched into the paper allowing easy tearing along a straight line. Used for tear-off coupons, tickets, and response cards.",
+      "Řada drobných otvorů vyražených do papíru umožňující snadné odtržení podél přímky. Používá se pro odtrhávací kupóny, vstupenky a odpovědní karty.",
+    )),
   )
 
   val roundCorners: Finish = Finish(
@@ -421,6 +525,10 @@ object SampleCatalog:
     name = LocalizedString("Round Corners", "Zaoblené rohy"),
     finishType = FinishType.RoundCorners,
     side = FinishSide.Both,
+    description = Some(LocalizedString(
+      "Rounded corner cutting for a modern, friendly look. Prevents dog-earing and gives a polished appearance. Configurable corner count (1–4) and radius.",
+      "Zaoblení rohů pro moderní, přátelský vzhled. Zabraňuje ohýbání a dodává uhlazenou podobu. Konfigurovatelný počet rohů (1–4) a poloměr.",
+    )),
   )
 
   val grommets: Finish = Finish(
@@ -428,6 +536,10 @@ object SampleCatalog:
     name = LocalizedString("Grommets", "Průchodky"),
     finishType = FinishType.Grommets,
     side = FinishSide.Both,
+    description = Some(LocalizedString(
+      "Metal eyelets punched along the edges for hanging banners with hooks, ropes, or zip ties. Spacing is configurable. Essential for large-format outdoor displays.",
+      "Kovové průchodky vyražené podél okrajů pro zavěšení bannerů pomocí háčků, lan nebo stahovacích pásků. Rozestupy jsou konfigurovatelné. Nezbytné pro velkoformátové venkovní displeje.",
+    )),
   )
 
   val kissCut: Finish = Finish(
@@ -435,6 +547,10 @@ object SampleCatalog:
     name = LocalizedString("Kiss Cut", "Výsek bez podkladu"),
     finishType = FinishType.KissCut,
     side = FinishSide.Both,
+    description = Some(LocalizedString(
+      "Precision cutting through the top layer only, leaving the backing sheet intact. Ideal for sticker sheets where individual stickers peel off easily.",
+      "Přesné řezání pouze skrze horní vrstvu, přičemž podkladový arch zůstává neporušený. Ideální pro samolepicí archy, kde se jednotlivé samolepky snadno odlepují.",
+    )),
   )
 
   val overlamination: Finish = Finish(
@@ -442,6 +558,10 @@ object SampleCatalog:
     name = LocalizedString("Overlamination", "Ochranná laminace"),
     finishType = FinishType.Overlamination,
     side = FinishSide.Front,
+    description = Some(LocalizedString(
+      "Additional protective laminate layer for large-format prints. Shields against UV fading, scratches, and moisture. Extends the life of outdoor graphics significantly.",
+      "Dodatečná ochranná laminátová vrstva pro velkoformátové tisky. Chrání před UV vyblednutím, poškrábáním a vlhkostí. Výrazně prodlužuje životnost venkovní grafiky.",
+    )),
   )
 
   // --- Roll-Up Materials ---
@@ -451,6 +571,10 @@ object SampleCatalog:
     family = MaterialFamily.Fabric,
     weight = None,
     properties = Set(MaterialProperty.WaterResistant, MaterialProperty.SmoothSurface),
+    description = Some(LocalizedString(
+      "Heavy-duty polyester film designed specifically for roll-up banner displays. Smooth, non-curl surface with excellent ink adhesion for vibrant graphics.",
+      "Odolná polyesterová fólie navržená speciálně pro roll-up bannerové displeje. Hladký, nekroutivý povrch s vynikající přilnavostí inkoustu pro sytou grafiku.",
+    )),
   )
 
   val rollUpStandEconomy: Material = Material(
@@ -459,6 +583,10 @@ object SampleCatalog:
     family = MaterialFamily.Hardware,
     weight = None,
     properties = Set.empty,
+    description = Some(LocalizedString(
+      "Budget-friendly retractable banner stand. Lightweight aluminium construction (~2 kg), basic snap-rail top bar. Suitable for indoor use, short-term events, and single-use promotions. Typically lasts 10–20 setups.",
+      "Ekonomický zatažitelný bannerový stojan. Lehká hliníková konstrukce (~2 kg), základní zacvakávací horní lišta. Vhodný pro vnitřní použití, krátkodobé akce a jednorázové propagace. Typicky vydrží 10–20 rozložení.",
+    )),
   )
 
   val rollUpStandPremium: Material = Material(
@@ -467,6 +595,10 @@ object SampleCatalog:
     family = MaterialFamily.Hardware,
     weight = None,
     properties = Set.empty,
+    description = Some(LocalizedString(
+      "Professional-grade retractable banner stand. Wide base with adjustable feet for stability, tensioned top rail for a flat banner surface. Built for frequent use at trade shows and permanent displays. Lasts 100+ setups with interchangeable cassettes.",
+      "Profesionální zatažitelný bannerový stojan. Široká základna s nastavitelnými nožkami pro stabilitu, napínací horní lišta pro rovný povrch banneru. Vyroben pro časté použití na veletrzích a permanentní displeje. Vydrží 100+ rozložení s vyměnitelnými kazetami.",
+    )),
   )
 
   // --- Reusable Material ID Sets ---
@@ -515,6 +647,10 @@ object SampleCatalog:
     )),
     requiredSpecKinds = Set(SpecKind.Size, SpecKind.Quantity),
     allowedPrintingMethodIds = Set(digitalId, letterpressId),
+    description = Some(LocalizedString(
+      "Standard and premium business cards. Choose from a wide range of papers (coated, uncoated, cotton, kraft) and finishing options including lamination, embossing, and foil stamping.",
+      "Standardní a prémiové vizitky. Vyberte si z široké nabídky papírů (křídový, nenatíraný, bavlněný, kraftový) a dokončovacích úprav včetně laminace, slepotisku a ražby fólií.",
+    )),
   )
 
   val flyers: ProductCategory = ProductCategory(
@@ -528,6 +664,10 @@ object SampleCatalog:
     )),
     requiredSpecKinds = Set(SpecKind.Size, SpecKind.Quantity, SpecKind.Orientation),
     allowedPrintingMethodIds = Set(digitalId),
+    description = Some(LocalizedString(
+      "Single-sheet promotional flyers in various sizes. Available in a wide range of paper weights from lightweight 90gsm to sturdy 350gsm. Landscape or portrait orientation.",
+      "Jednostránkové propagační letáky v různých velikostech. K dispozici v široké škále gramáží od lehkých 90g po pevné 350g. Na výšku nebo na šířku.",
+    )),
   )
 
   val brochures: ProductCategory = ProductCategory(
@@ -541,6 +681,10 @@ object SampleCatalog:
     )),
     requiredSpecKinds = Set(SpecKind.Size, SpecKind.Quantity, SpecKind.FoldType),
     allowedPrintingMethodIds = Set(digitalId),
+    description = Some(LocalizedString(
+      "Folded brochures and leaflets. Choose from multiple fold types (bi-fold, tri-fold, Z-fold, gate fold). Scoring is included for clean folds on heavier stocks.",
+      "Skládané brožury a letáky. Vyberte si z více typů skládání (na půl, na třetiny, Z-sklad, dvoudveřový sklad). Bigování je zahrnuto pro čisté sklady na silnějších papírech.",
+    )),
   )
 
   val banners: ProductCategory = ProductCategory(
@@ -553,6 +697,10 @@ object SampleCatalog:
     )),
     requiredSpecKinds = Set(SpecKind.Size, SpecKind.Quantity),
     allowedPrintingMethodIds = Set(uvInkjetId),
+    description = Some(LocalizedString(
+      "Large-format vinyl banners for outdoor and indoor use. Printed with UV-curable inks for weather resistance. Optional grommets for hanging and die-cutting for custom shapes.",
+      "Velkoformátové vinylové bannery pro venkovní i vnitřní použití. Tištěné UV vytvrzovanými inkousty pro odolnost proti povětrnostním vlivům. Volitelné průchodky pro zavěšení a výsek pro vlastní tvary.",
+    )),
   )
 
   val packaging: ProductCategory = ProductCategory(
@@ -565,6 +713,10 @@ object SampleCatalog:
     )),
     requiredSpecKinds = Set(SpecKind.Size, SpecKind.Quantity),
     allowedPrintingMethodIds = Set(digitalId),
+    description = Some(LocalizedString(
+      "Custom packaging boxes and wraps. Available in kraft, corrugated, and synthetic materials. Supports die-cutting for custom box shapes, scoring for fold lines, and premium finishes.",
+      "Zakázkové balicí krabice a obaly. K dispozici v kraftovém, vlnitém a syntetickém materiálu. Podporuje výsek pro vlastní tvary krabic, bigování pro linie ohybu a prémiové dokončení.",
+    )),
   )
 
   val booklets: ProductCategory = ProductCategory(
@@ -586,6 +738,10 @@ object SampleCatalog:
     ),
     requiredSpecKinds = Set(SpecKind.Size, SpecKind.Quantity, SpecKind.Pages, SpecKind.BindingMethod),
     allowedPrintingMethodIds = Set(digitalId),
+    description = Some(LocalizedString(
+      "Multi-page booklets and catalogs with separate cover and body components. Choose different materials for the cover and inner pages. Binding options include saddle stitch, perfect binding, and wire-o.",
+      "Vícestránkové brožury a katalogy se samostatnou obálkou a vnitřními stranami. Vyberte různé materiály pro obálku a vnitřní strany. Možnosti vazby zahrnují V-vazbu, lepenou vazbu a kroužkovou vazbu.",
+    )),
   )
 
   val calendars: ProductCategory = ProductCategory(
@@ -607,6 +763,10 @@ object SampleCatalog:
     ),
     requiredSpecKinds = Set(SpecKind.Size, SpecKind.Quantity, SpecKind.Pages, SpecKind.BindingMethod),
     allowedPrintingMethodIds = Set(digitalId),
+    description = Some(LocalizedString(
+      "Wall and desk calendars with cover and monthly pages. Separate cover and body components allow different paper choices. Wire-o binding is most common.",
+      "Nástěnné a stolní kalendáře s obálkou a měsíčními stránkami. Samostatná obálka a vnitřní strany umožňují různé volby papíru. Kroužková vazba je nejběžnější.",
+    )),
   )
 
   private val allMaterialIds: Set[MaterialId] = Set(
@@ -635,6 +795,10 @@ object SampleCatalog:
     )),
     requiredSpecKinds = Set(SpecKind.Size, SpecKind.Quantity),
     allowedPrintingMethodIds = Set(offsetId, digitalId),
+    description = Some(LocalizedString(
+      "Postcards and mailers on thick card stock. Available with both offset and digital printing. Supports premium finishes for a high-end direct mail piece.",
+      "Pohlednice a reklamní zásilky na silném kartonu. K dispozici s ofsetovým i digitálním tiskem. Podporuje prémiové dokončení pro vysoce kvalitní poštovní zásilky.",
+    )),
   )
 
   val stickers: ProductCategory = ProductCategory(
@@ -647,6 +811,10 @@ object SampleCatalog:
     )),
     requiredSpecKinds = Set(SpecKind.Size, SpecKind.Quantity),
     allowedPrintingMethodIds = Set(digitalId, uvInkjetId),
+    description = Some(LocalizedString(
+      "Custom stickers and product labels on adhesive, synthetic, or clear vinyl stock. Kiss-cut for peel-off sheets or die-cut for individual shapes.",
+      "Zakázkové samolepky a produktové štítky na samolepicím, syntetickém nebo průhledném vinylovém materiálu. Výsek bez podkladu pro odlepovací archy nebo výsek pro jednotlivé tvary.",
+    )),
   )
 
   val rollUps: ProductCategory = ProductCategory(
@@ -667,6 +835,10 @@ object SampleCatalog:
     ),
     requiredSpecKinds = Set(SpecKind.Size, SpecKind.Quantity),
     allowedPrintingMethodIds = Set(uvInkjetId),
+    description = Some(LocalizedString(
+      "Portable retractable banner displays. Includes a printed banner and optional stand (Economy or Premium). Economy stands are for single-use events; Premium stands are built for repeated trade show use.",
+      "Přenosné zatažitelné bannerové displeje. Zahrnuje potištěný banner a volitelný stojan (Economy nebo Premium). Economy stojany jsou pro jednorázové akce; Premium stojany jsou postaveny pro opakované použití na veletrzích.",
+    )),
   )
 
   val free: ProductCategory = ProductCategory(
