@@ -1,7 +1,7 @@
-package mpbuilder.ui.components
+package mpbuilder.ui.productbuilder.components
 
 import com.raquo.laminar.api.L.*
-import mpbuilder.ui.ProductBuilderViewModel
+import mpbuilder.ui.productbuilder.ProductBuilderViewModel
 import mpbuilder.domain.model.*
 import mpbuilder.uikit.util.Visibility
 

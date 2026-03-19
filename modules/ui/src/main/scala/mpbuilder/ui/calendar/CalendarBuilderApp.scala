@@ -2,7 +2,7 @@ package mpbuilder.ui.calendar
 
 import com.raquo.laminar.api.L.*
 import mpbuilder.ui.calendar.components.*
-import mpbuilder.ui.ProductBuilderViewModel
+import mpbuilder.ui.productbuilder.ProductBuilderViewModel
 import mpbuilder.domain.model.Language
 import mpbuilder.uikit.containers.{Tabs, TabDef}
 

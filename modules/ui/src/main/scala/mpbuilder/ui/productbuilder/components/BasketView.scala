@@ -1,7 +1,8 @@
-package mpbuilder.ui.components
+package mpbuilder.ui.productbuilder.components
 
 import com.raquo.laminar.api.L.*
-import mpbuilder.ui.{ProductBuilderViewModel, ArtworkMode, AppRouter, AppRoute, LoginState}
+import mpbuilder.ui.productbuilder.{ProductBuilderViewModel, ArtworkMode, LoginState}
+import mpbuilder.ui.{AppRouter, AppRoute}
 import mpbuilder.domain.pricing.{Money, Currency, PriceCalculator, CustomerPricelistResolver}
 import mpbuilder.domain.model.{Language, ConfigurationId, ComponentRole}
 

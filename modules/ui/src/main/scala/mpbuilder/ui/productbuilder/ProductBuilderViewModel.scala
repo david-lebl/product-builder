@@ -1,4 +1,4 @@
-package mpbuilder.ui
+package mpbuilder.ui.productbuilder
 
 import mpbuilder.domain.model.*
 import mpbuilder.domain.model.CheckoutStep.*
