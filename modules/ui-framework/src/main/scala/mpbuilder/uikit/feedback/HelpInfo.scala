@@ -1,4 +1,4 @@
-package mpbuilder.ui.components
+package mpbuilder.uikit.feedback
 
 import com.raquo.laminar.api.L.*
 

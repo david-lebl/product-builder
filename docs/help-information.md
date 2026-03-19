@@ -53,7 +53,8 @@ Descriptions are **bilingual** (English + Czech) using `LocalizedString`. They a
 
 ## UI Component: `HelpInfo`
 
-Located at `modules/ui/src/main/scala/mpbuilder/ui/components/HelpInfo.scala`.
+Part of the UI framework module at `modules/ui-framework/src/main/scala/mpbuilder/uikit/feedback/HelpInfo.scala`.
+Import: `import mpbuilder.uikit.feedback.HelpInfo`
 
 ### API
 
@@ -73,6 +74,8 @@ HelpInfo.fromSignal(description: Signal[Option[String]]): Element
 
 ### CSS Classes
 
+Component styles (in `uikit.css`):
+
 | Class | Purpose |
 |-------|---------|
 | `.help-info-wrapper` | Inline wrapper for the button + popup |
@@ -82,6 +85,11 @@ HelpInfo.fromSignal(description: Signal[Option[String]]): Element
 | `.help-info-popup--visible` | Makes the popup visible |
 | `.help-info-backdrop` | Full-screen backdrop for click-to-close |
 | `.help-info-backdrop--visible` | Makes the backdrop visible |
+
+Layout styles (in `utilities.css`, product builder specific):
+
+| Class | Purpose |
+|-------|---------|
 | `.selector-with-help` | Wrapper for selectors with positioned help buttons |
 | `.selector-help-buttons` | Absolutely-positioned container for help buttons |
 | `.label-with-help` | Flex container for label + inline help button |
