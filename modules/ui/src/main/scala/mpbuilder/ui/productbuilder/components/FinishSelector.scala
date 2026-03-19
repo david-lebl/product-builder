@@ -85,7 +85,7 @@ object FinishSelector:
             case Some(desc) =>
               HelpInfo.fromSignal(Val(Some(desc(lang))))
             case None =>
-              emptyNode
+              span()
           ,
         ),
       ),

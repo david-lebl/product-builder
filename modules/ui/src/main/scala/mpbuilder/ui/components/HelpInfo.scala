@@ -40,9 +40,10 @@ object HelpInfo:
               onClick --> { _ => open.update(!_) },
             )
           )
-        case None =>
-          open.set(false)
-          None
+        case None => None
+      },
+      description --> { desc =>
+        if desc.isEmpty then open.set(false)
       },
       div(
         cls <-- open.signal.combineWith(description).map { case (o, desc) =>
