@@ -390,7 +390,7 @@ object CalendarViewModel {
   private def performAutoSave(): Unit = {
     autoSaveTimerHandle = 0
     val sid = currentSessionIdVar.now().getOrElse {
-      val newId = s"session-${System.currentTimeMillis()}"
+      val newId = s"session-${System.currentTimeMillis()}-${scala.util.Random.nextInt(10000)}"
       currentSessionIdVar.set(Some(newId))
       newId
     }

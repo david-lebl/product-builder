@@ -574,7 +574,7 @@ object ProductBuilderViewModel:
     */
   def openInEditor(): Unit =
     val currentState = stateVar.now()
-    val sessionId = s"session-${System.currentTimeMillis()}"
+    val sessionId = s"session-${System.currentTimeMillis()}-${scala.util.Random.nextInt(10000)}"
     stateVar.update(_.copy(artworkMode = ArtworkMode.DesignInEditor(Some(sessionId))))
 
     // Derive dimensions and pages from current specifications

@@ -56,11 +56,12 @@ object SessionHistoryPanel {
         ),
         div(
           cls := "session-card-meta",
-          span(s"${meta.productType} · ${meta.pageCount} ",
-            lang match
+          span {
+            val pagesLabel = lang match
               case Language.En => if meta.pageCount == 1 then "page" else "pages"
               case Language.Cs => if meta.pageCount == 1 then "stránka" else "stránek"
-          ),
+            s"${meta.productType} · ${meta.pageCount} $pagesLabel"
+          },
           span(" · "),
           span(formatRelativeTime(meta.lastUpdated, lang)),
         ),

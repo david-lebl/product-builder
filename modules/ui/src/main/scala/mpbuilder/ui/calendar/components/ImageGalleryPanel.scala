@@ -50,7 +50,7 @@ object ImageGalleryPanel {
   }
 
   private def galleryThumbnail(imageData: String, lang: Language): Element = {
-    val isLoaded = Var(true)
+    val loadFailed = Var(false)
 
     div(
       cls := "gallery-thumbnail",
@@ -59,17 +59,17 @@ object ImageGalleryPanel {
       img(
         src := imageData,
         cls := "gallery-thumbnail-img",
-        onError --> { _ => isLoaded.set(false) },
+        onError --> { _ => loadFailed.set(true) },
       ),
 
       // Warning overlay for broken images
-      child <-- isLoaded.signal.map { loaded =>
-        if loaded then emptyNode
-        else
+      child <-- loadFailed.signal.map { failed =>
+        if failed then
           div(
             cls := "gallery-thumbnail-warning",
             span("⚠"),
           )
+        else emptyNode
       },
 
       // Action buttons

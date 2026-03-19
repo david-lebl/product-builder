@@ -32,8 +32,10 @@ enum VisualProductType:
   case WallPicture
 
 /** Custom product configuration with arbitrary dimensions and page count.
-  * Used when the visual editor is opened from the product builder with
-  * product-specific specifications rather than a preset product type.
+  * Used as a parameter to [[CalendarState.createCustom]] when the visual editor
+  * is opened from the product builder with product-specific specifications.
+  * Not a member of [[VisualProductType]] — the created state uses either
+  * `WallPicture` (single page) or `PhotoBook` (multi-page) as its product type.
   */
 case class CustomProduct(pages: Int, widthMm: Int, heightMm: Int)
 
