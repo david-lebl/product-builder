@@ -1,7 +1,8 @@
 package mpbuilder.ui.components
 
 import com.raquo.laminar.api.L.*
-import mpbuilder.ui.{ProductBuilderViewModel, AppRouter, AppRoute, LoginState}
+import mpbuilder.ui.productbuilder.{ProductBuilderViewModel, LoginState}
+import mpbuilder.ui.{AppRouter, AppRoute}
 import mpbuilder.ui.manufacturing.ManufacturingViewModel
 import mpbuilder.domain.model.*
 import mpbuilder.domain.model.ManufacturingOrder.*

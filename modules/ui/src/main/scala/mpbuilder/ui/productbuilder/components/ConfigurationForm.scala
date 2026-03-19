@@ -1,7 +1,8 @@
-package mpbuilder.ui.components
+package mpbuilder.ui.productbuilder.components
 
 import com.raquo.laminar.api.L.*
-import mpbuilder.ui.{ProductBuilderViewModel, AppRouter, AppRoute, ArtworkMode}
+import mpbuilder.ui.productbuilder.{ProductBuilderViewModel, ArtworkMode}
+import mpbuilder.ui.{AppRouter, AppRoute}
 import mpbuilder.domain.model.*
 import mpbuilder.uikit.fields.CheckboxField
 import mpbuilder.uikit.util.Visibility

@@ -1,7 +1,8 @@
 package mpbuilder.ui.components
 
 import com.raquo.laminar.api.L.*
-import mpbuilder.ui.{ProductBuilderViewModel, AppRouter, AppRoute, BuilderState, LoginState}
+import mpbuilder.ui.productbuilder.{ProductBuilderViewModel, BuilderState, LoginState}
+import mpbuilder.ui.{AppRouter, AppRoute}
 import mpbuilder.domain.model.*
 import mpbuilder.domain.model.CheckoutStep.*
 import mpbuilder.domain.pricing.{Money, Currency}
