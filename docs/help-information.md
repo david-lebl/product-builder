@@ -7,15 +7,20 @@ This document describes the help information feature in the product builder, whi
 The product builder displays two types of help information:
 
 1. **Field-level help (`?` button)** — A static explanation of what a configuration field means and how it affects the product. Shown next to the label of each selector.
-2. **Item description (`ⓘ` button)** — A detailed description of the currently selected option, pulled from the catalog data. Only appears when the selected item has a description defined.
+2. **Item description (`i` button)** — A detailed description of the currently selected option, pulled from the catalog data. Only appears when the selected item has a description defined.
+
+**Interaction:** On desktop (pointer devices), the popup appears on hover. On touch devices (phones/tablets), it appears on click/tap. Clicking the backdrop or the button again closes it.
 
 ## Supported Fields
 
-| Field | `?` Help Text | `ⓘ` Item Description |
+| Field | `?` Help Text | `i` Item Description |
 |-------|--------------|---------------------|
 | Category | What categories are and how they constrain options | Description of the selected category |
 | Material | What material/paper weight means | Description of the selected material |
 | Printing Method | How different printing methods work | Description of the selected method |
+| Ink Configuration | What front/back color notation means | — |
+| Fold Type | What different fold types look like | — |
+| Binding Method | How different binding methods work | — |
 | Finishes | What finishing options do | Per-finish description (inline) |
 
 ## Domain Model
@@ -56,14 +61,15 @@ Located at `modules/ui/src/main/scala/mpbuilder/ui/components/HelpInfo.scala`.
 // Static field-level help (? button)
 HelpInfo(text: Signal[String]): Element
 
-// Reactive item description (ⓘ button, only visible when description exists)
+// Reactive item description (i button, only visible when description exists)
 HelpInfo.fromSignal(description: Signal[Option[String]]): Element
 ```
 
 ### Behavior
 
-- **`?` button**: Clicking opens a centered modal popup with the help text. Clicking the backdrop or the button again closes it.
-- **`ⓘ` button**: Only renders when the signal contains `Some(text)`. Same popup behavior. Disappears when no description is available (e.g., no item selected).
+- **`?` button**: On desktop, the popup appears on hover. On touch devices, clicking toggles the popup. Clicking the backdrop or the button again closes it.
+- **`i` button**: Only renders when the signal contains `Some(text)`. Same popup behavior. Disappears when no description is available (e.g., no item selected).
+- **Positioning**: The popup appears directly below the trigger button (absolute positioning relative to the wrapper), not centered on screen.
 
 ### CSS Classes
 
@@ -71,8 +77,8 @@ HelpInfo.fromSignal(description: Signal[Option[String]]): Element
 |-------|---------|
 | `.help-info-wrapper` | Inline wrapper for the button + popup |
 | `.help-info-trigger` | The circular `?` button |
-| `.help-info-trigger--detail` | Variant styling for the `ⓘ` button |
-| `.help-info-popup` | The popup container |
+| `.help-info-trigger--detail` | Variant styling for the `i` button (italic, muted color) |
+| `.help-info-popup` | The popup container (positioned below trigger) |
 | `.help-info-popup--visible` | Makes the popup visible |
 | `.help-info-backdrop` | Full-screen backdrop for click-to-close |
 | `.help-info-backdrop--visible` | Makes the backdrop visible |
