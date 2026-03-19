@@ -221,7 +221,6 @@ button:disabled {
 
 .finish-item {
     border-radius: 6px;
-    overflow: hidden;
 }
 
 .finish-item .checkbox-label {
