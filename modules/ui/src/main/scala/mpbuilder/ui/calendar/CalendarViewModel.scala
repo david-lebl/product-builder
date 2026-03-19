@@ -10,6 +10,26 @@ object CalendarViewModel {
   private val stateVar: Var[CalendarState] = Var(CalendarState.empty)
   val state: Signal[CalendarState] = stateVar.signal
 
+  // Active session tracking
+  private val currentSessionIdVar: Var[Option[String]] = Var(None)
+  val currentSessionId: Signal[Option[String]] = currentSessionIdVar.signal
+
+  private val sessionTitleVar: Var[String] = Var("Untitled")
+  val sessionTitle: Signal[String] = sessionTitleVar.signal
+
+  // Session list (refreshed from localStorage)
+  val sessionListVar: Var[List[SessionMeta]] = Var(EditorSessionStore.listSessions())
+
+  // Image gallery (refreshed from localStorage)
+  val galleryImagesVar: Var[List[String]] = Var(EditorSessionStore.getGalleryImages)
+
+  // Resume dialog visibility
+  val showResumeDialogVar: Var[Boolean] = Var(false)
+  val resumeSessionIdVar: Var[Option[String]] = Var(None)
+
+  // Auto-save debounce timer handle
+  private var autoSaveTimerHandle: Int = 0
+
   // Product type and format as derived signals
   val productType: Signal[VisualProductType] = state.map(_.productType)
   val productFormat: Signal[ProductFormat] = state.map(_.productFormat)
@@ -336,8 +356,131 @@ object CalendarViewModel {
   def reset(): Unit = {
     stateVar.set(CalendarState.empty)
     selectedElementVar.set(None)
+    currentSessionIdVar.set(None)
+    sessionTitleVar.set("Untitled")
   }
 
   def updateLanguage(lang: String): Unit =
     stateVar.update(state => CalendarState.updateLanguage(state, lang))
+
+  // ─── Session management ──────────────────────────────────────────
+
+  /** Initialize editor from product builder configuration.
+    * Called by ProductBuilderViewModel.openInEditor().
+    */
+  def initFromProductConfig(widthMm: Int, heightMm: Int, pages: Int, sessionId: String): Unit = {
+    val newState = CalendarState.createCustom(pages, widthMm, heightMm)
+    stateVar.set(newState)
+    selectedElementVar.set(None)
+    currentSessionIdVar.set(Some(sessionId))
+    sessionTitleVar.set(s"Custom ${widthMm}×${heightMm}mm")
+  }
+
+  /** Trigger auto-save with a 2-second debounce. */
+  def scheduleAutoSave(): Unit = {
+    if autoSaveTimerHandle != 0 then
+      dom.window.clearTimeout(autoSaveTimerHandle)
+    autoSaveTimerHandle = dom.window.setTimeout(
+      () => performAutoSave(),
+      2000,
+    )
+  }
+
+  /** Perform the actual save to localStorage. */
+  private def performAutoSave(): Unit = {
+    autoSaveTimerHandle = 0
+    val sid = currentSessionIdVar.now().getOrElse {
+      val newId = s"session-${System.currentTimeMillis()}"
+      currentSessionIdVar.set(Some(newId))
+      newId
+    }
+    val title = sessionTitleVar.now()
+    EditorSessionStore.saveSession(sid, title, stateVar.now())
+    refreshSessionList()
+    refreshGalleryImages()
+  }
+
+  /** Load a session from localStorage. */
+  def loadSession(sessionId: String): Unit = {
+    EditorSessionStore.loadSession(sessionId) match
+      case Some(loadedState) =>
+        stateVar.set(loadedState)
+        selectedElementVar.set(None)
+        currentSessionIdVar.set(Some(sessionId))
+        val meta = EditorSessionStore.listSessions().find(_.id == sessionId)
+        sessionTitleVar.set(meta.map(_.title).getOrElse("Untitled"))
+      case None => ()
+  }
+
+  /** Delete a session from localStorage. */
+  def deleteSession(sessionId: String): Unit = {
+    EditorSessionStore.deleteSession(sessionId)
+    // If we deleted the current session, clear session tracking
+    if currentSessionIdVar.now().contains(sessionId) then
+      currentSessionIdVar.set(None)
+    refreshSessionList()
+  }
+
+  /** Update session title. */
+  def updateSessionTitle(newTitle: String): Unit = {
+    sessionTitleVar.set(newTitle)
+    currentSessionIdVar.now().foreach { sid =>
+      EditorSessionStore.updateSessionTitle(sid, newTitle)
+      refreshSessionList()
+    }
+  }
+
+  def refreshSessionList(): Unit =
+    sessionListVar.set(EditorSessionStore.listSessions())
+
+  def refreshGalleryImages(): Unit =
+    galleryImagesVar.set(EditorSessionStore.getGalleryImages)
+
+  /** Check for pending/recent sessions when the editor mounts.
+    * Shows the resume dialog if applicable.
+    */
+  def checkForResumableSession(): Unit = {
+    val pendingId = EditorSessionStore.getPendingSessionId
+    pendingId match
+      case Some(pid) =>
+        // Coming from product builder — already initialized, just mark as active
+        EditorSessionStore.clearPendingSessionId()
+        currentSessionIdVar.set(Some(pid))
+      case None =>
+        // Opening editor directly — check for recent work
+        EditorSessionStore.mostRecentSession match
+          case Some(recent) =>
+            resumeSessionIdVar.set(Some(recent.id))
+            showResumeDialogVar.set(true)
+          case None =>
+            () // No saved sessions, start fresh
+  }
+
+  /** User chose to resume the offered session. */
+  def resumeSession(): Unit = {
+    resumeSessionIdVar.now().foreach(loadSession)
+    showResumeDialogVar.set(false)
+    resumeSessionIdVar.set(None)
+  }
+
+  /** User chose to start fresh (decline resume). */
+  def startFresh(): Unit = {
+    showResumeDialogVar.set(false)
+    resumeSessionIdVar.set(None)
+  }
+
+  /** Remove an image from the gallery. */
+  def removeGalleryImage(imageData: String): Unit = {
+    EditorSessionStore.removeGalleryImage(imageData)
+    refreshGalleryImages()
+  }
+
+  /** Insert a gallery image into the current page as a new photo element. */
+  def insertGalleryImage(imageData: String): Unit = {
+    uploadPhoto(imageData)
+  }
+
+  /** Laminar modifier that triggers auto-save on every state change. */
+  def autoSaveBinder: Binder[Element] =
+    state.changes --> { _ => scheduleAutoSave() }
 }

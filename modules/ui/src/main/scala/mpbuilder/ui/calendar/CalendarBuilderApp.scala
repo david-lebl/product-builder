@@ -8,7 +8,7 @@ import mpbuilder.uikit.containers.{Tabs, TabDef}
 
 object CalendarBuilderApp {
 
-  // Sidebar tab state: "elements" or "background"
+  // Sidebar tab state: "elements", "background", "sessions", or "gallery"
   private val sidebarTabVar: Var[String] = Var("elements")
 
   def apply(): Element = {
@@ -17,12 +17,25 @@ object CalendarBuilderApp {
     div(
       cls := "calendar-builder-app",
 
+      // Auto-save binder — triggers on every state change
+      CalendarViewModel.autoSaveBinder,
+
+      // Check for resumable sessions on mount
+      onMountCallback { _ =>
+        CalendarViewModel.refreshSessionList()
+        CalendarViewModel.refreshGalleryImages()
+        CalendarViewModel.checkForResumableSession()
+      },
+
       // Update page titles when language changes
       lang.changes --> { language =>
         CalendarViewModel.updateLanguage(language.toCode)
       },
 
-      // Header
+      // Resume dialog (modal overlay)
+      ResumeDialog(),
+
+      // Header with session title
       div(
         cls := "calendar-header",
         h1(child.text <-- lang.map {
@@ -32,7 +45,31 @@ object CalendarBuilderApp {
         p(child.text <-- lang.map {
           case Language.En => "Create your custom visual product — upload photos, add text, shapes and customize each page"
           case Language.Cs => "Vytvořte si vlastní vizuální produkt — nahrajte fotky, přidejte text, tvary a přizpůsobte každou stránku"
-        })
+        }),
+        // Session title editor
+        div(
+          cls := "session-title-row",
+          label(child.text <-- lang.map {
+            case Language.En => "Session: "
+            case Language.Cs => "Relace: "
+          }),
+          input(
+            cls := "session-title-input",
+            typ := "text",
+            value <-- CalendarViewModel.sessionTitle,
+            onInput.mapToValue --> { v => CalendarViewModel.updateSessionTitle(v) },
+          ),
+          // Auto-save indicator
+          child <-- CalendarViewModel.currentSessionId.combineWith(lang).map { case (sidOpt, l) =>
+            sidOpt match
+              case Some(_) =>
+                span(cls := "autosave-indicator", l match
+                  case Language.En => "● Auto-saved"
+                  case Language.Cs => "● Automaticky uloženo"
+                )
+              case None => emptyNode
+          },
+        ),
       ),
 
       // Product type and format selectors
@@ -133,6 +170,14 @@ object CalendarBuilderApp {
                 case Language.En => "Background"
                 case Language.Cs => "Pozadí"
               }, () => div(cls := "calendar-controls-card", BackgroundEditor())),
+              TabDef("sessions", lang.map {
+                case Language.En => "Sessions"
+                case Language.Cs => "Relace"
+              }, () => div(cls := "calendar-controls-card", SessionHistoryPanel())),
+              TabDef("gallery", lang.map {
+                case Language.En => "Gallery"
+                case Language.Cs => "Galerie"
+              }, () => div(cls := "calendar-controls-card", ImageGalleryPanel())),
             ),
             activeTab = sidebarTabVar,
           ),

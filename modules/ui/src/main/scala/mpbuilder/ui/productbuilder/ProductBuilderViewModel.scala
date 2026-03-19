@@ -23,7 +23,7 @@ object LoginState:
 sealed trait ArtworkMode
 object ArtworkMode:
   case class UploadArtwork(fileName: Option[String] = None) extends ArtworkMode
-  case object DesignInEditor extends ArtworkMode
+  case class DesignInEditor(sessionId: Option[String] = None) extends ArtworkMode
 
 /** Per-component UI state */
 case class ComponentState(
@@ -567,6 +567,31 @@ object ProductBuilderViewModel:
 
   def setUploadedFileName(name: Option[String]): Unit =
     stateVar.update(_.copy(artworkMode = ArtworkMode.UploadArtwork(name)))
+
+  /** Open the visual editor pre-configured from the current product specs.
+    * Generates a session ID and stores it in the artwork mode so that
+    * the basket item can later reference the editor session.
+    */
+  def openInEditor(): Unit =
+    val currentState = stateVar.now()
+    val sessionId = s"session-${System.currentTimeMillis()}"
+    stateVar.update(_.copy(artworkMode = ArtworkMode.DesignInEditor(Some(sessionId))))
+
+    // Derive dimensions and pages from current specifications
+    val widthMm = currentState.specifications.collectFirst {
+      case SpecValue.SizeSpec(dim) => dim.widthMm.toInt
+    }.getOrElse(210)
+    val heightMm = currentState.specifications.collectFirst {
+      case SpecValue.SizeSpec(dim) => dim.heightMm.toInt
+    }.getOrElse(297)
+    val pages = currentState.specifications.collectFirst {
+      case SpecValue.PagesSpec(p) => p
+    }.getOrElse(1)
+
+    // Store config reference for the editor to pick up
+    import mpbuilder.ui.calendar.{CalendarViewModel, EditorSessionStore}
+    CalendarViewModel.initFromProductConfig(widthMm, heightMm, pages, sessionId)
+    EditorSessionStore.setPendingSessionId(Some(sessionId))
 
   // Checkout operations
   def startCheckout(): Unit =

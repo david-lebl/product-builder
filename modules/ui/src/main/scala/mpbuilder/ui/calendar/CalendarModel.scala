@@ -31,6 +31,12 @@ enum VisualProductType:
   case PhotoBook
   case WallPicture
 
+/** Custom product configuration with arbitrary dimensions and page count.
+  * Used when the visual editor is opened from the product builder with
+  * product-specific specifications rather than a preset product type.
+  */
+case class CustomProduct(pages: Int, widthMm: Int, heightMm: Int)
+
 /** Physical product format with dimensions in mm */
 case class ProductFormat(
   id: String,
@@ -69,6 +75,10 @@ object ProductFormat:
 
   /** Whether the format is landscape (width > height) */
   def isLandscape(fmt: ProductFormat): Boolean = fmt.widthMm > fmt.heightMm
+
+  /** Create a custom format from arbitrary dimensions */
+  def custom(widthMm: Int, heightMm: Int): ProductFormat =
+    ProductFormat(s"custom-${widthMm}x${heightMm}", s"Custom ${widthMm}×${heightMm} mm", s"Vlastní ${widthMm}×${heightMm} mm", widthMm, heightMm)
 
 /** Canvas element ADT — all user-placed items on a calendar page */
 sealed trait CanvasElement:
@@ -237,6 +247,40 @@ object CalendarState {
 
   /** Create a new calendar with 12 blank pages (backward compat) */
   def empty: CalendarState = create()
+
+  /** Create a state for a custom product with arbitrary dimensions and page count.
+    * Used when the editor is opened from the product builder with specific specs.
+    */
+  def createCustom(pages: Int, widthMm: Int, heightMm: Int): CalendarState = {
+    val format = ProductFormat.custom(widthMm, heightMm)
+    val pageCount = math.max(1, pages)
+    val customPages = (1 to pageCount).map { pageNum =>
+      CalendarPage(
+        pageNumber = pageNum,
+        template = CalendarTemplate(
+          monthField = TemplateTextField(
+            id = s"custom-page-$pageNum",
+            text = if pageCount == 1 then "" else s"Page $pageNum",
+            position = Position(50, 30),
+            fontSize = if pageCount == 1 then 0 else 18,
+            fontFamily = "Arial",
+          ),
+          daysGrid = List.empty,
+        ),
+        elements = List(
+          PhotoElement(
+            id = s"img-custom-$pageNum",
+            imageData = "",
+            position = Position(30, if pageCount == 1 then 20 else 60),
+            size = Size(500, if pageCount == 1 then 555 else 500),
+          )
+        ),
+      )
+    }.toList
+    // Use WallPicture type for single page, PhotoBook for multi-page custom products
+    val productType = if pageCount == 1 then VisualProductType.WallPicture else VisualProductType.PhotoBook
+    CalendarState(customPages, productType = productType, productFormat = format)
+  }
 
   /** Update page titles based on language */
   def updateLanguage(state: CalendarState, lang: String): CalendarState = {

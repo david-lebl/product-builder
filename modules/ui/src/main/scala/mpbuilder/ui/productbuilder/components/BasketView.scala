@@ -151,10 +151,10 @@ object BasketView:
                           case Language.En => "📎 Artwork: not uploaded yet"
                           case Language.Cs => "📎 Data: ještě nenahrána"
                         )
-                      case Some(ArtworkMode.DesignInEditor) =>
+                      case Some(ArtworkMode.DesignInEditor(sessionIdOpt)) =>
                         span(l match
-                          case Language.En => "🎨 Design: created in Visual Editor"
-                          case Language.Cs => "🎨 Design: vytvořen ve vizuálním editoru"
+                          case Language.En => s"🎨 Design: created in Visual Editor${sessionIdOpt.map(s => s" ($s)").getOrElse("")}"
+                          case Language.Cs => s"🎨 Design: vytvořen ve vizuálním editoru${sessionIdOpt.map(s => s" ($s)").getOrElse("")}"
                         )
                       case None => emptyNode
                   ),

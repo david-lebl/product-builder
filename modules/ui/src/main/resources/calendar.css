@@ -743,3 +743,290 @@
 .preview-btn:hover {
     background: #1976d2;
 }
+
+/* ── Session title row ──────────────────────────────────────── */
+
+.session-title-row {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    margin-top: 10px;
+    font-size: 0.9rem;
+}
+
+.session-title-input {
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    padding: 4px 10px;
+    font-size: 0.9rem;
+    width: 200px;
+}
+
+.session-title-input:focus {
+    outline: none;
+    border-color: var(--color-primary);
+}
+
+.autosave-indicator {
+    color: #4caf50;
+    font-size: 0.8rem;
+    white-space: nowrap;
+}
+
+/* ── Session History Panel ──────────────────────────────────── */
+
+.session-history-panel h3,
+.image-gallery-panel h3 {
+    font-size: 1rem;
+    margin-bottom: 12px;
+    color: #333;
+}
+
+.session-history-empty,
+.image-gallery-empty {
+    text-align: center;
+    padding: 20px;
+    color: #999;
+    font-size: 0.85rem;
+}
+
+.session-history-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.session-card {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 12px;
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+    background: #fafafa;
+    transition: border-color 0.2s;
+}
+
+.session-card:hover {
+    border-color: var(--color-primary);
+}
+
+.session-card.session-card-active {
+    border-color: var(--color-primary);
+    background: #f0f7ff;
+}
+
+.session-card-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.session-card-title {
+    font-size: 0.9rem;
+    margin-bottom: 2px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.session-card-meta {
+    font-size: 0.75rem;
+    color: #999;
+}
+
+.session-card-actions {
+    display: flex;
+    gap: 4px;
+    flex-shrink: 0;
+    margin-left: 8px;
+}
+
+.session-load-btn,
+.session-delete-btn {
+    padding: 4px 10px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    cursor: pointer;
+    background: white;
+    transition: background 0.2s;
+}
+
+.session-load-btn:hover {
+    background: #e3f2fd;
+    border-color: #2196f3;
+}
+
+.session-delete-btn:hover {
+    background: #ffebee;
+    border-color: #f44336;
+    color: #f44336;
+}
+
+/* ── Resume Dialog ──────────────────────────────────────────── */
+
+.resume-dialog-overlay {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 1000;
+    align-items: center;
+    justify-content: center;
+}
+
+.resume-dialog-overlay.visible {
+    display: flex;
+}
+
+.resume-dialog {
+    background: white;
+    border-radius: 12px;
+    padding: 24px 28px;
+    max-width: 440px;
+    width: 90%;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+}
+
+.resume-dialog h3 {
+    font-size: 1.2rem;
+    margin-bottom: 12px;
+    color: #333;
+}
+
+.resume-dialog p {
+    font-size: 0.9rem;
+    color: #666;
+    margin-bottom: 16px;
+    line-height: 1.5;
+}
+
+.resume-session-info {
+    background: #f5f5f5;
+    border-radius: 6px;
+    padding: 10px 14px;
+    margin-bottom: 16px;
+    font-size: 0.85rem;
+}
+
+.resume-dialog-actions {
+    display: flex;
+    gap: 10px;
+    justify-content: flex-end;
+}
+
+.resume-continue-btn,
+.resume-new-btn {
+    padding: 8px 20px;
+    border-radius: 6px;
+    font-size: 0.9rem;
+    cursor: pointer;
+    border: none;
+    transition: background 0.2s;
+}
+
+.resume-continue-btn {
+    background: var(--color-primary);
+    color: white;
+}
+
+.resume-continue-btn:hover {
+    filter: brightness(0.9);
+}
+
+.resume-new-btn {
+    background: #e0e0e0;
+    color: #333;
+}
+
+.resume-new-btn:hover {
+    background: #d0d0d0;
+}
+
+/* ── Image Gallery Panel ────────────────────────────────────── */
+
+.image-gallery-hint {
+    font-size: 0.8rem;
+    color: #999;
+    margin-bottom: 12px;
+}
+
+.image-gallery-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+    gap: 8px;
+}
+
+.gallery-thumbnail {
+    position: relative;
+    aspect-ratio: 1;
+    border-radius: 6px;
+    overflow: hidden;
+    border: 1px solid #e0e0e0;
+    cursor: pointer;
+    transition: border-color 0.2s;
+}
+
+.gallery-thumbnail:hover {
+    border-color: var(--color-primary);
+}
+
+.gallery-thumbnail-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.gallery-thumbnail-warning {
+    position: absolute;
+    top: 4px;
+    left: 4px;
+    background: #ff9800;
+    color: white;
+    border-radius: 50%;
+    width: 20px;
+    height: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+}
+
+.gallery-thumbnail-actions {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    display: flex;
+    opacity: 0;
+    transition: opacity 0.2s;
+    background: rgba(0, 0, 0, 0.6);
+}
+
+.gallery-thumbnail:hover .gallery-thumbnail-actions {
+    opacity: 1;
+}
+
+.gallery-insert-btn,
+.gallery-remove-btn {
+    flex: 1;
+    border: none;
+    background: none;
+    color: white;
+    padding: 4px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: background 0.2s;
+}
+
+.gallery-insert-btn:hover {
+    background: rgba(33, 150, 243, 0.5);
+}
+
+.gallery-remove-btn:hover {
+    background: rgba(244, 67, 54, 0.5);
+}

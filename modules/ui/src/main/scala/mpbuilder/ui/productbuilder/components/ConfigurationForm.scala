@@ -181,7 +181,7 @@ object ConfigurationForm:
                       case Language.En => "Accepted formats: PDF, AI, EPS, PNG, JPG, TIFF, PSD"
                       case Language.Cs => "Povolené formáty: PDF, AI, EPS, PNG, JPG, TIFF, PSD"
                     )
-                  case ArtworkMode.DesignInEditor => emptyNode
+                  case ArtworkMode.DesignInEditor(_) => emptyNode
               },
             ),
           ),
@@ -195,9 +195,9 @@ object ConfigurationForm:
                 typ := "radio",
                 nameAttr := "artworkMode",
                 value := "design",
-                checked <-- ProductBuilderViewModel.state.map(_.artworkMode == ArtworkMode.DesignInEditor),
+                checked <-- ProductBuilderViewModel.state.map(_.artworkMode.isInstanceOf[ArtworkMode.DesignInEditor]),
                 onChange --> { _ =>
-                  ProductBuilderViewModel.setArtworkMode(ArtworkMode.DesignInEditor)
+                  ProductBuilderViewModel.setArtworkMode(ArtworkMode.DesignInEditor())
                 },
               ),
               child.text <-- lang.map {
@@ -207,14 +207,17 @@ object ConfigurationForm:
             ),
             div(
               cls := "open-editor-area",
-              Visibility.when(ProductBuilderViewModel.state.map(_.artworkMode == ArtworkMode.DesignInEditor)),
+              Visibility.when(ProductBuilderViewModel.state.map(_.artworkMode.isInstanceOf[ArtworkMode.DesignInEditor])),
               button(
                 cls := "open-editor-btn",
                 child.text <-- lang.map {
                   case Language.En => "Open Visual Editor →"
                   case Language.Cs => "Otevřít vizuální editor →"
                 },
-                onClick --> { _ => AppRouter.navigateTo(AppRoute.CalendarBuilder) },
+                onClick --> { _ =>
+                  ProductBuilderViewModel.openInEditor()
+                  AppRouter.navigateTo(AppRoute.CalendarBuilder)
+                },
               ),
             ),
           ),
