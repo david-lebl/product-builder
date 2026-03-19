@@ -1,7 +1,7 @@
 package mpbuilder.ui
 
 import com.raquo.laminar.api.L.*
-import mpbuilder.ui.calendar.CalendarBuilderApp
+import mpbuilder.ui.visualeditor.VisualEditorApp
 import mpbuilder.ui.productbuilder.{ProductBuilderApp, ProductBuilderViewModel, BuilderState, LoginState, ArtworkMode}
 import mpbuilder.ui.components.{CheckoutView, CustomerPortalView, LoginWidget, OrderHistoryView}
 import mpbuilder.ui.manufacturing.ManufacturingApp
@@ -12,7 +12,7 @@ import mpbuilder.domain.model.Language
 sealed trait AppRoute
 object AppRoute {
   case object ProductBuilder extends AppRoute
-  case object CalendarBuilder extends AppRoute
+  case class VisualEditor(artworkId: Option[String] = None) extends AppRoute
   case object Checkout extends AppRoute
   case object Manufacturing extends AppRoute
   case object CatalogEditor extends AppRoute
@@ -73,11 +73,11 @@ object AppRouter {
               val count = state.basket.items.size
               span(
                 cls := "nav-basket-content",
-                span(cls := "basket-icon", "🛒"),
+                span(cls := "basket-icon", "\uD83D\uDED2"),
                 if count > 0 then span(cls := "basket-badge", if count > 99 then "99+" else count.toString) else emptyNode,
                 span(cls := "basket-btn-label", l match
                   case Language.En => " Basket"
-                  case Language.Cs => " Košík"
+                  case Language.Cs => " Kosik"
                 ),
               )
             },
@@ -106,14 +106,14 @@ object AppRouter {
           button(
             cls := "nav-link",
             cls <-- currentRoute.map {
-              case AppRoute.CalendarBuilder => "active"
+              case _: AppRoute.VisualEditor => "active"
               case _ => ""
             },
             child.text <-- lang.map {
               case Language.En => "Visual Editor"
-              case Language.Cs => "Vizuální editor"
+              case Language.Cs => "Vizualni editor"
             },
-            onClick --> { _ => navigateTo(AppRoute.CalendarBuilder) }
+            onClick --> { _ => navigateTo(AppRoute.VisualEditor()) }
           ),
           button(
             cls := "nav-link",
@@ -123,7 +123,7 @@ object AppRouter {
             },
             child.text <-- lang.map {
               case Language.En => "Manufacturing"
-              case Language.Cs => "Výroba"
+              case Language.Cs => "Vyroba"
             },
             onClick --> { _ => navigateTo(AppRoute.Manufacturing) }
           ),
@@ -147,7 +147,7 @@ object AppRouter {
             },
             child.text <-- lang.map {
               case Language.En => "Customers"
-              case Language.Cs => "Zákazníci"
+              case Language.Cs => "Zakaznici"
             },
             onClick --> { _ => navigateTo(AppRoute.CustomerManagement) }
           ),
@@ -164,7 +164,7 @@ object AppRouter {
                   },
                   child.text <-- lang.map {
                     case Language.En => "My Orders"
-                    case Language.Cs => "Moje objednávky"
+                    case Language.Cs => "Moje objednavky"
                   },
                   onClick --> { _ => navigateTo(AppRoute.CustomerPortal) }
                 )
@@ -175,14 +175,14 @@ object AppRouter {
 
       // Route content
       child <-- currentRoute.map {
-        case AppRoute.ProductBuilder  => ProductBuilderApp()
-        case AppRoute.CalendarBuilder => CalendarBuilderApp()
-        case AppRoute.Checkout        => CheckoutView()
-        case AppRoute.Manufacturing   => ManufacturingApp()
-        case AppRoute.CatalogEditor   => CatalogEditorApp()
-        case AppRoute.CustomerManagement => CustomerManagementApp()
-        case AppRoute.OrderHistory    => OrderHistoryView()
-        case AppRoute.CustomerPortal  => CustomerPortalView()
+        case AppRoute.ProductBuilder       => ProductBuilderApp()
+        case AppRoute.VisualEditor(artId)  => VisualEditorApp(artId)
+        case AppRoute.Checkout             => CheckoutView()
+        case AppRoute.Manufacturing        => ManufacturingApp()
+        case AppRoute.CatalogEditor        => CatalogEditorApp()
+        case AppRoute.CustomerManagement   => CustomerManagementApp()
+        case AppRoute.OrderHistory         => OrderHistoryView()
+        case AppRoute.CustomerPortal       => CustomerPortalView()
       }
     )
   }

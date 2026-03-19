@@ -743,3 +743,352 @@
 .preview-btn:hover {
     background: #1976d2;
 }
+
+/* ─── Header Top Row (title + save indicator) ────────── */
+
+.calendar-header-top {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    margin-bottom: 6px;
+}
+
+.calendar-header-top h1 {
+    margin-bottom: 0;
+}
+
+/* ─── Save Indicator ────────────────────────────────── */
+
+.save-indicator {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.8rem;
+    color: #888;
+    padding: 4px 10px;
+    border-radius: 12px;
+    background: #f5f5f5;
+    white-space: nowrap;
+}
+
+.save-indicator--saving {
+    color: #f57c00;
+    background: #fff3e0;
+}
+
+.save-indicator--saved {
+    color: #388e3c;
+    background: #e8f5e9;
+}
+
+.save-indicator--unsaved {
+    color: #888;
+    background: #f5f5f5;
+}
+
+.save-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: currentColor;
+    flex-shrink: 0;
+}
+
+/* ─── Product Context Info Badge ─────────────────────── */
+
+.product-context-info {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-bottom: 12px;
+}
+
+.context-badge {
+    display: inline-block;
+    padding: 3px 10px;
+    border-radius: 12px;
+    font-size: 0.8rem;
+    background: #e3f2fd;
+    color: #1565c0;
+    font-weight: 500;
+}
+
+/* ─── Format Fixed Display ───────────────────────────── */
+
+.format-fixed {
+    display: inline-block;
+    padding: 6px 12px;
+    background: #f0f0f0;
+    border-radius: 6px;
+    font-size: 0.9rem;
+    color: #555;
+    border: 1px solid var(--color-border);
+}
+
+/* ─── Session History Panel ──────────────────────────── */
+
+.session-history-section {
+    padding: 8px 0;
+}
+
+.session-history-section h5 {
+    margin-bottom: 10px;
+    color: var(--color-primary);
+}
+
+.session-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+.session-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px;
+    background: white;
+    border: 2px solid var(--color-border);
+    border-radius: 8px;
+    transition: border-color 0.2s;
+}
+
+.session-item:hover {
+    border-color: #b0b8f0;
+}
+
+.session-thumbnail {
+    width: 48px;
+    height: 48px;
+    border-radius: 4px;
+    background: #f0f0f0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.4rem;
+    flex-shrink: 0;
+    overflow: hidden;
+}
+
+.session-thumbnail img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.session-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.session-title {
+    font-weight: 600;
+    font-size: 0.9rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.session-meta {
+    font-size: 0.75rem;
+    color: #888;
+    margin-top: 2px;
+}
+
+.session-actions {
+    display: flex;
+    gap: 4px;
+    flex-shrink: 0;
+}
+
+.session-load-btn {
+    padding: 4px 10px;
+    font-size: 0.8rem;
+    background: var(--color-primary);
+    color: white;
+    border-radius: 4px;
+}
+
+.session-delete-btn {
+    padding: 4px 10px;
+    font-size: 0.8rem;
+    background: #ffcdd2;
+    color: #c62828;
+    border-radius: 4px;
+}
+
+.session-delete-btn:hover {
+    background: var(--color-error);
+    color: white;
+}
+
+.session-empty {
+    text-align: center;
+    color: #999;
+    padding: 20px;
+    font-style: italic;
+    font-size: 0.9rem;
+}
+
+.new-session-btn {
+    width: 100%;
+    margin-top: 10px;
+    padding: 8px;
+    font-size: 0.85rem;
+}
+
+/* ─── Resume Popup ───────────────────────────────────── */
+
+.resume-popup-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10000;
+}
+
+.resume-popup {
+    background: white;
+    border-radius: 12px;
+    padding: 30px;
+    max-width: 480px;
+    width: 90%;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+}
+
+.resume-popup h3 {
+    color: var(--color-primary);
+    margin-bottom: 8px;
+}
+
+.resume-popup p {
+    color: #666;
+    margin-bottom: 16px;
+    font-size: 0.95rem;
+}
+
+.resume-sessions-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-bottom: 20px;
+}
+
+.resume-session-btn {
+    width: 100%;
+    padding: 12px 16px;
+    text-align: left;
+    background: #f9f9f9;
+    border: 2px solid var(--color-border);
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.resume-session-btn:hover {
+    border-color: var(--color-primary);
+    background: #f5f7ff;
+    transform: none;
+}
+
+.resume-session-info {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.resume-session-info strong {
+    font-size: 0.95rem;
+}
+
+.resume-session-meta {
+    font-size: 0.8rem;
+    color: #888;
+}
+
+.resume-actions {
+    display: flex;
+    justify-content: flex-end;
+}
+
+/* ─── Return to Product Builder Button ───────────────── */
+
+.return-btn {
+    background: #78909c;
+    color: white;
+}
+
+.return-btn:hover {
+    background: #546e7a;
+}
+
+/* ─── Edit Design Button (Basket) ────────────────────── */
+
+.edit-design-btn {
+    padding: 4px 12px;
+    font-size: 0.8rem;
+    background: var(--color-primary);
+    color: white;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.edit-design-btn:hover {
+    background: var(--color-primary-dark);
+}
+
+/* ─── Product Visualization Overlays ─────────────────── */
+
+.product-overlay {
+    pointer-events: none;
+}
+
+.wire-binding-overlay {
+    position: absolute;
+    top: -8px;
+    left: 0;
+    right: 0;
+    height: 16px;
+    z-index: 9000;
+    display: flex;
+    justify-content: space-evenly;
+    align-items: center;
+}
+
+.calendar-hanger-overlay {
+    position: absolute;
+    top: -4px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 9000;
+}
+
+.rollup-stand-overlay {
+    position: absolute;
+    bottom: -30px;
+    left: 10%;
+    right: 10%;
+    z-index: 9000;
+    text-align: center;
+}
+
+.frame-overlay {
+    position: absolute;
+    top: -6px;
+    left: -6px;
+    right: -6px;
+    bottom: -6px;
+    border: 6px solid #8B7355;
+    z-index: 9000;
+    box-shadow: inset 0 0 4px rgba(0, 0, 0, 0.3);
+}

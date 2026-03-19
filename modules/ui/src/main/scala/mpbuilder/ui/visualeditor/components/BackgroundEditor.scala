@@ -1,21 +1,20 @@
-package mpbuilder.ui.calendar.components
+package mpbuilder.ui.visualeditor.components
 
 import com.raquo.laminar.api.L.*
-import mpbuilder.ui.calendar.*
+import mpbuilder.ui.visualeditor.*
 import org.scalajs.dom
 import org.scalajs.dom.FileReader
 
 /** Editor for page background (color or image) and template selection */
 object BackgroundEditor {
   def apply(): Element = {
-    val currentPage = CalendarViewModel.currentPage
+    val currentPage = VisualEditorViewModel.currentPage
 
     div(
       cls := "background-editor-section",
 
       h4("Background & Template"),
 
-      // Template type selection
       div(
         cls := "control-group",
         label("Template:"),
@@ -26,17 +25,15 @@ object BackgroundEditor {
             option(
               value := "grid",
               "Grid Calendar",
-              selected := (current == CalendarTemplateType.GridTemplate)
+              selected := (current == PageTemplateType.GridTemplate)
             )
           },
-          // More template options will be added here in the future
           onChange.mapToValue --> { _ =>
-            CalendarViewModel.setTemplateType(CalendarTemplateType.GridTemplate)
+            VisualEditorViewModel.setTemplateType(PageTemplateType.GridTemplate)
           }
         )
       ),
 
-      // Background color picker
       div(
         cls := "control-group",
         label("Background Color:"),
@@ -50,12 +47,11 @@ object BackgroundEditor {
             }
           },
           onInput.mapToValue --> { v =>
-            CalendarViewModel.setBackgroundColor(v)
+            VisualEditorViewModel.setBackgroundColor(v)
           }
         )
       ),
 
-      // Background image upload
       div(
         cls := "control-group",
         label("Background Image:"),
@@ -75,7 +71,7 @@ object BackgroundEditor {
                 val reader = new FileReader()
                 reader.onload = { _ =>
                   val imageData = reader.result.asInstanceOf[String]
-                  CalendarViewModel.setBackgroundImage(imageData)
+                  VisualEditorViewModel.setBackgroundImage(imageData)
                 }
                 reader.readAsDataURL(file)
             }
@@ -89,36 +85,32 @@ object BackgroundEditor {
             }
           ),
 
-          // Predefined texture placeholders
           div(
             cls := "predefined-textures",
             p(cls := "info-hint", "Predefined textures coming soon"),
           ),
 
-          // Reset to solid color
           button(
             cls := "bg-reset-btn",
             "Reset to White",
             onClick --> { _ =>
-              CalendarViewModel.setBackgroundColor("#ffffff")
+              VisualEditorViewModel.setBackgroundColor("#ffffff")
             }
           ),
 
-          // Apply to all pages
           button(
             cls := "bg-upload-btn",
             "Apply Background to All Pages",
             onClick --> { _ =>
-              CalendarViewModel.applyBackgroundToAllPages()
+              VisualEditorViewModel.applyBackgroundToAllPages()
             }
           ),
 
-          // Apply template to all pages
           button(
             cls := "bg-upload-btn",
             "Apply Template to All Pages",
             onClick --> { _ =>
-              CalendarViewModel.applyTemplateToAllPages()
+              VisualEditorViewModel.applyTemplateToAllPages()
             }
           )
         )

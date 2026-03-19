@@ -1,15 +1,15 @@
-package mpbuilder.ui.calendar.components
+package mpbuilder.ui.visualeditor.components
 
 import com.raquo.laminar.api.L.*
-import mpbuilder.ui.calendar.*
+import mpbuilder.ui.visualeditor.*
 import org.scalajs.dom
 import org.scalajs.dom.FileReader
 
 /** Unified element list and editor for all canvas element types */
 object ElementListEditor {
   def apply(): Element = {
-    val currentPage = CalendarViewModel.currentPage
-    val selectedElement = CalendarViewModel.selectedElement
+    val currentPage = VisualEditorViewModel.currentPage
+    val selectedElement = VisualEditorViewModel.selectedElement
 
     div(
       cls := "element-editor-section",
@@ -34,7 +34,7 @@ object ElementListEditor {
               val reader = new FileReader()
               reader.onload = { _ =>
                 val imageData = reader.result.asInstanceOf[String]
-                CalendarViewModel.uploadPhoto(imageData)
+                VisualEditorViewModel.uploadPhoto(imageData)
               }
               reader.readAsDataURL(file)
           }
@@ -42,7 +42,7 @@ object ElementListEditor {
 
         button(
           cls := "add-element-btn add-photo-btn",
-          "📷 Photo",
+          "Photo",
           title := "Upload photo",
           onClick --> { _ =>
             dom.document.getElementById("photo-upload-input").asInstanceOf[dom.html.Input].click()
@@ -53,30 +53,29 @@ object ElementListEditor {
           cls := "add-element-btn add-text-btn",
           "T Text",
           title := "Add text field",
-          onClick --> { _ => CalendarViewModel.addTextField() }
+          onClick --> { _ => VisualEditorViewModel.addTextField() }
         ),
 
         button(
           cls := "add-element-btn add-rect-btn",
-          "▭ Rect",
+          "Rect",
           title := "Add rectangle",
-          onClick --> { _ => CalendarViewModel.addShape(ShapeType.Rectangle) }
+          onClick --> { _ => VisualEditorViewModel.addShape(ShapeType.Rectangle) }
         ),
 
         button(
           cls := "add-element-btn add-line-btn",
-          "— Line",
+          "Line",
           title := "Add line",
-          onClick --> { _ => CalendarViewModel.addShape(ShapeType.Line) }
+          onClick --> { _ => VisualEditorViewModel.addShape(ShapeType.Line) }
         ),
 
         button(
           cls := "add-element-btn add-clipart-btn",
-          "🎨 Clipart",
+          "Clipart",
           title := "Add clipart (gallery coming soon)",
           onClick --> { _ =>
-            // Placeholder — in future, open gallery. For now use a simple placeholder SVG.
-            CalendarViewModel.addClipart("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='100'%3E%3Ccircle cx='50' cy='50' r='45' fill='%23667eea' stroke='%23764ba2' stroke-width='3'/%3E%3Ctext x='50' y='58' text-anchor='middle' fill='white' font-size='14'%3EClipart%3C/text%3E%3C/svg%3E")
+            VisualEditorViewModel.addClipart("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='100'%3E%3Ccircle cx='50' cy='50' r='45' fill='%23667eea' stroke='%23764ba2' stroke-width='3'/%3E%3Ctext x='50' y='58' text-anchor='middle' fill='white' font-size='14'%3EClipart%3C/text%3E%3C/svg%3E")
           }
         ),
       ),
@@ -95,12 +94,9 @@ object ElementListEditor {
       ),
 
       // ─── Selected element form editor ──────────────────────────
-      // Only re-create form when selection changes (not on every state change)
-      // to prevent form fields from losing focus on each keystroke
       child.maybe <-- selectedElement.map { selected =>
         selected.flatMap { selId =>
-          // Look up element type at creation time (type never changes for a given ID)
-          CalendarViewModel.currentPageSnapshot().elements.find(_.id == selId).map { elem =>
+          VisualEditorViewModel.currentPageSnapshot().elements.find(_.id == selId).map { elem =>
             elem match {
               case _: PhotoElement   => renderPhotoFormReactive(selId)
               case _: TextElement    => renderTextFormReactive(selId)
@@ -118,10 +114,10 @@ object ElementListEditor {
   private def renderElementItem(elem: CanvasElement, selectedId: Option[String]): Element = {
     val isSelected = selectedId.contains(elem.id)
     val (icon, label) = elem match {
-      case _: PhotoElement   => ("📷", "Photo")
-      case t: TextElement    => ("T", s"\"${t.text.take(15)}${if t.text.length > 15 then "…" else ""}\"")
-      case s: ShapeElement   => (if s.shapeType == ShapeType.Line then "—" else "▭", s.shapeType.toString)
-      case _: ClipartElement => ("🎨", "Clipart")
+      case _: PhotoElement   => ("Photo", "Photo")
+      case t: TextElement    => ("T", s"\"${t.text.take(15)}${if t.text.length > 15 then "..." else ""}\"")
+      case s: ShapeElement   => (if s.shapeType == ShapeType.Line then "-" else "[]", s.shapeType.toString)
+      case _: ClipartElement => ("Art", "Clipart")
     }
 
     div(
@@ -134,48 +130,44 @@ object ElementListEditor {
         span(cls := "element-icon", icon),
         span(cls := "element-label", label),
 
-        // Action buttons
         div(
           cls := "element-actions",
 
           button(
             cls := "element-action-btn",
             title := "Bring to front",
-            "↑",
-            onClick --> { ev => ev.stopPropagation(); CalendarViewModel.bringToFront(elem.id) }
+            "^",
+            onClick --> { ev => ev.stopPropagation(); VisualEditorViewModel.bringToFront(elem.id) }
           ),
           button(
             cls := "element-action-btn",
             title := "Send to back",
-            "↓",
-            onClick --> { ev => ev.stopPropagation(); CalendarViewModel.sendToBack(elem.id) }
+            "v",
+            onClick --> { ev => ev.stopPropagation(); VisualEditorViewModel.sendToBack(elem.id) }
           ),
           button(
             cls := "element-action-btn",
             title := "Duplicate",
-            "⎘",
-            onClick --> { ev => ev.stopPropagation(); CalendarViewModel.duplicateElement(elem.id) }
+            "+",
+            onClick --> { ev => ev.stopPropagation(); VisualEditorViewModel.duplicateElement(elem.id) }
           ),
           button(
             cls := "element-action-btn element-delete-btn",
             title := "Delete",
-            "×",
-            onClick --> { ev => ev.stopPropagation(); CalendarViewModel.removeElement(elem.id) }
+            "x",
+            onClick --> { ev => ev.stopPropagation(); VisualEditorViewModel.removeElement(elem.id) }
           ),
         )
       ),
 
-      onClick --> { _ => CalendarViewModel.selectElement(elem.id) }
+      onClick --> { _ => VisualEditorViewModel.selectElement(elem.id) }
     )
   }
-
-  // ─── Element form dispatcher ───────────────────────────────────
-  // (Reactive versions — form created once per selection, fields update via signals)
 
   // ─── Photo form (reactive) ─────────────────────────────────────
 
   private def renderPhotoFormReactive(photoId: String): Element = {
-    val photoSignal: Signal[Option[PhotoElement]] = CalendarViewModel.currentPage.map(
+    val photoSignal: Signal[Option[PhotoElement]] = VisualEditorViewModel.currentPage.map(
       _.elements.collectFirst { case p: PhotoElement if p.id == photoId => p }
     )
 
@@ -184,7 +176,6 @@ object ElementListEditor {
 
       h5("Photo Controls"),
 
-      // Replace image
       div(
         cls := "control-group",
         input(
@@ -200,7 +191,7 @@ object ElementListEditor {
               val reader = new FileReader()
               reader.onload = { _ =>
                 val imageData = reader.result.asInstanceOf[String]
-                CalendarViewModel.replacePhotoImage(photoId, imageData)
+                VisualEditorViewModel.replacePhotoImage(photoId, imageData)
               }
               reader.readAsDataURL(file)
           }
@@ -209,15 +200,15 @@ object ElementListEditor {
           cls := "photo-action-buttons",
           button(
             cls := "add-element-btn",
-            "📷 Replace Image",
+            "Replace Image",
             onClick --> { _ =>
               dom.document.getElementById(s"photo-replace-$photoId").asInstanceOf[dom.html.Input].click()
             }
           ),
           button(
             cls := "add-element-btn element-delete-btn",
-            "✕ Clear Image",
-            onClick --> { _ => CalendarViewModel.clearPhotoImage(photoId) }
+            "Clear Image",
+            onClick --> { _ => VisualEditorViewModel.clearPhotoImage(photoId) }
           ),
         ),
       ),
@@ -230,13 +221,13 @@ object ElementListEditor {
           cls := "zoom-row",
           button(
             cls := "zoom-btn",
-            "−",
+            "-",
             title := "Zoom out",
             onClick --> { _ =>
-              CalendarViewModel.currentPageSnapshot().elements.collectFirst {
+              VisualEditorViewModel.currentPageSnapshot().elements.collectFirst {
                 case p: PhotoElement if p.id == photoId => p
               }.foreach { p =>
-                CalendarViewModel.updatePhotoImageScale(photoId, p.imageScale - 0.1)
+                VisualEditorViewModel.updatePhotoImageScale(photoId, p.imageScale - 0.1)
               }
             }
           ),
@@ -248,7 +239,7 @@ object ElementListEditor {
             stepAttr := "0.1",
             cls := "zoom-slider",
             onInput.mapToValue --> { v =>
-              v.toDoubleOption.foreach(s => CalendarViewModel.updatePhotoImageScale(photoId, s))
+              v.toDoubleOption.foreach(s => VisualEditorViewModel.updatePhotoImageScale(photoId, s))
             }
           ),
           button(
@@ -256,10 +247,10 @@ object ElementListEditor {
             "+",
             title := "Zoom in",
             onClick --> { _ =>
-              CalendarViewModel.currentPageSnapshot().elements.collectFirst {
+              VisualEditorViewModel.currentPageSnapshot().elements.collectFirst {
                 case p: PhotoElement if p.id == photoId => p
               }.foreach { p =>
-                CalendarViewModel.updatePhotoImageScale(photoId, p.imageScale + 0.1)
+                VisualEditorViewModel.updatePhotoImageScale(photoId, p.imageScale + 0.1)
               }
             }
           ),
@@ -276,7 +267,7 @@ object ElementListEditor {
       button(
         cls := "done-editing-btn",
         "Done",
-        onClick --> { _ => CalendarViewModel.deselectElement() }
+        onClick --> { _ => VisualEditorViewModel.deselectElement() }
       )
     )
   }
@@ -284,7 +275,7 @@ object ElementListEditor {
   // ─── Text form (reactive) ──────────────────────────────────────
 
   private def renderTextFormReactive(textId: String): Element = {
-    val textSignal: Signal[Option[TextElement]] = CalendarViewModel.currentPage.map(
+    val textSignal: Signal[Option[TextElement]] = VisualEditorViewModel.currentPage.map(
       _.elements.collectFirst { case t: TextElement if t.id == textId => t }
     )
 
@@ -293,7 +284,6 @@ object ElementListEditor {
 
       h5("Text Controls"),
 
-      // Text content
       div(
         cls := "control-group",
         label("Text:"),
@@ -302,14 +292,13 @@ object ElementListEditor {
           controlled(
             value <-- textSignal.map(_.map(_.text).getOrElse("")),
             onInput.mapToValue --> { v =>
-              CalendarViewModel.updateTextFieldText(textId, v)
+              VisualEditorViewModel.updateTextFieldText(textId, v)
             }
           ),
           cls := "text-input",
         )
       ),
 
-      // Font family
       div(
         cls := "control-group",
         label("Font:"),
@@ -320,12 +309,11 @@ object ElementListEditor {
             option(value := f, f)
           },
           onChange.mapToValue --> { v =>
-            CalendarViewModel.updateTextFieldFontFamily(textId, v)
+            VisualEditorViewModel.updateTextFieldFontFamily(textId, v)
           }
         )
       ),
 
-      // Font size
       div(
         cls := "control-group",
         label("Font Size:"),
@@ -334,7 +322,7 @@ object ElementListEditor {
           controlled(
             value <-- textSignal.map(_.map(_.fontSize.toString).getOrElse("14")),
             onInput.mapToValue --> { v =>
-              v.toIntOption.foreach(sz => CalendarViewModel.updateTextFieldFontSize(textId, sz))
+              v.toIntOption.foreach(sz => VisualEditorViewModel.updateTextFieldFontSize(textId, sz))
             }
           ),
           minAttr := "8",
@@ -344,7 +332,6 @@ object ElementListEditor {
         )
       ),
 
-      // Bold / Italic / Alignment row
       div(
         cls := "control-group text-format-row",
         button(
@@ -353,9 +340,9 @@ object ElementListEditor {
           "B",
           title := "Bold",
           onClick --> { _ =>
-            CalendarViewModel.currentPageSnapshot().elements.collectFirst {
+            VisualEditorViewModel.currentPageSnapshot().elements.collectFirst {
               case t: TextElement if t.id == textId => t
-            }.foreach(t => CalendarViewModel.updateTextFieldBold(textId, !t.bold))
+            }.foreach(t => VisualEditorViewModel.updateTextFieldBold(textId, !t.bold))
           }
         ),
         button(
@@ -364,36 +351,35 @@ object ElementListEditor {
           "I",
           title := "Italic",
           onClick --> { _ =>
-            CalendarViewModel.currentPageSnapshot().elements.collectFirst {
+            VisualEditorViewModel.currentPageSnapshot().elements.collectFirst {
               case t: TextElement if t.id == textId => t
-            }.foreach(t => CalendarViewModel.updateTextFieldItalic(textId, !t.italic))
+            }.foreach(t => VisualEditorViewModel.updateTextFieldItalic(textId, !t.italic))
           }
         ),
         span(cls := "format-separator"),
         button(
           cls := "format-btn",
           cls <-- textSignal.map(_.exists(_.textAlign == TextAlignment.Left)).map(a => if a then "active" else ""),
-          "≡←",
+          "L",
           title := "Align left",
-          onClick --> { _ => CalendarViewModel.updateTextFieldAlign(textId, TextAlignment.Left) }
+          onClick --> { _ => VisualEditorViewModel.updateTextFieldAlign(textId, TextAlignment.Left) }
         ),
         button(
           cls := "format-btn",
           cls <-- textSignal.map(_.exists(_.textAlign == TextAlignment.Center)).map(a => if a then "active" else ""),
-          "≡",
+          "C",
           title := "Align center",
-          onClick --> { _ => CalendarViewModel.updateTextFieldAlign(textId, TextAlignment.Center) }
+          onClick --> { _ => VisualEditorViewModel.updateTextFieldAlign(textId, TextAlignment.Center) }
         ),
         button(
           cls := "format-btn",
           cls <-- textSignal.map(_.exists(_.textAlign == TextAlignment.Right)).map(a => if a then "active" else ""),
-          "≡→",
+          "R",
           title := "Align right",
-          onClick --> { _ => CalendarViewModel.updateTextFieldAlign(textId, TextAlignment.Right) }
+          onClick --> { _ => VisualEditorViewModel.updateTextFieldAlign(textId, TextAlignment.Right) }
         ),
       ),
 
-      // Color
       div(
         cls := "control-group",
         label("Color:"),
@@ -402,7 +388,7 @@ object ElementListEditor {
           value <-- textSignal.map(_.map(_.color).getOrElse("#000000")),
           cls := "color-input",
           onInput.mapToValue --> { v =>
-            CalendarViewModel.updateTextFieldColor(textId, v)
+            VisualEditorViewModel.updateTextFieldColor(textId, v)
           }
         )
       ),
@@ -414,7 +400,7 @@ object ElementListEditor {
       button(
         cls := "done-editing-btn",
         "Done",
-        onClick --> { _ => CalendarViewModel.deselectElement() }
+        onClick --> { _ => VisualEditorViewModel.deselectElement() }
       )
     )
   }
@@ -422,12 +408,11 @@ object ElementListEditor {
   // ─── Shape form (reactive) ─────────────────────────────────────
 
   private def renderShapeFormReactive(shapeId: String): Element = {
-    val shapeSignal: Signal[Option[ShapeElement]] = CalendarViewModel.currentPage.map(
+    val shapeSignal: Signal[Option[ShapeElement]] = VisualEditorViewModel.currentPage.map(
       _.elements.collectFirst { case s: ShapeElement if s.id == shapeId => s }
     )
 
-    // Shape type is determined once at creation (never changes)
-    val shapeType = CalendarViewModel.currentPageSnapshot().elements.collectFirst {
+    val shapeType = VisualEditorViewModel.currentPageSnapshot().elements.collectFirst {
       case s: ShapeElement if s.id == shapeId => s.shapeType
     }.getOrElse(ShapeType.Rectangle)
 
@@ -436,7 +421,6 @@ object ElementListEditor {
 
       h5(s"$shapeType Controls"),
 
-      // Stroke color
       div(
         cls := "control-group",
         label("Stroke Color:"),
@@ -445,12 +429,11 @@ object ElementListEditor {
           value <-- shapeSignal.map(_.map(_.strokeColor).getOrElse("#000000")),
           cls := "color-input",
           onInput.mapToValue --> { v =>
-            CalendarViewModel.updateShape(shapeId, _.copy(strokeColor = v))
+            VisualEditorViewModel.updateShape(shapeId, _.copy(strokeColor = v))
           }
         )
       ),
 
-      // Fill color (for rectangle)
       if shapeType == ShapeType.Rectangle then
         div(
           cls := "control-group",
@@ -460,13 +443,12 @@ object ElementListEditor {
             value <-- shapeSignal.map(_.map(s => if s.fillColor == "transparent" then "#ffffff" else s.fillColor).getOrElse("#ffffff")),
             cls := "color-input",
             onInput.mapToValue --> { v =>
-              CalendarViewModel.updateShape(shapeId, _.copy(fillColor = v))
+              VisualEditorViewModel.updateShape(shapeId, _.copy(fillColor = v))
             }
           )
         )
       else emptyMod,
 
-      // Stroke width
       div(
         cls := "control-group",
         label("Stroke Width:"),
@@ -475,7 +457,7 @@ object ElementListEditor {
           controlled(
             value <-- shapeSignal.map(_.map(_.strokeWidth.toString).getOrElse("2")),
             onInput.mapToValue --> { v =>
-              v.toDoubleOption.foreach(sw => CalendarViewModel.updateShape(shapeId, _.copy(strokeWidth = sw)))
+              v.toDoubleOption.foreach(sw => VisualEditorViewModel.updateShape(shapeId, _.copy(strokeWidth = sw)))
             }
           ),
           minAttr := "1",
@@ -492,7 +474,7 @@ object ElementListEditor {
       button(
         cls := "done-editing-btn",
         "Done",
-        onClick --> { _ => CalendarViewModel.deselectElement() }
+        onClick --> { _ => VisualEditorViewModel.deselectElement() }
       )
     )
   }
@@ -513,7 +495,7 @@ object ElementListEditor {
       button(
         cls := "done-editing-btn",
         "Done",
-        onClick --> { _ => CalendarViewModel.deselectElement() }
+        onClick --> { _ => VisualEditorViewModel.deselectElement() }
       )
     )
   }
@@ -521,7 +503,7 @@ object ElementListEditor {
   // ─── Shared reactive form helpers ──────────────────────────────
 
   private def renderPositionControlsReactive(elementId: String): Element = {
-    val elemSignal = CalendarViewModel.currentPage.map(_.elements.find(_.id == elementId))
+    val elemSignal = VisualEditorViewModel.currentPage.map(_.elements.find(_.id == elementId))
     div(
       cls := "control-row",
       div(
@@ -532,7 +514,7 @@ object ElementListEditor {
           controlled(
             value <-- elemSignal.map(_.map(_.position.x.toInt.toString).getOrElse("0")),
             onInput.mapToValue --> { v =>
-              v.toDoubleOption.foreach(x => CalendarViewModel.updateElementPositionX(elementId, x))
+              v.toDoubleOption.foreach(x => VisualEditorViewModel.updateElementPositionX(elementId, x))
             }
           ),
           stepAttr := "5",
@@ -547,7 +529,7 @@ object ElementListEditor {
           controlled(
             value <-- elemSignal.map(_.map(_.position.y.toInt.toString).getOrElse("0")),
             onInput.mapToValue --> { v =>
-              v.toDoubleOption.foreach(y => CalendarViewModel.updateElementPositionY(elementId, y))
+              v.toDoubleOption.foreach(y => VisualEditorViewModel.updateElementPositionY(elementId, y))
             }
           ),
           stepAttr := "5",
@@ -558,7 +540,7 @@ object ElementListEditor {
   }
 
   private def renderSizeControlsReactive(elementId: String): Element = {
-    val elemSignal = CalendarViewModel.currentPage.map(_.elements.find(_.id == elementId))
+    val elemSignal = VisualEditorViewModel.currentPage.map(_.elements.find(_.id == elementId))
     div(
       cls := "control-row",
       div(
@@ -569,7 +551,7 @@ object ElementListEditor {
           controlled(
             value <-- elemSignal.map(_.map(_.size.width.toInt.toString).getOrElse("0")),
             onInput.mapToValue --> { v =>
-              v.toDoubleOption.foreach(w => CalendarViewModel.updateElementSizeWidth(elementId, w))
+              v.toDoubleOption.foreach(w => VisualEditorViewModel.updateElementSizeWidth(elementId, w))
             }
           ),
           minAttr := "10",
@@ -585,7 +567,7 @@ object ElementListEditor {
           controlled(
             value <-- elemSignal.map(_.map(_.size.height.toInt.toString).getOrElse("0")),
             onInput.mapToValue --> { v =>
-              v.toDoubleOption.foreach(h => CalendarViewModel.updateElementSizeHeight(elementId, h))
+              v.toDoubleOption.foreach(h => VisualEditorViewModel.updateElementSizeHeight(elementId, h))
             }
           ),
           minAttr := "10",
@@ -597,7 +579,7 @@ object ElementListEditor {
   }
 
   private def renderRotationControlReactive(elementId: String): Element = {
-    val elemSignal = CalendarViewModel.currentPage.map(_.elements.find(_.id == elementId))
+    val elemSignal = VisualEditorViewModel.currentPage.map(_.elements.find(_.id == elementId))
     div(
       cls := "control-group",
       label("Rotation:"),
@@ -611,11 +593,11 @@ object ElementListEditor {
           stepAttr := "1",
           cls := "rotation-slider",
           onInput.mapToValue --> { v =>
-            v.toDoubleOption.foreach(r => CalendarViewModel.updateElementRotation(elementId, r))
+            v.toDoubleOption.foreach(r => VisualEditorViewModel.updateElementRotation(elementId, r))
           }
         ),
         span(cls := "rotation-value", child.text <-- elemSignal.map(e =>
-          s"${e.map(_.rotation.toInt).getOrElse(0)}°"
+          s"${e.map(_.rotation.toInt).getOrElse(0)}deg"
         )),
       )
     )

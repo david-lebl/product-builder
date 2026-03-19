@@ -91,3 +91,15 @@ object DiscountCodeId:
   def unsafe(value: String): DiscountCodeId = value
 
   extension (id: DiscountCodeId) def value: String = id
+
+opaque type ArtworkId = String
+object ArtworkId:
+  def apply(value: String): Validation[String, ArtworkId] =
+    if value.nonEmpty then Validation.succeed(value)
+    else Validation.fail("ArtworkId must not be empty")
+
+  def unsafe(value: String): ArtworkId = value
+
+  def generate(): ArtworkId = s"artwork-${System.currentTimeMillis()}-${scala.util.Random.nextInt(10000)}"
+
+  extension (id: ArtworkId) def value: String = id

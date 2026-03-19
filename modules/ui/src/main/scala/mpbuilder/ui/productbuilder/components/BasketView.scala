@@ -4,7 +4,7 @@ import com.raquo.laminar.api.L.*
 import mpbuilder.ui.productbuilder.{ProductBuilderViewModel, ArtworkMode, LoginState}
 import mpbuilder.ui.{AppRouter, AppRoute}
 import mpbuilder.domain.pricing.{Money, Currency, PriceCalculator, CustomerPricelistResolver}
-import mpbuilder.domain.model.{Language, ConfigurationId, ComponentRole}
+import mpbuilder.domain.model.{Language, ConfigurationId, ComponentRole, ArtworkId}
 
 object BasketView:
   def apply(): Element =
@@ -151,7 +151,24 @@ object BasketView:
                           case Language.En => "📎 Artwork: not uploaded yet"
                           case Language.Cs => "📎 Data: ještě nenahrána"
                         )
-                      case Some(ArtworkMode.DesignInEditor) =>
+                      case Some(ArtworkMode.DesignInEditor(Some(artworkId))) =>
+                        div(
+                          span(l match
+                            case Language.En => "🎨 Design: created in Visual Editor"
+                            case Language.Cs => "🎨 Design: vytvořen ve vizuálním editoru"
+                          ),
+                          button(
+                            cls := "edit-design-btn",
+                            l match
+                              case Language.En => "Edit Design"
+                              case Language.Cs => "Upravit design"
+                            ,
+                            onClick --> { _ =>
+                              AppRouter.navigateTo(AppRoute.VisualEditor(Some(artworkId.value)))
+                            },
+                          ),
+                        )
+                      case Some(ArtworkMode.DesignInEditor(None)) =>
                         span(l match
                           case Language.En => "🎨 Design: created in Visual Editor"
                           case Language.Cs => "🎨 Design: vytvořen ve vizuálním editoru"

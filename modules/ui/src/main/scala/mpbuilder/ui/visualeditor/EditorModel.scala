@@ -1,6 +1,6 @@
-package mpbuilder.ui.calendar
+package mpbuilder.ui.visualeditor
 
-/** Position on the calendar page (in pixels) */
+/** Position on the editor page (in pixels) */
 case class Position(x: Double, y: Double)
 
 /** Size of an element (in pixels) */
@@ -14,13 +14,13 @@ enum TextAlignment:
 enum ShapeType:
   case Line, Rectangle
 
-/** Background options for a calendar page */
+/** Background options for a page */
 enum PageBackground:
   case SolidColor(color: String)
   case BackgroundImage(imageData: String)
 
-/** Calendar template types */
-enum CalendarTemplateType:
+/** Page template types */
+enum PageTemplateType:
   case GridTemplate
 
 /** Visual product types supported by the editor */
@@ -30,6 +30,7 @@ enum VisualProductType:
   case BiweeklyCalendar
   case PhotoBook
   case WallPicture
+  case GenericProduct
 
 /** Physical product format with dimensions in mm */
 case class ProductFormat(
@@ -63,14 +64,18 @@ object ProductFormat:
       List(PhotoBookSquare, PhotoBookLandscape, PhotoBookPortrait)
     case VisualProductType.WallPicture =>
       List(WallPictureSmall, WallPictureLarge, WallPictureLandscape)
+    case VisualProductType.GenericProduct =>
+      List.empty // Custom format from product context; no predefined list
 
   /** Default format for each product type */
-  def defaultFor(pt: VisualProductType): ProductFormat = formatsFor(pt).head
+  def defaultFor(pt: VisualProductType): ProductFormat = pt match
+    case VisualProductType.GenericProduct => ProductFormat("generic-a4", "A4", "A4", 210, 297)
+    case other => formatsFor(other).head
 
   /** Whether the format is landscape (width > height) */
   def isLandscape(fmt: ProductFormat): Boolean = fmt.widthMm > fmt.heightMm
 
-/** Canvas element ADT — all user-placed items on a calendar page */
+/** Canvas element ADT — all user-placed items on a page */
 sealed trait CanvasElement:
   def id: String
   def position: Position
@@ -82,7 +87,7 @@ sealed trait CanvasElement:
   def withRotation(r: Double): CanvasElement
   def withZIndex(z: Int): CanvasElement
 
-/** Photo element on a calendar page */
+/** Photo element on a page */
 case class PhotoElement(
   id: String,
   imageData: String,
@@ -99,7 +104,7 @@ case class PhotoElement(
   def withRotation(r: Double): PhotoElement = copy(rotation = r)
   def withZIndex(z: Int): PhotoElement = copy(zIndex = z)
 
-/** User-editable text element on a calendar page */
+/** User-editable text element on a page */
 case class TextElement(
   id: String,
   text: String,
@@ -119,7 +124,7 @@ case class TextElement(
   def withRotation(r: Double): TextElement = copy(rotation = r)
   def withZIndex(z: Int): TextElement = copy(zIndex = z)
 
-/** Shape element on a calendar page */
+/** Shape element on a page */
 case class ShapeElement(
   id: String,
   shapeType: ShapeType,
@@ -136,7 +141,7 @@ case class ShapeElement(
   def withRotation(r: Double): ShapeElement = copy(rotation = r)
   def withZIndex(z: Int): ShapeElement = copy(zIndex = z)
 
-/** Clipart / sticker element on a calendar page */
+/** Clipart / sticker element on a page */
 case class ClipartElement(
   id: String,
   imageData: String,
@@ -160,86 +165,91 @@ case class TemplateTextField(
   color: String = "#000000",
 )
 
-/** Calendar template */
-case class CalendarTemplate(
-  templateType: CalendarTemplateType = CalendarTemplateType.GridTemplate,
+/** Page template */
+case class PageTemplate(
+  templateType: PageTemplateType = PageTemplateType.GridTemplate,
   background: PageBackground = PageBackground.SolidColor("#ffffff"),
   monthField: TemplateTextField,
   daysGrid: List[TemplateTextField],
 )
 
-/** A single page in the calendar */
-case class CalendarPage(
+/** A single page in the editor */
+case class EditorPage(
   pageNumber: Int,
-  template: CalendarTemplate,
+  template: PageTemplate,
   elements: List[CanvasElement] = List.empty,
 )
 
-/** Complete calendar state */
-case class CalendarState(
-  pages: List[CalendarPage],
+/** Complete editor state */
+case class EditorState(
+  pages: List[EditorPage],
   currentPageIndex: Int = 0,
   productType: VisualProductType = VisualProductType.MonthlyCalendar,
   productFormat: ProductFormat = ProductFormat.WallCalendar,
 ) {
-  def currentPage: CalendarPage = pages(currentPageIndex)
+  def currentPage: EditorPage = pages(currentPageIndex)
 
-  def updateCurrentPage(updater: CalendarPage => CalendarPage): CalendarState =
+  def updateCurrentPage(updater: EditorPage => EditorPage): EditorState =
     copy(pages = pages.updated(currentPageIndex, updater(currentPage)))
 
-  def goToNext: CalendarState =
+  def goToNext: EditorState =
     if currentPageIndex < pages.length - 1 then
       copy(currentPageIndex = currentPageIndex + 1)
     else
       this
 
-  def goToPrevious: CalendarState =
+  def goToPrevious: EditorState =
     if currentPageIndex > 0 then
       copy(currentPageIndex = currentPageIndex - 1)
     else
       this
 
-  def goToPage(index: Int): CalendarState =
+  def goToPage(index: Int): EditorState =
     if index >= 0 && index < pages.length then
       copy(currentPageIndex = index)
     else
       this
 
   /** Apply a background to all pages */
-  def applyBackgroundToAll(bg: PageBackground): CalendarState =
+  def applyBackgroundToAll(bg: PageBackground): EditorState =
     copy(pages = pages.map(page =>
       page.copy(template = page.template.copy(background = bg))
     ))
 
   /** Apply a template type to all pages */
-  def applyTemplateTypeToAll(tt: CalendarTemplateType): CalendarState =
+  def applyTemplateTypeToAll(tt: PageTemplateType): EditorState =
     copy(pages = pages.map(page =>
       page.copy(template = page.template.copy(templateType = tt))
     ))
 }
 
-object CalendarState {
+object EditorState {
   /** Create a default state for the given product type and format */
   def create(
     productType: VisualProductType = VisualProductType.MonthlyCalendar,
     format: ProductFormat = ProductFormat.WallCalendar,
     lang: String = "en",
-  ): CalendarState = {
+  ): EditorState = {
     val pages = productType match {
       case VisualProductType.MonthlyCalendar   => createMonthlyCalendarPages(lang)
       case VisualProductType.WeeklyCalendar    => createWeeklyCalendarPages(lang)
       case VisualProductType.BiweeklyCalendar  => createBiweeklyCalendarPages(lang)
       case VisualProductType.PhotoBook         => createPhotoBookPages(lang)
       case VisualProductType.WallPicture       => createWallPicturePages(lang)
+      case VisualProductType.GenericProduct    => createGenericPages(1)
     }
-    CalendarState(pages, productType = productType, productFormat = format)
+    EditorState(pages, productType = productType, productFormat = format)
   }
 
-  /** Create a new calendar with 12 blank pages (backward compat) */
-  def empty: CalendarState = create()
+  /** Create a generic product state with a given page count */
+  def createGeneric(format: ProductFormat, pageCount: Int): EditorState =
+    EditorState(createGenericPages(pageCount), productType = VisualProductType.GenericProduct, productFormat = format)
+
+  /** Create a new editor with 12 blank pages (backward compat) */
+  def empty: EditorState = create()
 
   /** Update page titles based on language */
-  def updateLanguage(state: CalendarState, lang: String): CalendarState = {
+  def updateLanguage(state: EditorState, lang: String): EditorState = {
     state.productType match {
       case VisualProductType.MonthlyCalendar =>
         val months = monthNames(lang)
@@ -273,12 +283,7 @@ object CalendarState {
         }
         state.copy(pages = updatedPages)
 
-      case VisualProductType.PhotoBook =>
-        // Photo book only has a small page number — no language update needed
-        state
-
-      case VisualProductType.WallPicture =>
-        // Wall picture has no visible text — no language update needed
+      case VisualProductType.PhotoBook | VisualProductType.WallPicture | VisualProductType.GenericProduct =>
         state
     }
   }
@@ -290,6 +295,7 @@ object CalendarState {
     case VisualProductType.BiweeklyCalendar => 26
     case VisualProductType.PhotoBook        => 12
     case VisualProductType.WallPicture      => 1
+    case VisualProductType.GenericProduct   => 1
   }
 
   private def monthNames(lang: String): List[String] =
@@ -302,10 +308,37 @@ object CalendarState {
 
   // ─── Factory methods for each product type ─────────────────────
 
-  private def createMonthlyCalendarPages(lang: String): List[CalendarPage] = {
+  private def createGenericPages(pageCount: Int): List[EditorPage] =
+    (1 to pageCount).map { pageNum =>
+      val template = PageTemplate(
+        monthField = TemplateTextField(
+          id = s"generic-page-$pageNum",
+          text = if pageCount > 1 then pageNum.toString else "",
+          position = Position(270, 570),
+          fontSize = 10,
+          fontFamily = "Arial",
+          color = "#999999",
+        ),
+        daysGrid = List.empty,
+      )
+      EditorPage(
+        pageNumber = pageNum,
+        template = template,
+        elements = List(
+          PhotoElement(
+            id = s"img-generic-$pageNum",
+            imageData = "",
+            position = Position(30, 30),
+            size = Size(500, 520),
+          )
+        ),
+      )
+    }.toList
+
+  private def createMonthlyCalendarPages(lang: String): List[EditorPage] = {
     val months = monthNames(lang)
     months.zipWithIndex.map { case (monthName, index) =>
-      val template = CalendarTemplate(
+      val template = PageTemplate(
         monthField = TemplateTextField(
           id = s"month-${index + 1}",
           text = monthName,
@@ -315,7 +348,7 @@ object CalendarState {
         ),
         daysGrid = createDaysGrid(index + 1),
       )
-      CalendarPage(
+      EditorPage(
         pageNumber = index + 1,
         template = template,
         elements = List(
@@ -330,7 +363,7 @@ object CalendarState {
     }
   }
 
-  private def createWeeklyCalendarPages(lang: String): List[CalendarPage] = {
+  private def createWeeklyCalendarPages(lang: String): List[EditorPage] = {
     val weekLabel = if lang == "cs" then "Týden" else "Week"
     val dayLabels = if lang == "cs" then
       List("Po", "Út", "St", "Čt", "Pá", "So", "Ne")
@@ -338,7 +371,7 @@ object CalendarState {
       List("Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun")
 
     (1 to 52).map { weekNum =>
-      val template = CalendarTemplate(
+      val template = PageTemplate(
         monthField = TemplateTextField(
           id = s"week-$weekNum",
           text = s"$weekLabel $weekNum",
@@ -356,7 +389,7 @@ object CalendarState {
           )
         },
       )
-      CalendarPage(
+      EditorPage(
         pageNumber = weekNum,
         template = template,
         elements = List(
@@ -371,7 +404,7 @@ object CalendarState {
     }.toList
   }
 
-  private def createBiweeklyCalendarPages(lang: String): List[CalendarPage] = {
+  private def createBiweeklyCalendarPages(lang: String): List[EditorPage] = {
     val weeksLabel = if lang == "cs" then "Týdny" else "Weeks"
     val dayLabels = if lang == "cs" then
       List("Po", "Út", "St", "Čt", "Pá", "So", "Ne")
@@ -381,7 +414,7 @@ object CalendarState {
     (1 to 26).map { biweekNum =>
       val startWeek = (biweekNum - 1) * 2 + 1
       val endWeek = startWeek + 1
-      val template = CalendarTemplate(
+      val template = PageTemplate(
         monthField = TemplateTextField(
           id = s"biweek-$biweekNum",
           text = s"$weeksLabel $startWeek–$endWeek",
@@ -401,7 +434,7 @@ object CalendarState {
           )
         }.toList,
       )
-      CalendarPage(
+      EditorPage(
         pageNumber = biweekNum,
         template = template,
         elements = List(
@@ -416,9 +449,9 @@ object CalendarState {
     }.toList
   }
 
-  private def createPhotoBookPages(lang: String): List[CalendarPage] = {
+  private def createPhotoBookPages(lang: String): List[EditorPage] = {
     (1 to 12).map { pageNum =>
-      val template = CalendarTemplate(
+      val template = PageTemplate(
         monthField = TemplateTextField(
           id = s"page-num-$pageNum",
           text = pageNum.toString,
@@ -429,7 +462,7 @@ object CalendarState {
         ),
         daysGrid = List.empty,
       )
-      CalendarPage(
+      EditorPage(
         pageNumber = pageNum,
         template = template,
         elements = List(
@@ -444,11 +477,11 @@ object CalendarState {
     }.toList
   }
 
-  private def createWallPicturePages(lang: String): List[CalendarPage] = {
+  private def createWallPicturePages(lang: String): List[EditorPage] = {
     List(
-      CalendarPage(
+      EditorPage(
         pageNumber = 1,
-        template = CalendarTemplate(
+        template = PageTemplate(
           monthField = TemplateTextField(
             id = "picture-hidden",
             text = "",
