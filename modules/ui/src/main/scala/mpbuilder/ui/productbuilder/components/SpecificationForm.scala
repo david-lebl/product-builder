@@ -2,6 +2,7 @@ package mpbuilder.ui.productbuilder.components
 
 import com.raquo.laminar.api.L.*
 import mpbuilder.ui.productbuilder.ProductBuilderViewModel
+import mpbuilder.ui.components.HelpInfo
 import mpbuilder.domain.model.*
 import mpbuilder.uikit.fields.{TextField, SelectField, SelectOption}
 import mpbuilder.uikit.util.Visibility
@@ -238,52 +239,72 @@ object SpecificationForm:
       // Fold Type (required for Brochures)
       div(
         Visibility.when(requiredSpecs.map(_.contains(SpecKind.FoldType))),
-        SelectField(
-          label = lang.map {
-            case Language.En => "Fold Type:"
-            case Language.Cs => "Typ skladu:"
-          },
-          options = lang.map { l =>
-            FoldType.values.toList.map(ft => SelectOption(ft.toString, foldTypeLabel(ft, l)))
-          },
-          selected = ProductBuilderViewModel.selectedFoldType.map(_.map(_.toString).getOrElse("")),
-          onChange = Observer[String] { value =>
-            if value.nonEmpty then
-              FoldType.values.find(_.toString == value).foreach { ft =>
-                ProductBuilderViewModel.removeSpecification(classOf[SpecValue.FoldTypeSpec])
-                ProductBuilderViewModel.addSpecification(SpecValue.FoldTypeSpec(ft))
-              }
-          },
-          placeholder = lang.map {
-            case Language.En => "-- Select fold type --"
-            case Language.Cs => "-- Vyberte typ skladu --"
-          },
+        div(
+          cls := "selector-with-help",
+          SelectField(
+            label = lang.map {
+              case Language.En => "Fold Type:"
+              case Language.Cs => "Typ skladu:"
+            },
+            options = lang.map { l =>
+              FoldType.values.toList.map(ft => SelectOption(ft.toString, foldTypeLabel(ft, l)))
+            },
+            selected = ProductBuilderViewModel.selectedFoldType.map(_.map(_.toString).getOrElse("")),
+            onChange = Observer[String] { value =>
+              if value.nonEmpty then
+                FoldType.values.find(_.toString == value).foreach { ft =>
+                  ProductBuilderViewModel.removeSpecification(classOf[SpecValue.FoldTypeSpec])
+                  ProductBuilderViewModel.addSpecification(SpecValue.FoldTypeSpec(ft))
+                }
+            },
+            placeholder = lang.map {
+              case Language.En => "-- Select fold type --"
+              case Language.Cs => "-- Vyberte typ skladu --"
+            },
+          ),
+          div(
+            cls := "selector-help-buttons",
+            HelpInfo(lang.map {
+              case Language.En => "How the printed sheet is folded. Half fold creates 4 panels, tri-fold creates 6 panels. Z-fold and accordion are great for step-by-step guides. Gate fold opens like a gate for dramatic reveals."
+              case Language.Cs => "Způsob skládání tištěného archu. Půlený sklad vytváří 4 panely, trojsklad 6 panelů. Z-sklad a harmonika jsou skvělé pro postupné návody. Bránový sklad se otevírá jako brána pro dramatické odhalení."
+            }),
+          ),
         ),
       ),
 
       // Binding Method (required for Booklets)
       div(
         Visibility.when(requiredSpecs.map(_.contains(SpecKind.BindingMethod))),
-        SelectField(
-          label = lang.map {
-            case Language.En => "Binding Method:"
-            case Language.Cs => "Typ vazby:"
-          },
-          options = lang.map { l =>
-            BindingMethod.values.toList.map(bm => SelectOption(bm.toString, bindingMethodLabel(bm, l)))
-          },
-          selected = ProductBuilderViewModel.selectedBindingMethod.map(_.map(_.toString).getOrElse("")),
-          onChange = Observer[String] { value =>
-            if value.nonEmpty then
-              BindingMethod.values.find(_.toString == value).foreach { bm =>
-                ProductBuilderViewModel.removeSpecification(classOf[SpecValue.BindingMethodSpec])
-                ProductBuilderViewModel.addSpecification(SpecValue.BindingMethodSpec(bm))
-              }
-          },
-          placeholder = lang.map {
-            case Language.En => "-- Select binding method --"
-            case Language.Cs => "-- Vyberte typ vazby --"
-          },
+        div(
+          cls := "selector-with-help",
+          SelectField(
+            label = lang.map {
+              case Language.En => "Binding Method:"
+              case Language.Cs => "Typ vazby:"
+            },
+            options = lang.map { l =>
+              BindingMethod.values.toList.map(bm => SelectOption(bm.toString, bindingMethodLabel(bm, l)))
+            },
+            selected = ProductBuilderViewModel.selectedBindingMethod.map(_.map(_.toString).getOrElse("")),
+            onChange = Observer[String] { value =>
+              if value.nonEmpty then
+                BindingMethod.values.find(_.toString == value).foreach { bm =>
+                  ProductBuilderViewModel.removeSpecification(classOf[SpecValue.BindingMethodSpec])
+                  ProductBuilderViewModel.addSpecification(SpecValue.BindingMethodSpec(bm))
+                }
+            },
+            placeholder = lang.map {
+              case Language.En => "-- Select binding method --"
+              case Language.Cs => "-- Vyberte typ vazby --"
+            },
+          ),
+          div(
+            cls := "selector-help-buttons",
+            HelpInfo(lang.map {
+              case Language.En => "How the pages are held together. Saddle stitch (stapled) is cheapest for thin booklets. Perfect binding (glued spine) is for thicker publications. Wire-O and spiral allow the book to lay flat when open."
+              case Language.Cs => "Způsob spojení stránek. Sešitová vazba (sešitá) je nejlevnější pro tenké brožury. Lepená vazba (lepený hřbet) je pro silnější publikace. Wire-O a kroužková vazba umožňují, aby kniha ležela naplocho při otevření."
+            }),
+          ),
         ),
       ),
 

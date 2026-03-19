@@ -4,7 +4,7 @@ import com.raquo.laminar.api.L.*
 
 object HelpInfo:
 
-  /** Static field-level help button (?) with popup text. */
+  /** Static field-level help button (?) with popup text shown on hover / click. */
   def apply(text: Signal[String]): Element =
     val open = Var(false)
     div(
@@ -25,7 +25,7 @@ object HelpInfo:
       ),
     )
 
-  /** Reactive item description button (ⓘ) that only appears when a description is available. */
+  /** Reactive item description button (i) that only appears when a description is available. */
   def fromSignal(description: Signal[Option[String]]): Element =
     val open = Var(false)
     div(
@@ -36,7 +36,7 @@ object HelpInfo:
             button(
               cls := "help-info-trigger help-info-trigger--detail",
               typ := "button",
-              "ⓘ",
+              "i",
               onClick --> { _ => open.update(!_) },
             )
           )
