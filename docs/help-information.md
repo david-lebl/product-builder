@@ -74,7 +74,7 @@ HelpInfo.fromSignal(description: Signal[Option[String]]): Element
 
 ### CSS Classes
 
-Component styles (in `uikit.css`):
+Component styles (in `modules/ui/src/main/resources/uikit.css`):
 
 | Class | Purpose |
 |-------|---------|
