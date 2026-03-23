@@ -573,7 +573,7 @@ object ProductBuilderViewModel:
     import mpbuilder.ui.calendar.{EditorSessionStore, VisualProductType, ProductFormat as EditorFormat}
 
     val current = stateVar.now()
-    val sessionId = java.util.UUID.randomUUID().toString
+    val sessionId = s"session-${System.currentTimeMillis()}-${scala.scalajs.js.Math.random().toString.substring(2, 10)}"
 
     // Determine product type and format from configuration
     val productType = VisualProductType.CustomProduct

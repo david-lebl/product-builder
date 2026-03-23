@@ -4,6 +4,12 @@ import com.raquo.laminar.api.L.*
 import org.scalajs.dom
 import scala.scalajs.js
 
+/** Scala.js-safe UUID-like identifier generation using js.Math.random */
+private[calendar] object IdGen:
+  def uuid(): String =
+    def hex4(): String = ((1 + js.Math.random()) * 0x10000).toInt.toHexString.substring(1)
+    s"${hex4()}${hex4()}-${hex4()}-${hex4()}-${hex4()}-${hex4()}${hex4()}${hex4()}"
+
 /** View model for managing calendar state */
 object CalendarViewModel {
 
@@ -87,7 +93,7 @@ object CalendarViewModel {
   /** Save the current session to localStorage immediately */
   def saveCurrentSession(): Unit =
     val sessionId = currentSessionIdVar.now().getOrElse {
-      val newId = java.util.UUID.randomUUID().toString
+      val newId = IdGen.uuid()
       currentSessionIdVar.set(Some(newId))
       newId
     }
@@ -118,7 +124,7 @@ object CalendarViewModel {
 
   /** Start a new empty session (discarding current state) */
   def newSession(): Unit =
-    val newId = java.util.UUID.randomUUID().toString
+    val newId = IdGen.uuid()
     currentSessionIdVar.set(Some(newId))
     currentSessionNameVar.set("Untitled")
     linkedConfigIdVar.set(None)
@@ -147,7 +153,7 @@ object CalendarViewModel {
       case Some(existing) =>
         loadSession(existing.id)
       case None =>
-        val newId = java.util.UUID.randomUUID().toString
+        val newId = IdGen.uuid()
         currentSessionIdVar.set(Some(newId))
         currentSessionNameVar.set(pending.productDescription)
         linkedConfigIdVar.set(Some(pending.configurationId))
@@ -171,7 +177,7 @@ object CalendarViewModel {
       case Some(session) =>
         // Assign a new ID to avoid conflicts
         val newSession = session.copy(
-          id = java.util.UUID.randomUUID().toString,
+          id = IdGen.uuid(),
           updatedAt = System.currentTimeMillis().toDouble,
         )
         EditorSessionStore.save(newSession)
@@ -184,7 +190,7 @@ object CalendarViewModel {
   /** Add an image to the gallery from a base64 data URL */
   def addToGallery(name: String, thumbnailDataUrl: String, width: Int, height: Int, sizeBytes: Long): Unit =
     val image = GalleryImage(
-      id = java.util.UUID.randomUUID().toString,
+      id = IdGen.uuid(),
       name = name,
       thumbnailDataUrl = thumbnailDataUrl,
       width = width,
