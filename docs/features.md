@@ -259,7 +259,7 @@ See [docs/analysis/ui-kit-review.md](analysis/ui-kit-review.md) for component de
 
 ## 8. Testing
 
-**341 passing tests** across 14 test suites:
+**519 passing tests** across 21 test suites:
 
 | Suite | Tests | Covers |
 |-------|-------|--------|
@@ -277,6 +277,7 @@ See [docs/analysis/ui-kit-review.md](analysis/ui-kit-review.md) for component de
 | `ArtworkCheckSpec` | 15 | Artwork check flags, payment/check status extensions |
 | `FulfilmentChecklistSpec` | 17 | Collection, QC, packaging, dispatch, status transitions |
 | `AnalyticsServiceSpec` | 13 | Avg time, bottleneck, throughput, on-time rate |
+| `VisualProductDomainMappingSpec` | 29 | Product type/format mappings, domain integration, specs |
 
 All domain logic is pure (`Validation[E, A]`), never `ZIO` effects — keeping the domain Scala.js-compatible and easily testable.
 
@@ -289,6 +290,7 @@ All domain logic is pure (`Validation[E, A]`), never `ZIO` effects — keeping t
 | [features.md](features.md) | This document — complete feature overview |
 | [pricing.md](pricing.md) | Pricing system documentation with worked examples |
 | [visual-product-types.md](visual-product-types.md) | Visual product types, formats, and domain mapping |
+| [visual-product-types-implementation.md](visual-product-types-implementation.md) | Visual product types implementation — new features documentation |
 | [manufacturing-implementation-plan.md](manufacturing-implementation-plan.md) | Manufacturing system implementation plan (Phases 1–8) |
 | [ui-guide.md](ui-guide.md) | Build, run, and test instructions |
 | **Analysis & Planning** | |
