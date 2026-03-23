@@ -259,7 +259,7 @@ See [docs/analysis/ui-kit-review.md](analysis/ui-kit-review.md) for component de
 
 ## 8. Testing
 
-**519 passing tests** across 21 test suites:
+**519 passing tests** across 21 test suites (key suites listed below):
 
 | Suite | Tests | Covers |
 |-------|-------|--------|
