@@ -1,5 +1,11 @@
 package mpbuilder.ui.calendar
 
+import mpbuilder.domain.model.{VisualProductType, ProductFormat}
+
+// Re-export domain types so existing calendar package code continues to work
+export mpbuilder.domain.model.VisualProductType
+export mpbuilder.domain.model.ProductFormat
+
 /** Position on the calendar page (in pixels) */
 case class Position(x: Double, y: Double)
 
@@ -22,53 +28,6 @@ enum PageBackground:
 /** Calendar template types */
 enum CalendarTemplateType:
   case GridTemplate
-
-/** Visual product types supported by the editor */
-enum VisualProductType:
-  case MonthlyCalendar
-  case WeeklyCalendar
-  case BiweeklyCalendar
-  case PhotoBook
-  case WallPicture
-
-/** Physical product format with dimensions in mm */
-case class ProductFormat(
-  id: String,
-  nameEn: String,
-  nameCs: String,
-  widthMm: Int,
-  heightMm: Int,
-)
-
-object ProductFormat:
-  // Calendar formats
-  val WallCalendar: ProductFormat       = ProductFormat("wall-calendar",       "Wall Calendar",           "Nástěnný kalendář",           210, 297)
-  val WallCalendarLarge: ProductFormat  = ProductFormat("wall-calendar-large", "Wall Calendar Large",     "Nástěnný kalendář velký",      297, 420)
-  val DeskCalendar: ProductFormat       = ProductFormat("desk-calendar",       "Desk Calendar",           "Stolní kalendář",              297, 170)
-  val DeskCalendarSmall: ProductFormat  = ProductFormat("desk-calendar-small", "Desk Calendar Small",     "Stolní kalendář malý",         210, 110)
-  // Photo Book formats
-  val PhotoBookSquare: ProductFormat    = ProductFormat("photobook-square",    "Photo Book Square",       "Fotokniha čtvercová",          210, 210)
-  val PhotoBookLandscape: ProductFormat = ProductFormat("photobook-landscape", "Photo Book Landscape",    "Fotokniha na šířku",           297, 210)
-  val PhotoBookPortrait: ProductFormat  = ProductFormat("photobook-portrait",  "Photo Book Portrait",     "Fotokniha na výšku",           210, 297)
-  // Wall Picture formats
-  val WallPictureSmall: ProductFormat     = ProductFormat("wall-picture-small",     "Wall Picture Small",     "Obraz malý",       210, 297)
-  val WallPictureLarge: ProductFormat     = ProductFormat("wall-picture-large",     "Wall Picture Large",     "Obraz velký",      297, 420)
-  val WallPictureLandscape: ProductFormat = ProductFormat("wall-picture-landscape", "Wall Picture Landscape", "Obraz na šířku",   420, 297)
-
-  /** Formats applicable to each product type */
-  def formatsFor(pt: VisualProductType): List[ProductFormat] = pt match
-    case VisualProductType.MonthlyCalendar | VisualProductType.WeeklyCalendar | VisualProductType.BiweeklyCalendar =>
-      List(WallCalendar, WallCalendarLarge, DeskCalendar, DeskCalendarSmall)
-    case VisualProductType.PhotoBook =>
-      List(PhotoBookSquare, PhotoBookLandscape, PhotoBookPortrait)
-    case VisualProductType.WallPicture =>
-      List(WallPictureSmall, WallPictureLarge, WallPictureLandscape)
-
-  /** Default format for each product type */
-  def defaultFor(pt: VisualProductType): ProductFormat = formatsFor(pt).head
-
-  /** Whether the format is landscape (width > height) */
-  def isLandscape(fmt: ProductFormat): Boolean = fmt.widthMm > fmt.heightMm
 
 /** Canvas element ADT — all user-placed items on a calendar page */
 sealed trait CanvasElement:
@@ -284,13 +243,7 @@ object CalendarState {
   }
 
   /** Default page count for each product type */
-  def defaultPageCount(productType: VisualProductType): Int = productType match {
-    case VisualProductType.MonthlyCalendar  => 12
-    case VisualProductType.WeeklyCalendar   => 52
-    case VisualProductType.BiweeklyCalendar => 26
-    case VisualProductType.PhotoBook        => 12
-    case VisualProductType.WallPicture      => 1
-  }
+  def defaultPageCount(productType: VisualProductType): Int = productType.defaultPageCount
 
   private def monthNames(lang: String): List[String] =
     if lang == "cs" then
