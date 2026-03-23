@@ -6,6 +6,7 @@ final case class BasketItem(
     configuration: ProductConfiguration,
     quantity: Int,
     priceBreakdown: PriceBreakdown,
+    editorSessionId: Option[String] = None,
 )
 
 final case class Basket(

@@ -2,6 +2,7 @@ package mpbuilder.ui.calendar
 
 import com.raquo.laminar.api.L.*
 import org.scalajs.dom
+import scala.scalajs.js
 
 /** View model for managing calendar state */
 object CalendarViewModel {
@@ -20,6 +21,34 @@ object CalendarViewModel {
 
   // Keep selectedPhoto as alias for backward compat in canvas rendering
   val selectedPhoto: Signal[Option[String]] = selectedElement
+
+  // ─── Session persistence state ───────────────────────────────────
+  private val currentSessionIdVar: Var[Option[String]] = Var(None)
+  val currentSessionId: Signal[Option[String]] = currentSessionIdVar.signal
+
+  private val currentSessionNameVar: Var[String] = Var("Untitled")
+  val currentSessionName: Signal[String] = currentSessionNameVar.signal
+
+  private val linkedConfigIdVar: Var[Option[String]] = Var(None)
+  val linkedConfigId: Signal[Option[String]] = linkedConfigIdVar.signal
+
+  private val linkedProductDescriptionVar: Var[Option[String]] = Var(None)
+  val linkedProductDescription: Signal[Option[String]] = linkedProductDescriptionVar.signal
+
+  private val saveStatusVar: Var[String] = Var("")
+  val saveStatus: Signal[String] = saveStatusVar.signal
+
+  // Gallery images
+  private val galleryImagesVar: Var[List[GalleryImage]] = Var(EditorSessionStore.loadGallery())
+  val galleryImages: Signal[List[GalleryImage]] = galleryImagesVar.signal
+
+  // Session list (for resume dialog and session panel)
+  private val sessionListVar: Var[List[SessionSummary]] = Var(EditorSessionStore.listSummaries())
+  val sessionList: Signal[List[SessionSummary]] = sessionListVar.signal
+
+  // Auto-save debounce timer
+  private var autoSaveTimer: Option[Int] = None
+  private val AutoSaveDelayMs = 3000
 
   // ID generation counter to avoid collisions
   private var idCounter: Int = 0
@@ -41,9 +70,137 @@ object CalendarViewModel {
   def currentPageSnapshot(): CalendarPage = stateVar.now().currentPage
 
   // Navigation
-  def goToNextPage(): Unit = stateVar.update(_.goToNext)
-  def goToPreviousPage(): Unit = stateVar.update(_.goToPrevious)
-  def goToPage(index: Int): Unit = stateVar.update(_.goToPage(index))
+  def goToNextPage(): Unit = { stateVar.update(_.goToNext); scheduleAutoSave() }
+  def goToPreviousPage(): Unit = { stateVar.update(_.goToPrevious); scheduleAutoSave() }
+  def goToPage(index: Int): Unit = { stateVar.update(_.goToPage(index)); scheduleAutoSave() }
+
+  // ─── Session persistence ─────────────────────────────────────────
+
+  /** Schedule a debounced auto-save */
+  private def scheduleAutoSave(): Unit =
+    autoSaveTimer.foreach(id => dom.window.clearTimeout(id))
+    saveStatusVar.set("Saving...")
+    autoSaveTimer = Some(dom.window.setTimeout(() => {
+      saveCurrentSession()
+    }, AutoSaveDelayMs))
+
+  /** Save the current session to localStorage immediately */
+  def saveCurrentSession(): Unit =
+    val sessionId = currentSessionIdVar.now().getOrElse {
+      val newId = java.util.UUID.randomUUID().toString
+      currentSessionIdVar.set(Some(newId))
+      newId
+    }
+    val session = EditorSession.fromState(
+      id = sessionId,
+      name = currentSessionNameVar.now(),
+      state = stateVar.now(),
+      linkedConfigurationId = linkedConfigIdVar.now(),
+      createdAt = EditorSessionStore.load(sessionId).map(_.createdAt)
+        .getOrElse(System.currentTimeMillis().toDouble),
+    )
+    EditorSessionStore.save(session)
+    sessionListVar.set(EditorSessionStore.listSummaries())
+    val now = new js.Date()
+    val timeStr = f"${now.getHours().toInt}%02d:${now.getMinutes().toInt}%02d"
+    saveStatusVar.set(s"Saved · $timeStr")
+
+  /** Load an existing session */
+  def loadSession(sessionId: String): Unit =
+    EditorSessionStore.load(sessionId).foreach { session =>
+      currentSessionIdVar.set(Some(session.id))
+      currentSessionNameVar.set(session.name)
+      linkedConfigIdVar.set(session.linkedConfigurationId)
+      stateVar.set(EditorSession.toState(session))
+      selectedElementVar.set(None)
+      saveStatusVar.set("Loaded")
+    }
+
+  /** Start a new empty session (discarding current state) */
+  def newSession(): Unit =
+    val newId = java.util.UUID.randomUUID().toString
+    currentSessionIdVar.set(Some(newId))
+    currentSessionNameVar.set("Untitled")
+    linkedConfigIdVar.set(None)
+    linkedProductDescriptionVar.set(None)
+    stateVar.set(CalendarState.empty)
+    selectedElementVar.set(None)
+    saveStatusVar.set("")
+
+  /** Rename the current session */
+  def renameSession(newName: String): Unit =
+    currentSessionNameVar.set(newName)
+    scheduleAutoSave()
+
+  /** Delete a session by ID */
+  def deleteSession(sessionId: String): Unit =
+    EditorSessionStore.delete(sessionId)
+    sessionListVar.set(EditorSessionStore.listSummaries())
+    // If we deleted the current session, start fresh
+    if currentSessionIdVar.now().contains(sessionId) then
+      newSession()
+
+  /** Initialize from a product builder configuration (Phase 3) */
+  def initFromProductConfig(pending: PendingEditorSession): Unit =
+    // Check if a session already exists for this configuration
+    EditorSessionStore.findByConfigurationId(pending.configurationId) match
+      case Some(existing) =>
+        loadSession(existing.id)
+      case None =>
+        val newId = java.util.UUID.randomUUID().toString
+        currentSessionIdVar.set(Some(newId))
+        currentSessionNameVar.set(pending.productDescription)
+        linkedConfigIdVar.set(Some(pending.configurationId))
+        linkedProductDescriptionVar.set(Some(pending.productDescription))
+        val newState = CalendarState.create(pending.productType, pending.format)
+        stateVar.set(newState)
+        selectedElementVar.set(None)
+        saveCurrentSession()
+
+  /** Check for and consume a pending session from the product builder */
+  def checkPendingSession(): Option[PendingEditorSession] =
+    EditorSessionStore.consumePendingSession()
+
+  /** Export current session as a JSON string */
+  def exportSession(): Option[String] =
+    currentSessionIdVar.now().flatMap(EditorSessionStore.load).map(SessionCodec.encodeSession)
+
+  /** Import a session from a JSON string */
+  def importSession(json: String): Boolean =
+    SessionCodec.decodeSession(json) match
+      case Some(session) =>
+        // Assign a new ID to avoid conflicts
+        val newSession = session.copy(
+          id = java.util.UUID.randomUUID().toString,
+          updatedAt = System.currentTimeMillis().toDouble,
+        )
+        EditorSessionStore.save(newSession)
+        loadSession(newSession.id)
+        true
+      case None => false
+
+  // ─── Gallery operations ──────────────────────────────────────────
+
+  /** Add an image to the gallery from a base64 data URL */
+  def addToGallery(name: String, thumbnailDataUrl: String, width: Int, height: Int, sizeBytes: Long): Unit =
+    val image = GalleryImage(
+      id = java.util.UUID.randomUUID().toString,
+      name = name,
+      thumbnailDataUrl = thumbnailDataUrl,
+      width = width,
+      height = height,
+      addedAt = System.currentTimeMillis().toDouble,
+      sizeBytes = sizeBytes,
+    )
+    val updated = image :: galleryImagesVar.now()
+    galleryImagesVar.set(updated)
+    EditorSessionStore.saveGallery(updated)
+
+  /** Remove an image from the gallery */
+  def removeFromGallery(imageId: String): Unit =
+    val updated = galleryImagesVar.now().filterNot(_.id == imageId)
+    galleryImagesVar.set(updated)
+    EditorSessionStore.saveGallery(updated)
 
   // ─── Generic element CRUD ────────────────────────────────────────
 
@@ -51,6 +208,7 @@ object CalendarViewModel {
     stateVar.update(s =>
       s.updateCurrentPage(page => page.copy(elements = page.elements :+ element))
     )
+    scheduleAutoSave()
 
   def removeElement(elementId: String): Unit = {
     stateVar.update(s =>
@@ -60,6 +218,7 @@ object CalendarViewModel {
     )
     if selectedElementVar.now().contains(elementId) then
       selectedElementVar.set(None)
+    scheduleAutoSave()
   }
 
   private def updateElement(elementId: String, updater: CanvasElement => CanvasElement): Unit =
@@ -70,6 +229,7 @@ object CalendarViewModel {
         })
       )
     )
+    scheduleAutoSave()
 
   def updateElementPosition(elementId: String, newPosition: Position): Unit =
     updateElement(elementId, _.withPosition(newPosition))
@@ -175,6 +335,7 @@ object CalendarViewModel {
         })
       )
     )
+    scheduleAutoSave()
 
   def updatePhotoImageScale(photoId: String, scale: Double): Unit =
     updatePhoto(photoId, _.copy(imageScale = math.max(1.0, scale)))
@@ -217,6 +378,7 @@ object CalendarViewModel {
         })
       )
     )
+    scheduleAutoSave()
 
   def updateTextFieldText(textId: String, newText: String): Unit =
     updateTextField(textId, _.copy(text = newText))
@@ -269,6 +431,7 @@ object CalendarViewModel {
         })
       )
     )
+    scheduleAutoSave()
 
   // ─── Clipart operations ──────────────────────────────────────────
 
@@ -293,6 +456,7 @@ object CalendarViewModel {
         page.copy(template = page.template.copy(background = PageBackground.SolidColor(color)))
       )
     )
+    scheduleAutoSave()
 
   def setBackgroundImage(imageData: String): Unit =
     stateVar.update(s =>
@@ -300,10 +464,12 @@ object CalendarViewModel {
         page.copy(template = page.template.copy(background = PageBackground.BackgroundImage(imageData)))
       )
     )
+    scheduleAutoSave()
 
   def applyBackgroundToAllPages(): Unit =
     val currentBg = stateVar.now().currentPage.template.background
     stateVar.update(_.applyBackgroundToAll(currentBg))
+    scheduleAutoSave()
 
   // ─── Template operations ─────────────────────────────────────────
 
@@ -313,10 +479,12 @@ object CalendarViewModel {
         page.copy(template = page.template.copy(templateType = templateType))
       )
     )
+    scheduleAutoSave()
 
   def applyTemplateToAllPages(): Unit =
     val currentTt = stateVar.now().currentPage.template.templateType
     stateVar.update(_.applyTemplateTypeToAll(currentTt))
+    scheduleAutoSave()
 
   // ─── Product type & format ───────────────────────────────────────
 
@@ -324,11 +492,13 @@ object CalendarViewModel {
     selectedElementVar.set(None)
     val newFormat = ProductFormat.defaultFor(productType)
     stateVar.set(CalendarState.create(productType, newFormat))
+    scheduleAutoSave()
   }
 
   def setProductFormat(format: ProductFormat): Unit = {
     selectedElementVar.set(None)
     stateVar.update(_.copy(productFormat = format))
+    scheduleAutoSave()
   }
 
   // ─── Reset & language ────────────────────────────────────────────
@@ -336,6 +506,7 @@ object CalendarViewModel {
   def reset(): Unit = {
     stateVar.set(CalendarState.empty)
     selectedElementVar.set(None)
+    newSession()
   }
 
   def updateLanguage(lang: String): Unit =

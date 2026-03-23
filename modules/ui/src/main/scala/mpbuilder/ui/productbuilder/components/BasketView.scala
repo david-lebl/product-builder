@@ -151,10 +151,26 @@ object BasketView:
                           case Language.En => "📎 Artwork: not uploaded yet"
                           case Language.Cs => "📎 Data: ještě nenahrána"
                         )
-                      case Some(ArtworkMode.DesignInEditor) =>
-                        span(l match
-                          case Language.En => "🎨 Design: created in Visual Editor"
-                          case Language.Cs => "🎨 Design: vytvořen ve vizuálním editoru"
+                      case Some(ArtworkMode.DesignInEditor(sessionId)) =>
+                        div(
+                          cls := "basket-item-editor-status",
+                          span(l match
+                            case Language.En => if sessionId.isDefined then "🎨 Design: In Progress" else "🎨 Design: created in Visual Editor"
+                            case Language.Cs => if sessionId.isDefined then "🎨 Design: Rozpracováno" else "🎨 Design: vytvořen ve vizuálním editoru"
+                          ),
+                          sessionId.map { _ =>
+                            button(
+                              cls := "basket-edit-in-editor-btn",
+                              l match
+                                case Language.En => "Edit in Editor →"
+                                case Language.Cs => "Upravit v editoru →"
+                              ,
+                              onClick --> { _ =>
+                                import mpbuilder.ui.{AppRouter, AppRoute}
+                                AppRouter.navigateTo(AppRoute.CalendarBuilder)
+                              },
+                            )
+                          }.getOrElse(emptyNode),
                         )
                       case None => emptyNode
                   ),

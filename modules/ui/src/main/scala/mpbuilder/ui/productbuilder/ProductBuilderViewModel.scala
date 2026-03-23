@@ -23,7 +23,7 @@ object LoginState:
 sealed trait ArtworkMode
 object ArtworkMode:
   case class UploadArtwork(fileName: Option[String] = None) extends ArtworkMode
-  case object DesignInEditor extends ArtworkMode
+  case class DesignInEditor(sessionId: Option[String] = None) extends ArtworkMode
 
 /** Per-component UI state */
 case class ComponentState(
@@ -567,6 +567,41 @@ object ProductBuilderViewModel:
 
   def setUploadedFileName(name: Option[String]): Unit =
     stateVar.update(_.copy(artworkMode = ArtworkMode.UploadArtwork(name)))
+
+  /** Launch the visual editor with product context from the current configuration */
+  def openInEditor(): Unit =
+    import mpbuilder.ui.calendar.{EditorSessionStore, VisualProductType, ProductFormat as EditorFormat}
+
+    val current = stateVar.now()
+    val sessionId = java.util.UUID.randomUUID().toString
+
+    // Determine product type and format from configuration
+    val productType = VisualProductType.CustomProduct
+    val format = EditorFormat.PhotoBookPortrait // Default format for PB integration
+
+    // Build a description from the current configuration
+    val description = current.configuration.map { config =>
+      config.category.name(current.language)
+    }.getOrElse("Custom Product")
+
+    // Determine page count from specs
+    val pageCount = current.specifications.collectFirst {
+      case SpecValue.PagesSpec(v) => v
+    }.getOrElse(4)
+
+    // Set the pending session for the editor to pick up
+    current.configuration.foreach { config =>
+      EditorSessionStore.setPendingSession(
+        configurationId = config.id.value,
+        productType = productType,
+        format = format,
+        pageCount = pageCount,
+        productDescription = description,
+      )
+    }
+
+    // Update artwork mode with session ID
+    stateVar.update(_.copy(artworkMode = ArtworkMode.DesignInEditor(Some(sessionId))))
 
   // Checkout operations
   def startCheckout(): Unit =

@@ -8,11 +8,25 @@ import mpbuilder.uikit.containers.{Tabs, TabDef}
 
 object CalendarBuilderApp {
 
-  // Sidebar tab state: "elements" or "background"
+  // Sidebar tab state: "elements", "background", or "gallery"
   private val sidebarTabVar: Var[String] = Var("elements")
+
+  // Whether to show the session resume dialog
+  private val showResumeDialogVar: Var[Boolean] = Var(false)
 
   def apply(): Element = {
     val lang = ProductBuilderViewModel.currentLanguage
+
+    // On mount: check for pending session from product builder, or show resume dialog
+    val pending = CalendarViewModel.checkPendingSession()
+    pending match
+      case Some(p) =>
+        CalendarViewModel.initFromProductConfig(p)
+      case None =>
+        val sessions = CalendarViewModel.sessionList
+        // Show resume dialog if sessions exist (check imperatively)
+        if EditorSessionStore.listSummaries().nonEmpty then
+          showResumeDialogVar.set(true)
 
     div(
       cls := "calendar-builder-app",
@@ -21,6 +35,32 @@ object CalendarBuilderApp {
       lang.changes --> { language =>
         CalendarViewModel.updateLanguage(language.toCode)
       },
+
+      // Session resume dialog (overlay)
+      child.maybe <-- showResumeDialogVar.signal.map { show =>
+        if show then
+          Some(SessionResumeDialog(
+            sessions = CalendarViewModel.sessionList,
+            onContinue = { sessionId =>
+              CalendarViewModel.loadSession(sessionId)
+              showResumeDialogVar.set(false)
+            },
+            onNewSession = { () =>
+              CalendarViewModel.newSession()
+              showResumeDialogVar.set(false)
+            },
+            onDismiss = { () =>
+              showResumeDialogVar.set(false)
+            },
+          ))
+        else None
+      },
+
+      // Session panel (always visible at top)
+      SessionPanel(),
+
+      // Product context bar (when linked to a product configuration)
+      ProductContextBar(),
 
       // Header
       div(
@@ -53,6 +93,7 @@ object CalendarBuilderApp {
               case VisualProductType.BiweeklyCalendar => "biweekly"
               case VisualProductType.PhotoBook        => "photobook"
               case VisualProductType.WallPicture      => "wallpicture"
+              case VisualProductType.CustomProduct    => "custom"
             },
             option(value := "monthly", child.text <-- lang.map {
               case Language.En => "Monthly Calendar (12 pages)"
@@ -74,12 +115,17 @@ object CalendarBuilderApp {
               case Language.En => "Wall Picture (1 page)"
               case Language.Cs => "Obraz na zeď (1 stránka)"
             }),
+            option(value := "custom", child.text <-- lang.map {
+              case Language.En => "Custom Product (4 pages)"
+              case Language.Cs => "Vlastní produkt (4 stránky)"
+            }),
             onChange.mapToValue --> { v =>
               val pt = v match {
                 case "weekly"      => VisualProductType.WeeklyCalendar
                 case "biweekly"    => VisualProductType.BiweeklyCalendar
                 case "photobook"   => VisualProductType.PhotoBook
                 case "wallpicture" => VisualProductType.WallPicture
+                case "custom"      => VisualProductType.CustomProduct
                 case _             => VisualProductType.MonthlyCalendar
               }
               CalendarViewModel.setProductType(pt)
@@ -133,6 +179,10 @@ object CalendarBuilderApp {
                 case Language.En => "Background"
                 case Language.Cs => "Pozadí"
               }, () => div(cls := "calendar-controls-card", BackgroundEditor())),
+              TabDef("gallery", lang.map {
+                case Language.En => "Image Gallery"
+                case Language.Cs => "Galerie obrázků"
+              }, () => div(cls := "calendar-controls-card", GalleryPanel())),
             ),
             activeTab = sidebarTabVar,
           ),

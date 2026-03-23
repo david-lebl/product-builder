@@ -30,6 +30,7 @@ enum VisualProductType:
   case BiweeklyCalendar
   case PhotoBook
   case WallPicture
+  case CustomProduct
 
 /** Physical product format with dimensions in mm */
 case class ProductFormat(
@@ -63,6 +64,8 @@ object ProductFormat:
       List(PhotoBookSquare, PhotoBookLandscape, PhotoBookPortrait)
     case VisualProductType.WallPicture =>
       List(WallPictureSmall, WallPictureLarge, WallPictureLandscape)
+    case VisualProductType.CustomProduct =>
+      List(PhotoBookPortrait, PhotoBookLandscape, PhotoBookSquare, WallCalendar, WallCalendarLarge)
 
   /** Default format for each product type */
   def defaultFor(pt: VisualProductType): ProductFormat = formatsFor(pt).head
@@ -231,6 +234,7 @@ object CalendarState {
       case VisualProductType.BiweeklyCalendar  => createBiweeklyCalendarPages(lang)
       case VisualProductType.PhotoBook         => createPhotoBookPages(lang)
       case VisualProductType.WallPicture       => createWallPicturePages(lang)
+      case VisualProductType.CustomProduct     => createCustomProductPages(lang)
     }
     CalendarState(pages, productType = productType, productFormat = format)
   }
@@ -280,6 +284,10 @@ object CalendarState {
       case VisualProductType.WallPicture =>
         // Wall picture has no visible text — no language update needed
         state
+
+      case VisualProductType.CustomProduct =>
+        // Custom product has page numbers only — no language update needed
+        state
     }
   }
 
@@ -290,6 +298,7 @@ object CalendarState {
     case VisualProductType.BiweeklyCalendar => 26
     case VisualProductType.PhotoBook        => 12
     case VisualProductType.WallPicture      => 1
+    case VisualProductType.CustomProduct    => 4
   }
 
   private def monthNames(lang: String): List[String] =
@@ -468,6 +477,34 @@ object CalendarState {
       )
     )
   }
+
+  /** Create blank pages for a custom product (arbitrary product type) */
+  private def createCustomProductPages(lang: String, pageCount: Int = 4): List[CalendarPage] =
+    (1 to pageCount).map { pageNum =>
+      val template = CalendarTemplate(
+        monthField = TemplateTextField(
+          id = s"custom-page-$pageNum",
+          text = if pageCount > 1 then pageNum.toString else "",
+          position = Position(270, 570),
+          fontSize = 10,
+          fontFamily = "Arial",
+          color = "#999999",
+        ),
+        daysGrid = List.empty,
+      )
+      CalendarPage(
+        pageNumber = pageNum,
+        template = template,
+        elements = List(
+          PhotoElement(
+            id = s"img-custom-$pageNum",
+            imageData = "",
+            position = Position(30, 30),
+            size = Size(500, 520),
+          )
+        ),
+      )
+    }.toList
 
   /** Create a grid of day template text fields for a month */
   private def createDaysGrid(month: Int): List[TemplateTextField] = {
