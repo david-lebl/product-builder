@@ -4,8 +4,11 @@ import com.raquo.laminar.api.L.*
 import org.scalajs.dom
 import scala.scalajs.js
 
-/** Scala.js-safe UUID-like identifier generation using js.Math.random */
-private[calendar] object IdGen:
+/**
+ * Scala.js-safe UUID-like identifier generation using js.Math.random.
+ * Not cryptographically secure — suitable for client-side session and element IDs only.
+ */
+private[ui] object IdGen:
   def uuid(): String =
     def hex4(): String = ((1 + js.Math.random()) * 0x10000).toInt.toHexString.substring(1)
     s"${hex4()}${hex4()}-${hex4()}-${hex4()}-${hex4()}-${hex4()}${hex4()}${hex4()}"

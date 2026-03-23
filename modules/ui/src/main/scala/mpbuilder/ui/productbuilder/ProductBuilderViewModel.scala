@@ -570,10 +570,10 @@ object ProductBuilderViewModel:
 
   /** Launch the visual editor with product context from the current configuration */
   def openInEditor(): Unit =
-    import mpbuilder.ui.calendar.{EditorSessionStore, VisualProductType, ProductFormat as EditorFormat}
+    import mpbuilder.ui.calendar.{EditorSessionStore, IdGen, VisualProductType, ProductFormat as EditorFormat}
 
     val current = stateVar.now()
-    val sessionId = s"session-${System.currentTimeMillis()}-${scala.scalajs.js.Math.random().toString.substring(2, 10)}"
+    val sessionId = IdGen.uuid()
 
     // Determine product type and format from configuration
     val productType = VisualProductType.CustomProduct
