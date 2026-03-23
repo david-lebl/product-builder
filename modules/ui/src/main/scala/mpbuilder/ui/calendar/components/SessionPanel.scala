@@ -106,9 +106,10 @@ object SessionPanel {
             },
             onClick --> { _ =>
               CalendarViewModel.exportSession().foreach { json =>
+                val blobOpts = new org.scalajs.dom.BlobPropertyBag { `type` = "application/json" }
                 val blob = new org.scalajs.dom.Blob(
                   scala.scalajs.js.Array(json),
-                  org.scalajs.dom.BlobPropertyBag("application/json"),
+                  blobOpts,
                 )
                 val url = org.scalajs.dom.URL.createObjectURL(blob)
                 val a = org.scalajs.dom.document.createElement("a").asInstanceOf[org.scalajs.dom.HTMLAnchorElement]
@@ -152,7 +153,7 @@ object SessionPanel {
         div(
           cls := "session-list",
           children <-- CalendarViewModel.sessionList.combineWith(CalendarViewModel.currentSessionId).combineWith(lang).map {
-            case ((sessions, currentId), l) =>
+            (sessions: List[SessionSummary], currentId: Option[String], l: Language) =>
               if sessions.isEmpty then
                 List(div(cls := "session-list-empty", l match
                   case Language.En => "No saved sessions"

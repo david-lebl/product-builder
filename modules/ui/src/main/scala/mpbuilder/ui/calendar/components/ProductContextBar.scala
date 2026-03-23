@@ -17,7 +17,7 @@ object ProductContextBar {
       child.maybe <-- CalendarViewModel.linkedProductDescription.combineWith(
         CalendarViewModel.productFormat
       ).combineWith(CalendarViewModel.state).combineWith(lang).map {
-        case (((descOpt, format), state), l) =>
+        (descOpt: Option[String], format: ProductFormat, state: CalendarState, l: Language) =>
           descOpt.map { desc =>
             val formatStr = l match
               case Language.En => s"${format.nameEn} (${format.widthMm}×${format.heightMm}mm)"

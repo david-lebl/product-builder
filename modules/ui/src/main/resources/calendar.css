@@ -743,3 +743,461 @@
 .preview-btn:hover {
     background: #1976d2;
 }
+
+/* ─── Session Resume Dialog ────────────────────────────────────────── */
+
+.session-resume-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+}
+
+.session-resume-dialog {
+    background: white;
+    border-radius: 12px;
+    padding: 24px;
+    max-width: 500px;
+    width: 90%;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+}
+
+.session-resume-dialog h2 {
+    margin: 0 0 8px 0;
+    font-size: 1.3rem;
+}
+
+.session-resume-subtitle {
+    color: #666;
+    font-size: 0.9rem;
+    margin-bottom: 16px;
+}
+
+.session-resume-list {
+    max-height: 300px;
+    overflow-y: auto;
+    margin-bottom: 16px;
+}
+
+.session-resume-item {
+    padding: 10px 12px;
+    border: 1px solid var(--color-border, #e0e0e0);
+    border-radius: 8px;
+    margin-bottom: 8px;
+    cursor: pointer;
+    transition: background 0.15s;
+}
+
+.session-resume-item:hover {
+    background: #f5f5ff;
+    border-color: var(--color-primary, #4a6cf7);
+}
+
+.session-resume-item-name {
+    font-weight: 600;
+    font-size: 0.95rem;
+}
+
+.session-resume-item-detail {
+    font-size: 0.8rem;
+    color: #666;
+    margin-top: 2px;
+}
+
+.session-resume-item-time {
+    font-size: 0.75rem;
+    color: #999;
+    margin-top: 2px;
+}
+
+.session-resume-actions {
+    display: flex;
+    gap: 8px;
+    justify-content: flex-end;
+}
+
+.session-resume-new-btn {
+    padding: 8px 16px;
+    border: 1px solid var(--color-primary, #4a6cf7);
+    color: var(--color-primary, #4a6cf7);
+    background: white;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 0.85rem;
+}
+
+.session-resume-new-btn:hover {
+    background: #f0f0ff;
+}
+
+.session-resume-dismiss-btn {
+    padding: 8px 16px;
+    border: 1px solid #ccc;
+    color: #666;
+    background: white;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 0.85rem;
+}
+
+/* ─── Session Panel ────────────────────────────────────────────────── */
+
+.session-panel {
+    margin-bottom: 12px;
+    border: 1px solid var(--color-border, #e0e0e0);
+    border-radius: 8px;
+    background: #fafafa;
+}
+
+.session-info-bar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+}
+
+.session-name-row {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    flex: 1;
+}
+
+.session-label {
+    font-size: 1rem;
+}
+
+.session-name-input {
+    flex: 1;
+    border: none;
+    background: transparent;
+    font-size: 0.9rem;
+    font-weight: 600;
+    padding: 2px 6px;
+    border-radius: 4px;
+    min-width: 0;
+}
+
+.session-name-input:focus {
+    outline: none;
+    background: white;
+    box-shadow: 0 0 0 1px var(--color-primary, #4a6cf7);
+}
+
+.session-save-status {
+    font-size: 0.75rem;
+    color: #888;
+    white-space: nowrap;
+}
+
+.session-expand-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 0.8rem;
+    color: #666;
+    padding: 2px 6px;
+}
+
+.session-linked-product {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 12px 8px;
+    font-size: 0.8rem;
+    color: #555;
+}
+
+.linked-product-icon {
+    font-size: 0.85rem;
+}
+
+.linked-product-text {
+    font-style: italic;
+}
+
+.session-list-panel {
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.3s ease;
+}
+
+.session-list-panel-open {
+    max-height: 500px;
+    overflow-y: auto;
+    border-top: 1px solid var(--color-border, #e0e0e0);
+    padding: 8px 12px;
+}
+
+.session-list-actions {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 8px;
+}
+
+.session-action-btn {
+    padding: 4px 10px;
+    border: 1px solid #ddd;
+    background: white;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.8rem;
+}
+
+.session-action-btn:hover {
+    background: #f0f0f0;
+}
+
+.session-list-heading {
+    font-size: 0.85rem;
+    font-weight: 600;
+    margin: 4px 0 8px;
+    color: #444;
+}
+
+.session-list {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.session-list-empty {
+    font-size: 0.8rem;
+    color: #999;
+    padding: 8px 0;
+}
+
+.session-list-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 6px 8px;
+    border: 1px solid #e8e8e8;
+    border-radius: 6px;
+    font-size: 0.8rem;
+}
+
+.session-list-item-current {
+    border-color: var(--color-primary, #4a6cf7);
+    background: #f8f8ff;
+}
+
+.session-list-item-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.session-list-item-name {
+    font-weight: 600;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.session-list-item-detail {
+    color: #888;
+    font-size: 0.75rem;
+}
+
+.session-list-item-actions {
+    display: flex;
+    gap: 4px;
+    margin-left: 6px;
+}
+
+.session-item-load-btn {
+    padding: 2px 8px;
+    border: 1px solid var(--color-primary, #4a6cf7);
+    color: var(--color-primary, #4a6cf7);
+    background: white;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.75rem;
+}
+
+.session-item-load-btn:hover {
+    background: #f0f0ff;
+}
+
+.session-item-delete-btn {
+    padding: 2px 8px;
+    border: 1px solid #e57373;
+    color: #e57373;
+    background: white;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.8rem;
+}
+
+.session-item-delete-btn:hover {
+    background: #fff5f5;
+}
+
+/* ─── Gallery Panel ────────────────────────────────────────────────── */
+
+.gallery-panel {
+    padding: 8px 0;
+}
+
+.gallery-upload-area {
+    margin-bottom: 12px;
+}
+
+.gallery-upload-btn {
+    display: inline-block;
+    padding: 8px 16px;
+    background: var(--color-primary, #4a6cf7);
+    color: white;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 0.85rem;
+    transition: background 0.15s;
+}
+
+.gallery-upload-btn:hover {
+    background: #3b5ce0;
+}
+
+.gallery-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
+}
+
+.gallery-empty {
+    grid-column: 1 / -1;
+    color: #999;
+    font-size: 0.8rem;
+    text-align: center;
+    padding: 16px 8px;
+}
+
+.gallery-item {
+    border: 1px solid #e0e0e0;
+    border-radius: 6px;
+    overflow: hidden;
+    background: white;
+}
+
+.gallery-item-thumb {
+    aspect-ratio: 1;
+    overflow: hidden;
+    background: #f0f0f0;
+}
+
+.gallery-item-thumb img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+
+.gallery-item-info {
+    padding: 4px 6px;
+}
+
+.gallery-item-name {
+    font-size: 0.75rem;
+    font-weight: 500;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.gallery-item-size {
+    font-size: 0.7rem;
+    color: #888;
+}
+
+.gallery-item-actions {
+    display: flex;
+    gap: 4px;
+    padding: 4px 6px;
+    border-top: 1px solid #f0f0f0;
+}
+
+.gallery-use-btn,
+.gallery-delete-btn {
+    flex: 1;
+    padding: 2px 4px;
+    border: 1px solid #ddd;
+    background: white;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.8rem;
+    text-align: center;
+}
+
+.gallery-use-btn:hover {
+    background: #f0fff0;
+    border-color: var(--color-success, #4caf50);
+}
+
+.gallery-delete-btn:hover {
+    background: #fff0f0;
+    border-color: #e57373;
+}
+
+/* ─── Product Context Bar ──────────────────────────────────────────── */
+
+.product-context-bar {
+    margin-bottom: 8px;
+}
+
+.product-context-content {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    background: linear-gradient(135deg, #e8f0fe, #f0f4ff);
+    border: 1px solid #c4d8f7;
+    border-radius: 8px;
+    font-size: 0.85rem;
+}
+
+.product-context-icon {
+    font-size: 1rem;
+}
+
+.product-context-text {
+    flex: 1;
+    color: #333;
+}
+
+.product-context-badge {
+    font-size: 0.7rem;
+    background: var(--color-primary, #4a6cf7);
+    color: white;
+    padding: 2px 8px;
+    border-radius: 10px;
+    white-space: nowrap;
+}
+
+/* ─── Basket Editor Status ─────────────────────────────────────────── */
+
+.basket-item-editor-status {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.basket-edit-in-editor-btn {
+    padding: 2px 8px;
+    border: 1px solid var(--color-primary, #4a6cf7);
+    color: var(--color-primary, #4a6cf7);
+    background: white;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.75rem;
+}
+
+.basket-edit-in-editor-btn:hover {
+    background: #f0f0ff;
+}

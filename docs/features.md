@@ -100,7 +100,7 @@ See [docs/pricing.md](pricing.md) for detailed explanation with worked examples.
 
 ## 3. Visual Product Editor
 
-An interactive per-page editor for designing calendars, photo books, and wall pictures.
+An interactive per-page editor for designing calendars, photo books, wall pictures, and custom products.
 
 ### Product Types & Formats
 
@@ -111,6 +111,7 @@ An interactive per-page editor for designing calendars, photo books, and wall pi
 | Bi-weekly Calendar | 26 | Wall Calendar, Wall Calendar Large, Desk Calendar, Desk Calendar Small |
 | Photo Book | 12 | Square (210×210), Landscape (297×210), Portrait (210×297) |
 | Wall Picture | 1 | Small (200×300), Large (400×600), Landscape (600×400) |
+| Custom Product | 4 | Portrait, Landscape, Square, Wall Calendar, Wall Calendar Large |
 
 ### Canvas Elements
 
@@ -128,9 +129,32 @@ All elements support: selection, drag, resize, rotate, z-ordering, duplication, 
 - Template text fields (locked month/day labels, separate from user elements)
 - Image placeholders as interactive `PhotoElement(imageData = "")`
 - Horizontal scrollable page navigation strip (handles 52+ pages)
-- Sidebar tabs: Page Elements / Background
+- Sidebar tabs: Page Elements / Background / Image Gallery
+
+### Session Persistence & Management
+
+- **Auto-save** to localStorage with 3-second debounce after every state change
+- **Session resume dialog** on editor entry when previous sessions exist
+- **Session panel** with editable name, save status, session list, load/delete/export/import
+- **Session export/import** as JSON files for backup or cross-browser sharing
+
+### Image Gallery
+
+- Cross-session image gallery stored in localStorage
+- Upload images with automatic thumbnail generation
+- Reuse gallery images across sessions by adding to pages
+- Gallery panel as a sidebar tab alongside page elements and background
+
+### Product Builder Integration
+
+- **Linked sessions** — editor sessions can be linked to product builder configurations
+- **Context-aware launch** — "Open Visual Editor" in the product builder passes product type, format, dimensions, and page count
+- **Product context bar** — shows linked product info when editing a product-linked session
+- **Basket artwork status** — "In Progress" / "Edit in Editor →" for design-in-editor items
 
 See [docs/visual-product-types.md](visual-product-types.md) for all supported types and formats.
+See [docs/visual-editor-features.md](visual-editor-features.md) for detailed feature documentation.
+See [docs/visual-editor-integration-plan.md](visual-editor-integration-plan.md) for the implementation plan.
 
 ---
 
@@ -259,7 +283,7 @@ See [docs/analysis/ui-kit-review.md](analysis/ui-kit-review.md) for component de
 
 ## 8. Testing
 
-**341 passing tests** across 14 test suites:
+**490 passing tests** across 14 test suites:
 
 | Suite | Tests | Covers |
 |-------|-------|--------|
@@ -289,6 +313,8 @@ All domain logic is pure (`Validation[E, A]`), never `ZIO` effects — keeping t
 | [features.md](features.md) | This document — complete feature overview |
 | [pricing.md](pricing.md) | Pricing system documentation with worked examples |
 | [visual-product-types.md](visual-product-types.md) | Visual product types, formats, and domain mapping |
+| [visual-editor-features.md](visual-editor-features.md) | Visual editor new features documentation |
+| [visual-editor-integration-plan.md](visual-editor-integration-plan.md) | Visual editor integration implementation plan |
 | [manufacturing-implementation-plan.md](manufacturing-implementation-plan.md) | Manufacturing system implementation plan (Phases 1–8) |
 | [ui-guide.md](ui-guide.md) | Build, run, and test instructions |
 | **Analysis & Planning** | |
