@@ -67,9 +67,9 @@ object EditorSession:
       updatedAt = session.updatedAt,
     )
 
-  /** Collect all image data references from session pages */
+  /** Collect all image data references from session pages (using stable data URL prefix) */
   private def collectImageReferences(pages: List[CalendarPage]): Set[String] =
     pages.flatMap(_.elements).collect {
-      case p: PhotoElement if p.imageData.nonEmpty   => p.imageData.hashCode.toString
-      case c: ClipartElement if c.imageData.nonEmpty  => c.imageData.hashCode.toString
+      case p: PhotoElement if p.imageData.nonEmpty   => p.imageData.take(64)
+      case c: ClipartElement if c.imageData.nonEmpty  => c.imageData.take(64)
     }.toSet

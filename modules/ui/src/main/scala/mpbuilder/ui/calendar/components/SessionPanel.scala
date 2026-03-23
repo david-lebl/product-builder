@@ -135,9 +135,14 @@ object SessionPanel {
                 val files = input.files
                 if files.length > 0 then
                   val reader = new org.scalajs.dom.FileReader()
+                  reader.onerror = { _ =>
+                    org.scalajs.dom.window.alert("Failed to read file.")
+                  }
                   reader.onload = { _ =>
                     val json = reader.result.asInstanceOf[String]
-                    CalendarViewModel.importSession(json)
+                    val ok = CalendarViewModel.importSession(json)
+                    if !ok then
+                      org.scalajs.dom.window.alert("Invalid session file.")
                   }
                   reader.readAsText(files(0))
               },

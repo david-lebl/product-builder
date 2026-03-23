@@ -102,6 +102,9 @@ object GalleryPanel {
   /** Process an uploaded image file: create thumbnail and add to gallery */
   private def processImageFile(file: org.scalajs.dom.File): Unit =
     val reader = new org.scalajs.dom.FileReader()
+    reader.onerror = { _ =>
+      org.scalajs.dom.console.warn(s"Failed to read file: ${file.name}")
+    }
     reader.onload = { _ =>
       val dataUrl = reader.result.asInstanceOf[String]
       // Create a thumbnail using a canvas element

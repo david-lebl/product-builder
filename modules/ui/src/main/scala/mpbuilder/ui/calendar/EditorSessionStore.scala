@@ -159,6 +159,10 @@ case class PendingEditorSession(
  */
 private[calendar] object SessionCodec:
 
+  /** Safely read an optional string from a JS dynamic value */
+  private def optionalString(v: js.Dynamic): Option[String] =
+    if v == null || js.isUndefined(v) then None else Some(v.asInstanceOf[String])
+
   // ─── Product Type ──────────────────────────────────────────────────
 
   def encodeProductType(pt: VisualProductType): String = pt match
@@ -363,10 +367,6 @@ private[calendar] object SessionCodec:
   def decodeSession(json: String): Option[EditorSession] =
     scala.util.Try {
       val d = js.JSON.parse(json)
-      val linkedConfig = {
-        val v = d.linkedConfig
-        if v == null || js.isUndefined(v) then None else Some(v.asInstanceOf[String])
-      }
       EditorSession(
         id              = d.id.asInstanceOf[String],
         name            = d.name.asInstanceOf[String],
@@ -374,7 +374,7 @@ private[calendar] object SessionCodec:
         productFormat   = decodeFormat(d.format),
         pages           = d.pages.asInstanceOf[js.Array[js.Dynamic]].toList.map(decodePage),
         imageReferences = d.imageRefs.asInstanceOf[js.Array[String]].toSet,
-        linkedConfigurationId = linkedConfig,
+        linkedConfigurationId = optionalString(d.linkedConfig),
         createdAt       = d.createdAt.asInstanceOf[Double],
         updatedAt       = d.updatedAt.asInstanceOf[Double],
       )
@@ -399,10 +399,6 @@ private[calendar] object SessionCodec:
     scala.util.Try {
       val arr = js.JSON.parse(json).asInstanceOf[js.Array[js.Dynamic]]
       arr.toList.map { d =>
-        val linkedConfig = {
-          val v = d.linkedConfig
-          if v == null || js.isUndefined(v) then None else Some(v.asInstanceOf[String])
-        }
         SessionSummary(
           id              = d.id.asInstanceOf[String],
           name            = d.name.asInstanceOf[String],
@@ -410,7 +406,7 @@ private[calendar] object SessionCodec:
           productFormat   = decodeFormat(d.format),
           pageCount       = d.pageCount.asInstanceOf[Double].toInt,
           elementCount    = d.elementCount.asInstanceOf[Double].toInt,
-          linkedConfigurationId = linkedConfig,
+          linkedConfigurationId = optionalString(d.linkedConfig),
           createdAt       = d.createdAt.asInstanceOf[Double],
           updatedAt       = d.updatedAt.asInstanceOf[Double],
         )
