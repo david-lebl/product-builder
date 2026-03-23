@@ -77,6 +77,9 @@ object CalendarBuilderApp {
         ),
       ),
 
+      // Linked product context bar (Phase 3 — visible when session is linked to a product config)
+      ProductContextBar(),
+
       // Product type and format selectors
       div(
         cls := "product-selectors",
@@ -175,6 +178,10 @@ object CalendarBuilderApp {
                 case Language.En => "Background"
                 case Language.Cs => "Pozadi"
               }, () => div(cls := "calendar-controls-card", BackgroundEditor())),
+              TabDef("gallery", lang.map {
+                case Language.En => "Gallery"
+                case Language.Cs => "Galerie"
+              }, () => div(cls := "calendar-controls-card", GalleryPanel())),
               TabDef("sessions", lang.map {
                 case Language.En => "Sessions"
                 case Language.Cs => "Relace"

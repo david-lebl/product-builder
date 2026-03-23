@@ -64,15 +64,30 @@ object CalendarViewModel {
   private var saveTimerHandle: Option[js.timers.SetTimeoutHandle] = None
   private val AutoSaveDelayMs = 3000
 
+  // ─── Gallery state ─────────────────────────────────────────────
+
+  private val galleryImagesVar: Var[List[GalleryImage]] = Var(List.empty)
+  val galleryImages: Signal[List[GalleryImage]] = galleryImagesVar.signal
+
+  private val brokenImageCountVar: Var[Int] = Var(0)
+  val brokenImageCount: Signal[Int] = brokenImageCountVar.signal
+
+  /** Refresh gallery images from IndexedDB */
+  def refreshGallery(): Unit =
+    ImageStore.listImages().foreach { images =>
+      galleryImagesVar.set(images)
+    }
+
   // ─── Session management ────────────────────────────────────────
 
-  /** Initialize: load session list and decide whether to show resume dialog */
+  /** Initialize: load session list, gallery, and decide whether to show resume dialog */
   def initSessions(): Unit =
     EditorSessionStore.listSummaries().foreach { summaries =>
       sessionListVar.set(summaries)
       if summaries.nonEmpty then
         showResumeDialogVar.set(true)
     }
+    refreshGallery()
 
   def dismissResumeDialog(): Unit =
     showResumeDialogVar.set(false)
@@ -105,6 +120,7 @@ object CalendarViewModel {
           id = session.id,
           name = session.name,
           createdAt = session.createdAt,
+          linkedConfigurationId = session.linkedConfigurationId,
         )))
         saveStatusVar.set(SaveStatus.Saved(session.updatedAt))
         suppressAutoSave = false
@@ -112,6 +128,30 @@ object CalendarViewModel {
       case None =>
         dom.console.warn(s"Session $id not found in IndexedDB")
     }
+
+  /** Start a new session linked to a product configuration (Phase 3) */
+  def startSessionForProduct(
+    configId: String,
+    productType: VisualProductType,
+    format: ProductFormat,
+    name: String,
+  ): Unit = {
+    val now = System.currentTimeMillis().toDouble
+    val id = generateId("session")
+    val meta = SessionMeta(id = id, name = name, createdAt = now, linkedConfigurationId = Some(configId))
+    suppressAutoSave = true
+    stateVar.set(CalendarState.create(productType, format))
+    selectedElementVar.set(None)
+    currentSessionVar.set(Some(meta))
+    saveStatusVar.set(SaveStatus.Unsaved)
+    suppressAutoSave = false
+    showResumeDialogVar.set(false)
+    saveCurrentSession()
+  }
+
+  /** Find an existing session linked to a configuration ID */
+  def findSessionForConfig(configId: String): Option[SessionSummary] =
+    sessionListVar.now().find(_.linkedConfigurationId.contains(configId))
 
   /** Delete a session from IndexedDB */
   def deleteSession(id: String): Unit =

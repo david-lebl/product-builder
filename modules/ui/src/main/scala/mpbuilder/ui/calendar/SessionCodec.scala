@@ -9,7 +9,7 @@ object SessionCodec:
   // ─── Session ─────────────────────────────────────────────────────
 
   def sessionToJs(session: EditorSession): js.Dynamic =
-    js.Dynamic.literal(
+    val base = js.Dynamic.literal(
       "id"                    -> session.id,
       "name"                  -> session.name,
       "productType"           -> productTypeToString(session.productType),
@@ -19,11 +19,16 @@ object SessionCodec:
       "productFormatWidthMm"  -> session.productFormat.widthMm,
       "productFormatHeightMm" -> session.productFormat.heightMm,
       "pages"                 -> session.pages.map(pageToJs).toJSArray,
+      "imageReferences"       -> session.imageReferences.toList.toJSArray,
       "createdAt"             -> session.createdAt,
       "updatedAt"             -> session.updatedAt,
     )
+    session.linkedConfigurationId.foreach(id => base.linkedConfigurationId = id)
+    base
 
   def sessionFromJs(obj: js.Dynamic): EditorSession =
+    val linkedId = optionalString(obj, "linkedConfigurationId")
+    val imageRefs = optionalStringArray(obj, "imageReferences")
     EditorSession(
       id = obj.id.asInstanceOf[String],
       name = obj.name.asInstanceOf[String],
@@ -36,11 +41,14 @@ object SessionCodec:
         heightMm = obj.productFormatHeightMm.asInstanceOf[Double].toInt,
       ),
       pages = obj.pages.asInstanceOf[js.Array[js.Dynamic]].toList.map(pageFromJs),
+      imageReferences = imageRefs.toSet,
+      linkedConfigurationId = linkedId,
       createdAt = obj.createdAt.asInstanceOf[Double],
       updatedAt = obj.updatedAt.asInstanceOf[Double],
     )
 
   def summaryFromJs(obj: js.Dynamic): SessionSummary =
+    val linkedId = optionalString(obj, "linkedConfigurationId")
     SessionSummary(
       id = obj.id.asInstanceOf[String],
       name = obj.name.asInstanceOf[String],
@@ -53,6 +61,7 @@ object SessionCodec:
         heightMm = obj.productFormatHeightMm.asInstanceOf[Double].toInt,
       ),
       pageCount = obj.pages.asInstanceOf[js.Array[js.Dynamic]].length,
+      linkedConfigurationId = linkedId,
       updatedAt = obj.updatedAt.asInstanceOf[Double],
     )
 
@@ -249,3 +258,15 @@ object SessionCodec:
   private def shapeTypeFromString(s: String): ShapeType = s match
     case "line" => ShapeType.Line
     case _      => ShapeType.Rectangle
+
+  // ─── Optional field helpers (backward compat with old sessions) ──
+
+  private def optionalString(obj: js.Dynamic, field: String): Option[String] =
+    val v = obj.selectDynamic(field)
+    if v == null || js.isUndefined(v) then None
+    else Some(v.asInstanceOf[String])
+
+  private def optionalStringArray(obj: js.Dynamic, field: String): List[String] =
+    val v = obj.selectDynamic(field)
+    if v == null || js.isUndefined(v) then List.empty
+    else v.asInstanceOf[js.Array[String]].toList

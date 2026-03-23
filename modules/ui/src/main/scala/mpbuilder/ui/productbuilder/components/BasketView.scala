@@ -152,9 +152,43 @@ object BasketView:
                           case Language.Cs => "📎 Data: ještě nenahrána"
                         )
                       case Some(ArtworkMode.DesignInEditor) =>
-                        span(l match
-                          case Language.En => "🎨 Design: created in Visual Editor"
-                          case Language.Cs => "🎨 Design: vytvořen ve vizuálním editoru"
+                        div(
+                          cls := "artwork-editor-status",
+                          span(l match
+                            case Language.En => "🎨 Design: Visual Editor"
+                            case Language.Cs => "🎨 Design: vizualni editor"
+                          ),
+                          button(
+                            cls := "artwork-edit-btn",
+                            l match
+                              case Language.En => "Edit"
+                              case Language.Cs => "Upravit"
+                            ,
+                            onClick --> { _ =>
+                              import mpbuilder.ui.calendar.CalendarViewModel
+                              import mpbuilder.ui.{AppRouter, AppRoute}
+                              val configId = item.configuration.id.value
+                              // Find or create editor session for this config
+                              CalendarViewModel.findSessionForConfig(configId) match
+                                case Some(session) =>
+                                  CalendarViewModel.loadSession(session.id)
+                                case None =>
+                                  import mpbuilder.ui.calendar.{VisualProductType, ProductFormat}
+                                  val materialName = item.configuration.components.headOption.map(_.material.name(l)).getOrElse(
+                                    l match { case Language.En => "product"; case Language.Cs => "produkt" }
+                                  )
+                                  CalendarViewModel.startSessionForProduct(
+                                    configId = configId,
+                                    productType = VisualProductType.MonthlyCalendar,
+                                    format = ProductFormat.WallCalendar,
+                                    name = l match
+                                      case Language.En => s"Design for $materialName"
+                                      case Language.Cs => s"Design pro $materialName"
+                                    ,
+                                  )
+                              AppRouter.navigateTo(AppRoute.CalendarBuilder)
+                            }
+                          ),
                         )
                       case None => emptyNode
                   ),

@@ -1,6 +1,8 @@
 # Visual Editor Integration & Improvements — Implementation Plan
 
 > Analysis and phased implementation plan for integrating the product builder with the visual editor, adding session persistence, and building an image gallery.
+>
+> **Status:** Phases 1-3 implemented, Phase 4 partial (CSS polish done, thumbnails/export deferred).
 
 ---
 
@@ -29,7 +31,7 @@
 
 ---
 
-## Phase 1 — Session Persistence (IndexedDB + Auto-Save)
+## Phase 1 — Session Persistence (IndexedDB + Auto-Save) ✅
 
 ### Goal
 Auto-save the user's in-progress editor work to the browser's IndexedDB so it survives page refreshes. Let users manage multiple named sessions.
@@ -105,7 +107,7 @@ Add a collapsible "Sessions" side panel or toolbar dropdown:
 
 ---
 
-## Phase 2 — Image Gallery
+## Phase 2 — Image Gallery ✅
 
 ### Goal
 Provide a shared image gallery across all editor sessions. Images are stored as references (URLs or IndexedDB blob keys), not inline base64 in the canvas state.
@@ -169,7 +171,7 @@ Each `EditorSession.imageReferences` tracks which gallery image IDs are used. Th
 
 ---
 
-## Phase 3 — Product Builder Integration
+## Phase 3 — Product Builder Integration ✅
 
 ### Goal
 Connect the visual editor to the product builder so a configured product can be designed in the editor, and the resulting artwork is linked back to the basket.

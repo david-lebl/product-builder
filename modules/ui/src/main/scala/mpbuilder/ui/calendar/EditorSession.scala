@@ -11,6 +11,7 @@ case class SessionMeta(
   id: String,
   name: String,
   createdAt: Double,
+  linkedConfigurationId: Option[String] = None,
 )
 
 /** Full persisted editor session */
@@ -20,6 +21,8 @@ case class EditorSession(
   productType: VisualProductType,
   productFormat: ProductFormat,
   pages: List[CalendarPage],
+  imageReferences: Set[String] = Set.empty,
+  linkedConfigurationId: Option[String] = None,
   createdAt: Double,
   updatedAt: Double,
 )
@@ -31,17 +34,24 @@ case class SessionSummary(
   productType: VisualProductType,
   productFormat: ProductFormat,
   pageCount: Int,
+  linkedConfigurationId: Option[String] = None,
   updatedAt: Double,
 )
 
 object EditorSession:
-  def fromState(state: CalendarState, meta: SessionMeta): EditorSession =
+  def fromState(
+    state: CalendarState,
+    meta: SessionMeta,
+    imageRefs: Set[String] = Set.empty,
+  ): EditorSession =
     EditorSession(
       id = meta.id,
       name = meta.name,
       productType = state.productType,
       productFormat = state.productFormat,
       pages = state.pages,
+      imageReferences = imageRefs,
+      linkedConfigurationId = meta.linkedConfigurationId,
       createdAt = meta.createdAt,
       updatedAt = System.currentTimeMillis().toDouble,
     )
@@ -61,5 +71,6 @@ object EditorSession:
       productType = session.productType,
       productFormat = session.productFormat,
       pageCount = session.pages.length,
+      linkedConfigurationId = session.linkedConfigurationId,
       updatedAt = session.updatedAt,
     )
