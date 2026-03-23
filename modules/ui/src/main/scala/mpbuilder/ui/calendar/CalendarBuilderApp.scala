@@ -5,10 +5,12 @@ import mpbuilder.ui.calendar.components.*
 import mpbuilder.ui.productbuilder.ProductBuilderViewModel
 import mpbuilder.domain.model.Language
 import mpbuilder.uikit.containers.{Tabs, TabDef}
+import org.scalajs.dom
+import scala.scalajs.js
 
 object CalendarBuilderApp {
 
-  // Sidebar tab state: "elements" or "background"
+  // Sidebar tab state: "elements", "background", or "sessions"
   private val sidebarTabVar: Var[String] = Var("elements")
 
   def apply(): Element = {
@@ -17,22 +19,62 @@ object CalendarBuilderApp {
     div(
       cls := "calendar-builder-app",
 
+      // Initialize sessions on mount
+      onMountCallback { _ =>
+        CalendarViewModel.initSessions()
+
+        // Register beforeunload to save on exit
+        dom.window.addEventListener("beforeunload", { (_: dom.Event) =>
+          CalendarViewModel.saveCurrentSession()
+        })
+      },
+
+      // Auto-save: schedule save whenever editor state changes
+      stateChangeObserver,
+
       // Update page titles when language changes
       lang.changes --> { language =>
         CalendarViewModel.updateLanguage(language.toCode)
       },
 
-      // Header
+      // Resume dialog overlay (conditionally visible)
+      SessionResumeDialog(),
+
+      // Header with save status
       div(
         cls := "calendar-header",
         h1(child.text <-- lang.map {
           case Language.En => "Visual Product Editor"
-          case Language.Cs => "Vizuální editor produktů"
+          case Language.Cs => "Vizualni editor produktu"
         }),
         p(child.text <-- lang.map {
           case Language.En => "Create your custom visual product — upload photos, add text, shapes and customize each page"
-          case Language.Cs => "Vytvořte si vlastní vizuální produkt — nahrajte fotky, přidejte text, tvary a přizpůsobte každou stránku"
-        })
+          case Language.Cs => "Vytvorte si vlastni vizualni produkt — nahrajte fotky, pridejte text, tvary a prizpusobte kazdou stranku"
+        }),
+
+        // Save status indicator (inline in header)
+        div(
+          cls := "header-save-status",
+          child.text <-- CalendarViewModel.saveStatus.combineWith(lang).map { (status, language) =>
+            status match
+              case SaveStatus.Unsaved => ""
+              case SaveStatus.Saving => language match
+                case Language.En => "Saving..."
+                case Language.Cs => "Ukladani..."
+              case SaveStatus.Saved(ts) =>
+                val date = new js.Date(ts)
+                val hours = f"${date.getHours().toInt}%02d"
+                val minutes = f"${date.getMinutes().toInt}%02d"
+                language match
+                  case Language.En => s"Saved · $hours:$minutes"
+                  case Language.Cs => s"Ulozeno · $hours:$minutes"
+          },
+          cls <-- CalendarViewModel.saveStatus.map {
+            case SaveStatus.Saved(_) => "status-saved"
+            case SaveStatus.Saving   => "status-saving"
+            case SaveStatus.Unsaved  => "status-unsaved"
+          }
+        ),
       ),
 
       // Product type and format selectors
@@ -56,23 +98,23 @@ object CalendarBuilderApp {
             },
             option(value := "monthly", child.text <-- lang.map {
               case Language.En => "Monthly Calendar (12 pages)"
-              case Language.Cs => "Měsíční kalendář (12 stránek)"
+              case Language.Cs => "Mesicni kalendar (12 stranek)"
             }),
             option(value := "weekly", child.text <-- lang.map {
               case Language.En => "Weekly Calendar (52 pages)"
-              case Language.Cs => "Týdenní kalendář (52 stránek)"
+              case Language.Cs => "Tydenni kalendar (52 stranek)"
             }),
             option(value := "biweekly", child.text <-- lang.map {
               case Language.En => "Bi-weekly Calendar (26 pages)"
-              case Language.Cs => "Dvoutýdenní kalendář (26 stránek)"
+              case Language.Cs => "Dvoutydenni kalendar (26 stranek)"
             }),
             option(value := "photobook", child.text <-- lang.map {
               case Language.En => "Photo Book (12 pages)"
-              case Language.Cs => "Fotokniha (12 stránek)"
+              case Language.Cs => "Fotokniha (12 stranek)"
             }),
             option(value := "wallpicture", child.text <-- lang.map {
               case Language.En => "Wall Picture (1 page)"
-              case Language.Cs => "Obraz na zeď (1 stránka)"
+              case Language.Cs => "Obraz na zed (1 stranka)"
             }),
             onChange.mapToValue --> { v =>
               val pt = v match {
@@ -92,7 +134,7 @@ object CalendarBuilderApp {
           cls := "selector-group",
           label(child.text <-- lang.map {
             case Language.En => "Format:"
-            case Language.Cs => "Formát:"
+            case Language.Cs => "Format:"
           }),
           child <-- CalendarViewModel.state.combineWith(lang).map { case (st, language) =>
             val pt = st.productType
@@ -103,8 +145,8 @@ object CalendarBuilderApp {
               value := currentFmt.id,
               formats.map { fmt =>
                 val lbl = language match {
-                  case Language.En => s"${fmt.nameEn} (${fmt.widthMm}×${fmt.heightMm} mm)"
-                  case Language.Cs => s"${fmt.nameCs} (${fmt.widthMm}×${fmt.heightMm} mm)"
+                  case Language.En => s"${fmt.nameEn} (${fmt.widthMm}x${fmt.heightMm} mm)"
+                  case Language.Cs => s"${fmt.nameCs} (${fmt.widthMm}x${fmt.heightMm} mm)"
                 }
                 option(value := fmt.id, selected := (fmt.id == currentFmt.id), lbl)
               },
@@ -126,13 +168,17 @@ object CalendarBuilderApp {
           Tabs(
             tabs = List(
               TabDef("elements", lang.map {
-                case Language.En => "Page Elements"
-                case Language.Cs => "Prvky stránky"
+                case Language.En => "Elements"
+                case Language.Cs => "Prvky"
               }, () => div(cls := "calendar-controls-card", ElementListEditor())),
               TabDef("background", lang.map {
                 case Language.En => "Background"
-                case Language.Cs => "Pozadí"
+                case Language.Cs => "Pozadi"
               }, () => div(cls := "calendar-controls-card", BackgroundEditor())),
+              TabDef("sessions", lang.map {
+                case Language.En => "Sessions"
+                case Language.Cs => "Relace"
+              }, () => div(cls := "calendar-controls-card", SessionPanel())),
             ),
             activeTab = sidebarTabVar,
           ),
@@ -160,7 +206,7 @@ object CalendarBuilderApp {
           onClick.compose(_.withCurrentValueOf(lang)) --> { case (_, currentLang) =>
             val confirmMsg = currentLang match {
               case Language.En => "Are you sure you want to reset? All changes will be lost."
-              case Language.Cs => "Opravdu chcete resetovat? Všechny změny budou ztraceny."
+              case Language.Cs => "Opravdu chcete resetovat? Vsechny zmeny budou ztraceny."
             }
             if org.scalajs.dom.window.confirm(confirmMsg) then
               CalendarViewModel.reset()
@@ -170,12 +216,12 @@ object CalendarBuilderApp {
           cls := "preview-btn",
           child.text <-- lang.map {
             case Language.En => "Preview All Pages"
-            case Language.Cs => "Náhled všech stránek"
+            case Language.Cs => "Nahled vsech stranek"
           },
           onClick.compose(_.withCurrentValueOf(lang)) --> { case (_, currentLang) =>
             val msg = currentLang match {
               case Language.En => "Preview feature coming soon!"
-              case Language.Cs => "Funkce náhledu bude brzy k dispozici!"
+              case Language.Cs => "Funkce nahledu bude brzy k dispozici!"
             }
             org.scalajs.dom.window.alert(msg)
           }
@@ -183,4 +229,10 @@ object CalendarBuilderApp {
       )
     )
   }
+
+  /** Observer that triggers auto-save on any state change */
+  private def stateChangeObserver: Modifier[Element] =
+    CalendarViewModel.state.changes --> { _ =>
+      CalendarViewModel.scheduleAutoSave()
+    }
 }

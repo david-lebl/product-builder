@@ -2,11 +2,13 @@ package mpbuilder.ui.calendar
 
 import com.raquo.laminar.api.L.*
 import org.scalajs.dom
+import scala.scalajs.js
+import scala.concurrent.ExecutionContext.Implicits.global
 
 /** View model for managing calendar state */
 object CalendarViewModel {
 
-  // Main state
+  // ─── Main editor state ─────────────────────────────────────────
   private val stateVar: Var[CalendarState] = Var(CalendarState.empty)
   val state: Signal[CalendarState] = stateVar.signal
 
@@ -39,6 +41,120 @@ object CalendarViewModel {
 
   /** Snapshot of the current page (for one-time lookups, not reactive) */
   def currentPageSnapshot(): CalendarPage = stateVar.now().currentPage
+
+  // ─── Session state ─────────────────────────────────────────────
+
+  private val currentSessionVar: Var[Option[SessionMeta]] = Var(None)
+  val currentSession: Signal[Option[SessionMeta]] = currentSessionVar.signal
+
+  private val saveStatusVar: Var[SaveStatus] = Var(SaveStatus.Unsaved)
+  val saveStatus: Signal[SaveStatus] = saveStatusVar.signal
+
+  private val sessionListVar: Var[List[SessionSummary]] = Var(List.empty)
+  val sessionList: Signal[List[SessionSummary]] = sessionListVar.signal
+
+  // Whether to show the resume dialog on mount
+  private val showResumeDialogVar: Var[Boolean] = Var(false)
+  val showResumeDialog: Signal[Boolean] = showResumeDialogVar.signal
+
+  // Suppress auto-save during session load
+  private var suppressAutoSave: Boolean = false
+
+  // Debounce timer handle for auto-save
+  private var saveTimerHandle: Option[js.timers.SetTimeoutHandle] = None
+  private val AutoSaveDelayMs = 3000
+
+  // ─── Session management ────────────────────────────────────────
+
+  /** Initialize: load session list and decide whether to show resume dialog */
+  def initSessions(): Unit =
+    EditorSessionStore.listSummaries().foreach { summaries =>
+      sessionListVar.set(summaries)
+      if summaries.nonEmpty then
+        showResumeDialogVar.set(true)
+    }
+
+  def dismissResumeDialog(): Unit =
+    showResumeDialogVar.set(false)
+
+  /** Start a brand new session (fresh editor state) */
+  def startNewSession(): Unit = {
+    val now = System.currentTimeMillis().toDouble
+    val id = generateId("session")
+    val meta = SessionMeta(id = id, name = "Untitled", createdAt = now)
+    suppressAutoSave = true
+    stateVar.set(CalendarState.empty)
+    selectedElementVar.set(None)
+    currentSessionVar.set(Some(meta))
+    saveStatusVar.set(SaveStatus.Unsaved)
+    suppressAutoSave = false
+    showResumeDialogVar.set(false)
+    // Trigger first save immediately
+    saveCurrentSession()
+  }
+
+  /** Load an existing session from IndexedDB */
+  def loadSession(id: String): Unit =
+    EditorSessionStore.load(id).foreach {
+      case Some(session) =>
+        suppressAutoSave = true
+        val calState = EditorSession.toCalendarState(session)
+        stateVar.set(calState)
+        selectedElementVar.set(None)
+        currentSessionVar.set(Some(SessionMeta(
+          id = session.id,
+          name = session.name,
+          createdAt = session.createdAt,
+        )))
+        saveStatusVar.set(SaveStatus.Saved(session.updatedAt))
+        suppressAutoSave = false
+        showResumeDialogVar.set(false)
+      case None =>
+        dom.console.warn(s"Session $id not found in IndexedDB")
+    }
+
+  /** Delete a session from IndexedDB */
+  def deleteSession(id: String): Unit =
+    EditorSessionStore.delete(id).foreach { _ =>
+      refreshSessionList()
+      // If we just deleted the current session, clear it
+      if currentSessionVar.now().exists(_.id == id) then
+        currentSessionVar.set(None)
+        saveStatusVar.set(SaveStatus.Unsaved)
+    }
+
+  /** Rename the current session */
+  def renameSession(newName: String): Unit =
+    currentSessionVar.now().foreach { meta =>
+      currentSessionVar.set(Some(meta.copy(name = newName)))
+      scheduleAutoSave()
+    }
+
+  /** Refresh the session list from IndexedDB */
+  def refreshSessionList(): Unit =
+    EditorSessionStore.listSummaries().foreach { summaries =>
+      sessionListVar.set(summaries)
+    }
+
+  /** Schedule a debounced auto-save */
+  def scheduleAutoSave(): Unit =
+    if !suppressAutoSave then
+      saveTimerHandle.foreach(js.timers.clearTimeout)
+      saveTimerHandle = Some(js.timers.setTimeout(AutoSaveDelayMs.toDouble) {
+        saveCurrentSession()
+      })
+      saveStatusVar.set(SaveStatus.Unsaved)
+
+  /** Immediately save the current session to IndexedDB */
+  def saveCurrentSession(): Unit =
+    currentSessionVar.now().foreach { meta =>
+      saveStatusVar.set(SaveStatus.Saving)
+      val session = EditorSession.fromState(stateVar.now(), meta)
+      EditorSessionStore.save(session).foreach { _ =>
+        saveStatusVar.set(SaveStatus.Saved(session.updatedAt))
+        refreshSessionList()
+      }
+    }
 
   // Navigation
   def goToNextPage(): Unit = stateVar.update(_.goToNext)

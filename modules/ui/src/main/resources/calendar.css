@@ -743,3 +743,299 @@
 .preview-btn:hover {
     background: #1976d2;
 }
+
+/* ─── Header Save Status ────────────────────────────── */
+
+.header-save-status {
+    font-size: 0.8rem;
+    margin-top: 6px;
+    min-height: 1.2em;
+}
+
+.header-save-status.status-saved {
+    color: var(--color-success);
+}
+
+.header-save-status.status-saving {
+    color: #ff9800;
+}
+
+.header-save-status.status-unsaved {
+    color: #999;
+}
+
+/* ─── Session Resume Dialog ─────────────────────────── */
+
+.session-resume-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 1000;
+    justify-content: center;
+    align-items: center;
+}
+
+.session-resume-overlay.visible {
+    display: flex;
+}
+
+.session-resume-dialog {
+    background: white;
+    border-radius: 12px;
+    padding: 30px;
+    max-width: 550px;
+    width: 90%;
+    max-height: 80vh;
+    overflow-y: auto;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+}
+
+.session-resume-dialog h2 {
+    color: var(--color-primary);
+    margin-bottom: 8px;
+}
+
+.resume-subtitle {
+    color: #666;
+    margin-bottom: 20px;
+    font-size: 0.95rem;
+}
+
+.resume-session-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-bottom: 20px;
+    max-height: 350px;
+    overflow-y: auto;
+}
+
+.resume-session-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px;
+    background: #f9f9f9;
+    border: 2px solid var(--color-border);
+    border-radius: 8px;
+    transition: border-color 0.2s;
+}
+
+.resume-session-row:hover {
+    border-color: var(--color-primary);
+}
+
+.resume-session-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.resume-session-name {
+    font-weight: 600;
+    font-size: 0.95rem;
+    margin-bottom: 2px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.resume-session-meta {
+    font-size: 0.8rem;
+    color: #666;
+}
+
+.resume-session-time {
+    font-size: 0.75rem;
+    color: #999;
+    margin-top: 2px;
+}
+
+.resume-load-btn {
+    flex-shrink: 0;
+    padding: 8px 16px;
+    background: var(--color-primary);
+    font-size: 0.85rem;
+}
+
+.resume-actions {
+    display: flex;
+    justify-content: center;
+}
+
+.resume-new-btn {
+    padding: 10px 24px;
+    background: var(--color-success);
+    font-size: 0.95rem;
+}
+
+/* ─── Session Panel (sidebar tab) ───────────────────── */
+
+.session-panel {
+    font-size: 0.9rem;
+}
+
+.session-panel h4 {
+    color: var(--color-primary);
+    margin-bottom: 10px;
+    font-size: 0.95rem;
+}
+
+.session-panel hr {
+    margin: 15px 0;
+    border: none;
+    border-top: 1px solid var(--color-border);
+}
+
+.session-current {
+    margin-bottom: 10px;
+}
+
+.session-name-row {
+    margin-bottom: 8px;
+}
+
+.session-name-input {
+    width: 100%;
+    padding: 6px 8px;
+    font-size: 0.9rem;
+    border: 2px solid var(--color-border);
+    border-radius: 6px;
+    transition: border-color 0.2s;
+}
+
+.session-name-input:focus {
+    border-color: var(--color-primary);
+    outline: none;
+}
+
+.session-no-active {
+    color: #999;
+    font-style: italic;
+    font-size: 0.85rem;
+}
+
+.session-save-status {
+    font-size: 0.8rem;
+    margin-bottom: 8px;
+    min-height: 1.2em;
+}
+
+.session-save-status.status-saved {
+    color: var(--color-success);
+}
+
+.session-save-status.status-saving {
+    color: #ff9800;
+}
+
+.session-save-status.status-unsaved {
+    color: #999;
+}
+
+.session-save-btn {
+    width: 100%;
+    padding: 6px;
+    font-size: 0.8rem;
+    background: var(--color-primary);
+}
+
+/* Session history list */
+
+.session-history {
+    max-height: 350px;
+    overflow-y: auto;
+}
+
+.session-list {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.session-empty {
+    text-align: center;
+    color: #999;
+    padding: 15px;
+    font-style: italic;
+    font-size: 0.85rem;
+}
+
+.session-history-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px;
+    background: white;
+    border: 2px solid var(--color-border);
+    border-radius: 6px;
+    transition: border-color 0.2s;
+}
+
+.session-history-row:hover {
+    border-color: #b0b8f0;
+}
+
+.session-history-row.current {
+    border-color: var(--color-primary);
+    background: #f5f7ff;
+}
+
+.session-history-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.session-history-name {
+    font-weight: 600;
+    font-size: 0.85rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.session-current-badge {
+    font-weight: 400;
+    font-size: 0.75rem;
+    color: var(--color-primary);
+}
+
+.session-history-meta {
+    font-size: 0.75rem;
+    color: #666;
+    margin-top: 1px;
+}
+
+.session-history-time {
+    font-size: 0.7rem;
+    color: #999;
+    margin-top: 1px;
+}
+
+.session-history-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    flex-shrink: 0;
+}
+
+.session-action-btn {
+    padding: 4px 8px;
+    font-size: 0.75rem;
+    min-width: 55px;
+    text-align: center;
+}
+
+.session-load-btn {
+    background: var(--color-primary);
+}
+
+.session-delete-btn {
+    background: #ffcdd2;
+    color: #c62828;
+}
+
+.session-delete-btn:hover {
+    background: var(--color-error);
+    color: white;
+}
