@@ -236,9 +236,12 @@ object StationUtilisation:
   private val optimalThroughput = 4
 
   extension (su: StationUtilisation)
-    /** Utilisation ratio (0.0–1.0+). Above 1.0 means overloaded. */
+    /** Utilisation ratio (0.0–1.0+). Above 1.0 means overloaded.
+      * Zero machines returns 1.0 (treated as fully saturated / unavailable),
+      * which disables Express tier for this station.
+      */
     def utilisationRatio: BigDecimal =
-      if su.machineCount == 0 then BigDecimal(1) // no machines = fully saturated
+      if su.machineCount == 0 then BigDecimal(1) // no machines = unavailable, treated as saturated
       else BigDecimal(su.queueDepth + su.inProgressCount) / (su.machineCount * optimalThroughput)
 
     /** Estimated time in ms to drain the current queue at current rate. */

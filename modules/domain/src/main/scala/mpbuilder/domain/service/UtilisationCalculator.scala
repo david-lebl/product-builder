@@ -9,6 +9,16 @@ import mpbuilder.domain.model.*
   */
 object UtilisationCalculator:
 
+  /** Compute average duration from a list of completed steps for a station. */
+  private def avgCompletionTimeMs(steps: List[WorkflowStep]): Long =
+    val durations = steps.flatMap { s =>
+      for
+        started <- s.startedAt
+        completed <- s.completedAt
+      yield completed - started
+    }
+    if durations.nonEmpty then durations.sum / durations.size else 0L
+
   /** Calculate per-station utilisation from current manufacturing orders and machines. */
   def calculateStationUtilisation(
       orders: List[ManufacturingOrder],
@@ -26,18 +36,10 @@ object UtilisationCalculator:
       .groupBy(_.stationType)
       .map { case (st, steps) => st -> steps.size }
 
-    val completedSteps = activeSteps.filter(_.status == StepStatus.Completed)
-    val avgTimeByStation = completedSteps
+    val avgTimeByStation = activeSteps
+      .filter(_.status == StepStatus.Completed)
       .groupBy(_.stationType)
-      .map { case (st, steps) =>
-        val durations = steps.flatMap { s =>
-          for
-            started <- s.startedAt
-            completed <- s.completedAt
-          yield completed - started
-        }
-        st -> (if durations.nonEmpty then durations.sum / durations.size else 0L)
-      }
+      .map { case (st, steps) => st -> avgCompletionTimeMs(steps) }
 
     val activeMachinesByStation = machines
       .filter(_.status == MachineStatus.Online)
@@ -150,18 +152,10 @@ object UtilisationCalculator:
       .groupBy(_.stationType)
       .map { case (st, ms) => st -> ms.size }
 
-    val completedSteps = activeSteps.filter(_.status == StepStatus.Completed)
-    val avgTimeByStation = completedSteps
+    val avgTimeByStation = activeSteps
+      .filter(_.status == StepStatus.Completed)
       .groupBy(_.stationType)
-      .map { case (st, steps) =>
-        val durations = steps.flatMap { s =>
-          for
-            started <- s.startedAt
-            completed <- s.completedAt
-          yield completed - started
-        }
-        st -> (if durations.nonEmpty then durations.sum / durations.size else 0L)
-      }
+      .map { case (st, steps) => st -> avgCompletionTimeMs(steps) }
 
     StationType.values.toList.map { st =>
       val queuedSteps = activeSteps.filter(s =>

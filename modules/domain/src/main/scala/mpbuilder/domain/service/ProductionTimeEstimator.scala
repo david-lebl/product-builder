@@ -144,24 +144,7 @@ object ProductionTimeEstimator:
     val (adjustedMinute, adjustedDay) = enforceCutoff(speed, startMinuteOfDay, startDayOfWeek, schedule)
 
     // Calculate the calendar gap from original start to adjusted start
-    val cutoffGap = if adjustedMinute == startMinuteOfDay && adjustedDay == startDayOfWeek then 0
-    else
-      // Count calendar minutes from original position to the adjusted position
-      val wh = schedule.workingHours
-      var gap = 0
-      var curMin = startMinuteOfDay
-      var curDay = startDayOfWeek
-      // Advance to end of current day
-      gap += (1440 - curMin)
-      curMin = 0
-      curDay = if curDay == 7 then 1 else curDay + 1
-      // Skip non-working days
-      while curDay != adjustedDay do
-        gap += 1440
-        curDay = if curDay == 7 then 1 else curDay + 1
-      // Add time to adjusted minute
-      gap += adjustedMinute
-      gap
+    val cutoffGap = calendarGapMinutes(startMinuteOfDay, startDayOfWeek, adjustedMinute, adjustedDay)
 
     // Calculate work minutes including queue wait
     val workMinutes = if queueStates.nonEmpty then
@@ -171,6 +154,22 @@ object ProductionTimeEstimator:
 
     // Convert work minutes to calendar minutes respecting working hours, starting from adjusted time
     cutoffGap + workingMinutesToCalendarMinutes(workMinutes, adjustedMinute, adjustedDay, schedule)
+
+  /** Calculate the calendar gap in minutes between two day/minute positions.
+    * Returns 0 if positions are identical.
+    */
+  private def calendarGapMinutes(
+      fromMinute: Int, fromDay: Int,
+      toMinute: Int, toDay: Int,
+  ): Int =
+    if fromMinute == toMinute && fromDay == toDay then 0
+    else
+      var gap = 1440 - fromMinute // advance to end of current day
+      var curDay = if fromDay == 7 then 1 else fromDay + 1
+      while curDay != toDay do
+        gap += 1440
+        curDay = if curDay == 7 then 1 else curDay + 1
+      gap + toMinute
 
   /** Compute estimated completion as working-day-aware minute offset.
     *
