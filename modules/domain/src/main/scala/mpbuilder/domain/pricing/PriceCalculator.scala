@@ -60,10 +60,43 @@ object PriceCalculator:
 
         val discountedSubtotal = (subtotal * multiplier).rounded
 
+        // Manufacturing speed multiplier (applied after quantity discount, before setup fees)
+        val speed = config.specifications.get(SpecKind.ManufacturingSpeed).collect {
+          case SpecValue.ManufacturingSpeedSpec(s) => s
+        }
+        val speedRule = speed.flatMap { s =>
+          rules.collectFirst {
+            case r: PricingRule.ManufacturingSpeedSurcharge if r.speed == s => r
+          }
+        }
+        val speedMult = speedRule.map(_.multiplier).getOrElse(BigDecimal(1))
+        val afterSpeed = (discountedSubtotal * speedMult).rounded
+        val speedSurchargeItem = speedRule.flatMap { r =>
+          val diff = afterSpeed.value - discountedSubtotal.value
+          if diff == BigDecimal(0) then None
+          else
+            val label = speed.get match
+              case ManufacturingSpeed.Express  => lang match
+                case Language.Cs => "Expresní výroba"
+                case _           => "Express manufacturing"
+              case ManufacturingSpeed.Economy  => lang match
+                case Language.Cs => "Ekonomická sleva"
+                case _           => "Economy discount"
+              case ManufacturingSpeed.Standard => lang match
+                case Language.Cs => "Standardní výroba"
+                case _           => "Standard manufacturing"
+            Some(LineItem(
+              label = label,
+              unitPrice = Money(diff),
+              quantity = 1,
+              lineTotal = Money(diff),
+            ))
+        }
+
         val allSelectedFinishes = config.components.flatMap(_.finishes)
         val setupFees = collectSetupFees(allSelectedFinishes, foldType, bindingMethod, rules, lang)
         val totalSetupFees = setupFees.map(_.lineTotal).foldLeft(Money.zero)(_ + _)
-        val billable = (discountedSubtotal + totalSetupFees).rounded
+        val billable = (afterSpeed + totalSetupFees).rounded
 
         val minimumRule = rules.collectFirst { case r: PricingRule.MinimumOrderPrice => r }
         val (total, minimumApplied) = minimumRule match
@@ -80,6 +113,8 @@ object PriceCalculator:
           bindingSurcharge = bindingSurcharge,
           subtotal = subtotal,
           quantityMultiplier = multiplier,
+          speedSurcharge = speedSurchargeItem,
+          speedMultiplier = speedMult,
           setupFees = setupFees,
           minimumApplied = minimumApplied,
           total = total,

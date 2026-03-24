@@ -128,6 +128,69 @@ object Priority:
     case Normal => 1
     case Low    => 0
 
+/** Customer-facing manufacturing speed tier */
+enum ManufacturingSpeed:
+  case Express, Standard, Economy
+
+object ManufacturingSpeed:
+  extension (s: ManufacturingSpeed) def toPriority: Priority = s match
+    case Express  => Priority.Rush
+    case Standard => Priority.Normal
+    case Economy  => Priority.Low
+
+  extension (s: ManufacturingSpeed) def displayName: LocalizedString = s match
+    case Express  => LocalizedString("Express", "Expresní")
+    case Standard => LocalizedString("Standard", "Standardní")
+    case Economy  => LocalizedString("Economy", "Ekonomická")
+
+/** Estimated production time per station type */
+final case class StationTimeEstimate(
+    stationType: StationType,
+    baseTimeMinutes: Int,
+    perUnitSeconds: BigDecimal,
+    maxParallelUnits: Int = 1,
+)
+
+/** Working hours configuration for a print shop */
+final case class WorkingHours(
+    openTime: Int,        // minutes from midnight, e.g. 420 = 07:00
+    closeTime: Int,       // minutes from midnight, e.g. 1020 = 17:00
+    workDays: Set[Int],   // 1=Monday .. 7=Sunday (ISO day-of-week)
+)
+
+object WorkingHours:
+  val default: WorkingHours = WorkingHours(
+    openTime = 420,     // 07:00
+    closeTime = 1020,   // 17:00
+    workDays = Set(1, 2, 3, 4, 5),  // Mon-Fri
+  )
+
+  extension (wh: WorkingHours)
+    def workMinutesPerDay: Int = wh.closeTime - wh.openTime
+
+/** Shop schedule combining working hours with speed-tier cutoffs */
+final case class ShopSchedule(
+    workingHours: WorkingHours,
+    expressCutoffMinute: Int,   // minutes from midnight, e.g. 840 = 14:00
+    standardCutoffMinute: Int,  // minutes from midnight, e.g. 960 = 16:00
+)
+
+object ShopSchedule:
+  val default: ShopSchedule = ShopSchedule(
+    workingHours = WorkingHours.default,
+    expressCutoffMinute = 840,   // 14:00
+    standardCutoffMinute = 960,  // 16:00
+  )
+
+/** Tier-level restrictions per product category */
+final case class TierRestriction(
+    categoryId: CategoryId,
+    tier: ManufacturingSpeed,
+    maxQuantity: Option[Int],
+    maxComponents: Option[Int] = None,
+    maxFinishes: Option[Int] = None,
+)
+
 /** Status of an order in the approval queue */
 enum ApprovalStatus:
   case Placed

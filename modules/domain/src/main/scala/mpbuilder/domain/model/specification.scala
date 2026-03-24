@@ -60,16 +60,18 @@ enum SpecValue:
   case PagesSpec(count: Int)
   case FoldTypeSpec(foldType: FoldType)
   case BindingMethodSpec(method: BindingMethod)
+  case ManufacturingSpeedSpec(speed: ManufacturingSpeed)
 
 object SpecValue:
   def specKind(sv: SpecValue): SpecKind = sv match
-    case _: SpecValue.SizeSpec          => SpecKind.Size
-    case _: SpecValue.QuantitySpec      => SpecKind.Quantity
-    case _: SpecValue.OrientationSpec   => SpecKind.Orientation
-    case _: SpecValue.BleedSpec         => SpecKind.Bleed
-    case _: SpecValue.PagesSpec         => SpecKind.Pages
-    case _: SpecValue.FoldTypeSpec      => SpecKind.FoldType
-    case _: SpecValue.BindingMethodSpec => SpecKind.BindingMethod
+    case _: SpecValue.SizeSpec                => SpecKind.Size
+    case _: SpecValue.QuantitySpec            => SpecKind.Quantity
+    case _: SpecValue.OrientationSpec         => SpecKind.Orientation
+    case _: SpecValue.BleedSpec               => SpecKind.Bleed
+    case _: SpecValue.PagesSpec               => SpecKind.Pages
+    case _: SpecValue.FoldTypeSpec            => SpecKind.FoldType
+    case _: SpecValue.BindingMethodSpec       => SpecKind.BindingMethod
+    case _: SpecValue.ManufacturingSpeedSpec  => SpecKind.ManufacturingSpeed
 
 final case class ProductSpecifications(specs: Map[SpecKind, SpecValue]):
   def get(kind: SpecKind): Option[SpecValue] = specs.get(kind)

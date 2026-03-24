@@ -79,6 +79,11 @@ object SamplePricelist:
       PricingRule.QuantityTier(250, Some(999), BigDecimal("0.90")),
       PricingRule.QuantityTier(1000, Some(4999), BigDecimal("0.80")),
       PricingRule.QuantityTier(5000, None, BigDecimal("0.70")),
+
+      // --- Manufacturing speed surcharges (multiplier on discounted subtotal) ---
+      PricingRule.ManufacturingSpeedSurcharge(ManufacturingSpeed.Express, BigDecimal("1.35")),
+      PricingRule.ManufacturingSpeedSurcharge(ManufacturingSpeed.Standard, BigDecimal("1.00")),
+      PricingRule.ManufacturingSpeedSurcharge(ManufacturingSpeed.Economy, BigDecimal("0.85")),
     ),
     currency = Currency.USD,
     version = "1.1.0",
@@ -470,7 +475,26 @@ object SamplePricelist:
 
       // --- Minimum order price ---
       PricingRule.MinimumOrderPrice(Money("500")),
+
+      // --- Manufacturing speed surcharges (multiplier on discounted subtotal) ---
+      PricingRule.ManufacturingSpeedSurcharge(ManufacturingSpeed.Express, BigDecimal("1.35")),
+      PricingRule.ManufacturingSpeedSurcharge(ManufacturingSpeed.Standard, BigDecimal("1.00")),
+      PricingRule.ManufacturingSpeedSurcharge(ManufacturingSpeed.Economy, BigDecimal("0.85")),
     ),
     currency = Currency.CZK,
     version = "1.0.0-czk-sheet",
+  )
+
+  /** Sample tier restrictions for Express manufacturing per category. */
+  val tierRestrictions: List[TierRestriction] = List(
+    TierRestriction(SampleCatalog.businessCardsId, ManufacturingSpeed.Express, maxQuantity = Some(2000)),
+    TierRestriction(SampleCatalog.flyersId, ManufacturingSpeed.Express, maxQuantity = Some(2000)),
+    TierRestriction(SampleCatalog.brochuresId, ManufacturingSpeed.Express, maxQuantity = Some(1000)),
+    TierRestriction(SampleCatalog.bannersId, ManufacturingSpeed.Express, maxQuantity = Some(50)),
+    TierRestriction(SampleCatalog.packagingId, ManufacturingSpeed.Express, maxQuantity = Some(500)),
+    TierRestriction(SampleCatalog.bookletsId, ManufacturingSpeed.Express, maxQuantity = Some(500), maxComponents = Some(2)),
+    TierRestriction(SampleCatalog.calendarsId, ManufacturingSpeed.Express, maxQuantity = Some(500)),
+    TierRestriction(SampleCatalog.postcardsId, ManufacturingSpeed.Express, maxQuantity = Some(2000)),
+    TierRestriction(SampleCatalog.stickersId, ManufacturingSpeed.Express, maxQuantity = Some(5000)),
+    TierRestriction(SampleCatalog.rollUpsId, ManufacturingSpeed.Express, maxQuantity = Some(20)),
   )

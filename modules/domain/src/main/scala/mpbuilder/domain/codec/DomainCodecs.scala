@@ -119,6 +119,9 @@ object DomainCodecs:
   given JsonEncoder[BindingMethod] = JsonEncoder[String].contramap(_.toString)
   given JsonDecoder[BindingMethod] = JsonDecoder[String].map(BindingMethod.valueOf)
 
+  given JsonEncoder[ManufacturingSpeed] = JsonEncoder[String].contramap(_.toString)
+  given JsonDecoder[ManufacturingSpeed] = JsonDecoder[String].map(ManufacturingSpeed.valueOf)
+
   // ── Component types ──────────────────────────────────────────────────────
 
   given JsonEncoder[ComponentRole] = JsonEncoder[String].contramap(_.toString)
