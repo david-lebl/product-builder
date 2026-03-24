@@ -152,6 +152,8 @@ object ProductBuilderViewModel:
       specs += SpecValue.BindingMethodSpec(BindingMethod.SaddleStitch)
     if kinds.contains(SpecKind.Pages) then
       specs += SpecValue.PagesSpec(8)
+    // Manufacturing speed defaults to Standard for all categories
+    specs += SpecValue.ManufacturingSpeedSpec(ManufacturingSpeed.Standard)
     specs.result()
 
   // Update material selection for a specific component role

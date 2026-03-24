@@ -102,6 +102,17 @@ object ConfigurationForm:
         SpecificationForm(),
       ),
 
+      // Manufacturing Speed
+      div(
+        cls := "form-section",
+        Visibility.when(ProductBuilderViewModel.state.map(_.selectedCategoryId.isDefined)),
+        h3(child.text <-- lang.map {
+          case Language.En => "5. Manufacturing Speed"
+          case Language.Cs => "5. Rychlost výroby"
+        }),
+        ManufacturingSpeedSelector(),
+      ),
+
       // Server Validate Button (price is computed live; this button reserved for future server-side validation)
       div(
         cls := "form-section",
@@ -119,8 +130,8 @@ object ConfigurationForm:
         cls := "form-section artwork-section",
         Visibility.when(ProductBuilderViewModel.state.map(_.configuration.isDefined)),
         h3(child.text <-- lang.map {
-          case Language.En => "5. Provide Artwork"
-          case Language.Cs => "5. Poskytnutí dat"
+          case Language.En => "6. Provide Artwork"
+          case Language.Cs => "6. Poskytnutí dat"
         }),
         div(
           cls := "artwork-options",

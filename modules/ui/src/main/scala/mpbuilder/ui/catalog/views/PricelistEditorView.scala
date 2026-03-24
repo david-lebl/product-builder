@@ -109,6 +109,7 @@ object PricelistEditorView:
     case r: PricingRule.FoldTypeSetupFee => s"FoldTypeSetupFee: ${r.foldType} = ${r.setupCost.value}"
     case r: PricingRule.BindingMethodSetupFee => s"BindingSetupFee: ${r.bindingMethod} = ${r.setupCost.value}"
     case r: PricingRule.MinimumOrderPrice => s"MinimumOrderPrice: ${r.minTotal.value}"
+    case r: PricingRule.ManufacturingSpeedSurcharge => s"SpeedSurcharge: ${r.speed} × ${r.multiplier}"
 
   private def pricingRuleForm(existing: Option[PricingRule], index: Int): HtmlElement =
     val ruleTypeVar = Var(existing.map(pricingRuleTypeName).getOrElse("MaterialBasePrice"))
@@ -295,6 +296,8 @@ object PricelistEditorView:
       case "FoldTypeSetupFee" => money.map(m => PricingRule.FoldTypeSetupFee(foldType, m))
       case "BindingMethodSetupFee" => money.map(m => PricingRule.BindingMethodSetupFee(bindingMethod, m))
       case "MinimumOrderPrice" => money.map(m => PricingRule.MinimumOrderPrice(m))
+      case "ManufacturingSpeedSurcharge" =>
+        mult.map(m => PricingRule.ManufacturingSpeedSurcharge(ManufacturingSpeed.Standard, m))
       case _ => None
 
   // Extractors for populating form from existing rules
@@ -317,6 +320,7 @@ object PricelistEditorView:
     case _: PricingRule.FoldTypeSetupFee => "FoldTypeSetupFee"
     case _: PricingRule.BindingMethodSetupFee => "BindingMethodSetupFee"
     case _: PricingRule.MinimumOrderPrice => "MinimumOrderPrice"
+    case _: PricingRule.ManufacturingSpeedSurcharge => "ManufacturingSpeedSurcharge"
 
   private def extractPricingMaterialId(rule: Option[PricingRule]): Option[String] = rule.collect {
     case r: PricingRule.MaterialBasePrice => r.materialId.value
@@ -374,6 +378,7 @@ object PricelistEditorView:
     case r: PricingRule.QuantityTier => r.multiplier
     case r: PricingRule.SheetQuantityTier => r.multiplier
     case r: PricingRule.InkConfigurationFactor => r.materialMultiplier
+    case r: PricingRule.ManufacturingSpeedSurcharge => r.multiplier
   }
 
   private def extractFrontColor(rule: Option[PricingRule]): Option[Int] = rule.collect {
