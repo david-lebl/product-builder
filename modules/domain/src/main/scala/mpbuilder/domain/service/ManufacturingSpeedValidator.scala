@@ -22,10 +22,10 @@ object ManufacturingSpeedValidator:
         case Language.Cs => s"${speed.displayName(Language.Cs)} není dostupný pro množství nad $max (požadováno: $requested)"
       case TooManyComponents(speed, max, actual) => lang match
         case Language.En => s"${speed.displayName(Language.En)} is limited to $max components (configuration has $actual)"
-        case Language.Cs => s"${speed.displayName(Language.En)} je omezen na $max komponent (konfigurace má $actual)"
+        case Language.Cs => s"${speed.displayName(Language.Cs)} je omezen na $max komponent (konfigurace má $actual)"
       case TooManyFinishes(speed, max, actual) => lang match
         case Language.En => s"${speed.displayName(Language.En)} is limited to $max finishes (configuration has $actual)"
-        case Language.Cs => s"${speed.displayName(Language.En)} je omezen na $max dokončení (konfigurace má $actual)"
+        case Language.Cs => s"${speed.displayName(Language.Cs)} je omezen na $max dokončení (konfigurace má $actual)"
 
   /** Validate that the given speed tier is feasible for the configuration.
     *

@@ -190,9 +190,11 @@ object PricePreview:
               )
 
               val speedSurchargeLines = breakdown.speedSurcharge.map { item =>
+                val pct = ((breakdown.speedMultiplier - BigDecimal(1)) * 100).setScale(0, BigDecimal.RoundingMode.HALF_UP)
+                val pctLabel = if pct > 0 then s"+$pct%" else s"$pct%"
                 div(
                   cls := "price-line-item",
-                  span(s"${item.label} (${breakdown.speedMultiplier}\u00d7):"),
+                  span(s"${item.label} ($pctLabel):"),
                   span(formatMoney(item.lineTotal, cur)),
                 )
               }.toList
