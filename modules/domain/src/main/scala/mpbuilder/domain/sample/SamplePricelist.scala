@@ -81,8 +81,24 @@ object SamplePricelist:
       PricingRule.QuantityTier(5000, None, BigDecimal("0.70")),
 
       // --- Manufacturing speed surcharges (multiplier on discounted subtotal) ---
-      PricingRule.ManufacturingSpeedSurcharge(ManufacturingSpeed.Express, BigDecimal("1.35")),
-      PricingRule.ManufacturingSpeedSurcharge(ManufacturingSpeed.Standard, BigDecimal("1.00")),
+      // Phase 2: Express and Standard have queue-sensitive dynamic surcharges
+      PricingRule.ManufacturingSpeedSurcharge(
+        ManufacturingSpeed.Express, BigDecimal("1.35"),
+        queueMultiplierThresholds = List(
+          QueueThreshold(minUtilisation = BigDecimal("0.50"), additionalMultiplier = BigDecimal("0.00")),
+          QueueThreshold(minUtilisation = BigDecimal("0.70"), additionalMultiplier = BigDecimal("0.15")),
+          QueueThreshold(minUtilisation = BigDecimal("0.85"), additionalMultiplier = BigDecimal("0.40")),
+        ),
+      ),
+      PricingRule.ManufacturingSpeedSurcharge(
+        ManufacturingSpeed.Standard, BigDecimal("1.00"),
+        queueMultiplierThresholds = List(
+          QueueThreshold(minUtilisation = BigDecimal("0.70"), additionalMultiplier = BigDecimal("0.05")),
+          QueueThreshold(minUtilisation = BigDecimal("0.85"), additionalMultiplier = BigDecimal("0.10")),
+          QueueThreshold(minUtilisation = BigDecimal("0.95"), additionalMultiplier = BigDecimal("0.15")),
+        ),
+      ),
+      // Economy price never changes — it's the anchor customers can always rely on
       PricingRule.ManufacturingSpeedSurcharge(ManufacturingSpeed.Economy, BigDecimal("0.85")),
     ),
     currency = Currency.USD,
@@ -477,8 +493,22 @@ object SamplePricelist:
       PricingRule.MinimumOrderPrice(Money("500")),
 
       // --- Manufacturing speed surcharges (multiplier on discounted subtotal) ---
-      PricingRule.ManufacturingSpeedSurcharge(ManufacturingSpeed.Express, BigDecimal("1.35")),
-      PricingRule.ManufacturingSpeedSurcharge(ManufacturingSpeed.Standard, BigDecimal("1.00")),
+      PricingRule.ManufacturingSpeedSurcharge(
+        ManufacturingSpeed.Express, BigDecimal("1.35"),
+        queueMultiplierThresholds = List(
+          QueueThreshold(minUtilisation = BigDecimal("0.50"), additionalMultiplier = BigDecimal("0.00")),
+          QueueThreshold(minUtilisation = BigDecimal("0.70"), additionalMultiplier = BigDecimal("0.15")),
+          QueueThreshold(minUtilisation = BigDecimal("0.85"), additionalMultiplier = BigDecimal("0.40")),
+        ),
+      ),
+      PricingRule.ManufacturingSpeedSurcharge(
+        ManufacturingSpeed.Standard, BigDecimal("1.00"),
+        queueMultiplierThresholds = List(
+          QueueThreshold(minUtilisation = BigDecimal("0.70"), additionalMultiplier = BigDecimal("0.05")),
+          QueueThreshold(minUtilisation = BigDecimal("0.85"), additionalMultiplier = BigDecimal("0.10")),
+          QueueThreshold(minUtilisation = BigDecimal("0.95"), additionalMultiplier = BigDecimal("0.15")),
+        ),
+      ),
       PricingRule.ManufacturingSpeedSurcharge(ManufacturingSpeed.Economy, BigDecimal("0.85")),
     ),
     currency = Currency.CZK,
@@ -497,4 +527,31 @@ object SamplePricelist:
     TierRestriction(SampleCatalog.postcardsId, ManufacturingSpeed.Express, maxQuantity = Some(2000)),
     TierRestriction(SampleCatalog.stickersId, ManufacturingSpeed.Express, maxQuantity = Some(5000)),
     TierRestriction(SampleCatalog.rollUpsId, ManufacturingSpeed.Express, maxQuantity = Some(20)),
+  )
+
+  /** Sample busy period multipliers for time-based dynamic pricing (Phase 2).
+    *
+    * Monday and Friday are peak order days (+5% Express surcharge).
+    * Pre-Christmas season Nov–Dec (+10% Express surcharge).
+    * Orders placed after 14:00 get a mild surcharge (+3%).
+    */
+  val busyPeriodMultipliers: List[BusyPeriodMultiplier] = List(
+    BusyPeriodMultiplier(
+      dayOfWeek = Some(Set(1, 5)),          // Monday and Friday
+      monthRange = None,
+      timeAfterMinute = None,
+      additionalMultiplier = BigDecimal("0.05"),
+    ),
+    BusyPeriodMultiplier(
+      dayOfWeek = None,
+      monthRange = Some((11, 12)),          // November–December
+      timeAfterMinute = None,
+      additionalMultiplier = BigDecimal("0.10"),
+    ),
+    BusyPeriodMultiplier(
+      dayOfWeek = None,
+      monthRange = None,
+      timeAfterMinute = Some(840),          // After 14:00
+      additionalMultiplier = BigDecimal("0.03"),
+    ),
   )

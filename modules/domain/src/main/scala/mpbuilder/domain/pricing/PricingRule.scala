@@ -33,4 +33,5 @@ enum PricingRule:
   // Global price floor applied after setup fees
   case MinimumOrderPrice(minTotal: Money)
   // Manufacturing speed tier multiplier (applied to discounted subtotal, before setup fees)
-  case ManufacturingSpeedSurcharge(speed: ManufacturingSpeed, multiplier: BigDecimal)
+  // queueMultiplierThresholds: dynamic surcharges based on queue utilisation (Phase 2)
+  case ManufacturingSpeedSurcharge(speed: ManufacturingSpeed, multiplier: BigDecimal, queueMultiplierThresholds: List[QueueThreshold] = Nil)

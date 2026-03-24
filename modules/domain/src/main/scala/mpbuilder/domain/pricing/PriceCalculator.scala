@@ -2,6 +2,7 @@ package mpbuilder.domain.pricing
 
 import zio.prelude.*
 import mpbuilder.domain.model.*
+import mpbuilder.domain.service.UtilisationCalculator
 
 object PriceCalculator:
 
@@ -9,6 +10,7 @@ object PriceCalculator:
       config: ProductConfiguration,
       pricelist: Pricelist,
       lang: Language = Language.En,
+      pricingContext: PricingContext = PricingContext.empty,
   ): Validation[PricingError, PriceBreakdown] =
     val rules = pricelist.rules
 
@@ -61,6 +63,7 @@ object PriceCalculator:
         val discountedSubtotal = (subtotal * multiplier).rounded
 
         // Manufacturing speed multiplier (applied after quantity discount, before setup fees)
+        // Phase 2: dynamic surcharges based on queue utilisation and busy periods
         val speed = config.specifications.get(SpecKind.ManufacturingSpeed).collect {
           case SpecValue.ManufacturingSpeedSpec(s) => s
         }
@@ -69,7 +72,24 @@ object PriceCalculator:
             case r: PricingRule.ManufacturingSpeedSurcharge if r.speed == s => r
           }
         }
-        val speedMult = speedRule.map(_.multiplier).getOrElse(BigDecimal(1))
+        val speedMult = speedRule.map { r =>
+          val ctx = pricingContext
+          val hasDynamic = r.queueMultiplierThresholds.nonEmpty ||
+            ctx.busyPeriodMultipliers.nonEmpty
+          if hasDynamic then
+            UtilisationCalculator.computeEffectiveMultiplier(
+              baseMultiplier = r.multiplier,
+              thresholds = r.queueMultiplierThresholds,
+              globalUtil = ctx.globalUtilisation,
+              busyMultipliers = ctx.busyPeriodMultipliers,
+              dayOfWeek = ctx.currentDayOfWeek.getOrElse(1),
+              month = ctx.currentMonth.getOrElse(1),
+              minuteOfDay = ctx.currentMinuteOfDay.getOrElse(0),
+              cap = ctx.expressSurchargeCap,
+              speed = speed.get,
+            )
+          else r.multiplier
+        }.getOrElse(BigDecimal(1))
         val afterSpeed = (discountedSubtotal * speedMult).rounded
         val speedSurchargeItem = speedRule.flatMap { r =>
           val diff = afterSpeed.value - discountedSubtotal.value

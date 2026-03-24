@@ -57,6 +57,121 @@ object ProductionTimeEstimator:
     val bufferMinutes = buffer(speed)
     approvalMinutes + productionMinutes + bufferMinutes
 
+  /** Phase 2: Queue-aware completion estimation.
+    *
+    * Includes queue wait time per station based on the tier's queue position.
+    * Express orders jump to front, Standard waits after Rush, Economy goes to end.
+    */
+  def estimateCompletionWithQueueMinutes(
+      config: ProductConfiguration,
+      quantity: Int,
+      speed: ManufacturingSpeed,
+      queueStates: List[StationQueueState],
+      stationEstimates: List[StationTimeEstimate] = defaultStationEstimates,
+  ): Int =
+    val steps = deriveStepTypes(config)
+    val productionMinutes = steps.map { stationType =>
+      estimateStepMinutes(stationType, quantity, stationEstimates)
+    }.sum
+    val queueWaitMinutes = steps.map { stationType =>
+      estimateQueueWaitMinutes(stationType, speed, queueStates)
+    }.sum
+    val approvalMinutes = approvalDelay(speed)
+    val bufferMinutes = buffer(speed)
+    approvalMinutes + productionMinutes + queueWaitMinutes + bufferMinutes
+
+  /** Estimate queue wait time in minutes for a single station. */
+  def estimateQueueWaitMinutes(
+      stationType: StationType,
+      speed: ManufacturingSpeed,
+      queueStates: List[StationQueueState],
+  ): Int =
+    queueStates.find(_.stationType == stationType) match
+      case None => 0
+      case Some(qs) =>
+        if qs.avgProcessingTimeMs <= 0 || qs.activeMachineCount <= 0 then 0
+        else
+          val position = speed match
+            case ManufacturingSpeed.Express  => 0                // front of queue
+            case ManufacturingSpeed.Standard => qs.normalPosition // after Rush items
+            case ManufacturingSpeed.Economy  => qs.totalDepth    // end of queue
+          val waitMs = (position.toLong * qs.avgProcessingTimeMs) / qs.activeMachineCount.toLong
+          (waitMs / 60000).toInt // convert ms to minutes
+
+  /** Phase 2: Express cutoff enforcement.
+    *
+    * If Express is selected and the current time is past the Express cutoff,
+    * the estimate shifts to start at the next business day morning.
+    * Similarly for Standard with the standard cutoff.
+    *
+    * @return adjusted startMinuteOfDay and startDayOfWeek after cutoff enforcement
+    */
+  def enforceCutoff(
+      speed: ManufacturingSpeed,
+      startMinuteOfDay: Int,
+      startDayOfWeek: Int,
+      schedule: ShopSchedule,
+  ): (Int, Int) =
+    val cutoff = speed match
+      case ManufacturingSpeed.Express  => Some(schedule.expressCutoffMinute)
+      case ManufacturingSpeed.Standard => Some(schedule.standardCutoffMinute)
+      case ManufacturingSpeed.Economy  => None // no cutoff for Economy
+    cutoff match
+      case Some(cutoffMinute) if startMinuteOfDay >= cutoffMinute =>
+        // Past cutoff — shift to next business day opening
+        val wh = schedule.workingHours
+        val (calAdv, nextDay, _) = advanceToNextWorkStart(startMinuteOfDay, startDayOfWeek, wh)
+        (wh.openTime, nextDay)
+      case _ =>
+        (startMinuteOfDay, startDayOfWeek)
+
+  /** Phase 2: Full calendar-aware completion estimate with queue and cutoff.
+    *
+    * Computes the estimated calendar minutes from now until completion,
+    * accounting for queue wait times, working hours, weekends, and cutoff enforcement.
+    */
+  def estimateCalendarCompletionMinutes(
+      config: ProductConfiguration,
+      quantity: Int,
+      speed: ManufacturingSpeed,
+      startMinuteOfDay: Int,
+      startDayOfWeek: Int,
+      schedule: ShopSchedule,
+      queueStates: List[StationQueueState] = Nil,
+      stationEstimates: List[StationTimeEstimate] = defaultStationEstimates,
+  ): Int =
+    // Enforce cutoff — may shift start to next business day
+    val (adjustedMinute, adjustedDay) = enforceCutoff(speed, startMinuteOfDay, startDayOfWeek, schedule)
+
+    // Calculate the calendar gap from original start to adjusted start
+    val cutoffGap = if adjustedMinute == startMinuteOfDay && adjustedDay == startDayOfWeek then 0
+    else
+      // Count calendar minutes from original position to the adjusted position
+      val wh = schedule.workingHours
+      var gap = 0
+      var curMin = startMinuteOfDay
+      var curDay = startDayOfWeek
+      // Advance to end of current day
+      gap += (1440 - curMin)
+      curMin = 0
+      curDay = if curDay == 7 then 1 else curDay + 1
+      // Skip non-working days
+      while curDay != adjustedDay do
+        gap += 1440
+        curDay = if curDay == 7 then 1 else curDay + 1
+      // Add time to adjusted minute
+      gap += adjustedMinute
+      gap
+
+    // Calculate work minutes including queue wait
+    val workMinutes = if queueStates.nonEmpty then
+      estimateCompletionWithQueueMinutes(config, quantity, speed, queueStates, stationEstimates)
+    else
+      estimateCompletionMinutes(config, quantity, speed, stationEstimates)
+
+    // Convert work minutes to calendar minutes respecting working hours, starting from adjusted time
+    cutoffGap + workingMinutesToCalendarMinutes(workMinutes, adjustedMinute, adjustedDay, schedule)
+
   /** Compute estimated completion as working-day-aware minute offset.
     *
     * Given a starting time (minutes from midnight on a given day-of-week 1-7),

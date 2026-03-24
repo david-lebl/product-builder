@@ -170,6 +170,15 @@ object DomainCodecs:
 
   // ── Pricing rules ────────────────────────────────────────────────────────
 
+  // Phase 2: QueueThreshold and BusyPeriodMultiplier codecs
+  given JsonCodec[QueueThreshold] = DeriveJsonCodec.gen[QueueThreshold]
+
+  given intSetEnc: JsonEncoder[Set[Int]] = JsonEncoder[List[Int]].contramap(_.toList)
+  given intSetDec: JsonDecoder[Set[Int]] = JsonDecoder[List[Int]].map(_.toSet)
+  given intTupleEnc: JsonEncoder[(Int, Int)] = DeriveJsonEncoder.gen[(Int, Int)]
+  given intTupleDec: JsonDecoder[(Int, Int)] = DeriveJsonDecoder.gen[(Int, Int)]
+  given JsonCodec[BusyPeriodMultiplier] = DeriveJsonCodec.gen[BusyPeriodMultiplier]
+
   given JsonCodec[PricingRule] = DeriveJsonCodec.gen[PricingRule]
   given JsonCodec[Pricelist] = DeriveJsonCodec.gen[Pricelist]
 

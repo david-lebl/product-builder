@@ -191,6 +191,71 @@ final case class TierRestriction(
     maxFinishes: Option[Int] = None,
 )
 
+/** Queue utilisation threshold for dynamic pricing.
+  * When global utilisation >= minUtilisation, the additionalMultiplier
+  * is added to the base speed multiplier.
+  */
+final case class QueueThreshold(
+    minUtilisation: BigDecimal,
+    additionalMultiplier: BigDecimal,
+)
+
+/** Busy period multiplier for time-based pricing surcharges.
+  * Stacks with queue-based multipliers up to a configurable cap.
+  */
+final case class BusyPeriodMultiplier(
+    dayOfWeek: Option[Set[Int]],      // 1=Monday..7=Sunday (ISO day-of-week)
+    monthRange: Option[(Int, Int)],   // 1=January..12=December
+    timeAfterMinute: Option[Int],     // minutes from midnight, e.g. 840 = 14:00
+    additionalMultiplier: BigDecimal,
+)
+
+object BusyPeriodMultiplier:
+  /** Check if a busy period multiplier applies at the given time. */
+  extension (bp: BusyPeriodMultiplier)
+    def appliesAt(dayOfWeek: Int, month: Int, minuteOfDay: Int): Boolean =
+      val dayMatch = bp.dayOfWeek.forall(_.contains(dayOfWeek))
+      val monthMatch = bp.monthRange.forall { case (from, to) =>
+        if from <= to then month >= from && month <= to
+        else month >= from || month <= to // wraps around year boundary (e.g. Nov-Feb)
+      }
+      val timeMatch = bp.timeAfterMinute.forall(minuteOfDay >= _)
+      dayMatch && monthMatch && timeMatch
+
+/** Per-station utilisation metrics for queue-aware pricing and estimation. */
+final case class StationUtilisation(
+    stationType: StationType,
+    queueDepth: Int,           // Waiting + Ready steps
+    inProgressCount: Int,      // Currently being worked on
+    machineCount: Int,         // Active machines for this station
+    avgProcessingTimeMs: Long, // Historical average per step
+)
+
+object StationUtilisation:
+  /** Optimal throughput capacity per machine (steps processable concurrently). */
+  private val optimalThroughput = 4
+
+  extension (su: StationUtilisation)
+    /** Utilisation ratio (0.0–1.0+). Above 1.0 means overloaded. */
+    def utilisationRatio: BigDecimal =
+      if su.machineCount == 0 then BigDecimal(1) // no machines = fully saturated
+      else BigDecimal(su.queueDepth + su.inProgressCount) / (su.machineCount * optimalThroughput)
+
+    /** Estimated time in ms to drain the current queue at current rate. */
+    def estimatedClearTimeMs: Long =
+      val effectiveMachines = math.max(su.machineCount, 1)
+      val totalSteps = su.queueDepth + su.inProgressCount
+      (totalSteps.toLong * su.avgProcessingTimeMs) / effectiveMachines
+
+/** Queue state for a station, used for queue-aware completion estimation. */
+final case class StationQueueState(
+    stationType: StationType,
+    normalPosition: Int,        // queue position after Rush items (for Standard orders)
+    totalDepth: Int,            // total queue depth
+    avgProcessingTimeMs: Long,  // average time per step
+    activeMachineCount: Int,    // number of active machines
+)
+
 /** Status of an order in the approval queue */
 enum ApprovalStatus:
   case Placed
