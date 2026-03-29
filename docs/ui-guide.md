@@ -5,10 +5,53 @@ This guide explains how to build, run, and test the Product Builder locally. The
 ## Prerequisites
 
 - Java 11+ (Java 17 recommended)
-- sbt 1.12.3+ (Scala Build Tool)
+- Mill 1.1.3+ or sbt 1.12.3+ (Scala Build Tool)
 - A modern web browser
 
-## Quick Start
+## Quick Start (Mill)
+
+### 1. Build the UI
+
+From the project root directory, run:
+
+```bash
+mill ui.fastLinkJS
+```
+
+This will:
+- Compile the domain model for Scala.js
+- Compile the UI code to JavaScript
+- Generate `main.js` in `out/ui/fastLinkJS.dest/`
+
+The first build may take a while as it downloads dependencies.
+
+### 2. Prepare the distribution
+
+Copy the compiled files to a distribution directory:
+
+```bash
+mkdir -p dist
+cp modules/ui/src/main/resources/index.html dist/
+cp modules/ui/src/main/resources/*.css dist/
+cp out/ui/fastLinkJS.dest/main.js dist/
+```
+
+### 3. Serve the UI
+
+Start a local HTTP server in the `dist` directory:
+
+```bash
+cd dist
+python3 -m http.server 8080
+```
+
+Or use any other static file server of your choice.
+
+### 4. Open in browser
+
+Navigate to: http://localhost:8080/index.html
+
+## Quick Start (sbt — legacy)
 
 ### 1. Build the UI
 
@@ -55,6 +98,22 @@ Navigate to: http://localhost:8080/index.html
 
 For faster development iterations:
 
+### Using Mill
+
+1. Build with Mill:
+   ```bash
+   mill ui.fastLinkJS
+   ```
+
+2. Copy the new `main.js` to `dist/`:
+   ```bash
+   cp out/ui/fastLinkJS.dest/main.js dist/
+   ```
+
+3. Refresh your browser to see changes.
+
+### Using sbt
+
 1. Keep sbt running in watch mode:
    ```bash
    sbt ~ui/fastLinkJS
@@ -70,7 +129,18 @@ For faster development iterations:
 
 ## Production Build
 
-For production deployment, use fullOptimization:
+### Using Mill
+
+```bash
+mill ui.fullLinkJS
+
+mkdir -p dist
+cp modules/ui/src/main/resources/index.html dist/
+cp modules/ui/src/main/resources/*.css dist/
+cp out/ui/fullLinkJS.dest/main.js dist/
+```
+
+### Using sbt
 
 ```bash
 sbt ui/fullLinkJS
@@ -83,7 +153,17 @@ cp modules/ui/target/scala-3.3.3/material-builder-ui-opt/main.js dist/
 
 ## Testing
 
-### Running Tests
+### Running Tests (Mill)
+
+```bash
+# Run all domain tests
+mill domain.jvm.test
+
+# Run a single test suite (pattern match)
+mill 'domain.jvm.test.testOnly *PriceCalculatorSpec'
+```
+
+### Running Tests (sbt)
 
 ```bash
 # Run all tests (99 tests across 5 suites)
@@ -115,9 +195,9 @@ sbt "testOnly * -- -v"
 
 ### Tips for Faster Iteration
 
-- Use `sbt domainJVM/test` instead of `sbt test` when you only changed domain code — it skips Scala.js compilation and is significantly faster.
-- Use `sbt ~domainJVM/test` for continuous testing during domain development.
-- The UI module has no tests; compile it with `sbt ui/compile` to check for errors.
+- Use `mill domain.jvm.test` (or `sbt domainJVM/test`) instead of running all tests when you only changed domain code — it skips Scala.js compilation and is significantly faster.
+- With sbt, use `sbt ~domainJVM/test` for continuous testing during domain development.
+- The UI module has no tests; compile it with `mill ui.compile` (or `sbt ui/compile`) to check for errors.
 
 ## Using the UI
 
