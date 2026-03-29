@@ -151,7 +151,7 @@ object OrderSummaryView:
         if hasOverride then s"$calcPrice → $effPrice" else calcPrice
       ),
       span(cls := "order-summary-item-cost", cost),
-      span(cls := s"order-summary-item-margin${marginClass(item)}", margin),
+      span(cls := s"order-summary-item-margin${item.marginCssClass}", margin),
     )
 
   private def summaryRow(label: String, valueSignal: Signal[String]): HtmlElement =
@@ -161,11 +161,4 @@ object OrderSummaryView:
       span(cls := "order-summary-total-value", child.text <-- valueSignal),
     )
 
-  private def marginClass(item: OrderLineItem): String =
-    if item.priceBreakdown.isEmpty then ""
-    else if item.marginPercent >= 30 then " margin-good"
-    else if item.marginPercent >= 15 then " margin-ok"
-    else " margin-low"
-
-  private def formatMoney(m: Money): String =
-    m.rounded.value.setScale(2).toString
+  private def formatMoney(m: Money): String = OrderLineItem.formatMoney(m)

@@ -148,11 +148,8 @@ object OrderItemsView:
             updateItem()
           },
         ),
-        child <-- availableMaterials.map { mats =>
-          option("— Select —", value := "")
-        },
         children <-- availableMaterials.map { mats =>
-          mats.map { case (id, mat) =>
+          option("— Select —", value := "") :: mats.map { case (id, mat) =>
             option(mat.name.value, value := id.value)
           }
         },
@@ -168,11 +165,8 @@ object OrderItemsView:
             updateItem()
           },
         ),
-        child <-- availableMethods.map { _ =>
-          option("— Select —", value := "")
-        },
         children <-- availableMethods.map { methods =>
-          methods.map { case (id, pm) =>
+          option("— Select —", value := "") :: methods.map { case (id, pm) =>
             option(pm.name.value, value := id.value)
           }
         },
@@ -235,7 +229,9 @@ object OrderItemsView:
           onInput.mapToValue --> customPriceVar.writer,
         ),
         onChange --> { _ =>
-          val price = customPriceVar.now().toDoubleOption.map(BigDecimal(_))
+          val priceStr = customPriceVar.now().trim
+          val price = if priceStr.isEmpty then None
+                      else scala.util.Try(BigDecimal(priceStr)).toOption
           InternalOrderEntryViewModel.setCustomPrice(item.lineId, price)
         },
       ),
@@ -250,7 +246,7 @@ object OrderItemsView:
 
       // Margin
       span(
-        cls := s"order-field col-margin order-margin-display${marginClass(item)}",
+        cls := s"order-field col-margin order-margin-display${item.marginCssClass}",
         item.priceBreakdown match
           case Some(_) =>
             val m = item.margin
@@ -277,11 +273,4 @@ object OrderItemsView:
       ),
     )
 
-  private def marginClass(item: OrderLineItem): String =
-    if item.priceBreakdown.isEmpty then ""
-    else if item.marginPercent >= 30 then " margin-good"
-    else if item.marginPercent >= 15 then " margin-ok"
-    else " margin-low"
-
-  private def formatMoney(m: Money): String =
-    m.rounded.value.setScale(2).toString
+  private def formatMoney(m: Money): String = OrderLineItem.formatMoney(m)

@@ -173,6 +173,7 @@ object InternalOrderEntryViewModel:
   def printingMethodsForCategory(categoryId: CategoryId): List[(PrintingMethodId, PrintingMethod)] =
     catalog.categories.get(categoryId) match
       case Some(cat) =>
+        // Empty allowedPrintingMethodIds means all methods are allowed (e.g. Free Configuration)
         val pmIds = if cat.allowedPrintingMethodIds.isEmpty then catalog.printingMethods.keySet
                     else cat.allowedPrintingMethodIds
         pmIds.toList.flatMap { pmId =>
