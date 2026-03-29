@@ -5,7 +5,7 @@ This guide explains how to build, run, and test the Product Builder locally. The
 ## Prerequisites
 
 - Java 11+ (Java 17 recommended)
-- Mill 1.1.3+ (bootstrap script included in repo) or sbt 1.12.3+ (Scala Build Tool)
+- Mill 1.1.3+ or sbt 1.12.3+ (Scala Build Tool)
 - A modern web browser
 
 ## Quick Start (Mill)
@@ -15,7 +15,7 @@ This guide explains how to build, run, and test the Product Builder locally. The
 From the project root directory, run:
 
 ```bash
-./mill ui.fastLinkJS
+mill ui.fastLinkJS
 ```
 
 This will:
@@ -102,7 +102,7 @@ For faster development iterations:
 
 1. Build with Mill:
    ```bash
-   ./mill ui.fastLinkJS
+   mill ui.fastLinkJS
    ```
 
 2. Copy the new `main.js` to `dist/`:
@@ -132,7 +132,7 @@ For faster development iterations:
 ### Using Mill
 
 ```bash
-./mill ui.fullLinkJS
+mill ui.fullLinkJS
 
 mkdir -p dist
 cp modules/ui/src/main/resources/index.html dist/
@@ -157,10 +157,10 @@ cp modules/ui/target/scala-3.3.3/material-builder-ui-opt/main.js dist/
 
 ```bash
 # Run all domain tests
-./mill domain.jvm.test
+mill domain.jvm.test
 
 # Run a single test suite (pattern match)
-./mill 'domain.jvm.test.testOnly *PriceCalculatorSpec'
+mill 'domain.jvm.test.testOnly *PriceCalculatorSpec'
 ```
 
 ### Running Tests (sbt)
@@ -195,9 +195,9 @@ sbt "testOnly * -- -v"
 
 ### Tips for Faster Iteration
 
-- Use `./mill domain.jvm.test` (or `sbt domainJVM/test`) instead of running all tests when you only changed domain code — it skips Scala.js compilation and is significantly faster.
+- Use `mill domain.jvm.test` (or `sbt domainJVM/test`) instead of running all tests when you only changed domain code — it skips Scala.js compilation and is significantly faster.
 - With sbt, use `sbt ~domainJVM/test` for continuous testing during domain development.
-- The UI module has no tests; compile it with `./mill ui.compile` (or `sbt ui/compile`) to check for errors.
+- The UI module has no tests; compile it with `mill ui.compile` (or `sbt ui/compile`) to check for errors.
 
 ## Using the UI
 

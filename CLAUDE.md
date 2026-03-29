@@ -10,18 +10,18 @@ This project supports both **Mill** (primary) and **sbt** (legacy) build tools.
 
 ```bash
 # Compile
-./mill domain.jvm.compile      # Domain (JVM target)
-./mill domain.js.compile       # Domain (Scala.js target)
-./mill ui.compile              # UI (Scala.js)
-./mill ui-framework.compile    # UI framework only
+mill domain.jvm.compile      # Domain (JVM target)
+mill domain.js.compile       # Domain (Scala.js target)
+mill ui.compile              # UI (Scala.js)
+mill ui-framework.compile    # UI framework only
 
 # Test
-./mill domain.jvm.test                                # All domain tests
-./mill 'domain.jvm.test.testOnly *PriceCalculatorSpec' # Single suite (pattern)
+mill domain.jvm.test                                # All domain tests
+mill 'domain.jvm.test.testOnly *PriceCalculatorSpec' # Single suite (pattern)
 
 # JS build
-./mill ui.fastLinkJS           # Dev build → out/ui/fastLinkJS.dest/main.js
-./mill ui.fullLinkJS           # Production build → out/ui/fullLinkJS.dest/main.js
+mill ui.fastLinkJS           # Dev build → out/ui/fastLinkJS.dest/main.js
+mill ui.fullLinkJS           # Production build → out/ui/fullLinkJS.dest/main.js
 ```
 
 ### sbt (legacy, still supported)

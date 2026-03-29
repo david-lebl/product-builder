@@ -186,7 +186,7 @@ See [docs/manufacturing-implementation-plan.md](docs/manufacturing-implementatio
 ### Prerequisites
 
 - Java 11+ (Java 17 recommended)
-- Mill 1.1.3+ (included as bootstrap script) or sbt (Scala Build Tool)
+- Mill 1.1.3+ or sbt (Scala Build Tool)
 - A modern web browser
 
 ### Build & Test
@@ -194,11 +194,11 @@ See [docs/manufacturing-implementation-plan.md](docs/manufacturing-implementatio
 #### Using Mill (recommended)
 
 ```bash
-./mill domain.jvm.compile          # Compile domain module (JVM)
-./mill domain.jvm.test             # Run all domain tests
-./mill ui.compile                  # Compile UI module (Scala.js)
-./mill ui.fastLinkJS               # Build UI JavaScript (development)
-./mill ui.fullLinkJS               # Build UI JavaScript (production, optimized)
+mill domain.jvm.compile          # Compile domain module (JVM)
+mill domain.jvm.test             # Run all domain tests
+mill ui.compile                  # Compile UI module (Scala.js)
+mill ui.fastLinkJS               # Build UI JavaScript (development)
+mill ui.fullLinkJS               # Build UI JavaScript (production, optimized)
 ```
 
 #### Using sbt (legacy)
@@ -216,7 +216,7 @@ sbt ui/fullLinkJS              # Build UI JavaScript (production, optimized)
 #### Using Mill
 
 ```bash
-./mill ui.fastLinkJS
+mill ui.fastLinkJS
 
 mkdir -p dist
 cp modules/ui/src/main/resources/index.html dist/

@@ -25,13 +25,15 @@ jobs:
           java-version: '17'
           distribution: 'temurin'
 
-      - name: Make mill executable
+      - name: Install Mill
         if: github.event.action != 'closed'
-        run: chmod +x ./mill
+        run: |
+          curl -fL "https://repo1.maven.org/maven2/com/lihaoyi/mill-dist/1.1.3/mill-dist-1.1.3.exe" -o /usr/local/bin/mill
+          chmod +x /usr/local/bin/mill
 
       - name: Build Scala.js UI
         if: github.event.action != 'closed'
-        run: ./mill ui.fullLinkJS
+        run: mill ui.fullLinkJS
 
       - name: Assemble site
         if: github.event.action != 'closed'
