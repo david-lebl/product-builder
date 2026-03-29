@@ -7,6 +7,7 @@ import mpbuilder.ui.components.{CheckoutView, CustomerPortalView, LoginWidget, O
 import mpbuilder.ui.manufacturing.ManufacturingApp
 import mpbuilder.ui.catalog.CatalogEditorApp
 import mpbuilder.ui.customers.CustomerManagementApp
+import mpbuilder.ui.orders.InternalOrderEntryApp
 import mpbuilder.domain.model.Language
 
 sealed trait AppRoute
@@ -17,6 +18,7 @@ object AppRoute {
   case object Manufacturing extends AppRoute
   case object CatalogEditor extends AppRoute
   case object CustomerManagement extends AppRoute
+  case object InternalOrders extends AppRoute
   case object OrderHistory extends AppRoute
   case object CustomerPortal extends AppRoute
 }
@@ -151,6 +153,18 @@ object AppRouter {
             },
             onClick --> { _ => navigateTo(AppRoute.CustomerManagement) }
           ),
+          button(
+            cls := "nav-link",
+            cls <-- currentRoute.map {
+              case AppRoute.InternalOrders => "active"
+              case _ => ""
+            },
+            child.text <-- lang.map {
+              case Language.En => "New Order"
+              case Language.Cs => "Nová objednávka"
+            },
+            onClick --> { _ => navigateTo(AppRoute.InternalOrders) }
+          ),
 
           // My Orders — visible only when logged in
           child <-- ProductBuilderViewModel.loginState.combineWith(lang).map { case (ls, l) =>
@@ -181,6 +195,7 @@ object AppRouter {
         case AppRoute.Manufacturing   => ManufacturingApp()
         case AppRoute.CatalogEditor   => CatalogEditorApp()
         case AppRoute.CustomerManagement => CustomerManagementApp()
+        case AppRoute.InternalOrders     => InternalOrderEntryApp()
         case AppRoute.OrderHistory    => OrderHistoryView()
         case AppRoute.CustomerPortal  => CustomerPortalView()
       }
