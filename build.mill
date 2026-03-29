@@ -6,6 +6,7 @@ import mill.*, scalalib.*, scalajslib.*
 
 val scala3Version = "3.3.3"
 val scalaJsVersion = "1.18.1"
+val laminarVersion = "17.2.0"
 
 val commonScalacOptions = Seq(
   "-encoding", "utf-8",
@@ -69,7 +70,7 @@ object `ui-framework` extends ScalaJSModule {
   def sources = Task.Sources(rootDir / "modules" / "ui-framework" / "src" / "main" / "scala")
   def resources = Task.Sources(rootDir / "modules" / "ui-framework" / "src" / "main" / "resources")
   def mvnDeps = Seq(
-    mvn"com.raquo::laminar::17.2.0"
+    mvn"com.raquo::laminar::${laminarVersion}"
   )
 }
 
@@ -86,7 +87,7 @@ object `ui-showcase` extends ScalaJSModule {
   def scalaJSUseMainModuleInitializer = true
   def moduleDeps = Seq(`ui-framework`)
   def mvnDeps = Seq(
-    mvn"com.raquo::laminar::17.2.0"
+    mvn"com.raquo::laminar::${laminarVersion}"
   )
 }
 
@@ -103,6 +104,6 @@ object ui extends ScalaJSModule {
   def scalaJSUseMainModuleInitializer = true
   def moduleDeps = Seq(domain.js, `ui-framework`)
   def mvnDeps = Seq(
-    mvn"com.raquo::laminar::17.2.0"
+    mvn"com.raquo::laminar::${laminarVersion}"
   )
 }
