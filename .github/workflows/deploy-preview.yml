@@ -24,15 +24,14 @@ jobs:
         with:
           java-version: '17'
           distribution: 'temurin'
-          cache: 'sbt'
 
-      - name: Set up sbt
+      - name: Make mill executable
         if: github.event.action != 'closed'
-        uses: sbt/setup-sbt@v1
+        run: chmod +x ./mill
 
       - name: Build Scala.js UI
         if: github.event.action != 'closed'
-        run: sbt ui/fullLinkJS
+        run: ./mill ui.fullLinkJS
 
       - name: Assemble site
         if: github.event.action != 'closed'
@@ -40,7 +39,7 @@ jobs:
           mkdir -p _site
           cp modules/ui/src/main/resources/index.html _site/
           cp modules/ui/src/main/resources/*.css _site/
-          cp modules/ui/target/scala-*/material-builder-ui-opt/main.js _site/
+          cp out/ui/fullLinkJS.dest/main.js _site/
 
       - name: Deploy PR Preview
         uses: rossjrw/pr-preview-action@v1
