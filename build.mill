@@ -11,7 +11,8 @@ val laminarVersion = "17.2.0"
 val commonScalacOptions = Seq(
   "-encoding", "utf-8",
   "-deprecation",
-  "-feature"
+  "-feature",
+  "-Xmax-inlines:64"
 )
 
 val rootDir = moduleDir

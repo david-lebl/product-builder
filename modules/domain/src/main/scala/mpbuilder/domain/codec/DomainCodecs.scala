@@ -119,6 +119,13 @@ object DomainCodecs:
   given JsonEncoder[BindingMethod] = JsonEncoder[String].contramap(_.toString)
   given JsonDecoder[BindingMethod] = JsonDecoder[String].map(BindingMethod.valueOf)
 
+  // ── Manufacturing speed ──────────────────────────────────────────────────
+
+  given JsonEncoder[ManufacturingSpeed] = JsonEncoder[String].contramap(_.toString)
+  given JsonDecoder[ManufacturingSpeed] = JsonDecoder[String].map(ManufacturingSpeed.valueOf)
+
+  given JsonCodec[QueueThreshold] = DeriveJsonCodec.gen[QueueThreshold]
+
   // ── Component types ──────────────────────────────────────────────────────
 
   given JsonEncoder[ComponentRole] = JsonEncoder[String].contramap(_.toString)

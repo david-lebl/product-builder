@@ -30,5 +30,11 @@ enum PricingRule:
   // One-time setup fees for fold type and binding method (added after discount)
   case FoldTypeSetupFee(foldType: FoldType, setupCost: Money)
   case BindingMethodSetupFee(bindingMethod: BindingMethod, setupCost: Money)
+  // Manufacturing speed surcharge — applied to discounted subtotal before setup fees
+  case ManufacturingSpeedSurcharge(
+      tier: ManufacturingSpeed,
+      multiplier: BigDecimal,
+      queueMultiplierThresholds: List[QueueThreshold],
+  )
   // Global price floor applied after setup fees
   case MinimumOrderPrice(minTotal: Money)
