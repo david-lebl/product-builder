@@ -482,6 +482,13 @@ object ProductBuilderViewModel:
       }
     }
 
+  def selectedManufacturingSpeed: Signal[Option[ManufacturingSpeed]] =
+    state.map { s =>
+      s.specifications.collectFirst {
+        case SpecValue.ManufacturingSpeedSpec(speed) => speed
+      }
+    }
+
   // Basket operations
   def addToBasket(quantity: Int): Unit =
     val currentState = stateVar.now()

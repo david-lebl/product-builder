@@ -308,6 +308,49 @@ object SpecificationForm:
         ),
       ),
 
+      // Manufacturing Speed Tier (always visible when category is selected)
+      div(
+        Visibility.when(requiredSpecs.map(_.nonEmpty)),
+        div(
+          cls := "selector-with-help",
+          SelectField(
+            label = lang.map {
+              case Language.En => "Manufacturing Speed:"
+              case Language.Cs => "Rychlost výroby:"
+            },
+            options = lang.map { l =>
+              List(
+                SelectOption("Express", l match { case Language.En => "⚡ Express (+35%)"; case Language.Cs => "⚡ Expres (+35 %)" }),
+                SelectOption("Standard", l match { case Language.En => "● Standard (recommended)"; case Language.Cs => "● Standardní (doporučeno)" }),
+                SelectOption("Economy", l match { case Language.En => "🐢 Economy (−15%)"; case Language.Cs => "🐢 Ekonomická (−15 %)" }),
+              )
+            },
+            selected = ProductBuilderViewModel.selectedManufacturingSpeed.map {
+              case Some(speed) => speed.toString
+              case None => ""
+            },
+            onChange = Observer[String] { value =>
+              if value.nonEmpty then
+                ManufacturingSpeed.values.find(_.toString == value).foreach { speed =>
+                  ProductBuilderViewModel.removeSpecification(classOf[SpecValue.ManufacturingSpeedSpec])
+                  ProductBuilderViewModel.addSpecification(SpecValue.ManufacturingSpeedSpec(speed))
+                }
+            },
+            placeholder = lang.map {
+              case Language.En => "-- Select speed --"
+              case Language.Cs => "-- Vyberte rychlost --"
+            },
+          ),
+          div(
+            cls := "selector-help-buttons",
+            HelpInfo(lang.map {
+              case Language.En => "Express: Same day / next business day — ideal for urgent orders. Standard: 2–5 business days — recommended for most orders. Economy: 5–10 business days — best value for non-urgent orders."
+              case Language.Cs => "Expres: Tentýž den / příští pracovní den — ideální pro naléhavé objednávky. Standardní: 2–5 pracovních dnů — doporučeno pro většinu objednávek. Ekonomická: 5–10 pracovních dnů — nejlepší cena pro neurgentní objednávky."
+            }),
+          ),
+        ),
+      ),
+
       div(
         cls := "info-box",
         p(child.text <-- lang.map {
