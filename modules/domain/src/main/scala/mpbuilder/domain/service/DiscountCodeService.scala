@@ -3,6 +3,7 @@ package mpbuilder.domain.service
 import mpbuilder.domain.model.*
 import mpbuilder.domain.pricing.Money
 import zio.prelude.*
+import com.softwaremill.quicklens.*
 
 /** Context for validating a discount code against an order */
 final case class DiscountValidationContext(
@@ -107,7 +108,7 @@ object DiscountCodeService:
     for _ <- validateCodeIdExists(codes, codeId)
     yield codes.map { c =>
       if c.id == codeId then
-        c.copy(constraints = c.constraints.copy(currentUses = c.constraints.currentUses + 1))
+        c.modify(_.constraints.currentUses).using(_ + 1)
       else c
     }
 
