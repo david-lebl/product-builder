@@ -658,39 +658,7 @@ case class CategoryTierConfig(
 
 ---
 
-## 14. Implementation Phases
-
-### Phase 1: Core tier system
-- [ ] `ManufacturingSpeed` enum in domain model
-- [ ] `ManufacturingSpeedSurcharge` pricing rule
-- [ ] Tier selection UI in product builder
-- [ ] Static estimated completion (based on base production time + working hours, no live queue)
-- [ ] Tier restrictions per category (quantity limits)
-- [ ] Integration with `WorkflowGenerator` (priority + deadline from tier)
-
-### Phase 2: Dynamic pricing and estimation
-- [ ] `StationUtilisation` model and calculation
-- [ ] Queue-aware estimated completion time
-- [ ] Dynamic Express/Standard surcharges based on utilisation
-- [ ] Busy period multipliers (day-of-week, seasonal)
-- [ ] Express cutoff time enforcement
-
-### Phase 3: Advanced features
-- [ ] Confidence ranges on estimates
-- [ ] Deadline-based pricing calendar (alternative UX)
-- [ ] Split manufacturing (partial Express + Economy)
-- [ ] Economy batch windows
-- [ ] Analytics: tier performance tracking, estimate accuracy feedback loop
-
-### Phase 4: Notifications and guarantees
-- [ ] Customer notification system (order status updates)
-- [ ] Internal alerts (Express deadline at risk, high utilisation warnings)
-- [ ] Guaranteed Express option (with SLA and refund policy)
-- [ ] Subscription tiers with Express credits
-
----
-
-## 15. Summary
+## 14. Summary
 
 The manufacturing speed tier system adds a customer-facing dimension to what is currently an internal priority system. It connects pricing (higher price for faster service), capacity management (queue-aware dynamic pricing that naturally manages demand), and delivery promises (honest, working-hours-aware completion estimates).
 
