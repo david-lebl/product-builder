@@ -4,6 +4,7 @@ import zio.test.*
 import mpbuilder.domain.model.*
 import mpbuilder.domain.service.*
 import mpbuilder.domain.sample.*
+import com.softwaremill.quicklens.*
 
 object WorkflowGeneratorSpec extends ZIOSpecDefault:
 
@@ -323,12 +324,9 @@ object WorkflowGeneratorSpec extends ZIOSpecDefault:
 
         // Complete the prepress step
         val prepressId = wf.steps.head.id
-        val updated = wf.copy(
-          steps = wf.steps.map(s =>
-            if s.id == prepressId then s.copy(status = StepStatus.Completed)
-            else s
-          )
-        ).evaluateReadiness
+        val updated = wf
+          .modify(_.steps.eachWhere(_.id == prepressId).status).setTo(StepStatus.Completed)
+          .evaluateReadiness
 
         val printStep = updated.steps.find(_.stationType == StationType.DigitalPrinter).get
         assertTrue(printStep.status == StepStatus.Ready)
