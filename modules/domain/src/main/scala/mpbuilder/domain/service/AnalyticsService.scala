@@ -71,6 +71,7 @@ object AnalyticsService:
       bottleneck: Option[(StationType, Int)],
       stationMetrics: List[StationMetric],
       employeeMetrics: List[EmployeeMetric],
+      tierMetrics: List[TierMetric],
   )
 
   /** Per-station performance metric. */
@@ -89,6 +90,43 @@ object AnalyticsService:
       completedSteps: Int,
       stationsWorked: Set[StationType],
   )
+
+  /** Per-tier performance metric. */
+  final case class TierMetric(
+      priority: Priority,
+      orderCount: Int,
+      completedCount: Int,
+      avgTurnaroundMs: Long,
+      onTimeRate: Double,
+  )
+
+  /** Compute tier-based metrics from manufacturing orders grouped by priority. */
+  def computeTierMetrics(orders: List[ManufacturingOrder]): List[TierMetric] =
+    val approvedOrders = orders.filter(_.approvalStatus == ApprovalStatus.Approved)
+    Priority.values.toList.map { priority =>
+      val tierOrders = approvedOrders.filter(_.priority == priority)
+      val completed = tierOrders.filter(_.overallStatus == WorkflowStatus.Completed)
+      val turnarounds = completed.flatMap { mo =>
+        val lastCompletion = mo.workflows.flatMap(_.steps).flatMap(_.completedAt).maxOption
+        lastCompletion.map(_ - mo.createdAt)
+      }
+      val avgTurnaround = if turnarounds.isEmpty then 0L else turnarounds.sum / turnarounds.size
+      val onTime = if completed.isEmpty then 1.0
+        else completed.count { mo =>
+          mo.deadline match
+            case None => true
+            case Some(dl) =>
+              mo.workflows.flatMap(_.steps).flatMap(_.completedAt).maxOption.exists(_ <= dl)
+        }.toDouble / completed.size
+
+      TierMetric(
+        priority = priority,
+        orderCount = tierOrders.size,
+        completedCount = completed.size,
+        avgTurnaroundMs = avgTurnaround,
+        onTimeRate = onTime,
+      )
+    }.filter(m => m.orderCount > 0)
 
   /** Compute full analytics summary from orders and employee data. */
   def computeSummary(orders: List[ManufacturingOrder], employees: List[Employee]): AnalyticsSummary =
@@ -132,4 +170,5 @@ object AnalyticsService:
       bottleneck = bottleneckStation(orders),
       stationMetrics = stationMetrics,
       employeeMetrics = employeeMetrics,
+      tierMetrics = computeTierMetrics(orders),
     )
