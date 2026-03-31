@@ -7,7 +7,6 @@ import mpbuilder.domain.model.*
 import mpbuilder.domain.service.{CompletionEstimator, TierRestrictionValidator}
 import mpbuilder.uikit.fields.{TextField, SelectField, SelectOption}
 import mpbuilder.uikit.util.Visibility
-import java.time.{Instant, LocalDateTime, ZoneOffset}
 
 object SpecificationForm:
   private enum SizePreset(val nameEn: String, val nameCs: String, val widthMm: Int, val heightMm: Int):
@@ -327,8 +326,7 @@ object SpecificationForm:
             {
               def formatCompletion(est: Option[CompletionEstimator.CompletionEstimate], l: Language): Option[String] =
                 est.map { e =>
-                  val now = Instant.ofEpochMilli(System.currentTimeMillis()).atOffset(ZoneOffset.UTC).toLocalDateTime
-                  e.formatEarliest(now, l)
+                  e.formatEarliest(ProductBuilderViewModel.currentLocalDateTime, l)
                 }
 
               // Express: completion estimate + disabled signal from utilisation + tier violations

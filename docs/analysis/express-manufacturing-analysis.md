@@ -706,24 +706,31 @@ This section compares the features described in this analysis with what has been
 | 21 | **Comprehensive test suite** | — | 684-line `ExpressManufacturingSpec.scala` covering pricing, completion estimation, utilisation, queue scoring, and analytics | ✅ Done |
 | 22 | **Pricelist editor support** | — | Exhaustive pattern matches for `ManufacturingSpeedSurcharge` in `PricelistEditorView.scala` | ✅ Done |
 
-### 15.2 Remaining features — next implementation phase
+### 15.2 Recently completed features (Phase A+B+C partial)
 
-These features are described in the analysis and have clear value, but require additional infrastructure or UI work. They are ordered by priority (highest first).
+These features were implemented in the second batch, completing Phases A, B, and the admin portion of Phase C.
+
+| # | Feature | Spec Section | Implementation | Status |
+|---|---|---|---|---|
+| 1 | **Live completion date display in speed cards** | §2.3, §4 | `CompletionEstimator.estimate()` wired to UI speed cards via `completionEstimate(speed)` signal. Shows dynamic "Tomorrow, 14:00" based on production time, queue wait, approval delay, buffer, and working hours. Falls back to static text when no config exists. | ✅ Done |
+| 2 | **Real-time queue state integration** | §5, §4.3 | Simulated `StationUtilisation` data in ProductBuilderViewModel. `UtilisationCalculator.buildPricingContext()` constructs real `PricingContext`. `calculateWithContext()` replaces `calculate()` for all pricing. | ✅ Done |
+| 3 | **Express availability check in UI** | §6.3 | `expressAvailable` signal uses `UtilisationCalculator.isExpressAvailable()`. When utilisation ≥ 95%, Express card is greyed out with `.speed-tier-card--disabled` CSS and warning message. | ✅ Done |
+| 4 | **Capacity constraint validation** | §6.1–6.2 | `TierRestrictionValidator` service + `SampleTierRestrictions` with per-category Express limits (2000 for standard products, 500 for large format). Validates quantity, binding method (perfect/case binding blocked for Express), and blocked materials. | ✅ Done |
+| 5 | **Dynamic pricing with real busy periods** | §3.5 | `BusyPeriodFilter.filterActive()` filters `SampleManufacturing.busyPeriodMultipliers` by current day-of-week, month range, and time-of-day. Active periods feed into `PricingContext`. Monday/Friday +5%, Nov–Dec +10%, September +5% all configured. | ✅ Done |
+| 6 | **Admin configuration UI** | §12.1–12.2 | `ManufacturingSettingsView` in Manufacturing → Settings route (🔧). Editable working hours, cutoff times, pricing multipliers, Express surcharge cap, queue thresholds, busy period display, station time estimate table, and holiday calendar with add/remove. | ✅ Done |
+
+### 15.3 Remaining features — next implementation phase
 
 | # | Feature | Spec Section | What's Missing | Effort |
 |---|---|---|---|---|
-| 1 | **Live completion date display in speed cards** | §2.3, §4 | The `CompletionEstimator` service exists but is not wired to the UI speed cards. The cards currently show static text ("Same day / next business day"). They should call `CompletionEstimator.estimate()` and display "Tomorrow, 14:00" dynamically based on current queue state and working hours. | Medium |
-| 2 | **Real-time queue state integration** | §5, §4.3 | `UtilisationCalculator` and `StationUtilisation` are implemented but require a data source. Currently `PricingContext.default` uses `globalUtilisation = 0` and no busy period multipliers. Needs a backend service (or simulated feed) that provides live station metrics. | Medium |
-| 3 | **Express availability check in UI** | §6.3 | `UtilisationCalculator.isExpressAvailable()` exists but is not called in the UI. When utilisation ≥ 95%, Express should be greyed out with a message ("Express not available — high demand"). | Small |
-| 4 | **Capacity constraint validation** | §6.1–6.2 | `TierRestriction` type is specified but not implemented. Express should be disabled for: quantities over configured limits, perfect binding (cure time), offset-only jobs (plate making), custom embossing dies. Needs validation rules + UI warnings. | Medium |
-| 5 | **Dynamic pricing with real busy periods** | §3.5 | `BusyPeriodMultiplier` type exists and `PriceCalculator` applies them, but no active multipliers are configured in sample data. Needs admin UI or configuration to define busy periods (Monday/Friday peak, Nov–Dec season, afternoon cutoff). | Small–Medium |
-| 6 | **Admin configuration UI** | §12.1–12.2 | No admin UI for: working hours, Express cutoff time, base multipliers, queue thresholds, holiday calendar, station time estimates. All values are currently in code (`SamplePricelist`, `CompletionEstimator` defaults). | Large |
-| 7 | **Analytics dashboard for tier metrics** | §9.1 | `AnalyticsService` collects tier-based metrics but there is no UI view to display them. Needs: average turnaround by tier, on-time rate, revenue split, tier selection distribution, queue utilisation heatmap. | Medium |
-| 8 | **Customer notifications** | §11.1 | No notification system. Needs: order confirmation with tier and estimate, production started, ahead of schedule, delay detected, ready for pickup. Requires notification infrastructure (email/push/in-app). | Large |
-| 9 | **Confidence range display** | §4.6 | `CompletionEstimate` returns `earliestCompletion` and `latestCompletion` but the UI does not show the range. Spec calls for "Tomorrow, 10:00 – 14:00 (high confidence)" format. | Small |
-| 10 | **Per-category tier overrides** | §12.2 | `CategoryTierConfig` type is specified but not implemented. Some product categories need different Express multipliers, max quantities, or additional lead time. | Medium |
+| 1 | **Analytics dashboard for tier metrics** | §9.1 | `AnalyticsService` collects tier-based metrics but there is no UI view to display them. Needs: average turnaround by tier, on-time rate, revenue split, tier selection distribution, queue utilisation heatmap. | Medium |
+| 2 | **Customer notifications** | §11.1 | No notification system. Needs: order confirmation with tier and estimate, production started, ahead of schedule, delay detected, ready for pickup. Requires notification infrastructure (email/push/in-app). | Large |
+| 3 | **Confidence range display** | §4.6 | `CompletionEstimate` returns `earliestCompletion` and `latestCompletion` but the UI does not show the range. Spec calls for "Tomorrow, 10:00 – 14:00 (high confidence)" format. | Small |
+| 4 | **Per-category tier overrides** | §12.2 | `CategoryTierConfig` type is specified but not implemented. Some product categories need different Express multipliers, max quantities, or additional lead time. | Medium |
+| 5 | **Settings persistence** | — | Admin settings are currently in-memory `Var`s. Needs localStorage or backend persistence so settings survive page reload. | Small |
+| 6 | **Live station data feed** | §5 | Station utilisation is currently simulated with static data. Needs WebSocket or polling backend integration for real metrics. | Medium–Large |
 
-### 15.3 Distant future — nice-to-have features
+### 15.4 Distant future — nice-to-have features
 
 These features are discussed in the analysis as alternative or advanced approaches. They add significant value but require substantial new infrastructure and are not blockers for the core tier system.
 
@@ -739,24 +746,19 @@ These features are discussed in the analysis as alternative or advanced approach
 | 8 | **Internal alerts system** | §11.2 | Dashboard alerts: Express order placed (push notification), queue > 85% (capacity warning), Express deadline at risk (escalation), Economy batch closing. | Medium |
 | 9 | **Real-time estimate updates** | §13 | Estimates update in real time as queue state changes while customer is configuring. Debounced, not instant. Requires WebSocket or polling for queue metrics. | Medium–High |
 
-### 15.4 Recommended next steps
+### 15.5 Recommended next steps
 
-**Phase A — Connect live data (next sprint)**
-1. Wire `CompletionEstimator` to UI speed cards → dynamic "Tomorrow, 14:00" instead of static text
-2. Add Express availability check → grey out card at 95%+ utilisation
-3. Display confidence range → "10:00 – 14:00" alongside point estimate
+**Phase D — Analytics and polish (next sprint)**
+1. Build analytics dashboard for tier performance metrics
+2. Display confidence range alongside point estimate in speed cards
+3. Persist admin settings to localStorage
 
-**Phase B — Capacity and constraints (following sprint)**
-4. Implement `TierRestriction` validation → disable Express for large quantities, perfect binding, etc.
-5. Configure busy period multipliers in sample data → Monday/Friday peak pricing active
-6. Add per-category tier overrides → different Express limits per product type
+**Phase E — Infrastructure**
+4. Notification system for order lifecycle events
+5. Live station data feed (WebSocket/polling)
+6. Per-category tier overrides with admin UI
 
-**Phase C — Admin and analytics**
-7. Build admin configuration UI for shop settings, multipliers, and holiday calendar
-8. Build analytics dashboard showing tier performance metrics
-9. Add notification system for order lifecycle events
-
-**Phase D — Advanced features (future roadmap)**
-10. Deadline-based calendar pricing (power-user feature alongside tiers)
-11. Split manufacturing for large orders
-12. Estimation feedback loop for self-calibration
+**Phase F — Advanced features (future roadmap)**
+7. Deadline-based calendar pricing (power-user feature alongside tiers)
+8. Split manufacturing for large orders
+9. Estimation feedback loop for self-calibration

@@ -520,7 +520,14 @@ object ProductBuilderViewModel:
     StationType.Packaging        -> CompletionEstimator.StationQueueState(queueDepth = 3,  avgProcessingTimeMinutes = 10, activeMachineCount = 2),
   )
 
-  /** Derive the station types a product configuration passes through. */
+  /** Derive the station types a product configuration passes through.
+    *
+    * Station sequence: Prepress → Printer → [Laminator] → Cutter → [Folder] → [Binder] → QC → Packaging.
+    * Banners and roll-ups use LargeFormatPrinter; all other categories use DigitalPrinter.
+    * Laminator is added when any component has a lamination or overlamination finish.
+    * Folder is added for folded products (FoldTypeSpec present).
+    * Binder is added for bound products (BindingMethodSpec present).
+    */
   def deriveStepTypes(config: ProductConfiguration): List[StationType] =
     val steps = List.newBuilder[StationType]
     steps += StationType.Prepress
@@ -562,7 +569,7 @@ object ProductBuilderViewModel:
     steps += StationType.Packaging
     steps.result()
 
-  private def currentLocalDateTime: LocalDateTime =
+  def currentLocalDateTime: LocalDateTime =
     Instant.ofEpochMilli(System.currentTimeMillis()).atOffset(ZoneOffset.UTC).toLocalDateTime
 
   /** Completion estimate for a specific manufacturing speed. */

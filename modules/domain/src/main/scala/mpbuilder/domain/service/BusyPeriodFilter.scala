@@ -10,6 +10,8 @@ object BusyPeriodFilter:
   ): List[BusyPeriodMultiplier] =
     multipliers.filter { m =>
       val dayMatch = m.dayOfWeek.forall(_.contains(now.getDayOfWeek))
+      // Month range: if start <= end (e.g. Sep–Dec), check within range.
+      // If start > end (e.g. Nov–Jan), the range wraps around year boundary.
       val monthMatch = m.monthRange.forall { case (start, end) =>
         val month = now.getMonth
         if start.getValue <= end.getValue then

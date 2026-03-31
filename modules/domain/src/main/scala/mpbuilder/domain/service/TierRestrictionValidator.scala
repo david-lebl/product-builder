@@ -27,7 +27,9 @@ object TierRestrictionValidator:
       val violations = List.newBuilder[TierViolation]
       r.maxQuantity.foreach { max =>
         if quantity > max then
-          violations += TierViolation(tier, s"Max quantity for ${tier} is $max", s"Max. množství pro ${tier} je $max")
+          val tierEn = tier match { case ManufacturingSpeed.Express => "Express"; case ManufacturingSpeed.Standard => "Standard"; case ManufacturingSpeed.Economy => "Economy" }
+          val tierCs = tier match { case ManufacturingSpeed.Express => "Expres"; case ManufacturingSpeed.Standard => "Standardní"; case ManufacturingSpeed.Economy => "Ekonomickou" }
+          violations += TierViolation(tier, s"Max quantity for $tierEn is $max", s"Max. množství pro $tierCs je $max")
       }
       // binding method check (perfect binding has cure time)
       bindingMethod.foreach {
@@ -41,7 +43,9 @@ object TierRestrictionValidator:
       r.blockedMaterials.foreach { blocked =>
         val found = materialIds.intersect(blocked)
         if found.nonEmpty then
-          violations += TierViolation(tier, s"Some materials are not available for ${tier}", s"Některé materiály nejsou dostupné pro ${tier}")
+          val tierEn = tier match { case ManufacturingSpeed.Express => "Express"; case ManufacturingSpeed.Standard => "Standard"; case ManufacturingSpeed.Economy => "Economy" }
+          val tierCs = tier match { case ManufacturingSpeed.Express => "Expres"; case ManufacturingSpeed.Standard => "Standardní"; case ManufacturingSpeed.Economy => "Ekonomickou" }
+          violations += TierViolation(tier, s"Some materials are not available for $tierEn", s"Některé materiály nejsou dostupné pro $tierCs")
       }
       violations.result()
     }
