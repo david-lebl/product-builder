@@ -18,12 +18,26 @@ object ImageGalleryPanel {
   // Track which images have load errors (broken/missing)
   private val brokenImagesVar: Var[Set[String]] = Var(Set.empty)
 
-  // ID generation counter
+  private val DefaultLinkedFileName = "linked-image"
+
+  // ID generation using random() for Scala.js compatibility (no java.util.UUID)
   private var idCounter: Int = 0
   private def generateImageId(): String = {
     idCounter += 1
-    s"gallery-${System.currentTimeMillis()}-$idCounter"
+    val rand = (js.Math.random() * 1000000).toInt
+    s"gallery-${System.currentTimeMillis()}-$idCounter-$rand"
   }
+
+  /** Create an ImageReference from a URL string */
+  private def imageRefFromUrl(url: String, dataUrl: String, sizeBytes: Long): ImageReference =
+    ImageReference(
+      id = generateImageId(),
+      dataUrl = dataUrl,
+      fileName = Some(url.split("/").lastOption.getOrElse(DefaultLinkedFileName)),
+      addedAt = System.currentTimeMillis().toDouble,
+      sizeBytes = sizeBytes,
+      usedInSessions = Set.empty,
+    )
 
   /** Refresh gallery from IndexedDB */
   def refreshGallery(): Unit =
@@ -249,40 +263,18 @@ object ImageGalleryPanel {
       ctx.drawImage(imgEl, 0, 0)
       try {
         val dataUrl = canvas.toDataURL("image/png")
-        val imgRef = ImageReference(
-          id = generateImageId(),
-          dataUrl = dataUrl,
-          fileName = Some(url.split("/").lastOption.getOrElse("linked-image")),
-          addedAt = System.currentTimeMillis().toDouble,
-          sizeBytes = dataUrl.length.toLong,
-          usedInSessions = Set.empty,
-        )
-        EditorSessionStore.saveImage(imgRef, () => refreshGallery())
+        EditorSessionStore.saveImage(imageRefFromUrl(url, dataUrl, dataUrl.length.toLong), () => refreshGallery())
       } catch {
-        case _: Exception =>
-          // CORS or security error — save URL reference instead
-          val imgRef = ImageReference(
-            id = generateImageId(),
-            dataUrl = url,
-            fileName = Some(url.split("/").lastOption.getOrElse("linked-image")),
-            addedAt = System.currentTimeMillis().toDouble,
-            sizeBytes = 0L,
-            usedInSessions = Set.empty,
-          )
-          EditorSessionStore.saveImage(imgRef, () => refreshGallery())
+        case e: Exception =>
+          // CORS or tainted canvas — fall back to raw URL reference
+          dom.console.warn(s"Canvas export failed for $url, saving as URL reference: ${e.getMessage}")
+          EditorSessionStore.saveImage(imageRefFromUrl(url, url, 0L), () => refreshGallery())
       }
     }
     imgDyn.onerror = { (_: dom.Event) =>
-      // Save as a URL reference anyway — it will show as broken
-      val imgRef = ImageReference(
-        id = generateImageId(),
-        dataUrl = url,
-        fileName = Some(url.split("/").lastOption.getOrElse("linked-image")),
-        addedAt = System.currentTimeMillis().toDouble,
-        sizeBytes = 0L,
-        usedInSessions = Set.empty,
-      )
-      EditorSessionStore.saveImage(imgRef, () => refreshGallery())
+      // Image failed to load — save as URL reference (will show as broken)
+      dom.console.warn(s"Failed to load image from URL: $url")
+      EditorSessionStore.saveImage(imageRefFromUrl(url, url, 0L), () => refreshGallery())
     }
     imgEl.src = url
   }
