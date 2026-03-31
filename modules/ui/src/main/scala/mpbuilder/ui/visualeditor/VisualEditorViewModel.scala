@@ -78,7 +78,7 @@ object VisualEditorViewModel {
       val session = EditorSession(
         id = sessionId,
         title = inferSessionTitle(),
-        sessionName = sessionNameVar.now(),
+        sessionName = sessionNameVar.now().map(_.trim).filter(_.nonEmpty),
         configurationId = None,
         productContext = productContextVar.now(),
         editorState = stateVar.now(),
@@ -475,8 +475,7 @@ object VisualEditorViewModel {
   }
 
   def setSessionName(name: String): Unit =
-    val trimmed = name.trim
-    sessionNameVar.set(if trimmed.isEmpty then None else Some(trimmed))
+    sessionNameVar.set(if name.isEmpty then None else Some(name))
     scheduleAutoSave()
 
   def updateLanguage(lang: String): Unit =

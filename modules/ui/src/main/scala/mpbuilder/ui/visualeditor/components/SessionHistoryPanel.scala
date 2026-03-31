@@ -42,7 +42,7 @@ object SessionHistoryPanel {
       // Session list
       div(
         cls := "session-list",
-        children <-- sessionsVar.signal.combineWith(VisualEditorViewModel.currentSessionId, lang).map { case (sessions, activeId, l) =>
+        children <-- sessionsVar.signal.combineWith(VisualEditorViewModel.currentSessionId, lang).map { (sessions: List[EditorSession], activeId: Option[String], l: Language) =>
           if sessions.isEmpty then
             List(div(cls := "empty-elements", l match
               case Language.En => "No saved sessions"
