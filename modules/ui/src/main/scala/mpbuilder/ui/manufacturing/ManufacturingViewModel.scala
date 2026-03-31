@@ -7,6 +7,9 @@ import mpbuilder.domain.model.ManufacturingOrder.*
 import mpbuilder.domain.service.*
 import mpbuilder.domain.sample.*
 import mpbuilder.domain.pricing.{Money, Currency}
+import mpbuilder.domain.manufacturing.{ShopSchedule, WorkingHours, StationTimeEstimate}
+import mpbuilder.domain.pricing.BusyPeriodMultiplier
+import java.time.{DayOfWeek, LocalDate, LocalTime}
 
 /** Reactive state management for the manufacturing UI. */
 object ManufacturingViewModel:
@@ -35,6 +38,31 @@ object ManufacturingViewModel:
   val currentEmployeeId: Var[Option[EmployeeId]] = Var(Some(EmployeeId.unsafe("emp-1")))
   val selectedEmployeeId: Var[Option[String]] = Var(None)
   val selectedMachineId: Var[Option[String]] = Var(None)
+
+  // --- Settings state ---
+  val settingsOpenTime: Var[String] = Var("07:00")
+  val settingsCloseTime: Var[String] = Var("17:00")
+  val settingsWorkDays: Var[Set[DayOfWeek]] = Var(Set(DayOfWeek.MONDAY, DayOfWeek.TUESDAY, DayOfWeek.WEDNESDAY, DayOfWeek.THURSDAY, DayOfWeek.FRIDAY))
+  val settingsExpressCutoff: Var[String] = Var("14:00")
+  val settingsStandardCutoff: Var[String] = Var("16:00")
+  val settingsExpressMultiplier: Var[String] = Var("1.35")
+  val settingsEconomyMultiplier: Var[String] = Var("0.85")
+  val settingsExpressSurchargeCap: Var[String] = Var("2.00")
+  val settingsExpressCriticalThreshold: Var[String] = Var("95")
+  val settingsHolidays: Var[List[LocalDate]] = Var(List.empty)
+  val settingsNewHoliday: Var[String] = Var("")
+
+  def addHoliday(): Unit =
+    val dateStr = settingsNewHoliday.now()
+    if dateStr.nonEmpty then
+      try
+        val date = LocalDate.parse(dateStr)
+        settingsHolidays.update(h => (h :+ date).distinct.sorted)
+        settingsNewHoliday.set("")
+      catch case _: Exception => ()
+
+  def removeHoliday(date: LocalDate): Unit =
+    settingsHolidays.update(_.filterNot(_ == date))
 
   // --- Derived signals ---
 
