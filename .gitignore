@@ -54,7 +54,6 @@ build/
 
 ### Mill ###
 out/
-.mill-jvm-opts
 
 ### Build outputs ###
 dist/
