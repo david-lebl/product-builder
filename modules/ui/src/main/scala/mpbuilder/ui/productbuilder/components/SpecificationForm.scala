@@ -312,41 +312,34 @@ object SpecificationForm:
       div(
         Visibility.when(requiredSpecs.map(_.nonEmpty)),
         div(
-          cls := "selector-with-help",
-          SelectField(
-            label = lang.map {
+          cls := "speed-tier-section",
+          com.raquo.laminar.api.L.label(
+            cls := "form-label",
+            child.text <-- lang.map {
               case Language.En => "Manufacturing Speed:"
               case Language.Cs => "Rychlost výroby:"
             },
-            options = lang.map { l =>
-              List(
-                SelectOption("Express", l match { case Language.En => "⚡ Express (+35%)"; case Language.Cs => "⚡ Expres (+35 %)" }),
-                SelectOption("Standard", l match { case Language.En => "● Standard (recommended)"; case Language.Cs => "● Standardní (doporučeno)" }),
-                SelectOption("Economy", l match { case Language.En => "🐢 Economy (−15%)"; case Language.Cs => "🐢 Ekonomická (−15 %)" }),
-              )
-            },
-            selected = ProductBuilderViewModel.selectedManufacturingSpeed.map {
-              case Some(speed) => speed.toString
-              case None => ""
-            },
-            onChange = Observer[String] { value =>
-              if value.nonEmpty then
-                ManufacturingSpeed.values.find(_.toString == value).foreach { speed =>
-                  ProductBuilderViewModel.removeSpecification(classOf[SpecValue.ManufacturingSpeedSpec])
-                  ProductBuilderViewModel.addSpecification(SpecValue.ManufacturingSpeedSpec(speed))
-                }
-            },
-            placeholder = lang.map {
-              case Language.En => "-- Select speed --"
-              case Language.Cs => "-- Vyberte rychlost --"
-            },
           ),
           div(
-            cls := "selector-help-buttons",
-            HelpInfo(lang.map {
-              case Language.En => "Express: Same day / next business day — ideal for urgent orders. Standard: 2–5 business days — recommended for most orders. Economy: 5–10 business days — best value for non-urgent orders."
-              case Language.Cs => "Expres: Tentýž den / příští pracovní den — ideální pro naléhavé objednávky. Standardní: 2–5 pracovních dnů — doporučeno pro většinu objednávek. Ekonomická: 5–10 pracovních dnů — nejlepší cena pro neurgentní objednávky."
-            }),
+            cls := "speed-tier-cards",
+            speedTierCard(
+              speed = ManufacturingSpeed.Express,
+              icon = "⚡",
+              selected = ProductBuilderViewModel.selectedManufacturingSpeed,
+              lang = lang,
+            ),
+            speedTierCard(
+              speed = ManufacturingSpeed.Standard,
+              icon = "●",
+              selected = ProductBuilderViewModel.selectedManufacturingSpeed,
+              lang = lang,
+            ),
+            speedTierCard(
+              speed = ManufacturingSpeed.Economy,
+              icon = "🐢",
+              selected = ProductBuilderViewModel.selectedManufacturingSpeed,
+              lang = lang,
+            ),
           ),
         ),
       ),
@@ -376,3 +369,55 @@ object SpecificationForm:
     case BindingMethod.SpiralBinding   => lang match { case Language.En => "Spiral Binding";   case Language.Cs => "Kroužková vazba" }
     case BindingMethod.WireOBinding    => lang match { case Language.En => "Wire-O Binding";   case Language.Cs => "Wire-O vazba" }
     case BindingMethod.CaseBinding     => lang match { case Language.En => "Case Binding";     case Language.Cs => "V8 – tuhá vazba" }
+
+  private def speedTierCard(
+    speed: ManufacturingSpeed,
+    icon: String,
+    selected: Signal[Option[ManufacturingSpeed]],
+    lang: Signal[Language],
+  ): HtmlElement =
+    val isSelected = selected.map(_.contains(speed))
+    val (nameEn, nameCs) = speed match
+      case ManufacturingSpeed.Express  => ("Express", "Expres")
+      case ManufacturingSpeed.Standard => ("Standard", "Standardní")
+      case ManufacturingSpeed.Economy  => ("Economy", "Ekonomická")
+    val (priceEn, priceCs) = speed match
+      case ManufacturingSpeed.Express  => ("+35%", "+35 %")
+      case ManufacturingSpeed.Standard => ("base price", "základní cena")
+      case ManufacturingSpeed.Economy  => ("−15%", "−15 %")
+    val (timeEn, timeCs) = speed match
+      case ManufacturingSpeed.Express  => ("Same day / next business day", "Tentýž den / příští pracovní den")
+      case ManufacturingSpeed.Standard => ("2–5 business days", "2–5 pracovních dnů")
+      case ManufacturingSpeed.Economy  => ("5–10 business days", "5–10 pracovních dnů")
+    val (descEn, descCs) = speed match
+      case ManufacturingSpeed.Express  => ("Ideal for urgent orders", "Ideální pro naléhavé objednávky")
+      case ManufacturingSpeed.Standard => ("Recommended for most orders", "Doporučeno pro většinu objednávek")
+      case ManufacturingSpeed.Economy  => ("Best value for non-urgent orders", "Nejlepší cena pro neurgentní objednávky")
+
+    com.raquo.laminar.api.L.label(
+      cls <-- isSelected.map(sel => if sel then "speed-tier-card speed-tier-card--selected" else "speed-tier-card"),
+      input(
+        typ := "radio",
+        nameAttr := "manufacturing-speed",
+        value := speed.toString,
+        checked <-- isSelected,
+        com.raquo.laminar.api.L.onChange.mapToChecked --> Observer[Boolean] { _ =>
+          ProductBuilderViewModel.replaceSpecification(SpecValue.ManufacturingSpeedSpec(speed))
+        },
+      ),
+      div(
+        cls := "speed-tier-card__header",
+        span(cls := "speed-tier-card__icon", icon),
+        span(cls := "speed-tier-card__name", child.text <-- lang.map { l => if l == Language.En then nameEn else nameCs }),
+        span(cls := "speed-tier-card__price", child.text <-- lang.map { l => if l == Language.En then priceEn else priceCs }),
+      ),
+      div(
+        cls := "speed-tier-card__time",
+        span(cls := "speed-tier-card__time-icon", "🕐"),
+        span(child.text <-- lang.map { l => if l == Language.En then timeEn else timeCs }),
+      ),
+      div(
+        cls := "speed-tier-card__desc",
+        child.text <-- lang.map { l => if l == Language.En then descEn else descCs },
+      ),
+    )

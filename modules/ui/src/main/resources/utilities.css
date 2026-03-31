@@ -426,3 +426,89 @@ button:disabled {
     left: auto;
     right: 0;
 }
+
+/* === Manufacturing Speed Tier Cards === */
+
+.speed-tier-section {
+    margin-bottom: 1rem;
+}
+
+.speed-tier-section > .form-label {
+    display: block;
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+    color: var(--color-text-primary, #1a1a1a);
+}
+
+.speed-tier-cards {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.speed-tier-card {
+    display: block;
+    cursor: pointer;
+    border: 2px solid var(--color-border, #d1d5db);
+    border-radius: 8px;
+    padding: 0.75rem 1rem;
+    background: var(--color-bg-secondary, #f9fafb);
+    transition: border-color 0.15s ease, background-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.speed-tier-card:hover {
+    border-color: var(--color-primary, #3b82f6);
+    background: var(--color-bg-primary, #fff);
+}
+
+.speed-tier-card--selected {
+    border-color: var(--color-primary, #3b82f6);
+    background: var(--color-bg-primary, #fff);
+    box-shadow: 0 0 0 1px var(--color-primary, #3b82f6);
+}
+
+.speed-tier-card input[type="radio"] {
+    display: none;
+}
+
+.speed-tier-card__header {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 0.25rem;
+}
+
+.speed-tier-card__icon {
+    font-size: 1.2rem;
+}
+
+.speed-tier-card__name {
+    font-weight: 600;
+    color: var(--color-text-primary, #1a1a1a);
+}
+
+.speed-tier-card__price {
+    margin-left: auto;
+    font-weight: 600;
+    color: var(--color-primary, #3b82f6);
+    font-size: 0.9rem;
+}
+
+.speed-tier-card__time {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    font-size: 0.85rem;
+    color: var(--color-text-secondary, #6b7280);
+    margin-bottom: 0.15rem;
+}
+
+.speed-tier-card__time-icon {
+    font-size: 0.85rem;
+}
+
+.speed-tier-card__desc {
+    font-size: 0.8rem;
+    color: var(--color-text-muted, #9ca3af);
+    font-style: italic;
+}

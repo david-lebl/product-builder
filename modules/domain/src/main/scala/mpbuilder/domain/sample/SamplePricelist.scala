@@ -246,6 +246,30 @@ object SamplePricelist:
       PricingRule.BindingMethodSetupFee(BindingMethod.WireOBinding, Money("100")),
       PricingRule.BindingMethodSetupFee(BindingMethod.CaseBinding, Money("400")),
 
+      // --- Manufacturing speed surcharges ---
+      PricingRule.ManufacturingSpeedSurcharge(
+        tier = ManufacturingSpeed.Express,
+        multiplier = BigDecimal("1.35"),
+        queueMultiplierThresholds = List(
+          QueueThreshold(BigDecimal("0.50"), BigDecimal("0.10")),
+          QueueThreshold(BigDecimal("0.70"), BigDecimal("0.15")),
+          QueueThreshold(BigDecimal("0.85"), BigDecimal("0.25")),
+        ),
+      ),
+      PricingRule.ManufacturingSpeedSurcharge(
+        tier = ManufacturingSpeed.Standard,
+        multiplier = BigDecimal("1.00"),
+        queueMultiplierThresholds = List(
+          QueueThreshold(BigDecimal("0.70"), BigDecimal("0.05")),
+          QueueThreshold(BigDecimal("0.85"), BigDecimal("0.10")),
+        ),
+      ),
+      PricingRule.ManufacturingSpeedSurcharge(
+        tier = ManufacturingSpeed.Economy,
+        multiplier = BigDecimal("0.85"),
+        queueMultiplierThresholds = List.empty,
+      ),
+
       // --- Minimum order price ---
       PricingRule.MinimumOrderPrice(Money("500")),
     ),
@@ -491,6 +515,30 @@ object SamplePricelist:
       PricingRule.BindingMethodSetupFee(BindingMethod.SpiralBinding, Money("100")),
       PricingRule.BindingMethodSetupFee(BindingMethod.WireOBinding, Money("100")),
       PricingRule.BindingMethodSetupFee(BindingMethod.CaseBinding, Money("400")),
+
+      // --- Manufacturing speed surcharges ---
+      PricingRule.ManufacturingSpeedSurcharge(
+        tier = ManufacturingSpeed.Express,
+        multiplier = BigDecimal("1.35"),
+        queueMultiplierThresholds = List(
+          QueueThreshold(BigDecimal("0.50"), BigDecimal("0.10")),
+          QueueThreshold(BigDecimal("0.70"), BigDecimal("0.15")),
+          QueueThreshold(BigDecimal("0.85"), BigDecimal("0.25")),
+        ),
+      ),
+      PricingRule.ManufacturingSpeedSurcharge(
+        tier = ManufacturingSpeed.Standard,
+        multiplier = BigDecimal("1.00"),
+        queueMultiplierThresholds = List(
+          QueueThreshold(BigDecimal("0.70"), BigDecimal("0.05")),
+          QueueThreshold(BigDecimal("0.85"), BigDecimal("0.10")),
+        ),
+      ),
+      PricingRule.ManufacturingSpeedSurcharge(
+        tier = ManufacturingSpeed.Economy,
+        multiplier = BigDecimal("0.85"),
+        queueMultiplierThresholds = List.empty,
+      ),
 
       // --- Minimum order price ---
       PricingRule.MinimumOrderPrice(Money("500")),
