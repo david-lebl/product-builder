@@ -91,3 +91,52 @@ object EditorSessionStore:
       request.onsuccess = { _ => onComplete() }
       request.onerror = { _ => dom.console.error("Failed to delete session") }
     }
+
+  // ─── Image Gallery CRUD ──────────────────────────────────────────
+
+  /** Save (create or update) a gallery image */
+  def saveImage(image: ImageReference, onComplete: () => Unit = () => ()): Unit =
+    withDb { db =>
+      val store = getStore(db, IMAGES_STORE, "readwrite")
+      val data = Serialization.imageReferenceToJs(image)
+      val request = store.put(data)
+      request.onsuccess = { _ => onComplete() }
+      request.onerror = { _ => dom.console.error("Failed to save image") }
+    }
+
+  /** Load a gallery image by ID */
+  def loadImage(id: String, onResult: Option[ImageReference] => Unit): Unit =
+    withDb { db =>
+      val store = getStore(db, IMAGES_STORE, "readonly")
+      val request = store.get(id)
+      request.onsuccess = { event =>
+        val result = event.target.asInstanceOf[js.Dynamic].result
+        if result == null || js.isUndefined(result) then
+          onResult(None)
+        else
+          onResult(Some(Serialization.imageReferenceFromJs(result)))
+      }
+      request.onerror = { _ => onResult(None) }
+    }
+
+  /** List all gallery images, sorted by addedAt descending */
+  def listAllImages(onResult: List[ImageReference] => Unit): Unit =
+    withDb { db =>
+      val store = getStore(db, IMAGES_STORE, "readonly")
+      val request = store.getAll()
+      request.onsuccess = { event =>
+        val results = event.target.asInstanceOf[js.Dynamic].result.asInstanceOf[js.Array[js.Dynamic]]
+        val images = results.toList.map(Serialization.imageReferenceFromJs)
+        onResult(images.sortBy(-_.addedAt))
+      }
+      request.onerror = { _ => onResult(List.empty) }
+    }
+
+  /** Delete a gallery image by ID */
+  def deleteImage(id: String, onComplete: () => Unit = () => ()): Unit =
+    withDb { db =>
+      val store = getStore(db, IMAGES_STORE, "readwrite")
+      val request = store.delete(id)
+      request.onsuccess = { _ => onComplete() }
+      request.onerror = { _ => dom.console.error("Failed to delete image") }
+    }

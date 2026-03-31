@@ -226,6 +226,10 @@ object VisualEditorApp {
                 case Language.En => "Page Elements"
                 case Language.Cs => "Prvky stránky"
               }, () => div(cls := "calendar-controls-card", ElementListEditor())),
+              TabDef("gallery", lang.map {
+                case Language.En => "Gallery"
+                case Language.Cs => "Galerie"
+              }, () => div(cls := "calendar-controls-card", ImageGalleryPanel())),
               TabDef("background", lang.map {
                 case Language.En => "Background"
                 case Language.Cs => "Pozadí"

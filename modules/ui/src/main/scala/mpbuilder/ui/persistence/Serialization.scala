@@ -267,3 +267,29 @@ object Serialization:
     case "Center" => TextAlignment.Center
     case "Right"  => TextAlignment.Right
     case _        => TextAlignment.Left
+
+  // ─── ImageReference ────────────────────────────────────────────
+
+  def imageReferenceToJs(img: ImageReference): js.Dynamic =
+    js.Dynamic.literal(
+      id = img.id,
+      dataUrl = img.dataUrl,
+      fileName = img.fileName.getOrElse(null),
+      addedAt = img.addedAt,
+      sizeBytes = img.sizeBytes.toDouble,
+      usedInSessions = js.Array(img.usedInSessions.toSeq*),
+    )
+
+  def imageReferenceFromJs(d: js.Dynamic): ImageReference =
+    ImageReference(
+      id = d.id.asInstanceOf[String],
+      dataUrl = d.dataUrl.asInstanceOf[String],
+      fileName = nullableStr(d.fileName),
+      addedAt = d.addedAt.asInstanceOf[Double],
+      sizeBytes = d.sizeBytes.asInstanceOf[Double].toLong,
+      usedInSessions = {
+        val arr = d.usedInSessions
+        if arr == null || js.isUndefined(arr) then Set.empty[String]
+        else arr.asInstanceOf[js.Array[String]].toSet
+      },
+    )

@@ -1180,3 +1180,209 @@
     z-index: 9000;
     box-shadow: inset 0 0 4px rgba(0, 0, 0, 0.3);
 }
+
+/* ─── Gallery Tab ──────────────────────────────────────────────── */
+
+.gallery-section {
+    padding: 8px 0;
+}
+
+.gallery-section h4 {
+    margin: 0 0 6px 0;
+    font-size: 15px;
+    color: #333;
+}
+
+.gallery-description {
+    font-size: 12px;
+    color: #888;
+    margin: 0 0 10px 0;
+    line-height: 1.4;
+}
+
+.gallery-upload-row {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 12px;
+}
+
+.gallery-upload-btn,
+.gallery-link-btn {
+    flex: 1;
+    padding: 8px 10px;
+    border: 1px solid var(--color-primary, #007bff);
+    border-radius: 6px;
+    background: #fff;
+    color: var(--color-primary, #007bff);
+    font-size: 13px;
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s;
+    text-align: center;
+}
+
+.gallery-upload-btn:hover,
+.gallery-link-btn:hover {
+    background: var(--color-primary, #007bff);
+    color: #fff;
+}
+
+/* Gallery grid */
+.gallery-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    max-height: 500px;
+    overflow-y: auto;
+}
+
+.gallery-empty {
+    text-align: center;
+    padding: 24px 10px;
+    color: #999;
+    font-size: 13px;
+}
+
+/* Gallery item card */
+.gallery-item {
+    display: flex;
+    align-items: stretch;
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+    overflow: hidden;
+    background: #fafafa;
+    transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.gallery-item:hover {
+    border-color: #b0b0b0;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+}
+
+.gallery-item-broken {
+    border-color: #ffcc80;
+    background: #fff8e1;
+}
+
+/* Thumbnail */
+.gallery-item-thumb {
+    width: 72px;
+    min-height: 60px;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #f0f0f0;
+    overflow: hidden;
+}
+
+.gallery-thumb-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.gallery-item-broken-overlay {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 4px;
+    text-align: center;
+}
+
+.gallery-broken-icon {
+    font-size: 20px;
+    margin-bottom: 2px;
+}
+
+.gallery-broken-text {
+    font-size: 10px;
+    color: #e65100;
+    line-height: 1.2;
+}
+
+/* Info section */
+.gallery-item-info {
+    flex: 1;
+    padding: 6px 8px;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+
+.gallery-item-name {
+    font-size: 12px;
+    font-weight: 500;
+    color: #333;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.gallery-item-size {
+    font-size: 11px;
+    color: #999;
+    margin-top: 2px;
+}
+
+/* Actions */
+.gallery-item-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 6px;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.gallery-btn-add {
+    padding: 4px 8px;
+    border: 1px solid var(--color-primary, #007bff);
+    border-radius: 4px;
+    background: transparent;
+    color: var(--color-primary, #007bff);
+    font-size: 11px;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: background 0.15s, color 0.15s;
+}
+
+.gallery-btn-add:hover {
+    background: var(--color-primary, #007bff);
+    color: #fff;
+}
+
+.gallery-btn-remove {
+    padding: 4px 8px;
+    border: 1px solid #dc3545;
+    border-radius: 4px;
+    background: transparent;
+    color: #dc3545;
+    font-size: 11px;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: background 0.15s, color 0.15s;
+}
+
+.gallery-btn-remove:hover {
+    background: #dc3545;
+    color: #fff;
+}
+
+.gallery-btn-relink {
+    padding: 4px 8px;
+    border: 1px solid #ff9800;
+    border-radius: 4px;
+    background: transparent;
+    color: #e65100;
+    font-size: 11px;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: background 0.15s, color 0.15s;
+}
+
+.gallery-btn-relink:hover {
+    background: #ff9800;
+    color: #fff;
+}

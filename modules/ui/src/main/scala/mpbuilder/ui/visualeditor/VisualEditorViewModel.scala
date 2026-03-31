@@ -15,6 +15,9 @@ object VisualEditorViewModel {
   private val currentSessionIdVar: Var[Option[String]] = Var(None)
   val currentSessionId: Signal[Option[String]] = currentSessionIdVar.signal
 
+  /** One-time snapshot of the current session ID (for non-reactive lookups) */
+  def currentSessionIdSnapshot(): Option[String] = currentSessionIdVar.now()
+
   // Product context for the current session
   private val productContextVar: Var[Option[ProductContext]] = Var(None)
   val productContext: Signal[Option[ProductContext]] = productContextVar.signal
