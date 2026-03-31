@@ -401,7 +401,7 @@ object SpecificationForm:
         nameAttr := "manufacturing-speed",
         value := speed.toString,
         checked <-- isSelected,
-        com.raquo.laminar.api.L.onChange.mapToChecked --> Observer[Boolean] { _ =>
+        com.raquo.laminar.api.L.onChange --> { _ =>
           ProductBuilderViewModel.replaceSpecification(SpecValue.ManufacturingSpeedSpec(speed))
         },
       ),
