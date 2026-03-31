@@ -42,7 +42,7 @@ object SessionHistoryPanel {
       // Session list
       div(
         cls := "session-list",
-        children <-- sessionsVar.signal.combineWith(lang).map { case (sessions, l) =>
+        children <-- sessionsVar.signal.combineWith(VisualEditorViewModel.currentSessionId, lang).map { case (sessions, activeId, l) =>
           if sessions.isEmpty then
             List(div(cls := "empty-elements", l match
               case Language.En => "No saved sessions"
@@ -50,48 +50,54 @@ object SessionHistoryPanel {
             ))
           else
             sessions.map { session =>
-              renderSessionItem(session, sessionsVar, l)
+              renderSessionItem(session, sessionsVar, l, activeId)
             }
         }
       ),
     )
   }
 
-  private def renderSessionItem(session: EditorSession, sessionsVar: Var[List[EditorSession]], lang: Language): Element = {
+  private def renderSessionItem(session: EditorSession, sessionsVar: Var[List[EditorSession]], lang: Language, activeSessionId: Option[String]): Element = {
     val updatedStr = formatTimestamp(session.updatedAt)
     val fmt = session.editorState.productFormat
+    val isActive = activeSessionId.contains(session.id)
+    val displayName = session.sessionName.filter(_.nonEmpty).getOrElse(session.title)
+    val detail = s"${fmt.widthMm}x${fmt.heightMm}mm | ${session.editorState.pages.size} pages"
 
     div(
-      cls := "session-item element-item",
+      cls := (if isActive then "session-tile session-tile-active" else "session-tile"),
 
       div(
-        cls := "element-item-row",
+        cls := "session-tile-content",
         div(
-          cls := "session-item-info",
-          div(cls := "session-title", session.title),
-          div(cls := "session-meta", s"${fmt.widthMm}x${fmt.heightMm}mm | ${session.editorState.pages.size} pages | $updatedStr"),
+          cls := "session-tile-header",
+          div(cls := "session-tile-name", displayName),
+          if isActive then span(cls := "session-active-badge", lang match {
+            case Language.En => "Active"
+            case Language.Cs => "Aktivní"
+          }) else emptyNode,
         ),
-        div(
-          cls := "element-actions",
-          button(
-            cls := "element-action-btn",
-            title := (lang match { case Language.En => "Load"; case Language.Cs => "Nacist" }),
-            ">>",
-            onClick --> { _ =>
-              VisualEditorViewModel.loadSession(session)
-            }
-          ),
-          button(
-            cls := "element-action-btn element-delete-btn",
-            title := (lang match { case Language.En => "Delete"; case Language.Cs => "Smazat" }),
-            "x",
-            onClick --> { ev =>
-              ev.stopPropagation()
-              EditorSessionStore.delete(session.id, () => {
-                EditorSessionStore.listAll(sessions => sessionsVar.set(sessions))
-              })
-            }
-          ),
+        div(cls := "session-tile-detail", detail),
+        div(cls := "session-tile-time", updatedStr),
+      ),
+      div(
+        cls := "session-tile-actions",
+        button(
+          cls := "session-btn-load",
+          lang match { case Language.En => "Load"; case Language.Cs => "Načíst" },
+          onClick --> { _ =>
+            VisualEditorViewModel.loadSession(session)
+          }
+        ),
+        button(
+          cls := "session-btn-delete",
+          lang match { case Language.En => "Delete"; case Language.Cs => "Smazat" },
+          onClick --> { ev =>
+            ev.stopPropagation()
+            EditorSessionStore.delete(session.id, () => {
+              EditorSessionStore.listAll(sessions => sessionsVar.set(sessions))
+            })
+          }
         ),
       ),
     )

@@ -83,13 +83,26 @@ object VisualEditorApp {
             case Language.En => "Visual Product Editor"
             case Language.Cs => "Vizuální editor produktů"
           }),
-          // Save indicator
-          SaveIndicator(),
         ),
         p(child.text <-- lang.map {
           case Language.En => "Create your custom visual product — upload photos, add text, shapes and customize each page"
           case Language.Cs => "Vytvořte si vlastní vizuální produkt — nahrajte fotky, přidejte text, tvary a přizpůsobte každou stránku"
         }),
+        // Session name input row with save indicator
+        div(
+          cls := "session-name-row",
+          input(
+            cls := "session-name-input",
+            typ := "text",
+            placeholder <-- lang.map {
+              case Language.En => "Name your project..."
+              case Language.Cs => "Pojmenujte svůj projekt..."
+            },
+            value <-- VisualEditorViewModel.sessionName.map(_.getOrElse("")),
+            onInput.mapToValue --> { v => VisualEditorViewModel.setSessionName(v) },
+          ),
+          SaveIndicator(),
+        ),
         // Product context info (when coming from product builder)
         child.maybe <-- VisualEditorViewModel.productContext.combineWith(lang).map { case (ctxOpt, l) =>
           ctxOpt.map { ctx =>

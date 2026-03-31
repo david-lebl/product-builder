@@ -17,6 +17,7 @@ case class ProductContext(
 case class EditorSession(
   id: String,
   title: String,
+  sessionName: Option[String],
   configurationId: Option[String],
   productContext: Option[ProductContext],
   editorState: EditorState,

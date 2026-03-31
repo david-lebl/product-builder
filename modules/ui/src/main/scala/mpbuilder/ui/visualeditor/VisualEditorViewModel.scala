@@ -25,6 +25,10 @@ object VisualEditorViewModel {
   private val isSavingVar: Var[Boolean] = Var(false)
   val isSaving: Signal[Boolean] = isSavingVar.signal
 
+  // Session name (user-editable)
+  private val sessionNameVar: Var[Option[String]] = Var(None)
+  val sessionName: Signal[Option[String]] = sessionNameVar.signal
+
   // Auto-save timer
   private var autoSaveTimer: Option[Int] = None
   private val AUTO_SAVE_DELAY_MS = 2000
@@ -74,6 +78,7 @@ object VisualEditorViewModel {
       val session = EditorSession(
         id = sessionId,
         title = inferSessionTitle(),
+        sessionName = sessionNameVar.now(),
         configurationId = None,
         productContext = productContextVar.now(),
         editorState = stateVar.now(),
@@ -128,6 +133,7 @@ object VisualEditorViewModel {
   def loadSession(session: EditorSession): Unit =
     currentSessionIdVar.set(Some(session.id))
     productContextVar.set(session.productContext)
+    sessionNameVar.set(session.sessionName)
     selectedElementVar.set(None)
     stateVar.set(session.editorState)
     lastSavedVar.set(Some(session.updatedAt))
@@ -464,8 +470,14 @@ object VisualEditorViewModel {
     selectedElementVar.set(None)
     currentSessionIdVar.set(None)
     productContextVar.set(None)
+    sessionNameVar.set(None)
     lastSavedVar.set(None)
   }
+
+  def setSessionName(name: String): Unit =
+    val trimmed = name.trim
+    sessionNameVar.set(if trimmed.isEmpty then None else Some(trimmed))
+    scheduleAutoSave()
 
   def updateLanguage(lang: String): Unit =
     stateVar.update(state => EditorState.updateLanguage(state, lang))

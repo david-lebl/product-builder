@@ -12,6 +12,7 @@ object Serialization:
     js.Dynamic.literal(
       id = s.id,
       title = s.title,
+      sessionName = s.sessionName.getOrElse(null),
       configurationId = s.configurationId.getOrElse(null),
       productContext = s.productContext.map(productContextToJs).getOrElse(null),
       editorState = editorStateToJs(s.editorState),
@@ -24,6 +25,7 @@ object Serialization:
     EditorSession(
       id = d.id.asInstanceOf[String],
       title = d.title.asInstanceOf[String],
+      sessionName = nullableStr(d.sessionName),
       configurationId = Option(d.configurationId.asInstanceOf[String]).filter(_ != null),
       productContext = {
         val ctx = d.productContext

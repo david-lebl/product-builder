@@ -23,14 +23,22 @@ object ResumePopup {
           cls := "resume-sessions-list",
           sessions.map { session =>
             val fmt = session.editorState.productFormat
-            button(
-              cls := "resume-session-btn",
+            val displayName = session.sessionName.filter(_.nonEmpty).getOrElse(session.title)
+            val detail = s"${fmt.widthMm}x${fmt.heightMm}mm | ${session.editorState.pages.size} pages"
+            val editedTime = formatTimestamp(session.updatedAt)
+            div(
+              cls := "resume-session-card",
               div(
                 cls := "resume-session-info",
-                strong(session.title),
-                span(cls := "resume-session-meta", s"${fmt.widthMm}x${fmt.heightMm}mm | ${session.editorState.pages.size} pages"),
+                div(cls := "resume-session-name", displayName),
+                div(cls := "resume-session-detail", detail),
+                div(cls := "resume-session-time", s"Last edited: $editedTime"),
               ),
-              onClick --> { _ => onResume(session) },
+              button(
+                cls := "resume-session-load-btn",
+                "Resume",
+                onClick --> { _ => onResume(session) },
+              ),
             )
           }
         ),
@@ -45,5 +53,14 @@ object ResumePopup {
         ),
       ),
     )
+  }
+
+  private def formatTimestamp(ts: Double): String = {
+    val now = System.currentTimeMillis().toDouble
+    val diffSeconds = ((now - ts) / 1000).toInt
+    if diffSeconds < 60 then "just now"
+    else if diffSeconds < 3600 then s"${diffSeconds / 60}m ago"
+    else if diffSeconds < 86400 then s"${diffSeconds / 3600}h ago"
+    else s"${diffSeconds / 86400}d ago"
   }
 }
