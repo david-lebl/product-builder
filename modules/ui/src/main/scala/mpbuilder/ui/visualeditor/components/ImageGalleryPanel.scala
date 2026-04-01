@@ -119,6 +119,23 @@ object ImageGalleryPanel {
         ),
       ),
 
+      // Clear all button
+      button(
+        cls := "gallery-btn-clear-all",
+        child.text <-- lang.map {
+          case Language.En => "🗑 Clear All"
+          case Language.Cs => "🗑 Smazat vše"
+        },
+        onClick.compose(_.withCurrentValueOf(lang)) --> { case (_, currentLang) =>
+          val confirmMsg = currentLang match {
+            case Language.En => "Remove all images from gallery? This cannot be undone."
+            case Language.Cs => "Odstranit všechny obrázky z galerie? Toto nelze vrátit zpět."
+          }
+          if dom.window.confirm(confirmMsg) then
+            EditorSessionStore.deleteAllImages(() => refreshGallery())
+        }
+      ),
+
       // Gallery grid
       div(
         cls := "gallery-grid",

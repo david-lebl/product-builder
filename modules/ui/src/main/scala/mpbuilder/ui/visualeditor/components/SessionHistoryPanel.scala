@@ -5,6 +5,7 @@ import mpbuilder.ui.visualeditor.*
 import mpbuilder.ui.persistence.EditorSessionStore
 import mpbuilder.ui.productbuilder.ProductBuilderViewModel
 import mpbuilder.domain.model.{Language, ArtworkId}
+import org.scalajs.dom
 
 /** Sidebar panel showing saved editor sessions */
 object SessionHistoryPanel {
@@ -36,6 +37,25 @@ object SessionHistoryPanel {
           val newId = ArtworkId.generate().value
           VisualEditorViewModel.reset()
           VisualEditorViewModel.startNewSession(newId)
+        }
+      ),
+
+      // Clear all sessions button
+      button(
+        cls := "session-btn-delete",
+        child.text <-- lang.map {
+          case Language.En => "Clear All"
+          case Language.Cs => "Smazat vše"
+        },
+        onClick.compose(_.withCurrentValueOf(lang)) --> { case (_, currentLang) =>
+          val confirmMsg = currentLang match {
+            case Language.En => "Delete all saved sessions? This cannot be undone."
+            case Language.Cs => "Smazat všechny uložené relace? Toto nelze vrátit zpět."
+          }
+          if dom.window.confirm(confirmMsg) then
+            EditorSessionStore.deleteAllSessions(() => {
+              EditorSessionStore.listAll(sessions => sessionsVar.set(sessions))
+            })
         }
       ),
 

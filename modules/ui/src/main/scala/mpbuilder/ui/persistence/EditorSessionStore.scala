@@ -92,6 +92,15 @@ object EditorSessionStore:
       request.onerror = { _ => dom.console.error("Failed to delete session") }
     }
 
+  /** Delete all sessions */
+  def deleteAllSessions(onComplete: () => Unit = () => ()): Unit =
+    withDb { db =>
+      val store = getStore(db, SESSIONS_STORE, "readwrite")
+      val request = store.clear()
+      request.onsuccess = { _ => onComplete() }
+      request.onerror = { _ => dom.console.error("Failed to clear sessions") }
+    }
+
   // ─── Image Gallery CRUD ──────────────────────────────────────────
 
   /** Save (create or update) a gallery image */
@@ -139,4 +148,13 @@ object EditorSessionStore:
       val request = store.delete(id)
       request.onsuccess = { _ => onComplete() }
       request.onerror = { _ => dom.console.error("Failed to delete image") }
+    }
+
+  /** Delete all gallery images */
+  def deleteAllImages(onComplete: () => Unit = () => ()): Unit =
+    withDb { db =>
+      val store = getStore(db, IMAGES_STORE, "readwrite")
+      val request = store.clear()
+      request.onsuccess = { _ => onComplete() }
+      request.onerror = { _ => dom.console.error("Failed to clear images") }
     }
