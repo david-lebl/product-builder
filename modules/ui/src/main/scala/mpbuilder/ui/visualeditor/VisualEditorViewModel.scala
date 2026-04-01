@@ -337,17 +337,31 @@ object VisualEditorViewModel {
           }
         case None =>
           // New image — add to gallery
+          idCounter += 1
+          val rand = (js.Math.random() * 1000000).toInt
           val imgRef = ImageReference(
-            id = s"auto-${System.currentTimeMillis()}-${idCounter}",
+            id = s"auto-${System.currentTimeMillis()}-$idCounter-$rand",
             dataUrl = imageData,
             fileName = None,
             addedAt = System.currentTimeMillis().toDouble,
-            sizeBytes = imageData.length.toLong,
+            sizeBytes = estimateDataUrlBytes(imageData),
             usedInSessions = sessionId.toSet,
           )
-          idCounter += 1
           EditorSessionStore.saveImage(imgRef, () => ImageGalleryPanel.refreshGallery())
     }
+
+  /** Estimate the decoded byte size of a data URL.
+    * For base64 data URLs, strips the prefix and estimates decoded size.
+    * Falls back to string length for non-data URLs.
+    */
+  private def estimateDataUrlBytes(dataUrl: String): Long =
+    val base64Prefix = ";base64,"
+    val idx = dataUrl.indexOf(base64Prefix)
+    if idx >= 0 then
+      val base64Part = dataUrl.substring(idx + base64Prefix.length)
+      (base64Part.length.toLong * 3) / 4
+    else
+      dataUrl.length.toLong
 
   // ─── Text element operations ─────────────────────────────────────
 
