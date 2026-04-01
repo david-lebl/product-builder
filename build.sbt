@@ -35,6 +35,7 @@ lazy val domain = crossProject(JVMPlatform, JSPlatform)
   .settings(commonSettings)
   .settings(
     name := "material-builder-domain",
+    scalacOptions += "-Xmax-inlines:64",
     libraryDependencies ++= Seq(
       "dev.zio" %%% "zio"          % "2.1.16",
       "dev.zio" %%% "zio-prelude"  % "1.0.0-RC39",

@@ -31,14 +31,16 @@ object QueueScorer:
       workflow: ManufacturingWorkflow,
       now: Long,
       currentMaterialId: Option[MaterialId] = None,
+      manufacturingSpeed: Option[ManufacturingSpeed] = None,
   ): QueueScore =
-    QueueScore(
+    val base = QueueScore(
       deadlineUrgency = calculateDeadlineUrgency(workflow.deadline, now),
       priorityBoost = calculatePriorityBoost(workflow.priority),
       completenessBoost = calculateCompletenessBoost(workflow),
       batchAffinity = 0, // batch affinity requires machine context — always 0 for now
       ageMinutes = calculateAgeMinutes(workflow.createdAt, now),
     )
+    applySpeedAdjustments(base, manufacturingSpeed)
 
   /** Score with batch affinity for a specific material match. */
   def scoreWithAffinity(
@@ -47,8 +49,9 @@ object QueueScorer:
       now: Long,
       currentMaterialId: Option[MaterialId],
       stepMaterialId: Option[MaterialId],
+      manufacturingSpeed: Option[ManufacturingSpeed] = None,
   ): QueueScore =
-    val base = score(workflow, now, currentMaterialId)
+    val base = score(workflow, now, currentMaterialId, manufacturingSpeed)
     val affinity = calculateBatchAffinity(currentMaterialId, stepMaterialId)
     base.copy(batchAffinity = affinity)
 
@@ -109,3 +112,19 @@ object QueueScorer:
   private[domain] def calculateAgeMinutes(createdAt: Long, now: Long): Long =
     val millis = now - createdAt
     if millis < 0 then 0 else millis / (1000 * 60)
+
+  /** Apply manufacturing speed tier adjustments to queue score.
+    *
+    * Express: +50 priority boost (overwhelming priority, always ahead of Standard/Economy).
+    * Economy: +10 batch affinity (encourages batching Economy orders together).
+    */
+  private[domain] def applySpeedAdjustments(
+      score: QueueScore,
+      speed: Option[ManufacturingSpeed],
+  ): QueueScore =
+    speed match
+      case Some(ManufacturingSpeed.Express) =>
+        score.copy(priorityBoost = score.priorityBoost + 50)
+      case Some(ManufacturingSpeed.Economy) =>
+        score.copy(batchAffinity = score.batchAffinity + 10)
+      case _ => score

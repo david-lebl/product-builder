@@ -4,6 +4,7 @@ import com.raquo.laminar.api.L.*
 import mpbuilder.ui.productbuilder.ProductBuilderViewModel
 import mpbuilder.uikit.feedback.HelpInfo
 import mpbuilder.domain.model.*
+import mpbuilder.domain.service.{CompletionEstimator, TierRestrictionValidator}
 import mpbuilder.uikit.fields.{TextField, SelectField, SelectOption}
 import mpbuilder.uikit.util.Visibility
 
@@ -308,6 +309,83 @@ object SpecificationForm:
         ),
       ),
 
+      // Manufacturing Speed Tier (always visible when category is selected)
+      div(
+        Visibility.when(requiredSpecs.map(_.nonEmpty)),
+        div(
+          cls := "speed-tier-section",
+          com.raquo.laminar.api.L.label(
+            cls := "form-label",
+            child.text <-- lang.map {
+              case Language.En => "Manufacturing Speed:"
+              case Language.Cs => "Rychlost výroby:"
+            },
+          ),
+          div(
+            cls := "speed-tier-cards",
+            {
+              def formatCompletion(est: Option[CompletionEstimator.CompletionEstimate], l: Language): Option[String] =
+                est.map { e =>
+                  e.formatEarliest(ProductBuilderViewModel.currentLocalDateTime, l)
+                }
+
+              // Express: completion estimate + disabled signal from utilisation + tier violations
+              val expressEstimate = ProductBuilderViewModel.completionEstimate(ManufacturingSpeed.Express)
+              val expressCompletion = expressEstimate.combineWith(lang).map { (est: Option[CompletionEstimator.CompletionEstimate], l: Language) =>
+                formatCompletion(est, l)
+              }
+              val expressViolations = ProductBuilderViewModel.tierViolations(ManufacturingSpeed.Express)
+              val expressUtilDisabled = ProductBuilderViewModel.expressAvailable.map(!_)
+              val expressViolDisabled = expressViolations.map(_.nonEmpty)
+              val expressDisabled = expressUtilDisabled.combineWith(expressViolDisabled).map { (u: Boolean, v: Boolean) => u || v }
+              val expressWarning = expressUtilDisabled.combineWith(expressViolations, lang).map { (utilDis: Boolean, viols: List[TierRestrictionValidator.TierViolation], l: Language) =>
+                if utilDis then Some(l match
+                  case Language.En => "Express not available — high demand"
+                  case Language.Cs => "Expres nedostupný — vysoká poptávka"
+                )
+                else viols.headOption.map(_.message(l))
+              }
+
+              val stdEstimate = ProductBuilderViewModel.completionEstimate(ManufacturingSpeed.Standard)
+              val stdCompletion = stdEstimate.combineWith(lang).map { (est: Option[CompletionEstimator.CompletionEstimate], l: Language) =>
+                formatCompletion(est, l)
+              }
+
+              val ecoEstimate = ProductBuilderViewModel.completionEstimate(ManufacturingSpeed.Economy)
+              val ecoCompletion = ecoEstimate.combineWith(lang).map { (est: Option[CompletionEstimator.CompletionEstimate], l: Language) =>
+                formatCompletion(est, l)
+              }
+
+              List(
+                speedTierCard(
+                  speed = ManufacturingSpeed.Express,
+                  icon = "⚡",
+                  selected = ProductBuilderViewModel.selectedManufacturingSpeed,
+                  lang = lang,
+                  disabledSignal = expressDisabled,
+                  warningSignal = expressWarning,
+                  completionSignal = expressCompletion,
+                ),
+                speedTierCard(
+                  speed = ManufacturingSpeed.Standard,
+                  icon = "●",
+                  selected = ProductBuilderViewModel.selectedManufacturingSpeed,
+                  lang = lang,
+                  completionSignal = stdCompletion,
+                ),
+                speedTierCard(
+                  speed = ManufacturingSpeed.Economy,
+                  icon = "🐢",
+                  selected = ProductBuilderViewModel.selectedManufacturingSpeed,
+                  lang = lang,
+                  completionSignal = ecoCompletion,
+                ),
+              )
+            },
+          ),
+        ),
+      ),
+
       div(
         cls := "info-box",
         p(child.text <-- lang.map {
@@ -333,3 +411,76 @@ object SpecificationForm:
     case BindingMethod.SpiralBinding   => lang match { case Language.En => "Spiral Binding";   case Language.Cs => "Kroužková vazba" }
     case BindingMethod.WireOBinding    => lang match { case Language.En => "Wire-O Binding";   case Language.Cs => "Wire-O vazba" }
     case BindingMethod.CaseBinding     => lang match { case Language.En => "Case Binding";     case Language.Cs => "V8 – tuhá vazba" }
+
+  private def speedTierCard(
+    speed: ManufacturingSpeed,
+    icon: String,
+    selected: Signal[Option[ManufacturingSpeed]],
+    lang: Signal[Language],
+    disabledSignal: Signal[Boolean] = Val(false),
+    warningSignal: Signal[Option[String]] = Val(None),
+    completionSignal: Signal[Option[String]] = Val(None),
+  ): HtmlElement =
+    val isSelected = selected.map(_.contains(speed))
+    val (nameEn, nameCs) = speed match
+      case ManufacturingSpeed.Express  => ("Express", "Expres")
+      case ManufacturingSpeed.Standard => ("Standard", "Standardní")
+      case ManufacturingSpeed.Economy  => ("Economy", "Ekonomická")
+    val (priceEn, priceCs) = speed match
+      case ManufacturingSpeed.Express  => ("+35%", "+35 %")
+      case ManufacturingSpeed.Standard => ("base price", "základní cena")
+      case ManufacturingSpeed.Economy  => ("−15%", "−15 %")
+    val (timeEn, timeCs) = speed match
+      case ManufacturingSpeed.Express  => ("Same day / next business day", "Tentýž den / příští pracovní den")
+      case ManufacturingSpeed.Standard => ("2–5 business days", "2–5 pracovních dnů")
+      case ManufacturingSpeed.Economy  => ("5–10 business days", "5–10 pracovních dnů")
+    val (descEn, descCs) = speed match
+      case ManufacturingSpeed.Express  => ("Ideal for urgent orders", "Ideální pro naléhavé objednávky")
+      case ManufacturingSpeed.Standard => ("Recommended for most orders", "Doporučeno pro většinu objednávek")
+      case ManufacturingSpeed.Economy  => ("Best value for non-urgent orders", "Nejlepší cena pro neurgentní objednávky")
+
+    val cardCls = isSelected.combineWith(disabledSignal).map { (sel: Boolean, dis: Boolean) =>
+      if dis then "speed-tier-card speed-tier-card--disabled"
+      else if sel then "speed-tier-card speed-tier-card--selected"
+      else "speed-tier-card"
+    }
+
+    // Dynamic time text: use completion estimate if available, otherwise fall back to static
+    val timeText = completionSignal.combineWith(lang).map { (est: Option[String], l: Language) =>
+      est.getOrElse(if l == Language.En then timeEn else timeCs)
+    }
+
+    com.raquo.laminar.api.L.label(
+      cls <-- cardCls,
+      input(
+        typ := "radio",
+        nameAttr := "manufacturing-speed",
+        value := speed.toString,
+        checked <-- isSelected,
+        disabled <-- disabledSignal,
+        com.raquo.laminar.api.L.onChange --> { _ =>
+          ProductBuilderViewModel.replaceSpecification(SpecValue.ManufacturingSpeedSpec(speed))
+        },
+      ),
+      div(
+        cls := "speed-tier-card__header",
+        span(cls := "speed-tier-card__icon", icon),
+        span(cls := "speed-tier-card__name", child.text <-- lang.map { l => if l == Language.En then nameEn else nameCs }),
+        span(cls := "speed-tier-card__price", child.text <-- lang.map { l => if l == Language.En then priceEn else priceCs }),
+      ),
+      div(
+        cls := "speed-tier-card__time",
+        span(cls := "speed-tier-card__time-icon", "🕐"),
+        span(child.text <-- timeText),
+      ),
+      div(
+        cls := "speed-tier-card__desc",
+        child.text <-- lang.map { l => if l == Language.En then descEn else descCs },
+      ),
+      // Warning message when disabled
+      div(
+        cls := "speed-tier-card__warning",
+        Visibility.when(warningSignal.map(_.isDefined)),
+        child.text <-- warningSignal.map(_.getOrElse("")),
+      ),
+    )

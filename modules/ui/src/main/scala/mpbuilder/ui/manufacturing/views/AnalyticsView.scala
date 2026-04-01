@@ -135,6 +135,52 @@ object AnalyticsView:
           ),
         ),
       ),
+
+      // Tier performance metrics
+      h3(cls := "analytics-section-title", "Tier Performance"),
+      div(
+        cls := "analytics-table-container",
+        table(
+          cls := "analytics-table",
+          thead(
+            tr(
+              th("Priority Tier"),
+              th("Orders"),
+              th("Completed"),
+              th("Avg Turnaround"),
+              th("On-Time Rate"),
+            ),
+          ),
+          tbody(
+            children <-- analyticsSignal.map { summary =>
+              summary.tierMetrics.map { m =>
+                tr(
+                  td(
+                    cls := "analytics-station-cell",
+                    span(cls := "station-label-icon", m.priority match
+                      case Priority.Rush   => "⚡"
+                      case Priority.Normal => "●"
+                      case Priority.Low    => "🐢"
+                    ),
+                    span(m.priority.displayName),
+                  ),
+                  td(m.orderCount.toString),
+                  td(m.completedCount.toString),
+                  td(formatDuration(m.avgTurnaroundMs)),
+                  td(
+                    span(
+                      cls := (if m.onTimeRate >= 0.9 then "analytics-load analytics-load--light"
+                              else if m.onTimeRate >= 0.8 then "analytics-load analytics-load--moderate"
+                              else "analytics-load analytics-load--heavy"),
+                      f"${m.onTimeRate * 100}%.0f%%",
+                    ),
+                  ),
+                )
+              }
+            },
+          ),
+        ),
+      ),
     )
 
   private def kpiCard(title: String, value: String, icon: String, modifier: String): HtmlElement =
