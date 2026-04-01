@@ -2,7 +2,9 @@ package mpbuilder.ui.visualeditor
 
 import com.raquo.laminar.api.L.*
 import org.scalajs.dom
+import scala.scalajs.js
 import mpbuilder.ui.persistence.EditorSessionStore
+import mpbuilder.ui.visualeditor.components.ImageGalleryPanel
 
 /** View model for managing visual editor state */
 object VisualEditorViewModel {
@@ -278,6 +280,8 @@ object VisualEditorViewModel {
     )
     addElement(photo)
     selectedElementVar.set(Some(photoId))
+    // Auto-sync to gallery
+    syncImageToGallery(imageData)
   }
 
   def removePhoto(photoId: String): Unit = removeElement(photoId)

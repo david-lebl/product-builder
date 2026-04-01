@@ -23,7 +23,7 @@ object SessionHistoryPanel {
 
       h4(child.text <-- lang.map {
         case Language.En => "Saved Sessions"
-        case Language.Cs => "Ulozene relace"
+        case Language.Cs => "Uložené relace"
       }),
 
       // New session button
@@ -31,7 +31,7 @@ object SessionHistoryPanel {
         cls := "add-element-btn",
         child.text <-- lang.map {
           case Language.En => "+ New Session"
-          case Language.Cs => "+ Nova relace"
+          case Language.Cs => "+ Nová relace"
         },
         onClick --> { _ =>
           val newId = ArtworkId.generate().value
@@ -42,10 +42,10 @@ object SessionHistoryPanel {
 
       // Clear all sessions button
       button(
-        cls := "session-btn-delete",
+        cls := "clear-all-btn",
         child.text <-- lang.map {
-          case Language.En => "Clear All"
-          case Language.Cs => "Smazat vše"
+          case Language.En => "🗑 Clear All"
+          case Language.Cs => "🗑 Smazat vše"
         },
         onClick.compose(_.withCurrentValueOf(lang)) --> { case (_, currentLang) =>
           val confirmMsg = currentLang match {
@@ -66,7 +66,7 @@ object SessionHistoryPanel {
           if sessions.isEmpty then
             List(div(cls := "empty-elements", l match
               case Language.En => "No saved sessions"
-              case Language.Cs => "Zadne ulozene relace"
+              case Language.Cs => "Žádné uložené relace"
             ))
           else
             sessions.map { session =>

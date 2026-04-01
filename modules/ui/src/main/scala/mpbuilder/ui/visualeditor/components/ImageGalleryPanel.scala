@@ -121,7 +121,7 @@ object ImageGalleryPanel {
 
       // Clear all button
       button(
-        cls := "gallery-btn-clear-all",
+        cls := "clear-all-btn",
         child.text <-- lang.map {
           case Language.En => "🗑 Clear All"
           case Language.Cs => "🗑 Smazat vše"
