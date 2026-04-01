@@ -317,6 +317,37 @@ object VisualEditorViewModel {
 
   def replacePhotoImage(photoId: String, imageData: String): Unit =
     updatePhoto(photoId, _.copy(imageData = imageData, imageScale = 1.0, imageOffsetX = 0.0, imageOffsetY = 0.0))
+    syncImageToGallery(imageData)
+
+  /** Auto-sync an image to the gallery IndexedDB store.
+    * Checks existing gallery images by dataUrl to avoid duplicates.
+    * Updates usedInSessions with the current session ID.
+    */
+  private def syncImageToGallery(imageData: String): Unit =
+    if imageData.isEmpty then return
+    val sessionId = currentSessionIdVar.now()
+    EditorSessionStore.listAllImages { existingImages =>
+      existingImages.find(_.dataUrl == imageData) match
+        case Some(existing) =>
+          // Image already in gallery — just update usedInSessions if needed
+          sessionId.foreach { sid =>
+            if !existing.usedInSessions.contains(sid) then
+              val updated = existing.copy(usedInSessions = existing.usedInSessions + sid)
+              EditorSessionStore.saveImage(updated, () => ImageGalleryPanel.refreshGallery())
+          }
+        case None =>
+          // New image — add to gallery
+          val imgRef = ImageReference(
+            id = s"auto-${System.currentTimeMillis()}-${idCounter}",
+            dataUrl = imageData,
+            fileName = None,
+            addedAt = System.currentTimeMillis().toDouble,
+            sizeBytes = imageData.length.toLong,
+            usedInSessions = sessionId.toSet,
+          )
+          idCounter += 1
+          EditorSessionStore.saveImage(imgRef, () => ImageGalleryPanel.refreshGallery())
+    }
 
   // ─── Text element operations ─────────────────────────────────────
 
