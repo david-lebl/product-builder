@@ -14,8 +14,14 @@ object VisualEditorApp {
   // Sidebar tab state
   private val sidebarTabVar: Var[String] = Var("elements")
 
-  // Resume popup state
-  private val showResumePopupVar: Var[Option[List[EditorSession]]] = Var(None)
+  // Resume popup state — non-empty list means popup is shown
+  private val resumeSessionsVar: Var[List[EditorSession]] = Var(List.empty)
+
+  private def closeResumeAndStartNew(): Unit = {
+    val newId = ArtworkId.generate().value
+    VisualEditorViewModel.startNewSession(newId)
+    resumeSessionsVar.set(List.empty)
+  }
 
   def apply(artworkId: Option[String] = None): Element = {
     val lang = ProductBuilderViewModel.currentLanguage
@@ -46,7 +52,7 @@ object VisualEditorApp {
                 // Standalone open — check for in-progress sessions
                 EditorSessionStore.listAll { sessions =>
                   if sessions.nonEmpty then
-                    showResumePopupVar.set(Some(sessions.take(5)))
+                    resumeSessionsVar.set(sessions)
                   else
                     val newId = ArtworkId.generate().value
                     VisualEditorViewModel.startNewSession(newId)
@@ -58,21 +64,34 @@ object VisualEditorApp {
         VisualEditorViewModel.updateLanguage(language.toCode)
       },
 
-      // Resume popup overlay
-      child.maybe <-- showResumePopupVar.signal.map(_.map { sessions =>
-        ResumePopup(
-          sessions = sessions,
-          onResume = { session =>
-            VisualEditorViewModel.loadSession(session)
-            showResumePopupVar.set(None)
-          },
-          onStartNew = {
-            val newId = ArtworkId.generate().value
-            VisualEditorViewModel.startNewSession(newId)
-            showResumePopupVar.set(None)
-          },
-        )
-      }),
+      // Resume popup overlay — shown when resumeSessionsVar is non-empty
+      child.maybe <-- resumeSessionsVar.signal.map { sessions =>
+        if sessions.nonEmpty then Some(
+          ResumePopup(
+            sessions = resumeSessionsVar.signal,
+            lang = lang,
+            onResume = { session =>
+              VisualEditorViewModel.loadSession(session)
+              resumeSessionsVar.set(List.empty)
+            },
+            onStartNew = closeResumeAndStartNew(),
+            onDelete = { session =>
+              EditorSessionStore.delete(session.id, () => {
+                val updated = resumeSessionsVar.now().filter(_.id != session.id)
+                resumeSessionsVar.set(updated)
+                if updated.isEmpty then closeResumeAndStartNew()
+              })
+            },
+            onClearAll = {
+              EditorSessionStore.deleteAllSessions(() => {
+                resumeSessionsVar.set(List.empty)
+                val newId = ArtworkId.generate().value
+                VisualEditorViewModel.startNewSession(newId)
+              })
+            },
+          )
+        ) else None
+      },
 
       // Header
       div(
