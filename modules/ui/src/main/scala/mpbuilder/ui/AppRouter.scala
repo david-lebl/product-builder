@@ -164,7 +164,7 @@ object AppRouter {
                   },
                   child.text <-- lang.map {
                     case Language.En => "My Orders"
-                    case Language.Cs => "Moje objednavky"
+                    case Language.Cs => "Moje objednávky"
                   },
                   onClick --> { _ => navigateTo(AppRoute.CustomerPortal) }
                 )
