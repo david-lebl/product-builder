@@ -7,10 +7,12 @@ import mpbuilder.ui.components.{CheckoutView, CustomerPortalView, LoginWidget, O
 import mpbuilder.ui.manufacturing.ManufacturingApp
 import mpbuilder.ui.catalog.CatalogEditorApp
 import mpbuilder.ui.customers.CustomerManagementApp
-import mpbuilder.domain.model.Language
+import mpbuilder.ui.productcatalog.ProductCatalogApp
+import mpbuilder.domain.model.{CategoryId, Language}
 
 sealed trait AppRoute
 object AppRoute {
+  case object ProductCatalog extends AppRoute
   case object ProductBuilder extends AppRoute
   case class VisualEditor(artworkId: Option[String] = None) extends AppRoute
   case object Checkout extends AppRoute
@@ -19,10 +21,12 @@ object AppRoute {
   case object CustomerManagement extends AppRoute
   case object OrderHistory extends AppRoute
   case object CustomerPortal extends AppRoute
+  /** Detail page for a specific product in the catalog. */
+  case class ProductDetail(categoryId: CategoryId) extends AppRoute
 }
 
 object AppRouter {
-  private val currentRouteVar: Var[AppRoute] = Var(AppRoute.ProductBuilder)
+  private val currentRouteVar: Var[AppRoute] = Var(AppRoute.ProductCatalog)
   val currentRoute: Signal[AppRoute] = currentRouteVar.signal
   val basketOpen: Var[Boolean] = Var(false)
 
@@ -66,7 +70,7 @@ object AppRouter {
           button(
             cls := "nav-basket-btn",
             cls <-- currentRoute.map {
-              case AppRoute.ProductBuilder => ""
+              case AppRoute.ProductBuilder | AppRoute.ProductCatalog | _: AppRoute.ProductDetail => ""
               case _ => "nav-basket-btn-hidden"
             },
             child <-- ProductBuilderViewModel.state.combineWith(lang).map { case (state, l) =>
@@ -91,6 +95,18 @@ object AppRouter {
             case AppRoute.Checkout => "app-navigation app-navigation--hidden"
             case _                 => "app-navigation"
           },
+          button(
+            cls := "nav-link",
+            cls <-- currentRoute.map {
+              case AppRoute.ProductCatalog | _: AppRoute.ProductDetail => "active"
+              case _ => ""
+            },
+            child.text <-- lang.map {
+              case Language.En => "Products"
+              case Language.Cs => "Produkty"
+            },
+            onClick --> { _ => navigateTo(AppRoute.ProductCatalog) }
+          ),
           button(
             cls := "nav-link",
             cls <-- currentRoute.map {
@@ -175,14 +191,16 @@ object AppRouter {
 
       // Route content
       child <-- currentRoute.map {
-        case AppRoute.ProductBuilder       => ProductBuilderApp()
+        case AppRoute.ProductCatalog     => ProductCatalogApp()
+        case AppRoute.ProductDetail(cid) => ProductCatalogApp.detailPage(cid)
+        case AppRoute.ProductBuilder     => ProductBuilderApp()
         case AppRoute.VisualEditor(artId)  => VisualEditorApp(artId)
-        case AppRoute.Checkout             => CheckoutView()
-        case AppRoute.Manufacturing        => ManufacturingApp()
-        case AppRoute.CatalogEditor        => CatalogEditorApp()
-        case AppRoute.CustomerManagement   => CustomerManagementApp()
-        case AppRoute.OrderHistory         => OrderHistoryView()
-        case AppRoute.CustomerPortal       => CustomerPortalView()
+        case AppRoute.Checkout           => CheckoutView()
+        case AppRoute.Manufacturing      => ManufacturingApp()
+        case AppRoute.CatalogEditor      => CatalogEditorApp()
+        case AppRoute.CustomerManagement => CustomerManagementApp()
+        case AppRoute.OrderHistory       => OrderHistoryView()
+        case AppRoute.CustomerPortal     => CustomerPortalView()
       }
     )
   }
