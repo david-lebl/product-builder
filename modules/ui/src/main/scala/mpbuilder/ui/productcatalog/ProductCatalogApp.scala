@@ -1,6 +1,7 @@
 package mpbuilder.ui.productcatalog
 
 import com.raquo.laminar.api.L.*
+import com.raquo.laminar.codecs.StringAsIsCodec
 import mpbuilder.domain.model.*
 import mpbuilder.domain.sample.{SampleCatalog, SampleShowcase}
 import mpbuilder.ui.{AppRouter, AppRoute}
@@ -8,6 +9,8 @@ import mpbuilder.ui.productbuilder.ProductBuilderViewModel
 
 /** Customer-facing product catalog with grid view and detail pages. */
 object ProductCatalogApp:
+
+  private val lazyLoading = htmlAttr("loading", StringAsIsCodec)
 
   private val allProducts = SampleShowcase.allProducts
   private val catalog = SampleCatalog.catalog
@@ -141,7 +144,7 @@ object ProductCatalogApp:
         img(
           src := product.imageUrl,
           alt := name,
-          loading := "lazy",
+          lazyLoading := "lazy",
         ),
         // Group badge
         span(cls := "catalog-card-badge", groupBadgeLabel(product.group, lang)),
@@ -216,7 +219,7 @@ object ProductCatalogApp:
                   cls := "product-detail-thumb",
                   src := url,
                   alt := "Gallery image",
-                  loading := "lazy",
+                  lazyLoading := "lazy",
                 )
               },
             )
