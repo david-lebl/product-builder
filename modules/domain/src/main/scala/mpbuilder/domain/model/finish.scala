@@ -28,6 +28,7 @@ final case class Finish(
     name: LocalizedString,
     finishType: FinishType,
     side: FinishSide,
+    description: Option[LocalizedString] = None,
 )
 
 enum FoilColor:

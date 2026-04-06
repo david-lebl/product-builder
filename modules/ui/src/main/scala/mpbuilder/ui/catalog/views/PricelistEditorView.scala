@@ -109,6 +109,7 @@ object PricelistEditorView:
     case r: PricingRule.FoldTypeSetupFee => s"FoldTypeSetupFee: ${r.foldType} = ${r.setupCost.value}"
     case r: PricingRule.BindingMethodSetupFee => s"BindingSetupFee: ${r.bindingMethod} = ${r.setupCost.value}"
     case r: PricingRule.MinimumOrderPrice => s"MinimumOrderPrice: ${r.minTotal.value}"
+    case r: PricingRule.ManufacturingSpeedSurcharge => s"SpeedSurcharge: ${r.tier} × ${r.multiplier}"
 
   private def pricingRuleForm(existing: Option[PricingRule], index: Int): HtmlElement =
     val ruleTypeVar = Var(existing.map(pricingRuleTypeName).getOrElse("MaterialBasePrice"))
@@ -317,6 +318,7 @@ object PricelistEditorView:
     case _: PricingRule.FoldTypeSetupFee => "FoldTypeSetupFee"
     case _: PricingRule.BindingMethodSetupFee => "BindingMethodSetupFee"
     case _: PricingRule.MinimumOrderPrice => "MinimumOrderPrice"
+    case _: PricingRule.ManufacturingSpeedSurcharge => "ManufacturingSpeedSurcharge"
 
   private def extractPricingMaterialId(rule: Option[PricingRule]): Option[String] = rule.collect {
     case r: PricingRule.MaterialBasePrice => r.materialId.value

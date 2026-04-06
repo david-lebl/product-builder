@@ -5,11 +5,13 @@ import mpbuilder.domain.model.CheckoutStep.*
 import mpbuilder.domain.service.*
 import mpbuilder.domain.validation.*
 import mpbuilder.domain.pricing.*
+import mpbuilder.domain.manufacturing.{StationUtilisation, StationTimeEstimate}
 import mpbuilder.domain.weight.{WeightBreakdown, WeightCalculator}
 import mpbuilder.domain.sample.*
 import zio.prelude.Validation
 import com.raquo.laminar.api.L.*
 import org.scalajs.dom
+import java.time.{Instant, LocalDateTime, ZoneOffset}
 
 /** Current state of the agency login flow */
 sealed trait LoginState
@@ -325,11 +327,12 @@ object ProductBuilderViewModel:
               case _ => None
 
             val effectivePl = customerPl.getOrElse(pricelist)
-            val priceResult = PriceCalculator.calculate(config, effectivePl, lang)
+            val pricingContext = buildDynamicPricingContext()
+            val priceResult = PriceCalculator.calculateWithContext(config, effectivePl, pricingContext, lang)
 
             // Also compute the base price for comparison when customer is logged in
             val basePriceResult = customerPl match
-              case Some(_) => PriceCalculator.calculate(config, pricelist, lang).toOption
+              case Some(_) => PriceCalculator.calculateWithContext(config, pricelist, pricingContext, lang).toOption
               case None    => None
 
             priceResult.fold(
@@ -481,6 +484,145 @@ object ProductBuilderViewModel:
         case SpecValue.BindingMethodSpec(bindingMethod) => bindingMethod
       }
     }
+
+  def selectedManufacturingSpeed: Signal[Option[ManufacturingSpeed]] =
+    state.map { s =>
+      s.specifications.collectFirst {
+        case SpecValue.ManufacturingSpeedSpec(speed) => speed
+      }
+    }
+
+  // ── Express Manufacturing: simulated station utilisation ──────────────
+
+  private val simulatedStationUtilisation: List[StationUtilisation] = List(
+    StationUtilisation(StationType.Prepress,        queueDepth = 3, inProgressCount = 1, machineCount = 2, avgProcessingTimeMs = 1800000L, estimatedClearTimeMs = 3600000L),
+    StationUtilisation(StationType.DigitalPrinter,   queueDepth = 5, inProgressCount = 2, machineCount = 3, avgProcessingTimeMs = 900000L,  estimatedClearTimeMs = 2700000L),
+    StationUtilisation(StationType.OffsetPress,      queueDepth = 4, inProgressCount = 1, machineCount = 2, avgProcessingTimeMs = 2700000L, estimatedClearTimeMs = 5400000L),
+    StationUtilisation(StationType.LargeFormatPrinter, queueDepth = 2, inProgressCount = 1, machineCount = 1, avgProcessingTimeMs = 1200000L, estimatedClearTimeMs = 3600000L),
+    StationUtilisation(StationType.Cutter,           queueDepth = 6, inProgressCount = 2, machineCount = 2, avgProcessingTimeMs = 300000L,  estimatedClearTimeMs = 1200000L),
+    StationUtilisation(StationType.Laminator,        queueDepth = 2, inProgressCount = 1, machineCount = 1, avgProcessingTimeMs = 600000L,  estimatedClearTimeMs = 1800000L),
+    StationUtilisation(StationType.Folder,           queueDepth = 3, inProgressCount = 1, machineCount = 1, avgProcessingTimeMs = 300000L,  estimatedClearTimeMs = 1200000L),
+    StationUtilisation(StationType.Binder,           queueDepth = 2, inProgressCount = 1, machineCount = 1, avgProcessingTimeMs = 600000L,  estimatedClearTimeMs = 1800000L),
+    StationUtilisation(StationType.QualityControl,   queueDepth = 4, inProgressCount = 1, machineCount = 2, avgProcessingTimeMs = 900000L,  estimatedClearTimeMs = 2700000L),
+    StationUtilisation(StationType.Packaging,        queueDepth = 3, inProgressCount = 1, machineCount = 2, avgProcessingTimeMs = 600000L,  estimatedClearTimeMs = 1800000L),
+  )
+
+  private val simulatedQueueState: Map[StationType, CompletionEstimator.StationQueueState] = Map(
+    StationType.Prepress         -> CompletionEstimator.StationQueueState(queueDepth = 3,  avgProcessingTimeMinutes = 30, activeMachineCount = 2),
+    StationType.DigitalPrinter   -> CompletionEstimator.StationQueueState(queueDepth = 5,  avgProcessingTimeMinutes = 15, activeMachineCount = 3),
+    StationType.OffsetPress      -> CompletionEstimator.StationQueueState(queueDepth = 4,  avgProcessingTimeMinutes = 45, activeMachineCount = 2),
+    StationType.LargeFormatPrinter -> CompletionEstimator.StationQueueState(queueDepth = 2, avgProcessingTimeMinutes = 20, activeMachineCount = 1),
+    StationType.Cutter           -> CompletionEstimator.StationQueueState(queueDepth = 6,  avgProcessingTimeMinutes = 5,  activeMachineCount = 2),
+    StationType.Laminator        -> CompletionEstimator.StationQueueState(queueDepth = 2,  avgProcessingTimeMinutes = 10, activeMachineCount = 1),
+    StationType.Folder           -> CompletionEstimator.StationQueueState(queueDepth = 3,  avgProcessingTimeMinutes = 5,  activeMachineCount = 1),
+    StationType.Binder           -> CompletionEstimator.StationQueueState(queueDepth = 2,  avgProcessingTimeMinutes = 10, activeMachineCount = 1),
+    StationType.QualityControl   -> CompletionEstimator.StationQueueState(queueDepth = 4,  avgProcessingTimeMinutes = 15, activeMachineCount = 2),
+    StationType.Packaging        -> CompletionEstimator.StationQueueState(queueDepth = 3,  avgProcessingTimeMinutes = 10, activeMachineCount = 2),
+  )
+
+  /** Derive the station types a product configuration passes through.
+    *
+    * Station sequence: Prepress → Printer → [Laminator] → Cutter → [Folder] → [Binder] → QC → Packaging.
+    * Banners and roll-ups use LargeFormatPrinter; all other categories use DigitalPrinter.
+    * Laminator is added when any component has a lamination or overlamination finish.
+    * Folder is added for folded products (FoldTypeSpec present).
+    * Binder is added for bound products (BindingMethodSpec present).
+    */
+  def deriveStepTypes(config: ProductConfiguration): List[StationType] =
+    val steps = List.newBuilder[StationType]
+    steps += StationType.Prepress
+
+    // Printing station: use large format for banners and roll-ups
+    val largeFormatCategories = Set(
+      SampleCatalog.bannersId,
+      SampleCatalog.rollUpsId,
+    )
+    if largeFormatCategories.contains(config.category.id) then
+      steps += StationType.LargeFormatPrinter
+    else
+      steps += StationType.DigitalPrinter
+
+    // Finishes
+    val hasLamination = config.components.exists(_.finishes.exists(f =>
+      f.finishType == FinishType.Lamination || f.finishType == FinishType.Overlamination
+    ))
+    if hasLamination then steps += StationType.Laminator
+
+    // Cutting
+    steps += StationType.Cutter
+
+    // Folding / Binding
+    val hasFold = config.specifications.specs.values.exists {
+      case SpecValue.FoldTypeSpec(_) => true
+      case _ => false
+    }
+    if hasFold then steps += StationType.Folder
+
+    val hasBinding = config.specifications.specs.values.exists {
+      case SpecValue.BindingMethodSpec(_) => true
+      case _ => false
+    }
+    if hasBinding then steps += StationType.Binder
+
+    // QC + Packaging
+    steps += StationType.QualityControl
+    steps += StationType.Packaging
+    steps.result()
+
+  def currentLocalDateTime: LocalDateTime =
+    Instant.ofEpochMilli(System.currentTimeMillis()).atOffset(ZoneOffset.UTC).toLocalDateTime
+
+  /** Completion estimate for a specific manufacturing speed. */
+  def completionEstimate(speed: ManufacturingSpeed): Signal[Option[CompletionEstimator.CompletionEstimate]] =
+    state.map { s =>
+      s.configuration.map { config =>
+        val steps = deriveStepTypes(config)
+        val quantity = s.specifications.collectFirst { case SpecValue.QuantitySpec(q) => q.value }.getOrElse(1)
+        val now = currentLocalDateTime
+        CompletionEstimator.estimate(
+          steps = steps,
+          quantity = quantity,
+          speed = speed,
+          stationEstimates = SampleManufacturing.stationTimeEstimates,
+          stationQueues = simulatedQueueState,
+          schedule = SampleManufacturing.shopSchedule,
+          orderTime = now,
+        )
+      }
+    }
+
+  /** Global utilisation from simulated stations. */
+  val globalUtilisation: Signal[BigDecimal] =
+    Val(UtilisationCalculator.computeGlobalUtilisation(simulatedStationUtilisation))
+
+  /** Whether Express manufacturing is currently available (utilisation < 95%). */
+  val expressAvailable: Signal[Boolean] =
+    globalUtilisation.map(u => UtilisationCalculator.isExpressAvailable(u))
+
+  /** Tier restriction violations for a given speed. */
+  def tierViolations(speed: ManufacturingSpeed): Signal[List[TierRestrictionValidator.TierViolation]] =
+    state.map { s =>
+      (s.selectedCategoryId, s.configuration) match
+        case (Some(catId), _) =>
+          val quantity = s.specifications.collectFirst { case SpecValue.QuantitySpec(q) => q.value }.getOrElse(1)
+          val bindingMethod = s.specifications.collectFirst { case SpecValue.BindingMethodSpec(bm) => bm }
+          val finishTypes = s.componentStates.values.flatMap(_.selectedFinishes.keys).flatMap { fid =>
+            catalog.finishes.get(fid).map(_.finishType)
+          }.toSet
+          val materialIds = s.componentStates.values.flatMap(_.selectedMaterialId).toSet
+          TierRestrictionValidator.validate(speed, SampleTierRestrictions.restrictions, catId, quantity, bindingMethod, finishTypes, materialIds)
+        case _ => List.empty
+    }
+
+  /** Build dynamic PricingContext using current utilisation and active busy periods. */
+  private def buildDynamicPricingContext(): PricingContext =
+    val now = currentLocalDateTime
+    val activeBusyPeriods = BusyPeriodFilter.filterActive(SampleManufacturing.busyPeriodMultipliers, now)
+    UtilisationCalculator.buildPricingContext(
+      stations = simulatedStationUtilisation,
+      activeBusyPeriods = activeBusyPeriods,
+      currentTimeMillis = System.currentTimeMillis(),
+    )
 
   // Basket operations
   def addToBasket(quantity: Int): Unit =

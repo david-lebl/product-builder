@@ -36,6 +36,7 @@ object ManufacturingApp:
           case ManufacturingRoute.Employees     => EmployeesView()
           case ManufacturingRoute.Machines      => MachinesView()
           case ManufacturingRoute.Analytics     => AnalyticsView()
+          case ManufacturingRoute.Settings      => ManufacturingSettingsView()
         },
       ),
     )

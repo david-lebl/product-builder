@@ -4,6 +4,7 @@ import zio.test.*
 import mpbuilder.domain.model.*
 import mpbuilder.domain.service.*
 import mpbuilder.domain.sample.*
+import com.softwaremill.quicklens.*
 
 object WorkflowEngineSpec extends ZIOSpecDefault:
 
@@ -129,12 +130,9 @@ object WorkflowEngineSpec extends ZIOSpecDefault:
       test("fails if step already completed") {
         val wf = simpleWorkflow
         val prepressId = stepByType(wf, StationType.Prepress).id
-        val completed = wf.copy(
-          steps = wf.steps.map(s =>
-            if s.id == prepressId then s.copy(status = StepStatus.Completed) else s
-          ),
-          status = WorkflowStatus.InProgress,
-        )
+        val completed = wf
+          .modify(_.steps.eachWhere(_.id == prepressId).status).setTo(StepStatus.Completed)
+          .modify(_.status).setTo(WorkflowStatus.InProgress)
 
         val result = WorkflowEngine.startStep(completed, prepressId, emp1, now)
 
@@ -372,11 +370,8 @@ object WorkflowEngineSpec extends ZIOSpecDefault:
         val printStep = stepByType(wf, StationType.DigitalPrinter)
 
         // Force the print step to Ready to bypass status check, but deps are unmet
-        val hacked = wf.copy(
-          steps = wf.steps.map(s =>
-            if s.id == printStep.id then s.copy(status = StepStatus.Ready) else s
-          )
-        )
+        val hacked = wf
+          .modify(_.steps.eachWhere(_.id == printStep.id).status).setTo(StepStatus.Ready)
 
         val result = WorkflowEngine.startStep(hacked, printStep.id, emp1, now)
 

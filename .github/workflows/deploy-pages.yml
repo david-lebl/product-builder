@@ -24,20 +24,21 @@ jobs:
         with:
           java-version: '17'
           distribution: 'temurin'
-          cache: 'sbt'
 
-      - name: Set up sbt
-        uses: sbt/setup-sbt@v1
+      - name: Install Mill
+        run: |
+          curl -fL "https://repo1.maven.org/maven2/com/lihaoyi/mill-dist/1.1.3/mill-dist-1.1.3-mill.sh" -o /usr/local/bin/mill
+          chmod +x /usr/local/bin/mill
 
       - name: Build Scala.js UI
-        run: sbt ui/fullLinkJS
+        run: mill ui.fullLinkJS
 
       - name: Assemble site
         run: |
           mkdir -p _site
           cp modules/ui/src/main/resources/index.html _site/
           cp modules/ui/src/main/resources/*.css _site/
-          cp modules/ui/target/scala-*/material-builder-ui-opt/main.js _site/
+          cp out/ui/fullLinkJS.dest/main.js _site/
 
       - name: Deploy to GitHub Pages
         uses: JamesIves/github-pages-deploy-action@v4

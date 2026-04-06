@@ -221,7 +221,6 @@ button:disabled {
 
 .finish-item {
     border-radius: 6px;
-    overflow: hidden;
 }
 
 .finish-item .checkbox-label {
@@ -387,4 +386,253 @@ button:disabled {
 .step-label {
     font-size: 0.9rem;
     color: #666;
+}
+
+/* ── Help Information (layout) ───────────────────────────────────────── */
+
+.label-with-help {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.finish-label-with-help {
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+    flex: 1;
+}
+
+.finish-label-with-help .help-info-wrapper {
+    margin-left: auto;
+}
+
+.selector-with-help {
+    position: relative;
+}
+
+.selector-help-buttons {
+    position: absolute;
+    top: 0;
+    right: 0;
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    height: 24px;
+}
+
+/* Ensure popups from right-aligned buttons don't overflow right */
+.selector-help-buttons .help-info-popup {
+    left: auto;
+    right: 0;
+}
+
+/* === Manufacturing Speed Tier Cards === */
+
+.speed-tier-section {
+    margin-bottom: 1rem;
+}
+
+.speed-tier-section > .form-label {
+    display: block;
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+    color: var(--color-text-primary, #1a1a1a);
+}
+
+.speed-tier-cards {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.speed-tier-card {
+    display: block;
+    cursor: pointer;
+    border: 2px solid var(--color-border, #d1d5db);
+    border-radius: 8px;
+    padding: 0.75rem 1rem;
+    background: var(--color-bg-secondary, #f9fafb);
+    transition: border-color 0.15s ease, background-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.speed-tier-card:hover {
+    border-color: var(--color-primary, #3b82f6);
+    background: var(--color-bg-primary, #fff);
+}
+
+.speed-tier-card--selected {
+    border-color: var(--color-primary, #3b82f6);
+    background: var(--color-bg-primary, #fff);
+    box-shadow: 0 0 0 1px var(--color-primary, #3b82f6);
+}
+
+.speed-tier-card input[type="radio"] {
+    display: none;
+}
+
+.speed-tier-card__header {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 0.25rem;
+}
+
+.speed-tier-card__icon {
+    font-size: 1.2rem;
+}
+
+.speed-tier-card__name {
+    font-weight: 600;
+    color: var(--color-text-primary, #1a1a1a);
+}
+
+.speed-tier-card__price {
+    margin-left: auto;
+    font-weight: 600;
+    color: var(--color-primary, #3b82f6);
+    font-size: 0.9rem;
+}
+
+.speed-tier-card__time {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    font-size: 0.85rem;
+    color: var(--color-text-secondary, #6b7280);
+    margin-bottom: 0.15rem;
+}
+
+.speed-tier-card__time-icon {
+    font-size: 0.85rem;
+}
+
+.speed-tier-card__desc {
+    font-size: 0.8rem;
+    color: var(--color-text-muted, #9ca3af);
+    font-style: italic;
+}
+
+.speed-tier-card--disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    border-color: var(--color-border, #d1d5db);
+    background: #f5f5f5;
+}
+
+.speed-tier-card--disabled:hover {
+    border-color: var(--color-border, #d1d5db);
+    background: #f5f5f5;
+}
+
+.speed-tier-card__warning {
+    font-size: 0.78rem;
+    color: var(--color-error, #c62828);
+    font-weight: 500;
+    margin-top: 0.25rem;
+}
+
+/* ─── Manufacturing Settings ─────────────────────────────────────────── */
+
+.manufacturing-settings {
+    max-width: 900px;
+}
+
+.settings-section {
+    background: #fff;
+    border: 1px solid var(--color-border, #d1d5db);
+    border-radius: 10px;
+    padding: 1.25rem;
+    margin-bottom: 1rem;
+}
+
+.settings-section h3 {
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--color-text-primary, #1a1a1a);
+    margin-bottom: 0.75rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid var(--color-border, #d1d5db);
+}
+
+.settings-row {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 0.65rem;
+}
+
+.settings-row:last-child {
+    margin-bottom: 0;
+}
+
+.settings-label {
+    min-width: 200px;
+    font-size: 0.9rem;
+    font-weight: 500;
+    color: var(--color-text-secondary, #6b7280);
+}
+
+.settings-value {
+    font-size: 0.9rem;
+    color: var(--color-text-primary, #1a1a1a);
+    font-weight: 500;
+}
+
+.settings-input {
+    width: 120px !important;
+    padding: 6px 10px !important;
+    font-size: 0.9rem;
+}
+
+.settings-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.85rem;
+}
+
+.settings-table th,
+.settings-table td {
+    padding: 8px 12px;
+    border: 1px solid var(--color-border, #d1d5db);
+    text-align: left;
+}
+
+.settings-table th {
+    background: #f9fafb;
+    font-weight: 600;
+    color: var(--color-text-secondary, #6b7280);
+}
+
+.settings-badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 0.78rem;
+    font-weight: 500;
+    background: #e0f2fe;
+    color: #0369a1;
+}
+
+.settings-badge--active {
+    background: #dcfce7;
+    color: #15803d;
+}
+
+.settings-holiday-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+.settings-holiday-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 10px;
+    background: #fef3c7;
+    color: #92400e;
+    border-radius: 4px;
+    font-size: 0.82rem;
+    font-weight: 500;
 }

@@ -2,6 +2,7 @@ package mpbuilder.ui.productbuilder.components
 
 import com.raquo.laminar.api.L.*
 import mpbuilder.ui.productbuilder.ProductBuilderViewModel
+import mpbuilder.uikit.feedback.HelpInfo
 import mpbuilder.domain.model.*
 import mpbuilder.uikit.fields.{SelectField, SelectOption}
 
@@ -10,8 +11,10 @@ object MaterialSelector:
     val availableMaterials = ProductBuilderViewModel.availableMaterials(role)
     val selectedMaterialId = ProductBuilderViewModel.selectedMaterialId(role)
     val lang = ProductBuilderViewModel.currentLanguage
+    val catalog = ProductBuilderViewModel.catalog
 
     div(
+      cls := "selector-with-help",
       SelectField(
         label = lang.map {
           case Language.En => "Material:"
@@ -30,6 +33,18 @@ object MaterialSelector:
           case Language.Cs => "-- Vyberte materiál --"
         },
         disabled = ProductBuilderViewModel.state.map(_.selectedCategoryId.isEmpty),
+      ),
+      div(
+        cls := "selector-help-buttons",
+        HelpInfo(lang.map {
+          case Language.En => "The material (paper or substrate) used for this component. Heavier weights (gsm) feel thicker and more premium. Choose based on the intended use and feel."
+          case Language.Cs => "Materiál (papír nebo substrát) použitý pro tuto komponentu. Vyšší gramáže (g) působí silněji a prémiověji. Vybírejte podle zamýšleného použití a dojmu."
+        }),
+        HelpInfo.fromSignal(
+          selectedMaterialId.combineWith(lang).map { case (matIdOpt, l) =>
+            matIdOpt.flatMap(id => catalog.materials.get(id)).flatMap(_.description).map(_(l))
+          }
+        ),
       ),
       div(
         cls := "info-box",

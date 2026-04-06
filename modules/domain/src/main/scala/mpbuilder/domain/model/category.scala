@@ -1,7 +1,7 @@
 package mpbuilder.domain.model
 
 enum SpecKind:
-  case Size, Quantity, Orientation, Bleed, Pages, FoldType, BindingMethod
+  case Size, Quantity, Orientation, Bleed, Pages, FoldType, BindingMethod, ManufacturingSpeed
 
 final case class ProductCategory(
     id: CategoryId,
@@ -9,6 +9,7 @@ final case class ProductCategory(
     components: List[ComponentTemplate],
     requiredSpecKinds: Set[SpecKind],
     allowedPrintingMethodIds: Set[PrintingMethodId],
+    description: Option[LocalizedString] = None,
 )
 
 object ProductCategory:

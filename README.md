@@ -31,6 +31,7 @@ A domain-driven product configuration and manufacturing management system for th
 | **ZIO Test** | Unit testing framework (341 tests) |
 | **Scala.js** | Cross-compilation of domain model to JavaScript |
 | **Laminar 17.2.0** | Reactive web UI framework |
+| **Mill 1.1.3** | Primary build tool (sbt also supported) |
 | **GitHub Actions** | CI/CD with deployment to GitHub Pages |
 
 ## Key Design Principles
@@ -185,10 +186,22 @@ See [docs/manufacturing-implementation-plan.md](docs/manufacturing-implementatio
 ### Prerequisites
 
 - Java 11+ (Java 17 recommended)
-- sbt (Scala Build Tool)
+- Mill 1.1.3+ or sbt (Scala Build Tool)
 - A modern web browser
 
 ### Build & Test
+
+#### Using Mill (recommended)
+
+```bash
+mill domain.jvm.compile          # Compile domain module (JVM)
+mill domain.jvm.test             # Run all domain tests
+mill ui.compile                  # Compile UI module (Scala.js)
+mill ui.fastLinkJS               # Build UI JavaScript (development)
+mill ui.fullLinkJS               # Build UI JavaScript (production, optimized)
+```
+
+#### Using sbt (legacy)
 
 ```bash
 sbt compile                    # Compile all modules (domain JVM + JS, UI)
@@ -199,6 +212,22 @@ sbt ui/fullLinkJS              # Build UI JavaScript (production, optimized)
 ```
 
 ### Run Locally
+
+#### Using Mill
+
+```bash
+mill ui.fastLinkJS
+
+mkdir -p dist
+cp modules/ui/src/main/resources/index.html dist/
+cp modules/ui/src/main/resources/*.css dist/
+cp out/ui/fastLinkJS.dest/main.js dist/
+
+cd dist && python3 -m http.server 8080
+# Open http://localhost:8080
+```
+
+#### Using sbt
 
 ```bash
 sbt ui/fastLinkJS

@@ -5,9 +5,19 @@ import mpbuilder.domain.model.*
 
 object PriceCalculator:
 
+  /** Calculate price without dynamic context (backward-compatible). */
   def calculate(
       config: ProductConfiguration,
       pricelist: Pricelist,
+      lang: Language = Language.En,
+  ): Validation[PricingError, PriceBreakdown] =
+    calculateWithContext(config, pricelist, PricingContext.default, lang)
+
+  /** Calculate price with dynamic pricing context (queue utilisation, busy periods). */
+  def calculateWithContext(
+      config: ProductConfiguration,
+      pricelist: Pricelist,
+      context: PricingContext,
       lang: Language = Language.En,
   ): Validation[PricingError, PriceBreakdown] =
     val rules = pricelist.rules
@@ -60,10 +70,17 @@ object PriceCalculator:
 
         val discountedSubtotal = (subtotal * multiplier).rounded
 
+        // Manufacturing speed surcharge — applied after quantity discount, before setup fees
+        val selectedSpeed = config.specifications.get(SpecKind.ManufacturingSpeed).collect {
+          case SpecValue.ManufacturingSpeedSpec(speed) => speed
+        }
+        val (speedSurcharge, afterSpeedSubtotal) =
+          computeSpeedSurcharge(selectedSpeed, rules, context, discountedSubtotal, lang)
+
         val allSelectedFinishes = config.components.flatMap(_.finishes)
         val setupFees = collectSetupFees(allSelectedFinishes, foldType, bindingMethod, rules, lang)
         val totalSetupFees = setupFees.map(_.lineTotal).foldLeft(Money.zero)(_ + _)
-        val billable = (discountedSubtotal + totalSetupFees).rounded
+        val billable = (afterSpeedSubtotal + totalSetupFees).rounded
 
         val minimumRule = rules.collectFirst { case r: PricingRule.MinimumOrderPrice => r }
         val (total, minimumApplied) = minimumRule match
@@ -80,6 +97,7 @@ object PriceCalculator:
           bindingSurcharge = bindingSurcharge,
           subtotal = subtotal,
           quantityMultiplier = multiplier,
+          speedSurcharge = speedSurcharge,
           setupFees = setupFees,
           minimumApplied = minimumApplied,
           total = total,
@@ -88,6 +106,74 @@ object PriceCalculator:
         )
       }
     }
+
+  /** Compute the manufacturing speed surcharge line item and the adjusted subtotal.
+    *
+    * The speed multiplier is: base multiplier + queue threshold adjustments + busy period adjustments,
+    * capped at expressSurchargeCap. Economy prices are fixed (no dynamic adjustment).
+    */
+  private def computeSpeedSurcharge(
+      selectedSpeed: Option[ManufacturingSpeed],
+      rules: List[PricingRule],
+      context: PricingContext,
+      discountedSubtotal: Money,
+      lang: Language,
+  ): (Option[LineItem], Money) =
+    selectedSpeed match
+      case None => (None, discountedSubtotal)
+      case Some(speed) =>
+        val speedRule = rules.collectFirst {
+          case r: PricingRule.ManufacturingSpeedSurcharge if r.tier == speed => r
+        }
+        speedRule match
+          case None => (None, discountedSubtotal)
+          case Some(rule) =>
+            val baseMultiplier = rule.multiplier
+
+            // Queue-based dynamic adjustments (not applied to Economy)
+            val queueAdjustment =
+              if speed == ManufacturingSpeed.Economy then BigDecimal(0)
+              else
+                rule.queueMultiplierThresholds
+                  .filter(_.minUtilisation <= context.globalUtilisation)
+                  .map(_.additionalMultiplier)
+                  .foldLeft(BigDecimal(0))(_ + _)
+
+            // Busy period adjustments (not applied to Economy)
+            val busyAdjustment =
+              if speed == ManufacturingSpeed.Economy then BigDecimal(0)
+              else
+                context.busyPeriodMultipliers
+                  .map(_.additionalMultiplier)
+                  .foldLeft(BigDecimal(0))(_ + _)
+
+            val rawMultiplier = baseMultiplier + queueAdjustment + busyAdjustment
+            val cappedMultiplier = rawMultiplier.min(context.expressSurchargeCap)
+            val effectiveMultiplier = if speed == ManufacturingSpeed.Economy then baseMultiplier else cappedMultiplier
+
+            if effectiveMultiplier == BigDecimal(1) then
+              (None, discountedSubtotal)
+            else
+              val adjustmentFactor = effectiveMultiplier - BigDecimal(1)
+              val surchargeAmount = (discountedSubtotal * adjustmentFactor).rounded
+              val afterSpeed = (discountedSubtotal * effectiveMultiplier).rounded
+              val label = speed match
+                case ManufacturingSpeed.Express => lang match
+                  case Language.En => s"Express manufacturing: +${(adjustmentFactor * 100).setScale(0, BigDecimal.RoundingMode.HALF_UP)}%"
+                  case Language.Cs => s"Expresní výroba: +${(adjustmentFactor * 100).setScale(0, BigDecimal.RoundingMode.HALF_UP)} %"
+                case ManufacturingSpeed.Standard => lang match
+                  case Language.En => s"Standard manufacturing: +${(adjustmentFactor * 100).setScale(0, BigDecimal.RoundingMode.HALF_UP)}%"
+                  case Language.Cs => s"Standardní výroba: +${(adjustmentFactor * 100).setScale(0, BigDecimal.RoundingMode.HALF_UP)} %"
+                case ManufacturingSpeed.Economy => lang match
+                  case Language.En => s"Economy discount: ${(adjustmentFactor * 100).setScale(0, BigDecimal.RoundingMode.HALF_UP)}%"
+                  case Language.Cs => s"Ekonomická sleva: ${(adjustmentFactor * 100).setScale(0, BigDecimal.RoundingMode.HALF_UP)} %"
+              val lineItem = LineItem(
+                label = label,
+                unitPrice = surchargeAmount,
+                quantity = 1,
+                lineTotal = surchargeAmount,
+              )
+              (Some(lineItem), afterSpeed)
 
   private def calculateComponentBreakdown(
       comp: ProductComponent,

@@ -189,6 +189,14 @@ object PricePreview:
                 ),
               )
 
+              val speedSurchargeLine = breakdown.speedSurcharge.map { item =>
+                div(
+                  cls := "price-line-item",
+                  span(item.label),
+                  span(formatMoney(item.lineTotal, cur)),
+                )
+              }.toList
+
               val setupFeeLines = breakdown.setupFees.map { fee =>
                 div(
                   cls := "price-line-item",
@@ -231,7 +239,7 @@ object PricePreview:
                   ))
                 else List.empty
 
-              val totalLines = subtotalAndMultiplierLines ++ setupFeeLines ++ minimumLine ++ totalLine ++ perItemLine
+              val totalLines = subtotalAndMultiplierLines ++ speedSurchargeLine ++ setupFeeLines ++ minimumLine ++ totalLine ++ perItemLine
 
               headerLine ++ componentLines ++ surchargeLines ++ totalLines
 
