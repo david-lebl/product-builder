@@ -111,7 +111,7 @@ object AppRouter {
             },
             child.text <-- lang.map {
               case Language.En => "Visual Editor"
-              case Language.Cs => "Vizualni editor"
+              case Language.Cs => "Vizuální editor"
             },
             onClick --> { _ => navigateTo(AppRoute.VisualEditor()) }
           ),
