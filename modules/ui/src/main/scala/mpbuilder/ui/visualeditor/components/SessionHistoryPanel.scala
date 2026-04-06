@@ -26,39 +26,6 @@ object SessionHistoryPanel {
         case Language.Cs => "Uložené relace"
       }),
 
-      // New session button
-      button(
-        cls := "add-element-btn",
-        child.text <-- lang.map {
-          case Language.En => "+ New Session"
-          case Language.Cs => "+ Nová relace"
-        },
-        onClick --> { _ =>
-          val newId = ArtworkId.generate().value
-          VisualEditorViewModel.reset()
-          VisualEditorViewModel.startNewSession(newId)
-        }
-      ),
-
-      // Clear all sessions button
-      button(
-        cls := "clear-all-btn",
-        child.text <-- lang.map {
-          case Language.En => "🗑 Clear All"
-          case Language.Cs => "🗑 Smazat vše"
-        },
-        onClick.compose(_.withCurrentValueOf(lang)) --> { case (_, currentLang) =>
-          val confirmMsg = currentLang match {
-            case Language.En => "Delete all saved sessions? This cannot be undone."
-            case Language.Cs => "Smazat všechny uložené relace? Toto nelze vrátit zpět."
-          }
-          if dom.window.confirm(confirmMsg) then
-            EditorSessionStore.deleteAllSessions(() => {
-              EditorSessionStore.listAll(sessions => sessionsVar.set(sessions))
-            })
-        }
-      ),
-
       // Session list
       div(
         cls := "session-list",
@@ -73,6 +40,42 @@ object SessionHistoryPanel {
               renderSessionItem(session, sessionsVar, l, activeId)
             }
         }
+      ),
+
+      // Bottom actions — Clear All (left, 1/3) + New Session (right, 2/3)
+      div(
+        cls := "resume-popup-actions",
+
+        button(
+          cls := "clear-all-btn",
+          child.text <-- lang.map {
+            case Language.En => "🗑 Clear All"
+            case Language.Cs => "🗑 Smazat vše"
+          },
+          onClick.compose(_.withCurrentValueOf(lang)) --> { case (_, currentLang) =>
+            val confirmMsg = currentLang match {
+              case Language.En => "Delete all saved sessions? This cannot be undone."
+              case Language.Cs => "Smazat všechny uložené relace? Toto nelze vrátit zpět."
+            }
+            if dom.window.confirm(confirmMsg) then
+              EditorSessionStore.deleteAllSessions(() => {
+                EditorSessionStore.listAll(sessions => sessionsVar.set(sessions))
+              })
+          }
+        ),
+
+        button(
+          cls := "add-element-btn",
+          child.text <-- lang.map {
+            case Language.En => "+ New Session"
+            case Language.Cs => "+ Nová relace"
+          },
+          onClick --> { _ =>
+            val newId = ArtworkId.generate().value
+            VisualEditorViewModel.reset()
+            VisualEditorViewModel.startNewSession(newId)
+          }
+        ),
       ),
     )
   }

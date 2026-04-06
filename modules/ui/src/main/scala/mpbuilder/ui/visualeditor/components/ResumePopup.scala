@@ -40,19 +40,11 @@ object ResumePopup {
           }
         ),
 
-        // Bottom actions — always visible even when list is long
+        // Bottom actions — Clear All (left, 1/3) + New Session (right, 2/3)
         div(
           cls := "resume-popup-actions",
           button(
-            cls := "add-element-btn resume-action-btn",
-            child.text <-- lang.map {
-              case Language.En => "+ New Session"
-              case Language.Cs => "+ Nová relace"
-            },
-            onClick --> { _ => onStartNew },
-          ),
-          button(
-            cls := "clear-all-btn resume-action-btn",
+            cls := "clear-all-btn",
             child.text <-- lang.map {
               case Language.En => "🗑 Clear All"
               case Language.Cs => "🗑 Smazat vše"
@@ -64,6 +56,14 @@ object ResumePopup {
               }
               if dom.window.confirm(confirmMsg) then onClearAll
             },
+          ),
+          button(
+            cls := "add-element-btn",
+            child.text <-- lang.map {
+              case Language.En => "+ New Session"
+              case Language.Cs => "+ Nová relace"
+            },
+            onClick --> { _ => onStartNew },
           ),
         ),
       ),
