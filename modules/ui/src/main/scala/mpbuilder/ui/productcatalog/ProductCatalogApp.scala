@@ -54,7 +54,7 @@ object ProductCatalogApp:
       // Product grid
       div(
         cls := "catalog-grid",
-        children <-- activeGroupVar.signal.combineWith(lang).map { case (groupFilter, l) =>
+        children <-- activeGroupVar.signal.combineWith(lang).map { (groupFilter: Option[CatalogGroup], l: Language) =>
           val filtered = groupFilter match
             case Some(g) => allProducts.filter(_.group == g)
             case None    => allProducts
