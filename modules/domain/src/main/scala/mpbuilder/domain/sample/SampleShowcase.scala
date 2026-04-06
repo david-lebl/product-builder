@@ -29,9 +29,9 @@ object SampleShowcase:
         "pro jedinečný haptický zážitek. Povýšte svůj design luxusními úpravami jako slepotisk, " +
         "ražba fólií, soft-touch lak nebo laminace. K dispozici v digitálním a knihtisku.",
     ),
-    imageUrl = "https://images.unsplash.com/photo-1611532736597-de2d4265fba3?w=600&h=400&fit=crop",
+    imageUrl = "https://images.unsplash.com/photo-1617825295690-28ae56c56135?w=600&h=400&fit=crop",
     galleryImageUrls = List(
-      "https://images.unsplash.com/photo-1611532736597-de2d4265fba3?w=800&h=600&fit=crop",
+      "https://images.unsplash.com/photo-1617825295690-28ae56c56135?w=800&h=600&fit=crop",
       "https://images.unsplash.com/photo-1572502742556-4e44c7667c30?w=800&h=600&fit=crop",
     ),
     variations = List(
@@ -82,9 +82,9 @@ object SampleShowcase:
         "Ideální pro eventové materiály, jídelní lístky, produktové listy a marketingové podklady. " +
         "Na výšku nebo na šířku s řadou ochranných povrchových úprav.",
     ),
-    imageUrl = "https://images.unsplash.com/photo-1586075010923-2dd4570fb338?w=600&h=400&fit=crop",
+    imageUrl = "https://images.unsplash.com/photo-1563097013-a1df1d1fd1c7?w=600&h=400&fit=crop",
     galleryImageUrls = List(
-      "https://images.unsplash.com/photo-1586075010923-2dd4570fb338?w=800&h=600&fit=crop",
+      "https://images.unsplash.com/photo-1563097013-a1df1d1fd1c7?w=600&h=400&fit=crop",
     ),
     variations = List(
       ProductVariation(
@@ -131,7 +131,7 @@ object SampleShowcase:
         "Bigování je automaticky zahrnuto pro čisté přehyby na silnějších papírech. " +
         "Ideální pro produktové katalogy, jídelní lístky, průvodce a firemní prezentace.",
     ),
-    imageUrl = "https://images.unsplash.com/photo-1531538606174-0f90ff5dce83?w=600&h=400&fit=crop",
+    imageUrl = "https://images.unsplash.com/photo-1695634621121-691d54259d37?w=600&h=400&fit=crop",
     variations = List(
       ProductVariation(
         LocalizedString("Bi-Fold", "Na půl"),
@@ -170,7 +170,7 @@ object SampleShowcase:
         "Ideální pro direct mail kampaně, pozvánky, děkovné karty a propagační zásilky. " +
         "K dispozici v křídovém, hedvábném a bavlněném papíru s řadou povrchových úprav.",
     ),
-    imageUrl = "https://images.unsplash.com/photo-1607344645866-009c320b63e0?w=600&h=400&fit=crop",
+    imageUrl = "https://images.unsplash.com/photo-1557717398-f6a5f68cd158?w=600&h=400&fit=crop",
     features = List(
       ProductFeature("💌", LocalizedString("Direct Mail Ready", "Připraveno pro poštu"), LocalizedString("Standard postcard sizes for mailing", "Standardní velikosti pro poštovní zásilky")),
       ProductFeature("🎨", LocalizedString("Full Color", "Plnobarevný tisk"), LocalizedString("Vibrant CMYK printing on both sides", "Živý CMYK tisk na obou stranách")),
@@ -199,7 +199,7 @@ object SampleShowcase:
         "včetně V-vazby, lepené vazby a drátěné spirály. Ideální pro katalogy, programy, " +
         "výroční zprávy a produktové lookbooky.",
     ),
-    imageUrl = "https://images.unsplash.com/photo-1544947950-fa07a98d237f?w=600&h=400&fit=crop",
+    imageUrl = "https://images.unsplash.com/photo-1593723117578-c3f29d0b62c3?w=600&h=400&fit=crop",
     variations = List(
       ProductVariation(
         LocalizedString("Saddle Stitch", "V-vazba"),
@@ -241,7 +241,7 @@ object SampleShowcase:
         "Vícekomponentová konstrukce umožňuje zvolit silnější papír na obálku " +
         "a lehčí papír na měsíční stránky. Standardní drátěná vazba.",
     ),
-    imageUrl = "https://images.unsplash.com/photo-1506784983877-45594efa4cbe?w=600&h=400&fit=crop",
+    imageUrl = "https://images.unsplash.com/photo-1598972692343-a17711455a22?w=600&h=400&fit=crop",
     features = List(
       ProductFeature("📅", LocalizedString("Wall & Desk", "Nástěnné a stolní"), LocalizedString("Multiple formats for every space", "Více formátů pro každý prostor")),
       ProductFeature("🎨", LocalizedString("Full Customization", "Plná přizpůsobitelnost"), LocalizedString("Custom photos and layouts per month", "Vlastní fotky a rozložení pro každý měsíc")),
@@ -268,7 +268,7 @@ object SampleShowcase:
         "povětrnostně odolné grafiky. Ideální pro venkovní akce, veletrhy, výlohy " +
         "a stavební reklamu. K dispozici s průchodkami pro snadné zavěšení.",
     ),
-    imageUrl = "https://images.unsplash.com/photo-1558618666-fcd25c85f82e?w=600&h=400&fit=crop",
+    imageUrl = "https://images.unsplash.com/photo-1558452919-08ae4aea8e29?w=600&h=400&fit=crop",
     galleryImageUrls = List(
       "https://images.unsplash.com/photo-1558618666-fcd25c85f82e?w=800&h=600&fit=crop",
     ),
@@ -345,7 +345,7 @@ object SampleShowcase:
         "nebo syntetického papíru Yupo. Přidejte prémiové prvky jako slepotisk, " +
         "ražbu fólií a výsek pro jedinečný unboxing zážitek. Ideální pro retail, e-commerce a dárky.",
     ),
-    imageUrl = "https://images.unsplash.com/photo-1605000797499-95a51c5269ae?w=600&h=400&fit=crop",
+    imageUrl = "https://images.unsplash.com/photo-1617825295690-28ae56c56135?w=600&h=400&fit=crop",
     variations = List(
       ProductVariation(
         LocalizedString("Kraft", "Kraftový"),
@@ -381,7 +381,7 @@ object SampleShowcase:
         "nebo povětrnostně odolném papíru Yupo. K dispozici s kiss-cut, die-cut nebo zaoblenými rohy. " +
         "Ideální pro produktové etikety, pečeti na balení, nálepky na notebook a značkový merchandising.",
     ),
-    imageUrl = "https://images.unsplash.com/photo-1635907487853-4b6e85e371b7?w=600&h=400&fit=crop",
+    imageUrl = "https://images.unsplash.com/photo-1589384267710-7a170981ca78?w=600&h=400&fit=crop",
     variations = List(
       ProductVariation(
         LocalizedString("Kiss-Cut", "Kiss-Cut"),
