@@ -1059,10 +1059,23 @@
     padding-top: 16px;
     border-top: 1px solid #eee;
     margin-top: 12px;
+    align-items: stretch;
 }
 
-.resume-action-btn {
+/* Clear All: ~1/3 width */
+.resume-popup-actions .clear-all-btn {
     flex: 1;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: auto;
+    margin: 0;
+    white-space: nowrap;
+}
+
+/* New Session: ~2/3 width */
+.resume-popup-actions .add-element-btn {
+    flex: 2;
     margin: 0;
 }
 
