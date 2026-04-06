@@ -29,10 +29,10 @@ object SampleShowcase:
         "pro jedinečný haptický zážitek. Povýšte svůj design luxusními úpravami jako slepotisk, " +
         "ražba fólií, soft-touch lak nebo laminace. K dispozici v digitálním a knihtisku.",
     ),
-    imageUrl = "https://images.unsplash.com/photo-1617825295690-28ae56c56135?w=600&h=400&fit=crop",
+    imageUrl = "https://images.unsplash.com/photo-1628891439478-c613e85af7d6?w=600&h=400&fit=crop",
     galleryImageUrls = List(
-      "https://images.unsplash.com/photo-1617825295690-28ae56c56135?w=800&h=600&fit=crop",
-      "https://images.unsplash.com/photo-1572502742556-4e44c7667c30?w=800&h=600&fit=crop",
+      "https://images.unsplash.com/photo-1628891439478-c613e85af7d6?w=800&h=600&fit=crop",
+      "https://images.unsplash.com/photo-1704030459012-bfbe0d55fec6?w=800&h=600&fit=crop",
     ),
     variations = List(
       ProductVariation(
