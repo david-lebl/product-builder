@@ -77,7 +77,7 @@ object AppRouter {
                 if count > 0 then span(cls := "basket-badge", if count > 99 then "99+" else count.toString) else emptyNode,
                 span(cls := "basket-btn-label", l match
                   case Language.En => " Basket"
-                  case Language.Cs => " Kosik"
+                  case Language.Cs => " Košík"
                 ),
               )
             },
