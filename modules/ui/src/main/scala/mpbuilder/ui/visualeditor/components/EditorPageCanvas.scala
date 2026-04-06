@@ -1,14 +1,15 @@
-package mpbuilder.ui.calendar.components
+package mpbuilder.ui.visualeditor.components
 
 import com.raquo.laminar.api.L.*
-import mpbuilder.ui.calendar.*
+import mpbuilder.ui.visualeditor.*
+import mpbuilder.ui.visualeditor.overlays.ProductOverlay
 import org.scalajs.dom
 import scala.scalajs.js
 
-object CalendarPageCanvas {
+object EditorPageCanvas {
   def apply(): Element = {
-    val currentPage = CalendarViewModel.currentPage
-    val format = CalendarViewModel.productFormat
+    val currentPage = VisualEditorViewModel.currentPage
+    val format = VisualEditorViewModel.productFormat
 
     div(
       cls := "calendar-canvas-container",
@@ -24,16 +25,18 @@ object CalendarPageCanvas {
         onClick --> { ev =>
           if ev.target.asInstanceOf[dom.Element].classList.contains("calendar-page") ||
              ev.target.asInstanceOf[dom.Element].classList.contains("calendar-background") then
-            CalendarViewModel.deselectElement()
+            VisualEditorViewModel.deselectElement()
         },
 
-        // Render the calendar page
-        child <-- currentPage.combineWith(format).map { (page, fmt) => renderPage(page, fmt) }
+        // Render the page
+        child <-- currentPage.combineWith(format, VisualEditorViewModel.productContext).map { (page, fmt, ctxOpt) =>
+          renderPage(page, fmt, ctxOpt)
+        }
       )
     )
   }
 
-  private def renderPage(page: CalendarPage, format: ProductFormat): Element = {
+  private def renderPage(page: EditorPage, format: ProductFormat, productContext: Option[ProductContext]): Element = {
     // Scale to fit canvas: use aspect ratio from physical dimensions
     val aspectRatio = format.widthMm.toDouble / format.heightMm
     val canvasWidth = if ProductFormat.isLandscape(format) then 760 else 560
@@ -45,6 +48,9 @@ object CalendarPageCanvas {
 
       // Background
       renderBackground(page.template.background),
+
+      // Product overlay (wire binding, frame, stand, etc.)
+      ProductOverlay.render(productContext, format),
 
       // Month title (locked template field) — only render if text is non-empty
       if page.template.monthField.text.nonEmpty then renderTemplateTextField(page.template.monthField) else emptyMod,
@@ -88,7 +94,7 @@ object CalendarPageCanvas {
   // ─── Text Element ────────────────────────────────────────────────
 
   private def renderTextElement(field: TextElement): Element = {
-    val selected = CalendarViewModel.selectedElement
+    val selected = VisualEditorViewModel.selectedElement
 
     div(
       cls := "calendar-element calendar-text-element",
@@ -118,7 +124,7 @@ object CalendarPageCanvas {
            !ev.target.asInstanceOf[dom.Element].classList.contains("rotate-btn") then
           ev.preventDefault()
           ev.stopPropagation()
-          CalendarViewModel.selectElement(field.id)
+          VisualEditorViewModel.selectElement(field.id)
           startDrag(field.id, field.position, ev)
       }
     )
@@ -127,7 +133,7 @@ object CalendarPageCanvas {
   // ─── Shape Element ───────────────────────────────────────────────
 
   private def renderShapeElement(shape: ShapeElement): Element = {
-    val selected = CalendarViewModel.selectedElement
+    val selected = VisualEditorViewModel.selectedElement
 
     val shapeContent = shape.shapeType match {
       case ShapeType.Line =>
@@ -149,23 +155,20 @@ object CalendarPageCanvas {
 
       shapeContent,
 
-      // Resize handles (when selected)
       child.maybe <-- selected.map { sel =>
         if sel.contains(shape.id) then Some(renderResizeHandles(shape.id, shape)) else None
       },
 
-      // Rotation buttons (when selected)
       child.maybe <-- selected.map { sel =>
         if sel.contains(shape.id) then Some(renderRotationButtons(shape.id, shape.rotation)) else None
       },
 
-      // Drag behavior
       onMouseDown --> { ev =>
         if !ev.target.asInstanceOf[dom.Element].classList.contains("resize-handle") &&
            !ev.target.asInstanceOf[dom.Element].classList.contains("rotate-btn") then
           ev.preventDefault()
           ev.stopPropagation()
-          CalendarViewModel.selectElement(shape.id)
+          VisualEditorViewModel.selectElement(shape.id)
           startDrag(shape.id, shape.position, ev)
       }
     )
@@ -174,7 +177,7 @@ object CalendarPageCanvas {
   // ─── Clipart Element ─────────────────────────────────────────────
 
   private def renderClipartElement(clip: ClipartElement): Element = {
-    val selected = CalendarViewModel.selectedElement
+    val selected = VisualEditorViewModel.selectedElement
 
     div(
       cls := "calendar-element calendar-clipart-element",
@@ -187,23 +190,20 @@ object CalendarPageCanvas {
         draggable := false,
       ),
 
-      // Resize handles (when selected)
       child.maybe <-- selected.map { sel =>
         if sel.contains(clip.id) then Some(renderResizeHandles(clip.id, clip)) else None
       },
 
-      // Rotation buttons (when selected)
       child.maybe <-- selected.map { sel =>
         if sel.contains(clip.id) then Some(renderRotationButtons(clip.id, clip.rotation)) else None
       },
 
-      // Drag behavior
       onMouseDown --> { ev =>
         if !ev.target.asInstanceOf[dom.Element].classList.contains("resize-handle") &&
            !ev.target.asInstanceOf[dom.Element].classList.contains("rotate-btn") then
           ev.preventDefault()
           ev.stopPropagation()
-          CalendarViewModel.selectElement(clip.id)
+          VisualEditorViewModel.selectElement(clip.id)
           startDrag(clip.id, clip.position, ev)
       }
     )
@@ -212,14 +212,13 @@ object CalendarPageCanvas {
   // ─── Photo Element ───────────────────────────────────────────────
 
   private def renderPhoto(photo: PhotoElement): Element = {
-    val selected = CalendarViewModel.selectedElement
+    val selected = VisualEditorViewModel.selectedElement
 
     div(
       cls := "calendar-element calendar-photo",
       cls <-- selected.map(sel => if sel.contains(photo.id) then "selected" else ""),
       styleAttr := s"position: absolute; left: ${photo.position.x}px; top: ${photo.position.y}px; width: ${photo.size.width}px; height: ${photo.size.height}px; transform: rotate(${photo.rotation}deg); transform-origin: center; z-index: ${photo.zIndex};",
 
-      // Inner container with overflow hidden for image clipping
       div(
         cls := "photo-image-container",
         styleAttr := "width: 100%; height: 100%; overflow: hidden; position: relative;",
@@ -234,28 +233,25 @@ object CalendarPageCanvas {
           div(
             cls := "photo-placeholder",
             styleAttr := "width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; background: #f0f0f0; border: 2px dashed #ccc; box-sizing: border-box; color: #999; font-size: 14px; text-align: center; pointer-events: none;",
-            "📷 Click to add photo"
+            "Click to add photo"
           )
       ),
 
-      // Resize handles (visible when selected)
       child.maybe <-- selected.map { sel =>
         if sel.contains(photo.id) then Some(renderResizeHandles(photo.id, photo)) else None
       },
 
-      // Rotation buttons (visible when selected)
       child.maybe <-- selected.map { sel =>
         if sel.contains(photo.id) then Some(renderRotationButtons(photo.id, photo.rotation)) else None
       },
 
-      // Make draggable
       onMouseDown --> { ev =>
         val target = ev.target.asInstanceOf[dom.Element]
         if !target.classList.contains("resize-handle") &&
            !target.classList.contains("rotate-btn") then
           ev.preventDefault()
           ev.stopPropagation()
-          CalendarViewModel.selectElement(photo.id)
+          VisualEditorViewModel.selectElement(photo.id)
           startDrag(photo.id, photo.position, ev)
       }
     )
@@ -272,7 +268,7 @@ object CalendarPageCanvas {
     val mouseMoveHandler: js.Function1[dom.MouseEvent, Unit] = { moveEv =>
       val deltaX = moveEv.clientX - startX
       val deltaY = moveEv.clientY - startY
-      CalendarViewModel.updateElementPosition(
+      VisualEditorViewModel.updateElementPosition(
         elementId,
         Position(startPos.x + deltaX, startPos.y + deltaY)
       )
@@ -281,6 +277,7 @@ object CalendarPageCanvas {
     val mouseUpHandler: js.Function1[dom.MouseEvent, Unit] = { _ =>
       dom.window.removeEventListener("mousemove", mouseMoveHandler)
       mouseUpHandlerOpt.foreach(h => dom.window.removeEventListener("mouseup", h))
+      VisualEditorViewModel.commitElementChange()
     }
 
     mouseUpHandlerOpt = Some(mouseUpHandler)
@@ -295,7 +292,6 @@ object CalendarPageCanvas {
     div(
       cls := "resize-handles",
 
-      // Corner handles
       List("nw", "ne", "sw", "se").map { corner =>
         div(
           cls := s"resize-handle resize-handle-$corner",
@@ -321,25 +317,25 @@ object CalendarPageCanvas {
                 case "se" =>
                   val newWidth = math.max(30, startWidth + deltaX)
                   val newHeight = newWidth / aspectRatio
-                  CalendarViewModel.updateElementSize(elementId, Size(newWidth, newHeight))
+                  VisualEditorViewModel.updateElementSize(elementId, Size(newWidth, newHeight))
 
                 case "sw" =>
                   val newWidth = math.max(30, startWidth - deltaX)
                   val newHeight = newWidth / aspectRatio
-                  CalendarViewModel.updateElementSize(elementId, Size(newWidth, newHeight))
-                  CalendarViewModel.updateElementPosition(elementId, Position(startPosX + (startWidth - newWidth), startPosY))
+                  VisualEditorViewModel.updateElementSize(elementId, Size(newWidth, newHeight))
+                  VisualEditorViewModel.updateElementPosition(elementId, Position(startPosX + (startWidth - newWidth), startPosY))
 
                 case "ne" =>
                   val newWidth = math.max(30, startWidth + deltaX)
                   val newHeight = newWidth / aspectRatio
-                  CalendarViewModel.updateElementSize(elementId, Size(newWidth, newHeight))
-                  CalendarViewModel.updateElementPosition(elementId, Position(startPosX, startPosY + (startHeight - newHeight)))
+                  VisualEditorViewModel.updateElementSize(elementId, Size(newWidth, newHeight))
+                  VisualEditorViewModel.updateElementPosition(elementId, Position(startPosX, startPosY + (startHeight - newHeight)))
 
                 case "nw" =>
                   val newWidth = math.max(30, startWidth - deltaX)
                   val newHeight = newWidth / aspectRatio
-                  CalendarViewModel.updateElementSize(elementId, Size(newWidth, newHeight))
-                  CalendarViewModel.updateElementPosition(elementId, Position(startPosX + (startWidth - newWidth), startPosY + (startHeight - newHeight)))
+                  VisualEditorViewModel.updateElementSize(elementId, Size(newWidth, newHeight))
+                  VisualEditorViewModel.updateElementPosition(elementId, Position(startPosX + (startWidth - newWidth), startPosY + (startHeight - newHeight)))
 
                 case _ => ()
               }
@@ -348,6 +344,7 @@ object CalendarPageCanvas {
             val mouseUpHandler: js.Function1[dom.MouseEvent, Unit] = { _ =>
               dom.window.removeEventListener("mousemove", mouseMoveHandler)
               mouseUpHandlerOpt.foreach(h => dom.window.removeEventListener("mouseup", h))
+              VisualEditorViewModel.commitElementChange()
             }
 
             mouseUpHandlerOpt = Some(mouseUpHandler)
@@ -357,7 +354,6 @@ object CalendarPageCanvas {
         )
       },
 
-      // Side handles
       List("n", "s", "e", "w").map { side =>
         div(
           cls := s"resize-handle resize-handle-$side",
@@ -380,17 +376,17 @@ object CalendarPageCanvas {
 
               side match {
                 case "e" =>
-                  CalendarViewModel.updateElementSize(elementId, Size(math.max(30, startWidth + deltaX), startHeight))
+                  VisualEditorViewModel.updateElementSize(elementId, Size(math.max(30, startWidth + deltaX), startHeight))
                 case "w" =>
                   val newWidth = math.max(30, startWidth - deltaX)
-                  CalendarViewModel.updateElementSize(elementId, Size(newWidth, startHeight))
-                  CalendarViewModel.updateElementPosition(elementId, Position(startPosX + (startWidth - newWidth), startPosY))
+                  VisualEditorViewModel.updateElementSize(elementId, Size(newWidth, startHeight))
+                  VisualEditorViewModel.updateElementPosition(elementId, Position(startPosX + (startWidth - newWidth), startPosY))
                 case "s" =>
-                  CalendarViewModel.updateElementSize(elementId, Size(startWidth, math.max(30, startHeight + deltaY)))
+                  VisualEditorViewModel.updateElementSize(elementId, Size(startWidth, math.max(30, startHeight + deltaY)))
                 case "n" =>
                   val newHeight = math.max(30, startHeight - deltaY)
-                  CalendarViewModel.updateElementSize(elementId, Size(startWidth, newHeight))
-                  CalendarViewModel.updateElementPosition(elementId, Position(startPosX, startPosY + (startHeight - newHeight)))
+                  VisualEditorViewModel.updateElementSize(elementId, Size(startWidth, newHeight))
+                  VisualEditorViewModel.updateElementPosition(elementId, Position(startPosX, startPosY + (startHeight - newHeight)))
                 case _ => ()
               }
             }
@@ -398,6 +394,7 @@ object CalendarPageCanvas {
             val mouseUpHandler: js.Function1[dom.MouseEvent, Unit] = { _ =>
               dom.window.removeEventListener("mousemove", mouseMoveHandler)
               mouseUpHandlerOpt.foreach(h => dom.window.removeEventListener("mouseup", h))
+              VisualEditorViewModel.commitElementChange()
             }
 
             mouseUpHandlerOpt = Some(mouseUpHandler)
@@ -409,7 +406,7 @@ object CalendarPageCanvas {
     )
   }
 
-  // ─── Rotation buttons (left and right) ─────────────────────────
+  // ─── Rotation buttons ─────────────────────────────────────────
 
   private def renderRotationButtons(elementId: String, currentRotation: Double): Element = {
     div(
@@ -422,7 +419,7 @@ object CalendarPageCanvas {
           ev.preventDefault()
           ev.stopPropagation()
           val newRotation = (currentRotation - 15 + 360) % 360
-          CalendarViewModel.updateElementRotation(elementId, newRotation)
+          VisualEditorViewModel.updateElementRotation(elementId, newRotation)
         }
       ),
       div(
@@ -433,7 +430,7 @@ object CalendarPageCanvas {
           ev.preventDefault()
           ev.stopPropagation()
           val newRotation = (currentRotation + 15) % 360
-          CalendarViewModel.updateElementRotation(elementId, newRotation)
+          VisualEditorViewModel.updateElementRotation(elementId, newRotation)
         }
       )
     )

@@ -1,28 +1,26 @@
-package mpbuilder.ui.calendar.components
+package mpbuilder.ui.visualeditor.components
 
 import com.raquo.laminar.api.L.*
-import mpbuilder.ui.calendar.*
+import mpbuilder.ui.visualeditor.*
 import mpbuilder.ui.productbuilder.ProductBuilderViewModel
 import mpbuilder.domain.model.Language
 
 object PageNavigation {
   def apply(): Element = {
-    val currentPageIndex = CalendarViewModel.currentPageIndex
-    val state = CalendarViewModel.state
+    val currentPageIndex = VisualEditorViewModel.currentPageIndex
+    val state = VisualEditorViewModel.state
     val lang = ProductBuilderViewModel.currentLanguage
 
     div(
       cls := "page-navigation-strip",
 
-      // Previous button
       button(
         cls := "nav-strip-btn prev-btn",
-        "←",
+        "<-",
         disabled <-- currentPageIndex.map(_ == 0),
-        onClick --> { _ => CalendarViewModel.goToPreviousPage() }
+        onClick --> { _ => VisualEditorViewModel.goToPreviousPage() }
       ),
 
-      // Page indicator
       div(
         cls := "page-indicator",
         child.text <-- state.combineWith(lang).map { case (s, language) =>
@@ -35,15 +33,13 @@ object PageNavigation {
         }
       ),
 
-      // Next button
       button(
         cls := "nav-strip-btn next-btn",
-        "→",
+        "->",
         disabled <-- state.map(s => s.currentPageIndex >= s.pages.length - 1),
-        onClick --> { _ => CalendarViewModel.goToNextPage() }
+        onClick --> { _ => VisualEditorViewModel.goToNextPage() }
       ),
 
-      // Horizontally scrollable page thumbnails
       div(
         cls := "page-thumbnails-strip",
         children <-- state.map { s =>
@@ -55,7 +51,7 @@ object PageNavigation {
     )
   }
 
-  private def renderPageThumbnail(page: CalendarPage, index: Int, currentIndex: Int): Element = {
+  private def renderPageThumbnail(page: EditorPage, index: Int, currentIndex: Int): Element = {
     val isActive = index == currentIndex
 
     div(
@@ -72,7 +68,7 @@ object PageNavigation {
         page.template.monthField.text.take(5)
       ),
 
-      onClick --> { _ => CalendarViewModel.goToPage(index) }
+      onClick --> { _ => VisualEditorViewModel.goToPage(index) }
     )
   }
 }

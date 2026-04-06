@@ -25,7 +25,7 @@ object LoginState:
 sealed trait ArtworkMode
 object ArtworkMode:
   case class UploadArtwork(fileName: Option[String] = None) extends ArtworkMode
-  case object DesignInEditor extends ArtworkMode
+  case class DesignInEditor(artworkId: Option[ArtworkId] = None) extends ArtworkMode
 
 /** Per-component UI state */
 case class ComponentState(
@@ -50,7 +50,7 @@ case class BuilderState(
                          language: Language = Language.En,
                          basket: Basket = Basket(BasketId.unsafe("main-basket"), List.empty),
                          basketMessage: Option[String] = None,
-                         artworkMode: ArtworkMode = ArtworkMode.UploadArtwork(None),
+                         artworkMode: ArtworkMode = ArtworkMode.UploadArtwork(),
                          basketItemArtwork: Map[ConfigurationId, ArtworkMode] = Map.empty,
                          checkoutInfo: Option[CheckoutInfo] = None,
                          loginState: LoginState = LoginState.LoggedOut,
@@ -700,7 +700,7 @@ object ProductBuilderViewModel:
       basePriceBreakdown = None,
       weightBreakdown = None,
       configuration = None,
-      artworkMode = ArtworkMode.UploadArtwork(None),
+      artworkMode = ArtworkMode.UploadArtwork(),
     ))
 
   // Artwork operations
@@ -709,6 +709,9 @@ object ProductBuilderViewModel:
 
   def setUploadedFileName(name: Option[String]): Unit =
     stateVar.update(_.copy(artworkMode = ArtworkMode.UploadArtwork(name)))
+
+  def setEditorArtworkId(artworkId: ArtworkId): Unit =
+    stateVar.update(_.copy(artworkMode = ArtworkMode.DesignInEditor(Some(artworkId))))
 
   // Checkout operations
   def startCheckout(): Unit =

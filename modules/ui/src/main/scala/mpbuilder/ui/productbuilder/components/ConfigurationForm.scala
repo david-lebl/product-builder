@@ -3,6 +3,7 @@ package mpbuilder.ui.productbuilder.components
 import com.raquo.laminar.api.L.*
 import mpbuilder.ui.productbuilder.{ProductBuilderViewModel, ArtworkMode}
 import mpbuilder.ui.{AppRouter, AppRoute}
+import mpbuilder.ui.visualeditor.EditorBridge
 import mpbuilder.domain.model.*
 import mpbuilder.uikit.fields.CheckboxField
 import mpbuilder.uikit.util.Visibility
@@ -139,7 +140,7 @@ object ConfigurationForm:
                   case _                            => false
                 ),
                 onChange --> { _ =>
-                  ProductBuilderViewModel.setArtworkMode(ArtworkMode.UploadArtwork(None))
+                  ProductBuilderViewModel.setArtworkMode(ArtworkMode.UploadArtwork())
                 },
               ),
               child.text <-- lang.map {
@@ -160,7 +161,7 @@ object ConfigurationForm:
                 inContext { el =>
                   ProductBuilderViewModel.state.map(_.artworkMode).changes --> { mode =>
                     mode match
-                      case ArtworkMode.UploadArtwork(None) => el.ref.value = ""
+                      case ArtworkMode.UploadArtwork(None) | ArtworkMode.UploadArtwork(Some("")) => el.ref.value = ""
                       case _                               =>
                   }
                 },
@@ -181,7 +182,7 @@ object ConfigurationForm:
                       case Language.En => "Accepted formats: PDF, AI, EPS, PNG, JPG, TIFF, PSD"
                       case Language.Cs => "Povolené formáty: PDF, AI, EPS, PNG, JPG, TIFF, PSD"
                     )
-                  case ArtworkMode.DesignInEditor => emptyNode
+                  case _: ArtworkMode.DesignInEditor => emptyNode
               },
             ),
           ),
@@ -195,9 +196,12 @@ object ConfigurationForm:
                 typ := "radio",
                 nameAttr := "artworkMode",
                 value := "design",
-                checked <-- ProductBuilderViewModel.state.map(_.artworkMode == ArtworkMode.DesignInEditor),
+                checked <-- ProductBuilderViewModel.state.map(_.artworkMode match
+                  case _: ArtworkMode.DesignInEditor => true
+                  case _                             => false
+                ),
                 onChange --> { _ =>
-                  ProductBuilderViewModel.setArtworkMode(ArtworkMode.DesignInEditor)
+                  ProductBuilderViewModel.setArtworkMode(ArtworkMode.DesignInEditor())
                 },
               ),
               child.text <-- lang.map {
@@ -207,14 +211,28 @@ object ConfigurationForm:
             ),
             div(
               cls := "open-editor-area",
-              Visibility.when(ProductBuilderViewModel.state.map(_.artworkMode == ArtworkMode.DesignInEditor)),
+              Visibility.when(ProductBuilderViewModel.state.map(_.artworkMode match
+                case _: ArtworkMode.DesignInEditor => true
+                case _                             => false
+              )),
               button(
                 cls := "open-editor-btn",
                 child.text <-- lang.map {
                   case Language.En => "Open Visual Editor →"
                   case Language.Cs => "Otevřít vizuální editor →"
                 },
-                onClick --> { _ => AppRouter.navigateTo(AppRoute.CalendarBuilder) },
+                onClick --> { _ =>
+                  val state = ProductBuilderViewModel.stateVar.now()
+                  state.configuration match
+                    case Some(config) =>
+                      val artworkId = state.artworkMode match
+                        case ArtworkMode.DesignInEditor(Some(existing)) => existing
+                        case _ => ArtworkId.generate()
+                      ProductBuilderViewModel.setEditorArtworkId(artworkId)
+                      EditorBridge.openEditorForProduct(config, artworkId)
+                    case None =>
+                      AppRouter.navigateTo(AppRoute.VisualEditor())
+                },
               ),
             ),
           ),
