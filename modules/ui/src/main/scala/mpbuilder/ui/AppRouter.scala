@@ -123,7 +123,7 @@ object AppRouter {
             },
             child.text <-- lang.map {
               case Language.En => "Manufacturing"
-              case Language.Cs => "Vyroba"
+              case Language.Cs => "Výroba"
             },
             onClick --> { _ => navigateTo(AppRoute.Manufacturing) }
           ),
