@@ -1226,6 +1226,27 @@
     color: #fff;
 }
 
+/* ─── Clear All Button (shared by Gallery & Session History) ─── */
+.clear-all-btn {
+    display: block;
+    width: 100%;
+    margin: 8px 0 12px 0;
+    padding: 7px 14px;
+    font-size: 0.82rem;
+    font-weight: 600;
+    background: none;
+    color: #c62828;
+    border: 1.5px solid #e57373;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s;
+}
+
+.clear-all-btn:hover {
+    background: #c62828;
+    color: white;
+}
+
 /* Gallery grid */
 .gallery-grid {
     display: flex;
