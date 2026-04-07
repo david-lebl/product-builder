@@ -482,6 +482,7 @@
 }
 
 .calendar-canvas-container {
+    position: relative;
     width: 100%;
     max-width: 600px;
 }
@@ -558,6 +559,12 @@
     pointer-events: none;
 }
 
+.text-element-content.editable {
+    pointer-events: auto;
+    cursor: text;
+    outline: none;
+}
+
 /* Shape element */
 .calendar-shape-element {
     min-width: 10px;
@@ -613,22 +620,29 @@
     cursor: w-resize;
 }
 
-/* ─── Rotation Buttons (left and right) ──────────────── */
+/* ─── Rotation Handle (drag-to-rotate) ───────────────── */
 
-.rotate-buttons-container {
+.rotate-handle-container {
     position: absolute;
-    top: -35px;
+    top: -45px;
     left: 50%;
     transform: translateX(-50%);
     display: flex;
-    gap: 4px;
-    z-index: var(--z-rotate);
-    pointer-events: all;
+    flex-direction: column;
+    align-items: center;
+    pointer-events: none;
+    z-index: 100;
 }
 
-.rotate-btn {
-    width: 28px;
-    height: 28px;
+.rotate-handle-line {
+    width: 1px;
+    height: 16px;
+    background: var(--color-primary);
+}
+
+.rotate-handle {
+    width: 24px;
+    height: 24px;
     background: var(--color-primary);
     color: white;
     border: 2px solid white;
@@ -636,19 +650,14 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    cursor: pointer;
-    font-size: 18px;
-    font-weight: bold;
-    z-index: var(--z-rotate);
+    cursor: grab;
+    font-size: 14px;
     pointer-events: all;
     box-shadow: 0 2px 6px rgba(0,0,0,0.3);
-    line-height: 1;
-    padding: 0;
 }
 
-.rotate-btn:hover {
-    background: var(--color-primary-dark);
-    transform: scale(1.15);
+.rotate-handle:active {
+    cursor: grabbing;
 }
 
 /* ─── Sidebar Tabs ───────────────────────────────────── */
@@ -1470,4 +1479,164 @@
 .gallery-btn-relink:hover {
     background: #ff9800;
     color: #fff;
+}
+
+/* ─── Canvas Float Buttons ───────────────────────────── */
+
+.canvas-float-buttons {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    z-index: 100;
+}
+
+.canvas-float-btn {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    border: none;
+    background: var(--color-primary);
+    color: white;
+    font-size: 1.1rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+    transition: transform 0.15s, box-shadow 0.15s;
+    padding: 0;
+}
+
+.canvas-float-btn:hover {
+    transform: scale(1.1);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+}
+
+/* ─── Element Toolbar ────────────────────────────────── */
+
+.element-toolbar {
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    bottom: -44px;
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    background: white;
+    border: 1px solid var(--color-border);
+    border-radius: 8px;
+    padding: 4px 6px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+    z-index: 1000;
+    white-space: nowrap;
+    pointer-events: all;
+}
+
+.toolbar-group {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+}
+
+.toolbar-btn {
+    width: 28px;
+    height: 28px;
+    padding: 0;
+    font-size: 0.75rem;
+    background: #f5f5f5;
+    color: #333;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.1s;
+}
+
+.toolbar-btn:hover {
+    background: #e0e0f0;
+    transform: none;
+}
+
+.toolbar-btn.active {
+    background: var(--color-primary);
+    color: white;
+    border-color: var(--color-primary);
+}
+
+.toolbar-delete-btn {
+    color: #c62828;
+}
+
+.toolbar-delete-btn:hover {
+    background: var(--color-error);
+    color: white;
+    transform: none;
+}
+
+.toolbar-separator {
+    width: 1px;
+    height: 20px;
+    background: #ddd;
+    margin: 0 3px;
+}
+
+.toolbar-color {
+    width: 28px;
+    height: 28px;
+    padding: 1px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.toolbar-italic {
+    font-style: italic;
+}
+
+.toolbar-layer-actions {
+    margin-left: 4px;
+    padding-left: 4px;
+    border-left: 1px solid #ddd;
+}
+
+/* ─── Drag Handle ────────────────────────────────────── */
+
+.drag-handle {
+    position: absolute;
+    top: -2px;
+    left: -2px;
+    width: 22px;
+    height: 22px;
+    background: var(--color-primary);
+    color: white;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: grab;
+    font-size: 12px;
+    z-index: 100;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.2);
+    pointer-events: all;
+}
+
+.drag-handle:active {
+    cursor: grabbing;
+}
+
+/* ─── Direct text editing ────────────────────────────── */
+
+.text-element-content[contenteditable="true"] {
+    cursor: text;
+    outline: none;
+    pointer-events: auto;
+}
+
+.text-element-content[contenteditable="false"] {
+    pointer-events: none;
 }
