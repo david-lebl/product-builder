@@ -13,7 +13,7 @@ object ConfigurationForm:
     val lang = ProductBuilderViewModel.currentLanguage
 
     div(
-      // Category Selection
+      // 1. Category Selection
       div(
         cls := "form-section",
         h3(child.text <-- lang.map {
@@ -23,22 +23,32 @@ object ConfigurationForm:
         CategorySelector(),
       ),
 
-      // Printing Method Selection
+      // 2. Product Specifications (quantity, size, pages, orientation, fold type, binding)
       div(
         cls := "form-section",
         h3(child.text <-- lang.map {
-          case Language.En => "2. Select Printing Method"
-          case Language.Cs => "2. Vyberte tiskovou metodu"
+          case Language.En => "2. Product Specifications"
+          case Language.Cs => "2. Specifikace produktu"
+        }),
+        SpecificationForm(),
+      ),
+
+      // 3. Printing Method Selection
+      div(
+        cls := "form-section",
+        h3(child.text <-- lang.map {
+          case Language.En => "3. Select Printing Method"
+          case Language.Cs => "3. Vyberte tiskovou metodu"
         }),
         PrintingMethodSelector(),
       ),
 
-      // Component Configuration — dynamic sections based on category
+      // 4. Component Configuration — dynamic sections based on category
       div(
         cls := "form-section",
         h3(child.text <-- lang.map {
-          case Language.En => "3. Configure Components"
-          case Language.Cs => "3. Specifikace výroby"
+          case Language.En => "4. Configure Components"
+          case Language.Cs => "4. Specifikace výroby"
         }),
         children <-- ProductBuilderViewModel.componentRoles
           .combineWith(ProductBuilderViewModel.linkedComponents, lang)
@@ -93,14 +103,14 @@ object ConfigurationForm:
         },
       ),
 
-      // Specifications
+      // 5. Manufacturing Speed
       div(
         cls := "form-section",
         h3(child.text <-- lang.map {
-          case Language.En => "4. Product Specifications"
-          case Language.Cs => "4. Specifikace produktu"
+          case Language.En => "5. Manufacturing Speed"
+          case Language.Cs => "5. Rychlost výroby"
         }),
-        SpecificationForm(),
+        SpecificationForm.manufacturingSpeedSection(),
       ),
 
       // Server Validate Button (price is computed live; this button reserved for future server-side validation)
@@ -120,8 +130,8 @@ object ConfigurationForm:
         cls := "form-section artwork-section",
         Visibility.when(ProductBuilderViewModel.state.map(_.configuration.isDefined)),
         h3(child.text <-- lang.map {
-          case Language.En => "5. Provide Artwork"
-          case Language.Cs => "5. Poskytnutí dat"
+          case Language.En => "6. Provide Artwork"
+          case Language.Cs => "6. Poskytnutí dat"
         }),
         div(
           cls := "artwork-options",

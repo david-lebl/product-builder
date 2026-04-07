@@ -309,6 +309,23 @@ object SpecificationForm:
         ),
       ),
 
+      div(
+        cls := "info-box",
+        p(child.text <-- lang.map {
+          case Language.En => "Note: Additional specifications like binding type or lamination can be added based on your product category."
+          case Language.Cs => "Poznámka: Další specifikace jako typ vazby nebo laminace mohou být přidány na základě kategorie produktu."
+        }),
+      ),
+    )
+
+  /** Manufacturing Speed Tier selector — rendered separately from product specifications */
+  def manufacturingSpeedSection(): Element =
+    val requiredSpecs = ProductBuilderViewModel.requiredSpecKinds
+    val lang = ProductBuilderViewModel.currentLanguage
+
+    div(
+      cls := "form-group",
+
       // Manufacturing Speed Tier (always visible when category is selected)
       div(
         Visibility.when(requiredSpecs.map(_.nonEmpty)),
@@ -384,14 +401,6 @@ object SpecificationForm:
             },
           ),
         ),
-      ),
-
-      div(
-        cls := "info-box",
-        p(child.text <-- lang.map {
-          case Language.En => "Note: Additional specifications like binding type or lamination can be added based on your product category."
-          case Language.Cs => "Poznámka: Další specifikace jako typ vazby nebo laminace mohou být přidány na základě kategorie produktu."
-        }),
       ),
     )
 
