@@ -309,6 +309,13 @@ object SpecificationForm:
         ),
       ),
 
+      div(
+        cls := "info-box",
+        p(child.text <-- lang.map {
+          case Language.En => "Note: Additional specifications like binding type or lamination can be added based on your product category."
+          case Language.Cs => "Poznámka: Další specifikace jako typ vazby nebo laminace mohou být přidány na základě kategorie produktu."
+        }),
+      ),
     )
 
   /** Manufacturing Speed Tier selector — rendered separately from product specifications */
