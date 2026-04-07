@@ -149,7 +149,7 @@ object EditorPageCanvas {
         contentEditable <-- selected.map(sel => sel.contains(field.id)),
         field.text,
         onBlur --> { ev =>
-          val newText = ev.target.asInstanceOf[dom.Element].textContent
+          val newText = Option(ev.target.asInstanceOf[dom.Element].textContent).getOrElse("")
           if newText != field.text then
             VisualEditorViewModel.updateTextFieldText(field.id, newText)
         },
@@ -646,7 +646,7 @@ object EditorPageCanvas {
       button(cls := "toolbar-btn", "🔍+", title := "Zoom in",
         onClick --> { ev => ev.stopPropagation(); VisualEditorViewModel.updatePhotoImageScale(photo.id, math.min(3.0, photo.imageScale + 0.1)) }),
       span(cls := "toolbar-separator"),
-      button(cls := "toolbar-btn", "🔄", title := "Flip horizontal",
+      button(cls := "toolbar-btn", "↔", title := "Mirror offset",
         onClick --> { ev => ev.stopPropagation(); VisualEditorViewModel.updatePhotoImageOffset(photo.id, -photo.imageOffsetX, photo.imageOffsetY) }),
     )
   }
