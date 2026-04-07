@@ -1,0 +1,1379 @@
+/* Calendar Builder Styles */
+.calendar-builder-app {
+    background: white;
+    border-radius: 12px;
+    padding: 20px;
+    box-shadow: var(--shadow-card);
+}
+
+.calendar-header {
+    text-align: center;
+    margin-bottom: 30px;
+}
+
+.calendar-header h1 {
+    color: var(--color-primary);
+    font-size: 2rem;
+    margin-bottom: 10px;
+}
+
+.calendar-header p {
+    color: #666;
+    font-size: 1rem;
+}
+
+.calendar-main-content {
+    display: grid;
+    grid-template-columns: 320px 1fr;
+    gap: 20px;
+    min-height: 600px;
+}
+
+@media (max-width: 1200px) {
+    .calendar-main-content {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* Sidebar Styles */
+.calendar-sidebar {
+    border-right: 2px solid var(--color-border);
+    padding-right: 20px;
+    max-height: 700px;
+    overflow-y: auto;
+}
+
+.calendar-controls-card {
+    background: #f9f9f9;
+    border-radius: 8px;
+    padding: 15px;
+}
+
+.calendar-controls-card h4,
+.calendar-controls-card h5 {
+    color: var(--color-primary);
+    margin-bottom: 12px;
+    font-size: 1rem;
+}
+
+.calendar-controls-card hr {
+    margin: 20px 0;
+    border: none;
+    border-top: 1px solid var(--color-border);
+}
+
+/* ─── Unified Element Editor ─────────────────────────── */
+
+.element-editor-section {
+    margin-bottom: 20px;
+}
+
+/* Add-element button row */
+.add-element-buttons {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-bottom: 12px;
+}
+
+.add-element-btn {
+    flex: 1 1 auto;
+    min-width: 70px;
+    padding: 6px 8px;
+    font-size: 0.8rem;
+    white-space: nowrap;
+}
+
+.add-photo-btn { background: var(--color-primary); }
+.add-text-btn  { background: var(--color-success); }
+.add-rect-btn  { background: #ff9800; }
+.add-line-btn  { background: #795548; }
+.add-clipart-btn { background: #9c27b0; }
+
+/* Element list */
+.elements-list {
+    max-height: 220px;
+    overflow-y: auto;
+    margin-bottom: 12px;
+}
+
+.empty-elements {
+    text-align: center;
+    color: #999;
+    padding: 15px;
+    font-style: italic;
+    font-size: 0.9rem;
+}
+
+.element-item {
+    background: white;
+    border: 2px solid var(--color-border);
+    border-radius: 6px;
+    padding: 6px 8px;
+    margin-bottom: 6px;
+    cursor: pointer;
+    transition: border-color 0.2s, background-color 0.2s;
+}
+
+.element-item:hover {
+    border-color: #b0b8f0;
+}
+
+.element-item.selected {
+    border-color: var(--color-primary);
+    background: #f5f7ff;
+}
+
+.element-item-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.element-icon {
+    width: 22px;
+    text-align: center;
+    font-size: 0.9rem;
+}
+
+.element-label {
+    flex: 1;
+    font-size: 0.85rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.element-actions {
+    display: flex;
+    gap: 2px;
+}
+
+.element-action-btn {
+    padding: 2px 5px;
+    font-size: 0.75rem;
+    min-width: 22px;
+    background: var(--color-border);
+    color: #333;
+    border-radius: 4px;
+}
+
+.element-action-btn:hover {
+    background: var(--color-primary);
+    color: white;
+    transform: none;
+}
+
+.element-delete-btn {
+    background: #ffcdd2;
+    color: #c62828;
+}
+
+.element-delete-btn:hover {
+    background: var(--color-error);
+    color: white;
+}
+
+/* Element form (type-specific editor) */
+.element-form {
+    background: #f0f0f0;
+    border-radius: 6px;
+    padding: 12px;
+    margin-top: 10px;
+}
+
+.element-form h5 {
+    margin-bottom: 10px;
+}
+
+.control-group {
+    margin-bottom: 8px;
+}
+
+.control-group label {
+    display: block;
+    margin-bottom: 3px;
+    font-size: 0.85rem;
+    font-weight: 500;
+}
+
+.control-group input,
+.control-group select {
+    width: 100%;
+    padding: 5px 6px;
+    font-size: 0.85rem;
+}
+
+.control-row {
+    display: flex;
+    gap: 8px;
+}
+
+.control-group.half {
+    flex: 1;
+}
+
+.rotation-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.rotation-slider {
+    flex: 1;
+}
+
+.rotation-value {
+    font-size: 0.85rem;
+    min-width: 35px;
+    text-align: right;
+}
+
+/* Text formatting toolbar */
+.text-format-row {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    flex-wrap: wrap;
+}
+
+.format-btn {
+    padding: 4px 8px;
+    font-size: 0.8rem;
+    min-width: 28px;
+    background: var(--color-border);
+    color: #333;
+    border-radius: 4px;
+    text-align: center;
+}
+
+.format-btn:hover {
+    background: #b8b8f0;
+    transform: none;
+}
+
+.format-btn.active {
+    background: var(--color-primary);
+    color: white;
+}
+
+.format-italic {
+    font-style: italic;
+}
+
+.format-separator {
+    width: 1px;
+    height: 20px;
+    background: #ccc;
+    margin: 0 2px;
+}
+
+.done-editing-btn {
+    width: 100%;
+    margin-top: 10px;
+}
+
+.info-hint {
+    font-size: 0.8rem;
+    color: #888;
+    font-style: italic;
+    margin-bottom: 8px;
+}
+
+/* Photo action buttons and zoom controls */
+.photo-action-buttons {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 8px;
+}
+
+.photo-action-buttons button {
+    flex: 1;
+    padding: 6px 8px;
+    font-size: 0.8rem;
+}
+
+.zoom-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.zoom-slider {
+    flex: 1;
+}
+
+.zoom-btn {
+    width: 28px;
+    height: 28px;
+    padding: 0;
+    font-size: 16px;
+    font-weight: bold;
+    background: var(--color-border);
+    color: #333;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    flex-shrink: 0;
+}
+
+.zoom-btn:hover {
+    background: var(--color-primary);
+    color: white;
+    transform: none;
+}
+
+.zoom-value {
+    font-size: 0.8rem;
+    min-width: 38px;
+    text-align: right;
+}
+
+/* ─── Background & Template Editor ───────────────────── */
+
+.background-editor-section {
+    margin-bottom: 10px;
+}
+
+.template-select {
+    width: 100%;
+    padding: 6px;
+}
+
+.bg-image-controls {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.bg-upload-btn {
+    width: 100%;
+    padding: 8px;
+    font-size: 0.85rem;
+    background: #2196f3;
+}
+
+.bg-upload-btn:hover {
+    background: #1976d2;
+}
+
+.bg-reset-btn {
+    width: 100%;
+    padding: 6px;
+    font-size: 0.8rem;
+    background: var(--color-border);
+    color: #333;
+}
+
+.bg-reset-btn:hover {
+    background: #ccc;
+    transform: none;
+}
+
+.predefined-textures {
+    padding: 4px 0;
+}
+
+/* ─── Calendar Canvas ────────────────────────────────── */
+
+.calendar-canvas-area {
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    background: #f5f5f5;
+    border-radius: 8px;
+    padding: 20px;
+}
+
+.calendar-canvas-container {
+    width: 100%;
+    max-width: 600px;
+}
+
+.calendar-canvas {
+    width: 100%;
+    background: white;
+    border: 2px solid var(--color-border);
+    border-radius: 8px;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    overflow: hidden;
+}
+
+.calendar-page {
+    position: relative;
+    width: 100%;
+    height: 600px;
+    overflow: hidden;
+}
+
+.calendar-background {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 0;
+}
+
+/* Template text (locked month/day labels) */
+.calendar-text-field {
+    position: absolute;
+    z-index: 1;
+    padding: 2px 4px;
+    white-space: nowrap;
+}
+
+.calendar-text-field.locked {
+    opacity: 0.7;
+    pointer-events: none;
+}
+
+/* ─── Canvas Elements (shared) ───────────────────────── */
+
+.calendar-element {
+    position: absolute;
+    border: 2px dashed transparent;
+    transition: border-color 0.15s;
+    cursor: move;
+}
+
+.calendar-element:hover {
+    border-color: rgba(102, 126, 234, 0.5);
+}
+
+.calendar-element.selected {
+    border-color: var(--color-primary);
+    border-style: solid;
+}
+
+/* Photo element */
+.calendar-photo img {
+    pointer-events: none;
+}
+
+/* Text element with frame */
+.calendar-text-element {
+    min-width: 30px;
+    min-height: 20px;
+}
+
+.text-element-content {
+    padding: 2px 4px;
+    pointer-events: none;
+}
+
+/* Shape element */
+.calendar-shape-element {
+    min-width: 10px;
+    min-height: 4px;
+}
+
+/* Clipart element */
+.calendar-clipart-element img {
+    pointer-events: none;
+}
+
+/* ─── Resize Handles ─────────────────────────────────── */
+
+.resize-handles {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+}
+
+.resize-handle {
+    position: absolute;
+    width: 10px;
+    height: 10px;
+    background: var(--color-primary);
+    border: 2px solid white;
+    border-radius: 2px;
+    pointer-events: all;
+    z-index: var(--z-handles);
+}
+
+.resize-handle-nw { top: -5px;    left: -5px;   cursor: nw-resize; }
+.resize-handle-ne { top: -5px;    right: -5px;  cursor: ne-resize; }
+.resize-handle-sw { bottom: -5px; left: -5px;   cursor: sw-resize; }
+.resize-handle-se { bottom: -5px; right: -5px;  cursor: se-resize; }
+
+.resize-handle-n {
+    top: -5px; left: 50%; transform: translateX(-50%);
+    cursor: n-resize;
+}
+.resize-handle-s {
+    bottom: -5px; left: 50%; transform: translateX(-50%);
+    cursor: s-resize;
+}
+.resize-handle-e {
+    top: 50%; right: -5px; transform: translateY(-50%);
+    cursor: e-resize;
+}
+.resize-handle-w {
+    top: 50%; left: -5px; transform: translateY(-50%);
+    cursor: w-resize;
+}
+
+/* ─── Rotation Buttons (left and right) ──────────────── */
+
+.rotate-buttons-container {
+    position: absolute;
+    top: -35px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    gap: 4px;
+    z-index: var(--z-rotate);
+    pointer-events: all;
+}
+
+.rotate-btn {
+    width: 28px;
+    height: 28px;
+    background: var(--color-primary);
+    color: white;
+    border: 2px solid white;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    font-size: 18px;
+    font-weight: bold;
+    z-index: var(--z-rotate);
+    pointer-events: all;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+    line-height: 1;
+    padding: 0;
+}
+
+.rotate-btn:hover {
+    background: var(--color-primary-dark);
+    transform: scale(1.15);
+}
+
+/* ─── Sidebar Tabs ───────────────────────────────────── */
+
+.sidebar-tabs {
+    display: flex;
+    gap: 0;
+    margin-bottom: 12px;
+    border-bottom: 2px solid var(--color-border);
+}
+
+.sidebar-tab-btn {
+    flex: 1;
+    padding: 8px 12px;
+    font-size: 0.85rem;
+    background: #f0f0f0;
+    color: #555;
+    border: none;
+    border-bottom: 2px solid transparent;
+    cursor: pointer;
+    transition: all 0.2s;
+    margin-bottom: -2px;
+    border-radius: 6px 6px 0 0;
+}
+
+.sidebar-tab-btn:hover {
+    background: #e0e0f0;
+    transform: none;
+}
+
+.sidebar-tab-btn.active {
+    background: white;
+    color: var(--color-primary);
+    border-bottom-color: var(--color-primary);
+    font-weight: 600;
+}
+
+/* ─── Calendar Sidebar UI-Kit Tabs ──────────────────── */
+
+.calendar-sidebar .tabs {
+    display: flex;
+    flex-direction: column;
+}
+
+.calendar-sidebar .tabs-bar {
+    display: flex;
+    gap: 0;
+    margin-bottom: 12px;
+    border-bottom: 2px solid var(--color-border);
+}
+
+.calendar-sidebar .tab-button {
+    flex: 1;
+    padding: 8px 12px;
+    font-size: 0.85rem;
+    background: #f0f0f0;
+    color: #555;
+    border: none;
+    border-bottom: 2px solid transparent;
+    cursor: pointer;
+    transition: all 0.2s;
+    margin-bottom: -2px;
+    border-radius: 6px 6px 0 0;
+}
+
+.calendar-sidebar .tab-button:hover {
+    background: #e0e0f0;
+    transform: none;
+}
+
+.calendar-sidebar .tab-button--active {
+    background: white;
+    color: var(--color-primary);
+    border-bottom-color: var(--color-primary);
+    font-weight: 600;
+}
+
+/* ─── Horizontal Page Navigation Strip ──────────────── */
+
+.page-navigation-strip {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-top: 20px;
+    padding: 12px 15px;
+    background: #f9f9f9;
+    border-radius: 8px;
+    border: 2px solid var(--color-border);
+}
+
+.nav-strip-btn {
+    padding: 8px 14px;
+    font-size: 1.1rem;
+    min-width: 40px;
+    flex-shrink: 0;
+}
+
+.nav-strip-btn:disabled {
+    background: #cccccc !important;
+    color: #666666 !important;
+    opacity: 1;
+}
+
+.page-navigation-strip .page-indicator {
+    flex-shrink: 0;
+    min-width: 60px;
+}
+
+.page-thumbnails-strip {
+    display: flex;
+    gap: 8px;
+    overflow-x: auto;
+    flex: 1;
+    padding: 4px 0;
+    scrollbar-width: thin;
+}
+
+.page-thumbnails-strip::-webkit-scrollbar {
+    height: 6px;
+}
+
+.page-thumbnails-strip::-webkit-scrollbar-thumb {
+    background: #ccc;
+    border-radius: 3px;
+}
+
+.page-thumbnail-item {
+    flex-shrink: 0;
+    width: 56px;
+    background: white;
+    border: 2px solid var(--color-border);
+    border-radius: 6px;
+    padding: 6px 4px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.page-thumbnail-item:hover {
+    border-color: var(--color-primary);
+}
+
+.page-thumbnail-item.active {
+    border-color: var(--color-primary);
+    background: #f5f7ff;
+}
+
+.page-thumbnail-item .thumbnail-number {
+    font-size: 1rem;
+    font-weight: bold;
+    color: var(--color-primary);
+}
+
+.page-thumbnail-item .thumbnail-label {
+    font-size: 0.65rem;
+    color: #666;
+    margin-top: 2px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* ─── Calendar Footer ────────────────────────────────── */
+
+.calendar-footer {
+    margin-top: 30px;
+    padding-top: 20px;
+    border-top: 2px solid var(--color-border);
+    display: flex;
+    gap: 15px;
+    justify-content: center;
+}
+
+.reset-btn {
+    background: var(--color-error);
+}
+
+.reset-btn:hover {
+    background: #d32f2f;
+}
+
+.preview-btn {
+    background: #2196f3;
+}
+
+.preview-btn:hover {
+    background: #1976d2;
+}
+
+/* ─── Header Top Row (title + save indicator) ────────── */
+
+.calendar-header-top {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    margin-bottom: 6px;
+}
+
+.calendar-header-top h1 {
+    margin-bottom: 0;
+}
+
+/* ─── Session Name Row ──────────────────────────────── */
+
+.session-name-row {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    margin-top: 10px;
+    margin-bottom: 4px;
+}
+
+.session-name-input {
+    padding: 6px 12px;
+    font-size: 0.95rem;
+    border: 2px solid var(--color-border);
+    border-radius: 8px;
+    width: 300px;
+    max-width: 100%;
+    text-align: center;
+    outline: none;
+    transition: border-color 0.2s;
+}
+
+.session-name-input:focus {
+    border-color: var(--color-primary);
+}
+
+.session-name-input::placeholder {
+    color: #bbb;
+    font-style: italic;
+}
+
+/* ─── Save Indicator ────────────────────────────────── */
+
+.save-indicator {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.8rem;
+    color: #888;
+    padding: 4px 10px;
+    border-radius: 12px;
+    background: #f5f5f5;
+    white-space: nowrap;
+}
+
+.save-indicator--saving {
+    color: #f57c00;
+    background: #fff3e0;
+}
+
+.save-indicator--saved {
+    color: #388e3c;
+    background: #e8f5e9;
+}
+
+.save-indicator--unsaved {
+    color: #888;
+    background: #f5f5f5;
+}
+
+.save-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: currentColor;
+    flex-shrink: 0;
+}
+
+/* ─── Product Context Info Badge ─────────────────────── */
+
+.product-context-info {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-bottom: 12px;
+}
+
+.context-badge {
+    display: inline-block;
+    padding: 3px 10px;
+    border-radius: 12px;
+    font-size: 0.8rem;
+    background: #e3f2fd;
+    color: #1565c0;
+    font-weight: 500;
+}
+
+/* ─── Format Fixed Display ───────────────────────────── */
+
+.format-fixed {
+    display: inline-block;
+    padding: 6px 12px;
+    background: #f0f0f0;
+    border-radius: 6px;
+    font-size: 0.9rem;
+    color: #555;
+    border: 1px solid var(--color-border);
+}
+
+/* ─── Session History Panel ──────────────────────────── */
+
+.session-history-section {
+    padding: 8px 0;
+}
+
+.session-history-section h4 {
+    margin-bottom: 10px;
+    color: var(--color-primary);
+}
+
+.session-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    max-height: 400px;
+    overflow-y: auto;
+    margin-top: 10px;
+}
+
+/* ─── Session Tile (History Tab) ─────────────────────── */
+
+.session-tile {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 10px 12px;
+    background: white;
+    border: 2px solid var(--color-border);
+    border-radius: 8px;
+    transition: border-color 0.2s, background-color 0.2s;
+}
+
+.session-tile:hover {
+    border-color: #b0b8f0;
+}
+
+.session-tile-active {
+    border-color: var(--color-primary);
+    background: #f5f7ff;
+}
+
+.session-tile-active:hover {
+    border-color: var(--color-primary);
+}
+
+.session-tile-content {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+}
+
+.session-tile-header {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 2px;
+}
+
+.session-tile-name {
+    font-weight: 600;
+    font-size: 0.88rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: #333;
+}
+
+.session-active-badge {
+    display: inline-block;
+    padding: 1px 6px;
+    border-radius: 8px;
+    font-size: 0.65rem;
+    font-weight: 600;
+    background: var(--color-primary);
+    color: white;
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+
+.session-tile-detail {
+    font-size: 0.75rem;
+    color: #888;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.session-tile-time {
+    font-size: 0.7rem;
+    color: #aaa;
+    margin-top: 1px;
+}
+
+.session-tile-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    flex-shrink: 0;
+}
+
+.session-btn-load {
+    padding: 4px 12px;
+    font-size: 0.78rem;
+    font-weight: 600;
+    background: none;
+    color: var(--color-primary);
+    border: 1px solid var(--color-primary);
+    border-radius: 4px;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: all 0.15s;
+}
+
+.session-btn-load:hover {
+    background: var(--color-primary);
+    color: white;
+    transform: none;
+}
+
+.session-btn-delete {
+    padding: 4px 12px;
+    font-size: 0.78rem;
+    font-weight: 600;
+    background: none;
+    color: #c62828;
+    border: 1px solid #e57373;
+    border-radius: 4px;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: all 0.15s;
+}
+
+.session-btn-delete:hover {
+    background: var(--color-error);
+    color: white;
+    transform: none;
+}
+
+/* ─── Resume Popup ───────────────────────────────────── */
+
+.resume-popup-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10000;
+}
+
+.resume-popup {
+    background: white;
+    border-radius: 12px;
+    padding: 30px;
+    max-width: 500px;
+    width: 90%;
+    max-height: 85vh;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+    display: flex;
+    flex-direction: column;
+}
+
+.resume-popup h3 {
+    color: var(--color-primary);
+    margin-bottom: 8px;
+    flex-shrink: 0;
+}
+
+.resume-popup p {
+    color: #666;
+    margin-bottom: 16px;
+    font-size: 0.95rem;
+    flex-shrink: 0;
+}
+
+.resume-sessions-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    overflow-y: auto;
+    flex: 1;
+    min-height: 0;
+    padding-right: 2px;
+}
+
+/* ─── Resume Popup bottom actions ────────────────────── */
+
+.resume-popup-actions {
+    display: flex;
+    gap: 10px;
+    flex-shrink: 0;
+    padding-top: 16px;
+    border-top: 1px solid #eee;
+    margin-top: 12px;
+    align-items: stretch;
+}
+
+/* Clear All: ~1/3 width */
+.resume-popup-actions .clear-all-btn {
+    flex: 1;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: auto;
+    margin: 0;
+    white-space: nowrap;
+}
+
+/* New Session: ~2/3 width */
+.resume-popup-actions .add-element-btn {
+    flex: 2;
+    margin: 0;
+}
+
+/* ─── Return to Product Builder Button ───────────────── */
+
+.return-btn {
+    background: #78909c;
+    color: white;
+}
+
+.return-btn:hover {
+    background: #546e7a;
+}
+
+/* ─── Edit Design Button (Basket) ────────────────────── */
+
+.edit-design-btn {
+    padding: 4px 12px;
+    font-size: 0.8rem;
+    background: var(--color-primary);
+    color: white;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.edit-design-btn:hover {
+    background: var(--color-primary-dark);
+}
+
+/* ─── Product Visualization Overlays ─────────────────── */
+
+.product-overlay {
+    pointer-events: none;
+}
+
+.wire-binding-overlay {
+    position: absolute;
+    top: -8px;
+    left: 0;
+    right: 0;
+    height: 16px;
+    z-index: 9000;
+    display: flex;
+    justify-content: space-evenly;
+    align-items: center;
+}
+
+.calendar-hanger-overlay {
+    position: absolute;
+    top: -4px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 9000;
+}
+
+.rollup-stand-overlay {
+    position: absolute;
+    bottom: -30px;
+    left: 10%;
+    right: 10%;
+    z-index: 9000;
+    text-align: center;
+}
+
+.frame-overlay {
+    position: absolute;
+    top: -6px;
+    left: -6px;
+    right: -6px;
+    bottom: -6px;
+    border: 6px solid #8B7355;
+    z-index: 9000;
+    box-shadow: inset 0 0 4px rgba(0, 0, 0, 0.3);
+}
+
+/* ─── Gallery Tab ──────────────────────────────────────────────── */
+
+.gallery-section {
+    padding: 8px 0;
+}
+
+.gallery-section h4 {
+    margin: 0 0 6px 0;
+    font-size: 15px;
+    color: #333;
+}
+
+.gallery-description {
+    font-size: 12px;
+    color: #888;
+    margin: 0 0 10px 0;
+    line-height: 1.4;
+}
+
+.gallery-upload-row {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 12px;
+}
+
+.gallery-upload-btn,
+.gallery-link-btn {
+    flex: 1;
+    padding: 8px 10px;
+    border: 1px solid var(--color-primary, #007bff);
+    border-radius: 6px;
+    background: #fff;
+    color: var(--color-primary, #007bff);
+    font-size: 13px;
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s;
+    text-align: center;
+}
+
+.gallery-upload-btn:hover,
+.gallery-link-btn:hover {
+    background: var(--color-primary, #007bff);
+    color: #fff;
+}
+
+/* ─── Clear All Button (shared by Gallery & Session History) ─── */
+.clear-all-btn {
+    display: block;
+    width: 100%;
+    margin: 8px 0 12px 0;
+    padding: 7px 14px;
+    font-size: 0.82rem;
+    font-weight: 600;
+    background: none;
+    color: #c62828;
+    border: 1.5px solid #e57373;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s;
+}
+
+.clear-all-btn:hover {
+    background: #c62828;
+    color: white;
+}
+
+/* Gallery grid */
+.gallery-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    max-height: 500px;
+    overflow-y: auto;
+}
+
+.gallery-empty {
+    text-align: center;
+    padding: 24px 10px;
+    color: #999;
+    font-size: 13px;
+}
+
+/* Gallery item card */
+.gallery-item {
+    display: flex;
+    align-items: stretch;
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+    overflow: hidden;
+    background: #fafafa;
+    transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.gallery-item:hover {
+    border-color: #b0b0b0;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+}
+
+.gallery-item-broken {
+    border-color: #ffcc80;
+    background: #fff8e1;
+}
+
+/* Thumbnail */
+.gallery-item-thumb {
+    width: 72px;
+    min-height: 60px;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #f0f0f0;
+    overflow: hidden;
+}
+
+.gallery-thumb-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.gallery-item-broken-overlay {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 4px;
+    text-align: center;
+}
+
+.gallery-broken-icon {
+    font-size: 20px;
+    margin-bottom: 2px;
+}
+
+.gallery-broken-text {
+    font-size: 10px;
+    color: #e65100;
+    line-height: 1.2;
+}
+
+/* Info section */
+.gallery-item-info {
+    flex: 1;
+    padding: 6px 8px;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+
+.gallery-item-name {
+    font-size: 12px;
+    font-weight: 500;
+    color: #333;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.gallery-item-size {
+    font-size: 11px;
+    color: #999;
+    margin-top: 2px;
+}
+
+/* Actions */
+.gallery-item-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 6px;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.gallery-btn-add {
+    padding: 4px 8px;
+    border: 1px solid var(--color-primary, #007bff);
+    border-radius: 4px;
+    background: transparent;
+    color: var(--color-primary, #007bff);
+    font-size: 11px;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: background 0.15s, color 0.15s;
+}
+
+.gallery-btn-add:hover {
+    background: var(--color-primary, #007bff);
+    color: #fff;
+}
+
+.gallery-btn-remove {
+    padding: 4px 8px;
+    border: 1px solid #dc3545;
+    border-radius: 4px;
+    background: transparent;
+    color: #dc3545;
+    font-size: 11px;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: background 0.15s, color 0.15s;
+}
+
+.gallery-btn-remove:hover {
+    background: #dc3545;
+    color: #fff;
+}
+
+.gallery-btn-relink {
+    padding: 4px 8px;
+    border: 1px solid #ff9800;
+    border-radius: 4px;
+    background: transparent;
+    color: #e65100;
+    font-size: 11px;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: background 0.15s, color 0.15s;
+}
+
+.gallery-btn-relink:hover {
+    background: #ff9800;
+    color: #fff;
+}
