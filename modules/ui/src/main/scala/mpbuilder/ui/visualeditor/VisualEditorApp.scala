@@ -11,8 +11,21 @@ import org.scalajs.dom
 
 object VisualEditorApp {
 
-  // Sidebar tab state
-  private val sidebarTabVar: Var[String] = Var("elements")
+  // Sidebar tab state (None = all panels collapsed)
+  private val sidebarTabVar: Var[Option[String]] = Var(None)
+
+  private def sidebarIconButton(id: String, icon: String, tooltip: Signal[String]): Element =
+    button(
+      cls := "sidebar-icon-btn",
+      cls <-- sidebarTabVar.signal.map(active => if active.contains(id) then "active" else ""),
+      icon,
+      title <-- tooltip,
+      onClick --> { _ =>
+        val current = sidebarTabVar.now()
+        if current.contains(id) then sidebarTabVar.set(None)
+        else sidebarTabVar.set(Some(id))
+      },
+    )
 
   // Resume popup state — non-empty list means popup is shown
   private val resumeSessionsVar: Var[List[EditorSession]] = Var(List.empty)
@@ -236,30 +249,44 @@ object VisualEditorApp {
       div(
         cls := "calendar-main-content",
 
-        // Left sidebar with tabs
+        // Left sidebar: vertical icon bar + collapsible panel
         div(
-          cls := "calendar-sidebar",
-          Tabs(
-            tabs = List(
-              TabDef("elements", lang.map {
-                case Language.En => "Page Elements"
-                case Language.Cs => "Prvky stránky"
-              }, () => div(cls := "calendar-controls-card", ElementListEditor())),
-              TabDef("gallery", lang.map {
-                case Language.En => "Gallery"
-                case Language.Cs => "Galerie"
-              }, () => div(cls := "calendar-controls-card", ImageGalleryPanel())),
-              TabDef("background", lang.map {
-                case Language.En => "Background"
-                case Language.Cs => "Pozadí"
-              }, () => div(cls := "calendar-controls-card", BackgroundEditor())),
-              TabDef("history", lang.map {
-                case Language.En => "History"
-                case Language.Cs => "Historie"
-              }, () => div(cls := "calendar-controls-card", SessionHistoryPanel())),
-            ),
-            activeTab = sidebarTabVar,
+          cls := "editor-sidebar",
+
+          // Icon strip
+          div(
+            cls := "sidebar-icon-strip",
+            sidebarIconButton("gallery", "🖼", lang.map {
+              case Language.En => "Gallery"
+              case Language.Cs => "Galerie"
+            }),
+            sidebarIconButton("cliparts", "🎨", lang.map {
+              case Language.En => "Cliparts"
+              case Language.Cs => "Kliparty"
+            }),
+            sidebarIconButton("background", "🖌", lang.map {
+              case Language.En => "Background"
+              case Language.Cs => "Pozadí"
+            }),
+            sidebarIconButton("history", "📋", lang.map {
+              case Language.En => "History"
+              case Language.Cs => "Historie"
+            }),
+            sidebarIconButton("elements", "📑", lang.map {
+              case Language.En => "Elements"
+              case Language.Cs => "Prvky"
+            }),
           ),
+
+          // Collapsible panel content
+          child.maybe <-- sidebarTabVar.signal.map {
+            case Some("gallery") => Some(div(cls := "sidebar-panel", ImageGalleryPanel()))
+            case Some("cliparts") => Some(div(cls := "sidebar-panel", div(cls := "calendar-controls-card", h4("Cliparts"), p("Coming soon..."))))
+            case Some("background") => Some(div(cls := "sidebar-panel", BackgroundEditor()))
+            case Some("history") => Some(div(cls := "sidebar-panel", SessionHistoryPanel()))
+            case Some("elements") => Some(div(cls := "sidebar-panel", ElementListEditor()))
+            case _ => None
+          },
         ),
 
         // Center: Canvas with product overlay
