@@ -281,7 +281,7 @@ object VisualEditorApp {
           // Collapsible panel content
           child.maybe <-- sidebarTabVar.signal.map {
             case Some("gallery") => Some(div(cls := "sidebar-panel", ImageGalleryPanel()))
-            case Some("cliparts") => Some(div(cls := "sidebar-panel", div(cls := "calendar-controls-card", h4("Cliparts"), p("Coming soon..."))))
+            case Some("cliparts") => Some(div(cls := "sidebar-panel", ClipartGalleryPanel()))
             case Some("background") => Some(div(cls := "sidebar-panel", BackgroundEditor()))
             case Some("history") => Some(div(cls := "sidebar-panel", SessionHistoryPanel()))
             case Some("elements") => Some(div(cls := "sidebar-panel", ElementListEditor()))
