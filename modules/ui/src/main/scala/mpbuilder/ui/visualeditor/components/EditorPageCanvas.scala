@@ -486,7 +486,7 @@ object EditorPageCanvas {
 
           // Get the element's center position for angle calculation
           val target = ev.target.asInstanceOf[dom.Element]
-          val parent = target.closest(".calendar-element")
+          val parent = target.closest(".selection-overlay")
           if parent != null then
             val rect = parent.getBoundingClientRect()
             val centerX = rect.left + rect.width / 2
@@ -557,9 +557,8 @@ object EditorPageCanvas {
       // Font selector
       select(
         cls := "toolbar-font-select",
-        value := text.fontFamily,
         List("Arial", "Helvetica", "Times New Roman", "Georgia", "Courier New", "Verdana", "Impact", "Comic Sans MS").map { f =>
-          option(value := f, f)
+          option(value := f, selected := (f == text.fontFamily), f)
         },
         onChange.mapToValue --> { v =>
           VisualEditorViewModel.updateTextFieldFontFamily(text.id, v)
