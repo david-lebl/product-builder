@@ -13,8 +13,6 @@ object BackgroundEditor {
     div(
       cls := "background-editor-section",
 
-      h4("Background & Template"),
-
       div(
         cls := "control-group",
         label("Template:"),

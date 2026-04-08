@@ -29,14 +29,56 @@ object EditorPageCanvas {
         },
 
         // Render the page
-        child <-- currentPage.combineWith(format, VisualEditorViewModel.productContext).map { (page, fmt, ctxOpt) =>
-          renderPage(page, fmt, ctxOpt)
+        child <-- currentPage.combineWith(format, VisualEditorViewModel.productContext, VisualEditorViewModel.selectedElement).map { (page, fmt, ctxOpt, selectedId) =>
+          renderPage(page, fmt, ctxOpt, selectedId)
         }
-      )
+      ),
+
+      // Floating add buttons (top-right of canvas)
+      div(
+        cls := "canvas-float-buttons",
+
+        // Hidden file input for photo upload
+        input(
+          typ := "file",
+          accept := "image/*",
+          idAttr := "canvas-photo-upload",
+          display := "none",
+          onChange --> { ev =>
+            val inp = ev.target.asInstanceOf[dom.html.Input]
+            val files = inp.files
+            if files.length > 0 then
+              val file = files(0)
+              val reader = new dom.FileReader()
+              reader.onload = { _ =>
+                val imageData = reader.result.asInstanceOf[String]
+                VisualEditorViewModel.uploadPhoto(imageData)
+              }
+              reader.readAsDataURL(file)
+          }
+        ),
+
+        button(
+          cls := "canvas-float-btn",
+          title := "Add photo",
+          span("📷"),
+          span(cls := "float-btn-plus", "+"),
+          onClick --> { _ =>
+            dom.document.getElementById("canvas-photo-upload").asInstanceOf[dom.html.Input].click()
+          }
+        ),
+        button(
+          cls := "canvas-float-btn",
+          title := "Add text",
+          span("T"),
+          span(cls := "float-btn-plus", "+"),
+          onClick --> { _ => VisualEditorViewModel.addTextField() }
+        ),
+      ),
     )
   }
 
-  private def renderPage(page: EditorPage, format: ProductFormat, productContext: Option[ProductContext]): Element = {
+  private def renderPage(page: EditorPage, format: ProductFormat, productContext: Option[ProductContext], selectedId: Option[String]): Element = {
     // Scale to fit canvas: use aspect ratio from physical dimensions
     val aspectRatio = format.widthMm.toDouble / format.heightMm
     val canvasWidth = if ProductFormat.isLandscape(format) then 760 else 560
@@ -58,8 +100,13 @@ object EditorPageCanvas {
       // Days grid (locked template fields)
       page.template.daysGrid.map(dayField => renderTemplateTextField(dayField)),
 
-      // All canvas elements (sorted by z-index)
-      page.elements.sortBy(_.zIndex).map(renderCanvasElement)
+      // All canvas elements (sorted by z-index) — content only, no controls
+      page.elements.sortBy(_.zIndex).map(renderCanvasElement),
+
+      // Selection overlay — rendered AFTER all elements so controls are always on top
+      page.elements.find(e => selectedId.contains(e.id)).map { elem =>
+        ElementControlsOverlay.render(elem)
+      }.getOrElse(emptyNode),
     )
   }
 
@@ -101,31 +148,36 @@ object EditorPageCanvas {
       cls <-- selected.map(sel => if sel.contains(field.id) then "selected" else ""),
       styleAttr := s"position: absolute; left: ${field.position.x}px; top: ${field.position.y}px; width: ${field.size.width}px; height: ${field.size.height}px; transform: rotate(${field.rotation}deg); transform-origin: center; z-index: ${field.zIndex};",
 
-      // Inner text with styling
+      // Inner text with styling (editable when selected)
       div(
         cls := "text-element-content",
+        cls <-- selected.map(sel => if sel.contains(field.id) then "editable" else ""),
         styleAttr := s"font-size: ${field.fontSize}px; font-family: ${field.fontFamily}; color: ${field.color}; font-weight: ${if field.bold then "bold" else "normal"}; font-style: ${if field.italic then "italic" else "normal"}; text-align: ${alignToCss(field.textAlign)}; width: 100%; height: 100%; overflow: hidden; word-wrap: break-word; overflow-wrap: break-word;",
-        field.text
+        contentEditable <-- selected.map(sel => sel.contains(field.id)),
+        field.text,
+        onBlur --> { ev =>
+          val newText = Option(ev.target.asInstanceOf[dom.Element].textContent).getOrElse("")
+          if newText != field.text then
+            VisualEditorViewModel.updateTextFieldText(field.id, newText)
+        },
       ),
 
-      // Resize handles (when selected)
-      child.maybe <-- selected.map { sel =>
-        if sel.contains(field.id) then Some(renderResizeHandles(field.id, field)) else None
-      },
-
-      // Rotation buttons (when selected)
-      child.maybe <-- selected.map { sel =>
-        if sel.contains(field.id) then Some(renderRotationButtons(field.id, field.rotation)) else None
-      },
-
-      // Drag behavior
+      // Click to select (drag is initiated from drag handle for text elements)
       onMouseDown --> { ev =>
-        if !ev.target.asInstanceOf[dom.Element].classList.contains("resize-handle") &&
-           !ev.target.asInstanceOf[dom.Element].classList.contains("rotate-btn") then
-          ev.preventDefault()
+        val target = ev.target.asInstanceOf[dom.Element]
+        if !target.classList.contains("resize-handle") &&
+           !target.classList.contains("rotate-handle") &&
+           !target.classList.contains("drag-handle") &&
+           !target.classList.contains("toolbar-btn") &&
+           !target.classList.contains("toolbar-color") &&
+           target.closest(".element-toolbar") == null then
           ev.stopPropagation()
           VisualEditorViewModel.selectElement(field.id)
-          startDrag(field.id, field.position, ev)
+          // Only start drag if not clicking on editable text content
+          val isTextContent = target.classList.contains("text-element-content") || target.closest(".text-element-content") != null
+          if !isTextContent then
+            ev.preventDefault()
+            startDrag(field.id, field.position, ev)
       }
     )
   }
@@ -155,17 +207,13 @@ object EditorPageCanvas {
 
       shapeContent,
 
-      child.maybe <-- selected.map { sel =>
-        if sel.contains(shape.id) then Some(renderResizeHandles(shape.id, shape)) else None
-      },
-
-      child.maybe <-- selected.map { sel =>
-        if sel.contains(shape.id) then Some(renderRotationButtons(shape.id, shape.rotation)) else None
-      },
-
       onMouseDown --> { ev =>
         if !ev.target.asInstanceOf[dom.Element].classList.contains("resize-handle") &&
-           !ev.target.asInstanceOf[dom.Element].classList.contains("rotate-btn") then
+           !ev.target.asInstanceOf[dom.Element].classList.contains("rotate-handle") &&
+           !ev.target.asInstanceOf[dom.Element].classList.contains("drag-handle") &&
+           !ev.target.asInstanceOf[dom.Element].classList.contains("toolbar-btn") &&
+           !ev.target.asInstanceOf[dom.Element].classList.contains("toolbar-color") &&
+           ev.target.asInstanceOf[dom.Element].closest(".element-toolbar") == null then
           ev.preventDefault()
           ev.stopPropagation()
           VisualEditorViewModel.selectElement(shape.id)
@@ -190,17 +238,14 @@ object EditorPageCanvas {
         draggable := false,
       ),
 
-      child.maybe <-- selected.map { sel =>
-        if sel.contains(clip.id) then Some(renderResizeHandles(clip.id, clip)) else None
-      },
-
-      child.maybe <-- selected.map { sel =>
-        if sel.contains(clip.id) then Some(renderRotationButtons(clip.id, clip.rotation)) else None
-      },
-
       onMouseDown --> { ev =>
-        if !ev.target.asInstanceOf[dom.Element].classList.contains("resize-handle") &&
-           !ev.target.asInstanceOf[dom.Element].classList.contains("rotate-btn") then
+        val target = ev.target.asInstanceOf[dom.Element]
+        if !target.classList.contains("resize-handle") &&
+           !target.classList.contains("rotate-handle") &&
+           !target.classList.contains("drag-handle") &&
+           !target.classList.contains("toolbar-btn") &&
+           !target.classList.contains("toolbar-color") &&
+           target.closest(".element-toolbar") == null then
           ev.preventDefault()
           ev.stopPropagation()
           VisualEditorViewModel.selectElement(clip.id)
@@ -237,18 +282,14 @@ object EditorPageCanvas {
           )
       ),
 
-      child.maybe <-- selected.map { sel =>
-        if sel.contains(photo.id) then Some(renderResizeHandles(photo.id, photo)) else None
-      },
-
-      child.maybe <-- selected.map { sel =>
-        if sel.contains(photo.id) then Some(renderRotationButtons(photo.id, photo.rotation)) else None
-      },
-
       onMouseDown --> { ev =>
         val target = ev.target.asInstanceOf[dom.Element]
         if !target.classList.contains("resize-handle") &&
-           !target.classList.contains("rotate-btn") then
+           !target.classList.contains("rotate-handle") &&
+           !target.classList.contains("drag-handle") &&
+           !target.classList.contains("toolbar-btn") &&
+           !target.classList.contains("toolbar-color") &&
+           target.closest(".element-toolbar") == null then
           ev.preventDefault()
           ev.stopPropagation()
           VisualEditorViewModel.selectElement(photo.id)
@@ -259,7 +300,7 @@ object EditorPageCanvas {
 
   // ─── Generic drag helper ─────────────────────────────────────────
 
-  private def startDrag(elementId: String, startPos: Position, ev: dom.MouseEvent): Unit = {
+  private[components] def startDrag(elementId: String, startPos: Position, ev: dom.MouseEvent): Unit = {
     val startX = ev.clientX
     val startY = ev.clientY
 
@@ -284,156 +325,6 @@ object EditorPageCanvas {
 
     dom.window.addEventListener("mousemove", mouseMoveHandler)
     dom.window.addEventListener("mouseup", mouseUpHandler)
-  }
-
-  // ─── Generic resize handles ──────────────────────────────────────
-
-  private def renderResizeHandles(elementId: String, elem: CanvasElement): Element = {
-    div(
-      cls := "resize-handles",
-
-      List("nw", "ne", "sw", "se").map { corner =>
-        div(
-          cls := s"resize-handle resize-handle-$corner",
-          onMouseDown --> { ev =>
-            ev.preventDefault()
-            ev.stopPropagation()
-
-            val startX = ev.clientX
-            val startY = ev.clientY
-            val startWidth = elem.size.width
-            val startHeight = elem.size.height
-            val startPosX = elem.position.x
-            val startPosY = elem.position.y
-            val aspectRatio = if startHeight != 0 then startWidth / startHeight else 1.0
-
-            var mouseUpHandlerOpt: Option[js.Function1[dom.MouseEvent, Unit]] = None
-
-            val mouseMoveHandler: js.Function1[dom.MouseEvent, Unit] = { moveEv =>
-              val deltaX = moveEv.clientX - startX
-              val deltaY = moveEv.clientY - startY
-
-              corner match {
-                case "se" =>
-                  val newWidth = math.max(30, startWidth + deltaX)
-                  val newHeight = newWidth / aspectRatio
-                  VisualEditorViewModel.updateElementSize(elementId, Size(newWidth, newHeight))
-
-                case "sw" =>
-                  val newWidth = math.max(30, startWidth - deltaX)
-                  val newHeight = newWidth / aspectRatio
-                  VisualEditorViewModel.updateElementSize(elementId, Size(newWidth, newHeight))
-                  VisualEditorViewModel.updateElementPosition(elementId, Position(startPosX + (startWidth - newWidth), startPosY))
-
-                case "ne" =>
-                  val newWidth = math.max(30, startWidth + deltaX)
-                  val newHeight = newWidth / aspectRatio
-                  VisualEditorViewModel.updateElementSize(elementId, Size(newWidth, newHeight))
-                  VisualEditorViewModel.updateElementPosition(elementId, Position(startPosX, startPosY + (startHeight - newHeight)))
-
-                case "nw" =>
-                  val newWidth = math.max(30, startWidth - deltaX)
-                  val newHeight = newWidth / aspectRatio
-                  VisualEditorViewModel.updateElementSize(elementId, Size(newWidth, newHeight))
-                  VisualEditorViewModel.updateElementPosition(elementId, Position(startPosX + (startWidth - newWidth), startPosY + (startHeight - newHeight)))
-
-                case _ => ()
-              }
-            }
-
-            val mouseUpHandler: js.Function1[dom.MouseEvent, Unit] = { _ =>
-              dom.window.removeEventListener("mousemove", mouseMoveHandler)
-              mouseUpHandlerOpt.foreach(h => dom.window.removeEventListener("mouseup", h))
-              VisualEditorViewModel.commitElementChange()
-            }
-
-            mouseUpHandlerOpt = Some(mouseUpHandler)
-            dom.window.addEventListener("mousemove", mouseMoveHandler)
-            dom.window.addEventListener("mouseup", mouseUpHandler)
-          }
-        )
-      },
-
-      List("n", "s", "e", "w").map { side =>
-        div(
-          cls := s"resize-handle resize-handle-$side",
-          onMouseDown --> { ev =>
-            ev.preventDefault()
-            ev.stopPropagation()
-
-            val startX = ev.clientX
-            val startY = ev.clientY
-            val startWidth = elem.size.width
-            val startHeight = elem.size.height
-            val startPosX = elem.position.x
-            val startPosY = elem.position.y
-
-            var mouseUpHandlerOpt: Option[js.Function1[dom.MouseEvent, Unit]] = None
-
-            val mouseMoveHandler: js.Function1[dom.MouseEvent, Unit] = { moveEv =>
-              val deltaX = moveEv.clientX - startX
-              val deltaY = moveEv.clientY - startY
-
-              side match {
-                case "e" =>
-                  VisualEditorViewModel.updateElementSize(elementId, Size(math.max(30, startWidth + deltaX), startHeight))
-                case "w" =>
-                  val newWidth = math.max(30, startWidth - deltaX)
-                  VisualEditorViewModel.updateElementSize(elementId, Size(newWidth, startHeight))
-                  VisualEditorViewModel.updateElementPosition(elementId, Position(startPosX + (startWidth - newWidth), startPosY))
-                case "s" =>
-                  VisualEditorViewModel.updateElementSize(elementId, Size(startWidth, math.max(30, startHeight + deltaY)))
-                case "n" =>
-                  val newHeight = math.max(30, startHeight - deltaY)
-                  VisualEditorViewModel.updateElementSize(elementId, Size(startWidth, newHeight))
-                  VisualEditorViewModel.updateElementPosition(elementId, Position(startPosX, startPosY + (startHeight - newHeight)))
-                case _ => ()
-              }
-            }
-
-            val mouseUpHandler: js.Function1[dom.MouseEvent, Unit] = { _ =>
-              dom.window.removeEventListener("mousemove", mouseMoveHandler)
-              mouseUpHandlerOpt.foreach(h => dom.window.removeEventListener("mouseup", h))
-              VisualEditorViewModel.commitElementChange()
-            }
-
-            mouseUpHandlerOpt = Some(mouseUpHandler)
-            dom.window.addEventListener("mousemove", mouseMoveHandler)
-            dom.window.addEventListener("mouseup", mouseUpHandler)
-          }
-        )
-      }
-    )
-  }
-
-  // ─── Rotation buttons ─────────────────────────────────────────
-
-  private def renderRotationButtons(elementId: String, currentRotation: Double): Element = {
-    div(
-      cls := "rotate-buttons-container",
-      div(
-        cls := "rotate-btn rotate-btn-left",
-        "↺",
-        title := "Rotate left 15°",
-        onClick --> { ev =>
-          ev.preventDefault()
-          ev.stopPropagation()
-          val newRotation = (currentRotation - 15 + 360) % 360
-          VisualEditorViewModel.updateElementRotation(elementId, newRotation)
-        }
-      ),
-      div(
-        cls := "rotate-btn rotate-btn-right",
-        "↻",
-        title := "Rotate right 15°",
-        onClick --> { ev =>
-          ev.preventDefault()
-          ev.stopPropagation()
-          val newRotation = (currentRotation + 15) % 360
-          VisualEditorViewModel.updateElementRotation(elementId, newRotation)
-        }
-      )
-    )
   }
 
   private def alignToCss(align: TextAlignment): String = align match {

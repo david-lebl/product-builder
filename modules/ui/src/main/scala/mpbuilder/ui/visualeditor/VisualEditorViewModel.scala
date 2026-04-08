@@ -46,6 +46,9 @@ object VisualEditorViewModel {
   private val selectedElementVar: Var[Option[String]] = Var(None)
   val selectedElement: Signal[Option[String]] = selectedElementVar.signal
 
+  /** One-time snapshot of the selected element ID (for non-reactive lookups) */
+  def selectedElementSnapshot(): Option[String] = selectedElementVar.now()
+
   // Keep selectedPhoto as alias for backward compat in canvas rendering
   val selectedPhoto: Signal[Option[String]] = selectedElement
 
@@ -234,13 +237,33 @@ object VisualEditorViewModel {
   // ─── Z-ordering ──────────────────────────────────────────────────
 
   def bringToFront(elementId: String): Unit = {
-    val maxZ = stateVar.now().currentPage.elements.map(_.zIndex).maxOption.getOrElse(0)
-    updateElement(elementId, _.withZIndex(maxZ + 1))
+    val elems = stateVar.now().currentPage.elements
+    elems.find(_.id == elementId).foreach { current =>
+      // Find the next element above (smallest zIndex > current.zIndex)
+      val above = elems.filter(_.zIndex > current.zIndex).minByOption(_.zIndex)
+      above match {
+        case Some(other) =>
+          // Swap z-indices
+          updateElement(elementId, _.withZIndex(other.zIndex))
+          updateElement(other.id, _.withZIndex(current.zIndex))
+        case None => () // Already at top
+      }
+    }
   }
 
   def sendToBack(elementId: String): Unit = {
-    val minZ = stateVar.now().currentPage.elements.map(_.zIndex).minOption.getOrElse(0)
-    updateElement(elementId, _.withZIndex(minZ - 1))
+    val elems = stateVar.now().currentPage.elements
+    elems.find(_.id == elementId).foreach { current =>
+      // Find the next element below (largest zIndex < current.zIndex)
+      val below = elems.filter(_.zIndex < current.zIndex).maxByOption(_.zIndex)
+      below match {
+        case Some(other) =>
+          // Swap z-indices
+          updateElement(elementId, _.withZIndex(other.zIndex))
+          updateElement(other.id, _.withZIndex(current.zIndex))
+        case None => () // Already at bottom
+      }
+    }
   }
 
   // ─── Duplicate ───────────────────────────────────────────────────

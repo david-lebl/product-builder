@@ -21,11 +21,6 @@ object SessionHistoryPanel {
         EditorSessionStore.listAll(sessions => sessionsVar.set(sessions))
       },
 
-      h4(child.text <-- lang.map {
-        case Language.En => "Saved Sessions"
-        case Language.Cs => "Uložené relace"
-      }),
-
       // Session list
       div(
         cls := "session-list",

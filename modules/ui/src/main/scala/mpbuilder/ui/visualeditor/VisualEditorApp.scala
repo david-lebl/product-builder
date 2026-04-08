@@ -11,9 +11,6 @@ import org.scalajs.dom
 
 object VisualEditorApp {
 
-  // Sidebar tab state
-  private val sidebarTabVar: Var[String] = Var("elements")
-
   // Resume popup state — non-empty list means popup is shown
   private val resumeSessionsVar: Var[List[EditorSession]] = Var(List.empty)
 
@@ -236,31 +233,8 @@ object VisualEditorApp {
       div(
         cls := "calendar-main-content",
 
-        // Left sidebar with tabs
-        div(
-          cls := "calendar-sidebar",
-          Tabs(
-            tabs = List(
-              TabDef("elements", lang.map {
-                case Language.En => "Page Elements"
-                case Language.Cs => "Prvky stránky"
-              }, () => div(cls := "calendar-controls-card", ElementListEditor())),
-              TabDef("gallery", lang.map {
-                case Language.En => "Gallery"
-                case Language.Cs => "Galerie"
-              }, () => div(cls := "calendar-controls-card", ImageGalleryPanel())),
-              TabDef("background", lang.map {
-                case Language.En => "Background"
-                case Language.Cs => "Pozadí"
-              }, () => div(cls := "calendar-controls-card", BackgroundEditor())),
-              TabDef("history", lang.map {
-                case Language.En => "History"
-                case Language.Cs => "Historie"
-              }, () => div(cls := "calendar-controls-card", SessionHistoryPanel())),
-            ),
-            activeTab = sidebarTabVar,
-          ),
-        ),
+        // Left sidebar: vertical icon bar + collapsible panel
+        EditorSidebar(),
 
         // Center: Canvas with product overlay
         div(

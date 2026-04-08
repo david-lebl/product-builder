@@ -54,11 +54,6 @@ object ImageGalleryPanel {
       // Load gallery on mount
       onMountCallback { _ => refreshGallery() },
 
-      h4(child.text <-- lang.map {
-        case Language.En => "Image Gallery"
-        case Language.Cs => "Galerie obrázků"
-      }),
-
       p(
         cls := "gallery-description",
         child.text <-- lang.map {
