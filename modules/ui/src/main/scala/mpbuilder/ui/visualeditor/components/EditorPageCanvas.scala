@@ -28,6 +28,21 @@ object EditorPageCanvas {
             VisualEditorViewModel.deselectElement()
         },
 
+        // Accept gallery image drops
+        onDragOver --> { (ev: dom.DragEvent) =>
+          val types = ev.dataTransfer.types
+          val hasGalleryImage = (0 until types.length).exists(i => types(i) == "text/gallery-image")
+          if hasGalleryImage then
+            ev.preventDefault()
+            ev.dataTransfer.dropEffect = dom.DataTransferDropEffectKind.copy
+        },
+        onDrop --> { (ev: dom.DragEvent) =>
+          ev.preventDefault()
+          val dataUrl = ev.dataTransfer.getData("text/gallery-image")
+          if dataUrl.nonEmpty then
+            VisualEditorViewModel.uploadPhoto(dataUrl)
+        },
+
         // Render the page
         child <-- currentPage.combineWith(format, VisualEditorViewModel.productContext, VisualEditorViewModel.selectedElement).map { (page, fmt, ctxOpt, selectedId) =>
           renderPage(page, fmt, ctxOpt, selectedId)

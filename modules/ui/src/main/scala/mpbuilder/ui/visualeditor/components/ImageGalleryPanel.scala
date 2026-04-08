@@ -76,9 +76,26 @@ object ImageGalleryPanel {
           onChange --> { ev =>
             val inp = ev.target.asInstanceOf[dom.html.Input]
             val files = inp.files
-            if files.length > 0 then
-              readFilesSequentially(files, 0)
+            // Copy file references into an Array immediately before resetting the input,
+            // so the async FileReader callbacks always have valid File references.
+            val fileArray = (0 until files.length).map(files(_)).toArray
             inp.value = "" // Reset so same file can be re-selected
+            fileArray.foreach { file =>
+              val reader = new FileReader()
+              reader.onload = { _ =>
+                val imageData = reader.result.asInstanceOf[String]
+                val imgRef = ImageReference(
+                  id = generateImageId(),
+                  dataUrl = imageData,
+                  fileName = Some(file.name),
+                  addedAt = System.currentTimeMillis().toDouble,
+                  sizeBytes = file.size.toLong,
+                  usedInSessions = Set.empty,
+                )
+                EditorSessionStore.saveImage(imgRef, () => refreshGallery())
+              }
+              reader.readAsDataURL(file)
+            }
           }
         ),
 
@@ -159,7 +176,15 @@ object ImageGalleryPanel {
     div(
       cls := (if isBroken then "gallery-item gallery-item-broken" else "gallery-item"),
 
-      // Thumbnail
+      // Enable drag-to-canvas for non-broken images
+      draggable := !isBroken,
+      onDragStart --> { (ev: dom.DragEvent) =>
+        if !isBroken then
+          ev.dataTransfer.setData("text/gallery-image", image.dataUrl)
+          ev.dataTransfer.effectAllowed = dom.DataTransferEffectAllowedKind.copy
+      },
+
+      // Thumbnail fills the card
       div(
         cls := "gallery-item-thumb",
         if isBroken then
@@ -167,8 +192,8 @@ object ImageGalleryPanel {
             cls := "gallery-item-broken-overlay",
             span(cls := "gallery-broken-icon", "⚠️"),
             span(cls := "gallery-broken-text", lang match {
-              case Language.En => "Image unavailable"
-              case Language.Cs => "Obrázek nedostupný"
+              case Language.En => "Unavailable"
+              case Language.Cs => "Nedostupný"
             }),
           )
         else
@@ -176,90 +201,61 @@ object ImageGalleryPanel {
             src := image.dataUrl,
             alt := nameStr,
             cls := "gallery-thumb-img",
-            // Detect load errors
             onError --> { _ =>
               brokenImagesVar.update(_ + image.id)
             },
           ),
       ),
 
-      // Info
+      // Footer overlay with name and icon-only action buttons
       div(
-        cls := "gallery-item-info",
-        div(cls := "gallery-item-name", title := nameStr, nameStr),
-        div(cls := "gallery-item-size", sizeStr),
-      ),
-
-      // Actions
-      div(
-        cls := "gallery-item-actions",
-        if isBroken then
-          // Relink action for broken images
-          button(
-            cls := "gallery-btn-relink",
-            lang match {
-              case Language.En => "Relink"
-              case Language.Cs => "Přelinkovat"
-            },
-            onClick --> { _ =>
-              relinkImage(image, lang)
-            }
-          )
-        else
-          // Add to page
-          button(
-            cls := "gallery-btn-add",
-            lang match {
-              case Language.En => "Add to page"
-              case Language.Cs => "Přidat na stránku"
-            },
-            onClick --> { _ =>
-              VisualEditorViewModel.uploadPhoto(image.dataUrl)
-              // Track usage
-              val sessionId = VisualEditorViewModel.currentSessionIdSnapshot()
-              sessionId.foreach { sid =>
-                val updated = image.copy(usedInSessions = image.usedInSessions + sid)
-                EditorSessionStore.saveImage(updated, () => refreshGallery())
+        cls := "gallery-item-footer",
+        span(cls := "gallery-item-name", title := s"$nameStr ($sizeStr)", nameStr),
+        div(
+          cls := "gallery-item-actions",
+          if isBroken then
+            button(
+              cls := "gallery-btn-relink",
+              title := (lang match {
+                case Language.En => "Relink image"
+                case Language.Cs => "Přelinkovat obrázek"
+              }),
+              "🔗",
+              onClick --> { _ => relinkImage(image, lang) }
+            )
+          else
+            button(
+              cls := "gallery-btn-add",
+              title := (lang match {
+                case Language.En => "Add to page"
+                case Language.Cs => "Přidat na stránku"
+              }),
+              "➕",
+              onClick --> { _ =>
+                VisualEditorViewModel.uploadPhoto(image.dataUrl)
+                val sessionId = VisualEditorViewModel.currentSessionIdSnapshot()
+                sessionId.foreach { sid =>
+                  val updated = image.copy(usedInSessions = image.usedInSessions + sid)
+                  EditorSessionStore.saveImage(updated, () => refreshGallery())
+                }
               }
+            ),
+          button(
+            cls := "gallery-btn-remove",
+            title := (lang match {
+              case Language.En => "Remove from gallery"
+              case Language.Cs => "Odstranit z galerie"
+            }),
+            "🗑",
+            onClick --> { ev =>
+              ev.stopPropagation()
+              EditorSessionStore.deleteImage(image.id, () => refreshGallery())
             }
           ),
-        button(
-          cls := "gallery-btn-remove",
-          lang match {
-            case Language.En => "Remove"
-            case Language.Cs => "Odstranit"
-          },
-          onClick --> { ev =>
-            ev.stopPropagation()
-            EditorSessionStore.deleteImage(image.id, () => refreshGallery())
-          }
         ),
       ),
     )
   }
-
-  /** Read multiple files sequentially from a FileList */
-  private def readFilesSequentially(files: dom.FileList, index: Int): Unit =
-    if index < files.length then
-      val file = files(index)
-      val reader = new FileReader()
-      reader.onload = { _ =>
-        val imageData = reader.result.asInstanceOf[String]
-        val imgRef = ImageReference(
-          id = generateImageId(),
-          dataUrl = imageData,
-          fileName = Some(file.name),
-          addedAt = System.currentTimeMillis().toDouble,
-          sizeBytes = file.size.toLong,
-          usedInSessions = Set.empty,
-        )
-        EditorSessionStore.saveImage(imgRef, () => {
-          refreshGallery()
-          // Read next file
-          readFilesSequentially(files, index + 1)
-        })
-      }
-      reader.readAsDataURL(file)
 
   /** Add an image from a URL by creating a temporary Image element to validate and load it */
   private def addImageFromUrl(url: String): Unit = {
