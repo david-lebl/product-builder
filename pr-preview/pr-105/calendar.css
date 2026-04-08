@@ -585,9 +585,14 @@
 }
 
 .calendar-element.selected {
-    border-color: var(--color-primary);
+    border-color: transparent;
     border-style: solid;
-    z-index: 9999 !important;
+}
+
+/* Selection overlay — rendered after all elements, always on top */
+.selection-overlay {
+    pointer-events: none;
+    box-sizing: border-box;
 }
 
 /* Photo element */
@@ -1609,6 +1614,7 @@
 .toolbar-btn {
     width: 28px;
     height: 28px;
+    min-width: 28px;
     padding: 0;
     font-size: 0.75rem;
     background: #f5f5f5;
@@ -1620,6 +1626,7 @@
     align-items: center;
     justify-content: center;
     transition: background 0.1s;
+    flex-shrink: 0;
 }
 
 .toolbar-btn:hover {
@@ -1653,10 +1660,12 @@
 .toolbar-color {
     width: 28px;
     height: 28px;
+    min-width: 28px;
     padding: 1px;
     border: 1px solid #ddd;
     border-radius: 4px;
     cursor: pointer;
+    flex-shrink: 0;
 }
 
 .toolbar-italic {
@@ -1672,11 +1681,43 @@
     background: #f5f5f5;
     cursor: pointer;
     max-width: 130px;
+    flex-shrink: 1;
+    min-width: 60px;
 }
 
 .toolbar-font-select:focus {
     outline: none;
     border-color: var(--color-primary);
+}
+
+.toolbar-font-stepper {
+    display: flex;
+    align-items: center;
+    gap: 0;
+    flex-shrink: 0;
+}
+
+.toolbar-font-stepper .toolbar-btn {
+    width: 22px;
+    min-width: 22px;
+    height: 28px;
+    font-size: 0.85rem;
+}
+
+.toolbar-font-value {
+    width: 28px;
+    min-width: 28px;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.7rem;
+    color: #333;
+    background: #f9f9f9;
+    border-top: 1px solid #ddd;
+    border-bottom: 1px solid #ddd;
+    user-select: none;
+    flex-shrink: 0;
 }
 
 .toolbar-layer-actions {
