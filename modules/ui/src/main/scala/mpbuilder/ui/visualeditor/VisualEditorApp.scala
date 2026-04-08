@@ -264,15 +264,15 @@ object VisualEditorApp {
               case Language.En => "Cliparts"
               case Language.Cs => "Kliparty"
             }),
-            sidebarIconButton("background", "🖌", lang.map {
+            sidebarIconButton("background", "🌆", lang.map {
               case Language.En => "Background"
               case Language.Cs => "Pozadí"
             }),
-            sidebarIconButton("history", "📋", lang.map {
+            sidebarIconButton("history", "🕓", lang.map {
               case Language.En => "History"
               case Language.Cs => "Historie"
             }),
-            sidebarIconButton("elements", "📑", lang.map {
+            sidebarIconButton("elements", "📐", lang.map {
               case Language.En => "Elements"
               case Language.Cs => "Prvky"
             }),
