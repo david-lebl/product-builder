@@ -240,7 +240,7 @@ object VisualEditorViewModel {
     val elems = stateVar.now().currentPage.elements
     elems.find(_.id == elementId).foreach { current =>
       // Find the next element above (smallest zIndex > current.zIndex)
-      val above = elems.filter(_.zIndex > current.zIndex).sortBy(_.zIndex).headOption
+      val above = elems.filter(_.zIndex > current.zIndex).minByOption(_.zIndex)
       above match {
         case Some(other) =>
           // Swap z-indices
@@ -255,7 +255,7 @@ object VisualEditorViewModel {
     val elems = stateVar.now().currentPage.elements
     elems.find(_.id == elementId).foreach { current =>
       // Find the next element below (largest zIndex < current.zIndex)
-      val below = elems.filter(_.zIndex < current.zIndex).sortBy(_.zIndex).lastOption
+      val below = elems.filter(_.zIndex < current.zIndex).maxByOption(_.zIndex)
       below match {
         case Some(other) =>
           // Swap z-indices

@@ -29,8 +29,8 @@ object EditorPageCanvas {
         },
 
         // Render the page
-        child <-- currentPage.combineWith(format, VisualEditorViewModel.productContext).map { (page, fmt, ctxOpt) =>
-          renderPage(page, fmt, ctxOpt)
+        child <-- currentPage.combineWith(format, VisualEditorViewModel.productContext, VisualEditorViewModel.selectedElement).map { (page, fmt, ctxOpt, selectedId) =>
+          renderPage(page, fmt, ctxOpt, selectedId)
         }
       ),
 
@@ -78,7 +78,7 @@ object EditorPageCanvas {
     )
   }
 
-  private def renderPage(page: EditorPage, format: ProductFormat, productContext: Option[ProductContext]): Element = {
+  private def renderPage(page: EditorPage, format: ProductFormat, productContext: Option[ProductContext], selectedId: Option[String]): Element = {
     // Scale to fit canvas: use aspect ratio from physical dimensions
     val aspectRatio = format.widthMm.toDouble / format.heightMm
     val canvasWidth = if ProductFormat.isLandscape(format) then 760 else 560
@@ -104,7 +104,7 @@ object EditorPageCanvas {
       page.elements.sortBy(_.zIndex).map(renderCanvasElement),
 
       // Selection overlay — rendered AFTER all elements so controls are always on top
-      page.elements.find(e => VisualEditorViewModel.selectedElementSnapshot().contains(e.id)).map { elem =>
+      page.elements.find(e => selectedId.contains(e.id)).map { elem =>
         renderSelectionOverlay(elem)
       }.getOrElse(emptyNode),
     )
