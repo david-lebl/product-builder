@@ -279,13 +279,42 @@ object VisualEditorApp {
           ),
 
           // Collapsible panel content
-          child.maybe <-- sidebarTabVar.signal.map {
-            case Some("gallery") => Some(div(cls := "sidebar-panel", ImageGalleryPanel()))
-            case Some("cliparts") => Some(div(cls := "sidebar-panel", ClipartGalleryPanel()))
-            case Some("background") => Some(div(cls := "sidebar-panel", BackgroundEditor()))
-            case Some("history") => Some(div(cls := "sidebar-panel", SessionHistoryPanel()))
-            case Some("elements") => Some(div(cls := "sidebar-panel", ElementListEditor()))
-            case _ => None
+          child.maybe <-- sidebarTabVar.signal.combineWith(lang).map { case (tab, language) =>
+            tab.map { tabId =>
+              val (panelTitle, panelContent) = tabId match {
+                case "gallery" =>
+                  val t = language match { case Language.En => "Gallery"; case Language.Cs => "Galerie" }
+                  (t, ImageGalleryPanel())
+                case "cliparts" =>
+                  val t = language match { case Language.En => "Cliparts"; case Language.Cs => "Kliparty" }
+                  (t, ClipartGalleryPanel())
+                case "background" =>
+                  val t = language match { case Language.En => "Background"; case Language.Cs => "Pozadí" }
+                  (t, BackgroundEditor())
+                case "history" =>
+                  val t = language match { case Language.En => "History"; case Language.Cs => "Historie" }
+                  (t, SessionHistoryPanel())
+                case "elements" =>
+                  val t = language match { case Language.En => "Elements"; case Language.Cs => "Prvky" }
+                  (t, ElementListEditor())
+                case _ =>
+                  ("", div())
+              }
+              div(
+                cls := "sidebar-panel",
+                div(
+                  cls := "sidebar-panel-header",
+                  span(cls := "sidebar-panel-title", panelTitle),
+                  button(
+                    cls := "sidebar-panel-close",
+                    "✕",
+                    title := "Close",
+                    onClick --> { _ => sidebarTabVar.set(None) },
+                  ),
+                ),
+                div(cls := "sidebar-panel-body", panelContent),
+              )
+            }
           },
         ),
 

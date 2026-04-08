@@ -61,7 +61,8 @@ object EditorPageCanvas {
         button(
           cls := "canvas-float-btn",
           title := "Add photo",
-          "📷",
+          span("📷"),
+          span(cls := "float-btn-plus", "+"),
           onClick --> { _ =>
             dom.document.getElementById("canvas-photo-upload").asInstanceOf[dom.html.Input].click()
           }
@@ -69,7 +70,8 @@ object EditorPageCanvas {
         button(
           cls := "canvas-float-btn",
           title := "Add text",
-          "T",
+          span("T"),
+          span(cls := "float-btn-plus", "+"),
           onClick --> { _ => VisualEditorViewModel.addTextField() }
         ),
       ),
