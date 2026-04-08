@@ -182,7 +182,8 @@ object EditorPageCanvas {
            !target.classList.contains("rotate-handle") &&
            !target.classList.contains("drag-handle") &&
            !target.classList.contains("toolbar-btn") &&
-           !target.classList.contains("toolbar-color") then
+           !target.classList.contains("toolbar-color") &&
+           target.closest(".element-toolbar") == null then
           ev.stopPropagation()
           VisualEditorViewModel.selectElement(field.id)
           // Only start drag if not clicking on editable text content
@@ -241,7 +242,10 @@ object EditorPageCanvas {
       onMouseDown --> { ev =>
         if !ev.target.asInstanceOf[dom.Element].classList.contains("resize-handle") &&
            !ev.target.asInstanceOf[dom.Element].classList.contains("rotate-handle") &&
-           !ev.target.asInstanceOf[dom.Element].classList.contains("drag-handle") then
+           !ev.target.asInstanceOf[dom.Element].classList.contains("drag-handle") &&
+           !ev.target.asInstanceOf[dom.Element].classList.contains("toolbar-btn") &&
+           !ev.target.asInstanceOf[dom.Element].classList.contains("toolbar-color") &&
+           ev.target.asInstanceOf[dom.Element].closest(".element-toolbar") == null then
           ev.preventDefault()
           ev.stopPropagation()
           VisualEditorViewModel.selectElement(shape.id)
@@ -289,7 +293,10 @@ object EditorPageCanvas {
         val target = ev.target.asInstanceOf[dom.Element]
         if !target.classList.contains("resize-handle") &&
            !target.classList.contains("rotate-handle") &&
-           !target.classList.contains("drag-handle") then
+           !target.classList.contains("drag-handle") &&
+           !target.classList.contains("toolbar-btn") &&
+           !target.classList.contains("toolbar-color") &&
+           target.closest(".element-toolbar") == null then
           ev.preventDefault()
           ev.stopPropagation()
           VisualEditorViewModel.selectElement(clip.id)
@@ -349,7 +356,10 @@ object EditorPageCanvas {
         val target = ev.target.asInstanceOf[dom.Element]
         if !target.classList.contains("resize-handle") &&
            !target.classList.contains("rotate-handle") &&
-           !target.classList.contains("drag-handle") then
+           !target.classList.contains("drag-handle") &&
+           !target.classList.contains("toolbar-btn") &&
+           !target.classList.contains("toolbar-color") &&
+           target.closest(".element-toolbar") == null then
           ev.preventDefault()
           ev.stopPropagation()
           VisualEditorViewModel.selectElement(photo.id)
@@ -581,8 +591,10 @@ object EditorPageCanvas {
       case clip: ClipartElement  => renderClipartToolbar(clip)
     }
 
+    // Counter-rotate the toolbar so it stays horizontal regardless of element rotation
     div(
       cls := "element-toolbar",
+      styleAttr := s"transform: translateX(-50%) rotate(${-elem.rotation}deg);",
       toolbarContent,
       renderLayerActions(elem.id),
     )
@@ -591,6 +603,19 @@ object EditorPageCanvas {
   private def renderTextToolbar(text: TextElement): Element = {
     div(
       cls := "toolbar-group",
+      // Font selector
+      select(
+        cls := "toolbar-font-select",
+        value := text.fontFamily,
+        List("Arial", "Helvetica", "Times New Roman", "Georgia", "Courier New", "Verdana", "Impact", "Comic Sans MS").map { f =>
+          option(value := f, f)
+        },
+        onChange.mapToValue --> { v =>
+          VisualEditorViewModel.updateTextFieldFontFamily(text.id, v)
+        },
+        onMouseDown --> { ev => ev.stopPropagation() },
+      ),
+      span(cls := "toolbar-separator"),
       button(cls := "toolbar-btn" + (if text.bold then " active" else ""), "B", title := "Bold",
         onClick --> { ev => ev.stopPropagation(); VisualEditorViewModel.updateTextFieldBold(text.id, !text.bold) }),
       button(cls := "toolbar-btn toolbar-italic" + (if text.italic then " active" else ""), "I", title := "Italic",
