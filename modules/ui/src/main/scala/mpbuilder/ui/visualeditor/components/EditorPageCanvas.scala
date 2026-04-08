@@ -100,8 +100,13 @@ object EditorPageCanvas {
       // Days grid (locked template fields)
       page.template.daysGrid.map(dayField => renderTemplateTextField(dayField)),
 
-      // All canvas elements (sorted by z-index)
-      page.elements.sortBy(_.zIndex).map(renderCanvasElement)
+      // All canvas elements (sorted by z-index) — content only, no controls
+      page.elements.sortBy(_.zIndex).map(renderCanvasElement),
+
+      // Selection overlay — rendered AFTER all elements so controls are always on top
+      page.elements.find(e => VisualEditorViewModel.selectedElementSnapshot().contains(e.id)).map { elem =>
+        renderSelectionOverlay(elem)
+      }.getOrElse(emptyNode),
     )
   }
 
@@ -157,26 +162,6 @@ object EditorPageCanvas {
         },
       ),
 
-      // Resize handles (when selected)
-      child.maybe <-- selected.map { sel =>
-        if sel.contains(field.id) then Some(renderResizeHandles(field.id, field)) else None
-      },
-
-      // Rotation handle (when selected)
-      child.maybe <-- selected.map { sel =>
-        if sel.contains(field.id) then Some(renderRotationHandle(field.id, field)) else None
-      },
-
-      // Drag handle (when selected)
-      child.maybe <-- selected.map { sel =>
-        if sel.contains(field.id) then Some(renderDragHandle(field.id, field.position)) else None
-      },
-
-      // Element toolbar (when selected)
-      child.maybe <-- selected.map { sel =>
-        if sel.contains(field.id) then Some(renderElementToolbar(field)) else None
-      },
-
       // Click to select (drag is initiated from drag handle for text elements)
       onMouseDown --> { ev =>
         val target = ev.target.asInstanceOf[dom.Element]
@@ -222,25 +207,6 @@ object EditorPageCanvas {
 
       shapeContent,
 
-      child.maybe <-- selected.map { sel =>
-        if sel.contains(shape.id) then Some(renderResizeHandles(shape.id, shape)) else None
-      },
-
-      // Rotation handle (when selected)
-      child.maybe <-- selected.map { sel =>
-        if sel.contains(shape.id) then Some(renderRotationHandle(shape.id, shape)) else None
-      },
-
-      // Drag handle (when selected)
-      child.maybe <-- selected.map { sel =>
-        if sel.contains(shape.id) then Some(renderDragHandle(shape.id, shape.position)) else None
-      },
-
-      // Element toolbar (when selected)
-      child.maybe <-- selected.map { sel =>
-        if sel.contains(shape.id) then Some(renderElementToolbar(shape)) else None
-      },
-
       onMouseDown --> { ev =>
         if !ev.target.asInstanceOf[dom.Element].classList.contains("resize-handle") &&
            !ev.target.asInstanceOf[dom.Element].classList.contains("rotate-handle") &&
@@ -271,25 +237,6 @@ object EditorPageCanvas {
         styleAttr := "width: 100%; height: 100%; object-fit: contain; pointer-events: none;",
         draggable := false,
       ),
-
-      child.maybe <-- selected.map { sel =>
-        if sel.contains(clip.id) then Some(renderResizeHandles(clip.id, clip)) else None
-      },
-
-      // Rotation handle (when selected)
-      child.maybe <-- selected.map { sel =>
-        if sel.contains(clip.id) then Some(renderRotationHandle(clip.id, clip)) else None
-      },
-
-      // Drag handle (when selected)
-      child.maybe <-- selected.map { sel =>
-        if sel.contains(clip.id) then Some(renderDragHandle(clip.id, clip.position)) else None
-      },
-
-      // Element toolbar (when selected)
-      child.maybe <-- selected.map { sel =>
-        if sel.contains(clip.id) then Some(renderElementToolbar(clip)) else None
-      },
 
       onMouseDown --> { ev =>
         val target = ev.target.asInstanceOf[dom.Element]
@@ -335,25 +282,6 @@ object EditorPageCanvas {
           )
       ),
 
-      child.maybe <-- selected.map { sel =>
-        if sel.contains(photo.id) then Some(renderResizeHandles(photo.id, photo)) else None
-      },
-
-      // Rotation handle (when selected)
-      child.maybe <-- selected.map { sel =>
-        if sel.contains(photo.id) then Some(renderRotationHandle(photo.id, photo)) else None
-      },
-
-      // Drag handle (when selected)
-      child.maybe <-- selected.map { sel =>
-        if sel.contains(photo.id) then Some(renderDragHandle(photo.id, photo.position)) else None
-      },
-
-      // Element toolbar (when selected)
-      child.maybe <-- selected.map { sel =>
-        if sel.contains(photo.id) then Some(renderElementToolbar(photo)) else None
-      },
-
       onMouseDown --> { ev =>
         val target = ev.target.asInstanceOf[dom.Element]
         if !target.classList.contains("resize-handle") &&
@@ -367,6 +295,27 @@ object EditorPageCanvas {
           VisualEditorViewModel.selectElement(photo.id)
           startDrag(photo.id, photo.position, ev)
       }
+    )
+  }
+
+  // ─── Selection Overlay (rendered after all elements, always on top) ──
+
+  private def renderSelectionOverlay(elem: CanvasElement): Element = {
+    div(
+      cls := "selection-overlay",
+      styleAttr := s"position: absolute; left: ${elem.position.x}px; top: ${elem.position.y}px; width: ${elem.size.width}px; height: ${elem.size.height}px; transform: rotate(${elem.rotation}deg); transform-origin: center; z-index: 10000; pointer-events: none; border: 2px solid var(--color-primary);",
+
+      // Resize handles
+      renderResizeHandles(elem.id, elem),
+
+      // Rotation handle
+      renderRotationHandle(elem.id, elem),
+
+      // Drag handle
+      renderDragHandle(elem.id, elem.position),
+
+      // Element toolbar
+      renderElementToolbar(elem),
     )
   }
 
@@ -632,10 +581,14 @@ object EditorPageCanvas {
       span(cls := "toolbar-separator"),
       input(typ := "color", cls := "toolbar-color", value := text.color,
         onInput.mapToValue --> { v => VisualEditorViewModel.updateTextFieldColor(text.id, v) }),
-      button(cls := "toolbar-btn", "A-", title := "Decrease font size",
-        onClick --> { ev => ev.stopPropagation(); VisualEditorViewModel.updateTextFieldFontSize(text.id, math.max(8, text.fontSize - 2)) }),
-      button(cls := "toolbar-btn", "A+", title := "Increase font size",
-        onClick --> { ev => ev.stopPropagation(); VisualEditorViewModel.updateTextFieldFontSize(text.id, math.min(72, text.fontSize + 2)) }),
+      div(
+        cls := "toolbar-font-stepper",
+        button(cls := "toolbar-btn", "−", title := "Decrease font size",
+          onClick --> { ev => ev.stopPropagation(); VisualEditorViewModel.updateTextFieldFontSize(text.id, math.max(8, text.fontSize - 1)) }),
+        span(cls := "toolbar-font-value", s"${text.fontSize}"),
+        button(cls := "toolbar-btn", "+", title := "Increase font size",
+          onClick --> { ev => ev.stopPropagation(); VisualEditorViewModel.updateTextFieldFontSize(text.id, math.min(72, text.fontSize + 1)) }),
+      ),
     )
   }
 
@@ -693,9 +646,9 @@ object EditorPageCanvas {
   private def renderLayerActions(elementId: String): Element = {
     div(
       cls := "toolbar-group toolbar-layer-actions",
-      button(cls := "toolbar-btn", "↑", title := "Bring forward",
+      button(cls := "toolbar-btn", "↑", title := "Move up one layer",
         onClick --> { ev => ev.stopPropagation(); VisualEditorViewModel.bringToFront(elementId) }),
-      button(cls := "toolbar-btn", "↓", title := "Send back",
+      button(cls := "toolbar-btn", "↓", title := "Move down one layer",
         onClick --> { ev => ev.stopPropagation(); VisualEditorViewModel.sendToBack(elementId) }),
       button(cls := "toolbar-btn", "⎘", title := "Duplicate",
         onClick --> { ev => ev.stopPropagation(); VisualEditorViewModel.duplicateElement(elementId) }),

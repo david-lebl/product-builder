@@ -102,11 +102,6 @@ object ClipartGalleryPanel {
     div(
       cls := "clipart-gallery-section",
 
-      h4(child.text <-- lang.map {
-        case Language.En => "Clipart Gallery"
-        case Language.Cs => "Galerie klipartů"
-      }),
-
       p(
         cls := "gallery-description",
         child.text <-- lang.map {
