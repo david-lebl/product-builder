@@ -49,6 +49,14 @@ object VisualEditorViewModel {
   // Keep selectedPhoto as alias for backward compat in canvas rendering
   val selectedPhoto: Signal[Option[String]] = selectedElement
 
+  // Inline text-editing state — Some(id) means that text element is being
+  // edited via contentEditable on the canvas (see Phase 5).
+  private val editingTextIdVar: Var[Option[String]] = Var(None)
+  val editingTextId: Signal[Option[String]] = editingTextIdVar.signal
+
+  def beginEditingText(textId: String): Unit = editingTextIdVar.set(Some(textId))
+  def stopEditingText(): Unit = editingTextIdVar.set(None)
+
   // ID generation counter to avoid collisions
   private var idCounter: Int = 0
 
@@ -222,10 +230,12 @@ object VisualEditorViewModel {
   // ─── Selection ───────────────────────────────────────────────────
 
   def selectElement(elementId: String): Unit =
+    if !editingTextIdVar.now().contains(elementId) then editingTextIdVar.set(None)
     selectedElementVar.set(Some(elementId))
 
   def deselectElement(): Unit =
     selectedElementVar.set(None)
+    editingTextIdVar.set(None)
 
   // Legacy aliases used by canvas
   def selectPhoto(photoId: String): Unit = selectElement(photoId)
@@ -318,6 +328,18 @@ object VisualEditorViewModel {
   def replacePhotoImage(photoId: String, imageData: String): Unit =
     updatePhoto(photoId, _.copy(imageData = imageData, imageScale = 1.0, imageOffsetX = 0.0, imageOffsetY = 0.0))
     syncImageToGallery(imageData)
+
+  def updatePhotoOpacity(photoId: String, opacity: Double): Unit =
+    updatePhoto(photoId, _.copy(opacity = math.max(0.0, math.min(1.0, opacity))))
+
+  def rotatePhotoImage90(photoId: String): Unit =
+    updatePhoto(photoId, p => p.copy(imageRotation = (p.imageRotation + 90.0) % 360))
+
+  def togglePhotoFlipH(photoId: String): Unit =
+    updatePhoto(photoId, p => p.copy(imageFlipH = !p.imageFlipH))
+
+  def togglePhotoFlipV(photoId: String): Unit =
+    updatePhoto(photoId, p => p.copy(imageFlipV = !p.imageFlipV))
 
   /** Auto-sync an image to the gallery IndexedDB store.
     * Checks existing gallery images by dataUrl to avoid duplicates.

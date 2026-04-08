@@ -23,30 +23,184 @@
 }
 
 .calendar-main-content {
-    display: grid;
-    grid-template-columns: 320px 1fr;
-    gap: 20px;
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
     min-height: 600px;
-}
-
-@media (max-width: 1200px) {
-    .calendar-main-content {
-        grid-template-columns: 1fr;
-    }
-}
-
-/* Sidebar Styles */
-.calendar-sidebar {
-    border-right: 2px solid var(--color-border);
-    padding-right: 20px;
-    max-height: 700px;
-    overflow-y: auto;
 }
 
 .calendar-controls-card {
     background: #f9f9f9;
     border-radius: 8px;
     padding: 15px;
+}
+
+/* ─── Sidebar Rail (vertical icon column + collapsible drawer) ─── */
+
+.sidebar-rail-container {
+    display: flex;
+    align-items: stretch;
+    flex-shrink: 0;
+    gap: 0;
+}
+
+.sidebar-rail {
+    width: 56px;
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding: 8px 4px;
+    background: #f5f5f7;
+    border-radius: 10px;
+    border: 1px solid var(--color-border);
+    align-self: flex-start;
+}
+
+.sidebar-rail-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: 8px;
+    background: transparent;
+    color: #555;
+    border: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background-color 0.15s, color 0.15s;
+    padding: 0;
+}
+
+.sidebar-rail-icon:hover {
+    background: #e6e6ee;
+    transform: none;
+}
+
+.sidebar-rail-icon--active {
+    background: var(--color-primary);
+    color: white;
+}
+
+.sidebar-rail-icon--active:hover {
+    background: var(--color-primary);
+}
+
+.sidebar-rail-icon-glyph {
+    font-size: 22px;
+    line-height: 1;
+}
+
+.sidebar-rail-drawer {
+    width: 320px;
+    max-width: 360px;
+    flex-shrink: 0;
+    margin-left: 8px;
+    background: white;
+    border: 1px solid var(--color-border);
+    border-radius: 10px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.06);
+    max-height: 700px;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.sidebar-rail-drawer-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--color-border);
+    background: #fafafa;
+    flex-shrink: 0;
+}
+
+.sidebar-rail-drawer-title {
+    font-weight: 600;
+    color: var(--color-primary);
+    font-size: 0.95rem;
+}
+
+.sidebar-rail-drawer-close {
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    background: transparent;
+    color: #666;
+    border: none;
+    font-size: 20px;
+    line-height: 1;
+    cursor: pointer;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.sidebar-rail-drawer-close:hover {
+    background: #eee;
+    color: #333;
+    transform: none;
+}
+
+.sidebar-rail-drawer-body {
+    overflow-y: auto;
+    padding: 12px;
+    flex: 1;
+}
+
+/* Mobile: rail becomes a fixed bottom bar; drawer becomes a bottom sheet */
+@media (max-width: 1200px) {
+    .calendar-main-content {
+        flex-direction: column;
+    }
+
+    .sidebar-rail-container {
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        z-index: 200;
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .sidebar-rail {
+        order: 2;
+        width: auto;
+        flex-direction: row;
+        justify-content: space-around;
+        gap: 4px;
+        padding: 6px 8px;
+        border-radius: 0;
+        border: none;
+        border-top: 1px solid var(--color-border);
+        background: white;
+        box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.08);
+    }
+
+    .sidebar-rail-icon {
+        width: 44px;
+        height: 44px;
+    }
+
+    .sidebar-rail-drawer {
+        order: 1;
+        width: auto;
+        max-width: none;
+        margin-left: 0;
+        max-height: 60vh;
+        border-radius: 12px 12px 0 0;
+        border: 1px solid var(--color-border);
+        border-bottom: none;
+        box-shadow: 0 -4px 18px rgba(0, 0, 0, 0.15);
+    }
+
+    /* Reserve space at the bottom of the page so the fixed bar doesn't cover content */
+    .calendar-builder-app {
+        padding-bottom: 80px;
+    }
 }
 
 .calendar-controls-card h4,
@@ -68,31 +222,21 @@
     margin-bottom: 20px;
 }
 
-/* Add-element button row */
-.add-element-buttons {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 6px;
-    margin-bottom: 12px;
-}
-
-.add-element-btn {
-    flex: 1 1 auto;
-    min-width: 70px;
-    padding: 6px 8px;
+/* Deprecation hint shown above the layered list. */
+.deprecated-panel-hint {
+    background: #fff8e1;
+    border: 1px solid #ffe082;
+    color: #6d4c00;
+    border-radius: 6px;
+    padding: 8px 10px;
     font-size: 0.8rem;
-    white-space: nowrap;
+    line-height: 1.35;
+    margin-bottom: 10px;
 }
-
-.add-photo-btn { background: var(--color-primary); }
-.add-text-btn  { background: var(--color-success); }
-.add-rect-btn  { background: #ff9800; }
-.add-line-btn  { background: #795548; }
-.add-clipart-btn { background: #9c27b0; }
 
 /* Element list */
 .elements-list {
-    max-height: 220px;
+    max-height: 320px;
     overflow-y: auto;
     margin-bottom: 12px;
 }
@@ -331,6 +475,109 @@
     text-align: right;
 }
 
+/* ─── Clipart Gallery Panel ──────────────────────────── */
+
+.clipart-gallery-section h4 {
+    color: var(--color-primary);
+    margin-bottom: 8px;
+}
+
+.clipart-search-input {
+    width: 100%;
+    padding: 6px 10px;
+    font-size: 0.85rem;
+    border: 1px solid var(--color-border);
+    border-radius: 6px;
+    margin-bottom: 10px;
+    box-sizing: border-box;
+}
+
+.clipart-search-input:focus {
+    outline: none;
+    border-color: var(--color-primary);
+}
+
+.clipart-category-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    margin-bottom: 12px;
+}
+
+.clipart-chip {
+    padding: 4px 10px;
+    font-size: 0.75rem;
+    background: #e8e8ee;
+    color: #555;
+    border: none;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: background-color 0.15s, color 0.15s;
+}
+
+.clipart-chip:hover {
+    background: #d8d8e6;
+    transform: none;
+}
+
+.clipart-chip--active {
+    background: var(--color-primary);
+    color: white;
+}
+
+.clipart-chip--active:hover {
+    background: var(--color-primary);
+}
+
+.clipart-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+    max-height: 380px;
+    overflow-y: auto;
+    padding-right: 4px;
+}
+
+.clipart-item {
+    background: white;
+    border: 2px solid var(--color-border);
+    border-radius: 6px;
+    padding: 6px;
+    cursor: pointer;
+    text-align: center;
+    transition: border-color 0.15s, transform 0.15s;
+}
+
+.clipart-item:hover {
+    border-color: var(--color-primary);
+    transform: translateY(-1px);
+}
+
+.clipart-thumb {
+    width: 100%;
+    height: 50px;
+    object-fit: contain;
+    pointer-events: none;
+}
+
+.clipart-name {
+    font-size: 0.7rem;
+    color: #666;
+    margin-top: 4px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.clipart-empty {
+    grid-column: 1 / -1;
+    text-align: center;
+    color: #999;
+    padding: 20px;
+    font-style: italic;
+    font-size: 0.85rem;
+}
+
 /* ─── Background & Template Editor ───────────────────── */
 
 .background-editor-section {
@@ -379,6 +626,8 @@
 /* ─── Calendar Canvas ────────────────────────────────── */
 
 .calendar-canvas-area {
+    flex: 1;
+    min-width: 0;
     display: flex;
     justify-content: center;
     align-items: flex-start;
@@ -393,12 +642,46 @@
 }
 
 .calendar-canvas {
+    position: relative;
     width: 100%;
     background: white;
     border: 2px solid var(--color-border);
     border-radius: 8px;
     box-shadow: 0 4px 8px rgba(0,0,0,0.1);
     overflow: hidden;
+}
+
+/* Quick-add buttons overlaying the canvas top-right corner */
+.canvas-add-buttons {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    display: flex;
+    gap: 8px;
+    z-index: 50;
+}
+
+.canvas-add-btn {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: var(--color-primary);
+    color: white;
+    font-size: 18px;
+    font-weight: bold;
+    border: 2px solid white;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    transition: transform 0.15s, background-color 0.15s;
+}
+
+.canvas-add-btn:hover {
+    background: var(--color-primary-dark, #4a52c0);
+    transform: scale(1.08);
 }
 
 .calendar-page {
@@ -464,6 +747,18 @@
     pointer-events: none;
 }
 
+/* When editing inline, the contentEditable text body needs pointer events
+   so the caret can be placed and text can be selected. */
+.calendar-text-element.editing .text-element-content {
+    pointer-events: auto;
+    outline: 2px solid var(--color-primary);
+    outline-offset: 2px;
+    cursor: text;
+    user-select: text;
+    -webkit-user-select: text;
+    background: rgba(255, 255, 255, 0.7);
+}
+
 /* Shape element */
 .calendar-shape-element {
     min-width: 10px;
@@ -473,6 +768,139 @@
 /* Clipart element */
 .calendar-clipart-element img {
     pointer-events: none;
+}
+
+/* ─── Element Controls Popup ─────────────────────────── */
+
+.element-controls-popup {
+    background: white;
+    border: 1px solid var(--color-border);
+    border-radius: 10px;
+    box-shadow: 0 4px 18px rgba(0, 0, 0, 0.18);
+    padding: 6px 10px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    white-space: nowrap;
+    font-size: 0.85rem;
+    pointer-events: all;
+}
+
+.popup-controls-row {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.popup-controls-empty {
+    color: #999;
+    font-size: 0.8rem;
+    font-style: italic;
+}
+
+.popup-hint {
+    font-size: 0.75rem;
+    color: #888;
+    font-style: italic;
+    padding: 0 4px;
+}
+
+.popup-separator {
+    width: 1px;
+    height: 22px;
+    background: #ddd;
+    flex-shrink: 0;
+}
+
+.popup-btn {
+    width: 28px;
+    height: 28px;
+    border-radius: 6px;
+    background: #f1f1f5;
+    color: #333;
+    border: none;
+    font-size: 14px;
+    font-weight: bold;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    transition: background-color 0.15s, color 0.15s;
+}
+
+.popup-btn:hover {
+    background: #e2e2ec;
+    transform: none;
+}
+
+.popup-btn--active {
+    background: var(--color-primary);
+    color: white;
+}
+
+.popup-btn--active:hover {
+    background: var(--color-primary);
+}
+
+.popup-btn--danger {
+    background: #ffebee;
+    color: #c62828;
+}
+
+.popup-btn--danger:hover {
+    background: #ef5350;
+    color: white;
+}
+
+.popup-bold {
+    font-weight: 800;
+}
+
+.popup-italic {
+    font-style: italic;
+}
+
+.popup-select {
+    height: 28px;
+    padding: 0 6px;
+    font-size: 0.8rem;
+    border: 1px solid var(--color-border);
+    border-radius: 6px;
+    background: white;
+    max-width: 110px;
+}
+
+.popup-number {
+    width: 50px;
+    height: 28px;
+    padding: 0 6px;
+    font-size: 0.8rem;
+    border: 1px solid var(--color-border);
+    border-radius: 6px;
+    text-align: center;
+}
+
+.popup-color {
+    width: 32px;
+    height: 28px;
+    border: 1px solid var(--color-border);
+    border-radius: 6px;
+    padding: 1px;
+    cursor: pointer;
+    background: white;
+}
+
+.popup-slider-group {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.popup-slider {
+    width: 90px;
+    height: 22px;
+    cursor: pointer;
 }
 
 /* ─── Resize Handles ─────────────────────────────────── */
@@ -519,20 +947,12 @@
     cursor: w-resize;
 }
 
-/* ─── Rotation Buttons (left and right) ──────────────── */
+/* ─── Drag handle (explicit move grip) ──────────────── */
 
-.rotate-buttons-container {
+.drag-handle {
     position: absolute;
-    top: -35px;
-    left: 50%;
-    transform: translateX(-50%);
-    display: flex;
-    gap: 4px;
-    z-index: var(--z-rotate);
-    pointer-events: all;
-}
-
-.rotate-btn {
+    top: -34px;
+    left: -34px;
     width: 28px;
     height: 28px;
     background: var(--color-primary);
@@ -542,94 +962,60 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    cursor: pointer;
-    font-size: 18px;
+    cursor: grab;
+    font-size: 14px;
     font-weight: bold;
     z-index: var(--z-rotate);
     pointer-events: all;
-    box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
     line-height: 1;
     padding: 0;
+    user-select: none;
 }
 
-.rotate-btn:hover {
+.drag-handle:hover {
     background: var(--color-primary-dark);
-    transform: scale(1.15);
+    transform: scale(1.1);
 }
 
-/* ─── Sidebar Tabs ───────────────────────────────────── */
+.drag-handle:active {
+    cursor: grabbing;
+}
 
-.sidebar-tabs {
+/* ─── Rotation handle (drag-to-rotate) ──────────────── */
+
+.rotate-handle {
+    position: absolute;
+    top: -34px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 28px;
+    height: 28px;
+    background: var(--color-primary);
+    color: white;
+    border: 2px solid white;
+    border-radius: 50%;
     display: flex;
-    gap: 0;
-    margin-bottom: 12px;
-    border-bottom: 2px solid var(--color-border);
+    align-items: center;
+    justify-content: center;
+    cursor: grab;
+    font-size: 16px;
+    font-weight: bold;
+    z-index: var(--z-rotate);
+    pointer-events: all;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+    line-height: 1;
+    padding: 0;
+    user-select: none;
 }
 
-.sidebar-tab-btn {
-    flex: 1;
-    padding: 8px 12px;
-    font-size: 0.85rem;
-    background: #f0f0f0;
-    color: #555;
-    border: none;
-    border-bottom: 2px solid transparent;
-    cursor: pointer;
-    transition: all 0.2s;
-    margin-bottom: -2px;
-    border-radius: 6px 6px 0 0;
+.rotate-handle:hover {
+    background: var(--color-primary-dark);
+    transform: translateX(-50%) scale(1.1);
 }
 
-.sidebar-tab-btn:hover {
-    background: #e0e0f0;
-    transform: none;
-}
-
-.sidebar-tab-btn.active {
-    background: white;
-    color: var(--color-primary);
-    border-bottom-color: var(--color-primary);
-    font-weight: 600;
-}
-
-/* ─── Calendar Sidebar UI-Kit Tabs ──────────────────── */
-
-.calendar-sidebar .tabs {
-    display: flex;
-    flex-direction: column;
-}
-
-.calendar-sidebar .tabs-bar {
-    display: flex;
-    gap: 0;
-    margin-bottom: 12px;
-    border-bottom: 2px solid var(--color-border);
-}
-
-.calendar-sidebar .tab-button {
-    flex: 1;
-    padding: 8px 12px;
-    font-size: 0.85rem;
-    background: #f0f0f0;
-    color: #555;
-    border: none;
-    border-bottom: 2px solid transparent;
-    cursor: pointer;
-    transition: all 0.2s;
-    margin-bottom: -2px;
-    border-radius: 6px 6px 0 0;
-}
-
-.calendar-sidebar .tab-button:hover {
-    background: #e0e0f0;
-    transform: none;
-}
-
-.calendar-sidebar .tab-button--active {
-    background: white;
-    color: var(--color-primary);
-    border-bottom-color: var(--color-primary);
-    font-weight: 600;
+.rotate-handle:active {
+    cursor: grabbing;
 }
 
 /* ─── Horizontal Page Navigation Strip ──────────────── */

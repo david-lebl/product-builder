@@ -5,14 +5,14 @@ import mpbuilder.ui.visualeditor.components.*
 import mpbuilder.ui.productbuilder.ProductBuilderViewModel
 import mpbuilder.ui.{AppRouter, AppRoute}
 import mpbuilder.domain.model.{Language, ArtworkId}
-import mpbuilder.uikit.containers.{Tabs, TabDef}
 import mpbuilder.ui.persistence.EditorSessionStore
 import org.scalajs.dom
+import org.scalajs.dom.FileReader
 
 object VisualEditorApp {
 
-  // Sidebar tab state
-  private val sidebarTabVar: Var[String] = Var("elements")
+  // Sidebar rail state — None means no panel expanded (canvas takes full width)
+  private val activePanelVar: Var[Option[String]] = Var(None)
 
   // Resume popup state — non-empty list means popup is shown
   private val resumeSessionsVar: Var[List[EditorSession]] = Var(List.empty)
@@ -232,34 +232,82 @@ object VisualEditorApp {
         ),
       ),
 
-      // Main content area: 2-column layout (sidebar + canvas)
+      // Global photo upload input — kept here so canvas-corner add buttons and
+      // the (deprecated) page elements panel can both trigger it regardless of
+      // which sidebar panel is currently expanded.
+      input(
+        typ := "file",
+        accept := "image/*",
+        idAttr := "photo-upload-input",
+        display := "none",
+        onChange --> { ev =>
+          val inp = ev.target.asInstanceOf[dom.html.Input]
+          val files = inp.files
+          if files.length > 0 then
+            val file = files(0)
+            val reader = new FileReader()
+            reader.onload = { _ =>
+              val imageData = reader.result.asInstanceOf[String]
+              VisualEditorViewModel.uploadPhoto(imageData)
+            }
+            reader.readAsDataURL(file)
+          inp.value = "" // allow re-selecting the same file
+        }
+      ),
+
+      // Main content area: rail (icons) + optional drawer + canvas
       div(
         cls := "calendar-main-content",
 
-        // Left sidebar with tabs
-        div(
-          cls := "calendar-sidebar",
-          Tabs(
-            tabs = List(
-              TabDef("elements", lang.map {
-                case Language.En => "Page Elements"
-                case Language.Cs => "Prvky stránky"
-              }, () => div(cls := "calendar-controls-card", ElementListEditor())),
-              TabDef("gallery", lang.map {
+        SidebarRail(
+          panels = List(
+            RailPanel(
+              id = "gallery",
+              icon = "🖼",
+              label = lang.map {
                 case Language.En => "Gallery"
                 case Language.Cs => "Galerie"
-              }, () => div(cls := "calendar-controls-card", ImageGalleryPanel())),
-              TabDef("background", lang.map {
+              },
+              content = () => div(cls := "calendar-controls-card", ImageGalleryPanel()),
+            ),
+            RailPanel(
+              id = "cliparts",
+              icon = "🎨",
+              label = lang.map {
+                case Language.En => "Cliparts"
+                case Language.Cs => "Kliparty"
+              },
+              content = () => div(cls := "calendar-controls-card", ClipartGalleryPanel()),
+            ),
+            RailPanel(
+              id = "background",
+              icon = "🌄",
+              label = lang.map {
                 case Language.En => "Background"
                 case Language.Cs => "Pozadí"
-              }, () => div(cls := "calendar-controls-card", BackgroundEditor())),
-              TabDef("history", lang.map {
+              },
+              content = () => div(cls := "calendar-controls-card", BackgroundEditor()),
+            ),
+            RailPanel(
+              id = "history",
+              icon = "🕓",
+              label = lang.map {
                 case Language.En => "History"
                 case Language.Cs => "Historie"
-              }, () => div(cls := "calendar-controls-card", SessionHistoryPanel())),
+              },
+              content = () => div(cls := "calendar-controls-card", SessionHistoryPanel()),
             ),
-            activeTab = sidebarTabVar,
+            RailPanel(
+              id = "elements",
+              icon = "⊞",
+              label = lang.map {
+                case Language.En => "Layers"
+                case Language.Cs => "Vrstvy"
+              },
+              content = () => div(cls := "calendar-controls-card", ElementListEditor()),
+            ),
           ),
+          activePanel = activePanelVar,
         ),
 
         // Center: Canvas with product overlay
