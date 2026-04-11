@@ -47,7 +47,7 @@ object PresetPriceService:
       specs = mergedSpecs,
     )
 
-    val configId = ConfigurationId.unsafe(s"price-check-${preset.id.value}")
+    val configId = ConfigurationId.unsafe(s"preset-price-calc-${preset.id.value}")
     val configV = ConfigurationBuilder.build(request, catalog, ruleset, configId)
     configV match
       case Validation.Success(_, config) =>
