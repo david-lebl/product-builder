@@ -11,7 +11,7 @@ import mpbuilder.domain.sample.*
 import zio.prelude.Validation
 import com.raquo.laminar.api.L.*
 import org.scalajs.dom
-import java.time.{Instant, LocalDateTime, ZoneOffset}
+import java.time.LocalDateTime
 
 /** Current state of the agency login flow */
 sealed trait LoginState
@@ -627,7 +627,21 @@ object ProductBuilderViewModel:
     steps.result()
 
   def currentLocalDateTime: LocalDateTime =
-    Instant.ofEpochMilli(System.currentTimeMillis()).atOffset(ZoneOffset.UTC).toLocalDateTime
+    // Use the browser's local wall-clock time so comparisons against the
+    // shop schedule (Europe/Prague working hours 07:00–17:00) happen in the
+    // same frame of reference as the user sees. Previously this used UTC,
+    // which in CET/CEST produced a "now" 1–2 hours in the past and caused
+    // earliest-completion to be rendered before the user's real clock.
+    val d = new scala.scalajs.js.Date()
+    LocalDateTime.of(
+      d.getFullYear().toInt,
+      d.getMonth().toInt + 1,
+      d.getDate().toInt,
+      d.getHours().toInt,
+      d.getMinutes().toInt,
+      d.getSeconds().toInt,
+      )
+
 
   /** Completion estimate for a specific manufacturing speed. */
   def completionEstimate(speed: ManufacturingSpeed): Signal[Option[CompletionEstimator.CompletionEstimate]] =

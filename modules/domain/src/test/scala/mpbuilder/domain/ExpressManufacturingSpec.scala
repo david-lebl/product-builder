@@ -322,14 +322,20 @@ object ExpressManufacturingSpec extends ZIOSpecDefault:
       },
     ),
     suite("approvalDelay")(
-      test("Express returns 30 minutes") {
-        assertTrue(CompletionEstimator.approvalDelay(ManufacturingSpeed.Express) == 30L)
+      test("Express returns 480 working minutes (~1 business day)") {
+        assertTrue(CompletionEstimator.approvalDelay(ManufacturingSpeed.Express) == 480L)
       },
-      test("Standard returns 180 minutes") {
-        assertTrue(CompletionEstimator.approvalDelay(ManufacturingSpeed.Standard) == 180L)
+      test("Standard returns 1200 working minutes (~2 business days)") {
+        assertTrue(CompletionEstimator.approvalDelay(ManufacturingSpeed.Standard) == 1200L)
       },
-      test("Economy returns 360 minutes") {
-        assertTrue(CompletionEstimator.approvalDelay(ManufacturingSpeed.Economy) == 360L)
+      test("Economy returns 2400 working minutes (~4 business days)") {
+        assertTrue(CompletionEstimator.approvalDelay(ManufacturingSpeed.Economy) == 2400L)
+      },
+      test("Express < Standard < Economy") {
+        val e = CompletionEstimator.approvalDelay(ManufacturingSpeed.Express)
+        val s = CompletionEstimator.approvalDelay(ManufacturingSpeed.Standard)
+        val c = CompletionEstimator.approvalDelay(ManufacturingSpeed.Economy)
+        assertTrue(e < s && s < c)
       },
     ),
     suite("bufferTime")(
