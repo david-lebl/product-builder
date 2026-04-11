@@ -36,16 +36,14 @@ object SampleShowcase:
     ),
     variations = List(
       ProductVariation(
-        LocalizedString("Standard", "Standardní"),
-        LocalizedString("Classic rectangular cards on coated paper", "Klasické obdélníkové vizitky na křídovém papíře"),
+        LocalizedString("Basic", "Základní"),
+        LocalizedString("Coated 300gsm, single-sided CMYK, 85×55 mm", "Křídový 300g, jednostranný CMYK, 85×55 mm"),
+        presetId = Some(PresetId.unsafe("preset-bc-basic")),
       ),
       ProductVariation(
-        LocalizedString("Premium Cotton", "Prémiové bavlněné"),
-        LocalizedString("Thick 300gsm cotton stock for a luxurious feel", "Silný bavlněný papír 300g pro luxusní pocit"),
-      ),
-      ProductVariation(
-        LocalizedString("Letterpress", "Knihtisk"),
-        LocalizedString("Deep-impression artisan printing on heavy stock", "Hluboký reliéfní tisk na silném papíru"),
+        LocalizedString("Premium", "Prémiové"),
+        LocalizedString("Matte 350gsm, double-sided CMYK, lamination + round corners", "Matný 350g, oboustranný CMYK, laminace + zaoblené rohy"),
+        presetId = Some(PresetId.unsafe("preset-bc-premium")),
       ),
     ),
     features = List(
@@ -88,16 +86,19 @@ object SampleShowcase:
     ),
     variations = List(
       ProductVariation(
-        LocalizedString("Lightweight", "Lehké"),
-        LocalizedString("90-130gsm — ideal for mass distribution", "90-130g — ideální pro hromadnou distribuci"),
-      ),
-      ProductVariation(
         LocalizedString("Standard", "Standardní"),
-        LocalizedString("150-200gsm — versatile everyday flyers", "150-200g — univerzální letáky na každý den"),
+        LocalizedString("Glossy 130gsm, single-sided CMYK, A5", "Lesklý 130g, jednostranný CMYK, A5"),
+        presetId = Some(PresetId.unsafe("preset-flyers-standard")),
       ),
       ProductVariation(
         LocalizedString("Premium", "Prémiové"),
-        LocalizedString("250-350gsm — thick card-like feel", "250-350g — silné s kartónovým dojmem"),
+        LocalizedString("Matte 250gsm, double-sided CMYK with lamination", "Matný 250g, oboustranný CMYK s laminací"),
+        presetId = Some(PresetId.unsafe("preset-flyers-premium")),
+      ),
+      ProductVariation(
+        LocalizedString("Lightweight", "Lehké"),
+        LocalizedString("Glossy 90gsm — ideal for mass distribution", "Lesklý 90g — ideální pro hromadnou distribuci"),
+        presetId = Some(PresetId.unsafe("preset-flyers-lightweight")),
       ),
     ),
     features = List(
@@ -134,16 +135,19 @@ object SampleShowcase:
     imageUrl = "https://images.unsplash.com/photo-1695634621121-691d54259d37?w=600&h=400&fit=crop",
     variations = List(
       ProductVariation(
-        LocalizedString("Bi-Fold", "Na půl"),
-        LocalizedString("Single fold creating 4 panels", "Jeden sklad vytvářející 4 panely"),
+        LocalizedString("Tri-Fold", "Na třetiny"),
+        LocalizedString("Glossy 150gsm, two folds creating 6 panels", "Lesklý 150g, dva sklady vytvářející 6 panelů"),
+        presetId = Some(PresetId.unsafe("preset-brochures-standard")),
       ),
       ProductVariation(
-        LocalizedString("Tri-Fold", "Na třetiny"),
-        LocalizedString("Two folds creating 6 panels", "Dva sklady vytvářející 6 panelů"),
+        LocalizedString("Bi-Fold", "Na půl"),
+        LocalizedString("Matte 200gsm, single fold creating 4 panels", "Matný 200g, jeden sklad vytvářející 4 panely"),
+        presetId = Some(PresetId.unsafe("preset-brochures-bifold")),
       ),
       ProductVariation(
         LocalizedString("Z-Fold", "Z-sklad"),
-        LocalizedString("Accordion-style zigzag fold", "Harmonikový cikcak sklad"),
+        LocalizedString("Glossy 170gsm, accordion-style zigzag fold", "Lesklý 170g, harmonikový cikcak sklad"),
+        presetId = Some(PresetId.unsafe("preset-brochures-zfold")),
       ),
     ),
     features = List(
@@ -171,6 +175,18 @@ object SampleShowcase:
         "K dispozici v křídovém, hedvábném a bavlněném papíru s řadou povrchových úprav.",
     ),
     imageUrl = "https://images.unsplash.com/photo-1557717398-f6a5f68cd158?w=600&h=400&fit=crop",
+    variations = List(
+      ProductVariation(
+        LocalizedString("Standard", "Standardní"),
+        LocalizedString("Coated 300gsm, double-sided CMYK, A6", "Křídový 300g, oboustranný CMYK, A6"),
+        presetId = Some(PresetId.unsafe("preset-postcards-standard")),
+      ),
+      ProductVariation(
+        LocalizedString("Premium Cotton", "Prémiové bavlněné"),
+        LocalizedString("Cotton 300gsm with soft-touch coating", "Bavlněný 300g se soft-touch lakem"),
+        presetId = Some(PresetId.unsafe("preset-postcards-premium")),
+      ),
+    ),
     features = List(
       ProductFeature("💌", LocalizedString("Direct Mail Ready", "Připraveno pro poštu"), LocalizedString("Standard postcard sizes for mailing", "Standardní velikosti pro poštovní zásilky")),
       ProductFeature("🎨", LocalizedString("Full Color", "Plnobarevný tisk"), LocalizedString("Vibrant CMYK printing on both sides", "Živý CMYK tisk na obou stranách")),
@@ -203,11 +219,13 @@ object SampleShowcase:
     variations = List(
       ProductVariation(
         LocalizedString("Saddle Stitch", "V-vazba"),
-        LocalizedString("Wire-stapled booklets, ideal for 8-64 pages", "Sešité brožury, ideální pro 8-64 stran"),
+        LocalizedString("Glossy cover + body, wire-stapled, ideal for 8-64 pages", "Lesklá obálka + tělo, sešité, ideální pro 8-64 stran"),
+        presetId = Some(PresetId.unsafe("preset-booklets-standard")),
       ),
       ProductVariation(
         LocalizedString("Perfect Binding", "Lepená vazba"),
-        LocalizedString("Glued spine for a professional look, 48+ pages", "Lepený hřbet pro profesionální vzhled, 48+ stran"),
+        LocalizedString("Matte laminated cover, glued spine, 48+ pages", "Matná laminovaná obálka, lepený hřbet, 48+ stran"),
+        presetId = Some(PresetId.unsafe("preset-booklets-perfect")),
       ),
     ),
     features = List(
@@ -242,6 +260,18 @@ object SampleShowcase:
         "a lehčí papír na měsíční stránky. Standardní drátěná vazba.",
     ),
     imageUrl = "https://images.unsplash.com/photo-1598972692343-a17711455a22?w=600&h=400&fit=crop",
+    variations = List(
+      ProductVariation(
+        LocalizedString("Wall Calendar", "Nástěnný kalendář"),
+        LocalizedString("A4 glossy, wire-o binding, 28 pages", "A4 lesklý, kroužková vazba, 28 stran"),
+        presetId = Some(PresetId.unsafe("preset-calendars-wall")),
+      ),
+      ProductVariation(
+        LocalizedString("Desk Calendar", "Stolní kalendář"),
+        LocalizedString("A5 matte, wire-o binding, 28 pages", "A5 matný, kroužková vazba, 28 stran"),
+        presetId = Some(PresetId.unsafe("preset-calendars-desk")),
+      ),
+    ),
     features = List(
       ProductFeature("📅", LocalizedString("Wall & Desk", "Nástěnné a stolní"), LocalizedString("Multiple formats for every space", "Více formátů pro každý prostor")),
       ProductFeature("🎨", LocalizedString("Full Customization", "Plná přizpůsobitelnost"), LocalizedString("Custom photos and layouts per month", "Vlastní fotky a rozložení pro každý měsíc")),
@@ -275,11 +305,13 @@ object SampleShowcase:
     variations = List(
       ProductVariation(
         LocalizedString("Indoor", "Interiérový"),
-        LocalizedString("Smooth vinyl for indoor displays", "Hladký vinyl pro interiérové prezentace"),
+        LocalizedString("Vinyl, 1000×2000 mm, smooth surface for indoor displays", "Vinyl, 1000×2000 mm, hladký povrch pro interiérové prezentace"),
+        presetId = Some(PresetId.unsafe("preset-banners-standard")),
       ),
       ProductVariation(
-        LocalizedString("Outdoor", "Exteriérový"),
-        LocalizedString("Heavy-duty vinyl with UV protection", "Odolný vinyl s UV ochranou"),
+        LocalizedString("Outdoor with Grommets", "Exteriérový s průchodkami"),
+        LocalizedString("Vinyl with UV coating + grommets, 1500×3000 mm", "Vinyl s UV lakem + průchodky, 1500×3000 mm"),
+        presetId = Some(PresetId.unsafe("preset-banners-outdoor")),
       ),
     ),
     features = List(
@@ -311,11 +343,13 @@ object SampleShowcase:
     variations = List(
       ProductVariation(
         LocalizedString("Economy Stand", "Ekonomický stojan"),
-        LocalizedString("Lightweight aluminum, perfect for occasional use", "Lehký hliníkový, ideální pro příležitostné použití"),
+        LocalizedString("Lightweight aluminum stand + banner film, 850×2000 mm", "Lehký hliníkový stojan + bannerová fólie, 850×2000 mm"),
+        presetId = Some(PresetId.unsafe("preset-rollup-economy")),
       ),
       ProductVariation(
         LocalizedString("Premium Stand", "Prémiový stojan"),
-        LocalizedString("Heavy-duty construction for frequent transport", "Robustní konstrukce pro častý transport"),
+        LocalizedString("Heavy-duty stand for frequent transport, 850×2000 mm", "Robustní stojan pro častý transport, 850×2000 mm"),
+        presetId = Some(PresetId.unsafe("preset-rollup-premium")),
       ),
     ),
     features = List(
@@ -348,12 +382,14 @@ object SampleShowcase:
     imageUrl = "https://images.unsplash.com/photo-1617825295690-28ae56c56135?w=600&h=400&fit=crop",
     variations = List(
       ProductVariation(
-        LocalizedString("Kraft", "Kraftový"),
-        LocalizedString("Natural brown kraft for eco-friendly branding", "Přírodní hnědý kraft pro ekologický branding"),
+        LocalizedString("Standard Kraft", "Standardní kraft"),
+        LocalizedString("Natural brown kraft, 300×200 mm, 100 pcs", "Přírodní hnědý kraft, 300×200 mm, 100 ks"),
+        presetId = Some(PresetId.unsafe("preset-packaging-standard")),
       ),
       ProductVariation(
-        LocalizedString("Corrugated", "Vlnitá lepenka"),
-        LocalizedString("Sturdy shipping boxes with custom print", "Pevné přepravní krabice s vlastním potiskem"),
+        LocalizedString("Premium Embossed", "Prémiové se slepotiskem"),
+        LocalizedString("Kraft with embossing + foil stamping, 300×200 mm", "Kraft se slepotiskem + ražba fólií, 300×200 mm"),
+        presetId = Some(PresetId.unsafe("preset-packaging-premium")),
       ),
     ),
     features = List(
@@ -384,16 +420,19 @@ object SampleShowcase:
     imageUrl = "https://images.unsplash.com/photo-1589384267710-7a170981ca78?w=600&h=400&fit=crop",
     variations = List(
       ProductVariation(
-        LocalizedString("Kiss-Cut", "Kiss-Cut"),
-        LocalizedString("Cut through vinyl layer only, easy peel on backing", "Řez pouze vrstvou vinylu, snadné odlepení"),
+        LocalizedString("Standard", "Standardní"),
+        LocalizedString("Adhesive stock, 50×50 mm, peel-off sheet", "Samolepicí materiál, 50×50 mm, odlepovací arch"),
+        presetId = Some(PresetId.unsafe("preset-stickers-standard")),
       ),
       ProductVariation(
         LocalizedString("Die-Cut", "Výsekový"),
-        LocalizedString("Cut through all layers for individual shapes", "Řez všemi vrstvami pro jednotlivé tvary"),
+        LocalizedString("Adhesive stock with die-cut for individual shapes", "Samolepicí materiál s výsekem pro jednotlivé tvary"),
+        presetId = Some(PresetId.unsafe("preset-stickers-diecut")),
       ),
       ProductVariation(
         LocalizedString("Clear Vinyl", "Průhledný vinyl"),
-        LocalizedString("Transparent background for a seamless look", "Průhledné pozadí pro bezešvý vzhled"),
+        LocalizedString("Transparent background, UV inkjet print", "Průhledné pozadí, UV inkjet tisk"),
+        presetId = Some(PresetId.unsafe("preset-stickers-clear")),
       ),
     ),
     features = List(

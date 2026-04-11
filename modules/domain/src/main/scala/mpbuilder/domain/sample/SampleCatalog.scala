@@ -730,6 +730,45 @@ object SampleCatalog:
           SpecValue.OrientationSpec(Orientation.Portrait),
         ),
       ),
+      CategoryPreset(
+        id = PresetId.unsafe("preset-flyers-premium"),
+        name = LocalizedString("Premium", "Prémiové"),
+        description = Some(LocalizedString(
+          "Matte 250gsm, 4+4 CMYK, matte lamination, A5, 500 pcs",
+          "Matný 250g, 4+4 CMYK, matná laminace, A5, 500 ks",
+        )),
+        printingMethodId = digitalId,
+        componentPresets = List(ComponentPreset(
+          role = ComponentRole.Main,
+          materialId = coatedMatte250gsmId,
+          inkConfiguration = InkConfiguration.cmyk4_4,
+          finishSelections = List(FinishSelection(matteLaminationId)),
+        )),
+        specOverrides = List(
+          SpecValue.SizeSpec(Dimension(148, 210)),
+          SpecValue.QuantitySpec(Quantity.unsafe(500)),
+          SpecValue.OrientationSpec(Orientation.Portrait),
+        ),
+      ),
+      CategoryPreset(
+        id = PresetId.unsafe("preset-flyers-lightweight"),
+        name = LocalizedString("Lightweight", "Lehké"),
+        description = Some(LocalizedString(
+          "Glossy 90gsm, 4+0 CMYK, A5, 1000 pcs",
+          "Lesklý 90g, 4+0 CMYK, A5, 1000 ks",
+        )),
+        printingMethodId = digitalId,
+        componentPresets = List(ComponentPreset(
+          role = ComponentRole.Main,
+          materialId = coatedGlossy90gsmId,
+          inkConfiguration = InkConfiguration.cmyk4_0,
+        )),
+        specOverrides = List(
+          SpecValue.SizeSpec(Dimension(148, 210)),
+          SpecValue.QuantitySpec(Quantity.unsafe(1000)),
+          SpecValue.OrientationSpec(Orientation.Portrait),
+        ),
+      ),
     ),
   )
 
@@ -768,6 +807,44 @@ object SampleCatalog:
           SpecValue.FoldTypeSpec(FoldType.Tri),
         ),
       ),
+      CategoryPreset(
+        id = PresetId.unsafe("preset-brochures-bifold"),
+        name = LocalizedString("Bi-Fold", "Na půl"),
+        description = Some(LocalizedString(
+          "Matte 200gsm, 4+4 CMYK, A4 bi-fold, 250 pcs",
+          "Matný 200g, 4+4 CMYK, A4 na půl, 250 ks",
+        )),
+        printingMethodId = digitalId,
+        componentPresets = List(ComponentPreset(
+          role = ComponentRole.Main,
+          materialId = coatedMatte200gsmId,
+          inkConfiguration = InkConfiguration.cmyk4_4,
+        )),
+        specOverrides = List(
+          SpecValue.SizeSpec(Dimension(210, 297)),
+          SpecValue.QuantitySpec(Quantity.unsafe(250)),
+          SpecValue.FoldTypeSpec(FoldType.Half),
+        ),
+      ),
+      CategoryPreset(
+        id = PresetId.unsafe("preset-brochures-zfold"),
+        name = LocalizedString("Z-Fold", "Z-sklad"),
+        description = Some(LocalizedString(
+          "Glossy 170gsm, 4+4 CMYK, A4 Z-fold, 250 pcs",
+          "Lesklý 170g, 4+4 CMYK, A4 Z-sklad, 250 ks",
+        )),
+        printingMethodId = digitalId,
+        componentPresets = List(ComponentPreset(
+          role = ComponentRole.Main,
+          materialId = coatedGlossy170gsmId,
+          inkConfiguration = InkConfiguration.cmyk4_4,
+        )),
+        specOverrides = List(
+          SpecValue.SizeSpec(Dimension(210, 297)),
+          SpecValue.QuantitySpec(Quantity.unsafe(250)),
+          SpecValue.FoldTypeSpec(FoldType.ZFold),
+        ),
+      ),
     ),
   )
 
@@ -804,6 +881,28 @@ object SampleCatalog:
           SpecValue.QuantitySpec(Quantity.unsafe(1)),
         ),
       ),
+      CategoryPreset(
+        id = PresetId.unsafe("preset-banners-outdoor"),
+        name = LocalizedString("Outdoor with Grommets", "Exteriérový s průchodkami"),
+        description = Some(LocalizedString(
+          "Vinyl, 4+0 CMYK, UV coating + grommets, 1500×3000 mm, 1 pc",
+          "Vinyl, 4+0 CMYK, UV lak + průchodky, 1500×3000 mm, 1 ks",
+        )),
+        printingMethodId = uvInkjetId,
+        componentPresets = List(ComponentPreset(
+          role = ComponentRole.Main,
+          materialId = vinylId,
+          inkConfiguration = InkConfiguration.cmyk4_0,
+          finishSelections = List(
+            FinishSelection(uvCoatingId),
+            FinishSelection(grommetsId),
+          ),
+        )),
+        specOverrides = List(
+          SpecValue.SizeSpec(Dimension(1500, 3000)),
+          SpecValue.QuantitySpec(Quantity.unsafe(1)),
+        ),
+      ),
     ),
   )
 
@@ -824,7 +923,7 @@ object SampleCatalog:
     presets = List(
       CategoryPreset(
         id = PresetId.unsafe("preset-packaging-standard"),
-        name = LocalizedString("Standard", "Standardní"),
+        name = LocalizedString("Standard Kraft", "Standardní kraft"),
         description = Some(LocalizedString(
           "Kraft, 4+0 CMYK, 300×200 mm, 100 pcs",
           "Kraft, 4+0 CMYK, 300×200 mm, 100 ks",
@@ -838,6 +937,28 @@ object SampleCatalog:
         specOverrides = List(
           SpecValue.SizeSpec(Dimension(300, 200)),
           SpecValue.QuantitySpec(Quantity.unsafe(100)),
+        ),
+      ),
+      CategoryPreset(
+        id = PresetId.unsafe("preset-packaging-premium"),
+        name = LocalizedString("Premium Embossed", "Prémiové se slepotiskem"),
+        description = Some(LocalizedString(
+          "Kraft, 4+0 CMYK, embossing + foil stamping, 300×200 mm, 50 pcs",
+          "Kraft, 4+0 CMYK, slepotisk + ražba fólií, 300×200 mm, 50 ks",
+        )),
+        printingMethodId = digitalId,
+        componentPresets = List(ComponentPreset(
+          role = ComponentRole.Main,
+          materialId = kraftId,
+          inkConfiguration = InkConfiguration.cmyk4_0,
+          finishSelections = List(
+            FinishSelection(embossingId),
+            FinishSelection(foilStampingId),
+          ),
+        )),
+        specOverrides = List(
+          SpecValue.SizeSpec(Dimension(300, 200)),
+          SpecValue.QuantitySpec(Quantity.unsafe(50)),
         ),
       ),
     ),
@@ -869,7 +990,7 @@ object SampleCatalog:
     presets = List(
       CategoryPreset(
         id = PresetId.unsafe("preset-booklets-standard"),
-        name = LocalizedString("Standard", "Standardní"),
+        name = LocalizedString("Saddle Stitch", "V-vazba"),
         description = Some(LocalizedString(
           "Glossy 250gsm cover + 130gsm body, 4+4 CMYK, A4, saddle stitch, 8 pages, 100 pcs",
           "Lesklý 250g obálka + 130g tělo, 4+4 CMYK, A4, V-vazba, 8 stran, 100 ks",
@@ -892,6 +1013,34 @@ object SampleCatalog:
           SpecValue.QuantitySpec(Quantity.unsafe(100)),
           SpecValue.PagesSpec(8),
           SpecValue.BindingMethodSpec(BindingMethod.SaddleStitch),
+        ),
+      ),
+      CategoryPreset(
+        id = PresetId.unsafe("preset-booklets-perfect"),
+        name = LocalizedString("Perfect Binding", "Lepená vazba"),
+        description = Some(LocalizedString(
+          "Matte 300gsm cover + 130gsm body, 4+4 CMYK, A4, perfect binding, 48 pages, 50 pcs",
+          "Matný 300g obálka + 130g tělo, 4+4 CMYK, A4, lepená vazba, 48 stran, 50 ks",
+        )),
+        printingMethodId = digitalId,
+        componentPresets = List(
+          ComponentPreset(
+            role = ComponentRole.Cover,
+            materialId = coatedMatte300gsmId,
+            inkConfiguration = InkConfiguration.cmyk4_4,
+            finishSelections = List(FinishSelection(matteLaminationId)),
+          ),
+          ComponentPreset(
+            role = ComponentRole.Body,
+            materialId = coatedMatte130gsmId,
+            inkConfiguration = InkConfiguration.cmyk4_4,
+          ),
+        ),
+        specOverrides = List(
+          SpecValue.SizeSpec(Dimension(210, 297)),
+          SpecValue.QuantitySpec(Quantity.unsafe(50)),
+          SpecValue.PagesSpec(48),
+          SpecValue.BindingMethodSpec(BindingMethod.PerfectBinding),
         ),
       ),
     ),
@@ -922,8 +1071,8 @@ object SampleCatalog:
     )),
     presets = List(
       CategoryPreset(
-        id = PresetId.unsafe("preset-calendars-standard"),
-        name = LocalizedString("Standard", "Standardní"),
+        id = PresetId.unsafe("preset-calendars-wall"),
+        name = LocalizedString("Wall Calendar", "Nástěnný kalendář"),
         description = Some(LocalizedString(
           "Glossy 250gsm cover + 170gsm body, 4+4 CMYK, A4, wire-o, 28 pages, 50 pcs",
           "Lesklý 250g obálka + 170g tělo, 4+4 CMYK, A4, kroužková vazba, 28 stran, 50 ks",
@@ -943,6 +1092,33 @@ object SampleCatalog:
         ),
         specOverrides = List(
           SpecValue.SizeSpec(Dimension(210, 297)),
+          SpecValue.QuantitySpec(Quantity.unsafe(50)),
+          SpecValue.PagesSpec(28),
+          SpecValue.BindingMethodSpec(BindingMethod.WireOBinding),
+        ),
+      ),
+      CategoryPreset(
+        id = PresetId.unsafe("preset-calendars-desk"),
+        name = LocalizedString("Desk Calendar", "Stolní kalendář"),
+        description = Some(LocalizedString(
+          "Matte 300gsm cover + 200gsm body, 4+4 CMYK, A5, wire-o, 28 pages, 50 pcs",
+          "Matný 300g obálka + 200g tělo, 4+4 CMYK, A5, kroužková vazba, 28 stran, 50 ks",
+        )),
+        printingMethodId = digitalId,
+        componentPresets = List(
+          ComponentPreset(
+            role = ComponentRole.Cover,
+            materialId = coatedMatte300gsmId,
+            inkConfiguration = InkConfiguration.cmyk4_4,
+          ),
+          ComponentPreset(
+            role = ComponentRole.Body,
+            materialId = coatedMatte200gsmId,
+            inkConfiguration = InkConfiguration.cmyk4_4,
+          ),
+        ),
+        specOverrides = List(
+          SpecValue.SizeSpec(Dimension(148, 210)),
           SpecValue.QuantitySpec(Quantity.unsafe(50)),
           SpecValue.PagesSpec(28),
           SpecValue.BindingMethodSpec(BindingMethod.WireOBinding),
@@ -1000,6 +1176,25 @@ object SampleCatalog:
           SpecValue.QuantitySpec(Quantity.unsafe(200)),
         ),
       ),
+      CategoryPreset(
+        id = PresetId.unsafe("preset-postcards-premium"),
+        name = LocalizedString("Premium", "Prémiové"),
+        description = Some(LocalizedString(
+          "Cotton 300gsm, 4+4 CMYK, soft-touch coating, A6, 100 pcs",
+          "Bavlněný 300g, 4+4 CMYK, soft-touch lak, A6, 100 ks",
+        )),
+        printingMethodId = digitalId,
+        componentPresets = List(ComponentPreset(
+          role = ComponentRole.Main,
+          materialId = cottonId,
+          inkConfiguration = InkConfiguration.cmyk4_4,
+          finishSelections = List(FinishSelection(softTouchCoatingId)),
+        )),
+        specOverrides = List(
+          SpecValue.SizeSpec(Dimension(105, 148)),
+          SpecValue.QuantitySpec(Quantity.unsafe(100)),
+        ),
+      ),
     ),
   )
 
@@ -1034,6 +1229,43 @@ object SampleCatalog:
         specOverrides = List(
           SpecValue.SizeSpec(Dimension(50, 50)),
           SpecValue.QuantitySpec(Quantity.unsafe(500)),
+        ),
+      ),
+      CategoryPreset(
+        id = PresetId.unsafe("preset-stickers-diecut"),
+        name = LocalizedString("Die-Cut", "Výsekové"),
+        description = Some(LocalizedString(
+          "Adhesive stock, 4+0 CMYK, die-cut, 50×50 mm, 500 pcs",
+          "Samolepicí materiál, 4+0 CMYK, výsek, 50×50 mm, 500 ks",
+        )),
+        printingMethodId = digitalId,
+        componentPresets = List(ComponentPreset(
+          role = ComponentRole.Main,
+          materialId = adhesiveStockId,
+          inkConfiguration = InkConfiguration.cmyk4_0,
+          finishSelections = List(FinishSelection(dieCutId)),
+        )),
+        specOverrides = List(
+          SpecValue.SizeSpec(Dimension(50, 50)),
+          SpecValue.QuantitySpec(Quantity.unsafe(500)),
+        ),
+      ),
+      CategoryPreset(
+        id = PresetId.unsafe("preset-stickers-clear"),
+        name = LocalizedString("Clear Vinyl", "Průhledný vinyl"),
+        description = Some(LocalizedString(
+          "Clear vinyl, 4+0 CMYK, UV inkjet, 50×50 mm, 250 pcs",
+          "Průhledný vinyl, 4+0 CMYK, UV inkjet, 50×50 mm, 250 ks",
+        )),
+        printingMethodId = uvInkjetId,
+        componentPresets = List(ComponentPreset(
+          role = ComponentRole.Main,
+          materialId = clearVinylId,
+          inkConfiguration = InkConfiguration.cmyk4_0,
+        )),
+        specOverrides = List(
+          SpecValue.SizeSpec(Dimension(50, 50)),
+          SpecValue.QuantitySpec(Quantity.unsafe(250)),
         ),
       ),
     ),
