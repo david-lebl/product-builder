@@ -941,10 +941,10 @@ object SampleCatalog:
       ),
       CategoryPreset(
         id = PresetId.unsafe("preset-packaging-premium"),
-        name = LocalizedString("Premium Embossed", "Prémiové se slepotiskem"),
+        name = LocalizedString("Premium Die-Cut", "Prémiové s výsekem"),
         description = Some(LocalizedString(
-          "Kraft, 4+0 CMYK, embossing + foil stamping, 300×200 mm, 50 pcs",
-          "Kraft, 4+0 CMYK, slepotisk + ražba fólií, 300×200 mm, 50 ks",
+          "Kraft, 4+0 CMYK, die-cut + scoring, 300×200 mm, 50 pcs",
+          "Kraft, 4+0 CMYK, výsek + bigování, 300×200 mm, 50 ks",
         )),
         printingMethodId = digitalId,
         componentPresets = List(ComponentPreset(
@@ -952,8 +952,8 @@ object SampleCatalog:
           materialId = kraftId,
           inkConfiguration = InkConfiguration.cmyk4_0,
           finishSelections = List(
-            FinishSelection(embossingId),
-            FinishSelection(foilStampingId),
+            FinishSelection(dieCutId),
+            FinishSelection(scoringId),
           ),
         )),
         specOverrides = List(

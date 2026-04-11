@@ -387,8 +387,8 @@ object SampleShowcase:
         presetId = Some(PresetId.unsafe("preset-packaging-standard")),
       ),
       ProductVariation(
-        LocalizedString("Premium Embossed", "Prémiové se slepotiskem"),
-        LocalizedString("Kraft with embossing + foil stamping, 300×200 mm", "Kraft se slepotiskem + ražba fólií, 300×200 mm"),
+        LocalizedString("Premium Die-Cut", "Prémiové s výsekem"),
+        LocalizedString("Kraft with die-cut + scoring for custom shapes, 300×200 mm", "Kraft s výsekem + bigování pro vlastní tvary, 300×200 mm"),
         presetId = Some(PresetId.unsafe("preset-packaging-premium")),
       ),
     ),

@@ -167,9 +167,9 @@ object CategoryPresetSpec extends ZIOSpecDefault:
       },
     ),
 
-    suite("flyers preset — single preset")(
-      test("flyers category has exactly one preset") {
-        assertTrue(SampleCatalog.flyers.presets.size == 1)
+    suite("flyers presets")(
+      test("flyers category has three presets") {
+        assertTrue(SampleCatalog.flyers.presets.size == 3)
       },
     ),
 
