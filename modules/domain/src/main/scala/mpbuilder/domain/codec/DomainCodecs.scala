@@ -133,6 +133,29 @@ object DomainCodecs:
 
   given JsonCodec[ComponentTemplate] = DeriveJsonCodec.gen[ComponentTemplate]
 
+  // ── Finish parameters & selections (needed by presets) ───────────────
+
+  given JsonCodec[FinishParameters.RoundCornersParams] = DeriveJsonCodec.gen[FinishParameters.RoundCornersParams]
+  given JsonCodec[FinishParameters.LaminationParams] = DeriveJsonCodec.gen[FinishParameters.LaminationParams]
+  given JsonCodec[FinishParameters.FoilStampingParams] = DeriveJsonCodec.gen[FinishParameters.FoilStampingParams]
+  given JsonCodec[FinishParameters.GrommetParams] = DeriveJsonCodec.gen[FinishParameters.GrommetParams]
+  given JsonCodec[FinishParameters.PerforationParams] = DeriveJsonCodec.gen[FinishParameters.PerforationParams]
+  given JsonCodec[FinishParameters] = DeriveJsonCodec.gen[FinishParameters]
+
+  given JsonCodec[FinishSelection] = DeriveJsonCodec.gen[FinishSelection]
+
+  // ── Spec values (needed by presets) ──────────────────────────────────
+
+  given JsonCodec[SpecValue] = DeriveJsonCodec.gen[SpecValue]
+
+  // ── Preset types ─────────────────────────────────────────────────────
+
+  given JsonEncoder[PresetId] = JsonEncoder[String].contramap(_.value)
+  given JsonDecoder[PresetId] = JsonDecoder[String].map(PresetId.unsafe)
+
+  given JsonCodec[ComponentPreset] = DeriveJsonCodec.gen[ComponentPreset]
+  given JsonCodec[CategoryPreset] = DeriveJsonCodec.gen[CategoryPreset]
+
   // ── Category ─────────────────────────────────────────────────────────────
 
   given JsonCodec[ProductCategory] = DeriveJsonCodec.gen[ProductCategory]

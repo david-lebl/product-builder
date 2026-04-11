@@ -651,6 +651,48 @@ object SampleCatalog:
       "Standard and premium business cards. Choose from a wide range of papers (coated, uncoated, cotton, kraft) and finishing options including lamination, embossing, and foil stamping.",
       "Standardní a prémiové vizitky. Vyberte si z široké nabídky papírů (křídový, nenatíraný, bavlněný, kraftový) a dokončovacích úprav včetně laminace, slepotisku a ražby fólií.",
     )),
+    presets = List(
+      CategoryPreset(
+        id = PresetId.unsafe("preset-bc-basic"),
+        name = LocalizedString("Basic", "Základní"),
+        description = Some(LocalizedString(
+          "Coated 300gsm, 4+0 CMYK, 85×55 mm, 100 pcs",
+          "Křídový 300g, 4+0 CMYK, 85×55 mm, 100 ks",
+        )),
+        printingMethodId = digitalId,
+        componentPresets = List(ComponentPreset(
+          role = ComponentRole.Main,
+          materialId = coated300gsmId,
+          inkConfiguration = InkConfiguration.cmyk4_0,
+        )),
+        specOverrides = List(
+          SpecValue.SizeSpec(Dimension(85, 55)),
+          SpecValue.QuantitySpec(Quantity.unsafe(100)),
+        ),
+      ),
+      CategoryPreset(
+        id = PresetId.unsafe("preset-bc-premium"),
+        name = LocalizedString("Premium", "Prémiové"),
+        description = Some(LocalizedString(
+          "Coated 350gsm, 4+4 CMYK, matte lamination + round corners, 85×55 mm, 100 pcs",
+          "Křídový 350g, 4+4 CMYK, matná laminace + zaoblené rohy, 85×55 mm, 100 ks",
+        )),
+        printingMethodId = digitalId,
+        componentPresets = List(ComponentPreset(
+          role = ComponentRole.Main,
+          materialId = coatedMatte350gsmId,
+          inkConfiguration = InkConfiguration.cmyk4_4,
+          finishSelections = List(
+            FinishSelection(matteLaminationId),
+            FinishSelection(roundCornersId, Some(FinishParameters.RoundCornersParams(4, 3))),
+          ),
+        )),
+        specOverrides = List(
+          SpecValue.SizeSpec(Dimension(85, 55)),
+          SpecValue.QuantitySpec(Quantity.unsafe(100)),
+        ),
+      ),
+    ),
   )
 
   val flyers: ProductCategory = ProductCategory(
@@ -668,6 +710,27 @@ object SampleCatalog:
       "Single-sheet promotional flyers in various sizes. Available in a wide range of paper weights from lightweight 90gsm to sturdy 350gsm. Landscape or portrait orientation.",
       "Jednostránkové propagační letáky v různých velikostech. K dispozici v široké škále gramáží od lehkých 90g po pevné 350g. Na výšku nebo na šířku.",
     )),
+    presets = List(
+      CategoryPreset(
+        id = PresetId.unsafe("preset-flyers-standard"),
+        name = LocalizedString("Standard", "Standardní"),
+        description = Some(LocalizedString(
+          "Glossy 130gsm, 4+0 CMYK, A5, 500 pcs",
+          "Lesklý 130g, 4+0 CMYK, A5, 500 ks",
+        )),
+        printingMethodId = digitalId,
+        componentPresets = List(ComponentPreset(
+          role = ComponentRole.Main,
+          materialId = coatedGlossy130gsmId,
+          inkConfiguration = InkConfiguration.cmyk4_0,
+        )),
+        specOverrides = List(
+          SpecValue.SizeSpec(Dimension(148, 210)),
+          SpecValue.QuantitySpec(Quantity.unsafe(500)),
+          SpecValue.OrientationSpec(Orientation.Portrait),
+        ),
+      ),
+    ),
   )
 
   val brochures: ProductCategory = ProductCategory(
@@ -685,6 +748,27 @@ object SampleCatalog:
       "Folded brochures and leaflets. Choose from multiple fold types (bi-fold, tri-fold, Z-fold, gate fold). Scoring is included for clean folds on heavier stocks.",
       "Skládané brožury a letáky. Vyberte si z více typů skládání (na půl, na třetiny, Z-sklad, dvoudveřový sklad). Bigování je zahrnuto pro čisté sklady na silnějších papírech.",
     )),
+    presets = List(
+      CategoryPreset(
+        id = PresetId.unsafe("preset-brochures-standard"),
+        name = LocalizedString("Standard", "Standardní"),
+        description = Some(LocalizedString(
+          "Glossy 150gsm, 4+4 CMYK, A4 tri-fold, 250 pcs",
+          "Lesklý 150g, 4+4 CMYK, A4 na třetiny, 250 ks",
+        )),
+        printingMethodId = digitalId,
+        componentPresets = List(ComponentPreset(
+          role = ComponentRole.Main,
+          materialId = coatedGlossy150gsmId,
+          inkConfiguration = InkConfiguration.cmyk4_4,
+        )),
+        specOverrides = List(
+          SpecValue.SizeSpec(Dimension(210, 297)),
+          SpecValue.QuantitySpec(Quantity.unsafe(250)),
+          SpecValue.FoldTypeSpec(FoldType.Tri),
+        ),
+      ),
+    ),
   )
 
   val banners: ProductCategory = ProductCategory(
@@ -701,6 +785,26 @@ object SampleCatalog:
       "Large-format vinyl banners for outdoor and indoor use. Printed with UV-curable inks for weather resistance. Optional grommets for hanging and die-cutting for custom shapes.",
       "Velkoformátové vinylové bannery pro venkovní i vnitřní použití. Tištěné UV vytvrzovanými inkousty pro odolnost proti povětrnostním vlivům. Volitelné průchodky pro zavěšení a výsek pro vlastní tvary.",
     )),
+    presets = List(
+      CategoryPreset(
+        id = PresetId.unsafe("preset-banners-standard"),
+        name = LocalizedString("Standard", "Standardní"),
+        description = Some(LocalizedString(
+          "Vinyl, 4+0 CMYK, 1000×2000 mm, 1 pc",
+          "Vinyl, 4+0 CMYK, 1000×2000 mm, 1 ks",
+        )),
+        printingMethodId = uvInkjetId,
+        componentPresets = List(ComponentPreset(
+          role = ComponentRole.Main,
+          materialId = vinylId,
+          inkConfiguration = InkConfiguration.cmyk4_0,
+        )),
+        specOverrides = List(
+          SpecValue.SizeSpec(Dimension(1000, 2000)),
+          SpecValue.QuantitySpec(Quantity.unsafe(1)),
+        ),
+      ),
+    ),
   )
 
   val packaging: ProductCategory = ProductCategory(
@@ -717,6 +821,26 @@ object SampleCatalog:
       "Custom packaging boxes and wraps. Available in kraft, corrugated, and synthetic materials. Supports die-cutting for custom box shapes, scoring for fold lines, and premium finishes.",
       "Zakázkové balicí krabice a obaly. K dispozici v kraftovém, vlnitém a syntetickém materiálu. Podporuje výsek pro vlastní tvary krabic, bigování pro linie ohybu a prémiové dokončení.",
     )),
+    presets = List(
+      CategoryPreset(
+        id = PresetId.unsafe("preset-packaging-standard"),
+        name = LocalizedString("Standard", "Standardní"),
+        description = Some(LocalizedString(
+          "Kraft, 4+0 CMYK, 300×200 mm, 100 pcs",
+          "Kraft, 4+0 CMYK, 300×200 mm, 100 ks",
+        )),
+        printingMethodId = digitalId,
+        componentPresets = List(ComponentPreset(
+          role = ComponentRole.Main,
+          materialId = kraftId,
+          inkConfiguration = InkConfiguration.cmyk4_0,
+        )),
+        specOverrides = List(
+          SpecValue.SizeSpec(Dimension(300, 200)),
+          SpecValue.QuantitySpec(Quantity.unsafe(100)),
+        ),
+      ),
+    ),
   )
 
   val booklets: ProductCategory = ProductCategory(
@@ -742,6 +866,35 @@ object SampleCatalog:
       "Multi-page booklets and catalogs with separate cover and body components. Choose different materials for the cover and inner pages. Binding options include saddle stitch, perfect binding, and wire-o.",
       "Vícestránkové brožury a katalogy se samostatnou obálkou a vnitřními stranami. Vyberte různé materiály pro obálku a vnitřní strany. Možnosti vazby zahrnují V-vazbu, lepenou vazbu a kroužkovou vazbu.",
     )),
+    presets = List(
+      CategoryPreset(
+        id = PresetId.unsafe("preset-booklets-standard"),
+        name = LocalizedString("Standard", "Standardní"),
+        description = Some(LocalizedString(
+          "Glossy 250gsm cover + 130gsm body, 4+4 CMYK, A4, saddle stitch, 8 pages, 100 pcs",
+          "Lesklý 250g obálka + 130g tělo, 4+4 CMYK, A4, V-vazba, 8 stran, 100 ks",
+        )),
+        printingMethodId = digitalId,
+        componentPresets = List(
+          ComponentPreset(
+            role = ComponentRole.Cover,
+            materialId = coatedGlossy250gsmId,
+            inkConfiguration = InkConfiguration.cmyk4_4,
+          ),
+          ComponentPreset(
+            role = ComponentRole.Body,
+            materialId = coatedGlossy130gsmId,
+            inkConfiguration = InkConfiguration.cmyk4_4,
+          ),
+        ),
+        specOverrides = List(
+          SpecValue.SizeSpec(Dimension(210, 297)),
+          SpecValue.QuantitySpec(Quantity.unsafe(100)),
+          SpecValue.PagesSpec(8),
+          SpecValue.BindingMethodSpec(BindingMethod.SaddleStitch),
+        ),
+      ),
+    ),
   )
 
   val calendars: ProductCategory = ProductCategory(
@@ -767,6 +920,35 @@ object SampleCatalog:
       "Wall and desk calendars with cover and monthly pages. Separate cover and body components allow different paper choices. Wire-o binding is most common.",
       "Nástěnné a stolní kalendáře s obálkou a měsíčními stránkami. Samostatná obálka a vnitřní strany umožňují různé volby papíru. Kroužková vazba je nejběžnější.",
     )),
+    presets = List(
+      CategoryPreset(
+        id = PresetId.unsafe("preset-calendars-standard"),
+        name = LocalizedString("Standard", "Standardní"),
+        description = Some(LocalizedString(
+          "Glossy 250gsm cover + 170gsm body, 4+4 CMYK, A4, wire-o, 28 pages, 50 pcs",
+          "Lesklý 250g obálka + 170g tělo, 4+4 CMYK, A4, kroužková vazba, 28 stran, 50 ks",
+        )),
+        printingMethodId = digitalId,
+        componentPresets = List(
+          ComponentPreset(
+            role = ComponentRole.Cover,
+            materialId = coatedGlossy250gsmId,
+            inkConfiguration = InkConfiguration.cmyk4_4,
+          ),
+          ComponentPreset(
+            role = ComponentRole.Body,
+            materialId = coatedGlossy170gsmId,
+            inkConfiguration = InkConfiguration.cmyk4_4,
+          ),
+        ),
+        specOverrides = List(
+          SpecValue.SizeSpec(Dimension(210, 297)),
+          SpecValue.QuantitySpec(Quantity.unsafe(50)),
+          SpecValue.PagesSpec(28),
+          SpecValue.BindingMethodSpec(BindingMethod.WireOBinding),
+        ),
+      ),
+    ),
   )
 
   private val allMaterialIds: Set[MaterialId] = Set(
@@ -799,6 +981,26 @@ object SampleCatalog:
       "Postcards and mailers on thick card stock. Available with both offset and digital printing. Supports premium finishes for a high-end direct mail piece.",
       "Pohlednice a reklamní zásilky na silném kartonu. K dispozici s ofsetovým i digitálním tiskem. Podporuje prémiové dokončení pro vysoce kvalitní poštovní zásilky.",
     )),
+    presets = List(
+      CategoryPreset(
+        id = PresetId.unsafe("preset-postcards-standard"),
+        name = LocalizedString("Standard", "Standardní"),
+        description = Some(LocalizedString(
+          "Coated 300gsm, 4+4 CMYK, A6, 200 pcs",
+          "Křídový 300g, 4+4 CMYK, A6, 200 ks",
+        )),
+        printingMethodId = digitalId,
+        componentPresets = List(ComponentPreset(
+          role = ComponentRole.Main,
+          materialId = coated300gsmId,
+          inkConfiguration = InkConfiguration.cmyk4_4,
+        )),
+        specOverrides = List(
+          SpecValue.SizeSpec(Dimension(105, 148)),
+          SpecValue.QuantitySpec(Quantity.unsafe(200)),
+        ),
+      ),
+    ),
   )
 
   val stickers: ProductCategory = ProductCategory(
@@ -815,6 +1017,26 @@ object SampleCatalog:
       "Custom stickers and product labels on adhesive, synthetic, or clear vinyl stock. Kiss-cut for peel-off sheets or die-cut for individual shapes.",
       "Zakázkové samolepky a produktové štítky na samolepicím, syntetickém nebo průhledném vinylovém materiálu. Výsek bez podkladu pro odlepovací archy nebo výsek pro jednotlivé tvary.",
     )),
+    presets = List(
+      CategoryPreset(
+        id = PresetId.unsafe("preset-stickers-standard"),
+        name = LocalizedString("Standard", "Standardní"),
+        description = Some(LocalizedString(
+          "Adhesive stock, 4+0 CMYK, 50×50 mm, 500 pcs",
+          "Samolepicí materiál, 4+0 CMYK, 50×50 mm, 500 ks",
+        )),
+        printingMethodId = digitalId,
+        componentPresets = List(ComponentPreset(
+          role = ComponentRole.Main,
+          materialId = adhesiveStockId,
+          inkConfiguration = InkConfiguration.cmyk4_0,
+        )),
+        specOverrides = List(
+          SpecValue.SizeSpec(Dimension(50, 50)),
+          SpecValue.QuantitySpec(Quantity.unsafe(500)),
+        ),
+      ),
+    ),
   )
 
   val rollUps: ProductCategory = ProductCategory(
@@ -839,6 +1061,58 @@ object SampleCatalog:
       "Portable retractable banner displays. Includes a printed banner and optional stand (Economy or Premium). Economy stands are for single-use events; Premium stands are built for repeated trade show use.",
       "Přenosné zatažitelné bannerové displeje. Zahrnuje potištěný banner a volitelný stojan (Economy nebo Premium). Economy stojany jsou pro jednorázové akce; Premium stojany jsou postaveny pro opakované použití na veletrzích.",
     )),
+    presets = List(
+      CategoryPreset(
+        id = PresetId.unsafe("preset-rollup-economy"),
+        name = LocalizedString("Economy", "Economy"),
+        description = Some(LocalizedString(
+          "Banner film + economy stand, 4+0 CMYK, 850×2000 mm, 1 pc",
+          "Bannerová fólie + economy stojan, 4+0 CMYK, 850×2000 mm, 1 ks",
+        )),
+        printingMethodId = uvInkjetId,
+        componentPresets = List(
+          ComponentPreset(
+            role = ComponentRole.Main,
+            materialId = rollUpBannerFilmId,
+            inkConfiguration = InkConfiguration.cmyk4_0,
+          ),
+          ComponentPreset(
+            role = ComponentRole.Stand,
+            materialId = rollUpStandEconomyId,
+            inkConfiguration = InkConfiguration.noInk,
+          ),
+        ),
+        specOverrides = List(
+          SpecValue.SizeSpec(Dimension(850, 2000)),
+          SpecValue.QuantitySpec(Quantity.unsafe(1)),
+        ),
+      ),
+      CategoryPreset(
+        id = PresetId.unsafe("preset-rollup-premium"),
+        name = LocalizedString("Premium", "Premium"),
+        description = Some(LocalizedString(
+          "Banner film + premium stand, 4+0 CMYK, 850×2000 mm, 1 pc",
+          "Bannerová fólie + premium stojan, 4+0 CMYK, 850×2000 mm, 1 ks",
+        )),
+        printingMethodId = uvInkjetId,
+        componentPresets = List(
+          ComponentPreset(
+            role = ComponentRole.Main,
+            materialId = rollUpBannerFilmId,
+            inkConfiguration = InkConfiguration.cmyk4_0,
+          ),
+          ComponentPreset(
+            role = ComponentRole.Stand,
+            materialId = rollUpStandPremiumId,
+            inkConfiguration = InkConfiguration.noInk,
+          ),
+        ),
+        specOverrides = List(
+          SpecValue.SizeSpec(Dimension(850, 2000)),
+          SpecValue.QuantitySpec(Quantity.unsafe(1)),
+        ),
+      ),
+    ),
   )
 
   val free: ProductCategory = ProductCategory(

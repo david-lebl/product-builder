@@ -38,6 +38,7 @@ case class ComponentState(
 /** Application state for the product builder */
 case class BuilderState(
                          selectedCategoryId: Option[CategoryId] = None,
+                         selectedPresetId: Option[PresetId] = None,
                          componentStates: Map[ComponentRole, ComponentState] = Map.empty,
                          linkedComponents: Boolean = true,
                          selectedPrintingMethodId: Option[PrintingMethodId] = None,
@@ -104,37 +105,93 @@ object ProductBuilderViewModel:
   def allCategories: List[ProductCategory] = catalog.categories.values.toList
 
   // Update category selection — derives component states from category template
+  // If the category has presets, the default (first) preset is auto-applied.
   def selectCategory(categoryId: CategoryId): Unit = {
     val categoryOpt = catalog.categories.get(categoryId)
-    val componentStates = categoryOpt match
-      case Some(cat) =>
-        cat.components.map(ct => ct.role -> ComponentState(ct.role)).toMap
+    categoryOpt.flatMap(_.defaultPreset) match
+      case Some(preset) =>
+        applyPreset(categoryId, categoryOpt.get, preset)
       case None =>
-        Map.empty[ComponentRole, ComponentState]
+        // Fallback for categories without presets (e.g. Free Configuration)
+        val componentStates = categoryOpt match
+          case Some(cat) =>
+            cat.components.map(ct => ct.role -> ComponentState(ct.role)).toMap
+          case None =>
+            Map.empty[ComponentRole, ComponentState]
 
-    val defaultSpecs = categoryOpt match
-      case Some(cat) => defaultSpecsForCategory(cat)
-      case None      => List.empty
-    
-    val defaultPrintMethod = categoryOpt match
-      case Some(value) => defaultPrintMethodForCategory(value)
-      case None => None
+        val defaultSpecs = categoryOpt match
+          case Some(cat) => defaultSpecsForCategory(cat)
+          case None      => List.empty
+
+        val defaultPrintMethod = categoryOpt match
+          case Some(value) => defaultPrintMethodForCategory(value)
+          case None => None
+
+        stateVar.update(state =>
+          state.copy(
+            selectedCategoryId = Some(categoryId),
+            selectedPresetId = None,
+            componentStates = componentStates,
+            linkedComponents = true,
+            selectedPrintingMethodId = defaultPrintMethod,
+            specifications = defaultSpecs,
+            validationErrors = List.empty,
+            priceBreakdown = None,
+            configuration = None,
+          )
+        )
+        specResetBus.emit(defaultSpecs)
+        autoRecalculate()
+  }
+
+  /** Apply a specific preset for the given category. */
+  def selectPreset(categoryId: CategoryId, presetId: PresetId): Unit =
+    val categoryOpt = catalog.categories.get(categoryId)
+    val presetOpt = categoryOpt.flatMap(_.presetById(presetId))
+    (categoryOpt, presetOpt) match
+      case (Some(cat), Some(preset)) =>
+        applyPreset(categoryId, cat, preset)
+      case _ => ()
+
+  /** Common logic: populate BuilderState from a preset. */
+  private def applyPreset(categoryId: CategoryId, cat: ProductCategory, preset: CategoryPreset): Unit =
+    // Build component states from preset component presets
+    val presetComponentMap = preset.componentPresets.map(cp => cp.role -> cp).toMap
+    val componentStates = cat.components.map { ct =>
+      val presetComp = presetComponentMap.get(ct.role)
+      val cs = presetComp match
+        case Some(cp) =>
+          ComponentState(
+            role = ct.role,
+            selectedMaterialId = Some(cp.materialId),
+            selectedInkConfig = Some(cp.inkConfiguration),
+            selectedFinishes = cp.finishSelections.map(fs => fs.finishId -> fs.params).toMap,
+          )
+        case None =>
+          ComponentState(ct.role)
+      ct.role -> cs
+    }.toMap
+
+    // Merge specs: start with generic defaults, override with preset specs
+    val defaultSpecs = defaultSpecsForCategory(cat)
+    val overrideKinds = preset.specOverrides.map(SpecValue.specKind).toSet
+    val mergedSpecs = defaultSpecs.filterNot(s => overrideKinds.contains(SpecValue.specKind(s))) ++ preset.specOverrides
 
     stateVar.update(state =>
       state.copy(
         selectedCategoryId = Some(categoryId),
+        selectedPresetId = Some(preset.id),
         componentStates = componentStates,
         linkedComponents = true,
-        selectedPrintingMethodId = defaultPrintMethod,
-        specifications = defaultSpecs,
+        selectedPrintingMethodId = Some(preset.printingMethodId),
+        specifications = mergedSpecs,
         validationErrors = List.empty,
         priceBreakdown = None,
         configuration = None,
       )
     )
-    specResetBus.emit(defaultSpecs)
+    specResetBus.emit(mergedSpecs)
     autoRecalculate()
-  }
   
   private def defaultPrintMethodForCategory(cat: ProductCategory): Option[PrintingMethodId] =
     CatalogQueryService.availablePrintingMethods(cat.id, catalog).headOption.map(_.id)
