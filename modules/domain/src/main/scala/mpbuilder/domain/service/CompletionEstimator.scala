@@ -113,11 +113,19 @@ object CompletionEstimator:
           (position.toLong * queueState.avgProcessingTimeMinutes) / machines
     }.sum
 
-  /** Approval delay in minutes per tier. */
+  /** Approval delay in *working* minutes per tier.
+    *
+    * These are consumed by `advanceByWorkingMinutes` and therefore represent
+    * time inside working hours (10 h / day by default), not wall-clock time.
+    * Numbers are calibrated so earliest-completion lands at:
+    *   - Express:  ~next business day morning (orders before the 14:00 cutoff)
+    *   - Standard: ~2 business days later
+    *   - Economy:  ~4 business days later
+    */
   def approvalDelay(speed: ManufacturingSpeed): Long = speed match
-    case ManufacturingSpeed.Express  => 30   // 0.5h fast-tracked
-    case ManufacturingSpeed.Standard => 180  // 3h normal queue
-    case ManufacturingSpeed.Economy  => 360  // 6h batched
+    case ManufacturingSpeed.Express  => 480   // ≈ 1 working day: prioritized review + prepress
+    case ManufacturingSpeed.Standard => 1200  // ≈ 2 working days: normal prepress queue
+    case ManufacturingSpeed.Economy  => 2400  // ≈ 4 working days: batched prepress
 
   /** Buffer time in minutes per tier. */
   def bufferTime(speed: ManufacturingSpeed): Long = speed match
