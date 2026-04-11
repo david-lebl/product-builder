@@ -10,6 +10,7 @@ final case class ProductCategory(
     requiredSpecKinds: Set[SpecKind],
     allowedPrintingMethodIds: Set[PrintingMethodId],
     description: Option[LocalizedString] = None,
+    presets: List[CategoryPreset] = List.empty,
 )
 
 object ProductCategory:
@@ -25,3 +26,11 @@ object ProductCategory:
 
     def allAllowedFinishIds: Set[FinishId] =
       cat.components.flatMap(_.allowedFinishIds).toSet
+
+    /** The first preset (if any) — used as the auto-applied default. */
+    def defaultPreset: Option[CategoryPreset] =
+      cat.presets.headOption
+
+    /** Look up a preset by id. */
+    def presetById(id: PresetId): Option[CategoryPreset] =
+      cat.presets.find(_.id == id)
