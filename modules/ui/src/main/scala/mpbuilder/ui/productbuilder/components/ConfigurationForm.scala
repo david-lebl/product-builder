@@ -21,6 +21,7 @@ object ConfigurationForm:
           case Language.Cs => "1. Vyberte kategorii produktu"
         }),
         CategorySelector(),
+        PresetSelector(),
       ),
 
       // 2. Product Specifications (quantity, size, pages, orientation, fold type, binding)
