@@ -55,6 +55,20 @@ object SampleCatalog:
   val kissCutId: FinishId           = FinishId.unsafe("fin-kiss-cut")
   val overlaminationId: FinishId    = FinishId.unsafe("fin-overlamination")
 
+  // --- Promotional Finish IDs ---
+  val heatPressId: FinishId          = FinishId.unsafe("fin-heat-press")
+  val labelPrintId: FinishId         = FinishId.unsafe("fin-label-print")
+  val foldBagId: FinishId            = FinishId.unsafe("fin-fold-bag")
+  val mylarOverlayId: FinishId       = FinishId.unsafe("fin-mylar-overlay")
+  val safetyPinId: FinishId          = FinishId.unsafe("fin-safety-pin")
+  val magnetBackId: FinishId         = FinishId.unsafe("fin-magnet-back")
+  val bottleOpenerId: FinishId       = FinishId.unsafe("fin-bottle-opener")
+  val dishwasherCoatId: FinishId     = FinishId.unsafe("fin-dishwasher-coat")
+  val giftBoxId: FinishId            = FinishId.unsafe("fin-gift-box")
+  val glossyGlazeId: FinishId        = FinishId.unsafe("fin-glossy-glaze")
+  val embroideryId: FinishId         = FinishId.unsafe("fin-embroidery")
+  val reinforcedHandlesId: FinishId  = FinishId.unsafe("fin-reinforced-handles")
+
   // --- Category IDs ---
   val businessCardsId: CategoryId   = CategoryId.unsafe("cat-business-cards")
   val flyersId: CategoryId          = CategoryId.unsafe("cat-flyers")
@@ -68,16 +82,52 @@ object SampleCatalog:
   val rollUpsId: CategoryId         = CategoryId.unsafe("cat-roll-ups")
   val freeId: CategoryId            = CategoryId.unsafe("cat-free")
 
+  // --- Promotional Category IDs ---
+  val tshirtsId: CategoryId          = CategoryId.unsafe("cat-tshirts")
+  val ecoBagsId: CategoryId          = CategoryId.unsafe("cat-eco-bags")
+  val pinBadgesId: CategoryId        = CategoryId.unsafe("cat-pin-badges")
+  val cupsId: CategoryId             = CategoryId.unsafe("cat-cups")
+
   // --- Roll-Up Material IDs ---
   val rollUpBannerFilmId: MaterialId    = MaterialId.unsafe("mat-rollup-banner-film")
   val rollUpStandEconomyId: MaterialId  = MaterialId.unsafe("mat-rollup-stand-economy")
   val rollUpStandPremiumId: MaterialId  = MaterialId.unsafe("mat-rollup-stand-premium")
+
+  // --- Promotional Material IDs ---
+  // T-Shirts
+  val cottonTshirt150Id: MaterialId       = MaterialId.unsafe("mat-cotton-tshirt-150")
+  val cottonTshirt180Id: MaterialId       = MaterialId.unsafe("mat-cotton-tshirt-180")
+  val polyesterTshirtId: MaterialId       = MaterialId.unsafe("mat-polyester-tshirt")
+  val cottonPolyBlendId: MaterialId       = MaterialId.unsafe("mat-cotton-poly-blend")
+  val organicCottonTshirtId: MaterialId   = MaterialId.unsafe("mat-organic-cotton-tshirt")
+  // Eco Bags
+  val cottonCanvasBagId: MaterialId       = MaterialId.unsafe("mat-cotton-canvas-bag")
+  val organicCottonBagId: MaterialId      = MaterialId.unsafe("mat-organic-cotton-bag")
+  val recycledPetBagId: MaterialId        = MaterialId.unsafe("mat-recycled-pet-bag")
+  val juteBagId: MaterialId               = MaterialId.unsafe("mat-jute-bag")
+  val nonWovenPpBagId: MaterialId         = MaterialId.unsafe("mat-non-woven-pp-bag")
+  // Pin Badges
+  val tinplateBadgeId: MaterialId         = MaterialId.unsafe("mat-tinplate-badge")
+  val acrylicBadgeId: MaterialId          = MaterialId.unsafe("mat-acrylic-badge")
+  val woodenBadgeId: MaterialId           = MaterialId.unsafe("mat-wooden-badge")
+  // Cups & Mugs
+  val ceramicMugWhiteId: MaterialId       = MaterialId.unsafe("mat-ceramic-mug-white")
+  val ceramicMugColoredId: MaterialId     = MaterialId.unsafe("mat-ceramic-mug-colored")
+  val magicMugId: MaterialId              = MaterialId.unsafe("mat-magic-mug")
+  val stainlessTravelMugId: MaterialId    = MaterialId.unsafe("mat-stainless-travel-mug")
+  val enamelMugId: MaterialId             = MaterialId.unsafe("mat-enamel-mug")
+  val glassMugId: MaterialId              = MaterialId.unsafe("mat-glass-mug")
 
   // --- Printing Method IDs ---
   val offsetId: PrintingMethodId       = PrintingMethodId.unsafe("pm-offset")
   val digitalId: PrintingMethodId      = PrintingMethodId.unsafe("pm-digital")
   val uvInkjetId: PrintingMethodId     = PrintingMethodId.unsafe("pm-uv-inkjet")
   val letterpressId: PrintingMethodId  = PrintingMethodId.unsafe("pm-letterpress")
+
+  // --- Promotional Printing Method IDs ---
+  val screenPrintId: PrintingMethodId    = PrintingMethodId.unsafe("pm-screen-print")
+  val dtgId: PrintingMethodId            = PrintingMethodId.unsafe("pm-dtg")
+  val sublimationId: PrintingMethodId    = PrintingMethodId.unsafe("pm-sublimation")
 
   // --- Materials ---
   val coated300gsm: Material = Material(
@@ -387,6 +437,31 @@ object SampleCatalog:
     )),
   )
 
+  // --- Promotional Printing Methods ---
+  val screenPrintMethod: PrintingMethod = PrintingMethod(
+    id = screenPrintId,
+    name = LocalizedString("Screen Printing", "Sítotisk"),
+    processType = PrintingProcessType.ScreenPrint,
+    maxColorCount = Some(8),
+    description = Some(LocalizedString("Best for bulk orders with vibrant solid colors", "Nejlepší pro velké náklady se sytými plnými barvami")),
+  )
+
+  val dtgMethod: PrintingMethod = PrintingMethod(
+    id = dtgId,
+    name = LocalizedString("Direct-to-Garment (DTG)", "Přímý tisk na textil (DTG)"),
+    processType = PrintingProcessType.Digital,
+    maxColorCount = None,
+    description = Some(LocalizedString("Full-color photo prints, best for small runs", "Plnobarevný fototisk, nejlepší pro malé náklady")),
+  )
+
+  val sublimationMethod: PrintingMethod = PrintingMethod(
+    id = sublimationId,
+    name = LocalizedString("Dye Sublimation", "Sublimační tisk"),
+    processType = PrintingProcessType.Digital,
+    maxColorCount = None,
+    description = Some(LocalizedString("All-over prints on polyester and coated surfaces", "Celoplošný tisk na polyester a povrchově upravené materiály")),
+  )
+
   // --- Finishes ---
   val matteLamination: Finish = Finish(
     id = matteLaminationId,
@@ -564,6 +639,103 @@ object SampleCatalog:
     )),
   )
 
+  // --- Promotional Finishes ---
+  val heatPress: Finish = Finish(
+    id = heatPressId,
+    name = LocalizedString("Heat Press Transfer", "Přenos tepelným lisem"),
+    finishType = FinishType.Mounting,
+    side = FinishSide.Front,
+    description = Some(LocalizedString("Design transferred via heat press onto garment", "Design přenesený tepelným lisem na textil")),
+  )
+
+  val labelPrint: Finish = Finish(
+    id = labelPrintId,
+    name = LocalizedString("Label / Tag Printing", "Tisk štítků / visaček"),
+    finishType = FinishType.Numbering,
+    side = FinishSide.Back,
+    description = Some(LocalizedString("Custom labels sewn or printed on collar/hem", "Vlastní štítky všité nebo potištěné na límci/lemu")),
+  )
+
+  val foldBag: Finish = Finish(
+    id = foldBagId,
+    name = LocalizedString("Fold & Bag Packaging", "Složení a balení do sáčku"),
+    finishType = FinishType.Binding,
+    side = FinishSide.Both,
+    description = Some(LocalizedString("Individual folding and polybag packaging", "Individuální složení a balení do polyethylenového sáčku")),
+  )
+
+  val mylarOverlay: Finish = Finish(
+    id = mylarOverlayId,
+    name = LocalizedString("Mylar Film Overlay", "Mylarová fólie"),
+    finishType = FinishType.Overlamination,
+    side = FinishSide.Front,
+    description = Some(LocalizedString("Protective clear film over printed design", "Ochranná průhledná fólie přes potisk")),
+  )
+
+  val safetyPin: Finish = Finish(
+    id = safetyPinId,
+    name = LocalizedString("Safety Pin Back", "Zadní špendlík"),
+    finishType = FinishType.Mounting,
+    side = FinishSide.Back,
+    description = Some(LocalizedString("Standard safety pin mechanism", "Standardní zavírací špendlík")),
+  )
+
+  val magnetBack: Finish = Finish(
+    id = magnetBackId,
+    name = LocalizedString("Magnet Back", "Magnetické uchycení"),
+    finishType = FinishType.Mounting,
+    side = FinishSide.Back,
+    description = Some(LocalizedString("Magnetic backing instead of pin", "Magnetické uchycení místo špendlíku")),
+  )
+
+  val bottleOpener: Finish = Finish(
+    id = bottleOpenerId,
+    name = LocalizedString("Bottle Opener Back", "Otvírák na lahve"),
+    finishType = FinishType.Mounting,
+    side = FinishSide.Back,
+    description = Some(LocalizedString("Dual-purpose badge with bottle opener", "Dvojúčelový odznak s otvírákem na lahve")),
+  )
+
+  val dishwasherCoat: Finish = Finish(
+    id = dishwasherCoatId,
+    name = LocalizedString("Dishwasher-Safe Coating", "Nátěr odolný myčce"),
+    finishType = FinishType.Overlamination,
+    side = FinishSide.Both,
+    description = Some(LocalizedString("Protective coating for durability in dishwashers", "Ochranný nátěr pro odolnost v myčce")),
+  )
+
+  val giftBox: Finish = Finish(
+    id = giftBoxId,
+    name = LocalizedString("Gift Box Packaging", "Dárková krabička"),
+    finishType = FinishType.Binding,
+    side = FinishSide.Both,
+    description = Some(LocalizedString("Individual gift box for each item", "Individuální dárková krabička pro každý kus")),
+  )
+
+  val glossyGlaze: Finish = Finish(
+    id = glossyGlazeId,
+    name = LocalizedString("Glossy Ceramic Glaze", "Lesklá keramická glazura"),
+    finishType = FinishType.UVCoating,
+    side = FinishSide.Both,
+    description = Some(LocalizedString("High-gloss ceramic glaze finish", "Vysokolesklá keramická glazura")),
+  )
+
+  val embroideryFinish: Finish = Finish(
+    id = embroideryId,
+    name = LocalizedString("Embroidery", "Výšivka"),
+    finishType = FinishType.Embroidery,
+    side = FinishSide.Front,
+    description = Some(LocalizedString("Thread-based logo/design application", "Aplikace loga/designu výšivkou")),
+  )
+
+  val reinforcedHandles: Finish = Finish(
+    id = reinforcedHandlesId,
+    name = LocalizedString("Reinforced Handles", "Zpevněná ucha"),
+    finishType = FinishType.Binding,
+    side = FinishSide.Both,
+    description = Some(LocalizedString("Double-stitched handles for durability", "Dvojitě prošitá ucha pro odolnost")),
+  )
+
   // --- Roll-Up Materials ---
   val rollUpBannerFilm: Material = Material(
     id = rollUpBannerFilmId,
@@ -599,6 +771,162 @@ object SampleCatalog:
       "Professional-grade retractable banner stand. Wide base with adjustable feet for stability, tensioned top rail for a flat banner surface. Built for frequent use at trade shows and permanent displays. Lasts 100+ setups with interchangeable cassettes.",
       "Profesionální zatažitelný bannerový stojan. Široká základna s nastavitelnými nožkami pro stabilitu, napínací horní lišta pro rovný povrch banneru. Vyroben pro časté použití na veletrzích a permanentní displeje. Vydrží 100+ rozložení s vyměnitelnými kazetami.",
     )),
+  )
+
+  // --- Promotional Materials: T-Shirts ---
+  val cottonTshirt150: Material = Material(
+    id = cottonTshirt150Id,
+    name = LocalizedString("Cotton T-Shirt 150gsm", "Bavlněné tričko 150g"),
+    family = MaterialFamily.Fabric,
+    weight = Some(PaperWeight.unsafe(150)),
+    properties = Set(MaterialProperty.Recyclable),
+  )
+
+  val cottonTshirt180: Material = Material(
+    id = cottonTshirt180Id,
+    name = LocalizedString("Cotton T-Shirt 180gsm", "Bavlněné tričko 180g"),
+    family = MaterialFamily.Fabric,
+    weight = Some(PaperWeight.unsafe(180)),
+    properties = Set(MaterialProperty.Recyclable),
+  )
+
+  val polyesterTshirt: Material = Material(
+    id = polyesterTshirtId,
+    name = LocalizedString("Polyester T-Shirt", "Polyesterové tričko"),
+    family = MaterialFamily.Fabric,
+    weight = Some(PaperWeight.unsafe(140)),
+    properties = Set(MaterialProperty.WaterResistant),
+  )
+
+  val cottonPolyBlend: Material = Material(
+    id = cottonPolyBlendId,
+    name = LocalizedString("Cotton-Polyester Blend T-Shirt", "Směsové tričko bavlna-polyester"),
+    family = MaterialFamily.Fabric,
+    weight = Some(PaperWeight.unsafe(160)),
+    properties = Set(MaterialProperty.Recyclable),
+  )
+
+  val organicCottonTshirt: Material = Material(
+    id = organicCottonTshirtId,
+    name = LocalizedString("Organic Cotton T-Shirt 180gsm", "Bio bavlněné tričko 180g"),
+    family = MaterialFamily.Fabric,
+    weight = Some(PaperWeight.unsafe(180)),
+    properties = Set(MaterialProperty.Recyclable),
+  )
+
+  // --- Promotional Materials: Eco Bags ---
+  val cottonCanvasBag: Material = Material(
+    id = cottonCanvasBagId,
+    name = LocalizedString("Cotton Canvas 220gsm", "Bavlněné plátno 220g"),
+    family = MaterialFamily.Fabric,
+    weight = Some(PaperWeight.unsafe(220)),
+    properties = Set(MaterialProperty.Recyclable),
+  )
+
+  val organicCottonBag: Material = Material(
+    id = organicCottonBagId,
+    name = LocalizedString("Organic Cotton Bag 180gsm", "Bio bavlněná taška 180g"),
+    family = MaterialFamily.Fabric,
+    weight = Some(PaperWeight.unsafe(180)),
+    properties = Set(MaterialProperty.Recyclable),
+  )
+
+  val recycledPetBag: Material = Material(
+    id = recycledPetBagId,
+    name = LocalizedString("Recycled PET Bag", "Recyklovaná PET taška"),
+    family = MaterialFamily.Fabric,
+    weight = Some(PaperWeight.unsafe(150)),
+    properties = Set(MaterialProperty.Recyclable, MaterialProperty.WaterResistant),
+  )
+
+  val juteBag: Material = Material(
+    id = juteBagId,
+    name = LocalizedString("Jute / Burlap Bag", "Jutová taška"),
+    family = MaterialFamily.Fabric,
+    weight = Some(PaperWeight.unsafe(300)),
+    properties = Set(MaterialProperty.Recyclable, MaterialProperty.Textured),
+  )
+
+  val nonWovenPpBag: Material = Material(
+    id = nonWovenPpBagId,
+    name = LocalizedString("Non-Woven Polypropylene Bag", "Netkaná PP taška"),
+    family = MaterialFamily.Fabric,
+    weight = Some(PaperWeight.unsafe(80)),
+    properties = Set(MaterialProperty.WaterResistant),
+  )
+
+  // --- Promotional Materials: Pin Badges ---
+  val tinplateBadge: Material = Material(
+    id = tinplateBadgeId,
+    name = LocalizedString("Tinplate Badge Blank", "Plechový polotovar na odznak"),
+    family = MaterialFamily.Hardware,
+    weight = None,
+    properties = Set(MaterialProperty.SmoothSurface),
+  )
+
+  val acrylicBadge: Material = Material(
+    id = acrylicBadgeId,
+    name = LocalizedString("Acrylic Badge Blank", "Akrylátový polotovar na odznak"),
+    family = MaterialFamily.Hardware,
+    weight = None,
+    properties = Set(MaterialProperty.SmoothSurface, MaterialProperty.Transparent),
+  )
+
+  val woodenBadge: Material = Material(
+    id = woodenBadgeId,
+    name = LocalizedString("Wooden Badge Blank", "Dřevěný polotovar na odznak"),
+    family = MaterialFamily.Hardware,
+    weight = None,
+    properties = Set(MaterialProperty.Textured, MaterialProperty.Recyclable),
+  )
+
+  // --- Promotional Materials: Cups & Mugs ---
+  val ceramicMugWhite: Material = Material(
+    id = ceramicMugWhiteId,
+    name = LocalizedString("White Ceramic Mug 330ml", "Bílý keramický hrnek 330ml"),
+    family = MaterialFamily.Hardware,
+    weight = None,
+    properties = Set(MaterialProperty.SmoothSurface),
+  )
+
+  val ceramicMugColored: Material = Material(
+    id = ceramicMugColoredId,
+    name = LocalizedString("Colored Ceramic Mug 330ml", "Barevný keramický hrnek 330ml"),
+    family = MaterialFamily.Hardware,
+    weight = None,
+    properties = Set(MaterialProperty.SmoothSurface),
+  )
+
+  val magicMug: Material = Material(
+    id = magicMugId,
+    name = LocalizedString("Magic Color-Changing Mug 330ml", "Magický měnící hrnek 330ml"),
+    family = MaterialFamily.Hardware,
+    weight = None,
+    properties = Set(MaterialProperty.SmoothSurface),
+  )
+
+  val stainlessTravelMug: Material = Material(
+    id = stainlessTravelMugId,
+    name = LocalizedString("Stainless Steel Travel Mug 450ml", "Nerezový cestovní hrnek 450ml"),
+    family = MaterialFamily.Hardware,
+    weight = None,
+    properties = Set(MaterialProperty.SmoothSurface, MaterialProperty.WaterResistant),
+  )
+
+  val enamelMug: Material = Material(
+    id = enamelMugId,
+    name = LocalizedString("Enamel Mug 350ml", "Smaltovaný hrnek 350ml"),
+    family = MaterialFamily.Hardware,
+    weight = None,
+    properties = Set(MaterialProperty.SmoothSurface),
+  )
+
+  val glassMug: Material = Material(
+    id = glassMugId,
+    name = LocalizedString("Glass Mug 300ml", "Skleněný hrnek 300ml"),
+    family = MaterialFamily.Hardware,
+    weight = None,
+    properties = Set(MaterialProperty.SmoothSurface, MaterialProperty.Transparent),
   )
 
   // --- Reusable Material ID Sets ---
@@ -1130,6 +1458,11 @@ object SampleCatalog:
   private val allMaterialIds: Set[MaterialId] = Set(
     coated300gsmId, uncoatedBondId, kraftId, vinylId, corrugatedId,
     coatedSilk250gsmId, yupoId, adhesiveStockId, cottonId, clearVinylId,
+    // Promotional materials
+    cottonTshirt150Id, cottonTshirt180Id, polyesterTshirtId, cottonPolyBlendId, organicCottonTshirtId,
+    cottonCanvasBagId, organicCottonBagId, recycledPetBagId, juteBagId, nonWovenPpBagId,
+    tinplateBadgeId, acrylicBadgeId, woodenBadgeId,
+    ceramicMugWhiteId, ceramicMugColoredId, magicMugId, stainlessTravelMugId, enamelMugId, glassMugId,
   ) ++ allCoatedGlossyIds ++ allCoatedMatteIds
 
   private val allFinishIds: Set[FinishId] = Set(
@@ -1137,6 +1470,9 @@ object SampleCatalog:
     foilStampingId, dieCutId, varnishId, softTouchCoatingId, aqueousCoatingId,
     debossingId, scoringId, perforationId, roundCornersId, grommetsId, kissCutId,
     overlaminationId,
+    // Promotional finishes
+    heatPressId, labelPrintId, foldBagId, mylarOverlayId, safetyPinId, magnetBackId,
+    bottleOpenerId, dishwasherCoatId, giftBoxId, glossyGlazeId, embroideryId, reinforcedHandlesId,
   )
 
   val postcards: ProductCategory = ProductCategory(
@@ -1347,6 +1683,272 @@ object SampleCatalog:
     ),
   )
 
+  // --- Promotional Product Categories ---
+
+  val tshirts: ProductCategory = ProductCategory(
+    id = tshirtsId,
+    name = LocalizedString("T-Shirts", "Trička"),
+    components = List(ComponentTemplate(
+      ComponentRole.Main,
+      allowedMaterialIds = Set(cottonTshirt150Id, cottonTshirt180Id, polyesterTshirtId, cottonPolyBlendId, organicCottonTshirtId),
+      allowedFinishIds = Set(heatPressId, labelPrintId, foldBagId),
+    )),
+    requiredSpecKinds = Set(SpecKind.Size, SpecKind.Quantity),
+    allowedPrintingMethodIds = Set(screenPrintId, dtgId, sublimationId),
+    description = Some(LocalizedString(
+      "Custom printed T-shirts in cotton, polyester, and blended fabrics. Available with screen printing, DTG, and sublimation.",
+      "Trička s vlastním potiskem z bavlny, polyesteru a směsových materiálů. K dispozici v sítotisku, DTG a sublimaci.",
+    )),
+    presets = List(
+      CategoryPreset(
+        id = PresetId.unsafe("preset-tshirt-standard"),
+        name = LocalizedString("Standard Cotton", "Standardní bavlna"),
+        description = Some(LocalizedString(
+          "White cotton tee 180gsm, screen print, 50 pcs",
+          "Bílé bavlněné tričko 180g, sítotisk, 50 ks",
+        )),
+        printingMethodId = screenPrintId,
+        componentPresets = List(ComponentPreset(
+          role = ComponentRole.Main,
+          materialId = cottonTshirt180Id,
+          inkConfiguration = InkConfiguration.cmyk4_0,
+        )),
+        specOverrides = List(
+          SpecValue.QuantitySpec(Quantity.unsafe(50)),
+        ),
+      ),
+      CategoryPreset(
+        id = PresetId.unsafe("preset-tshirt-premium-dtg"),
+        name = LocalizedString("Premium DTG", "Prémiový DTG"),
+        description = Some(LocalizedString(
+          "Full-color photo print on organic cotton, 25 pcs",
+          "Plnobarevný fototisk na bio bavlnu, 25 ks",
+        )),
+        printingMethodId = dtgId,
+        componentPresets = List(ComponentPreset(
+          role = ComponentRole.Main,
+          materialId = organicCottonTshirtId,
+          inkConfiguration = InkConfiguration.cmyk4_0,
+        )),
+        specOverrides = List(
+          SpecValue.QuantitySpec(Quantity.unsafe(25)),
+        ),
+      ),
+      CategoryPreset(
+        id = PresetId.unsafe("preset-tshirt-sublimation"),
+        name = LocalizedString("Sublimation All-Over", "Sublimace celoplošná"),
+        description = Some(LocalizedString(
+          "All-over print on polyester, 100 pcs",
+          "Celoplošný potisk na polyester, 100 ks",
+        )),
+        printingMethodId = sublimationId,
+        componentPresets = List(ComponentPreset(
+          role = ComponentRole.Main,
+          materialId = polyesterTshirtId,
+          inkConfiguration = InkConfiguration.cmyk4_0,
+        )),
+        specOverrides = List(
+          SpecValue.QuantitySpec(Quantity.unsafe(100)),
+        ),
+      ),
+    ),
+  )
+
+  val ecoBags: ProductCategory = ProductCategory(
+    id = ecoBagsId,
+    name = LocalizedString("Eco Bags", "Eko tašky"),
+    components = List(ComponentTemplate(
+      ComponentRole.Main,
+      allowedMaterialIds = Set(cottonCanvasBagId, organicCottonBagId, recycledPetBagId, juteBagId, nonWovenPpBagId),
+      allowedFinishIds = Set(heatPressId, embroideryId, reinforcedHandlesId, foldBagId),
+    )),
+    requiredSpecKinds = Set(SpecKind.Size, SpecKind.Quantity),
+    allowedPrintingMethodIds = Set(screenPrintId, dtgId),
+    description = Some(LocalizedString(
+      "Sustainable branded tote bags in cotton canvas, organic cotton, recycled PET, jute, and non-woven polypropylene.",
+      "Ekologické reklamní tašky z bavlněného plátna, bio bavlny, recyklovaného PET, juty a netkané polypropylénové textilie.",
+    )),
+    presets = List(
+      CategoryPreset(
+        id = PresetId.unsafe("preset-bag-canvas"),
+        name = LocalizedString("Standard Canvas", "Standardní plátno"),
+        description = Some(LocalizedString(
+          "Natural cotton canvas, 1-color screen print, 100 pcs",
+          "Přírodní bavlněné plátno, jednobarevný sítotisk, 100 ks",
+        )),
+        printingMethodId = screenPrintId,
+        componentPresets = List(ComponentPreset(
+          role = ComponentRole.Main,
+          materialId = cottonCanvasBagId,
+          inkConfiguration = InkConfiguration(1, 0),
+        )),
+        specOverrides = List(
+          SpecValue.SizeSpec(Dimension(380, 420)),
+          SpecValue.QuantitySpec(Quantity.unsafe(100)),
+        ),
+      ),
+      CategoryPreset(
+        id = PresetId.unsafe("preset-bag-organic"),
+        name = LocalizedString("Organic Eco", "Bio eko"),
+        description = Some(LocalizedString(
+          "Organic cotton, full-color DTG print, 50 pcs",
+          "Bio bavlna, plnobarevný DTG tisk, 50 ks",
+        )),
+        printingMethodId = dtgId,
+        componentPresets = List(ComponentPreset(
+          role = ComponentRole.Main,
+          materialId = organicCottonBagId,
+          inkConfiguration = InkConfiguration.cmyk4_0,
+        )),
+        specOverrides = List(
+          SpecValue.SizeSpec(Dimension(380, 420)),
+          SpecValue.QuantitySpec(Quantity.unsafe(50)),
+        ),
+      ),
+    ),
+  )
+
+  val pinBadges: ProductCategory = ProductCategory(
+    id = pinBadgesId,
+    name = LocalizedString("Pin Badges", "Odznaky"),
+    components = List(ComponentTemplate(
+      ComponentRole.Main,
+      allowedMaterialIds = Set(tinplateBadgeId, acrylicBadgeId, woodenBadgeId),
+      allowedFinishIds = Set(mylarOverlayId, safetyPinId, magnetBackId, bottleOpenerId),
+    )),
+    requiredSpecKinds = Set(SpecKind.Size, SpecKind.Quantity),
+    allowedPrintingMethodIds = Set(digitalId, offsetId),
+    description = Some(LocalizedString(
+      "Custom pin badges in tinplate, acrylic, or wood. Available with safety pin, magnet, or bottle opener backs.",
+      "Vlastní odznaky z plechu, akrylátu nebo dřeva. K dispozici se špendlíkem, magnetem nebo otvírákem.",
+    )),
+    presets = List(
+      CategoryPreset(
+        id = PresetId.unsafe("preset-badge-standard"),
+        name = LocalizedString("Standard Round 58mm", "Standardní kulatý 58mm"),
+        description = Some(LocalizedString(
+          "58mm tinplate, digital print, safety pin, 100 pcs",
+          "58mm plech, digitální tisk, zavírací špendlík, 100 ks",
+        )),
+        printingMethodId = digitalId,
+        componentPresets = List(ComponentPreset(
+          role = ComponentRole.Main,
+          materialId = tinplateBadgeId,
+          inkConfiguration = InkConfiguration.cmyk4_0,
+        )),
+        specOverrides = List(
+          SpecValue.SizeSpec(Dimension(58, 58)),
+          SpecValue.QuantitySpec(Quantity.unsafe(100)),
+        ),
+      ),
+      CategoryPreset(
+        id = PresetId.unsafe("preset-badge-small"),
+        name = LocalizedString("Small Round 32mm", "Malý kulatý 32mm"),
+        description = Some(LocalizedString(
+          "32mm tinplate, digital print, safety pin, 200 pcs",
+          "32mm plech, digitální tisk, zavírací špendlík, 200 ks",
+        )),
+        printingMethodId = digitalId,
+        componentPresets = List(ComponentPreset(
+          role = ComponentRole.Main,
+          materialId = tinplateBadgeId,
+          inkConfiguration = InkConfiguration.cmyk4_0,
+        )),
+        specOverrides = List(
+          SpecValue.SizeSpec(Dimension(32, 32)),
+          SpecValue.QuantitySpec(Quantity.unsafe(200)),
+        ),
+      ),
+      CategoryPreset(
+        id = PresetId.unsafe("preset-badge-magnet"),
+        name = LocalizedString("Magnet Badge", "Magnetický odznak"),
+        description = Some(LocalizedString(
+          "58mm tinplate, digital print, magnet back, 50 pcs",
+          "58mm plech, digitální tisk, magnetické uchycení, 50 ks",
+        )),
+        printingMethodId = digitalId,
+        componentPresets = List(ComponentPreset(
+          role = ComponentRole.Main,
+          materialId = tinplateBadgeId,
+          inkConfiguration = InkConfiguration.cmyk4_0,
+        )),
+        specOverrides = List(
+          SpecValue.SizeSpec(Dimension(58, 58)),
+          SpecValue.QuantitySpec(Quantity.unsafe(50)),
+        ),
+      ),
+    ),
+  )
+
+  val cups: ProductCategory = ProductCategory(
+    id = cupsId,
+    name = LocalizedString("Cups & Mugs", "Hrnky a šálky"),
+    components = List(ComponentTemplate(
+      ComponentRole.Main,
+      allowedMaterialIds = Set(ceramicMugWhiteId, ceramicMugColoredId, magicMugId, stainlessTravelMugId, enamelMugId, glassMugId),
+      allowedFinishIds = Set(dishwasherCoatId, giftBoxId, glossyGlazeId),
+    )),
+    requiredSpecKinds = Set(SpecKind.Size, SpecKind.Quantity),
+    allowedPrintingMethodIds = Set(sublimationId, screenPrintId, uvInkjetId),
+    description = Some(LocalizedString(
+      "Personalized mugs and cups in ceramic, stainless steel, enamel, and glass. Available with sublimation, screen print, and UV direct print.",
+      "Personalizované hrnky a šálky z keramiky, nerezu, smaltu a skla. K dispozici se sublimací, sítotiskem a UV přímým tiskem.",
+    )),
+    presets = List(
+      CategoryPreset(
+        id = PresetId.unsafe("preset-mug-standard"),
+        name = LocalizedString("Standard White Mug", "Standardní bílý hrnek"),
+        description = Some(LocalizedString(
+          "White ceramic 330ml, sublimation, 50 pcs",
+          "Bílý keramický 330ml, sublimace, 50 ks",
+        )),
+        printingMethodId = sublimationId,
+        componentPresets = List(ComponentPreset(
+          role = ComponentRole.Main,
+          materialId = ceramicMugWhiteId,
+          inkConfiguration = InkConfiguration.cmyk4_0,
+        )),
+        specOverrides = List(
+          SpecValue.QuantitySpec(Quantity.unsafe(50)),
+        ),
+      ),
+      CategoryPreset(
+        id = PresetId.unsafe("preset-mug-gift"),
+        name = LocalizedString("Corporate Gift Set", "Firemní dárkový set"),
+        description = Some(LocalizedString(
+          "White ceramic 330ml, sublimation, gift box, 25 pcs",
+          "Bílý keramický 330ml, sublimace, dárková krabička, 25 ks",
+        )),
+        printingMethodId = sublimationId,
+        componentPresets = List(ComponentPreset(
+          role = ComponentRole.Main,
+          materialId = ceramicMugWhiteId,
+          inkConfiguration = InkConfiguration.cmyk4_0,
+        )),
+        specOverrides = List(
+          SpecValue.QuantitySpec(Quantity.unsafe(25)),
+        ),
+      ),
+      CategoryPreset(
+        id = PresetId.unsafe("preset-mug-travel"),
+        name = LocalizedString("Travel Mug", "Cestovní hrnek"),
+        description = Some(LocalizedString(
+          "Stainless 450ml, UV print, 20 pcs",
+          "Nerezový 450ml, UV tisk, 20 ks",
+        )),
+        printingMethodId = uvInkjetId,
+        componentPresets = List(ComponentPreset(
+          role = ComponentRole.Main,
+          materialId = stainlessTravelMugId,
+          inkConfiguration = InkConfiguration.cmyk4_0,
+        )),
+        specOverrides = List(
+          SpecValue.QuantitySpec(Quantity.unsafe(20)),
+        ),
+      ),
+    ),
+  )
+
   val free: ProductCategory = ProductCategory(
     id = freeId,
     name = LocalizedString("Free Configuration", "Volná konfigurace"),
@@ -1373,6 +1975,11 @@ object SampleCatalog:
       stickersId      -> stickers,
       rollUpsId       -> rollUps,
       freeId          -> free,
+      // Promotional
+      tshirtsId    -> tshirts,
+      ecoBagsId    -> ecoBags,
+      pinBadgesId  -> pinBadges,
+      cupsId       -> cups,
     ),
     materials = Map(
       coated300gsmId      -> coated300gsm,
@@ -1408,6 +2015,26 @@ object SampleCatalog:
       rollUpBannerFilmId    -> rollUpBannerFilm,
       rollUpStandEconomyId  -> rollUpStandEconomy,
       rollUpStandPremiumId  -> rollUpStandPremium,
+      // Promotional Materials
+      cottonTshirt150Id      -> cottonTshirt150,
+      cottonTshirt180Id      -> cottonTshirt180,
+      polyesterTshirtId      -> polyesterTshirt,
+      cottonPolyBlendId      -> cottonPolyBlend,
+      organicCottonTshirtId  -> organicCottonTshirt,
+      cottonCanvasBagId      -> cottonCanvasBag,
+      organicCottonBagId     -> organicCottonBag,
+      recycledPetBagId       -> recycledPetBag,
+      juteBagId              -> juteBag,
+      nonWovenPpBagId        -> nonWovenPpBag,
+      tinplateBadgeId        -> tinplateBadge,
+      acrylicBadgeId         -> acrylicBadge,
+      woodenBadgeId          -> woodenBadge,
+      ceramicMugWhiteId      -> ceramicMugWhite,
+      ceramicMugColoredId    -> ceramicMugColored,
+      magicMugId             -> magicMug,
+      stainlessTravelMugId   -> stainlessTravelMug,
+      enamelMugId            -> enamelMug,
+      glassMugId             -> glassMug,
     ),
     finishes = Map(
       matteLaminationId  -> matteLamination,
@@ -1426,11 +2053,28 @@ object SampleCatalog:
       grommetsId         -> grommets,
       kissCutId          -> kissCut,
       overlaminationId   -> overlamination,
+      // Promotional Finishes
+      heatPressId         -> heatPress,
+      labelPrintId        -> labelPrint,
+      foldBagId           -> foldBag,
+      mylarOverlayId      -> mylarOverlay,
+      safetyPinId         -> safetyPin,
+      magnetBackId        -> magnetBack,
+      bottleOpenerId      -> bottleOpener,
+      dishwasherCoatId    -> dishwasherCoat,
+      giftBoxId           -> giftBox,
+      glossyGlazeId       -> glossyGlaze,
+      embroideryId        -> embroideryFinish,
+      reinforcedHandlesId -> reinforcedHandles,
     ),
     printingMethods = Map(
       offsetId      -> offsetMethod,
       digitalId     -> digitalMethod,
       uvInkjetId    -> uvInkjetMethod,
       letterpressId -> letterpressMethod,
+      // Promotional
+      screenPrintId  -> screenPrintMethod,
+      dtgId          -> dtgMethod,
+      sublimationId  -> sublimationMethod,
     ),
   )
