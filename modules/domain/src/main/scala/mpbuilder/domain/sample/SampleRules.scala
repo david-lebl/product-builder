@@ -258,11 +258,108 @@ object SampleRules:
     ),
 
     // --- Promotional product rules ---
+
     // Embroidery not on hardware materials (can't embroider on metal/ceramic/glass)
     CompatibilityRule.MaterialFamilyFinishTypeIncompatible(
       MaterialFamily.Hardware,
       FinishType.Embroidery,
       "Embroidery cannot be applied to hardware materials (metal, ceramic, glass)",
+    ),
+
+    // --- Pin Badges: back mechanism mutual exclusion ---
+    // A badge can only have one back mechanism: safety pin, magnet, or bottle opener
+    CompatibilityRule.FinishMutuallyExclusive(
+      cat.safetyPinId,
+      cat.magnetBackId,
+      "A badge can only have one back mechanism: choose either safety pin or magnet",
+    ),
+    CompatibilityRule.FinishMutuallyExclusive(
+      cat.safetyPinId,
+      cat.bottleOpenerId,
+      "A badge can only have one back mechanism: choose either safety pin or bottle opener",
+    ),
+    CompatibilityRule.FinishMutuallyExclusive(
+      cat.magnetBackId,
+      cat.bottleOpenerId,
+      "A badge can only have one back mechanism: choose either magnet or bottle opener",
+    ),
+
+    // --- Pin Badges: wooden badges can't have mylar overlay (textured surface, poor adhesion) ---
+    CompatibilityRule.MaterialFinishIncompatible(
+      cat.woodenBadgeId,
+      cat.mylarOverlayId,
+      "Mylar overlay cannot adhere properly to textured wooden surfaces",
+    ),
+
+    // --- Pin Badges: max size 75mm (badges are small items) ---
+    CompatibilityRule.SpecConstraint(
+      cat.pinBadgesId,
+      SpecPredicate.MaxDimension(75, 75),
+      "Pin badges must not exceed 75mm in diameter/width",
+    ),
+
+    // --- Pin Badges: min order 25 units ---
+    CompatibilityRule.SpecConstraint(
+      cat.pinBadgesId,
+      SpecPredicate.MinQuantity(25),
+      "Pin badges minimum order is 25 units",
+    ),
+
+    // --- Cups: dishwasher coating and glossy glaze are mutually exclusive ---
+    CompatibilityRule.FinishMutuallyExclusive(
+      cat.dishwasherCoatId,
+      cat.glossyGlazeId,
+      "Cannot apply both dishwasher-safe coating and glossy glaze — choose one surface finish",
+    ),
+
+    // --- Cups: sublimation incompatible with non-white/non-coated mug surfaces ---
+    // Sublimation requires a white polymer-coated surface to transfer dyes
+    CompatibilityRule.MaterialFinishIncompatible(
+      cat.ceramicMugColoredId,
+      cat.glossyGlazeId,
+      "Glossy glaze is not needed on pre-colored ceramic mugs",
+    ),
+
+    // --- Cups: screen print not compatible with glass (curved, fragile) ---
+    CompatibilityRule.MaterialFinishIncompatible(
+      cat.glassMugId,
+      cat.dishwasherCoatId,
+      "Glass mugs already have a non-porous surface; dishwasher coating is not applicable",
+    ),
+
+    // --- Cups: min order 10 units ---
+    CompatibilityRule.SpecConstraint(
+      cat.cupsId,
+      SpecPredicate.MinQuantity(10),
+      "Cups & mugs minimum order is 10 units",
+    ),
+
+    // --- T-Shirts: min order 10 units ---
+    CompatibilityRule.SpecConstraint(
+      cat.tshirtsId,
+      SpecPredicate.MinQuantity(10),
+      "T-shirts minimum order is 10 units",
+    ),
+
+    // --- Eco Bags: embroidery incompatible with non-woven PP (too thin/flimsy for thread) ---
+    CompatibilityRule.MaterialFinishIncompatible(
+      cat.nonWovenPpBagId,
+      cat.embroideryId,
+      "Non-woven polypropylene is too thin for embroidery — use screen print instead",
+    ),
+
+    // --- Eco Bags: embroidery incompatible with recycled PET (synthetic weave unsuitable) ---
+    CompatibilityRule.MaterialFinishIncompatible(
+      cat.recycledPetBagId,
+      cat.embroideryId,
+      "Recycled PET fabric weave is not suitable for embroidery — use screen print instead",
+    ),
+
+    // --- Eco Bags: min order 25 units ---
+    CompatibilityRule.SpecConstraint(
+      cat.ecoBagsId,
+      SpecPredicate.MinQuantity(25),
+      "Eco bags minimum order is 25 units",
     ),
   )
 
