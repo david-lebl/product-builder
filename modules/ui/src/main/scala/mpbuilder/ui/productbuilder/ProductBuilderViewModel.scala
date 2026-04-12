@@ -224,6 +224,7 @@ object ProductBuilderViewModel:
       specs += SpecValue.BindingMethodSpec(BindingMethod.SaddleStitch)
     if kinds.contains(SpecKind.Pages) then
       specs += SpecValue.PagesSpec(8)
+    specs += SpecValue.ManufacturingSpeedSpec(ManufacturingSpeed.Standard)
     specs.result()
 
   // Update material selection for a specific component role
@@ -233,14 +234,14 @@ object ProductBuilderViewModel:
         val newStates = state.componentStates.map { case (r, c) =>
           r -> c.copy(selectedMaterialId = Some(materialId), selectedFinishes = Map.empty)
         }
-        state.copy(componentStates = newStates)
+        state.copy(componentStates = newStates, selectedPresetId = None)
       else
         val cs = state.componentStates.getOrElse(role, ComponentState(role))
         val updated = cs.copy(
           selectedMaterialId = Some(materialId),
           selectedFinishes = Map.empty, // Reset finishes when material changes
         )
-        state.copy(componentStates = state.componentStates + (role -> updated))
+        state.copy(componentStates = state.componentStates + (role -> updated), selectedPresetId = None)
     )
     autoRecalculate()
 
@@ -291,7 +292,7 @@ object ProductBuilderViewModel:
   // Update printing method
   def selectPrintingMethod(methodId: PrintingMethodId): Unit = 
     stateVar.update(state =>
-      state.copy(selectedPrintingMethodId = Some(methodId))
+      state.copy(selectedPrintingMethodId = Some(methodId), selectedPresetId = None)
     )
     autoRecalculate()
 
