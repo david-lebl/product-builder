@@ -103,6 +103,53 @@ object SamplePricelist:
         multiplier = BigDecimal("0.85"),
         queueMultiplierThresholds = List.empty,
       ),
+
+      // --- Promotional material base prices (per unit, USD) ---
+      // T-Shirts
+      PricingRule.MaterialBasePrice(SampleCatalog.cottonTshirt150Id, Money("3.20")),
+      PricingRule.MaterialBasePrice(SampleCatalog.cottonTshirt180Id, Money("3.60")),
+      PricingRule.MaterialBasePrice(SampleCatalog.polyesterTshirtId, Money("2.80")),
+      PricingRule.MaterialBasePrice(SampleCatalog.cottonPolyBlendId, Money("3.00")),
+      PricingRule.MaterialBasePrice(SampleCatalog.organicCottonTshirtId, Money("4.50")),
+      // Eco Bags
+      PricingRule.MaterialBasePrice(SampleCatalog.cottonCanvasBagId, Money("2.20")),
+      PricingRule.MaterialBasePrice(SampleCatalog.organicCottonBagId, Money("2.80")),
+      PricingRule.MaterialBasePrice(SampleCatalog.recycledPetBagId, Money("1.80")),
+      PricingRule.MaterialBasePrice(SampleCatalog.juteBagId, Money("2.50")),
+      PricingRule.MaterialBasePrice(SampleCatalog.nonWovenPpBagId, Money("0.60")),
+      // Pin Badges
+      PricingRule.MaterialBasePrice(SampleCatalog.tinplateBadgeId, Money("0.30")),
+      PricingRule.MaterialBasePrice(SampleCatalog.acrylicBadgeId, Money("0.45")),
+      PricingRule.MaterialBasePrice(SampleCatalog.woodenBadgeId, Money("0.55")),
+      // Cups & Mugs
+      PricingRule.MaterialBasePrice(SampleCatalog.ceramicMugWhiteId, Money("1.80")),
+      PricingRule.MaterialBasePrice(SampleCatalog.ceramicMugColoredId, Money("2.20")),
+      PricingRule.MaterialBasePrice(SampleCatalog.magicMugId, Money("3.50")),
+      PricingRule.MaterialBasePrice(SampleCatalog.stainlessTravelMugId, Money("5.50")),
+      PricingRule.MaterialBasePrice(SampleCatalog.enamelMugId, Money("3.00")),
+      PricingRule.MaterialBasePrice(SampleCatalog.glassMugId, Money("2.50")),
+
+      // --- Promotional finish surcharges (per unit, USD) ---
+      PricingRule.FinishSurcharge(SampleCatalog.heatPressId, Money("0.40")),
+      PricingRule.FinishSurcharge(SampleCatalog.labelPrintId, Money("0.15")),
+      PricingRule.FinishSurcharge(SampleCatalog.foldBagId, Money("0.10")),
+      PricingRule.FinishSurcharge(SampleCatalog.mylarOverlayId, Money("0.05")),
+      PricingRule.FinishSurcharge(SampleCatalog.safetyPinId, Money("0.03")),
+      PricingRule.FinishSurcharge(SampleCatalog.magnetBackId, Money("0.12")),
+      PricingRule.FinishSurcharge(SampleCatalog.bottleOpenerId, Money("0.25")),
+      PricingRule.FinishSurcharge(SampleCatalog.dishwasherCoatId, Money("0.20")),
+      PricingRule.FinishSurcharge(SampleCatalog.giftBoxId, Money("1.40")),
+      PricingRule.FinishSurcharge(SampleCatalog.glossyGlazeId, Money("0.15")),
+      PricingRule.FinishSurcharge(SampleCatalog.embroideryId, Money("0.80")),
+      PricingRule.FinishSurcharge(SampleCatalog.reinforcedHandlesId, Money("0.10")),
+
+      // --- Promotional category surcharges (per unit, USD) ---
+      PricingRule.CategorySurcharge(SampleCatalog.tshirtsId, Money("0.60")),
+      PricingRule.CategorySurcharge(SampleCatalog.ecoBagsId, Money("0.30")),
+      PricingRule.CategorySurcharge(SampleCatalog.cupsId, Money("0.50")),
+
+      // --- Promotional printing process surcharges ---
+      PricingRule.PrintingProcessSurcharge(PrintingProcessType.ScreenPrint, Money("0.15")),
     ),
     currency = Currency.USD,
     version = "1.1.0",
@@ -272,6 +319,61 @@ object SamplePricelist:
 
       // --- Minimum order price ---
       PricingRule.MinimumOrderPrice(Money("500")),
+
+      // --- Promotional material base prices (per unit, CZK) ---
+      // T-Shirts
+      PricingRule.MaterialBasePrice(SampleCatalog.cottonTshirt150Id, Money("75")),
+      PricingRule.MaterialBasePrice(SampleCatalog.cottonTshirt180Id, Money("85")),
+      PricingRule.MaterialBasePrice(SampleCatalog.polyesterTshirtId, Money("65")),
+      PricingRule.MaterialBasePrice(SampleCatalog.cottonPolyBlendId, Money("70")),
+      PricingRule.MaterialBasePrice(SampleCatalog.organicCottonTshirtId, Money("105")),
+      // Eco Bags
+      PricingRule.MaterialBasePrice(SampleCatalog.cottonCanvasBagId, Money("52")),
+      PricingRule.MaterialBasePrice(SampleCatalog.organicCottonBagId, Money("65")),
+      PricingRule.MaterialBasePrice(SampleCatalog.recycledPetBagId, Money("42")),
+      PricingRule.MaterialBasePrice(SampleCatalog.juteBagId, Money("58")),
+      PricingRule.MaterialBasePrice(SampleCatalog.nonWovenPpBagId, Money("14")),
+      // Pin Badges
+      PricingRule.MaterialBasePrice(SampleCatalog.tinplateBadgeId, Money("8")),
+      PricingRule.MaterialBasePrice(SampleCatalog.acrylicBadgeId, Money("11")),
+      PricingRule.MaterialBasePrice(SampleCatalog.woodenBadgeId, Money("13")),
+      // Cups & Mugs
+      PricingRule.MaterialBasePrice(SampleCatalog.ceramicMugWhiteId, Money("45")),
+      PricingRule.MaterialBasePrice(SampleCatalog.ceramicMugColoredId, Money("52")),
+      PricingRule.MaterialBasePrice(SampleCatalog.magicMugId, Money("82")),
+      PricingRule.MaterialBasePrice(SampleCatalog.stainlessTravelMugId, Money("130")),
+      PricingRule.MaterialBasePrice(SampleCatalog.enamelMugId, Money("70")),
+      PricingRule.MaterialBasePrice(SampleCatalog.glassMugId, Money("58")),
+
+      // --- Promotional finish surcharges (per unit, CZK) ---
+      PricingRule.FinishSurcharge(SampleCatalog.heatPressId, Money("10")),
+      PricingRule.FinishSurcharge(SampleCatalog.labelPrintId, Money("4")),
+      PricingRule.FinishSurcharge(SampleCatalog.foldBagId, Money("3")),
+      PricingRule.FinishSurcharge(SampleCatalog.mylarOverlayId, Money("1.50")),
+      PricingRule.FinishSurcharge(SampleCatalog.safetyPinId, Money("1")),
+      PricingRule.FinishSurcharge(SampleCatalog.magnetBackId, Money("3")),
+      PricingRule.FinishSurcharge(SampleCatalog.bottleOpenerId, Money("6")),
+      PricingRule.FinishSurcharge(SampleCatalog.dishwasherCoatId, Money("5")),
+      PricingRule.FinishSurcharge(SampleCatalog.giftBoxId, Money("35")),
+      PricingRule.FinishSurcharge(SampleCatalog.glossyGlazeId, Money("4")),
+      PricingRule.FinishSurcharge(SampleCatalog.embroideryId, Money("20")),
+      PricingRule.FinishSurcharge(SampleCatalog.reinforcedHandlesId, Money("3")),
+
+      // --- Promotional category surcharges (per unit, CZK) ---
+      PricingRule.CategorySurcharge(SampleCatalog.tshirtsId, Money("15")),
+      PricingRule.CategorySurcharge(SampleCatalog.ecoBagsId, Money("8")),
+      PricingRule.CategorySurcharge(SampleCatalog.cupsId, Money("12")),
+
+      // --- Promotional printing process surcharges (CZK) ---
+      PricingRule.PrintingProcessSurcharge(PrintingProcessType.ScreenPrint, Money("4")),
+
+      // --- Promotional finish setup fees (one-time, CZK) ---
+      PricingRule.FinishSetupFee(SampleCatalog.heatPressId, Money("200")),
+      PricingRule.FinishSetupFee(SampleCatalog.embroideryId, Money("500")),
+      PricingRule.FinishTypeSetupFee(FinishType.Embroidery, Money("500")),
+
+      // --- Promotional minimum order price ---
+      PricingRule.MinimumOrderPrice(Money("2000")),
     ),
     currency = Currency.CZK,
     version = "1.0.0-czk",
@@ -542,6 +644,58 @@ object SamplePricelist:
 
       // --- Minimum order price ---
       PricingRule.MinimumOrderPrice(Money("500")),
+
+      // --- Promotional material base prices (per unit, CZK — not sheet-fed) ---
+      // T-Shirts
+      PricingRule.MaterialBasePrice(SampleCatalog.cottonTshirt150Id, Money("75")),
+      PricingRule.MaterialBasePrice(SampleCatalog.cottonTshirt180Id, Money("85")),
+      PricingRule.MaterialBasePrice(SampleCatalog.polyesterTshirtId, Money("65")),
+      PricingRule.MaterialBasePrice(SampleCatalog.cottonPolyBlendId, Money("70")),
+      PricingRule.MaterialBasePrice(SampleCatalog.organicCottonTshirtId, Money("105")),
+      // Eco Bags
+      PricingRule.MaterialBasePrice(SampleCatalog.cottonCanvasBagId, Money("52")),
+      PricingRule.MaterialBasePrice(SampleCatalog.organicCottonBagId, Money("65")),
+      PricingRule.MaterialBasePrice(SampleCatalog.recycledPetBagId, Money("42")),
+      PricingRule.MaterialBasePrice(SampleCatalog.juteBagId, Money("58")),
+      PricingRule.MaterialBasePrice(SampleCatalog.nonWovenPpBagId, Money("14")),
+      // Pin Badges
+      PricingRule.MaterialBasePrice(SampleCatalog.tinplateBadgeId, Money("8")),
+      PricingRule.MaterialBasePrice(SampleCatalog.acrylicBadgeId, Money("11")),
+      PricingRule.MaterialBasePrice(SampleCatalog.woodenBadgeId, Money("13")),
+      // Cups & Mugs
+      PricingRule.MaterialBasePrice(SampleCatalog.ceramicMugWhiteId, Money("45")),
+      PricingRule.MaterialBasePrice(SampleCatalog.ceramicMugColoredId, Money("52")),
+      PricingRule.MaterialBasePrice(SampleCatalog.magicMugId, Money("82")),
+      PricingRule.MaterialBasePrice(SampleCatalog.stainlessTravelMugId, Money("130")),
+      PricingRule.MaterialBasePrice(SampleCatalog.enamelMugId, Money("70")),
+      PricingRule.MaterialBasePrice(SampleCatalog.glassMugId, Money("58")),
+
+      // --- Promotional finish surcharges (per unit, CZK — sheet pricelist) ---
+      PricingRule.FinishSurcharge(SampleCatalog.heatPressId, Money("10")),
+      PricingRule.FinishSurcharge(SampleCatalog.labelPrintId, Money("4")),
+      PricingRule.FinishSurcharge(SampleCatalog.foldBagId, Money("3")),
+      PricingRule.FinishSurcharge(SampleCatalog.mylarOverlayId, Money("1.50")),
+      PricingRule.FinishSurcharge(SampleCatalog.safetyPinId, Money("1")),
+      PricingRule.FinishSurcharge(SampleCatalog.magnetBackId, Money("3")),
+      PricingRule.FinishSurcharge(SampleCatalog.bottleOpenerId, Money("6")),
+      PricingRule.FinishSurcharge(SampleCatalog.dishwasherCoatId, Money("5")),
+      PricingRule.FinishSurcharge(SampleCatalog.giftBoxId, Money("35")),
+      PricingRule.FinishSurcharge(SampleCatalog.glossyGlazeId, Money("4")),
+      PricingRule.FinishSurcharge(SampleCatalog.embroideryId, Money("20")),
+      PricingRule.FinishSurcharge(SampleCatalog.reinforcedHandlesId, Money("3")),
+
+      // --- Promotional category surcharges (per unit, CZK — sheet pricelist) ---
+      PricingRule.CategorySurcharge(SampleCatalog.tshirtsId, Money("15")),
+      PricingRule.CategorySurcharge(SampleCatalog.ecoBagsId, Money("8")),
+      PricingRule.CategorySurcharge(SampleCatalog.cupsId, Money("12")),
+
+      // --- Promotional printing process surcharges (CZK — sheet pricelist) ---
+      PricingRule.PrintingProcessSurcharge(PrintingProcessType.ScreenPrint, Money("4")),
+
+      // --- Promotional finish setup fees (one-time, CZK — sheet pricelist) ---
+      PricingRule.FinishSetupFee(SampleCatalog.heatPressId, Money("200")),
+      PricingRule.FinishSetupFee(SampleCatalog.embroideryId, Money("500")),
+      PricingRule.FinishTypeSetupFee(FinishType.Embroidery, Money("500")),
     ),
     currency = Currency.CZK,
     version = "1.0.0-czk-sheet",

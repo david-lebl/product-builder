@@ -8,6 +8,7 @@ enum FinishType:
   case Embossing, Debossing, FoilStamping, Thermography, EdgePainting
   case DieCut, ContourCut, KissCut, Scoring, Perforation, RoundCorners, Drilling, Numbering, Binding, Mounting
   case Grommets, Hem
+  case Embroidery
 
 object FinishType:
   extension (ft: FinishType) def finishCategory: FinishCategory = ft match
@@ -19,6 +20,8 @@ object FinishType:
       FinishCategory.Structural
     case Grommets | Hem =>
       FinishCategory.LargeFormat
+    case Embroidery =>
+      FinishCategory.Decorative
 
 enum FinishSide:
   case Front, Back, Both

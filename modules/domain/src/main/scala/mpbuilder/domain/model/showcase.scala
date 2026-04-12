@@ -10,6 +10,7 @@ enum CatalogGroup:
   case LargeFormat // Wide-format printed products (banners, roll-ups, etc.)
   case Bound       // Multi-page bound products (booklets, calendars, etc.)
   case Specialty   // Specialty products (packaging, stickers & labels, etc.)
+  case Promotional // Branded merchandise (T-shirts, bags, mugs, badges, etc.)
 
 /** A variation of a showcase product (e.g. "Standard" vs "Folded" business cards).
   *

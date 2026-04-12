@@ -229,6 +229,22 @@ object RuleEvaluator:
             else Validation.unit
           case _ => Validation.unit
 
+      case SpecPredicate.SquareDimension() =>
+        specs.get(SpecKind.Size) match
+          case Some(SpecValue.SizeSpec(dim)) =>
+            if dim.widthMm != dim.heightMm then
+              Validation.fail(ConfigurationError.SpecConstraintViolation(categoryId, predicate, reason))
+            else Validation.unit
+          case _ => Validation.unit
+
+      case SpecPredicate.AllowedDimensions(sizes) =>
+        specs.get(SpecKind.Size) match
+          case Some(SpecValue.SizeSpec(dim)) =>
+            if !sizes.contains((dim.widthMm, dim.heightMm)) then
+              Validation.fail(ConfigurationError.SpecConstraintViolation(categoryId, predicate, reason))
+            else Validation.unit
+          case _ => Validation.unit
+
   def evaluateConfigurationPredicate(
       predicate: ConfigurationPredicate,
       components: List[ProductComponent],

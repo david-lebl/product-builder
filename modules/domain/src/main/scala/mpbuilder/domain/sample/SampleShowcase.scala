@@ -445,6 +445,215 @@ object SampleShowcase:
     sortOrder = 31,
   )
 
+  // ─── Promotional Products ────────────────────────────────────────────
+
+  val tshirts: ShowcaseProduct = ShowcaseProduct(
+    categoryId = SampleCatalog.tshirtsId,
+    group = CatalogGroup.Promotional,
+    tagline = LocalizedString(
+      "Custom branded T-shirts for every occasion",
+      "Trička s vlastním potiskem na každou příležitost",
+    ),
+    detailedDescription = LocalizedString(
+      "High-quality custom T-shirts in cotton, polyester, and blended fabrics ranging from 140 to 180 gsm. " +
+        "Choose from screen printing for bold solid colors, DTG for full-color photo prints, " +
+        "or sublimation for all-over designs on polyester. Available with heat press transfer, " +
+        "custom label printing, and individual fold & bag packaging.",
+      "Vysoce kvalitní trička s vlastním potiskem z bavlny, polyesteru a směsových materiálů o gramáži 140 až 180 g/m². " +
+        "Vyberte si sítotisk pro výrazné plné barvy, DTG pro plnobarevný fototisk " +
+        "nebo sublimaci pro celoplošné designy na polyesteru. K dispozici s přenosem tepelným lisem, " +
+        "tiskem vlastních štítků a individuálním balením do sáčku.",
+    ),
+    imageUrl = "https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=600&h=400&fit=crop",
+    galleryImageUrls = List(
+      "https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=800&h=600&fit=crop",
+      "https://images.unsplash.com/photo-1562157873-818bc0726f68?w=800&h=600&fit=crop",
+    ),
+    variations = List(
+      ProductVariation(
+        LocalizedString("Standard Cotton", "Standardní bavlna"),
+        LocalizedString("Cotton 180gsm, screen print, 50 pcs", "Bavlna 180g, sítotisk, 50 ks"),
+        presetId = Some(PresetId.unsafe("preset-tshirt-standard")),
+      ),
+      ProductVariation(
+        LocalizedString("Premium DTG", "Prémiový DTG"),
+        LocalizedString("Organic cotton 180gsm, DTG full-color, 25 pcs", "Bio bavlna 180g, DTG plnobarevný, 25 ks"),
+        presetId = Some(PresetId.unsafe("preset-tshirt-premium-dtg")),
+      ),
+      ProductVariation(
+        LocalizedString("Sublimation All-Over", "Sublimace celoplošná"),
+        LocalizedString("Polyester, sublimation all-over print, 100 pcs", "Polyester, celoplošný sublimační potisk, 100 ks"),
+        presetId = Some(PresetId.unsafe("preset-tshirt-sublimation")),
+      ),
+    ),
+    features = List(
+      ProductFeature("👕", LocalizedString("Multiple Fabrics", "Více materiálů"), LocalizedString("Cotton, polyester, organic, and blends from 140-180gsm", "Bavlna, polyester, bio a směsi od 140 do 180 g/m²")),
+      ProductFeature("🎨", LocalizedString("3 Print Methods", "3 tiskové metody"), LocalizedString("Screen print, DTG, and sublimation", "Sítotisk, DTG a sublimace")),
+      ProductFeature("📦", LocalizedString("Packaging Options", "Možnosti balení"), LocalizedString("Heat press, label printing, fold & bag", "Tepelný lis, tisk štítků, složení a balení")),
+      ProductFeature("💰", LocalizedString("Bulk Pricing", "Množstevní slevy"), LocalizedString("Volume discounts for large orders", "Množstevní slevy pro velké objednávky")),
+    ),
+    instructions = Some(LocalizedString(
+      "1. Choose your fabric type and weight  2. Select your print method (screen, DTG, sublimation)  " +
+        "3. Set size and quantity  4. Upload your artwork  5. Select finishing options and approve",
+      "1. Vyberte typ a gramáž materiálu  2. Zvolte tiskovou metodu (sítotisk, DTG, sublimace)  " +
+        "3. Nastavte velikost a počet kusů  4. Nahrajte svůj návrh  5. Zvolte úpravy a schvalte",
+    )),
+    popularFinishes = List("Screen Printing", "DTG Full Color", "Sublimation"),
+    turnaroundDays = Some("5-7"),
+    sortOrder = 40,
+  )
+
+  val ecoBags: ShowcaseProduct = ShowcaseProduct(
+    categoryId = SampleCatalog.ecoBagsId,
+    group = CatalogGroup.Promotional,
+    tagline = LocalizedString(
+      "Sustainable branded bags that carry your message",
+      "Ekologické tašky s vlastním potiskem",
+    ),
+    detailedDescription = LocalizedString(
+      "Eco-friendly tote bags crafted from cotton canvas, organic cotton, recycled PET, jute, " +
+        "and non-woven polypropylene. Perfect for events, retail, and corporate gifts. " +
+        "Available with screen printing for bold logos or DTG for full-color designs. " +
+        "Add embroidery for a premium touch or reinforced handles for extra durability.",
+      "Ekologické tašky z bavlněného plátna, bio bavlny, recyklovaného PET, juty " +
+        "a netkané polypropylénové textilie. Ideální pro akce, retail a firemní dárky. " +
+        "K dispozici se sítotiskem pro výrazná loga nebo DTG pro plnobarevné designy. " +
+        "Přidejte výšivku pro prémiový dojem nebo zpevněná ucha pro extra odolnost.",
+    ),
+    imageUrl = "https://images.unsplash.com/photo-1772890753145-089cd7618a8e?w=600&h=400&fit=crop",
+    galleryImageUrls = List(
+      "https://images.unsplash.com/photo-1772890753145-089cd7618a8e?w=600&h=400&fit=crop",
+      "https://images.unsplash.com/photo-1772890753143-bf12df009a51?w=800&h=600&fit=crop",
+    ),
+    variations = List(
+      ProductVariation(
+        LocalizedString("Standard Canvas", "Standardní plátno"),
+        LocalizedString("Cotton canvas 220gsm, 1-color screen print, 100 pcs", "Bavlněné plátno 220g, jednobarevný sítotisk, 100 ks"),
+        presetId = Some(PresetId.unsafe("preset-bag-canvas")),
+      ),
+      ProductVariation(
+        LocalizedString("Organic Eco", "Bio eko"),
+        LocalizedString("Organic cotton, full-color DTG, 50 pcs", "Bio bavlna, plnobarevný DTG, 50 ks"),
+        presetId = Some(PresetId.unsafe("preset-bag-organic")),
+      ),
+    ),
+    features = List(
+      ProductFeature("♻️", LocalizedString("Eco Materials", "Eko materiály"), LocalizedString("Organic cotton, recycled PET, jute", "Bio bavlna, recyklovaný PET, juta")),
+      ProductFeature("🧵", LocalizedString("Embroidery Available", "Výšivka k dispozici"), LocalizedString("Thread-based logos for premium feel", "Vyšívané logo pro prémiový dojem")),
+      ProductFeature("💪", LocalizedString("Durable Construction", "Odolná konstrukce"), LocalizedString("Reinforced handles and quality stitching", "Zpevněná ucha a kvalitní prošití")),
+    ),
+    instructions = Some(LocalizedString(
+      "1. Choose your bag material  2. Select print method (screen print or DTG)  " +
+        "3. Set size and quantity  4. Upload your design  5. Add finishing options and confirm",
+      "1. Vyberte materiál tašky  2. Zvolte tiskovou metodu (sítotisk nebo DTG)  " +
+        "3. Nastavte velikost a počet kusů  4. Nahrajte svůj design  5. Přidejte úpravy a potvrďte",
+    )),
+    popularFinishes = List("Screen Printing", "Heat Transfer", "Embroidery"),
+    turnaroundDays = Some("7-10"),
+    sortOrder = 41,
+  )
+
+  val pinBadges: ShowcaseProduct = ShowcaseProduct(
+    categoryId = SampleCatalog.pinBadgesId,
+    group = CatalogGroup.Promotional,
+    tagline = LocalizedString(
+      "Custom pin badges for events, brands, and campaigns",
+      "Vlastní odznaky pro akce, značky a kampaně",
+    ),
+    detailedDescription = LocalizedString(
+      "Custom pin badges available in tinplate, acrylic, and wood. Full-color digital or offset printing " +
+        "with protective mylar overlay. Choose from safety pin, magnet, or bottle opener backs. " +
+        "Available in 32mm and 58mm standard sizes. Perfect for events, promotions, and brand merchandise.",
+      "Vlastní odznaky z plechu, akrylátu a dřeva. Plnobarevný digitální nebo ofsetový tisk " +
+        "s ochrannou mylarovou fólií. Vyberte si ze zavíracího špendlíku, magnetu nebo otvíráku na lahve. " +
+        "K dispozici ve standardních velikostech 32mm a 58mm. Ideální pro akce, propagaci a merchandising.",
+    ),
+    imageUrl = "https://images.unsplash.com/photo-1521249692263-e0659c60326e?w=600&h=400&fit=crop",
+    galleryImageUrls = List(
+      "https://images.unsplash.com/photo-1521249692263-e0659c60326e?w=600&h=400&fit=crop",
+    ),
+    variations = List(
+      ProductVariation(
+        LocalizedString("Standard Round 58mm", "Standardní kulatý 58mm"),
+        LocalizedString("Tinplate, digital print, safety pin, 100 pcs", "Plech, digitální tisk, špendlík, 100 ks"),
+        presetId = Some(PresetId.unsafe("preset-badge-standard")),
+      ),
+      ProductVariation(
+        LocalizedString("Small Round 32mm", "Malý kulatý 32mm"),
+        LocalizedString("Tinplate, digital print, safety pin, 200 pcs", "Plech, digitální tisk, špendlík, 200 ks"),
+        presetId = Some(PresetId.unsafe("preset-badge-small")),
+      ),
+      ProductVariation(
+        LocalizedString("Magnet Badge", "Magnetický odznak"),
+        LocalizedString("Tinplate, digital print, magnet back, 50 pcs", "Plech, digitální tisk, magnet, 50 ks"),
+        presetId = Some(PresetId.unsafe("preset-badge-magnet")),
+      ),
+    ),
+    features = List(
+      ProductFeature("🏅", LocalizedString("Multiple Materials", "Více materiálů"), LocalizedString("Tinplate, acrylic, and wooden blanks", "Plech, akrylát a dřevo")),
+      ProductFeature("🔒", LocalizedString("Back Options", "Volba uchycení"), LocalizedString("Safety pin, magnet, or bottle opener", "Špendlík, magnet nebo otvírák")),
+      ProductFeature("⚡", LocalizedString("Quick Turnaround", "Rychlá výroba"), LocalizedString("3-5 day production for standard orders", "3-5 dní výroba pro standardní objednávky")),
+    ),
+    popularFinishes = List("Mylar Overlay", "Safety Pin", "Magnet Back"),
+    turnaroundDays = Some("3-5"),
+    sortOrder = 42,
+  )
+
+  val cups: ShowcaseProduct = ShowcaseProduct(
+    categoryId = SampleCatalog.cupsId,
+    group = CatalogGroup.Promotional,
+    tagline = LocalizedString(
+      "Personalized mugs and cups for gifts and branding",
+      "Personalizované hrnky a šálky pro dárky a branding",
+    ),
+    detailedDescription = LocalizedString(
+      "Personalized mugs and cups in ceramic, stainless steel, enamel, and glass. " +
+        "White ceramic mugs with sublimation for vivid wrap-around prints, colored mugs with UV direct print, " +
+        "and stainless steel travel mugs for on-the-go branding. Add dishwasher-safe coating, " +
+        "glossy ceramic glaze, or individual gift box packaging for a premium presentation.",
+      "Personalizované hrnky a šálky z keramiky, nerezové oceli, smaltu a skla. " +
+        "Bílé keramické hrnky se sublimací pro živé celoplošné potisky, barevné hrnky s UV přímým tiskem " +
+        "a nerezové cestovní hrnky pro branding na cestách. Přidejte nátěr odolný myčce, " +
+        "lesklou keramickou glazuru nebo individuální dárkovou krabičku pro prémiovou prezentaci.",
+    ),
+    imageUrl = "https://images.unsplash.com/photo-1514228742587-6b1558fcca3d?w=600&h=400&fit=crop",
+    galleryImageUrls = List(
+      "https://images.unsplash.com/photo-1514228742587-6b1558fcca3d?w=800&h=600&fit=crop",
+      "https://images.unsplash.com/photo-1577937927133-66ef06acdf18?w=800&h=600&fit=crop",
+    ),
+    variations = List(
+      ProductVariation(
+        LocalizedString("Standard White Mug", "Standardní bílý hrnek"),
+        LocalizedString("White ceramic 330ml, sublimation, 50 pcs", "Bílý keramický 330ml, sublimace, 50 ks"),
+        presetId = Some(PresetId.unsafe("preset-mug-standard")),
+      ),
+      ProductVariation(
+        LocalizedString("Corporate Gift Set", "Firemní dárkový set"),
+        LocalizedString("White ceramic 330ml, sublimation, gift box, 25 pcs", "Bílý keramický 330ml, sublimace, dárková krabička, 25 ks"),
+        presetId = Some(PresetId.unsafe("preset-mug-gift")),
+      ),
+      ProductVariation(
+        LocalizedString("Travel Mug", "Cestovní hrnek"),
+        LocalizedString("Stainless 450ml, UV print, 20 pcs", "Nerezový 450ml, UV tisk, 20 ks"),
+        presetId = Some(PresetId.unsafe("preset-mug-travel")),
+      ),
+    ),
+    features = List(
+      ProductFeature("☕", LocalizedString("6 Material Options", "6 materiálů"), LocalizedString("Ceramic, stainless steel, enamel, glass, magic mug", "Keramika, nerez, smalt, sklo, magický hrnek")),
+      ProductFeature("🎨", LocalizedString("Full-Color Printing", "Plnobarevný tisk"), LocalizedString("Sublimation, screen print, UV direct print", "Sublimace, sítotisk, UV přímý tisk")),
+      ProductFeature("🎁", LocalizedString("Gift Packaging", "Dárkové balení"), LocalizedString("Individual gift boxes available", "Individuální dárkové krabičky k dispozici")),
+    ),
+    instructions = Some(LocalizedString(
+      "1. Choose your mug type and material  2. Select print method (sublimation, screen, UV)  " +
+        "3. Set quantity  4. Upload your artwork  5. Add finishing options (coating, gift box) and confirm",
+      "1. Vyberte typ hrnku a materiál  2. Zvolte tiskovou metodu (sublimace, sítotisk, UV)  " +
+        "3. Nastavte počet kusů  4. Nahrajte svůj návrh  5. Přidejte úpravy (nátěr, dárková krabička) a potvrďte",
+    )),
+    popularFinishes = List("Sublimation Wrap-Around", "UV Direct Print", "Gift Box"),
+    turnaroundDays = Some("5-7"),
+    sortOrder = 43,
+  )
+
   // ─── All products ─────────────────────────────────────────────────────
 
   val allProducts: List[ShowcaseProduct] = List(
@@ -458,6 +667,10 @@ object SampleShowcase:
     rollUps,
     packaging,
     stickers,
+    tshirts,
+    ecoBags,
+    pinBadges,
+    cups,
   ).sortBy(_.sortOrder)
 
   /** Products grouped by catalog group, in display order. */

@@ -51,6 +51,7 @@ object ProductCatalogApp:
         groupFilterButton(Some(CatalogGroup.Bound), lang),
         groupFilterButton(Some(CatalogGroup.LargeFormat), lang),
         groupFilterButton(Some(CatalogGroup.Specialty), lang),
+        groupFilterButton(Some(CatalogGroup.Promotional), lang),
       ),
 
       // Product grid
@@ -116,6 +117,9 @@ object ProductCatalogApp:
     case Some(CatalogGroup.Specialty) => lang match
       case Language.En => "Specialty"
       case Language.Cs => "Speciální"
+    case Some(CatalogGroup.Promotional) => lang match
+      case Language.En => "Promotional"
+      case Language.Cs => "Reklamní"
 
   private def groupBadgeLabel(group: CatalogGroup, lang: Language): String = group match
     case CatalogGroup.Sheet => lang match
@@ -130,6 +134,9 @@ object ProductCatalogApp:
     case CatalogGroup.Specialty => lang match
       case Language.En => "Specialty"
       case Language.Cs => "Speciální"
+    case CatalogGroup.Promotional => lang match
+      case Language.En => "Promo"
+      case Language.Cs => "Reklamní"
 
   /** A single product card in the catalog grid. */
   private def productCard(product: ShowcaseProduct, lang: Language): HtmlElement =

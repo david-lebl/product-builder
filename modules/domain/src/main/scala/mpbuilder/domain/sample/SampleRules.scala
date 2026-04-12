@@ -256,6 +256,166 @@ object SampleRules:
       ),
       "Saddle stitch binding on heavy paper (>=300gsm) is limited to 80 pages",
     ),
+
+    // --- Promotional product rules ---
+
+    // Embroidery not on hardware materials (can't embroider on metal/ceramic/glass)
+    CompatibilityRule.MaterialFamilyFinishTypeIncompatible(
+      MaterialFamily.Hardware,
+      FinishType.Embroidery,
+      "Embroidery cannot be applied to hardware materials (metal, ceramic, glass)",
+    ),
+
+    // --- Pin Badges: back mechanism mutual exclusion ---
+    // A badge can only have one back mechanism: safety pin, magnet, or bottle opener
+    CompatibilityRule.FinishMutuallyExclusive(
+      cat.safetyPinId,
+      cat.magnetBackId,
+      "A badge can only have one back mechanism: choose either safety pin or magnet",
+    ),
+    CompatibilityRule.FinishMutuallyExclusive(
+      cat.safetyPinId,
+      cat.bottleOpenerId,
+      "A badge can only have one back mechanism: choose either safety pin or bottle opener",
+    ),
+    CompatibilityRule.FinishMutuallyExclusive(
+      cat.magnetBackId,
+      cat.bottleOpenerId,
+      "A badge can only have one back mechanism: choose either magnet or bottle opener",
+    ),
+
+    // --- Pin Badges: wooden badges can't have mylar overlay (textured surface, poor adhesion) ---
+    CompatibilityRule.MaterialFinishIncompatible(
+      cat.woodenBadgeId,
+      cat.mylarOverlayId,
+      "Mylar overlay cannot adhere properly to textured wooden surfaces",
+    ),
+
+    // --- Pin Badges: max size 75mm (badges are small items) ---
+    CompatibilityRule.SpecConstraint(
+      cat.pinBadgesId,
+      SpecPredicate.MaxDimension(75, 75),
+      "Pin badges must not exceed 75mm in diameter/width",
+    ),
+
+    // --- Pin Badges: must be square (round badge = equal width/height) ---
+    CompatibilityRule.SpecConstraint(
+      cat.pinBadgesId,
+      SpecPredicate.SquareDimension(),
+      "Pin badges must be square (equal width and height) — they are round or square stock items",
+    ),
+
+    // --- Pin Badges: only predefined stock sizes (32mm or 58mm) ---
+    CompatibilityRule.SpecConstraint(
+      cat.pinBadgesId,
+      SpecPredicate.AllowedDimensions(Set((32.0, 32.0), (58.0, 58.0))),
+      "Pin badges are stock items — only 32×32mm or 58×58mm sizes are available",
+    ),
+
+    // --- Pin Badges: min order 25 units ---
+    CompatibilityRule.SpecConstraint(
+      cat.pinBadgesId,
+      SpecPredicate.MinQuantity(25),
+      "Pin badges minimum order is 25 units",
+    ),
+
+    // --- Cups: dishwasher coating and glossy glaze are mutually exclusive ---
+    CompatibilityRule.FinishMutuallyExclusive(
+      cat.dishwasherCoatId,
+      cat.glossyGlazeId,
+      "Cannot apply both dishwasher-safe coating and glossy glaze — choose one surface finish",
+    ),
+
+    // --- Cups: glossy glaze not needed on pre-colored mugs ---
+    CompatibilityRule.MaterialFinishIncompatible(
+      cat.ceramicMugColoredId,
+      cat.glossyGlazeId,
+      "Glossy glaze is not needed on pre-colored ceramic mugs",
+    ),
+
+    // --- Cups: glass mugs don't need dishwasher coating (non-porous surface) ---
+    CompatibilityRule.MaterialFinishIncompatible(
+      cat.glassMugId,
+      cat.dishwasherCoatId,
+      "Glass mugs already have a non-porous surface; dishwasher coating is not applicable",
+    ),
+
+    // --- Cups: min order 10 units ---
+    CompatibilityRule.SpecConstraint(
+      cat.cupsId,
+      SpecPredicate.MinQuantity(10),
+      "Cups & mugs minimum order is 10 units",
+    ),
+
+    // --- Cups: print area min 30x20mm ---
+    CompatibilityRule.SpecConstraint(
+      cat.cupsId,
+      SpecPredicate.MinDimension(30, 20),
+      "Mug print area must be at least 30×20mm",
+    ),
+
+    // --- Cups: print area max 200x90mm (standard mug wrap area) ---
+    CompatibilityRule.SpecConstraint(
+      cat.cupsId,
+      SpecPredicate.MaxDimension(200, 90),
+      "Mug print area must not exceed 200×90mm",
+    ),
+
+    // --- T-Shirts: min order 10 units ---
+    CompatibilityRule.SpecConstraint(
+      cat.tshirtsId,
+      SpecPredicate.MinQuantity(10),
+      "T-shirts minimum order is 10 units",
+    ),
+
+    // --- T-Shirts: print area min 50x50mm ---
+    CompatibilityRule.SpecConstraint(
+      cat.tshirtsId,
+      SpecPredicate.MinDimension(50, 50),
+      "T-shirt print area must be at least 50×50mm",
+    ),
+
+    // --- T-Shirts: print area max 350x400mm (chest/back print) ---
+    CompatibilityRule.SpecConstraint(
+      cat.tshirtsId,
+      SpecPredicate.MaxDimension(350, 400),
+      "T-shirt print area must not exceed 350×400mm",
+    ),
+
+    // --- Eco Bags: embroidery incompatible with non-woven PP (too thin/flimsy for thread) ---
+    CompatibilityRule.MaterialFinishIncompatible(
+      cat.nonWovenPpBagId,
+      cat.embroideryId,
+      "Non-woven polypropylene is too thin for embroidery — use screen print instead",
+    ),
+
+    // --- Eco Bags: embroidery incompatible with recycled PET (synthetic weave unsuitable) ---
+    CompatibilityRule.MaterialFinishIncompatible(
+      cat.recycledPetBagId,
+      cat.embroideryId,
+      "Recycled PET fabric weave is not suitable for embroidery — use screen print instead",
+    ),
+
+    // --- Eco Bags: min order 25 units ---
+    CompatibilityRule.SpecConstraint(
+      cat.ecoBagsId,
+      SpecPredicate.MinQuantity(25),
+      "Eco bags minimum order is 25 units",
+    ),
+
+    // --- Eco Bags: print area min 50x50mm ---
+    CompatibilityRule.SpecConstraint(
+      cat.ecoBagsId,
+      SpecPredicate.MinDimension(50, 50),
+      "Eco bag print area must be at least 50×50mm",
+    ),
+
+    // --- Eco Bags: print area max 300x300mm ---
+    CompatibilityRule.SpecConstraint(
+      cat.ecoBagsId,
+      SpecPredicate.MaxDimension(300, 300),
+      "Eco bag print area must not exceed 300×300mm",
+    ),
   )
 
   val ruleset: CompatibilityRuleset = CompatibilityRuleset(
