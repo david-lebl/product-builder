@@ -178,37 +178,6 @@ object SpecificationForm:
         ),
       ),
 
-      // Print area hint for promotional product categories
-      div(
-        cls := "form-group",
-        Visibility.when(ProductBuilderViewModel.state.map { s =>
-          val promoCats = Set(SampleCatalog.tshirtsId, SampleCatalog.ecoBagsId, SampleCatalog.cupsId)
-          s.selectedCategoryId.exists(promoCats.contains)
-        }),
-        small(
-          styleAttr := "color: #666; font-style: italic;",
-          child.text <-- lang.map {
-            case Language.En => "ℹ️ Dimensions above specify the print area size, not the product itself."
-            case Language.Cs => "ℹ️ Rozměry výše určují velikost tiskové plochy, nikoli samotného produktu."
-          },
-        ),
-      ),
-
-      // Badge stock sizes hint
-      div(
-        cls := "form-group",
-        Visibility.when(ProductBuilderViewModel.state.map { s =>
-          s.selectedCategoryId.contains(SampleCatalog.pinBadgesId)
-        }),
-        small(
-          styleAttr := "color: #666; font-style: italic;",
-          child.text <-- lang.map {
-            case Language.En => "ℹ️ Badges are stock items — only 32×32mm or 58×58mm sizes are available."
-            case Language.Cs => "ℹ️ Odznaky jsou skladové položky — k dispozici jsou pouze velikosti 32×32mm nebo 58×58mm."
-          },
-        ),
-      ),
-
       // Pages (for multi-page products)
       div(
         cls := "form-group",
