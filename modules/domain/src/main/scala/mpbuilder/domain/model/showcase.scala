@@ -24,6 +24,18 @@ final case class ProductVariation(
     presetId: Option[PresetId] = None,
 )
 
+/** An educational guide section displayed on the product detail page.
+  *
+  * Each section provides in-depth information aimed at newcomers — e.g.
+  * explaining binding types, paper choices, finishing options, or how to
+  * prepare artwork.
+  */
+final case class GuideSection(
+    title: LocalizedString,
+    body: LocalizedString,
+    imageUrl: Option[String] = None,
+)
+
 /** A highlight / key feature shown on the product detail page. */
 final case class ProductFeature(
     icon: String,
@@ -48,6 +60,7 @@ final case class ShowcaseProduct(
     variations: List[ProductVariation] = List.empty,
     features: List[ProductFeature] = List.empty,
     instructions: Option[LocalizedString] = None,
+    guideSections: List[GuideSection] = List.empty,
     popularFinishes: List[String] = List.empty,
     turnaroundDays: Option[String] = None,
     sortOrder: Int = 0,

@@ -358,6 +358,35 @@ object ProductCatalogApp:
         )
       }.getOrElse(emptyNode),
 
+      // Product guide — in-depth educational sections
+      if product.guideSections.nonEmpty then
+        div(
+          cls := "product-detail-section product-guide-section",
+          h2(child.text <-- lang.map {
+            case Language.En => "Product Guide"
+            case Language.Cs => "Průvodce produktem"
+          }),
+          div(
+            cls := "product-guide-grid",
+            product.guideSections.map { section =>
+              div(
+                cls := "product-guide-card",
+                section.imageUrl.map { url =>
+                  img(
+                    cls := "product-guide-card-image",
+                    src := url,
+                    alt <-- lang.map(l => section.title(l)),
+                    lazyLoading := "lazy",
+                  )
+                }.getOrElse(emptyNode),
+                h3(child.text <-- lang.map(l => section.title(l))),
+                p(child.text <-- lang.map(l => section.body(l))),
+              )
+            },
+          ),
+        )
+      else emptyNode,
+
       // Materials info (from catalog)
       category.map { cat =>
         val materials = cat.allAllowedMaterialIds.flatMap(id => catalog.materials.get(id)).toList

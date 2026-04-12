@@ -476,6 +476,48 @@
     gap: var(--space-sm);
 }
 
+/* ─── Product Guide Cards ─────────────────────────────────────────────── */
+
+.product-guide-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: var(--space-lg);
+}
+
+.product-guide-card {
+    background: white;
+    border: 1px solid #e5e7eb;
+    border-radius: var(--border-radius-md);
+    padding: var(--space-lg);
+    transition: box-shadow 0.2s ease;
+}
+
+.product-guide-card:hover {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+.product-guide-card-image {
+    width: 100%;
+    aspect-ratio: 16 / 9;
+    object-fit: cover;
+    border-radius: var(--border-radius-sm);
+    margin-bottom: var(--space-md);
+}
+
+.product-guide-card h3 {
+    font-size: 1.05rem;
+    font-weight: 600;
+    margin: 0 0 var(--space-sm);
+    color: var(--color-text);
+}
+
+.product-guide-card p {
+    font-size: 0.9rem;
+    color: var(--color-text-muted);
+    margin: 0;
+    line-height: 1.7;
+}
+
 .material-chip {
     padding: var(--space-xs) var(--space-md);
     background: #eff6ff;
@@ -520,7 +562,8 @@
     }
 
     .product-features-grid,
-    .product-variations-grid {
+    .product-variations-grid,
+    .product-guide-grid {
         grid-template-columns: 1fr;
     }
 }
