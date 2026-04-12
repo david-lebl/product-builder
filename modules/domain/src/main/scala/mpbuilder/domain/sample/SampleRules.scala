@@ -298,6 +298,20 @@ object SampleRules:
       "Pin badges must not exceed 75mm in diameter/width",
     ),
 
+    // --- Pin Badges: must be square (round badge = equal width/height) ---
+    CompatibilityRule.SpecConstraint(
+      cat.pinBadgesId,
+      SpecPredicate.SquareDimension(),
+      "Pin badges must be square (equal width and height) — they are round or square stock items",
+    ),
+
+    // --- Pin Badges: only predefined stock sizes (32mm or 58mm) ---
+    CompatibilityRule.SpecConstraint(
+      cat.pinBadgesId,
+      SpecPredicate.AllowedDimensions(Set((32.0, 32.0), (58.0, 58.0))),
+      "Pin badges are stock items — only 32×32mm or 58×58mm sizes are available",
+    ),
+
     // --- Pin Badges: min order 25 units ---
     CompatibilityRule.SpecConstraint(
       cat.pinBadgesId,
@@ -333,11 +347,39 @@ object SampleRules:
       "Cups & mugs minimum order is 10 units",
     ),
 
+    // --- Cups: print area min 30x20mm ---
+    CompatibilityRule.SpecConstraint(
+      cat.cupsId,
+      SpecPredicate.MinDimension(30, 20),
+      "Mug print area must be at least 30×20mm",
+    ),
+
+    // --- Cups: print area max 200x90mm (standard mug wrap area) ---
+    CompatibilityRule.SpecConstraint(
+      cat.cupsId,
+      SpecPredicate.MaxDimension(200, 90),
+      "Mug print area must not exceed 200×90mm",
+    ),
+
     // --- T-Shirts: min order 10 units ---
     CompatibilityRule.SpecConstraint(
       cat.tshirtsId,
       SpecPredicate.MinQuantity(10),
       "T-shirts minimum order is 10 units",
+    ),
+
+    // --- T-Shirts: print area min 50x50mm ---
+    CompatibilityRule.SpecConstraint(
+      cat.tshirtsId,
+      SpecPredicate.MinDimension(50, 50),
+      "T-shirt print area must be at least 50×50mm",
+    ),
+
+    // --- T-Shirts: print area max 350x400mm (chest/back print) ---
+    CompatibilityRule.SpecConstraint(
+      cat.tshirtsId,
+      SpecPredicate.MaxDimension(350, 400),
+      "T-shirt print area must not exceed 350×400mm",
     ),
 
     // --- Eco Bags: embroidery incompatible with non-woven PP (too thin/flimsy for thread) ---
@@ -359,6 +401,20 @@ object SampleRules:
       cat.ecoBagsId,
       SpecPredicate.MinQuantity(25),
       "Eco bags minimum order is 25 units",
+    ),
+
+    // --- Eco Bags: print area min 50x50mm ---
+    CompatibilityRule.SpecConstraint(
+      cat.ecoBagsId,
+      SpecPredicate.MinDimension(50, 50),
+      "Eco bag print area must be at least 50×50mm",
+    ),
+
+    // --- Eco Bags: print area max 300x300mm ---
+    CompatibilityRule.SpecConstraint(
+      cat.ecoBagsId,
+      SpecPredicate.MaxDimension(300, 300),
+      "Eco bag print area must not exceed 300×300mm",
     ),
   )
 

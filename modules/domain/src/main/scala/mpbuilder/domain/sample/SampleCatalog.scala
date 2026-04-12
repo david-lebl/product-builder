@@ -1696,8 +1696,8 @@ object SampleCatalog:
     requiredSpecKinds = Set(SpecKind.Size, SpecKind.Quantity),
     allowedPrintingMethodIds = Set(screenPrintId, dtgId, sublimationId),
     description = Some(LocalizedString(
-      "Custom printed T-shirts in cotton, polyester, and blended fabrics. Available with screen printing, DTG, and sublimation.",
-      "Trička s vlastním potiskem z bavlny, polyesteru a směsových materiálů. K dispozici v sítotisku, DTG a sublimaci.",
+      "Custom printed T-shirts in cotton, polyester, and blended fabrics. Available with screen printing, DTG, and sublimation. Dimensions specify the print area size.",
+      "Trička s vlastním potiskem z bavlny, polyesteru a směsových materiálů. K dispozici v sítotisku, DTG a sublimaci. Rozměry určují velikost tiskové plochy.",
     )),
     presets = List(
       CategoryPreset(
@@ -1712,8 +1712,10 @@ object SampleCatalog:
           role = ComponentRole.Main,
           materialId = cottonTshirt180Id,
           inkConfiguration = InkConfiguration.cmyk4_0,
+          finishSelections = List(FinishSelection(foldBagId)),
         )),
         specOverrides = List(
+          SpecValue.SizeSpec(Dimension(300, 350)),
           SpecValue.QuantitySpec(Quantity.unsafe(50)),
         ),
       ),
@@ -1729,8 +1731,10 @@ object SampleCatalog:
           role = ComponentRole.Main,
           materialId = organicCottonTshirtId,
           inkConfiguration = InkConfiguration.cmyk4_0,
+          finishSelections = List(FinishSelection(foldBagId)),
         )),
         specOverrides = List(
+          SpecValue.SizeSpec(Dimension(300, 350)),
           SpecValue.QuantitySpec(Quantity.unsafe(25)),
         ),
       ),
@@ -1746,8 +1750,10 @@ object SampleCatalog:
           role = ComponentRole.Main,
           materialId = polyesterTshirtId,
           inkConfiguration = InkConfiguration.cmyk4_0,
+          finishSelections = List(FinishSelection(foldBagId)),
         )),
         specOverrides = List(
+          SpecValue.SizeSpec(Dimension(350, 400)),
           SpecValue.QuantitySpec(Quantity.unsafe(100)),
         ),
       ),
@@ -1765,8 +1771,8 @@ object SampleCatalog:
     requiredSpecKinds = Set(SpecKind.Size, SpecKind.Quantity),
     allowedPrintingMethodIds = Set(screenPrintId, dtgId),
     description = Some(LocalizedString(
-      "Sustainable branded tote bags in cotton canvas, organic cotton, recycled PET, jute, and non-woven polypropylene.",
-      "Ekologické reklamní tašky z bavlněného plátna, bio bavlny, recyklovaného PET, juty a netkané polypropylénové textilie.",
+      "Sustainable branded tote bags in cotton canvas, organic cotton, recycled PET, jute, and non-woven polypropylene. Dimensions specify the print area size.",
+      "Ekologické reklamní tašky z bavlněného plátna, bio bavlny, recyklovaného PET, juty a netkané polypropylénové textilie. Rozměry určují velikost tiskové plochy.",
     )),
     presets = List(
       CategoryPreset(
@@ -1781,9 +1787,10 @@ object SampleCatalog:
           role = ComponentRole.Main,
           materialId = cottonCanvasBagId,
           inkConfiguration = InkConfiguration.mono1_0,
+          finishSelections = List(FinishSelection(reinforcedHandlesId)),
         )),
         specOverrides = List(
-          SpecValue.SizeSpec(Dimension(380, 420)),
+          SpecValue.SizeSpec(Dimension(250, 250)),
           SpecValue.QuantitySpec(Quantity.unsafe(100)),
         ),
       ),
@@ -1801,7 +1808,7 @@ object SampleCatalog:
           inkConfiguration = InkConfiguration.cmyk4_0,
         )),
         specOverrides = List(
-          SpecValue.SizeSpec(Dimension(380, 420)),
+          SpecValue.SizeSpec(Dimension(250, 250)),
           SpecValue.QuantitySpec(Quantity.unsafe(50)),
         ),
       ),
@@ -1819,8 +1826,8 @@ object SampleCatalog:
     requiredSpecKinds = Set(SpecKind.Size, SpecKind.Quantity),
     allowedPrintingMethodIds = Set(digitalId, offsetId),
     description = Some(LocalizedString(
-      "Custom pin badges in tinplate, acrylic, or wood. Available with safety pin, magnet, or bottle opener backs.",
-      "Vlastní odznaky z plechu, akrylátu nebo dřeva. K dispozici se špendlíkem, magnetem nebo otvírákem.",
+      "Custom pin badges in tinplate, acrylic, or wood. Available with safety pin, magnet, or bottle opener backs. Dimensions specify badge diameter — only stock sizes (32mm, 58mm) are available.",
+      "Vlastní odznaky z plechu, akrylátu nebo dřeva. K dispozici se špendlíkem, magnetem nebo otvírákem. Rozměry udávají průměr odznaku — pouze skladové velikosti (32mm, 58mm).",
     )),
     presets = List(
       CategoryPreset(
@@ -1835,6 +1842,7 @@ object SampleCatalog:
           role = ComponentRole.Main,
           materialId = tinplateBadgeId,
           inkConfiguration = InkConfiguration.cmyk4_0,
+          finishSelections = List(FinishSelection(safetyPinId)),
         )),
         specOverrides = List(
           SpecValue.SizeSpec(Dimension(58, 58)),
@@ -1853,6 +1861,7 @@ object SampleCatalog:
           role = ComponentRole.Main,
           materialId = tinplateBadgeId,
           inkConfiguration = InkConfiguration.cmyk4_0,
+          finishSelections = List(FinishSelection(safetyPinId)),
         )),
         specOverrides = List(
           SpecValue.SizeSpec(Dimension(32, 32)),
@@ -1871,6 +1880,7 @@ object SampleCatalog:
           role = ComponentRole.Main,
           materialId = tinplateBadgeId,
           inkConfiguration = InkConfiguration.cmyk4_0,
+          finishSelections = List(FinishSelection(magnetBackId)),
         )),
         specOverrides = List(
           SpecValue.SizeSpec(Dimension(58, 58)),
@@ -1891,8 +1901,8 @@ object SampleCatalog:
     requiredSpecKinds = Set(SpecKind.Size, SpecKind.Quantity),
     allowedPrintingMethodIds = Set(sublimationId, screenPrintId, uvInkjetId),
     description = Some(LocalizedString(
-      "Personalized mugs and cups in ceramic, stainless steel, enamel, and glass. Available with sublimation, screen print, and UV direct print.",
-      "Personalizované hrnky a šálky z keramiky, nerezu, smaltu a skla. K dispozici se sublimací, sítotiskem a UV přímým tiskem.",
+      "Personalized mugs and cups in ceramic, stainless steel, enamel, and glass. Available with sublimation, screen print, and UV direct print. Dimensions specify the print area size.",
+      "Personalizované hrnky a šálky z keramiky, nerezu, smaltu a skla. K dispozici se sublimací, sítotiskem a UV přímým tiskem. Rozměry určují velikost tiskové plochy.",
     )),
     presets = List(
       CategoryPreset(
@@ -1909,6 +1919,7 @@ object SampleCatalog:
           inkConfiguration = InkConfiguration.cmyk4_0,
         )),
         specOverrides = List(
+          SpecValue.SizeSpec(Dimension(190, 80)),
           SpecValue.QuantitySpec(Quantity.unsafe(50)),
         ),
       ),
@@ -1924,8 +1935,10 @@ object SampleCatalog:
           role = ComponentRole.Main,
           materialId = ceramicMugWhiteId,
           inkConfiguration = InkConfiguration.cmyk4_0,
+          finishSelections = List(FinishSelection(giftBoxId)),
         )),
         specOverrides = List(
+          SpecValue.SizeSpec(Dimension(190, 80)),
           SpecValue.QuantitySpec(Quantity.unsafe(25)),
         ),
       ),
@@ -1943,6 +1956,7 @@ object SampleCatalog:
           inkConfiguration = InkConfiguration.cmyk4_0,
         )),
         specOverrides = List(
+          SpecValue.SizeSpec(Dimension(180, 60)),
           SpecValue.QuantitySpec(Quantity.unsafe(20)),
         ),
       ),

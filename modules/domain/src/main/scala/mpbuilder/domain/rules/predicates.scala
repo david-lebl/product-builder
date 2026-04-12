@@ -12,6 +12,8 @@ enum SpecPredicate:
   case MinPages(min: Int)
   case MaxPages(max: Int)
   case PagesDivisibleBy(n: Int)
+  case SquareDimension()
+  case AllowedDimensions(sizes: Set[(Double, Double)])
 
 enum ConfigurationPredicate:
   case Spec(predicate: SpecPredicate)
