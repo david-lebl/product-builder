@@ -312,15 +312,14 @@ object SampleRules:
       "Cannot apply both dishwasher-safe coating and glossy glaze — choose one surface finish",
     ),
 
-    // --- Cups: sublimation incompatible with non-white/non-coated mug surfaces ---
-    // Sublimation requires a white polymer-coated surface to transfer dyes
+    // --- Cups: glossy glaze not needed on pre-colored mugs ---
     CompatibilityRule.MaterialFinishIncompatible(
       cat.ceramicMugColoredId,
       cat.glossyGlazeId,
       "Glossy glaze is not needed on pre-colored ceramic mugs",
     ),
 
-    // --- Cups: screen print not compatible with glass (curved, fragile) ---
+    // --- Cups: glass mugs don't need dishwasher coating (non-porous surface) ---
     CompatibilityRule.MaterialFinishIncompatible(
       cat.glassMugId,
       cat.dishwasherCoatId,
