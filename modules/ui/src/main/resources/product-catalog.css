@@ -266,6 +266,14 @@
     margin: 0;
 }
 
+.product-detail-description p {
+    margin: 0 0 0.75em 0;
+}
+
+.product-detail-description p:last-child {
+    margin-bottom: 0;
+}
+
 .product-detail-turnaround {
     display: flex;
     align-items: center;

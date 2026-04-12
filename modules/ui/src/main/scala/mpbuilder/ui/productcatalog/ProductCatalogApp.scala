@@ -257,7 +257,14 @@ object ProductCatalogApp:
           ),
           h1(child.text <-- lang.map(l => name(l))),
           p(cls := "product-detail-tagline", child.text <-- lang.map(l => product.tagline(l))),
-          p(cls := "product-detail-description", child.text <-- lang.map(l => product.detailedDescription(l))),
+          div(
+            cls := "product-detail-description",
+            children <-- lang.map { l =>
+              val text = product.detailedDescription(l)
+              val paragraphs = text.split("\n\n").toList.filter(_.nonEmpty)
+              paragraphs.map(para => p(para))
+            },
+          ),
 
           // Turnaround info
           product.turnaroundDays.map { days =>
