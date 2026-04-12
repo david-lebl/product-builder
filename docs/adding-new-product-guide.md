@@ -255,7 +255,7 @@ PricingRule.FinishSetupFee(newFinishId, Money("50"))
 
 ### 3.4 Manufacturing Speed Surcharges
 
-If the product supports express manufacturing, add speed surcharge rules. These **must be present in ALL pricelists** or the price calculator returns `None` for speed surcharges.
+> ⚠️ **Critical**: Speed surcharge rules **must be present in ALL 3 pricelists** (USD, CZK, CZK Sheet). The UI uses `pricelistCzkSheet`. If speed rules are missing from any pricelist, `PriceCalculator` returns `None` for speed surcharges and the price won't reflect the selected speed — a silent failure.
 
 ### 3.5 Minimum Order Price (optional)
 
@@ -343,7 +343,7 @@ The `WorkflowGenerator` automatically maps `PrintingProcessType` to `StationType
 | UVCurableInkjet | LargeFormatPrinter | ✅ Already mapped |
 | Letterpress | Letterpress | ✅ Already mapped |
 
-**Action needed**: If screen printing for T-shirts/mugs requires a separate station type, the `StationType` enum and `WorkflowGenerator.printingStationFor` need updating. Currently, `ScreenPrint` maps to `DigitalPrinter`, which is not semantically correct for garment printing.
+**Action required**: `ScreenPrint` currently maps to `DigitalPrinter`, which is semantically incorrect for garment/promotional printing. When adding T-shirts, bags, or mugs that use screen printing, the `StationType` enum and `WorkflowGenerator.printingStationFor` **must** be updated to map `ScreenPrint` to a dedicated `ScreenPrinter` station type. Without this fix, manufacturing workflows will route screen-print jobs to the wrong station queue.
 
 ### 5.2 New Station Types (optional)
 
@@ -658,7 +658,7 @@ The following existing tests will validate new products without modification:
 - [ ] Add `FinishSurcharge` for each new finish in all pricelists
 - [ ] Add `FinishSetupFee` for each new finish in all pricelists
 - [ ] Add `CategorySurcharge` if applicable
-- [ ] Add `ManufacturingSpeedSurcharge` rules if express is supported (all pricelists!)
+- [ ] Add `ManufacturingSpeedSurcharge` rules if express is supported — **required in ALL 3 pricelists** (USD, CZK, CZK Sheet); missing from any pricelist causes price calculation to return `None`
 - [ ] Add `MinimumOrderPrice` if applicable
 
 ### Compatibility Rules

@@ -72,8 +72,8 @@ This keeps the catalog UI tab-based filtering clean and separates merchandise fr
 | Method ID | Name | Process Type | Max Colors | Notes |
 |-----------|------|-------------|------------|-------|
 | `pm-screen-print` | Screen Printing | ScreenPrint | 8 | Best for bulk orders, vibrant solid colors |
-| `pm-dtg` | Direct-to-Garment (DTG) | Digital | Unlimited | Full-color photo prints, best for small runs |
-| `pm-sublimation` | Dye Sublimation | Digital | Unlimited | Polyester only, all-over prints |
+| `pm-dtg` | Direct-to-Garment (DTG) | Digital | Unlimited (full CMYK) | Full-color photo prints, best for small runs |
+| `pm-sublimation` | Dye Sublimation | Digital | Unlimited (full CMYK) | Polyester only, all-over prints |
 
 ### Presets
 
@@ -436,8 +436,8 @@ No new `MaterialFamily` variants are required, though `Ceramic`, `Metal`, and `P
 | ID | Name | Process Type | Max Colors | Products |
 |----|------|-------------|------------|----------|
 | `pm-screen-print` | Screen Printing | ScreenPrint | 8 | T-shirts, bags, mugs, caps |
-| `pm-dtg` | Direct-to-Garment | Digital | Unlimited (4+) | T-shirts, bags, caps |
-| `pm-sublimation` | Dye Sublimation | Digital | Unlimited (4+) | T-shirts (polyester), mugs, mousepads, lanyards |
+| `pm-dtg` | Direct-to-Garment | Digital | Unlimited (full CMYK) | T-shirts, bags, caps |
+| `pm-sublimation` | Dye Sublimation | Digital | Unlimited (full CMYK) | T-shirts (polyester), mugs, mousepads, lanyards |
 
 Note: `ScreenPrint` already exists as `PrintingProcessType.ScreenPrint` in the domain model. `Digital` covers DTG and sublimation. UV Direct Print maps to existing `UVCurableInkjet`.
 
