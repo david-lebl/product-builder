@@ -520,10 +520,10 @@ object SampleShowcase:
         "K dispozici se sítotiskem pro výrazná loga nebo DTG pro plnobarevné designy. " +
         "Přidejte výšivku pro prémiový dojem nebo zpevněná ucha pro extra odolnost.",
     ),
-    imageUrl = "https://images.unsplash.com/photo-1597484661973-ee6cd0b6482c?w=600&h=400&fit=crop",
+    imageUrl = "https://images.unsplash.com/photo-1772890753145-089cd7618a8e?w=600&h=400&fit=crop",
     galleryImageUrls = List(
-      "https://images.unsplash.com/photo-1597484661973-ee6cd0b6482c?w=800&h=600&fit=crop",
-      "https://images.unsplash.com/photo-1591375460868-2161e0e1e9b7?w=800&h=600&fit=crop",
+      "https://images.unsplash.com/photo-1772890753145-089cd7618a8e?w=600&h=400&fit=crop",
+      "https://images.unsplash.com/photo-1772890753143-bf12df009a51?w=800&h=600&fit=crop",
     ),
     variations = List(
       ProductVariation(
@@ -568,9 +568,9 @@ object SampleShowcase:
         "s ochrannou mylarovou fólií. Vyberte si ze zavíracího špendlíku, magnetu nebo otvíráku na lahve. " +
         "K dispozici ve standardních velikostech 32mm a 58mm. Ideální pro akce, propagaci a merchandising.",
     ),
-    imageUrl = "https://images.unsplash.com/photo-1611078489935-0cb964de46d6?w=600&h=400&fit=crop",
+    imageUrl = "https://images.unsplash.com/photo-1521249692263-e0659c60326e?w=600&h=400&fit=crop",
     galleryImageUrls = List(
-      "https://images.unsplash.com/photo-1611078489935-0cb964de46d6?w=800&h=600&fit=crop",
+      "https://images.unsplash.com/photo-1521249692263-e0659c60326e?w=600&h=400&fit=crop",
     ),
     variations = List(
       ProductVariation(
