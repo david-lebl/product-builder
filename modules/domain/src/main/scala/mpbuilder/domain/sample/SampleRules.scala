@@ -256,6 +256,14 @@ object SampleRules:
       ),
       "Saddle stitch binding on heavy paper (>=300gsm) is limited to 80 pages",
     ),
+
+    // --- Promotional product rules ---
+    // Embroidery not on hardware materials (can't embroider on metal/ceramic/glass)
+    CompatibilityRule.MaterialFamilyFinishTypeIncompatible(
+      MaterialFamily.Hardware,
+      FinishType.Embroidery,
+      "Embroidery cannot be applied to hardware materials (metal, ceramic, glass)",
+    ),
   )
 
   val ruleset: CompatibilityRuleset = CompatibilityRuleset(

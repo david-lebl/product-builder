@@ -1780,7 +1780,7 @@ object SampleCatalog:
         componentPresets = List(ComponentPreset(
           role = ComponentRole.Main,
           materialId = cottonCanvasBagId,
-          inkConfiguration = InkConfiguration(1, 0),
+          inkConfiguration = InkConfiguration.mono1_0,
         )),
         specOverrides = List(
           SpecValue.SizeSpec(Dimension(380, 420)),
