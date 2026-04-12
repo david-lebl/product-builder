@@ -4,6 +4,7 @@ import com.raquo.laminar.api.L.*
 import mpbuilder.ui.productbuilder.ProductBuilderViewModel
 import mpbuilder.uikit.feedback.HelpInfo
 import mpbuilder.domain.model.*
+import mpbuilder.domain.sample.SampleCatalog
 import mpbuilder.domain.service.{CompletionEstimator, TierRestrictionValidator}
 import mpbuilder.uikit.fields.{TextField, SelectField, SelectOption}
 import mpbuilder.uikit.util.Visibility
@@ -181,8 +182,8 @@ object SpecificationForm:
       div(
         cls := "form-group",
         Visibility.when(ProductBuilderViewModel.state.map { s =>
-          val promoCats = Set("cat-tshirts", "cat-eco-bags", "cat-cups")
-          s.selectedCategoryId.exists(id => promoCats.contains(id.value))
+          val promoCats = Set(SampleCatalog.tshirtsId, SampleCatalog.ecoBagsId, SampleCatalog.cupsId)
+          s.selectedCategoryId.exists(promoCats.contains)
         }),
         small(
           styleAttr := "color: #666; font-style: italic;",
@@ -197,7 +198,7 @@ object SpecificationForm:
       div(
         cls := "form-group",
         Visibility.when(ProductBuilderViewModel.state.map { s =>
-          s.selectedCategoryId.exists(_.value == "cat-pin-badges")
+          s.selectedCategoryId.contains(SampleCatalog.pinBadgesId)
         }),
         small(
           styleAttr := "color: #666; font-style: italic;",
