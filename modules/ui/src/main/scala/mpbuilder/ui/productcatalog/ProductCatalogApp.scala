@@ -260,9 +260,7 @@ object ProductCatalogApp:
           div(
             cls := "product-detail-description",
             children <-- lang.map { l =>
-              val text = product.detailedDescription(l)
-              val paragraphs = text.split("\n\n").toList.filter(_.nonEmpty)
-              paragraphs.map(para => p(para))
+              product.detailedDescription(l).split("\n\n").toList.map(para => p(para))
             },
           ),
 

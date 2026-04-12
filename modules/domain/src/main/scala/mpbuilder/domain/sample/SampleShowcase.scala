@@ -554,7 +554,7 @@ object SampleShowcase:
         "trhání. Tunýlky jsou rukávy podél horního nebo spodního okraje, do kterých se navlékne tyč." +
         "\n\n" +
         "UV vytvrzovací inkousty jsou průmyslovým standardem. Vytvrzují se okamžitě UV světlem " +
-        "během tisku, což vede k živým, odolným barvám, které nechladnou sluncem. Pro bannery " +
+        "během tisku, což vede k živým, odolným barvám, které neblednou sluncem. Pro bannery " +
         "vystavené dlouhodobě venku může ochranná přelaminace výrazně prodloužit životnost.",
     ),
     imageUrl = "https://images.unsplash.com/photo-1558452919-08ae4aea8e29?w=600&h=400&fit=crop",
