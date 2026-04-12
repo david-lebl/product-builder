@@ -153,6 +153,19 @@ object ProductBuilderViewModel:
         applyPreset(categoryId, cat, preset)
       case _ => ()
 
+  /** Select a category and apply a specific preset, then navigate to the product builder.
+    * Used from the product catalog when a variation card is clicked.
+    */
+  def selectCategoryWithPreset(categoryId: CategoryId, presetId: PresetId): Unit =
+    val categoryOpt = catalog.categories.get(categoryId)
+    val presetOpt = categoryOpt.flatMap(_.presetById(presetId))
+    (categoryOpt, presetOpt) match
+      case (Some(cat), Some(preset)) =>
+        applyPreset(categoryId, cat, preset)
+      case (Some(_), None) =>
+        selectCategory(categoryId)
+      case _ => ()
+
   /** Common logic: populate BuilderState from a preset. */
   private def applyPreset(categoryId: CategoryId, cat: ProductCategory, preset: CategoryPreset): Unit =
     // Build component states from preset component presets

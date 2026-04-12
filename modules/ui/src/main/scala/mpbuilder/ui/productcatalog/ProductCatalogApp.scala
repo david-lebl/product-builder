@@ -3,7 +3,9 @@ package mpbuilder.ui.productcatalog
 import com.raquo.laminar.api.L.*
 import com.raquo.laminar.codecs.StringAsIsCodec
 import mpbuilder.domain.model.*
-import mpbuilder.domain.sample.{SampleCatalog, SampleShowcase}
+import mpbuilder.domain.pricing.{Currency, Money, PriceBreakdown}
+import mpbuilder.domain.sample.{SampleCatalog, SamplePricelist, SampleRules, SampleShowcase}
+import mpbuilder.domain.service.PresetPriceService
 import mpbuilder.ui.{AppRouter, AppRoute}
 import mpbuilder.ui.productbuilder.ProductBuilderViewModel
 
@@ -183,6 +185,19 @@ object ProductCatalogApp:
   ): HtmlElement =
     val name = category.map(_.name).getOrElse(LocalizedString("Product"))
 
+    // Pre-compute prices for all variations that have presetIds
+    val variationPrices: Map[PresetId, PriceBreakdown] = category match
+      case Some(cat) =>
+        product.variations.flatMap { v =>
+          v.presetId.flatMap { pid =>
+            cat.presetById(pid).flatMap { preset =>
+              PresetPriceService.computePrice(cat, preset, catalog, ProductBuilderViewModel.ruleset, ProductBuilderViewModel.pricelist)
+                .map(pid -> _)
+            }
+          }
+        }.toMap
+      case None => Map.empty
+
     div(
       cls := "product-detail",
 
@@ -249,21 +264,6 @@ object ProductCatalogApp:
             )
           }.getOrElse(emptyNode),
 
-          // Popular finishes
-          if product.popularFinishes.nonEmpty then
-            div(
-              cls := "product-detail-popular-finishes",
-              h4(child.text <-- lang.map {
-                case Language.En => "Popular Finishes"
-                case Language.Cs => "Oblíbené úpravy"
-              }),
-              div(
-                cls := "finish-tags",
-                product.popularFinishes.map(f => span(cls := "finish-tag", f)),
-              ),
-            )
-          else emptyNode,
-
           // CTA button
           div(
             cls := "product-detail-cta",
@@ -279,6 +279,38 @@ object ProductCatalogApp:
               },
             ),
           ),
+
+          // Available Variations — placed right after CTA
+          if product.variations.nonEmpty then
+            div(
+              cls := "product-variations-section",
+              h3(child.text <-- lang.map {
+                case Language.En => "Available Variations"
+                case Language.Cs => "Dostupné varianty"
+              }),
+              div(
+                cls := "product-variations-grid",
+                product.variations.map { v =>
+                  variationCard(product.categoryId, v, variationPrices, lang)
+                },
+              ),
+            )
+          else emptyNode,
+
+          // Popular finishes
+          if product.popularFinishes.nonEmpty then
+            div(
+              cls := "product-detail-popular-finishes",
+              h4(child.text <-- lang.map {
+                case Language.En => "Popular Finishes"
+                case Language.Cs => "Oblíbené úpravy"
+              }),
+              div(
+                cls := "finish-tags",
+                product.popularFinishes.map(f => span(cls := "finish-tag", f)),
+              ),
+            )
+          else emptyNode,
         ),
       ),
 
@@ -298,27 +330,6 @@ object ProductCatalogApp:
                 span(cls := "feature-icon", f.icon),
                 h4(child.text <-- lang.map(l => f.title(l))),
                 p(child.text <-- lang.map(l => f.description(l))),
-              )
-            },
-          ),
-        )
-      else emptyNode,
-
-      // Variations section
-      if product.variations.nonEmpty then
-        div(
-          cls := "product-detail-section",
-          h2(child.text <-- lang.map {
-            case Language.En => "Available Variations"
-            case Language.Cs => "Dostupné varianty"
-          }),
-          div(
-            cls := "product-variations-grid",
-            product.variations.map { v =>
-              div(
-                cls := "product-variation-card",
-                h4(child.text <-- lang.map(l => v.name(l))),
-                p(child.text <-- lang.map(l => v.description(l))),
               )
             },
           ),
@@ -379,3 +390,41 @@ object ProductCatalogApp:
         ),
       ),
     )
+
+  /** A clickable variation card that navigates to the builder with the linked preset. */
+  private def variationCard(
+      categoryId: CategoryId,
+      variation: ProductVariation,
+      prices: Map[PresetId, PriceBreakdown],
+      lang: Signal[Language],
+  ): HtmlElement =
+    val isClickable = variation.presetId.isDefined
+    val priceOpt = variation.presetId.flatMap(prices.get)
+    val currency = ProductBuilderViewModel.pricelist.currency
+
+    div(
+      cls := (if isClickable then "product-variation-card product-variation-card-clickable" else "product-variation-card"),
+      h4(child.text <-- lang.map(l => variation.name(l))),
+      p(child.text <-- lang.map(l => variation.description(l))),
+      priceOpt.map { breakdown =>
+        div(
+          cls := "variation-price-tag",
+          child.text <-- lang.map {
+            case Language.En => s"from ${formatMoney(breakdown.total, currency)}"
+            case Language.Cs => s"od ${formatMoney(breakdown.total, currency)}"
+          },
+        )
+      }.getOrElse(emptyNode),
+      if isClickable then
+        onClick --> { _ =>
+          variation.presetId.foreach { pid =>
+            ProductBuilderViewModel.selectCategoryWithPreset(categoryId, pid)
+            AppRouter.navigateTo(AppRoute.ProductBuilder)
+          }
+        }
+      else emptyMod,
+    )
+
+  private def formatMoney(money: Money, currency: Currency): String =
+    val value = money.value.setScale(0, BigDecimal.RoundingMode.HALF_UP)
+    s"$value ${currency.toString}"

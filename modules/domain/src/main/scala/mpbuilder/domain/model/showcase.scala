@@ -11,11 +11,16 @@ enum CatalogGroup:
   case Bound       // Multi-page bound products (booklets, calendars, etc.)
   case Specialty   // Specialty products (packaging, stickers & labels, etc.)
 
-/** A variation of a showcase product (e.g. "Standard" vs "Folded" business cards). */
+/** A variation of a showcase product (e.g. "Standard" vs "Folded" business cards).
+  *
+  * When `presetId` is set, clicking the variation in the catalog opens the
+  * product builder with that preset pre-selected.
+  */
 final case class ProductVariation(
     name: LocalizedString,
     description: LocalizedString,
     imageUrl: Option[String] = None,
+    presetId: Option[PresetId] = None,
 )
 
 /** A highlight / key feature shown on the product detail page. */
