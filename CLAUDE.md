@@ -107,3 +107,17 @@ All field components take `Signal[String]` labels (not `Language`) to keep the f
 ### Money
 
 `Money` is an opaque type over `BigDecimal`. Always use `HALF_UP` rounding. Never use `Double` for monetary values.
+
+## Documentation Knowledge Base
+
+This project maintains a structured documentation system. **All documentation lives in `docs/`** with a master index at **[docs/INDEX.md](docs/INDEX.md)**.
+
+| Resource | Purpose |
+|----------|---------|
+| [docs/INDEX.md](docs/INDEX.md) | Master table of contents — find any document by category |
+| [docs/troubleshooting.md](docs/troubleshooting.md) | Known issues & solutions (build, domain, UI, agent sessions) |
+| [docs/changelog/](docs/changelog/) | Per-session work logs (what was done, decisions, issues) |
+
+## Post-Work Documentation
+
+After completing any task, run the **post-work-docs** skill to update changelog, troubleshooting, specs, and the docs index. See [`.claude/skills/post-work-docs/SKILL.md`](.claude/skills/post-work-docs/SKILL.md) for the full procedure.

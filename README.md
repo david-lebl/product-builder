@@ -268,12 +268,21 @@ See [docs/ui-guide.md](docs/ui-guide.md) for detailed instructions.
 
 ## Documentation
 
+📖 **[docs/INDEX.md](docs/INDEX.md)** — Master table of contents for all documentation (start here)
+
+### Key Documents
+
 - **[docs/features.md](docs/features.md)** — Comprehensive feature overview
 - **[docs/pricing.md](docs/pricing.md)** — Pricing system with worked examples
 - **[docs/visual-product-types.md](docs/visual-product-types.md)** — Visual editor types & formats
 - **[docs/manufacturing-implementation-plan.md](docs/manufacturing-implementation-plan.md)** — Manufacturing phases 1–8
 - **[docs/ui-guide.md](docs/ui-guide.md)** — Build, run & test instructions
 - **[docs/analysis/](docs/analysis/)** — Research & planning documents
+
+### Knowledge Base
+
+- **[docs/troubleshooting.md](docs/troubleshooting.md)** — Known issues & solutions
+- **[docs/changelog/](docs/changelog/)** — Work session logs & history
 
 ## License
 
