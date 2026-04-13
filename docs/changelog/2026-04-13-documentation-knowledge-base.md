@@ -1,7 +1,7 @@
 # 2026-04-13 — Documentation Knowledge Base & Agent Skills
 
 **PR:** TBD
-**Author:** Copilot coding agent
+**Author:** agent
 **Type:** documentation
 
 ## Summary

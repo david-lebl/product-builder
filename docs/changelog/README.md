@@ -47,3 +47,4 @@ Brief description of what was accomplished in this session.
 | Date | Title | PR | Type |
 |------|-------|----|------|
 | 2026-04-13 | [Documentation knowledge base & agent skills](2026-04-13-documentation-knowledge-base.md) | — | documentation |
+| 2026-04-13 | [Extract post-work docs into Claude Code skill](2026-04-13-claude-skills-extraction.md) | — | documentation |
