@@ -2,7 +2,7 @@ package mpbuilder.ui
 
 import com.raquo.laminar.api.L.*
 import mpbuilder.ui.visualeditor.VisualEditorApp
-import mpbuilder.ui.productbuilder.{ProductBuilderApp, ProductBuilderViewModel, BuilderState, LoginState, ArtworkMode}
+import mpbuilder.ui.productbuilder.{ProductBuilderApp, CompactBuilderApp, ProductBuilderViewModel, BuilderState, LoginState, ArtworkMode}
 import mpbuilder.ui.components.{CheckoutView, CustomerPortalView, LoginWidget, OrderHistoryView}
 import mpbuilder.ui.manufacturing.ManufacturingApp
 import mpbuilder.ui.catalog.CatalogEditorApp
@@ -23,6 +23,8 @@ object AppRoute {
   case object CustomerPortal extends AppRoute
   /** Detail page for a specific product in the catalog. */
   case class ProductDetail(categoryId: CategoryId) extends AppRoute
+  /** Compact product builder view for experienced employees. */
+  case object CompactBuilder extends AppRoute
 }
 
 object AppRouter {
@@ -70,7 +72,7 @@ object AppRouter {
           button(
             cls := "nav-basket-btn",
             cls <-- currentRoute.map {
-              case AppRoute.ProductBuilder | AppRoute.ProductCatalog | _: AppRoute.ProductDetail => ""
+              case AppRoute.ProductBuilder | AppRoute.CompactBuilder | AppRoute.ProductCatalog | _: AppRoute.ProductDetail => ""
               case _ => "nav-basket-btn-hidden"
             },
             child <-- ProductBuilderViewModel.state.combineWith(lang).map { case (state, l) =>
@@ -118,6 +120,18 @@ object AppRouter {
               case Language.Cs => "Parametry produktu"
             },
             onClick --> { _ => navigateTo(AppRoute.ProductBuilder) }
+          ),
+          button(
+            cls := "nav-link",
+            cls <-- currentRoute.map {
+              case AppRoute.CompactBuilder => "active"
+              case _ => ""
+            },
+            child.text <-- lang.map {
+              case Language.En => "Quick Entry"
+              case Language.Cs => "Rychlé zadání"
+            },
+            onClick --> { _ => navigateTo(AppRoute.CompactBuilder) }
           ),
           button(
             cls := "nav-link",
@@ -194,6 +208,7 @@ object AppRouter {
         case AppRoute.ProductCatalog     => ProductCatalogApp()
         case AppRoute.ProductDetail(cid) => ProductCatalogApp.detailPage(cid)
         case AppRoute.ProductBuilder     => ProductBuilderApp()
+        case AppRoute.CompactBuilder     => CompactBuilderApp()
         case AppRoute.VisualEditor(artId)  => VisualEditorApp(artId)
         case AppRoute.Checkout           => CheckoutView()
         case AppRoute.Manufacturing      => ManufacturingApp()

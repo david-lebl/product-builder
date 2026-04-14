@@ -935,3 +935,23 @@ object ProductBuilderViewModel:
       basePriceBreakdown = None,
     ))
     autoRecalculate()
+
+  /** Directly select a customer by ID (employee shortcut, no OTP). */
+  def selectCustomerDirect(customerId: CustomerId): Unit =
+    allCustomers.find(_.id == customerId) match
+      case Some(customer) =>
+        val now = System.currentTimeMillis()
+        val session = LoginSession(
+          sessionId = SessionId.unsafe("employee-direct-" + customer.id.value),
+          customerId = customer.id,
+          createdAt = now,
+          expiresAt = now + 86400000L,
+        )
+        stateVar.update(_.copy(
+          loginState = LoginState.LoggedIn(customer, session),
+        ))
+        autoRecalculate()
+      case None => ()
+
+  /** Clear customer selection (employee shortcut). */
+  def clearCustomerSelection(): Unit = logoutCustomer()

@@ -1,0 +1,352 @@
+/* ─── Compact Builder ─── */
+/* Targeting experienced employees: inline labels, no help/info elements, dense layout */
+
+.compact-builder .card h2 {
+    font-size: 1.25rem;
+    margin-bottom: 12px;
+    padding-bottom: 8px;
+}
+
+/* ─── Customer Selector ─── */
+.compact-customer-selector {
+    background: #f0f4ff;
+    border: 1px solid #c7d2fe;
+    border-radius: 8px;
+    padding: 10px 14px;
+    margin-bottom: 16px;
+}
+
+.compact-customer-selector select {
+    width: 100%;
+}
+
+.compact-customer-info {
+    font-size: 0.78rem;
+    color: #4f46e5;
+    margin-top: 4px;
+    font-weight: 500;
+}
+
+/* ─── Compact Form ─── */
+.compact-form {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.compact-section {
+    padding: 4px 0;
+}
+
+.compact-section-title {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--color-primary);
+    margin: 8px 0 4px 0;
+    padding-bottom: 2px;
+    border-bottom: 1px solid var(--color-border);
+}
+
+/* ─── Compact Row: label left, field right ─── */
+.compact-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 3px 0;
+    min-height: 32px;
+}
+
+.compact-label {
+    flex: 0 0 110px;
+    font-size: 0.82rem;
+    font-weight: 500;
+    color: #475569;
+    text-align: right;
+    white-space: nowrap;
+}
+
+.compact-field {
+    flex: 1;
+    min-width: 0;
+}
+
+.compact-field select,
+.compact-field input[type="number"],
+.compact-field input[type="text"] {
+    width: 100%;
+    padding: 5px 8px;
+    font-size: 0.85rem;
+    border: 1px solid #d1d5db;
+    border-radius: 5px;
+    background: white;
+}
+
+.compact-field select:focus,
+.compact-field input:focus {
+    border-color: var(--color-primary);
+    outline: none;
+    box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.12);
+}
+
+.compact-field select:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* ─── Compact hints ─── */
+.compact-hint {
+    font-size: 0.78rem;
+    color: #94a3b8;
+    font-style: italic;
+}
+
+/* ─── Compact Presets ─── */
+.compact-presets {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    padding: 4px 0 4px 120px;
+}
+
+.compact-preset-btn {
+    padding: 3px 12px;
+    font-size: 0.78rem;
+    border: 1px solid #d1d5db;
+    border-radius: 14px;
+    background: white;
+    color: #475569;
+    cursor: pointer;
+    transition: all 0.15s;
+}
+
+.compact-preset-btn:hover {
+    border-color: var(--color-primary);
+    color: var(--color-primary);
+}
+
+.compact-preset-btn--selected {
+    background: var(--color-primary);
+    color: white;
+    border-color: var(--color-primary);
+}
+
+/* ─── Compact Size Inputs ─── */
+.compact-size-inputs {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.compact-size-input {
+    flex: 1;
+    padding: 5px 8px;
+    font-size: 0.85rem;
+    border: 1px solid #d1d5db;
+    border-radius: 5px;
+}
+
+/* ─── Compact Component ─── */
+.compact-component {
+    margin-left: 120px;
+    padding: 4px 0;
+    border-left: 2px solid var(--color-border);
+    padding-left: 10px;
+    margin-top: 4px;
+}
+
+.compact-component-title {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--color-primary);
+    display: block;
+    margin-bottom: 2px;
+}
+
+/* ─── Compact Finish List ─── */
+.compact-finish-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px 12px;
+}
+
+.compact-finish-item {
+    font-size: 0.82rem;
+}
+
+.compact-finish-item .checkbox-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    font-size: 0.82rem;
+    cursor: pointer;
+}
+
+.compact-finish-params {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin-left: 8px;
+    font-size: 0.8rem;
+}
+
+.compact-finish-params-label {
+    font-size: 0.78rem;
+    color: #64748b;
+    white-space: nowrap;
+}
+
+.compact-finish-params-inline {
+    display: inline-flex;
+    gap: 4px;
+}
+
+.compact-finish-params-inline .radio-label {
+    font-size: 0.78rem;
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+}
+
+.compact-params-input {
+    width: 60px;
+    padding: 2px 6px;
+    font-size: 0.8rem;
+    border: 1px solid #d1d5db;
+    border-radius: 4px;
+}
+
+.compact-params-select {
+    padding: 2px 6px;
+    font-size: 0.8rem;
+    border: 1px solid #d1d5db;
+    border-radius: 4px;
+}
+
+/* ─── Compact Speed Options ─── */
+.compact-speed-options {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.compact-speed-option {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 12px;
+    border: 1px solid #d1d5db;
+    border-radius: 16px;
+    font-size: 0.82rem;
+    cursor: pointer;
+    transition: all 0.15s;
+    background: white;
+}
+
+.compact-speed-option:hover {
+    border-color: var(--color-primary);
+}
+
+.compact-speed-option--selected {
+    background: var(--color-primary);
+    color: white;
+    border-color: var(--color-primary);
+}
+
+.compact-speed-option--disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+}
+
+.compact-speed-option input[type="radio"] {
+    display: none;
+}
+
+.compact-speed-price {
+    font-size: 0.75rem;
+    opacity: 0.8;
+}
+
+/* ─── Compact Artwork ─── */
+.compact-artwork {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    padding-left: 120px;
+}
+
+.compact-artwork-option {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    font-size: 0.82rem;
+    cursor: pointer;
+}
+
+.compact-file-input {
+    font-size: 0.8rem;
+    max-width: 220px;
+}
+
+.compact-editor-btn {
+    font-size: 0.82rem;
+    padding: 3px 10px;
+}
+
+/* ─── Compact Basket Row ─── */
+.compact-basket-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 6px 0;
+}
+
+.compact-basket-row label {
+    font-size: 0.82rem;
+    font-weight: 500;
+}
+
+.compact-qty-input {
+    width: 60px;
+    padding: 5px 8px;
+    font-size: 0.85rem;
+    border: 1px solid #d1d5db;
+    border-radius: 5px;
+}
+
+/* ─── Hide help/info in compact builder ─── */
+.compact-builder .info-box,
+.compact-builder .help-info-wrapper,
+.compact-builder .selector-help-buttons {
+    display: none;
+}
+
+/* ─── Responsive adjustments ─── */
+@media (max-width: 600px) {
+    .compact-row {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 2px;
+    }
+
+    .compact-label {
+        flex: none;
+        text-align: left;
+    }
+
+    .compact-field {
+        width: 100%;
+    }
+
+    .compact-presets {
+        padding-left: 0;
+    }
+
+    .compact-component {
+        margin-left: 0;
+    }
+
+    .compact-artwork {
+        padding-left: 0;
+    }
+}
