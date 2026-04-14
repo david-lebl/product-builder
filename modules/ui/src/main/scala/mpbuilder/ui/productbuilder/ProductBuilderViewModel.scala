@@ -55,6 +55,7 @@ case class BuilderState(
                          basketItemArtwork: Map[ConfigurationId, ArtworkMode] = Map.empty,
                          checkoutInfo: Option[CheckoutInfo] = None,
                          loginState: LoginState = LoginState.LoggedOut,
+                         internalOrderCustomerId: Option[CustomerId] = None,
                        )
 
 object ProductBuilderViewModel:
@@ -73,9 +74,10 @@ object ProductBuilderViewModel:
   // ── Customer / login signals ─────────────────────────────────────────
   val loginState: Signal[LoginState] = state.map(_.loginState)
 
-  val currentCustomer: Signal[Option[Customer]] = loginState.map {
-    case LoginState.LoggedIn(customer, _) => Some(customer)
-    case _                                => None
+  val currentCustomer: Signal[Option[Customer]] = state.map { s =>
+    s.loginState match
+      case LoginState.LoggedIn(customer, _) => Some(customer)
+      case _ => s.internalOrderCustomerId.flatMap(id => allCustomers.find(_.id == id))
   }
 
   val customerPricelist: Signal[Option[Pricelist]] = currentCustomer.combineWith(state).map {
@@ -392,10 +394,12 @@ object ProductBuilderViewModel:
           config => {
             // Validation succeeded, calculate price
             // Determine which pricelist to use for final pricing
-            val customerPl = currentState.loginState match
-              case LoginState.LoggedIn(customer, _) =>
-                Some(CustomerPricelistResolver.resolve(pricelist, customer.pricing, Some(categoryId)))
-              case _ => None
+            val customerOpt = currentState.loginState match
+              case LoginState.LoggedIn(customer, _) => Some(customer)
+              case _ => currentState.internalOrderCustomerId.flatMap(id => allCustomers.find(_.id == id))
+            val customerPl = customerOpt.map(c =>
+              CustomerPricelistResolver.resolve(pricelist, c.pricing, Some(categoryId))
+            )
 
             val effectivePl = customerPl.getOrElse(pricelist)
             val pricingContext = buildDynamicPricingContext()
@@ -934,4 +938,10 @@ object ProductBuilderViewModel:
       loginState = LoginState.LoggedOut,
       basePriceBreakdown = None,
     ))
+    autoRecalculate()
+
+  // ── Internal order customer selection ─────────────────────────────────
+
+  def setInternalOrderCustomer(id: Option[CustomerId]): Unit =
+    stateVar.update(_.copy(internalOrderCustomerId = id))
     autoRecalculate()
