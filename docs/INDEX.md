@@ -14,6 +14,7 @@ Core feature specifications — stable documents describing *what* the system do
 | [manufacturing-speed-pipeline.md](manufacturing-speed-pipeline.md) | Order completion time estimation — 8-stage pipeline specification |
 | [new-product-specification.md](new-product-specification.md) | Specification for adding new product types to the system |
 | [help-information.md](help-information.md) | Contextual help system specification (field-level `?` and `i` buttons) |
+| [internal-order-entry.md](internal-order-entry.md) | Internal Order Entry — compact product configurator view for experienced employees |
 
 ## 🔬 Analysis & Research
 
@@ -73,3 +74,4 @@ Session-by-session work logs documenting what was done, decisions made, and issu
 | Document | Description |
 |----------|-------------|
 | [changelog/README.md](changelog/README.md) | Changelog format, template, and log entries index |
+| [changelog/2026-04-14-internal-order-entry.md](changelog/2026-04-14-internal-order-entry.md) | Internal Order Entry feature — compact view for employees |

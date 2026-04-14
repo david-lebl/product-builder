@@ -1,0 +1,272 @@
+/* ══════════════════════════════════════════════════════════════════════════
+   Internal Order Entry — page layout
+   ══════════════════════════════════════════════════════════════════════════ */
+
+.ioe-page {
+    padding: 16px 20px;
+    max-width: 1400px;
+    margin: 0 auto;
+}
+
+/* Header card with customer selector */
+.ioe-header {
+    margin-bottom: 16px;
+    padding: 16px 20px;
+}
+
+.ioe-header-row {
+    display: flex;
+    align-items: center;
+    gap: 24px;
+    flex-wrap: wrap;
+}
+
+.ioe-header h2 {
+    font-size: 1.2rem;
+    font-weight: 700;
+    color: var(--color-primary);
+    margin: 0;
+    white-space: nowrap;
+}
+
+/* Customer selector row */
+.ioe-customer-selector {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex: 1;
+    min-width: 260px;
+}
+
+.ioe-customer-label {
+    display: block !important;
+    margin: 0 !important;
+    font-weight: 600;
+    color: #555;
+    white-space: nowrap;
+    font-size: 0.9rem;
+}
+
+.ioe-customer-select {
+    flex: 1;
+    padding: 7px 10px !important;
+    font-size: 0.9rem;
+}
+
+/* Tier badge */
+.ioe-tier-badge {
+    display: inline-block;
+    padding: 3px 10px;
+    border-radius: 12px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.ioe-tier-badge--platinum { background: #e8d5ff; color: #6b21a8; }
+.ioe-tier-badge--gold     { background: #fef3c7; color: #92400e; }
+.ioe-tier-badge--silver   { background: #f1f5f9; color: #475569; }
+.ioe-tier-badge--standard { background: #f0fdf4; color: #166534; }
+
+/* Discount notice */
+.ioe-discount-notice {
+    margin-top: 8px;
+    font-size: 0.82rem;
+    color: var(--color-primary);
+    font-weight: 500;
+    background: rgba(102, 126, 234, 0.08);
+    border-radius: 6px;
+    padding: 5px 10px;
+    display: inline-block;
+}
+
+/* Two-column layout: form + sidebar */
+.ioe-layout {
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    gap: 16px;
+    align-items: start;
+}
+
+@media (max-width: 968px) {
+    .ioe-layout {
+        grid-template-columns: 1fr;
+    }
+}
+
+.ioe-form {
+    padding: 16px 20px;
+}
+
+.ioe-sidebar {
+    position: sticky;
+    top: calc(var(--top-bar-height) + 16px);
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   Compact form overrides — applied when inside .compact-form
+   ══════════════════════════════════════════════════════════════════════════ */
+
+/* Hide all help/info elements */
+.compact-form .help-info-wrapper,
+.compact-form .selector-help-buttons,
+.compact-form .info-box {
+    display: none !important;
+}
+
+/* Tighten section spacing */
+.compact-form .form-section {
+    margin-bottom: 12px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--color-border);
+}
+
+.compact-form .form-section:last-child {
+    border-bottom: none;
+    margin-bottom: 0;
+}
+
+.compact-form .form-section h3 {
+    font-size: 0.78rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--color-text-muted);
+    margin-bottom: 8px;
+}
+
+/* Inline (label-on-left) layout for every form-group */
+.compact-form .form-group {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 7px;
+}
+
+/* Labels sit to the left with fixed width */
+.compact-form .form-group > label,
+.compact-form .form-group > .form-label {
+    display: block !important;
+    min-width: 160px;
+    width: 160px;
+    flex-shrink: 0;
+    margin-bottom: 0 !important;
+    font-size: 0.85rem;
+    font-weight: 500;
+    color: #555;
+    line-height: 1.3;
+}
+
+/* Inputs and selects take remaining space */
+.compact-form .form-group input,
+.compact-form .form-group select {
+    flex: 1;
+    padding: 6px 10px !important;
+    font-size: 0.875rem;
+    min-width: 0;
+}
+
+/* selector-with-help wrapper: inline layout */
+.compact-form .selector-with-help {
+    display: flex;
+    align-items: center;
+    gap: 0;
+    margin-bottom: 7px;
+}
+
+.compact-form .selector-with-help .form-group {
+    flex: 1;
+    margin-bottom: 0;
+}
+
+/* Custom size pair (width × height) */
+.compact-form .form-group [style*="display: flex"] {
+    flex: 1;
+}
+
+/* Linked-components toggle */
+.compact-form .linked-components-toggle {
+    margin-bottom: 7px;
+}
+
+/* Component section heading */
+.compact-form .component-section h4 {
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: var(--color-text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+    margin: 6px 0 4px;
+}
+
+/* Finish list — keep as checkboxes, just tighten spacing */
+.compact-form .finish-list {
+    gap: 3px;
+}
+
+.compact-form .finish-item .checkbox-label {
+    padding: 5px 10px;
+    font-size: 0.85rem;
+}
+
+/* Finish params sub-form keeps its own styling but tighter padding */
+.compact-form .finish-params {
+    padding: 7px 10px;
+}
+
+/* Speed tier cards — compact variant */
+.compact-form .speed-tier-cards {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+}
+
+.compact-form .speed-tier-card {
+    padding: 8px 10px;
+}
+
+.compact-form .speed-tier-card__desc {
+    display: none;
+}
+
+/* Preset cards — more compact */
+.compact-form .preset-selector {
+    margin-top: 6px;
+}
+
+.compact-form .preset-card {
+    padding: 8px 12px;
+    max-width: 200px;
+}
+
+.compact-form .preset-card-name {
+    font-size: 0.85rem;
+}
+
+.compact-form .preset-card-description {
+    font-size: 0.75rem;
+}
+
+/* Add-to-basket row */
+.compact-form .add-to-basket-section {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+.compact-form .add-to-basket-section label {
+    margin: 0 !important;
+    font-size: 0.85rem;
+}
+
+.compact-form .add-to-basket-section .basket-quantity-input {
+    width: 80px !important;
+    padding: 6px 10px !important;
+}
+
+/* Validate button */
+.compact-form .form-section button:not(.add-to-basket-btn) {
+    padding: 7px 18px;
+    font-size: 0.875rem;
+}

@@ -1,6 +1,7 @@
 package mpbuilder.ui
 
 import com.raquo.laminar.api.L.*
+import mpbuilder.ui.internalorder.InternalOrderEntryApp
 import mpbuilder.ui.visualeditor.VisualEditorApp
 import mpbuilder.ui.productbuilder.{ProductBuilderApp, ProductBuilderViewModel, BuilderState, LoginState, ArtworkMode}
 import mpbuilder.ui.components.{CheckoutView, CustomerPortalView, LoginWidget, OrderHistoryView}
@@ -14,6 +15,7 @@ sealed trait AppRoute
 object AppRoute {
   case object ProductCatalog extends AppRoute
   case object ProductBuilder extends AppRoute
+  case object InternalOrderEntry extends AppRoute
   case class VisualEditor(artworkId: Option[String] = None) extends AppRoute
   case object Checkout extends AppRoute
   case object Manufacturing extends AppRoute
@@ -70,7 +72,7 @@ object AppRouter {
           button(
             cls := "nav-basket-btn",
             cls <-- currentRoute.map {
-              case AppRoute.ProductBuilder | AppRoute.ProductCatalog | _: AppRoute.ProductDetail => ""
+              case AppRoute.ProductBuilder | AppRoute.ProductCatalog | _: AppRoute.ProductDetail | AppRoute.InternalOrderEntry => ""
               case _ => "nav-basket-btn-hidden"
             },
             child <-- ProductBuilderViewModel.state.combineWith(lang).map { case (state, l) =>
@@ -118,6 +120,18 @@ object AppRouter {
               case Language.Cs => "Parametry produktu"
             },
             onClick --> { _ => navigateTo(AppRoute.ProductBuilder) }
+          ),
+          button(
+            cls := "nav-link",
+            cls <-- currentRoute.map {
+              case AppRoute.InternalOrderEntry => "active"
+              case _ => ""
+            },
+            child.text <-- lang.map {
+              case Language.En => "Internal Order Entry"
+              case Language.Cs => "Interní objednávka"
+            },
+            onClick --> { _ => navigateTo(AppRoute.InternalOrderEntry) }
           ),
           button(
             cls := "nav-link",
@@ -194,6 +208,7 @@ object AppRouter {
         case AppRoute.ProductCatalog     => ProductCatalogApp()
         case AppRoute.ProductDetail(cid) => ProductCatalogApp.detailPage(cid)
         case AppRoute.ProductBuilder     => ProductBuilderApp()
+        case AppRoute.InternalOrderEntry => InternalOrderEntryApp()
         case AppRoute.VisualEditor(artId)  => VisualEditorApp(artId)
         case AppRoute.Checkout           => CheckoutView()
         case AppRoute.Manufacturing      => ManufacturingApp()
