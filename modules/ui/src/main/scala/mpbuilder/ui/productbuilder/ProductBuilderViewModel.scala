@@ -942,7 +942,7 @@ object ProductBuilderViewModel:
       case Some(customer) =>
         val now = System.currentTimeMillis()
         val session = LoginSession(
-          sessionId = SessionId.unsafe("employee-direct-" + customer.id.value),
+          sessionId = SessionId.unsafe(s"employee-direct-${customer.id.value}"),
           customerId = customer.id,
           createdAt = now,
           expiresAt = now + 86400000L,

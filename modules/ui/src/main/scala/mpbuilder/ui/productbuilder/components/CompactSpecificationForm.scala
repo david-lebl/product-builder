@@ -17,8 +17,8 @@ object CompactSpecificationForm:
     case A6           extends SizePreset("A6",            "A6",       105, 148)
     case DL           extends SizePreset("DL",            "DL",        99, 210)
     case BusinessCard extends SizePreset("Business Card", "Vizitka",   90,  55)
-    case Square148    extends SizePreset("Square",        "Čtverec",  148, 148)
-    case Square210    extends SizePreset("Square",        "Čtverec",  210, 210)
+    case Square148    extends SizePreset("Square 148",    "Čtverec 148",  148, 148)
+    case Square210    extends SizePreset("Square 210",    "Čtverec 210",  210, 210)
 
     def key: String = ordinal.toString
 
@@ -134,8 +134,8 @@ object CompactSpecificationForm:
         cls := "compact-row",
         Visibility.when(sizePresetVar.signal.map(_ == "custom")),
         label(cls := "compact-label", child.text <-- lang.map {
-          case Language.En => "W × H (mm):"
-          case Language.Cs => "Š × V (mm):"
+          case Language.En => "Width × Height (mm):"
+          case Language.Cs => "Šířka × Výška (mm):"
         }),
         div(
           cls := "compact-field",

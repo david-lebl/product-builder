@@ -14,6 +14,7 @@ Core feature specifications — stable documents describing *what* the system do
 | [manufacturing-speed-pipeline.md](manufacturing-speed-pipeline.md) | Order completion time estimation — 8-stage pipeline specification |
 | [new-product-specification.md](new-product-specification.md) | Specification for adding new product types to the system |
 | [help-information.md](help-information.md) | Contextual help system specification (field-level `?` and `i` buttons) |
+| [compact-builder.md](compact-builder.md) | Compact "Quick Entry" product builder view for experienced employees |
 
 ## 🔬 Analysis & Research
 
