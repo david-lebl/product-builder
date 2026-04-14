@@ -83,10 +83,8 @@ object InternalOrderEntryApp:
           ),
         ),
         // Discount indicator when a customer with pricing is active
-        child.maybe <-- ProductBuilderViewModel.state.combineWith(lang).map { case (state, l) =>
-          state.internalOrderCustomerId.flatMap { id =>
-            customers.find(_.id == id)
-          }.flatMap { c =>
+        child.maybe <-- ProductBuilderViewModel.currentCustomer.combineWith(lang).map {
+          case (Some(c), l) =>
             c.pricing.globalDiscount.map { pct =>
               div(
                 cls := "ioe-discount-notice",
@@ -95,7 +93,7 @@ object InternalOrderEntryApp:
                   case Language.Cs => s"Globální sleva: ${pct.value}% platí pro tohoto zákazníka"
               )
             }
-          }
+          case _ => None
         },
       ),
 

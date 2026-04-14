@@ -64,6 +64,7 @@ object ProductBuilderViewModel:
   val ruleset = SampleRules.ruleset
   val pricelist = SamplePricelist.pricelistCzkSheet
   val allCustomers: List[Customer] = SampleCustomers.all
+  private val allCustomersById: Map[CustomerId, Customer] = allCustomers.map(c => c.id -> c).toMap
 
   val stateVar: Var[BuilderState] = Var(BuilderState())
   val state: Signal[BuilderState] = stateVar.signal
@@ -77,7 +78,7 @@ object ProductBuilderViewModel:
   val currentCustomer: Signal[Option[Customer]] = state.map { s =>
     s.loginState match
       case LoginState.LoggedIn(customer, _) => Some(customer)
-      case _ => s.internalOrderCustomerId.flatMap(id => allCustomers.find(_.id == id))
+      case _ => s.internalOrderCustomerId.flatMap(allCustomersById.get)
   }
 
   val customerPricelist: Signal[Option[Pricelist]] = currentCustomer.combineWith(state).map {
@@ -396,7 +397,7 @@ object ProductBuilderViewModel:
             // Determine which pricelist to use for final pricing
             val customerOpt = currentState.loginState match
               case LoginState.LoggedIn(customer, _) => Some(customer)
-              case _ => currentState.internalOrderCustomerId.flatMap(id => allCustomers.find(_.id == id))
+              case _ => currentState.internalOrderCustomerId.flatMap(allCustomersById.get)
             val customerPl = customerOpt.map(c =>
               CustomerPricelistResolver.resolve(pricelist, c.pricing, Some(categoryId))
             )
