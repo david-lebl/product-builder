@@ -48,3 +48,4 @@ Brief description of what was accomplished in this session.
 |------|-------|----|------|
 | 2026-04-13 | [Documentation knowledge base & agent skills](2026-04-13-documentation-knowledge-base.md) | — | documentation |
 | 2026-04-13 | [Extract post-work docs into Claude Code skill](2026-04-13-claude-skills-extraction.md) | — | documentation |
+| 2026-04-15 | [Compact Product Builder view](2026-04-15-compact-product-builder-view.md) | copilot/add-compact-product-builder-view | feature |
