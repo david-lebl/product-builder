@@ -1,0 +1,185 @@
+/* ─── Compact Product Builder View ────────────────────────────────────────
+ * Applies an inline (horizontal) label + field layout to the Product Builder.
+ * Textfield labels appear to the LEFT of the input/select, not above it.
+ *
+ * CSS scoping: all rules are nested under .compact-builder so they ONLY
+ * affect the compact view and never leak into the standard view.
+ * ───────────────────────────────────────────────────────────────────────── */
+
+/* ── Overall card / section spacing ──────────────────────────────────────*/
+
+.compact-builder .card {
+    padding: 16px 20px;
+}
+
+.compact-builder .card h2 {
+    font-size: 1.2rem;
+    margin-bottom: 12px;
+    padding-bottom: 8px;
+}
+
+.compact-builder .form-section {
+    margin-bottom: 14px;
+}
+
+.compact-builder .form-section h3 {
+    font-size: 0.9rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+    color: var(--color-primary);
+    margin-bottom: 8px;
+    padding-bottom: 4px;
+    border-bottom: 1px solid var(--color-border);
+}
+
+/* ── Inline (horizontal) form groups ─────────────────────────────────────
+ * Applies only when the .form-group has a DIRECT child <label> that is NOT
+ * a .checkbox-label (which is a complete checkbox element, not a field label).
+ *
+ * This intentionally excludes:
+ *   - FinishSelector outer group (first child is div.label-with-help, not label)
+ *   - CheckboxField (label has class .checkbox-label)
+ *   - finish-item (uses class .finish-item, not .form-group)
+ * ──────────────────────────────────────────────────────────────────────── */
+
+.compact-builder .form-group:has(> label:not(.checkbox-label)) {
+    display: grid;
+    grid-template-columns: 150px 1fr;
+    align-items: center;
+    column-gap: 10px;
+    row-gap: 0;
+    margin-bottom: 7px;
+}
+
+.compact-builder .form-group:has(> label:not(.checkbox-label)) > label:not(.checkbox-label) {
+    display: block;
+    margin-bottom: 0;
+    text-align: right;
+    font-size: 0.82rem;
+    padding-right: 2px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    align-self: center;
+}
+
+/* Field-error message spans the input column only */
+.compact-builder .form-group:has(> label:not(.checkbox-label)) > .field-error {
+    grid-column: 2;
+    font-size: 0.78rem;
+}
+
+/* ── Compact input / select sizing ───────────────────────────────────────*/
+
+.compact-builder select,
+.compact-builder .form-group input:not([type="checkbox"]):not([type="radio"]):not([type="file"]) {
+    padding: 6px 8px;
+    font-size: 0.88rem;
+}
+
+/* ── selector-with-help: reposition help buttons for compact layout ───────
+ * In the standard layout the buttons are absolutely positioned at top-right
+ * overlapping the label. In the compact view we inline them next to the select.
+ * ──────────────────────────────────────────────────────────────────────── */
+
+.compact-builder .selector-with-help {
+    position: static;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0 4px;
+}
+
+/* The form-group inside selector-with-help takes most of the width */
+.compact-builder .selector-with-help > .form-group {
+    flex: 1;
+    min-width: 0;
+}
+
+/* Help buttons inline after the select field */
+.compact-builder .selector-help-buttons {
+    position: static;
+    display: flex;
+    align-items: center;
+    height: auto;
+    gap: 2px;
+    flex-shrink: 0;
+}
+
+/* Info-box below wraps to its own full-width line */
+.compact-builder .selector-with-help > .info-box {
+    flex-basis: 100%;
+    width: 100%;
+}
+
+/* Ensure popup still opens towards the left when at right edge */
+.compact-builder .selector-help-buttons .help-info-popup {
+    left: auto;
+    right: 0;
+}
+
+/* ── Finish selector: keep vertical layout, reduce spacing ───────────────
+ * The outer .form-group for finishes does NOT have a direct label child
+ * (it has div.label-with-help instead), so the inline grid rule above will
+ * NOT apply.  We only tweak spacing here.
+ * ──────────────────────────────────────────────────────────────────────── */
+
+.compact-builder .finish-list {
+    gap: 4px;
+}
+
+/* The finish-label-with-help already uses inline-flex; keep as-is */
+.compact-builder .finish-label-with-help {
+    min-width: 0;
+}
+
+/* Compact info-box */
+.compact-builder .info-box {
+    padding: 7px 10px;
+    font-size: 0.8rem;
+    margin-top: 6px;
+}
+
+/* ── linked-components toggle: keep horizontal checkbox intact ───────────*/
+.compact-builder .linked-components-toggle {
+    margin-bottom: 8px;
+}
+
+/* ── component-section headings ──────────────────────────────────────────*/
+.compact-builder .component-section h4 {
+    font-size: 0.85rem;
+    margin-bottom: 6px;
+    color: var(--color-primary);
+}
+
+/* ── Preset cards: tighter ───────────────────────────────────────────────*/
+.compact-builder .preset-card {
+    padding: 8px 12px;
+}
+
+/* ── Add-to-basket / validate buttons: full row ──────────────────────────*/
+.compact-builder .add-to-basket-section {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.compact-builder .add-to-basket-section label {
+    display: inline;
+    margin-bottom: 0;
+    white-space: nowrap;
+    font-size: 0.85rem;
+}
+
+.compact-builder .basket-quantity-input {
+    width: 70px !important;
+    padding: 6px 8px !important;
+    font-size: 0.88rem !important;
+}
+
+/* ── Speed tier cards: compact ───────────────────────────────────────────*/
+.compact-builder .speed-tier-card {
+    padding: 8px 12px;
+}
