@@ -9,6 +9,7 @@ import mpbuilder.domain.weight.WeightBreakdown
 object PricePreview:
   def apply(): Element =
     val lang = ProductBuilderViewModel.currentLanguage
+    val breakdownOpen = Var(true)
 
     div(
       cls := "card",
@@ -19,43 +20,65 @@ object PricePreview:
 
       // Price display
       div(
-        cls := "price-display",
-        div(cls := "label", child.text <-- lang.map {
-          case Language.En => "Total Price"
-          case Language.Cs => "Celková cena"
-        }),
-        // When customer logged in: show base price (strikethrough), customer price, and savings
-        child <-- ProductBuilderViewModel.state.combineWith(lang).map { case (state, l) =>
-          (state.priceBreakdown, state.basePriceBreakdown) match
-            case (Some(breakdown), Some(baseBreakdown)) =>
-              // Customer is logged in — show dual pricing
-              val savings = Money(baseBreakdown.total.value - breakdown.total.value)
-              val savingsPct = if baseBreakdown.total.value > BigDecimal(0) then
-                (savings.value * 100 / baseBreakdown.total.value).setScale(1, BigDecimal.RoundingMode.HALF_UP)
-              else BigDecimal(0)
-              div(
-                div(cls := "price-base-strikethrough",
-                  span(formatMoney(baseBreakdown.total, baseBreakdown.currency)),
-                ),
-                div(cls := "amount price-customer-price",
-                  l match
-                    case Language.En => s"Your price: ${formatMoney(breakdown.total, breakdown.currency)}"
-                    case Language.Cs => s"Vaše cena: ${formatMoney(breakdown.total, breakdown.currency)}",
-                ),
-                if savings.value > BigDecimal(0) then
-                  div(cls := "price-savings",
+        cls := "price-display-stack",
+        div(
+          cls := "price-display",
+          div(cls := "label", child.text <-- lang.map {
+            case Language.En => "Total Price"
+            case Language.Cs => "Celková cena"
+          }),
+          // When customer logged in: show base price (strikethrough), customer price, and savings
+          child <-- ProductBuilderViewModel.state.combineWith(lang).map { case (state, l) =>
+            (state.priceBreakdown, state.basePriceBreakdown) match
+              case (Some(breakdown), Some(baseBreakdown)) =>
+                // Customer is logged in — show dual pricing
+                val savings = Money(baseBreakdown.total.value - breakdown.total.value)
+                val savingsPct = if baseBreakdown.total.value > BigDecimal(0) then
+                  (savings.value * 100 / baseBreakdown.total.value).setScale(1, BigDecimal.RoundingMode.HALF_UP)
+                else BigDecimal(0)
+                div(
+                  div(cls := "price-base-strikethrough",
+                    span(formatMoney(baseBreakdown.total, baseBreakdown.currency)),
+                  ),
+                  div(cls := "amount price-customer-price",
                     l match
-                      case Language.En => s"You save: ${formatMoney(savings, breakdown.currency)} ($savingsPct%)"
-                      case Language.Cs => s"Ušetříte: ${formatMoney(savings, breakdown.currency)} ($savingsPct%)",
-                  )
-                else emptyNode,
-              )
-            case (Some(breakdown), None) =>
-              // No customer logged in — standard pricing
-              div(cls := "amount", formatMoney(breakdown.total, breakdown.currency))
-            case _ =>
-              div(cls := "amount", "0,00 Kč")
-        },
+                      case Language.En => s"Your price: ${formatMoney(breakdown.total, breakdown.currency)}"
+                      case Language.Cs => s"Vaše cena: ${formatMoney(breakdown.total, breakdown.currency)}",
+                  ),
+                  if savings.value > BigDecimal(0) then
+                    div(cls := "price-savings",
+                      l match
+                        case Language.En => s"You save: ${formatMoney(savings, breakdown.currency)} ($savingsPct%)"
+                        case Language.Cs => s"Ušetříte: ${formatMoney(savings, breakdown.currency)} ($savingsPct%)",
+                    )
+                  else emptyNode,
+                  pricePerItemLine(breakdown, l),
+                )
+              case (Some(breakdown), None) =>
+                // No customer logged in — standard pricing
+                div(
+                  div(cls := "amount", formatMoney(breakdown.total, breakdown.currency)),
+                  pricePerItemLine(breakdown, l),
+                )
+              case _ =>
+                div(cls := "amount", "0,00 Kč")
+          },
+        ),
+        button(
+          cls := "price-preview-action-btn",
+          child.text <-- lang.map {
+            case Language.En => "Validate price"
+            case Language.Cs => "Ověřit cenu"
+          },
+          onClick --> { _ =>
+            ProductBuilderViewModel.validateConfiguration()
+            breakdownOpen.update(!_)
+          },
+        ),
+        div(
+          cls := "price-preview-action-arrows",
+          child.text <-- breakdownOpen.signal.map(open => if open then "↓ ↓ ↓" else "↑ ↑ ↑"),
+        ),
       ),
 
       // Weight display (shown when weight can be calculated)
@@ -80,7 +103,9 @@ object PricePreview:
 
       // Price breakdown
       div(
-        cls := "price-breakdown",
+        cls <-- breakdownOpen.signal.map(open =>
+          if open then "price-breakdown" else "price-breakdown price-breakdown-collapsed"
+        ),
         children <-- ProductBuilderViewModel.state.combineWith(lang).map { case (state, l) =>
           state.priceBreakdown match
             case Some(breakdown) =>
@@ -227,19 +252,7 @@ object PricePreview:
                 ),
               )
 
-              val perItemLine =
-                if breakdown.quantity > 1 then
-                  List(div(
-                    cls := "price-line-item",
-                    span(l match
-                      case Language.En => s"Price per item (qty ${breakdown.quantity}):"
-                      case Language.Cs => s"Cena za kus (mn. ${breakdown.quantity}):"
-                    ),
-                    span(formatMoney((breakdown.total / breakdown.quantity).rounded, cur)),
-                  ))
-                else List.empty
-
-              val totalLines = subtotalAndMultiplierLines ++ speedSurchargeLine ++ setupFeeLines ++ minimumLine ++ totalLine ++ perItemLine
+              val totalLines = subtotalAndMultiplierLines ++ speedSurchargeLine ++ setupFeeLines ++ minimumLine ++ totalLine
 
               headerLine ++ componentLines ++ surchargeLines ++ totalLines
 
@@ -264,6 +277,16 @@ object PricePreview:
       case Currency.USD => f"$$${money.value}%.2f"
       case Currency.EUR => f"€${money.value}%.2f"
       case Currency.GBP => f"£${money.value}%.2f"
+
+  private def pricePerItemLine(breakdown: mpbuilder.domain.pricing.PriceBreakdown, lang: Language): Element =
+    if breakdown.quantity > 1 then
+      div(
+        cls := "price-per-item-main",
+        lang match
+          case Language.En => s"Price per item (${breakdown.quantity} pcs): ${formatMoney((breakdown.total / breakdown.quantity).rounded, breakdown.currency)}"
+          case Language.Cs => s"Cena za kus (${breakdown.quantity} ks): ${formatMoney((breakdown.total / breakdown.quantity).rounded, breakdown.currency)}",
+      )
+    else span()
 
   private def componentRoleLabel(role: ComponentRole, lang: Language): String =
     role match

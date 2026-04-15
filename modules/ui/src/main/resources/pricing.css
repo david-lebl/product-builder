@@ -34,6 +34,15 @@
     margin-bottom: 20px;
 }
 
+.price-display-stack {
+    margin-bottom: 20px;
+}
+
+.price-display-stack .price-display {
+    margin-bottom: 0;
+    border-radius: 8px 8px 0 0;
+}
+
 .price-display .label {
     font-size: 0.9rem;
     opacity: 0.9;
@@ -66,6 +75,34 @@
     display: inline-block;
 }
 
+.price-per-item-main {
+    margin-top: 8px;
+    font-size: 0.95rem;
+    opacity: 0.95;
+}
+
+.price-preview-action-btn {
+    width: 100%;
+    border-radius: 0 0 8px 8px;
+    border: 2px solid var(--color-primary);
+    border-top: none;
+    background: #fff;
+    color: var(--color-primary);
+    font-weight: 700;
+}
+
+.price-preview-action-btn:hover:not(:disabled) {
+    background: #f7f9ff;
+}
+
+.price-preview-action-arrows {
+    text-align: center;
+    margin-top: 6px;
+    color: var(--color-primary);
+    font-size: 0.85rem;
+    letter-spacing: 3px;
+}
+
 .basket-item-savings {
     font-size: 0.78rem;
     color: #059669;
@@ -76,6 +113,10 @@
 
 .price-breakdown {
     margin-top: 15px;
+}
+
+.price-breakdown-collapsed {
+    display: none;
 }
 
 .price-line-item {
