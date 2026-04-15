@@ -225,8 +225,8 @@ Enter specifications:
 - **Color Mode**: CMYK or Grayscale
 - **Binding Method**: Required for booklets/calendars
 
-#### Step 6: Calculate Price & Add to Basket
-Click "Calculate Price" to validate your configuration and see the pricing breakdown. You can then add the configured product to the shopping basket with a specified quantity.
+#### Step 6: Validate Price in Preview & Add to Basket
+Use the "Validate price" button in the Price Preview card (under total price) to validate the current configuration and toggle the detailed breakdown visibility. The main price card also shows price-per-item when quantity is greater than one. You can then add the configured product to the shopping basket with a specified quantity.
 
 ### Shopping Basket
 - View all added items with product details (category, material, printing method, finishes)

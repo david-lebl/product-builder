@@ -86,13 +86,13 @@
     border-radius: 0 0 8px 8px;
     border: 2px solid var(--color-primary);
     border-top: none;
-    background: #fff;
+    background: var(--color-white);
     color: var(--color-primary);
     font-weight: 700;
 }
 
 .price-preview-action-btn:hover:not(:disabled) {
-    background: #f7f9ff;
+    background: var(--color-surface);
 }
 
 .price-preview-action-arrows {
@@ -101,6 +101,15 @@
     color: var(--color-primary);
     font-size: 0.85rem;
     letter-spacing: 3px;
+    user-select: none;
+}
+
+.price-preview-action-arrows::before {
+    content: "↓ ↓ ↓";
+}
+
+.price-preview-action-arrows.closed::before {
+    content: "↑ ↑ ↑";
 }
 
 .basket-item-savings {

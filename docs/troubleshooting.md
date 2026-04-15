@@ -85,6 +85,18 @@ signal1.combineWith(signal2).map { case (a, b) => ... }
 
 ---
 
+### Laminar `Element` helper cannot return `emptyNode`
+
+**Symptom:** Scala type mismatch when a helper method is declared to return `Element` but uses `emptyNode` in one branch.
+
+**Cause:** `emptyNode` is a `CommentNode`, not an `Element`, so it does not satisfy a strict `Element` return type.
+
+**Solution:** Return `Option[Element]` from optional helper methods and render with `.getOrElse(emptyNode)` (or adjust the helper return type to a compatible node/modifier abstraction).
+
+**Files:** `modules/ui/src/main/scala/mpbuilder/ui/productbuilder/components/PricePreview.scala`
+
+---
+
 ## Agent Session Issues
 
 ### Agent cannot push to repository

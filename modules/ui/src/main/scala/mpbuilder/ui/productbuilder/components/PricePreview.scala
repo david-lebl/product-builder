@@ -2,7 +2,7 @@ package mpbuilder.ui.productbuilder.components
 
 import com.raquo.laminar.api.L.*
 import mpbuilder.ui.productbuilder.ProductBuilderViewModel
-import mpbuilder.domain.pricing.{Money, Currency, ComponentBreakdown}
+import mpbuilder.domain.pricing.{Money, Currency, ComponentBreakdown, PriceBreakdown}
 import mpbuilder.domain.model.{Language, ComponentRole}
 import mpbuilder.domain.weight.WeightBreakdown
 
@@ -52,13 +52,13 @@ object PricePreview:
                         case Language.Cs => s"Ušetříte: ${formatMoney(savings, breakdown.currency)} ($savingsPct%)",
                     )
                   else emptyNode,
-                  pricePerItemLine(breakdown, l),
+                  pricePerItemLine(breakdown, l).getOrElse(emptyNode),
                 )
               case (Some(breakdown), None) =>
                 // No customer logged in — standard pricing
                 div(
                   div(cls := "amount", formatMoney(breakdown.total, breakdown.currency)),
-                  pricePerItemLine(breakdown, l),
+                  pricePerItemLine(breakdown, l).getOrElse(emptyNode),
                 )
               case _ =>
                 div(cls := "amount", "0,00 Kč")
@@ -66,6 +66,8 @@ object PricePreview:
         ),
         button(
           cls := "price-preview-action-btn",
+          aria.expanded <-- breakdownOpen.signal,
+          aria.controls := "price-breakdown-section",
           child.text <-- lang.map {
             case Language.En => "Validate price"
             case Language.Cs => "Ověřit cenu"
@@ -76,8 +78,10 @@ object PricePreview:
           },
         ),
         div(
-          cls := "price-preview-action-arrows",
-          child.text <-- breakdownOpen.signal.map(open => if open then "↓ ↓ ↓" else "↑ ↑ ↑"),
+          cls <-- breakdownOpen.signal.map(open =>
+            if open then "price-preview-action-arrows open" else "price-preview-action-arrows closed"
+          ),
+          aria.hidden := true,
         ),
       ),
 
@@ -103,6 +107,7 @@ object PricePreview:
 
       // Price breakdown
       div(
+        idAttr := "price-breakdown-section",
         cls <-- breakdownOpen.signal.map(open =>
           if open then "price-breakdown" else "price-breakdown price-breakdown-collapsed"
         ),
@@ -278,15 +283,16 @@ object PricePreview:
       case Currency.EUR => f"€${money.value}%.2f"
       case Currency.GBP => f"£${money.value}%.2f"
 
-  private def pricePerItemLine(breakdown: mpbuilder.domain.pricing.PriceBreakdown, lang: Language): Element =
+  private def pricePerItemLine(breakdown: PriceBreakdown, lang: Language): Option[Element] =
     if breakdown.quantity > 1 then
-      div(
+      val perItemPrice = formatMoney((breakdown.total / breakdown.quantity).rounded, breakdown.currency)
+      Some(div(
         cls := "price-per-item-main",
         lang match
-          case Language.En => s"Price per item (${breakdown.quantity} pcs): ${formatMoney((breakdown.total / breakdown.quantity).rounded, breakdown.currency)}"
-          case Language.Cs => s"Cena za kus (${breakdown.quantity} ks): ${formatMoney((breakdown.total / breakdown.quantity).rounded, breakdown.currency)}",
-      )
-    else span()
+          case Language.En => s"Price per item (${breakdown.quantity} pcs): $perItemPrice"
+          case Language.Cs => s"Cena za kus (${breakdown.quantity} ks): $perItemPrice",
+      ))
+    else None
 
   private def componentRoleLabel(role: ComponentRole, lang: Language): String =
     role match
