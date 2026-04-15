@@ -114,18 +114,6 @@ object ConfigurationForm:
         SpecificationForm.manufacturingSpeedSection(),
       ),
 
-      // Server Validate Button (price is computed live; this button reserved for future server-side validation)
-      div(
-        cls := "form-section",
-        button(
-          child.text <-- lang.map {
-            case Language.En => "Validate price"
-            case Language.Cs => "Ověřit cenu"
-          },
-          onClick --> { _ => ProductBuilderViewModel.validateConfiguration() },
-        ),
-      ),
-
       // Artwork section — visible when a valid configuration exists
       div(
         cls := "form-section artwork-section",

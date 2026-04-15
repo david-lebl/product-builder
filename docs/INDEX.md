@@ -73,3 +73,4 @@ Session-by-session work logs documenting what was done, decisions made, and issu
 | Document | Description |
 |----------|-------------|
 | [changelog/README.md](changelog/README.md) | Changelog format, template, and log entries index |
+| [changelog/2026-04-15-price-preview-validate-button-layout.md](changelog/2026-04-15-price-preview-validate-button-layout.md) | Session log for moving validate action/per-item price into the price preview card |
