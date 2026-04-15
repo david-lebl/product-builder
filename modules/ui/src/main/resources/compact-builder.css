@@ -57,7 +57,9 @@
     margin-bottom: 0;
     text-align: right;
     font-size: 0.82rem;
-    padding-right: 2px;
+    /* Change 1: pad label from the left edge so it isn't flush with the card */
+    padding-left: 12px;
+    padding-right: 4px;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -78,45 +80,88 @@
     font-size: 0.88rem;
 }
 
-/* ── selector-with-help: reposition help buttons for compact layout ───────
- * In the standard layout the buttons are absolutely positioned at top-right
- * overlapping the label. In the compact view we inline them next to the select.
+/* ── selector-with-help: 4-column grid so ? sits next to label, i next to select
+ *
+ * Layout: [label 150px] [? auto] [select 1fr] [i auto]
+ *
+ * We use display:contents on the inner form-group and selector-help-buttons
+ * so their children participate directly in this 4-column grid.
  * ──────────────────────────────────────────────────────────────────────── */
 
 .compact-builder .selector-with-help {
     position: static;
-    display: flex;
-    flex-wrap: wrap;
+    display: grid;
+    grid-template-columns: 150px auto 1fr auto;
     align-items: center;
-    gap: 0 4px;
+    column-gap: 4px;
+    margin-bottom: 7px;
 }
 
-/* The form-group inside selector-with-help takes most of the width */
-.compact-builder .selector-with-help > .form-group {
-    flex: 1;
-    min-width: 0;
+/* Flatten form-group so label+select join the outer grid */
+.compact-builder .selector-with-help > .form-group:has(> label:not(.checkbox-label)) {
+    display: contents;
+    /* cancel the standalone form-group grid */
+    margin-bottom: 0;
 }
 
-/* Help buttons inline after the select field */
-.compact-builder .selector-help-buttons {
+/* Label sits in column 1 */
+.compact-builder .selector-with-help > .form-group > label:not(.checkbox-label) {
+    grid-column: 1;
+    grid-row: 1;
+    /* inherited text-align:right and padding from the form-group label rule above */
+}
+
+/* Select/input sits in column 3 */
+.compact-builder .selector-with-help > .form-group > select,
+.compact-builder .selector-with-help > .form-group > input {
+    grid-column: 3;
+    grid-row: 1;
+}
+
+/* Field-error sits below the select */
+.compact-builder .selector-with-help > .form-group > .field-error {
+    grid-column: 3;
+    grid-row: 2;
+    font-size: 0.78rem;
+}
+
+/* Flatten selector-help-buttons so ? and i join the outer grid */
+.compact-builder .selector-with-help > .selector-help-buttons {
     position: static;
-    display: flex;
-    align-items: center;
+    display: contents;
     height: auto;
-    gap: 2px;
-    flex-shrink: 0;
 }
 
-/* Info-box below wraps to its own full-width line */
-.compact-builder .selector-with-help > .info-box {
-    flex-basis: 100%;
-    width: 100%;
+/* ? (general help) sits in column 2 — next to the label */
+.compact-builder .selector-with-help > .selector-help-buttons > .help-info-wrapper:first-child {
+    grid-column: 2;
+    grid-row: 1;
+    align-self: center;
 }
 
-/* Ensure popup still opens towards the left when at right edge */
-.compact-builder .selector-help-buttons .help-info-popup {
+/* ? popup opens towards the right (towards the select) */
+.compact-builder .selector-with-help > .selector-help-buttons > .help-info-wrapper:first-child .help-info-popup {
+    left: 0;
+    right: auto;
+}
+
+/* i (detail) sits in column 4 — next to the select */
+.compact-builder .selector-with-help > .selector-help-buttons > .help-info-wrapper:last-child {
+    grid-column: 4;
+    grid-row: 1;
+    align-self: center;
+}
+
+/* i popup opens towards the left */
+.compact-builder .selector-with-help > .selector-help-buttons > .help-info-wrapper:last-child .help-info-popup {
     left: auto;
     right: 0;
+}
+
+/* Info-box (e.g. "11 material(s) available") spans all 4 columns on row 2 */
+.compact-builder .selector-with-help > .info-box {
+    grid-column: 1 / -1;
+    grid-row: 2;
 }
 
 /* ── Finish selector: keep vertical layout, reduce spacing ───────────────
@@ -127,6 +172,12 @@
 
 .compact-builder .finish-list {
     gap: 4px;
+}
+
+/* Change 3: Smaller/slimmer finish checkbox labels to match other field sizes */
+.compact-builder .finish-item .checkbox-label {
+    padding: 4px 8px;
+    font-size: 0.82rem;
 }
 
 /* The finish-label-with-help already uses inline-flex; keep as-is */
@@ -144,6 +195,30 @@
 /* ── linked-components toggle: keep horizontal checkbox intact ───────────*/
 .compact-builder .linked-components-toggle {
     margin-bottom: 8px;
+}
+
+/* Change 6: Replace plain bordered box with an info-banner style.
+ * The "same material for all components" checkbox is more of a mode-toggle
+ * than a regular field checkbox — give it a distinct, informative look. */
+.compact-builder .linked-components-toggle .checkbox-label {
+    border: none;
+    background: #eef3ff;
+    border-left: 3px solid var(--color-primary, #667eea);
+    border-radius: 4px;
+    padding: 6px 10px;
+    font-size: 0.82rem;
+    font-weight: 500;
+    color: #444;
+    transition: background-color 0.2s;
+}
+
+.compact-builder .linked-components-toggle .checkbox-label:hover {
+    background: #e0e8ff;
+    border-color: var(--color-primary, #667eea);
+}
+
+.compact-builder .linked-components-toggle .checkbox-label input[type="checkbox"] {
+    accent-color: var(--color-primary, #667eea);
 }
 
 /* ── component-section headings ──────────────────────────────────────────*/
@@ -180,6 +255,24 @@
 }
 
 /* ── Speed tier cards: compact ───────────────────────────────────────────*/
+
+/* Change 4: 3-column grid when space allows */
+.compact-builder .speed-tier-cards {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0.5rem;
+}
+
 .compact-builder .speed-tier-card {
     padding: 8px 12px;
+}
+
+/* Change 5: Hide the duplicate "Manufacturing Speed:" label inside speed-tier-section —
+ * the h3 heading "5. Manufacturing Speed" in ConfigurationForm already says this */
+.compact-builder .speed-tier-section > .form-label {
+    display: none;
+}
+
+.compact-builder .speed-tier-section {
+    margin-bottom: 0;
 }
