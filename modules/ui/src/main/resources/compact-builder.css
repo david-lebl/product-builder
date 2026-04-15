@@ -55,11 +55,10 @@
 .compact-builder .form-group:has(> label:not(.checkbox-label)) > label:not(.checkbox-label) {
     display: block;
     margin-bottom: 0;
-    text-align: right;
+    text-align: left;
     font-size: 0.82rem;
-    /* Change 1: pad label from the left edge so it isn't flush with the card */
-    padding-left: 12px;
-    padding-right: 4px;
+    padding-left: 8px;
+    padding-right: 8px;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -80,18 +79,27 @@
     font-size: 0.88rem;
 }
 
-/* ── selector-with-help: 4-column grid so ? sits next to label, i next to select
+/* ── selector-with-help: 3-column grid
  *
- * Layout: [label 150px] [? auto] [select 1fr] [i auto]
+ * Layout: [label+? 150px] [select 1fr] [i-detail auto]
  *
- * We use display:contents on the inner form-group and selector-help-buttons
- * so their children participate directly in this 4-column grid.
+ * The ? (general help) is placed in grid column 1 (the label column) at its
+ * right end, overlapping the label's right padding zone.  This keeps the ?
+ * visually within the label space, not "eating into" the input column.
+ *
+ * The label reserves 28px on its right side (padding-right: 28px) so the
+ * label text never overlaps the ? button.
+ *
+ * The i (detail) only exists when two buttons are present; it goes in col 3.
+ *
+ * Both form-group and selector-help-buttons use display:contents so their
+ * children participate directly in this 3-column grid.
  * ──────────────────────────────────────────────────────────────────────── */
 
 .compact-builder .selector-with-help {
     position: static;
     display: grid;
-    grid-template-columns: 150px auto 1fr auto;
+    grid-template-columns: 150px 1fr auto;
     align-items: center;
     column-gap: 4px;
     margin-bottom: 7px;
@@ -100,27 +108,26 @@
 /* Flatten form-group so label+select join the outer grid */
 .compact-builder .selector-with-help > .form-group:has(> label:not(.checkbox-label)) {
     display: contents;
-    /* cancel the standalone form-group grid */
     margin-bottom: 0;
 }
 
-/* Label sits in column 1 */
-.compact-builder .selector-with-help > .form-group > label:not(.checkbox-label) {
+/* Label in col 1 — wider right padding reserves space for the ? button */
+.compact-builder .selector-with-help > .form-group:has(> label:not(.checkbox-label)) > label:not(.checkbox-label) {
     grid-column: 1;
     grid-row: 1;
-    /* inherited text-align:right and padding from the form-group label rule above */
+    padding-right: 28px;
 }
 
-/* Select/input sits in column 3 */
+/* Select/input in col 2 */
 .compact-builder .selector-with-help > .form-group > select,
 .compact-builder .selector-with-help > .form-group > input {
-    grid-column: 3;
+    grid-column: 2;
     grid-row: 1;
 }
 
 /* Field-error sits below the select */
 .compact-builder .selector-with-help > .form-group > .field-error {
-    grid-column: 3;
+    grid-column: 2;
     grid-row: 2;
     font-size: 0.78rem;
 }
@@ -132,33 +139,38 @@
     height: auto;
 }
 
-/* ? (general help) sits in column 2 — next to the label */
+/* ? (general help): overlaps col 1 (label zone) at the right end.
+ * This rule uses :first-child which matches whether there is one or two
+ * buttons — when there is only one button it is both :first-child and
+ * :last-child, and this rule ensures it lands in col 1 (label space). */
 .compact-builder .selector-with-help > .selector-help-buttons > .help-info-wrapper:first-child {
-    grid-column: 2;
+    grid-column: 1;
     grid-row: 1;
+    justify-self: end;
     align-self: center;
+    z-index: 1;
 }
 
-/* ? popup opens towards the right (towards the select) */
+/* ? popup opens towards the right (away from card edge) */
 .compact-builder .selector-with-help > .selector-help-buttons > .help-info-wrapper:first-child .help-info-popup {
     left: 0;
     right: auto;
 }
 
-/* i (detail) sits in column 4 — next to the select */
-.compact-builder .selector-with-help > .selector-help-buttons > .help-info-wrapper:last-child {
-    grid-column: 4;
+/* i (detail): col 3, next to the select — only present when two buttons exist */
+.compact-builder .selector-with-help > .selector-help-buttons > .help-info-wrapper:last-child:not(:first-child) {
+    grid-column: 3;
     grid-row: 1;
     align-self: center;
 }
 
 /* i popup opens towards the left */
-.compact-builder .selector-with-help > .selector-help-buttons > .help-info-wrapper:last-child .help-info-popup {
+.compact-builder .selector-with-help > .selector-help-buttons > .help-info-wrapper:last-child:not(:first-child) .help-info-popup {
     left: auto;
     right: 0;
 }
 
-/* Info-box (e.g. "11 material(s) available") spans all 4 columns on row 2 */
+/* Info-box (e.g. "11 material(s) available") spans all 3 columns */
 .compact-builder .selector-with-help > .info-box {
     grid-column: 1 / -1;
     grid-row: 2;
