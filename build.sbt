@@ -73,5 +73,6 @@ lazy val ui = (project in file("modules/ui"))
     scalaJSUseMainModuleInitializer := true,
     libraryDependencies ++= Seq(
       "com.raquo" %%% "laminar" % "17.2.0",
+      "com.raquo" %%% "waypoint" % "10.0.0-M1",
     ),
   )
