@@ -45,3 +45,14 @@ Rewrote the ProductBuilderApp UI to be more compact and space-efficient, inspire
 - [ ] Verify the build compiles successfully in CI
 - [ ] Visual testing of the new compact layout across screen sizes
 - [ ] Consider adding CSS container queries for more granular responsive behavior
+
+## Regression Fixes (same session)
+
+- Fixed finish checkbox too large — reduced padding to 4px 8px, font to 0.82rem
+- Fixed finish label not spaced from checkboxes — added `.finish-section-label` with margin-bottom
+- Fixed Czech translation: "Úpravy:" → "Povrchové úpravy:"
+- Restored manufacturing speed section h3 heading
+- Fixed help-info popup text overflow — added `overflow-wrap: break-word` and `hyphens: auto`
+- Converted Binding Method and Fold Type selectors to new horizontal `label-with-help` pattern
+- Converted Orientation selector to horizontal layout for consistency
+- Removed unused `SelectField`/`SelectOption` imports from SpecificationForm
