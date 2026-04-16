@@ -40,24 +40,4 @@ jobs:
       - name: Test
         run: mill __.test
 
-  test-sbt:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
 
-      - name: Set up JDK 17
-        uses: actions/setup-java@v4
-        with:
-          java-version: '17'
-          distribution: 'temurin'
-          cache: 'sbt'
-
-      - name: Set up sbt
-        uses: sbt/setup-sbt@v1
-
-      - name: Compile
-        run: sbt compile
-
-      - name: Test
-        run: sbt test

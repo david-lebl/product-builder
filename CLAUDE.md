@@ -4,9 +4,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Build & Test Commands
 
-This project supports both **Mill** (primary) and **sbt** (legacy) build tools.
+This project uses **Mill** as the build tool. sbt is also available in the project but not covered here.
 
-### Mill (recommended)
+### Mill
 
 ```bash
 # Compile
@@ -22,24 +22,6 @@ mill 'domain.jvm.test.testOnly *PriceCalculatorSpec' # Single suite (pattern)
 # JS build
 mill ui.fastLinkJS           # Dev build → out/ui/fastLinkJS.dest/main.js
 mill ui.fullLinkJS           # Production build → out/ui/fullLinkJS.dest/main.js
-```
-
-### sbt (legacy, still supported)
-
-```bash
-# Compile
-sbt domainJVM/compile       # Domain (JVM target)
-sbt ui/compile              # UI (Scala.js)
-sbt uiFramework/compile     # UI framework only
-
-# Test
-sbt domainJVM/test                              # All domain tests
-sbt "domainJVM/testOnly *PriceCalculatorSpec"   # Single suite
-
-# JS build
-sbt ui/fastLinkJS           # Dev build
-sbt ui/fullLinkJS           # Production build
-sbt ~ui/fastLinkJS          # Watch mode
 ```
 
 ## Architecture Overview

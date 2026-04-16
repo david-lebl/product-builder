@@ -31,7 +31,7 @@ A domain-driven product configuration and manufacturing management system for th
 | **ZIO Test** | Unit testing framework (341 tests) |
 | **Scala.js** | Cross-compilation of domain model to JavaScript |
 | **Laminar 17.2.0** | Reactive web UI framework |
-| **Mill 1.1.3** | Primary build tool (sbt also supported) |
+| **Mill 1.1.3** | Primary build tool |
 | **GitHub Actions** | CI/CD with deployment to GitHub Pages |
 
 ## Key Design Principles
@@ -186,12 +186,12 @@ See [docs/manufacturing-implementation-plan.md](docs/manufacturing-implementatio
 ### Prerequisites
 
 - Java 11+ (Java 17 recommended)
-- Mill 1.1.3+ or sbt (Scala Build Tool)
+- Mill 1.1.3+
 - A modern web browser
 
 ### Build & Test
 
-#### Using Mill (recommended)
+#### Using Mill
 
 ```bash
 mill domain.jvm.compile          # Compile domain module (JVM)
@@ -201,19 +201,7 @@ mill ui.fastLinkJS               # Build UI JavaScript (development)
 mill ui.fullLinkJS               # Build UI JavaScript (production, optimized)
 ```
 
-#### Using sbt (legacy)
-
-```bash
-sbt compile                    # Compile all modules (domain JVM + JS, UI)
-sbt test                       # Run all 341 tests (14 suites)
-sbt domainJVM/test             # Run domain tests only (faster)
-sbt ui/fastLinkJS              # Build UI JavaScript (development)
-sbt ui/fullLinkJS              # Build UI JavaScript (production, optimized)
-```
-
 ### Run Locally
-
-#### Using Mill
 
 ```bash
 mill ui.fastLinkJS
@@ -226,22 +214,6 @@ cp out/ui/fastLinkJS.dest/main.js dist/
 cd dist && python3 -m http.server 8080
 # Open http://localhost:8080
 ```
-
-#### Using sbt
-
-```bash
-sbt ui/fastLinkJS
-
-mkdir -p dist
-cp modules/ui/src/main/resources/index.html dist/
-cp modules/ui/src/main/resources/*.css dist/
-cp modules/ui/target/scala-3.3.3/material-builder-ui-fastopt/main.js dist/
-
-cd dist && python3 -m http.server 8080
-# Open http://localhost:8080
-```
-
-For development with auto-recompilation: `sbt ~ui/fastLinkJS`
 
 See [docs/ui-guide.md](docs/ui-guide.md) for detailed instructions.
 
