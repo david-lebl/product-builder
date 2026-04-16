@@ -5,10 +5,10 @@ This guide explains how to build, run, and test the Product Builder locally. The
 ## Prerequisites
 
 - Java 11+ (Java 17 recommended)
-- Mill 1.1.3+ or sbt 1.12.3+ (Scala Build Tool)
+- Mill 1.1.3+
 - A modern web browser
 
-## Quick Start (Mill)
+## Quick Start
 
 ### 1. Build the UI
 
@@ -51,54 +51,9 @@ Or use any other static file server of your choice.
 
 Navigate to: http://localhost:8080/index.html
 
-## Quick Start (sbt — legacy)
-
-### 1. Build the UI
-
-From the project root directory, run:
-
-```bash
-sbt ui/fastLinkJS
-```
-
-This will:
-- Compile the domain model for Scala.js
-- Compile the UI code to JavaScript
-- Generate `main.js` in `modules/ui/target/scala-3.3.3/material-builder-ui-fastopt/`
-
-The first build may take a while as it downloads dependencies.
-
-### 2. Prepare the distribution
-
-Copy the compiled files to a distribution directory:
-
-```bash
-mkdir -p dist
-cp modules/ui/src/main/resources/index.html dist/
-cp modules/ui/src/main/resources/*.css dist/
-cp modules/ui/target/scala-3.3.3/material-builder-ui-fastopt/main.js dist/
-```
-
-### 3. Serve the UI
-
-Start a local HTTP server in the `dist` directory:
-
-```bash
-cd dist
-python3 -m http.server 8080
-```
-
-Or use any other static file server of your choice.
-
-### 4. Open in browser
-
-Navigate to: http://localhost:8080/index.html
-
 ## Development Workflow
 
 For faster development iterations:
-
-### Using Mill
 
 1. Build with Mill:
    ```bash
@@ -112,24 +67,7 @@ For faster development iterations:
 
 3. Refresh your browser to see changes.
 
-### Using sbt
-
-1. Keep sbt running in watch mode:
-   ```bash
-   sbt ~ui/fastLinkJS
-   ```
-   This will automatically recompile when you change files.
-
-2. After each compilation, copy the new `main.js` to `dist/`:
-   ```bash
-   cp modules/ui/target/scala-3.3.3/material-builder-ui-fastopt/main.js dist/
-   ```
-
-3. Refresh your browser to see changes.
-
 ## Production Build
-
-### Using Mill
 
 ```bash
 mill ui.fullLinkJS
@@ -140,20 +78,9 @@ cp modules/ui/src/main/resources/*.css dist/
 cp out/ui/fullLinkJS.dest/main.js dist/
 ```
 
-### Using sbt
-
-```bash
-sbt ui/fullLinkJS
-
-mkdir -p dist
-cp modules/ui/src/main/resources/index.html dist/
-cp modules/ui/src/main/resources/*.css dist/
-cp modules/ui/target/scala-3.3.3/material-builder-ui-opt/main.js dist/
-```
-
 ## Testing
 
-### Running Tests (Mill)
+### Running Tests
 
 ```bash
 # Run all domain tests
@@ -161,26 +88,6 @@ mill domain.jvm.test
 
 # Run a single test suite (pattern match)
 mill 'domain.jvm.test.testOnly *PriceCalculatorSpec'
-```
-
-### Running Tests (sbt)
-
-```bash
-# Run all tests (99 tests across 5 suites)
-sbt test
-
-# Run only domain JVM tests (faster, no Scala.js compilation)
-sbt domainJVM/test
-
-# Run a single test suite
-sbt "testOnly mpbuilder.domain.ConfigurationBuilderSpec"
-sbt "testOnly mpbuilder.domain.CatalogQueryServiceSpec"
-sbt "testOnly mpbuilder.domain.PriceCalculatorSpec"
-sbt "testOnly mpbuilder.domain.LocalizationSpec"
-sbt "testOnly mpbuilder.domain.BasketServiceSpec"
-
-# Verbose test output (shows individual test names)
-sbt "testOnly * -- -v"
 ```
 
 ### Test Suites
@@ -195,9 +102,8 @@ sbt "testOnly * -- -v"
 
 ### Tips for Faster Iteration
 
-- Use `mill domain.jvm.test` (or `sbt domainJVM/test`) instead of running all tests when you only changed domain code — it skips Scala.js compilation and is significantly faster.
-- With sbt, use `sbt ~domainJVM/test` for continuous testing during domain development.
-- The UI module has no tests; compile it with `mill ui.compile` (or `sbt ui/compile`) to check for errors.
+- Use `mill domain.jvm.test` instead of running all tests when you only changed domain code — it skips Scala.js compilation and is significantly faster.
+- The UI module has no tests; compile it with `mill ui.compile` to check for errors.
 
 ## Using the UI
 
@@ -292,22 +198,16 @@ When working with this codebase through an MCP server (e.g., GitHub Copilot Codi
 
 ### Build & Compile
 
-- **sbt may not be on PATH** — If you get `sbt: command not found`, install it:
-  ```bash
-  curl -sL "https://github.com/sbt/sbt/releases/download/v1.12.3/sbt-1.12.3.tgz" -o /tmp/sbt.tgz
-  tar -xzf /tmp/sbt.tgz -C /tmp
-  export PATH="/tmp/sbt/bin:$PATH"
-  ```
-- **First sbt invocation is slow** — It downloads dependencies and compiles everything. Allow 2–3 minutes for the first `sbt compile`. Subsequent runs use the incremental compiler and are much faster.
-- **Use `sbt domainJVM/test` for fast domain testing** — Avoids Scala.js compilation overhead. Only use `sbt test` when you need to verify JS compatibility.
-- **Chain commands** — Use `sbt "domainJVM/test" "ui/compile"` to run domain tests and compile UI in one sbt session, avoiding startup overhead.
+- **Mill wrapper is included** — Run `./mill` from the project root. The `.mill-version` file pins the version.
+- **First Mill invocation is slow** — It downloads dependencies and compiles everything. Allow 2–3 minutes for the first run. Subsequent runs use the incremental compiler and are much faster.
+- **Use `mill domain.jvm.test` for fast domain testing** — Avoids Scala.js compilation overhead. Only use `mill __.test` when you need to verify all modules.
 
 ### Code Navigation
 
 - **Domain model is in `modules/domain/`** — Cross-compiled for JVM and JS. All domain logic is pure (no IO effects).
 - **UI is in `modules/ui/`** — Scala.js only. Uses Laminar for reactive rendering.
 - **Visual editor model is in `CalendarModel.scala`** — Contains all types: `VisualProductType`, `ProductFormat`, `CanvasElement` ADT, `CalendarTemplate`, `CalendarPage`, `CalendarState`.
-- **No tests for UI module** — Verify UI changes by compiling with `sbt ui/compile`.
+- **No tests for UI module** — Verify UI changes by compiling with `mill ui.compile`.
 
 ### Common Gotchas
 
@@ -319,8 +219,8 @@ When working with this codebase through an MCP server (e.g., GitHub Copilot Codi
 ### Verifying UI Changes
 
 Since there are no UI tests, verify UI changes by:
-1. Running `sbt ui/compile` to check for compilation errors
-2. Building the JS with `sbt ui/fastLinkJS`
+1. Running `mill ui.compile` to check for compilation errors
+2. Building the JS with `mill ui.fastLinkJS`
 3. Copying `main.js` to `dist/` and opening in a browser
 4. Taking screenshots for review
 
@@ -335,17 +235,10 @@ Check that `main.js` is properly copied to the `dist/` directory and accessible 
 Make sure you're serving from the `dist/` directory and that `index.html`, `main.js`, and all CSS files are present.
 
 ### Compilation Errors
-Ensure you're using Scala 3.3.3 (specified in `build.sbt`). Scala 3.8.x has compatibility issues with Scala.js.
+Ensure you're using Scala 3.3.3 (specified in `build.mill`). Scala 3.8.x has compatibility issues with Scala.js.
 
 ### Changes Not Reflecting
 Clear your browser cache or do a hard refresh (Ctrl+F5 or Cmd+Shift+R).
-
-### sbt Out of Memory
-If sbt runs out of memory, set the JVM heap:
-```bash
-export SBT_OPTS="-Xmx2G"
-sbt compile
-```
 
 ## Next Steps
 

@@ -48,7 +48,7 @@ How-to guides for developers working with the codebase.
 
 | Document | Description |
 |----------|-------------|
-| [ui-guide.md](ui-guide.md) | Build, run, and test instructions (Mill/sbt) |
+| [ui-guide.md](ui-guide.md) | Build, run, and test instructions (Mill) |
 | [adding-new-product-guide.md](adding-new-product-guide.md) | Step-by-step guide for adding new products to the catalog |
 | [../CLAUDE.md](../CLAUDE.md) | AI assistant guidance — architecture, build commands, coding conventions |
 
@@ -73,4 +73,5 @@ Session-by-session work logs documenting what was done, decisions made, and issu
 | Document | Description |
 |----------|-------------|
 | [changelog/README.md](changelog/README.md) | Changelog format, template, and log entries index |
+| [changelog/2026-04-16-remove-sbt-from-docs-and-pipeline.md](changelog/2026-04-16-remove-sbt-from-docs-and-pipeline.md) | Session log for removing sbt from root docs and CI pipeline |
 | [changelog/2026-04-15-price-preview-validate-button-layout.md](changelog/2026-04-15-price-preview-validate-button-layout.md) | Session log for moving validate action/per-item price into the price preview card |
