@@ -1,31 +1,63 @@
 .form-section {
-    margin-bottom: 25px;
+    margin-bottom: 20px;
 }
 
 .form-section h3 {
-    font-size: 1.1rem;
-    margin-bottom: 12px;
+    font-size: 0.95rem;
+    margin-bottom: 10px;
     color: #555;
+    font-weight: 600;
 }
 
 .form-group {
-    margin-bottom: 15px;
+    margin-bottom: 10px;
+}
+
+/* ── Horizontal form layout (Vaadin-style: label left, control right) ── */
+
+.form-group--horizontal {
+    display: grid;
+    grid-template-columns: 140px 1fr;
+    gap: 0 12px;
+    align-items: start;
+    margin-bottom: 10px;
+}
+
+.form-group--horizontal > label,
+.form-group--horizontal > .label-with-help {
+    padding-top: 7px;
+    padding-left: 4px;
+    font-size: 0.85rem;
+    line-height: 1.4;
+    white-space: nowrap;
+}
+
+.form-group__control {
+    min-width: 0;
+}
+
+.form-group__control select,
+.form-group__control input {
+    width: 100%;
 }
 
 label {
     display: block;
-    margin-bottom: 5px;
+    margin-bottom: 4px;
     font-weight: 500;
     color: #555;
+    font-size: 0.85rem;
 }
 
 select, input {
     width: 100%;
-    padding: 10px;
-    border: 2px solid var(--color-border);
+    padding: 7px 10px;
+    border: 1.5px solid var(--color-border);
     border-radius: 6px;
-    font-size: 1rem;
-    transition: border-color 0.3s;
+    font-size: 0.9rem;
+    transition: border-color 0.2s;
+    height: 36px;
+    line-height: 1.2;
 }
 
 select:focus, input:focus {
@@ -36,15 +68,16 @@ select:focus, input:focus {
 select:disabled, input:disabled {
     background-color: #f5f5f5;
     cursor: not-allowed;
+    color: #999;
 }
 
 button {
     background: var(--color-primary-gradient);
     color: white;
     border: none;
-    padding: 12px 24px;
+    padding: 8px 20px;
     border-radius: 6px;
-    font-size: 1rem;
+    font-size: 0.9rem;
     font-weight: 600;
     cursor: pointer;
     transition: transform 0.2s, box-shadow 0.2s;
@@ -216,7 +249,7 @@ button:disabled {
 .finish-list {
     display: flex;
     flex-direction: column;
-    gap: 6px;
+    gap: 4px;
 }
 
 .finish-item {
@@ -231,15 +264,6 @@ button:disabled {
     border-bottom-left-radius: 0;
     border-bottom-right-radius: 0;
     border-bottom-color: #c8d0f5;
-}
-
-.finish-params {
-    background-color: #f0f4ff;
-    border: 2px solid #c8d0f5;
-    border-top: none;
-    border-bottom-left-radius: 6px;
-    border-bottom-right-radius: 6px;
-    padding: 10px 12px;
 }
 
 .finish-params-row {
@@ -282,11 +306,11 @@ button:disabled {
 .radio-label {
     display: flex;
     align-items: center;
-    padding: 4px 10px;
+    padding: 3px 8px;
     border: 1px solid #c8d0f5;
     border-radius: 4px;
     cursor: pointer;
-    font-size: 0.85rem;
+    font-size: 0.82rem;
     margin: 0;
     background: white;
     transition: all 0.2s;
@@ -305,11 +329,12 @@ button:disabled {
 .checkbox-label {
     display: flex;
     align-items: center;
-    padding: 8px 12px;
-    border: 2px solid var(--color-border);
+    padding: 4px 8px;
+    border: 1.5px solid var(--color-border);
     border-radius: 6px;
     cursor: pointer;
     transition: all 0.2s;
+    font-size: 0.82rem;
 }
 
 .checkbox-label:hover {
@@ -319,15 +344,28 @@ button:disabled {
 
 .checkbox-label input {
     width: auto;
-    margin-right: 8px;
+    height: auto;
+    margin-right: 6px;
 }
 
 .info-box {
-    background-color: #e3f2fd;
-    border-left: 4px solid #2196f3;
-    padding: 12px;
-    border-radius: 6px;
-    margin-top: 10px;
+    background-color: #f0f4ff;
+    border-left: 3px solid #90a4f4;
+    padding: 6px 10px;
+    border-radius: 4px;
+    margin-top: 6px;
+    font-size: 0.8rem;
+    color: #555;
+    line-height: 1.45;
+}
+
+/* Slim informational note — even more minimal than info-box */
+.info-note {
+    font-size: 0.78rem;
+    color: var(--color-text-muted);
+    padding: 2px 4px;
+    margin-top: 4px;
+    line-height: 1.4;
 }
 .step-indicator {
     display: flex;
@@ -391,9 +429,19 @@ button:disabled {
 /* ── Help Information (layout) ───────────────────────────────────────── */
 
 .label-with-help {
-    display: flex;
+    display: inline-flex;
     align-items: center;
     gap: 4px;
+    flex-wrap: nowrap;
+}
+
+.label-with-help > label {
+    margin-bottom: 0;
+}
+
+/* Space between the finish label row and the checkbox list below */
+.finish-section-label {
+    margin-bottom: 6px;
 }
 
 .finish-label-with-help {
@@ -430,7 +478,7 @@ button:disabled {
 /* === Manufacturing Speed Tier Cards === */
 
 .speed-tier-section {
-    margin-bottom: 1rem;
+    margin-bottom: 0.5rem;
 }
 
 .speed-tier-section > .form-label {
@@ -443,15 +491,32 @@ button:disabled {
 .speed-tier-cards {
     display: flex;
     flex-direction: column;
+    gap: 0.4rem;
+}
+
+/* Horizontal row layout on wider screens */
+.speed-tier-cards--horizontal {
+    flex-direction: row;
     gap: 0.5rem;
+}
+
+.speed-tier-cards--horizontal > .speed-tier-card {
+    flex: 1;
+    min-width: 0;
+}
+
+@media (max-width: 640px) {
+    .speed-tier-cards--horizontal {
+        flex-direction: column;
+    }
 }
 
 .speed-tier-card {
     display: block;
     cursor: pointer;
-    border: 2px solid var(--color-border, #d1d5db);
-    border-radius: 8px;
-    padding: 0.75rem 1rem;
+    border: 1.5px solid var(--color-border, #d1d5db);
+    border-radius: 6px;
+    padding: 0.5rem 0.75rem;
     background: var(--color-bg-secondary, #f9fafb);
     transition: border-color 0.15s ease, background-color 0.15s ease, box-shadow 0.15s ease;
 }
@@ -474,16 +539,17 @@ button:disabled {
 .speed-tier-card__header {
     display: flex;
     align-items: center;
-    gap: 0.5rem;
-    margin-bottom: 0.25rem;
+    gap: 0.4rem;
+    margin-bottom: 0.15rem;
 }
 
 .speed-tier-card__icon {
-    font-size: 1.2rem;
+    font-size: 1rem;
 }
 
 .speed-tier-card__name {
     font-weight: 600;
+    font-size: 0.85rem;
     color: var(--color-text-primary, #1a1a1a);
 }
 
@@ -491,24 +557,24 @@ button:disabled {
     margin-left: auto;
     font-weight: 600;
     color: var(--color-primary, #3b82f6);
-    font-size: 0.9rem;
+    font-size: 0.82rem;
 }
 
 .speed-tier-card__time {
     display: flex;
     align-items: center;
-    gap: 0.35rem;
-    font-size: 0.85rem;
+    gap: 0.25rem;
+    font-size: 0.78rem;
     color: var(--color-text-secondary, #6b7280);
-    margin-bottom: 0.15rem;
+    margin-bottom: 0.1rem;
 }
 
 .speed-tier-card__time-icon {
-    font-size: 0.85rem;
+    font-size: 0.78rem;
 }
 
 .speed-tier-card__desc {
-    font-size: 0.8rem;
+    font-size: 0.72rem;
     color: var(--color-text-muted, #9ca3af);
     font-style: italic;
 }
@@ -640,14 +706,14 @@ button:disabled {
 /* ── Preset selector ──────────────────────────────────────────────────── */
 
 .preset-selector {
-    display: flex;
-    flex-wrap: wrap;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
     gap: var(--space-sm);
     margin-top: var(--space-md);
 }
 
 .preset-selector-title {
-    width: 100%;
+    grid-column: 1 / -1;
     font-size: var(--font-size-base);
     font-weight: 500;
     color: var(--color-text-muted);
@@ -655,10 +721,8 @@ button:disabled {
 }
 
 .preset-card {
-    flex: 1 1 180px;
-    max-width: 280px;
-    padding: var(--space-md);
-    border: 2px solid var(--color-border);
+    padding: var(--space-sm) var(--space-md);
+    border: 1.5px solid var(--color-border);
     border-radius: var(--border-radius-md);
     cursor: pointer;
     transition: var(--transition);
@@ -687,4 +751,103 @@ button:disabled {
     font-size: var(--font-size-sm);
     color: var(--color-text-muted);
     line-height: 1.4;
+}
+
+/* ── Size Composite Field (preset + W×H inline) ─────────────────────── */
+
+.size-composite-field {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.size-composite-field > .size-preset-select {
+    width: 100%;
+}
+
+.size-dimensions-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.size-dim-input {
+    flex: 1;
+    min-width: 0;
+}
+
+.size-dim-separator {
+    font-size: 0.85rem;
+    color: #999;
+    line-height: 36px;
+    flex-shrink: 0;
+}
+
+/* ── Linked Components Toggle (subtle, no border) ────────────────────── */
+
+.linked-toggle {
+    margin-bottom: 12px;
+}
+
+.linked-toggle .form-group {
+    margin-bottom: 2px;
+}
+
+.linked-toggle .checkbox-label {
+    border: none;
+    padding: 4px 0;
+    background: transparent;
+    font-size: 0.85rem;
+    font-weight: 500;
+}
+
+.linked-toggle .checkbox-label:hover {
+    background: transparent;
+    border-color: transparent;
+}
+
+.linked-toggle__hint {
+    display: block;
+    font-size: 0.75rem;
+    color: var(--color-text-muted);
+    padding-left: 26px;
+    line-height: 1.4;
+}
+
+/* ── Compact finish params ───────────────────────────────────────────── */
+
+.finish-params {
+    background-color: #f0f4ff;
+    border: 1.5px solid #c8d0f5;
+    border-top: none;
+    border-bottom-left-radius: 6px;
+    border-bottom-right-radius: 6px;
+    padding: 6px 10px;
+}
+
+/* ── Responsive: stack horizontal forms on narrow viewports ──────────── */
+
+@media (max-width: 480px) {
+    .form-group--horizontal {
+        grid-template-columns: 1fr;
+    }
+
+    .form-group--horizontal > label,
+    .form-group--horizontal > .label-with-help {
+        padding-top: 0;
+    }
+
+    .size-composite-field {
+        flex-direction: column;
+    }
+
+    .preset-selector {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (min-width: 481px) and (max-width: 680px) {
+    .preset-selector {
+        grid-template-columns: repeat(2, 1fr);
+    }
 }
