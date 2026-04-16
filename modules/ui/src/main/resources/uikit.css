@@ -416,6 +416,8 @@
     visibility: hidden;
     transition: opacity 0.15s, visibility 0.15s;
     pointer-events: none;
+    /* Reset any inherited white-space (e.g. nowrap from horizontal form rows) */
+    white-space: normal;
     overflow-wrap: break-word;
     word-wrap: break-word;
     hyphens: auto;

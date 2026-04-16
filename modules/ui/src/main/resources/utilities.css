@@ -706,14 +706,14 @@ button:disabled {
 /* ── Preset selector ──────────────────────────────────────────────────── */
 
 .preset-selector {
-    display: flex;
-    flex-wrap: wrap;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
     gap: var(--space-sm);
     margin-top: var(--space-md);
 }
 
 .preset-selector-title {
-    width: 100%;
+    grid-column: 1 / -1;
     font-size: var(--font-size-base);
     font-weight: 500;
     color: var(--color-text-muted);
@@ -721,8 +721,6 @@ button:disabled {
 }
 
 .preset-card {
-    flex: 1 1 160px;
-    max-width: 260px;
     padding: var(--space-sm) var(--space-md);
     border: 1.5px solid var(--color-border);
     border-radius: var(--border-radius-md);
@@ -841,5 +839,15 @@ button:disabled {
 
     .size-composite-field {
         flex-direction: column;
+    }
+
+    .preset-selector {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (min-width: 481px) and (max-width: 680px) {
+    .preset-selector {
+        grid-template-columns: repeat(2, 1fr);
     }
 }
