@@ -1,0 +1,839 @@
+.form-section {
+    margin-bottom: 20px;
+}
+
+.form-section h3 {
+    font-size: 0.95rem;
+    margin-bottom: 10px;
+    color: #555;
+    font-weight: 600;
+}
+
+.form-group {
+    margin-bottom: 10px;
+}
+
+/* ── Horizontal form layout (Vaadin-style: label left, control right) ── */
+
+.form-group--horizontal {
+    display: grid;
+    grid-template-columns: 140px 1fr;
+    gap: 0 12px;
+    align-items: start;
+    margin-bottom: 10px;
+}
+
+.form-group--horizontal > label,
+.form-group--horizontal > .label-with-help {
+    padding-top: 7px;
+    padding-left: 4px;
+    font-size: 0.85rem;
+    line-height: 1.4;
+    white-space: nowrap;
+}
+
+.form-group__control {
+    min-width: 0;
+}
+
+.form-group__control select,
+.form-group__control input {
+    width: 100%;
+}
+
+label {
+    display: block;
+    margin-bottom: 4px;
+    font-weight: 500;
+    color: #555;
+    font-size: 0.85rem;
+}
+
+select, input {
+    width: 100%;
+    padding: 7px 10px;
+    border: 1.5px solid var(--color-border);
+    border-radius: 6px;
+    font-size: 0.9rem;
+    transition: border-color 0.2s;
+    height: 36px;
+    line-height: 1.2;
+}
+
+select:focus, input:focus {
+    outline: none;
+    border-color: var(--color-primary);
+}
+
+select:disabled, input:disabled {
+    background-color: #f5f5f5;
+    cursor: not-allowed;
+    color: #999;
+}
+
+button {
+    background: var(--color-primary-gradient);
+    color: white;
+    border: none;
+    padding: 8px 20px;
+    border-radius: 6px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+button:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+}
+
+button:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    background: #cccccc !important;
+    color: #666666 !important;
+}
+
+/* ─── Shared Button Classes ──────────────────────────── */
+
+.btn {
+    padding: 6px 14px;
+    border: 1px solid #d1d5db;
+    border-radius: 6px;
+    background: #fff;
+    color: #374151;
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition: all 0.15s;
+}
+
+.btn:hover {
+    background: #f3f4f6;
+}
+
+.btn-primary {
+    background: #3b82f6;
+    color: #fff;
+    border-color: #3b82f6;
+}
+
+.btn-primary:hover {
+    background: #2563eb;
+}
+
+.btn-secondary {
+    background: #f0f0f0;
+    color: #555;
+    border: none;
+    border-radius: 8px;
+    padding: 12px 20px;
+    font-size: 1rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.btn-secondary:hover:not(:disabled) {
+    background: var(--color-border);
+}
+
+.btn-success {
+    background: var(--color-success);
+    color: #fff;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: 600;
+}
+
+.btn-success:hover {
+    background: var(--color-success);
+}
+
+.btn-danger {
+    background: var(--color-error);
+    color: #fff;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: 600;
+}
+
+.btn-danger:hover {
+    background: var(--color-error);
+}
+
+/* Outlined danger when used with .btn base */
+.btn.btn-danger {
+    background: #fff;
+    color: var(--color-error);
+    border-color: #fecaca;
+}
+
+.btn.btn-danger:hover {
+    background: #fef2f2;
+}
+
+.btn-warning {
+    background: #f59e0b;
+    color: #fff;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: 600;
+}
+
+.btn-warning:hover {
+    background: #d97706;
+}
+
+.btn-sm {
+    padding: 4px 12px;
+    font-size: 0.78rem;
+    border-radius: 4px;
+    border: none;
+    cursor: pointer;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.btn-success.btn-sm,
+.btn-danger.btn-sm,
+.btn-warning.btn-sm {
+    padding: 4px 12px;
+    font-size: 0.78rem;
+}
+
+.btn-active {
+    background: #3b82f6;
+    color: #fff;
+    border-color: #3b82f6;
+}
+
+.error-message {
+    background-color: #ffebee;
+    color: #c62828;
+    padding: 12px;
+    border-radius: 6px;
+    margin-top: 10px;
+    border-left: 4px solid #c62828;
+}
+
+.error-list {
+    margin: 8px 0 0 20px;
+}
+
+.success-message {
+    background-color: #e8f5e9;
+    color: #2e7d32;
+    padding: 12px;
+    border-radius: 6px;
+    margin-top: 10px;
+    border-left: 4px solid #2e7d32;
+}
+.loading {
+    text-align: center;
+    padding: 20px;
+    color: #666;
+}
+.checkbox-group {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.finish-list {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.finish-item {
+    border-radius: 6px;
+}
+
+.finish-item .checkbox-label {
+    border-radius: 6px;
+}
+
+.finish-item:has(.finish-params[style*="block"]) .checkbox-label {
+    border-bottom-left-radius: 0;
+    border-bottom-right-radius: 0;
+    border-bottom-color: #c8d0f5;
+}
+
+.finish-params-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 8px;
+}
+
+.finish-params-row:last-child {
+    margin-bottom: 0;
+}
+
+.finish-params-label {
+    min-width: 110px;
+    font-size: 0.85rem;
+    font-weight: 500;
+    color: #555;
+    margin: 0;
+}
+
+.finish-params-input {
+    width: 90px !important;
+    padding: 5px 8px !important;
+    font-size: 0.9rem;
+}
+
+.finish-params-select {
+    width: auto !important;
+    min-width: 150px;
+    padding: 5px 8px !important;
+    font-size: 0.9rem;
+}
+
+.finish-params-options {
+    display: flex;
+    gap: 10px;
+}
+
+.radio-label {
+    display: flex;
+    align-items: center;
+    padding: 3px 8px;
+    border: 1px solid #c8d0f5;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.82rem;
+    margin: 0;
+    background: white;
+    transition: all 0.2s;
+}
+
+.radio-label:hover {
+    border-color: var(--color-primary);
+    background-color: #e8edff;
+}
+
+.radio-label input[type="radio"] {
+    width: auto;
+    margin-right: 5px;
+}
+
+.checkbox-label {
+    display: flex;
+    align-items: center;
+    padding: 6px 10px;
+    border: 1.5px solid var(--color-border);
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-size: 0.85rem;
+}
+
+.checkbox-label:hover {
+    border-color: var(--color-primary);
+    background-color: #f5f7ff;
+}
+
+.checkbox-label input {
+    width: auto;
+    margin-right: 8px;
+}
+
+.info-box {
+    background-color: #f0f4ff;
+    border-left: 3px solid #90a4f4;
+    padding: 6px 10px;
+    border-radius: 4px;
+    margin-top: 6px;
+    font-size: 0.8rem;
+    color: #555;
+    line-height: 1.45;
+}
+
+/* Slim informational note — even more minimal than info-box */
+.info-note {
+    font-size: 0.78rem;
+    color: var(--color-text-muted);
+    padding: 2px 4px;
+    margin-top: 4px;
+    line-height: 1.4;
+}
+.step-indicator {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 30px;
+    padding: 20px;
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+}
+
+.step {
+    flex: 1;
+    text-align: center;
+    padding: 10px;
+    position: relative;
+}
+
+.step:not(:last-child)::after {
+    content: '';
+    position: absolute;
+    top: 20px;
+    right: -50%;
+    width: 100%;
+    height: 2px;
+    background-color: var(--color-border);
+    z-index: -1;
+}
+
+.step.active .step-number {
+    background-color: var(--color-primary);
+    color: white;
+}
+
+.step.completed .step-number {
+    background-color: var(--color-success);
+    color: white;
+}
+
+.step.completed:not(:last-child)::after {
+    background-color: var(--color-success);
+}
+
+.step-number {
+    display: inline-block;
+    width: 40px;
+    height: 40px;
+    line-height: 40px;
+    border-radius: 50%;
+    background-color: var(--color-border);
+    color: #666;
+    font-weight: bold;
+    margin-bottom: 8px;
+}
+
+.step-label {
+    font-size: 0.9rem;
+    color: #666;
+}
+
+/* ── Help Information (layout) ───────────────────────────────────────── */
+
+.label-with-help {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    flex-wrap: nowrap;
+}
+
+.label-with-help > label {
+    margin-bottom: 0;
+}
+
+.finish-label-with-help {
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+    flex: 1;
+}
+
+.finish-label-with-help .help-info-wrapper {
+    margin-left: auto;
+}
+
+.selector-with-help {
+    position: relative;
+}
+
+.selector-help-buttons {
+    position: absolute;
+    top: 0;
+    right: 0;
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    height: 24px;
+}
+
+/* Ensure popups from right-aligned buttons don't overflow right */
+.selector-help-buttons .help-info-popup {
+    left: auto;
+    right: 0;
+}
+
+/* === Manufacturing Speed Tier Cards === */
+
+.speed-tier-section {
+    margin-bottom: 0.5rem;
+}
+
+.speed-tier-section > .form-label {
+    display: block;
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+    color: var(--color-text-primary, #1a1a1a);
+}
+
+.speed-tier-cards {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+}
+
+/* Horizontal row layout on wider screens */
+.speed-tier-cards--horizontal {
+    flex-direction: row;
+    gap: 0.5rem;
+}
+
+.speed-tier-cards--horizontal > .speed-tier-card {
+    flex: 1;
+    min-width: 0;
+}
+
+@media (max-width: 640px) {
+    .speed-tier-cards--horizontal {
+        flex-direction: column;
+    }
+}
+
+.speed-tier-card {
+    display: block;
+    cursor: pointer;
+    border: 1.5px solid var(--color-border, #d1d5db);
+    border-radius: 6px;
+    padding: 0.5rem 0.75rem;
+    background: var(--color-bg-secondary, #f9fafb);
+    transition: border-color 0.15s ease, background-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.speed-tier-card:hover {
+    border-color: var(--color-primary, #3b82f6);
+    background: var(--color-bg-primary, #fff);
+}
+
+.speed-tier-card--selected {
+    border-color: var(--color-primary, #3b82f6);
+    background: var(--color-bg-primary, #fff);
+    box-shadow: 0 0 0 1px var(--color-primary, #3b82f6);
+}
+
+.speed-tier-card input[type="radio"] {
+    display: none;
+}
+
+.speed-tier-card__header {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    margin-bottom: 0.15rem;
+}
+
+.speed-tier-card__icon {
+    font-size: 1rem;
+}
+
+.speed-tier-card__name {
+    font-weight: 600;
+    font-size: 0.85rem;
+    color: var(--color-text-primary, #1a1a1a);
+}
+
+.speed-tier-card__price {
+    margin-left: auto;
+    font-weight: 600;
+    color: var(--color-primary, #3b82f6);
+    font-size: 0.82rem;
+}
+
+.speed-tier-card__time {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    font-size: 0.78rem;
+    color: var(--color-text-secondary, #6b7280);
+    margin-bottom: 0.1rem;
+}
+
+.speed-tier-card__time-icon {
+    font-size: 0.78rem;
+}
+
+.speed-tier-card__desc {
+    font-size: 0.72rem;
+    color: var(--color-text-muted, #9ca3af);
+    font-style: italic;
+}
+
+.speed-tier-card--disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    border-color: var(--color-border, #d1d5db);
+    background: #f5f5f5;
+}
+
+.speed-tier-card--disabled:hover {
+    border-color: var(--color-border, #d1d5db);
+    background: #f5f5f5;
+}
+
+.speed-tier-card__warning {
+    font-size: 0.78rem;
+    color: var(--color-error, #c62828);
+    font-weight: 500;
+    margin-top: 0.25rem;
+}
+
+/* ─── Manufacturing Settings ─────────────────────────────────────────── */
+
+.manufacturing-settings {
+    max-width: 900px;
+}
+
+.settings-section {
+    background: #fff;
+    border: 1px solid var(--color-border, #d1d5db);
+    border-radius: 10px;
+    padding: 1.25rem;
+    margin-bottom: 1rem;
+}
+
+.settings-section h3 {
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--color-text-primary, #1a1a1a);
+    margin-bottom: 0.75rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid var(--color-border, #d1d5db);
+}
+
+.settings-row {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 0.65rem;
+}
+
+.settings-row:last-child {
+    margin-bottom: 0;
+}
+
+.settings-label {
+    min-width: 200px;
+    font-size: 0.9rem;
+    font-weight: 500;
+    color: var(--color-text-secondary, #6b7280);
+}
+
+.settings-value {
+    font-size: 0.9rem;
+    color: var(--color-text-primary, #1a1a1a);
+    font-weight: 500;
+}
+
+.settings-input {
+    width: 120px !important;
+    padding: 6px 10px !important;
+    font-size: 0.9rem;
+}
+
+.settings-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.85rem;
+}
+
+.settings-table th,
+.settings-table td {
+    padding: 8px 12px;
+    border: 1px solid var(--color-border, #d1d5db);
+    text-align: left;
+}
+
+.settings-table th {
+    background: #f9fafb;
+    font-weight: 600;
+    color: var(--color-text-secondary, #6b7280);
+}
+
+.settings-badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 0.78rem;
+    font-weight: 500;
+    background: #e0f2fe;
+    color: #0369a1;
+}
+
+.settings-badge--active {
+    background: #dcfce7;
+    color: #15803d;
+}
+
+.settings-holiday-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+.settings-holiday-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 10px;
+    background: #fef3c7;
+    color: #92400e;
+    border-radius: 4px;
+    font-size: 0.82rem;
+    font-weight: 500;
+}
+
+/* ── Preset selector ──────────────────────────────────────────────────── */
+
+.preset-selector {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-sm);
+    margin-top: var(--space-md);
+}
+
+.preset-selector-title {
+    width: 100%;
+    font-size: var(--font-size-base);
+    font-weight: 500;
+    color: var(--color-text-muted);
+    margin-bottom: var(--space-xs);
+}
+
+.preset-card {
+    flex: 1 1 160px;
+    max-width: 260px;
+    padding: var(--space-sm) var(--space-md);
+    border: 1.5px solid var(--color-border);
+    border-radius: var(--border-radius-md);
+    cursor: pointer;
+    transition: var(--transition);
+    background: var(--color-white);
+}
+
+.preset-card:hover {
+    border-color: var(--color-primary);
+    box-shadow: var(--shadow-sm);
+}
+
+.preset-card-selected {
+    border-color: var(--color-primary);
+    background: linear-gradient(135deg, rgba(102, 126, 234, 0.06) 0%, rgba(118, 75, 162, 0.06) 100%);
+    box-shadow: 0 0 0 1px var(--color-primary);
+}
+
+.preset-card-name {
+    font-weight: 600;
+    font-size: var(--font-size-md);
+    color: var(--color-text);
+    margin-bottom: var(--space-xs);
+}
+
+.preset-card-description {
+    font-size: var(--font-size-sm);
+    color: var(--color-text-muted);
+    line-height: 1.4;
+}
+
+/* ── Size Composite Field (preset + W×H inline) ─────────────────────── */
+
+.size-composite-field {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.size-composite-field > .size-preset-select {
+    width: 100%;
+}
+
+.size-dimensions-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.size-dim-input {
+    flex: 1;
+    min-width: 0;
+}
+
+.size-dim-separator {
+    font-size: 0.85rem;
+    color: #999;
+    line-height: 36px;
+    flex-shrink: 0;
+}
+
+/* ── Linked Components Toggle (subtle, no border) ────────────────────── */
+
+.linked-toggle {
+    margin-bottom: 12px;
+}
+
+.linked-toggle .form-group {
+    margin-bottom: 2px;
+}
+
+.linked-toggle .checkbox-label {
+    border: none;
+    padding: 4px 0;
+    background: transparent;
+    font-size: 0.85rem;
+    font-weight: 500;
+}
+
+.linked-toggle .checkbox-label:hover {
+    background: transparent;
+    border-color: transparent;
+}
+
+.linked-toggle__hint {
+    display: block;
+    font-size: 0.75rem;
+    color: var(--color-text-muted);
+    padding-left: 26px;
+    line-height: 1.4;
+}
+
+/* ── Compact finish params ───────────────────────────────────────────── */
+
+.finish-params {
+    background-color: #f0f4ff;
+    border: 1.5px solid #c8d0f5;
+    border-top: none;
+    border-bottom-left-radius: 6px;
+    border-bottom-right-radius: 6px;
+    padding: 6px 10px;
+}
+
+/* ── Responsive: stack horizontal forms on narrow viewports ──────────── */
+
+@media (max-width: 480px) {
+    .form-group--horizontal {
+        grid-template-columns: 1fr;
+    }
+
+    .form-group--horizontal > label,
+    .form-group--horizontal > .label-with-help {
+        padding-top: 0;
+    }
+
+    .size-composite-field {
+        flex-direction: column;
+    }
+}
