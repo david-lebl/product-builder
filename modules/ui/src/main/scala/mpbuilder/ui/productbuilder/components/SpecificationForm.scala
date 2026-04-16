@@ -2,9 +2,7 @@ package mpbuilder.ui.productbuilder.components
 
 import com.raquo.laminar.api.L.*
 import mpbuilder.ui.productbuilder.ProductBuilderViewModel
-import mpbuilder.uikit.feedback.HelpInfo
 import mpbuilder.domain.model.*
-import mpbuilder.domain.sample.SampleCatalog
 import mpbuilder.domain.service.{CompletionEstimator, TierRestrictionValidator}
 import mpbuilder.uikit.fields.{TextField, SelectField, SelectOption}
 import mpbuilder.uikit.util.Visibility
@@ -75,24 +73,30 @@ object SpecificationForm:
 
       // Quantity
       div(
-        cls := "form-group",
-        label(child.text <-- lang.map {
-          case Language.En => "Quantity:"
-          case Language.Cs => "Množství:"
-        }),
-        input(
-          typ := "number",
-          placeholder := "e.g., 1000",
-          value <-- defaultSpecsStream.map(defaultQuantity),
-          onInput.mapToValue.map(_.toIntOption) --> { qtyOpt =>
-            qtyOpt.foreach { qty =>
-              if qty > 0 then
-                ProductBuilderViewModel.removeSpecification(classOf[SpecValue.QuantitySpec])
-                ProductBuilderViewModel.addSpecification(
-                  SpecValue.QuantitySpec(Quantity.unsafe(qty))
-                )
-            }
-          },
+        cls := "form-group form-group--horizontal",
+        div(
+          cls := "form-group__label-row",
+          label(child.text <-- lang.map {
+            case Language.En => "Quantity:"
+            case Language.Cs => "Množství:"
+          }),
+        ),
+        div(
+          cls := "form-group__control",
+          input(
+            typ := "number",
+            placeholder := "e.g., 1000",
+            value <-- defaultSpecsStream.map(defaultQuantity),
+            onInput.mapToValue.map(_.toIntOption) --> { qtyOpt =>
+              qtyOpt.foreach { qty =>
+                if qty > 0 then
+                  ProductBuilderViewModel.removeSpecification(classOf[SpecValue.QuantitySpec])
+                  ProductBuilderViewModel.addSpecification(
+                    SpecValue.QuantitySpec(Quantity.unsafe(qty))
+                  )
+              }
+            },
+          ),
         ),
       ),
 
@@ -128,77 +132,89 @@ object SpecificationForm:
           case Language.En => "-- Select size --"
           case Language.Cs => "-- Vyberte rozměr --"
         },
+        horizontal = true,
       ),
 
-      // Custom size inputs - visible when "Custom" is selected
+      // Custom size inputs - always visible, disabled unless "Custom" is selected
       div(
-        cls := "form-group",
-        Visibility.when(sizePresetVar.signal.map(_ == "custom")),
-        label(child.text <-- lang.map {
-          case Language.En => "Custom Size (Width x Height in mm):"
-          case Language.Cs => "Vlastní rozměr (šířka × výška v mm):"
-        }),
+        cls := "form-group form-group--horizontal",
         div(
-          styleAttr := "display: flex; gap: 10px;",
-          input(
-            typ := "number",
-            placeholder <-- lang.map {
-              case Language.En => "Width (mm)"
-              case Language.Cs => "Šířka (mm)"
-            },
-            styleAttr := "flex: 1;",
-            value <-- widthSignal,
-            onInput.mapToValue --> { v =>
-              val currentH = sizePairVar.now()._2
-              sizePairVar.set((v, currentH))
-              (v.toDoubleOption, currentH.toDoubleOption) match
-                case (Some(w), Some(h)) if w > 0 && h > 0 =>
-                  ProductBuilderViewModel.replaceSpecification(SpecValue.SizeSpec(Dimension(w, h)))
-                case _ => ()
-            },
-          ),
-          span("\u00d7", styleAttr := "line-height: 40px;"),
-          input(
-            typ := "number",
-            placeholder <-- lang.map {
-              case Language.En => "Height (mm)"
-              case Language.Cs => "Výška (mm)"
-            },
-            styleAttr := "flex: 1;",
-            value <-- heightSignal,
-            onInput.mapToValue --> { v =>
-              val currentW = sizePairVar.now()._1
-              sizePairVar.set((currentW, v))
-              (currentW.toDoubleOption, v.toDoubleOption) match
-                case (Some(w), Some(h)) if w > 0 && h > 0 =>
-                  ProductBuilderViewModel.replaceSpecification(SpecValue.SizeSpec(Dimension(w, h)))
-                case _ => ()
-            },
+          cls := "form-group__label-row",
+          label(child.text <-- lang.map {
+            case Language.En => "Custom size (mm):"
+            case Language.Cs => "Vlastní rozměr (mm):"
+          }),
+        ),
+        div(
+          cls := "form-group__control",
+          div(
+            cls := "custom-size-inputs",
+            input(
+              typ := "number",
+              placeholder <-- lang.map {
+                case Language.En => "Width"
+                case Language.Cs => "Šířka"
+              },
+              value <-- widthSignal,
+              disabled <-- sizePresetVar.signal.map(_ != "custom"),
+              onInput.mapToValue --> { v =>
+                val currentH = sizePairVar.now()._2
+                sizePairVar.set((v, currentH))
+                (v.toDoubleOption, currentH.toDoubleOption) match
+                  case (Some(w), Some(h)) if w > 0 && h > 0 =>
+                    ProductBuilderViewModel.replaceSpecification(SpecValue.SizeSpec(Dimension(w, h)))
+                  case _ => ()
+              },
+            ),
+            span(cls := "custom-size-separator", "\u00d7"),
+            input(
+              typ := "number",
+              placeholder <-- lang.map {
+                case Language.En => "Height"
+                case Language.Cs => "Výška"
+              },
+              value <-- heightSignal,
+              disabled <-- sizePresetVar.signal.map(_ != "custom"),
+              onInput.mapToValue --> { v =>
+                val currentW = sizePairVar.now()._1
+                sizePairVar.set((currentW, v))
+                (currentW.toDoubleOption, v.toDoubleOption) match
+                  case (Some(w), Some(h)) if w > 0 && h > 0 =>
+                    ProductBuilderViewModel.replaceSpecification(SpecValue.SizeSpec(Dimension(w, h)))
+                  case _ => ()
+              },
+            ),
           ),
         ),
       ),
 
       // Pages (for multi-page products)
       div(
-        cls := "form-group",
+        cls := "form-group form-group--horizontal",
         Visibility.when(requiredSpecs.map(_.contains(SpecKind.Pages))),
-        label(child.text <-- lang.map {
-          case Language.En => "Number of Pages:"
-          case Language.Cs => "Počet stran:"
-        }),
-        input(
-          typ := "number",
-          placeholder := "e.g., 8",
-          value <-- defaultSpecsStream.map(defaultPages),
-          onInput.mapToValue.map(_.toIntOption) --> { pagesOpt =>
-            pagesOpt.foreach { pages =>
-              if pages > 0 then
-                ProductBuilderViewModel.removeSpecification(classOf[SpecValue.PagesSpec])
-                ProductBuilderViewModel.addSpecification(
-                  SpecValue.PagesSpec(pages)
-                )
-            }
-          },
+        div(
+          cls := "form-group__label-row",
+          label(child.text <-- lang.map {
+            case Language.En => "Pages:"
+            case Language.Cs => "Počet stran:"
+          }),
+        ),
+        div(
+          cls := "form-group__control",
+          input(
+            typ := "number",
+            placeholder := "e.g., 8",
+            value <-- defaultSpecsStream.map(defaultPages),
+            onInput.mapToValue.map(_.toIntOption) --> { pagesOpt =>
+              pagesOpt.foreach { pages =>
+                if pages > 0 then
+                  ProductBuilderViewModel.removeSpecification(classOf[SpecValue.PagesSpec])
+                  ProductBuilderViewModel.addSpecification(
+                    SpecValue.PagesSpec(pages)
+                  )
+              }
+            },
+          ),
         ),
       ),
 
@@ -235,87 +251,70 @@ object SpecificationForm:
             case Language.En => "-- Select orientation --"
             case Language.Cs => "-- Vyberte orientaci --"
           },
+          horizontal = true,
         ),
       ),
 
       // Fold Type (required for Brochures)
       div(
         Visibility.when(requiredSpecs.map(_.contains(SpecKind.FoldType))),
-        div(
-          cls := "selector-with-help",
-          SelectField(
-            label = lang.map {
-              case Language.En => "Fold Type:"
-              case Language.Cs => "Typ skladu:"
-            },
-            options = lang.map { l =>
-              FoldType.values.toList.map(ft => SelectOption(ft.toString, foldTypeLabel(ft, l)))
-            },
-            selected = ProductBuilderViewModel.selectedFoldType.map(_.map(_.toString).getOrElse("")),
-            onChange = Observer[String] { value =>
-              if value.nonEmpty then
-                FoldType.values.find(_.toString == value).foreach { ft =>
-                  ProductBuilderViewModel.removeSpecification(classOf[SpecValue.FoldTypeSpec])
-                  ProductBuilderViewModel.addSpecification(SpecValue.FoldTypeSpec(ft))
-                }
-            },
-            placeholder = lang.map {
-              case Language.En => "-- Select fold type --"
-              case Language.Cs => "-- Vyberte typ skladu --"
-            },
-          ),
-          div(
-            cls := "selector-help-buttons",
-            HelpInfo(lang.map {
-              case Language.En => "How the printed sheet is folded. Half fold creates 4 panels, tri-fold creates 6 panels. Z-fold and accordion are great for step-by-step guides. Gate fold opens like a gate for dramatic reveals."
-              case Language.Cs => "Způsob skládání tištěného archu. Půlený sklad vytváří 4 panely, trojsklad 6 panelů. Z-sklad a harmonika jsou skvělé pro postupné návody. Bránový sklad se otevírá jako brána pro dramatické odhalení."
-            }),
-          ),
+        SelectField(
+          label = lang.map {
+            case Language.En => "Fold Type:"
+            case Language.Cs => "Typ skladu:"
+          },
+          options = lang.map { l =>
+            FoldType.values.toList.map(ft => SelectOption(ft.toString, foldTypeLabel(ft, l)))
+          },
+          selected = ProductBuilderViewModel.selectedFoldType.map(_.map(_.toString).getOrElse("")),
+          onChange = Observer[String] { value =>
+            if value.nonEmpty then
+              FoldType.values.find(_.toString == value).foreach { ft =>
+                ProductBuilderViewModel.removeSpecification(classOf[SpecValue.FoldTypeSpec])
+                ProductBuilderViewModel.addSpecification(SpecValue.FoldTypeSpec(ft))
+              }
+          },
+          placeholder = lang.map {
+            case Language.En => "-- Select fold type --"
+            case Language.Cs => "-- Vyberte typ skladu --"
+          },
+          horizontal = true,
+          helpContent = Some(lang.map {
+            case Language.En => "How the printed sheet is folded. Half fold creates 4 panels, tri-fold creates 6 panels. Z-fold and accordion are great for step-by-step guides. Gate fold opens like a gate for dramatic reveals."
+            case Language.Cs => "Způsob skládání tištěného archu. Půlený sklad vytváří 4 panely, trojsklad 6 panelů. Z-sklad a harmonika jsou skvělé pro postupné návody. Bránový sklad se otevírá jako brána pro dramatické odhalení."
+          }),
         ),
       ),
 
       // Binding Method (required for Booklets)
       div(
         Visibility.when(requiredSpecs.map(_.contains(SpecKind.BindingMethod))),
-        div(
-          cls := "selector-with-help",
-          SelectField(
-            label = lang.map {
-              case Language.En => "Binding Method:"
-              case Language.Cs => "Typ vazby:"
-            },
-            options = lang.map { l =>
-              BindingMethod.values.toList.map(bm => SelectOption(bm.toString, bindingMethodLabel(bm, l)))
-            },
-            selected = ProductBuilderViewModel.selectedBindingMethod.map(_.map(_.toString).getOrElse("")),
-            onChange = Observer[String] { value =>
-              if value.nonEmpty then
-                BindingMethod.values.find(_.toString == value).foreach { bm =>
-                  ProductBuilderViewModel.removeSpecification(classOf[SpecValue.BindingMethodSpec])
-                  ProductBuilderViewModel.addSpecification(SpecValue.BindingMethodSpec(bm))
-                }
-            },
-            placeholder = lang.map {
-              case Language.En => "-- Select binding method --"
-              case Language.Cs => "-- Vyberte typ vazby --"
-            },
-          ),
-          div(
-            cls := "selector-help-buttons",
-            HelpInfo(lang.map {
-              case Language.En => "How the pages are held together. Saddle stitch (stapled) is cheapest for thin booklets. Perfect binding (glued spine) is for thicker publications. Wire-O and spiral allow the book to lay flat when open."
-              case Language.Cs => "Způsob spojení stránek. Sešitová vazba (sešitá) je nejlevnější pro tenké brožury. Lepená vazba (lepený hřbet) je pro silnější publikace. Wire-O a kroužková vazba umožňují, aby kniha ležela naplocho při otevření."
-            }),
-          ),
+        SelectField(
+          label = lang.map {
+            case Language.En => "Binding Method:"
+            case Language.Cs => "Typ vazby:"
+          },
+          options = lang.map { l =>
+            BindingMethod.values.toList.map(bm => SelectOption(bm.toString, bindingMethodLabel(bm, l)))
+          },
+          selected = ProductBuilderViewModel.selectedBindingMethod.map(_.map(_.toString).getOrElse("")),
+          onChange = Observer[String] { value =>
+            if value.nonEmpty then
+              BindingMethod.values.find(_.toString == value).foreach { bm =>
+                ProductBuilderViewModel.removeSpecification(classOf[SpecValue.BindingMethodSpec])
+                ProductBuilderViewModel.addSpecification(SpecValue.BindingMethodSpec(bm))
+              }
+          },
+          placeholder = lang.map {
+            case Language.En => "-- Select binding method --"
+            case Language.Cs => "-- Vyberte typ vazby --"
+          },
+          horizontal = true,
+          helpContent = Some(lang.map {
+            case Language.En => "How the pages are held together. Saddle stitch (stapled) is cheapest for thin booklets. Perfect binding (glued spine) is for thicker publications. Wire-O and spiral allow the book to lay flat when open."
+            case Language.Cs => "Způsob spojení stránek. Sešitová vazba (sešitá) je nejlevnější pro tenké brožury. Lepená vazba (lepený hřbet) je pro silnější publikace. Wire-O a kroužková vazba umožňují, aby kniha ležela naplocho při otevření."
+          }),
         ),
-      ),
-
-      div(
-        cls := "info-box",
-        p(child.text <-- lang.map {
-          case Language.En => "Note: Additional specifications like binding type or lamination can be added based on your product category."
-          case Language.Cs => "Poznámka: Další specifikace jako typ vazby nebo laminace mohou být přidány na základě kategorie produktu."
-        }),
       ),
     )
 
@@ -332,13 +331,6 @@ object SpecificationForm:
         Visibility.when(requiredSpecs.map(_.nonEmpty)),
         div(
           cls := "speed-tier-section",
-          com.raquo.laminar.api.L.label(
-            cls := "form-label",
-            child.text <-- lang.map {
-              case Language.En => "Manufacturing Speed:"
-              case Language.Cs => "Rychlost výroby:"
-            },
-          ),
           div(
             cls := "speed-tier-cards",
             {

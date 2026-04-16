@@ -5,7 +5,6 @@ import mpbuilder.ui.productbuilder.{ProductBuilderViewModel, ArtworkMode}
 import mpbuilder.ui.{AppRouter, AppRoute}
 import mpbuilder.ui.visualeditor.EditorBridge
 import mpbuilder.domain.model.*
-import mpbuilder.uikit.fields.CheckboxField
 import mpbuilder.uikit.util.Visibility
 
 object ConfigurationForm:
@@ -17,8 +16,8 @@ object ConfigurationForm:
       div(
         cls := "form-section",
         h3(child.text <-- lang.map {
-          case Language.En => "1. Select Product Category"
-          case Language.Cs => "1. Vyberte kategorii produktu"
+          case Language.En => "1. Category"
+          case Language.Cs => "1. Kategorie"
         }),
         CategorySelector(),
         PresetSelector(),
@@ -28,8 +27,8 @@ object ConfigurationForm:
       div(
         cls := "form-section",
         h3(child.text <-- lang.map {
-          case Language.En => "2. Product Specifications"
-          case Language.Cs => "2. Specifikace produktu"
+          case Language.En => "2. Specifications"
+          case Language.Cs => "2. Specifikace"
         }),
         SpecificationForm(),
       ),
@@ -38,8 +37,8 @@ object ConfigurationForm:
       div(
         cls := "form-section",
         h3(child.text <-- lang.map {
-          case Language.En => "3. Select Printing Method"
-          case Language.Cs => "3. Vyberte tiskovou metodu"
+          case Language.En => "3. Printing"
+          case Language.Cs => "3. Tisk"
         }),
         PrintingMethodSelector(),
       ),
@@ -48,8 +47,8 @@ object ConfigurationForm:
       div(
         cls := "form-section",
         h3(child.text <-- lang.map {
-          case Language.En => "4. Configure Components"
-          case Language.Cs => "4. Specifikace výroby"
+          case Language.En => "4. Components"
+          case Language.Cs => "4. Komponenty"
         }),
         children <-- ProductBuilderViewModel.componentRoles
           .combineWith(ProductBuilderViewModel.linkedComponents, lang)
@@ -69,13 +68,17 @@ object ConfigurationForm:
             // Multi-component product — show linked toggle + conditional sections
             val toggle = div(
               cls := "linked-components-toggle",
-              CheckboxField(
-                label = ProductBuilderViewModel.currentLanguage.map {
+              label(
+                cls := "linked-components-toggle__label",
+                input(
+                  typ := "checkbox",
+                  checked <-- ProductBuilderViewModel.linkedComponents,
+                  onChange.mapToChecked --> Observer[Boolean](v => ProductBuilderViewModel.setLinkedComponents(v)),
+                ),
+                span(child.text <-- ProductBuilderViewModel.currentLanguage.map {
                   case Language.En => "Same material and printing for all components"
                   case Language.Cs => "Stejný materiál a tisk pro všechny komponenty"
-                },
-                checked = ProductBuilderViewModel.linkedComponents,
-                onChange = Observer[Boolean](v => ProductBuilderViewModel.setLinkedComponents(v)),
+                }),
               ),
             )
             if linked then
@@ -108,8 +111,8 @@ object ConfigurationForm:
       div(
         cls := "form-section",
         h3(child.text <-- lang.map {
-          case Language.En => "5. Manufacturing Speed"
-          case Language.Cs => "5. Rychlost výroby"
+          case Language.En => "5. Speed"
+          case Language.Cs => "5. Rychlost"
         }),
         SpecificationForm.manufacturingSpeedSection(),
       ),
@@ -119,8 +122,8 @@ object ConfigurationForm:
         cls := "form-section artwork-section",
         Visibility.when(ProductBuilderViewModel.state.map(_.configuration.isDefined)),
         h3(child.text <-- lang.map {
-          case Language.En => "6. Provide Artwork"
-          case Language.Cs => "6. Poskytnutí dat"
+          case Language.En => "6. Artwork"
+          case Language.Cs => "6. Data"
         }),
         div(
           cls := "artwork-options",

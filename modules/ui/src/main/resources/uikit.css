@@ -374,7 +374,7 @@
     font-weight: 700;
     cursor: pointer;
     padding: 0;
-    margin-left: 6px;
+    margin-left: 2px;
     line-height: 1;
     transition: background 0.15s, color 0.15s;
     flex-shrink: 0;

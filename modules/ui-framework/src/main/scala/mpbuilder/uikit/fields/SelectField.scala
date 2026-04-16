@@ -13,9 +13,18 @@ object SelectField:
     placeholder: Signal[String] = Val(""),
     disabled: Signal[Boolean] = Val(false),
     error: Signal[Option[String]] = Val(None),
+    horizontal: Boolean = false,
+    helpContent: Option[Signal[String]] = None,
+    detailHelp: Option[Signal[Option[String]]] = None,
     mods: Modifier[HtmlElement]*
   ): HtmlElement =
-    FormGroup(label, error)(
+    FormGroup(
+      labelText = label,
+      error = error,
+      horizontal = horizontal,
+      helpContent = helpContent,
+      detailHelp = detailHelp,
+    )(
       select(
         com.raquo.laminar.api.L.disabled <-- disabled,
         children <-- options.combineWith(selected, placeholder).map { case (opts, sel, ph) =>

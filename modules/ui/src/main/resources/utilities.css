@@ -1,39 +1,65 @@
 .form-section {
-    margin-bottom: 25px;
+    margin-bottom: 18px;
 }
 
 .form-section h3 {
-    font-size: 1.1rem;
-    margin-bottom: 12px;
+    font-size: 0.98rem;
+    margin-bottom: 10px;
     color: #555;
 }
 
 .form-group {
-    margin-bottom: 15px;
+    margin-bottom: 10px;
+}
+
+.form-group--horizontal {
+    display: flex;
+    gap: 12px;
+    align-items: flex-start;
+}
+
+.form-group__label-row {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+}
+
+.form-group--horizontal > .form-group__label-row {
+    flex: 0 0 170px;
+    min-height: 38px;
+    padding-left: 4px;
+}
+
+.form-group__control {
+    flex: 1;
+    min-width: 0;
 }
 
 label {
     display: block;
-    margin-bottom: 5px;
+    margin-bottom: 0;
     font-weight: 500;
     color: #555;
+    font-size: 0.9rem;
 }
 
-select, input {
+select, input, textarea {
     width: 100%;
-    padding: 10px;
-    border: 2px solid var(--color-border);
+    min-height: 38px;
+    padding: 7px 10px;
+    border: 1px solid var(--color-border);
     border-radius: 6px;
-    font-size: 1rem;
+    font-size: 0.92rem;
     transition: border-color 0.3s;
+    background: #fff;
 }
 
-select:focus, input:focus {
+select:focus, input:focus, textarea:focus {
     outline: none;
     border-color: var(--color-primary);
 }
 
-select:disabled, input:disabled {
+select:disabled, input:disabled, textarea:disabled {
     background-color: #f5f5f5;
     cursor: not-allowed;
 }
@@ -216,7 +242,7 @@ button:disabled {
 .finish-list {
     display: flex;
     flex-direction: column;
-    gap: 6px;
+    gap: 4px;
 }
 
 .finish-item {
@@ -235,11 +261,11 @@ button:disabled {
 
 .finish-params {
     background-color: #f0f4ff;
-    border: 2px solid #c8d0f5;
+    border: 1px solid #c8d0f5;
     border-top: none;
     border-bottom-left-radius: 6px;
     border-bottom-right-radius: 6px;
-    padding: 10px 12px;
+    padding: 8px 10px;
 }
 
 .finish-params-row {
@@ -305,11 +331,12 @@ button:disabled {
 .checkbox-label {
     display: flex;
     align-items: center;
-    padding: 8px 12px;
-    border: 2px solid var(--color-border);
+    padding: 6px 10px;
+    border: 1px solid var(--color-border);
     border-radius: 6px;
     cursor: pointer;
     transition: all 0.2s;
+    font-size: 0.9rem;
 }
 
 .checkbox-label:hover {
@@ -320,14 +347,16 @@ button:disabled {
 .checkbox-label input {
     width: auto;
     margin-right: 8px;
+    min-height: auto;
 }
 
 .info-box {
     background-color: #e3f2fd;
-    border-left: 4px solid #2196f3;
-    padding: 12px;
+    border-left: 3px solid #2196f3;
+    padding: 8px 10px;
     border-radius: 6px;
-    margin-top: 10px;
+    margin-top: 6px;
+    font-size: 0.85rem;
 }
 .step-indicator {
     display: flex;
@@ -393,7 +422,7 @@ button:disabled {
 .label-with-help {
     display: flex;
     align-items: center;
-    gap: 4px;
+    gap: 2px;
 }
 
 .finish-label-with-help {
@@ -405,26 +434,6 @@ button:disabled {
 
 .finish-label-with-help .help-info-wrapper {
     margin-left: auto;
-}
-
-.selector-with-help {
-    position: relative;
-}
-
-.selector-help-buttons {
-    position: absolute;
-    top: 0;
-    right: 0;
-    display: flex;
-    align-items: center;
-    gap: 2px;
-    height: 24px;
-}
-
-/* Ensure popups from right-aligned buttons don't overflow right */
-.selector-help-buttons .help-info-popup {
-    left: auto;
-    right: 0;
 }
 
 /* === Manufacturing Speed Tier Cards === */
@@ -442,16 +451,21 @@ button:disabled {
 
 .speed-tier-cards {
     display: flex;
-    flex-direction: column;
-    gap: 0.5rem;
+    flex-direction: row;
+    gap: 0.55rem;
+    align-items: stretch;
 }
 
 .speed-tier-card {
-    display: block;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    flex: 1 1 0;
+    min-width: 0;
     cursor: pointer;
-    border: 2px solid var(--color-border, #d1d5db);
+    border: 1px solid var(--color-border, #d1d5db);
     border-radius: 8px;
-    padding: 0.75rem 1rem;
+    padding: 0.6rem 0.75rem;
     background: var(--color-bg-secondary, #f9fafb);
     transition: border-color 0.15s ease, background-color 0.15s ease, box-shadow 0.15s ease;
 }
@@ -474,8 +488,8 @@ button:disabled {
 .speed-tier-card__header {
     display: flex;
     align-items: center;
-    gap: 0.5rem;
-    margin-bottom: 0.25rem;
+    gap: 0.35rem;
+    margin-bottom: 0.2rem;
 }
 
 .speed-tier-card__icon {
@@ -485,20 +499,21 @@ button:disabled {
 .speed-tier-card__name {
     font-weight: 600;
     color: var(--color-text-primary, #1a1a1a);
+    font-size: 0.9rem;
 }
 
 .speed-tier-card__price {
     margin-left: auto;
     font-weight: 600;
     color: var(--color-primary, #3b82f6);
-    font-size: 0.9rem;
+    font-size: 0.8rem;
 }
 
 .speed-tier-card__time {
     display: flex;
     align-items: center;
     gap: 0.35rem;
-    font-size: 0.85rem;
+    font-size: 0.8rem;
     color: var(--color-text-secondary, #6b7280);
     margin-bottom: 0.15rem;
 }
@@ -508,7 +523,7 @@ button:disabled {
 }
 
 .speed-tier-card__desc {
-    font-size: 0.8rem;
+    font-size: 0.76rem;
     color: var(--color-text-muted, #9ca3af);
     font-style: italic;
 }
@@ -526,10 +541,57 @@ button:disabled {
 }
 
 .speed-tier-card__warning {
-    font-size: 0.78rem;
+    font-size: 0.74rem;
     color: var(--color-error, #c62828);
     font-weight: 500;
     margin-top: 0.25rem;
+}
+
+.linked-components-toggle {
+    margin-bottom: 8px;
+}
+
+.linked-components-toggle__label {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.88rem;
+    color: #666;
+    cursor: pointer;
+}
+
+.linked-components-toggle__label input[type="checkbox"] {
+    width: auto;
+    min-height: auto;
+    margin: 0;
+}
+
+.custom-size-inputs {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.custom-size-separator {
+    color: #666;
+    font-weight: 600;
+}
+
+@media (max-width: 920px) {
+    .form-group--horizontal {
+        flex-direction: column;
+        gap: 6px;
+    }
+
+    .form-group--horizontal > .form-group__label-row {
+        flex: 1 1 auto;
+        min-height: auto;
+        padding-left: 0;
+    }
+
+    .speed-tier-cards {
+        flex-direction: column;
+    }
 }
 
 /* ─── Manufacturing Settings ─────────────────────────────────────────── */

@@ -42,19 +42,6 @@ object FinishSelector:
             finishes.map { finish => finishItem(finish, role, l) }
         },
       ),
-      div(
-        cls := "info-box",
-        child.maybe <-- availableFinishes.combineWith(lang).map { case (finishes, l) =>
-          if finishes.nonEmpty then
-            Some(span(
-              l match
-                case Language.En => s"${finishes.size} finish(es) compatible with your selection"
-                case Language.Cs => s"${finishes.size} úprav(a) kompatibilních s vaším výběrem"
-            ))
-          else
-            None
-        },
-      ),
     )
 
   private def finishItem(finish: Finish, role: ComponentRole, lang: Language): HtmlElement =
