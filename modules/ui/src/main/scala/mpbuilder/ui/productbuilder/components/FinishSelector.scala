@@ -17,8 +17,8 @@ object FinishSelector:
         cls := "label-with-help",
         label(
           child.text <-- lang.map {
-            case Language.En => "Finishes (select multiple):"
-            case Language.Cs => "Povrchové úpravy (vyberte více):"
+            case Language.En => "Finishes:"
+            case Language.Cs => "Úpravy:"
           }
         ),
         HelpInfo(lang.map {
@@ -32,7 +32,7 @@ object FinishSelector:
           if finishes.isEmpty then
             List(
               span(
-                cls := "info-box",
+                cls := "info-note",
                 l match
                   case Language.En => "Select a category and material to see available finishes"
                   case Language.Cs => "Vyberte kategorii a materiál pro zobrazení dostupných úprav"
@@ -40,19 +40,6 @@ object FinishSelector:
             )
           else
             finishes.map { finish => finishItem(finish, role, l) }
-        },
-      ),
-      div(
-        cls := "info-box",
-        child.maybe <-- availableFinishes.combineWith(lang).map { case (finishes, l) =>
-          if finishes.nonEmpty then
-            Some(span(
-              l match
-                case Language.En => s"${finishes.size} finish(es) compatible with your selection"
-                case Language.Cs => s"${finishes.size} úprav(a) kompatibilních s vaším výběrem"
-            ))
-          else
-            None
         },
       ),
     )

@@ -6,7 +6,7 @@ import mpbuilder.uikit.feedback.HelpInfo
 import mpbuilder.domain.model.*
 import mpbuilder.domain.sample.SampleCatalog
 import mpbuilder.domain.service.{CompletionEstimator, TierRestrictionValidator}
-import mpbuilder.uikit.fields.{TextField, SelectField, SelectOption}
+import mpbuilder.uikit.fields.{SelectField, SelectOption}
 import mpbuilder.uikit.util.Visibility
 
 object SpecificationForm:
@@ -75,130 +75,134 @@ object SpecificationForm:
 
       // Quantity
       div(
-        cls := "form-group",
+        cls := "form-group form-group--horizontal",
         label(child.text <-- lang.map {
           case Language.En => "Quantity:"
           case Language.Cs => "Množství:"
         }),
-        input(
-          typ := "number",
-          placeholder := "e.g., 1000",
-          value <-- defaultSpecsStream.map(defaultQuantity),
-          onInput.mapToValue.map(_.toIntOption) --> { qtyOpt =>
-            qtyOpt.foreach { qty =>
-              if qty > 0 then
-                ProductBuilderViewModel.removeSpecification(classOf[SpecValue.QuantitySpec])
-                ProductBuilderViewModel.addSpecification(
-                  SpecValue.QuantitySpec(Quantity.unsafe(qty))
-                )
-            }
-          },
+        div(
+          cls := "form-group__control",
+          input(
+            typ := "number",
+            placeholder := "e.g., 1000",
+            value <-- defaultSpecsStream.map(defaultQuantity),
+            onInput.mapToValue.map(_.toIntOption) --> { qtyOpt =>
+              qtyOpt.foreach { qty =>
+                if qty > 0 then
+                  ProductBuilderViewModel.removeSpecification(classOf[SpecValue.QuantitySpec])
+                  ProductBuilderViewModel.addSpecification(
+                    SpecValue.QuantitySpec(Quantity.unsafe(qty))
+                  )
+              }
+            },
+          ),
         ),
       ),
 
-      // Size preset selector
-      SelectField(
-        label = lang.map {
+      // Size: preset selector + always-visible width/height fields
+      div(
+        cls := "form-group form-group--horizontal",
+        label(child.text <-- lang.map {
           case Language.En => "Size:"
           case Language.Cs => "Rozměr:"
-        },
-        options = lang.map { l =>
-          val presetOptions = SizePreset.values.toList.map { preset =>
-            SelectOption(preset.key, preset.label(l))
-          }
-          val customLabel = l match
-            case Language.En => "Custom"
-            case Language.Cs => "Vlastní"
-          presetOptions :+ SelectOption("custom", customLabel)
-        },
-        selected = sizePresetVar.signal,
-        onChange = Observer[String] { v =>
-          sizePresetVar.set(v)
-          SizePreset.values.find(_.key == v) match
-            case Some(preset) =>
-              sizePairVar.set((preset.widthMm.toString, preset.heightMm.toString))
-              ProductBuilderViewModel.replaceSpecification(
-                SpecValue.SizeSpec(Dimension(preset.widthMm.toDouble, preset.heightMm.toDouble))
-              )
-            case None =>
-              if v == "custom" then
-                sizePairVar.set(("", ""))
-        },
-        placeholder = lang.map {
-          case Language.En => "-- Select size --"
-          case Language.Cs => "-- Vyberte rozměr --"
-        },
-      ),
-
-      // Custom size inputs - visible when "Custom" is selected
-      div(
-        cls := "form-group",
-        Visibility.when(sizePresetVar.signal.map(_ == "custom")),
-        label(child.text <-- lang.map {
-          case Language.En => "Custom Size (Width x Height in mm):"
-          case Language.Cs => "Vlastní rozměr (šířka × výška v mm):"
         }),
         div(
-          styleAttr := "display: flex; gap: 10px;",
-          input(
-            typ := "number",
-            placeholder <-- lang.map {
-              case Language.En => "Width (mm)"
-              case Language.Cs => "Šířka (mm)"
+          cls := "form-group__control size-composite-field",
+          select(
+            cls := "size-preset-select",
+            children <-- lang.combineWith(sizePresetVar.signal).map { case (l, sel) =>
+              val ph = l match
+                case Language.En => "-- Select size --"
+                case Language.Cs => "-- Vyberte rozměr --"
+              val placeholderOpt = List(option(ph, value := "", com.raquo.laminar.api.L.selected := sel.isEmpty))
+              val presetOptions = SizePreset.values.toList.map { preset =>
+                option(preset.label(l), value := preset.key, com.raquo.laminar.api.L.selected := (preset.key == sel))
+              }
+              val customLabel = l match
+                case Language.En => "Custom"
+                case Language.Cs => "Vlastní"
+              placeholderOpt ++ presetOptions :+ option(customLabel, value := "custom", com.raquo.laminar.api.L.selected := (sel == "custom"))
             },
-            styleAttr := "flex: 1;",
-            value <-- widthSignal,
-            onInput.mapToValue --> { v =>
-              val currentH = sizePairVar.now()._2
-              sizePairVar.set((v, currentH))
-              (v.toDoubleOption, currentH.toDoubleOption) match
-                case (Some(w), Some(h)) if w > 0 && h > 0 =>
-                  ProductBuilderViewModel.replaceSpecification(SpecValue.SizeSpec(Dimension(w, h)))
-                case _ => ()
+            onChange.mapToValue --> { v =>
+              sizePresetVar.set(v)
+              SizePreset.values.find(_.key == v) match
+                case Some(preset) =>
+                  sizePairVar.set((preset.widthMm.toString, preset.heightMm.toString))
+                  ProductBuilderViewModel.replaceSpecification(
+                    SpecValue.SizeSpec(Dimension(preset.widthMm.toDouble, preset.heightMm.toDouble))
+                  )
+                case None =>
+                  if v == "custom" then
+                    sizePairVar.set(("", ""))
             },
           ),
-          span("\u00d7", styleAttr := "line-height: 40px;"),
-          input(
-            typ := "number",
-            placeholder <-- lang.map {
-              case Language.En => "Height (mm)"
-              case Language.Cs => "Výška (mm)"
-            },
-            styleAttr := "flex: 1;",
-            value <-- heightSignal,
-            onInput.mapToValue --> { v =>
-              val currentW = sizePairVar.now()._1
-              sizePairVar.set((currentW, v))
-              (currentW.toDoubleOption, v.toDoubleOption) match
-                case (Some(w), Some(h)) if w > 0 && h > 0 =>
-                  ProductBuilderViewModel.replaceSpecification(SpecValue.SizeSpec(Dimension(w, h)))
-                case _ => ()
-            },
+          div(
+            cls := "size-dimensions-row",
+            input(
+              typ := "number",
+              cls := "size-dim-input",
+              placeholder <-- lang.map {
+                case Language.En => "W (mm)"
+                case Language.Cs => "Š (mm)"
+              },
+              disabled <-- sizePresetVar.signal.map(v => v.nonEmpty && v != "custom"),
+              value <-- widthSignal,
+              onInput.mapToValue --> { v =>
+                val currentH = sizePairVar.now()._2
+                sizePairVar.set((v, currentH))
+                (v.toDoubleOption, currentH.toDoubleOption) match
+                  case (Some(w), Some(h)) if w > 0 && h > 0 =>
+                    ProductBuilderViewModel.replaceSpecification(SpecValue.SizeSpec(Dimension(w, h)))
+                  case _ => ()
+              },
+            ),
+            span(cls := "size-dim-separator", "\u00d7"),
+            input(
+              typ := "number",
+              cls := "size-dim-input",
+              placeholder <-- lang.map {
+                case Language.En => "H (mm)"
+                case Language.Cs => "V (mm)"
+              },
+              disabled <-- sizePresetVar.signal.map(v => v.nonEmpty && v != "custom"),
+              value <-- heightSignal,
+              onInput.mapToValue --> { v =>
+                val currentW = sizePairVar.now()._1
+                sizePairVar.set((currentW, v))
+                (currentW.toDoubleOption, v.toDoubleOption) match
+                  case (Some(w), Some(h)) if w > 0 && h > 0 =>
+                    ProductBuilderViewModel.replaceSpecification(SpecValue.SizeSpec(Dimension(w, h)))
+                  case _ => ()
+              },
+            ),
           ),
         ),
       ),
 
       // Pages (for multi-page products)
       div(
-        cls := "form-group",
+        cls := "form-group form-group--horizontal",
         Visibility.when(requiredSpecs.map(_.contains(SpecKind.Pages))),
         label(child.text <-- lang.map {
-          case Language.En => "Number of Pages:"
-          case Language.Cs => "Počet stran:"
+          case Language.En => "Pages:"
+          case Language.Cs => "Stran:"
         }),
-        input(
-          typ := "number",
-          placeholder := "e.g., 8",
-          value <-- defaultSpecsStream.map(defaultPages),
-          onInput.mapToValue.map(_.toIntOption) --> { pagesOpt =>
-            pagesOpt.foreach { pages =>
-              if pages > 0 then
-                ProductBuilderViewModel.removeSpecification(classOf[SpecValue.PagesSpec])
-                ProductBuilderViewModel.addSpecification(
-                  SpecValue.PagesSpec(pages)
-                )
-            }
-          },
+        div(
+          cls := "form-group__control",
+          input(
+            typ := "number",
+            placeholder := "e.g., 8",
+            value <-- defaultSpecsStream.map(defaultPages),
+            onInput.mapToValue.map(_.toIntOption) --> { pagesOpt =>
+              pagesOpt.foreach { pages =>
+                if pages > 0 then
+                  ProductBuilderViewModel.removeSpecification(classOf[SpecValue.PagesSpec])
+                  ProductBuilderViewModel.addSpecification(
+                    SpecValue.PagesSpec(pages)
+                  )
+              }
+            },
+          ),
         ),
       ),
 
@@ -311,10 +315,10 @@ object SpecificationForm:
       ),
 
       div(
-        cls := "info-box",
-        p(child.text <-- lang.map {
-          case Language.En => "Note: Additional specifications like binding type or lamination can be added based on your product category."
-          case Language.Cs => "Poznámka: Další specifikace jako typ vazby nebo laminace mohou být přidány na základě kategorie produktu."
+        cls := "info-note",
+        span(child.text <-- lang.map {
+          case Language.En => "Additional options may appear based on your product category."
+          case Language.Cs => "Další možnosti se mohou zobrazit na základě kategorie produktu."
         }),
       ),
     )
@@ -325,22 +329,13 @@ object SpecificationForm:
     val lang = ProductBuilderViewModel.currentLanguage
 
     div(
-      cls := "form-group",
-
       // Manufacturing Speed Tier (always visible when category is selected)
       div(
         Visibility.when(requiredSpecs.map(_.nonEmpty)),
         div(
           cls := "speed-tier-section",
-          com.raquo.laminar.api.L.label(
-            cls := "form-label",
-            child.text <-- lang.map {
-              case Language.En => "Manufacturing Speed:"
-              case Language.Cs => "Rychlost výroby:"
-            },
-          ),
           div(
-            cls := "speed-tier-cards",
+            cls := "speed-tier-cards speed-tier-cards--horizontal",
             {
               def formatCompletion(est: Option[CompletionEstimator.CompletionEstimate], l: Language): Option[String] =
                 est.map { e =>

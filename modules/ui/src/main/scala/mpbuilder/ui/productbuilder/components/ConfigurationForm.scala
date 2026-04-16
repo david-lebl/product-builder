@@ -68,7 +68,7 @@ object ConfigurationForm:
           else
             // Multi-component product — show linked toggle + conditional sections
             val toggle = div(
-              cls := "linked-components-toggle",
+              cls := "linked-toggle",
               CheckboxField(
                 label = ProductBuilderViewModel.currentLanguage.map {
                   case Language.En => "Same material and printing for all components"
@@ -76,6 +76,13 @@ object ConfigurationForm:
                 },
                 checked = ProductBuilderViewModel.linkedComponents,
                 onChange = Observer[Boolean](v => ProductBuilderViewModel.setLinkedComponents(v)),
+              ),
+              span(
+                cls := "linked-toggle__hint",
+                child.text <-- ProductBuilderViewModel.currentLanguage.map {
+                  case Language.En => "Shared settings apply to all components at once"
+                  case Language.Cs => "Sdílené nastavení se aplikuje na všechny komponenty najednou"
+                },
               ),
             )
             if linked then
@@ -107,10 +114,6 @@ object ConfigurationForm:
       // 5. Manufacturing Speed
       div(
         cls := "form-section",
-        h3(child.text <-- lang.map {
-          case Language.En => "5. Manufacturing Speed"
-          case Language.Cs => "5. Rychlost výroby"
-        }),
         SpecificationForm.manufacturingSpeedSection(),
       ),
 

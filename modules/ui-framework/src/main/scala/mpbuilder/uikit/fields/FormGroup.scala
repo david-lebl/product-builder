@@ -9,11 +9,14 @@ object FormGroup:
     mods: Modifier[HtmlElement]*
   )(content: HtmlElement): HtmlElement =
     div(
-      cls := "form-group",
+      cls := "form-group form-group--horizontal",
       label(child.text <-- labelText),
-      content,
-      child.maybe <-- error.map(_.map(msg =>
-        span(cls := "field-error", msg)
-      )),
+      div(
+        cls := "form-group__control",
+        content,
+        child.maybe <-- error.map(_.map(msg =>
+          span(cls := "field-error", msg)
+        )),
+      ),
       mods,
     )
