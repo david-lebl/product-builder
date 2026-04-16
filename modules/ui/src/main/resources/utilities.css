@@ -577,6 +577,7 @@ button:disabled {
     font-weight: 600;
 }
 
+/* 920px chosen to switch to stacked form/speed layout before label-content rows get cramped */
 @media (max-width: 920px) {
     .form-group--horizontal {
         flex-direction: column;

@@ -2,12 +2,15 @@ package mpbuilder.ui.productbuilder.components
 
 import com.raquo.laminar.api.L.*
 import mpbuilder.ui.productbuilder.ProductBuilderViewModel
+import mpbuilder.uikit.feedback.HelpInfo
 import mpbuilder.domain.model.*
 import mpbuilder.domain.service.{CompletionEstimator, TierRestrictionValidator}
 import mpbuilder.uikit.fields.{TextField, SelectField, SelectOption}
 import mpbuilder.uikit.util.Visibility
 
 object SpecificationForm:
+  private val CustomSizeKey = "custom"
+
   private enum SizePreset(val nameEn: String, val nameCs: String, val widthMm: Int, val heightMm: Int):
     case A3           extends SizePreset("A3",            "A3",       297, 420)
     case A4           extends SizePreset("A4",            "A4",       210, 297)
@@ -113,7 +116,7 @@ object SpecificationForm:
           val customLabel = l match
             case Language.En => "Custom"
             case Language.Cs => "Vlastní"
-          presetOptions :+ SelectOption("custom", customLabel)
+          presetOptions :+ SelectOption(CustomSizeKey, customLabel)
         },
         selected = sizePresetVar.signal,
         onChange = Observer[String] { v =>
@@ -125,7 +128,7 @@ object SpecificationForm:
                 SpecValue.SizeSpec(Dimension(preset.widthMm.toDouble, preset.heightMm.toDouble))
               )
             case None =>
-              if v == "custom" then
+              if v == CustomSizeKey then
                 sizePairVar.set(("", ""))
         },
         placeholder = lang.map {
@@ -144,6 +147,10 @@ object SpecificationForm:
             case Language.En => "Custom size (mm):"
             case Language.Cs => "Vlastní rozměr (mm):"
           }),
+          HelpInfo(lang.map {
+            case Language.En => "Use custom size for non-standard dimensions. Enter width and height in millimeters."
+            case Language.Cs => "Použijte vlastní rozměr pro nestandardní formáty. Zadejte šířku a výšku v milimetrech."
+          }),
         ),
         div(
           cls := "form-group__control",
@@ -156,7 +163,7 @@ object SpecificationForm:
                 case Language.Cs => "Šířka"
               },
               value <-- widthSignal,
-              disabled <-- sizePresetVar.signal.map(_ != "custom"),
+              disabled <-- sizePresetVar.signal.map(_ != CustomSizeKey),
               onInput.mapToValue --> { v =>
                 val currentH = sizePairVar.now()._2
                 sizePairVar.set((v, currentH))
@@ -174,7 +181,7 @@ object SpecificationForm:
                 case Language.Cs => "Výška"
               },
               value <-- heightSignal,
-              disabled <-- sizePresetVar.signal.map(_ != "custom"),
+              disabled <-- sizePresetVar.signal.map(_ != CustomSizeKey),
               onInput.mapToValue --> { v =>
                 val currentW = sizePairVar.now()._1
                 sizePairVar.set((currentW, v))
