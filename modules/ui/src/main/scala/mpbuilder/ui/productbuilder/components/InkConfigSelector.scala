@@ -4,7 +4,6 @@ import com.raquo.laminar.api.L.*
 import mpbuilder.ui.productbuilder.ProductBuilderViewModel
 import mpbuilder.uikit.feedback.HelpInfo
 import mpbuilder.domain.model.*
-import mpbuilder.uikit.fields.{SelectField, SelectOption}
 
 object InkConfigSelector:
   private val presets: List[(String, InkConfiguration)] = List(
@@ -39,31 +38,35 @@ object InkConfigSelector:
     }
 
     div(
-      cls := "selector-with-help",
-      SelectField(
-        label = lang.map {
-          case Language.En => "Ink Configuration:"
-          case Language.Cs => "Barevnost:"
-        },
-        options = lang.map { l =>
-          presets.map { case (key, _) => SelectOption(key, presetLabels(key, l)) }
-        },
-        selected = selectedValue,
-        onChange = Observer[String] { value =>
-          presets.find(_._1 == value).foreach { case (_, config) =>
-            ProductBuilderViewModel.selectInkConfig(role, config)
-          }
-        },
-        placeholder = lang.map {
-          case Language.En => "-- Select ink configuration --"
-          case Language.Cs => "-- Vyberte konfiguraci inkoustu --"
-        },
-      ),
+      cls := "form-group form-group--horizontal",
       div(
-        cls := "selector-help-buttons",
+        cls := "label-with-help",
+        label(child.text <-- lang.map {
+          case Language.En => "Ink config:"
+          case Language.Cs => "Barevnost:"
+        }),
         HelpInfo(lang.map {
           case Language.En => "The number of ink colors used on each side of the print. Notation is front/back — e.g. 4/4 means full color CMYK on both sides, 4/0 means color on front only. More colors = higher cost."
           case Language.Cs => "Počet barev inkoustu použitých na každé straně tisku. Zápis je přední/zadní — např. 4/4 znamená plnobarevný CMYK oboustranně, 4/0 znamená barvu jen na přední straně. Více barev = vyšší cena."
         }),
+      ),
+      div(
+        cls := "form-group__control",
+        select(
+          children <-- lang.combineWith(selectedValue).map { case (l, sel) =>
+            val ph = l match
+              case Language.En => "-- Select ink configuration --"
+              case Language.Cs => "-- Vyberte konfiguraci inkoustu --"
+            val placeholderOpt = List(option(ph, value := "", com.raquo.laminar.api.L.selected := sel.isEmpty))
+            placeholderOpt ++ presets.map { case (key, _) =>
+              option(presetLabels(key, l), value := key, com.raquo.laminar.api.L.selected := (key == sel))
+            }
+          },
+          onChange.mapToValue --> Observer[String] { value =>
+            presets.find(_._1 == value).foreach { case (_, config) =>
+              ProductBuilderViewModel.selectInkConfig(role, config)
+            }
+          },
+        ),
       ),
     )
