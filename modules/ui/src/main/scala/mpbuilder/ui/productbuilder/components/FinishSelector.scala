@@ -14,11 +14,11 @@ object FinishSelector:
     div(
       cls := "form-group",
       div(
-        cls := "label-with-help",
+        cls := "label-with-help finish-section-label",
         label(
           child.text <-- lang.map {
             case Language.En => "Finishes:"
-            case Language.Cs => "Úpravy:"
+            case Language.Cs => "Povrchové úpravy:"
           }
         ),
         HelpInfo(lang.map {

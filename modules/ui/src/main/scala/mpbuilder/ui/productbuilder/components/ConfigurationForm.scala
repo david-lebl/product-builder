@@ -114,6 +114,10 @@ object ConfigurationForm:
       // 5. Manufacturing Speed
       div(
         cls := "form-section",
+        h3(child.text <-- lang.map {
+          case Language.En => "5. Manufacturing Speed"
+          case Language.Cs => "5. Rychlost výroby"
+        }),
         SpecificationForm.manufacturingSpeedSection(),
       ),
 
