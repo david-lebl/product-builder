@@ -5,7 +5,6 @@ import mpbuilder.ui.productbuilder.ProductBuilderViewModel
 import mpbuilder.uikit.feedback.HelpInfo
 import mpbuilder.domain.model.*
 
-
 object MaterialSelector:
   def apply(role: ComponentRole): Element =
     val availableMaterials = ProductBuilderViewModel.availableMaterials(role)

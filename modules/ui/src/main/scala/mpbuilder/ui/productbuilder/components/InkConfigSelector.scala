@@ -5,7 +5,6 @@ import mpbuilder.ui.productbuilder.ProductBuilderViewModel
 import mpbuilder.uikit.feedback.HelpInfo
 import mpbuilder.domain.model.*
 
-
 object InkConfigSelector:
   private val presets: List[(String, InkConfiguration)] = List(
     "4/4"   -> InkConfiguration.cmyk4_4,

@@ -5,7 +5,6 @@ import mpbuilder.ui.productbuilder.ProductBuilderViewModel
 import mpbuilder.uikit.feedback.HelpInfo
 import mpbuilder.domain.model.*
 
-
 object CategorySelector:
   def apply(): Element =
     val categories = ProductBuilderViewModel.allCategories

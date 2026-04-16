@@ -5,7 +5,6 @@ import mpbuilder.ui.productbuilder.ProductBuilderViewModel
 import mpbuilder.uikit.feedback.HelpInfo
 import mpbuilder.domain.model.*
 
-
 object PrintingMethodSelector:
   def apply(): Element =
     val availableMethods = ProductBuilderViewModel.availablePrintingMethods
