@@ -127,7 +127,6 @@ object AppRouter {
             case _             => "app-navigation"
           },
           a(
-            cls := "nav-link",
             href := Router.relativeUrlForPage(Page.ProductCatalog),
             cls <-- pageSignal.map {
               case Page.ProductCatalog | _: Page.ProductDetail => "nav-link active"
@@ -143,7 +142,6 @@ object AppRouter {
             }
           ),
           a(
-            cls := "nav-link",
             href := Router.relativeUrlForPage(Page.ProductBuilder),
             cls <-- pageSignal.map {
               case Page.ProductBuilder => "nav-link active"
@@ -159,7 +157,6 @@ object AppRouter {
             }
           ),
           a(
-            cls := "nav-link",
             href := Router.relativeUrlForPage(Page.VisualEditor()),
             cls <-- pageSignal.map {
               case _: Page.VisualEditor => "nav-link active"
@@ -175,7 +172,6 @@ object AppRouter {
             }
           ),
           a(
-            cls := "nav-link",
             href := Router.relativeUrlForPage(Page.ManufacturingDashboard),
             cls <-- pageSignal.map {
               case _: Page.ManufacturingPage => "nav-link active"
@@ -191,7 +187,6 @@ object AppRouter {
             }
           ),
           a(
-            cls := "nav-link",
             href := Router.relativeUrlForPage(Page.CatalogCategories),
             cls <-- pageSignal.map {
               case _: Page.CatalogPage => "nav-link active"
@@ -207,7 +202,6 @@ object AppRouter {
             }
           ),
           a(
-            cls := "nav-link",
             href := Router.relativeUrlForPage(Page.CustomersList),
             cls <-- pageSignal.map {
               case _: Page.CustomerPage => "nav-link active"
@@ -228,7 +222,6 @@ object AppRouter {
             ls match
               case _: LoginState.LoggedIn =>
                 a(
-                  cls := "nav-link",
                   href := Router.relativeUrlForPage(Page.CustomerPortal),
                   cls <-- pageSignal.map {
                     case Page.CustomerPortal => "nav-link active"
