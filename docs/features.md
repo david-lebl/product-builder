@@ -56,6 +56,13 @@ All errors are collected at once, providing comprehensive feedback.
 
 `CatalogQueryService` pre-filters valid options based on the current configuration state, so the UI shows only compatible choices at each step.
 
+### Compact Configurator Layout
+
+- ProductBuilder configuration fields support compact horizontal label/control rows
+- Field help actions (`?` and contextual `i`) are shown inline next to field labels
+- Manufacturing speed choices are displayed as horizontal cards on desktop and stacked on narrow screens
+- Custom size inputs remain visible and are disabled until the "Custom" size preset is selected
+
 ---
 
 ## 2. Pricing Engine

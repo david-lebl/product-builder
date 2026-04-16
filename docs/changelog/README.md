@@ -46,6 +46,7 @@ Brief description of what was accomplished in this session.
 
 | Date | Title | PR | Type |
 |------|-------|----|------|
+| 2026-04-16 | [Compact ProductBuilder UI refresh](2026-04-16-compact-product-builder-ui.md) | — | refactoring |
 | 2026-04-16 | [Remove sbt from root docs and GitHub pipeline](2026-04-16-remove-sbt-from-docs-and-pipeline.md) | — | documentation |
 | 2026-04-15 | [Price preview validate button & per-item display layout](2026-04-15-price-preview-validate-button-layout.md) | — | bugfix |
 | 2026-04-13 | [Documentation knowledge base & agent skills](2026-04-13-documentation-knowledge-base.md) | — | documentation |
