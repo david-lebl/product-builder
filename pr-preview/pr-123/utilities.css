@@ -329,12 +329,12 @@ button:disabled {
 .checkbox-label {
     display: flex;
     align-items: center;
-    padding: 6px 10px;
+    padding: 4px 8px;
     border: 1.5px solid var(--color-border);
     border-radius: 6px;
     cursor: pointer;
     transition: all 0.2s;
-    font-size: 0.85rem;
+    font-size: 0.82rem;
 }
 
 .checkbox-label:hover {
@@ -344,7 +344,8 @@ button:disabled {
 
 .checkbox-label input {
     width: auto;
-    margin-right: 8px;
+    height: auto;
+    margin-right: 6px;
 }
 
 .info-box {
@@ -436,6 +437,11 @@ button:disabled {
 
 .label-with-help > label {
     margin-bottom: 0;
+}
+
+/* Space between the finish label row and the checkbox list below */
+.finish-section-label {
+    margin-bottom: 6px;
 }
 
 .finish-label-with-help {

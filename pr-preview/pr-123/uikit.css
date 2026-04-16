@@ -416,6 +416,9 @@
     visibility: hidden;
     transition: opacity 0.15s, visibility 0.15s;
     pointer-events: none;
+    overflow-wrap: break-word;
+    word-wrap: break-word;
+    hyphens: auto;
 }
 
 .help-info-popup--visible {
