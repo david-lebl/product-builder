@@ -5,6 +5,7 @@ import mpbuilder.domain.model.*
 import mpbuilder.domain.model.StationType.*
 import mpbuilder.domain.model.ManufacturingOrder.*
 import mpbuilder.ui.manufacturing.*
+import mpbuilder.ui.{Router, Page}
 
 /** Dashboard view — landing page showing shop-wide status at a glance. */
 object DashboardView:
@@ -80,7 +81,7 @@ object DashboardView:
                   cls := "dashboard-table-row",
                   onClick --> { _ =>
                     ManufacturingViewModel.selectOrder(mo.order.id.value)
-                    ManufacturingViewModel.currentRoute.set(ManufacturingRoute.OrderProgress)
+                    Router.pushState(Page.ManufacturingOrderProgress)
                   },
                   td(cls := "dashboard-td", mo.order.id.value),
                   td(cls := "dashboard-td", mo.customerName),

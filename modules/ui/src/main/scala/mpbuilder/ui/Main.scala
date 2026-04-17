@@ -13,6 +13,10 @@ object Main:
     // Initialize the view model with the detected language
     ProductBuilderViewModel.initializeLanguage(detectedLanguage)
     
+    // Initialize Waypoint router by referencing it (triggers lazy initialization)
+    // The router will automatically parse the current URL and set the initial page
+    val _ = Router
+    
     renderOnDomContentLoaded(
       dom.document.getElementById("app-root"),
       AppRouter()

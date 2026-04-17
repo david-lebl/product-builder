@@ -46,6 +46,7 @@ Brief description of what was accomplished in this session.
 
 | Date | Title | PR | Type |
 |------|-------|----|------|
+| 2026-04-16 | [Waypoint URL Routing Migration](2026-04-16-waypoint-url-routing-migration.md) | copilot/migrate-to-waypoint-url-routing | feature |
 | 2026-04-16 | [Compact UI Redesign for ProductBuilderApp](2026-04-16-compact-ui-redesign.md) | — | refactoring |
 | 2026-04-16 | [Remove sbt from root docs and GitHub pipeline](2026-04-16-remove-sbt-from-docs-and-pipeline.md) | — | documentation |
 | 2026-04-15 | [Price preview validate button & per-item display layout](2026-04-15-price-preview-validate-button-layout.md) | — | bugfix |

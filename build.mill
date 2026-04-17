@@ -7,6 +7,7 @@ import mill.*, scalalib.*, scalajslib.*
 val scala3Version = "3.3.3"
 val scalaJsVersion = "1.18.1"
 val laminarVersion = "17.2.0"
+val waypointVersion = "10.0.0-M1"
 
 val commonScalacOptions = Seq(
   "-encoding", "utf-8",
@@ -106,6 +107,7 @@ object ui extends ScalaJSModule {
   def scalaJSUseMainModuleInitializer = true
   def moduleDeps = Seq(domain.js, `ui-framework`)
   def mvnDeps = Seq(
-    mvn"com.raquo::laminar::${laminarVersion}"
+    mvn"com.raquo::laminar::${laminarVersion}",
+    mvn"com.raquo::waypoint::${waypointVersion}"
   )
 }
