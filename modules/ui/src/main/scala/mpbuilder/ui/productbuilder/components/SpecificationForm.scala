@@ -340,7 +340,7 @@ object SpecificationForm:
               case Language.Cs => "Barva vazby:"
             }),
             HelpInfo(lang.map {
-              case Language.En => "Choose the colour of the binding ring or wire. Available options depend on binding type."
+              case Language.En => "Choose the color of the binding ring or wire. Available options depend on binding type."
               case Language.Cs => "Vyberte barvu kroužkové nebo drátěné vazby. Dostupné možnosti závisí na typu vazby."
             }),
           ),
