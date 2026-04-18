@@ -556,13 +556,6 @@ object ProductBuilderViewModel:
       }
     }
 
-  def selectedBindingColor: Signal[Option[BindingColor]] =
-    state.map { s =>
-      s.specifications.collectFirst {
-        case SpecValue.BindingColorSpec(color) => color
-      }
-    }
-
   def selectedManufacturingSpeed: Signal[Option[ManufacturingSpeed]] =
     state.map { s =>
       s.specifications.collectFirst {

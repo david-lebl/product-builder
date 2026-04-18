@@ -328,47 +328,6 @@ object SpecificationForm:
         ),
       ),
 
-      // Binding Color (shown when binding color is a required spec)
-      div(
-        Visibility.when(requiredSpecs.map(_.contains(SpecKind.BindingColor))),
-        div(
-          cls := "form-group form-group--horizontal",
-          div(
-            cls := "label-with-help",
-            label(child.text <-- lang.map {
-              case Language.En => "Binding Color:"
-              case Language.Cs => "Barva vazby:"
-            }),
-            HelpInfo(lang.map {
-              case Language.En => "Choose the color of the binding ring or wire. Available options depend on binding type."
-              case Language.Cs => "Vyberte barvu kroužkové nebo drátěné vazby. Dostupné možnosti závisí na typu vazby."
-            }),
-          ),
-          div(
-            cls := "form-group__control",
-            select(
-              children <-- lang.combineWith(ProductBuilderViewModel.selectedBindingColor).map { case (l, selOpt) =>
-                val sel = selOpt.map(_.toString).getOrElse("")
-                val ph = l match
-                  case Language.En => "-- Select binding color --"
-                  case Language.Cs => "-- Vyberte barvu vazby --"
-                val placeholderOpt = List(option(ph, value := "", com.raquo.laminar.api.L.selected := sel.isEmpty))
-                placeholderOpt ++ BindingColor.values.toList.map { bc =>
-                  option(bindingColorLabel(bc, l), value := bc.toString, com.raquo.laminar.api.L.selected := (bc.toString == sel))
-                }
-              },
-              onChange.mapToValue --> Observer[String] { value =>
-                if value.nonEmpty then
-                  BindingColor.values.find(_.toString == value).foreach { bc =>
-                    ProductBuilderViewModel.removeSpecification(classOf[SpecValue.BindingColorSpec])
-                    ProductBuilderViewModel.addSpecification(SpecValue.BindingColorSpec(bc))
-                  }
-              },
-            ),
-          ),
-        ),
-      ),
-
       div(
         cls := "info-note",
         span(child.text <-- lang.map {
@@ -471,14 +430,6 @@ object SpecificationForm:
     case BindingMethod.PlasticOBinding  => lang match { case Language.En => "Plastic O-Binding"; case Language.Cs => "Plastová kroužková vazba" }
     case BindingMethod.MetalWireBinding => lang match { case Language.En => "Metal Wire Binding"; case Language.Cs => "Drátěná vazba" }
     case BindingMethod.CaseBinding     => lang match { case Language.En => "Case Binding";     case Language.Cs => "V8 – tuhá vazba" }
-
-  private def bindingColorLabel(bc: BindingColor, lang: Language): String = bc match
-    case BindingColor.Black  => lang match { case Language.En => "Black";  case Language.Cs => "Černá" }
-    case BindingColor.White  => lang match { case Language.En => "White";  case Language.Cs => "Bílá" }
-    case BindingColor.Silver => lang match { case Language.En => "Silver"; case Language.Cs => "Stříbrná" }
-    case BindingColor.Blue   => lang match { case Language.En => "Blue";   case Language.Cs => "Modrá" }
-    case BindingColor.Red    => lang match { case Language.En => "Red";    case Language.Cs => "Červená" }
-    case BindingColor.Clear  => lang match { case Language.En => "Clear";  case Language.Cs => "Průhledná" }
 
   private def speedTierCard(
     speed: ManufacturingSpeed,

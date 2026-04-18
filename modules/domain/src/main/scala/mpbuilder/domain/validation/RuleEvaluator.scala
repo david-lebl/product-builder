@@ -150,6 +150,15 @@ object RuleEvaluator:
           case false => Validation.fail(ConfigurationError.TechnologyConstraintViolation(reason))
           case true  => Validation.unit
 
+      case CompatibilityRule.BindingMethodMaterialConstraint(bindingMethod, role, allowedMaterialIds, reason) =>
+        specifications.get(SpecKind.BindingMethod) match
+          case Some(SpecValue.BindingMethodSpec(method)) if method == bindingMethod =>
+            components.find(_.role == role) match
+              case Some(comp) if !allowedMaterialIds.contains(comp.material.id) =>
+                Validation.fail(ConfigurationError.SpecConstraintViolation(categoryId, SpecPredicate.AllowedBindingMethods(Set(bindingMethod)), reason))
+              case _ => Validation.unit
+          case _ => Validation.unit
+
   private def evaluateSpecPredicate(
       predicate: SpecPredicate,
       specs: ProductSpecifications,
@@ -193,14 +202,6 @@ object RuleEvaluator:
         specs.get(SpecKind.BindingMethod) match
           case Some(SpecValue.BindingMethodSpec(method)) =>
             if !methods.contains(method) then
-              Validation.fail(ConfigurationError.SpecConstraintViolation(categoryId, predicate, reason))
-            else Validation.unit
-          case _ => Validation.unit
-
-      case SpecPredicate.AllowedBindingColors(colors) =>
-        specs.get(SpecKind.BindingColor) match
-          case Some(SpecValue.BindingColorSpec(color)) =>
-            if !colors.contains(color) then
               Validation.fail(ConfigurationError.SpecConstraintViolation(categoryId, predicate, reason))
             else Validation.unit
           case _ => Validation.unit

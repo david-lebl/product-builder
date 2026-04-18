@@ -212,23 +212,19 @@ object SampleRules:
       SpecPredicate.MaxPages(28),
       "Calendars must not exceed 28 pages",
     ),
-    // Calendars: allowed binding colors
-    CompatibilityRule.SpecConstraint(
-      cat.calendarsId,
-      SpecPredicate.AllowedBindingColors(Set(
-        BindingColor.Black, BindingColor.White, BindingColor.Silver,
-        BindingColor.Blue, BindingColor.Red, BindingColor.Clear,
-      )),
-      "Calendars support black, white, silver, blue, red or clear binding",
+    // Calendars: allowed binding colors (for plastic o-binding)
+    CompatibilityRule.BindingMethodMaterialConstraint(
+      BindingMethod.PlasticOBinding,
+      ComponentRole.Binding,
+      cat.allBindingPlasticIds,
+      "Plastic o-binding requires a plastic o-ring binding material",
     ),
-    // Booklets: allowed binding colors (for plastic o-binding and metal wire binding)
-    CompatibilityRule.SpecConstraint(
-      cat.bookletsId,
-      SpecPredicate.AllowedBindingColors(Set(
-        BindingColor.Black, BindingColor.White, BindingColor.Silver,
-        BindingColor.Blue, BindingColor.Red, BindingColor.Clear,
-      )),
-      "Booklets support black, white, silver, blue, red or clear binding",
+    // Calendars/Booklets: allowed binding colors (for metal wire binding)
+    CompatibilityRule.BindingMethodMaterialConstraint(
+      BindingMethod.MetalWireBinding,
+      ComponentRole.Binding,
+      cat.allBindingMetalIds,
+      "Metal wire binding requires a metal wire binding material",
     ),
     // --- Yupo (synthetic) rules ---
     // Yupo cannot be embossed or debossed (rigid plastic)

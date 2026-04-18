@@ -93,6 +93,7 @@ object ConfigurationBuilder:
       case ComponentRole.Stand      => 1
       case ComponentRole.FrontCover => 1
       case ComponentRole.BackCover  => 1
+      case ComponentRole.Binding    => 1
       case ComponentRole.Body =>
         val totalPages = specs.get(SpecKind.Pages) match
           case Some(SpecValue.PagesSpec(count)) => count

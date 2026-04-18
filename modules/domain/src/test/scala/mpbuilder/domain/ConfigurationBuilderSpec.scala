@@ -116,13 +116,13 @@ object ConfigurationBuilderSpec extends ZIOSpecDefault:
           components = List(
             ComponentRequest(ComponentRole.Cover, SampleCatalog.coatedSilk250gsmId, InkConfiguration.cmyk4_4, List(FinishSelection(SampleCatalog.matteLaminationId))),
             ComponentRequest(ComponentRole.Body, SampleCatalog.coatedSilk250gsmId, InkConfiguration.cmyk4_4, Nil),
+            ComponentRequest(ComponentRole.Binding, SampleCatalog.bindingPlasticSilverId, InkConfiguration.noInk, Nil),
           ),
           specs = List(
             SpecValue.SizeSpec(Dimension(297, 210)),
             SpecValue.QuantitySpec(Quantity.unsafe(100)),
             SpecValue.PagesSpec(14),
             SpecValue.BindingMethodSpec(BindingMethod.PlasticOBinding),
-            SpecValue.BindingColorSpec(BindingColor.Silver),
           ),
         )
 
@@ -183,13 +183,13 @@ object ConfigurationBuilderSpec extends ZIOSpecDefault:
           components = List(
             ComponentRequest(ComponentRole.Cover, SampleCatalog.coatedSilk250gsmId, InkConfiguration.cmyk4_0, List(FinishSelection(SampleCatalog.glossLaminationId))),
             ComponentRequest(ComponentRole.Body, SampleCatalog.coated300gsmId, InkConfiguration.cmyk4_4, Nil),
+            ComponentRequest(ComponentRole.Binding, SampleCatalog.bindingPlasticBlackId, InkConfiguration.noInk, Nil),
           ),
           specs = List(
             SpecValue.SizeSpec(Dimension(297, 210)),
             SpecValue.QuantitySpec(Quantity.unsafe(100)),
             SpecValue.PagesSpec(14),
             SpecValue.BindingMethodSpec(BindingMethod.PlasticOBinding),
-            SpecValue.BindingColorSpec(BindingColor.Black),
           ),
         )
 
@@ -686,7 +686,6 @@ object ConfigurationBuilderSpec extends ZIOSpecDefault:
             SpecValue.QuantitySpec(Quantity.unsafe(100)),
             SpecValue.PagesSpec(14),
             SpecValue.BindingMethodSpec(BindingMethod.SaddleStitch),
-            SpecValue.BindingColorSpec(BindingColor.Black),
           ),
         )
 
@@ -709,7 +708,6 @@ object ConfigurationBuilderSpec extends ZIOSpecDefault:
             SpecValue.QuantitySpec(Quantity.unsafe(100)),
             SpecValue.PagesSpec(8),
             SpecValue.BindingMethodSpec(BindingMethod.PlasticOBinding),
-            SpecValue.BindingColorSpec(BindingColor.Black),
           ),
         )
 
@@ -732,7 +730,6 @@ object ConfigurationBuilderSpec extends ZIOSpecDefault:
             SpecValue.QuantitySpec(Quantity.unsafe(100)),
             SpecValue.PagesSpec(30),
             SpecValue.BindingMethodSpec(BindingMethod.PlasticOBinding),
-            SpecValue.BindingColorSpec(BindingColor.Black),
           ),
         )
 

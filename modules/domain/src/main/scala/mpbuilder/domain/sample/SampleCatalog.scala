@@ -100,6 +100,33 @@ object SampleCatalog:
   val cardboard350gGreyId: MaterialId        = MaterialId.unsafe("mat-cardboard-350g-grey")
   val cardboard350gBrownId: MaterialId       = MaterialId.unsafe("mat-cardboard-350g-brown")
 
+  // --- Binding Color Material IDs ---
+  // Plastic O-Ring binding (all available colors)
+  val bindingPlasticBlackId: MaterialId  = MaterialId.unsafe("mat-binding-plastic-black")
+  val bindingPlasticWhiteId: MaterialId  = MaterialId.unsafe("mat-binding-plastic-white")
+  val bindingPlasticSilverId: MaterialId = MaterialId.unsafe("mat-binding-plastic-silver")
+  val bindingPlasticBlueId: MaterialId   = MaterialId.unsafe("mat-binding-plastic-blue")
+  val bindingPlasticRedId: MaterialId    = MaterialId.unsafe("mat-binding-plastic-red")
+  val bindingPlasticClearId: MaterialId  = MaterialId.unsafe("mat-binding-plastic-clear")
+  // Metal wire binding colors
+  val bindingMetalBlackId: MaterialId    = MaterialId.unsafe("mat-binding-metal-black")
+  val bindingMetalSilverId: MaterialId   = MaterialId.unsafe("mat-binding-metal-silver")
+  val bindingMetalWhiteId: MaterialId    = MaterialId.unsafe("mat-binding-metal-white")
+
+  /** All plastic o-ring binding material IDs */
+  val allBindingPlasticIds: Set[MaterialId] = Set(
+    bindingPlasticBlackId, bindingPlasticWhiteId, bindingPlasticSilverId,
+    bindingPlasticBlueId, bindingPlasticRedId, bindingPlasticClearId,
+  )
+
+  /** All metal wire binding material IDs */
+  val allBindingMetalIds: Set[MaterialId] = Set(
+    bindingMetalBlackId, bindingMetalSilverId, bindingMetalWhiteId,
+  )
+
+  /** All binding color material IDs combined */
+  val allBindingMaterialIds: Set[MaterialId] = allBindingPlasticIds ++ allBindingMetalIds
+
   // --- Promotional Material IDs ---
   // T-Shirts
   val cottonTshirt150Id: MaterialId       = MaterialId.unsafe("mat-cotton-tshirt-150")
@@ -841,6 +868,81 @@ object SampleCatalog:
     )),
   )
 
+  // --- Binding Color Materials ---
+  // Plastic O-Ring binding colors
+  val bindingPlasticBlack: Material = Material(
+    id = bindingPlasticBlackId,
+    name = LocalizedString("Plastic O-Ring Black", "Plastová kroužková vazba - černá"),
+    family = MaterialFamily.Plastic,
+    weight = None,
+    properties = Set.empty,
+  )
+
+  val bindingPlasticWhite: Material = Material(
+    id = bindingPlasticWhiteId,
+    name = LocalizedString("Plastic O-Ring White", "Plastová kroužková vazba - bílá"),
+    family = MaterialFamily.Plastic,
+    weight = None,
+    properties = Set.empty,
+  )
+
+  val bindingPlasticSilver: Material = Material(
+    id = bindingPlasticSilverId,
+    name = LocalizedString("Plastic O-Ring Silver", "Plastová kroužková vazba - stříbrná"),
+    family = MaterialFamily.Plastic,
+    weight = None,
+    properties = Set.empty,
+  )
+
+  val bindingPlasticBlue: Material = Material(
+    id = bindingPlasticBlueId,
+    name = LocalizedString("Plastic O-Ring Blue", "Plastová kroužková vazba - modrá"),
+    family = MaterialFamily.Plastic,
+    weight = None,
+    properties = Set.empty,
+  )
+
+  val bindingPlasticRed: Material = Material(
+    id = bindingPlasticRedId,
+    name = LocalizedString("Plastic O-Ring Red", "Plastová kroužková vazba - červená"),
+    family = MaterialFamily.Plastic,
+    weight = None,
+    properties = Set.empty,
+  )
+
+  val bindingPlasticClear: Material = Material(
+    id = bindingPlasticClearId,
+    name = LocalizedString("Plastic O-Ring Clear", "Plastová kroužková vazba - průhledná"),
+    family = MaterialFamily.Plastic,
+    weight = None,
+    properties = Set(MaterialProperty.Transparent),
+  )
+
+  // Metal wire binding colors
+  val bindingMetalBlack: Material = Material(
+    id = bindingMetalBlackId,
+    name = LocalizedString("Metal Wire Black", "Drátěná vazba - černá"),
+    family = MaterialFamily.Hardware,
+    weight = None,
+    properties = Set.empty,
+  )
+
+  val bindingMetalSilver: Material = Material(
+    id = bindingMetalSilverId,
+    name = LocalizedString("Metal Wire Silver", "Drátěná vazba - stříbrná"),
+    family = MaterialFamily.Hardware,
+    weight = None,
+    properties = Set.empty,
+  )
+
+  val bindingMetalWhite: Material = Material(
+    id = bindingMetalWhiteId,
+    name = LocalizedString("Metal Wire White", "Drátěná vazba - bílá"),
+    family = MaterialFamily.Hardware,
+    weight = None,
+    properties = Set.empty,
+  )
+
   // --- Promotional Materials: T-Shirts ---
   val cottonTshirt150: Material = Material(
     id = cottonTshirt150Id,
@@ -1376,6 +1478,12 @@ object SampleCatalog:
           allCoatedGlossyIds ++ allCoatedMatteIds,
         allowedFinishIds = Set(perforationId),
       ),
+      ComponentTemplate(
+        role = ComponentRole.Binding,
+        allowedMaterialIds = allBindingMaterialIds,
+        allowedFinishIds = Set.empty,
+        optional = true,
+      ),
     ),
     requiredSpecKinds = Set(SpecKind.Size, SpecKind.Quantity, SpecKind.Pages, SpecKind.BindingMethod),
     allowedPrintingMethodIds = Set(digitalId),
@@ -1470,8 +1578,14 @@ object SampleCatalog:
         allowedFinishIds = Set.empty,
         optional = true,
       ),
+      ComponentTemplate(
+        role = ComponentRole.Binding,
+        allowedMaterialIds = allBindingMaterialIds,
+        allowedFinishIds = Set.empty,
+        optional = true,
+      ),
     ),
-    requiredSpecKinds = Set(SpecKind.Size, SpecKind.Quantity, SpecKind.Pages, SpecKind.BindingMethod, SpecKind.BindingColor),
+    requiredSpecKinds = Set(SpecKind.Size, SpecKind.Quantity, SpecKind.Pages, SpecKind.BindingMethod),
     allowedPrintingMethodIds = Set(digitalId),
     description = Some(LocalizedString(
       "Wall and desk calendars with cover and monthly pages. Separate cover and body components allow different paper choices. Metal wire binding is most common.",
@@ -1507,13 +1621,17 @@ object SampleCatalog:
             materialId = cardboard350gWhiteId,
             inkConfiguration = InkConfiguration.noInk,
           ),
+          ComponentPreset(
+            role = ComponentRole.Binding,
+            materialId = bindingMetalSilverId,
+            inkConfiguration = InkConfiguration.noInk,
+          ),
         ),
         specOverrides = List(
           SpecValue.SizeSpec(Dimension(210, 297)),
           SpecValue.QuantitySpec(Quantity.unsafe(50)),
           SpecValue.PagesSpec(28),
           SpecValue.BindingMethodSpec(BindingMethod.MetalWireBinding),
-          SpecValue.BindingColorSpec(BindingColor.Silver),
         ),
       ),
       CategoryPreset(
@@ -1545,13 +1663,17 @@ object SampleCatalog:
             materialId = cardboard350gGreyId,
             inkConfiguration = InkConfiguration.noInk,
           ),
+          ComponentPreset(
+            role = ComponentRole.Binding,
+            materialId = bindingMetalBlackId,
+            inkConfiguration = InkConfiguration.noInk,
+          ),
         ),
         specOverrides = List(
           SpecValue.SizeSpec(Dimension(148, 210)),
           SpecValue.QuantitySpec(Quantity.unsafe(50)),
           SpecValue.PagesSpec(28),
           SpecValue.BindingMethodSpec(BindingMethod.MetalWireBinding),
-          SpecValue.BindingColorSpec(BindingColor.Black),
         ),
       ),
     ),
@@ -1563,11 +1685,12 @@ object SampleCatalog:
     // Calendar protective covers
     transparentPlasticCoverId, cardboard350gWhiteId, cardboard350gBlackId, cardboard350gGreyId, cardboard350gBrownId,
     // Promotional materials
+    // Promotional materials
     cottonTshirt150Id, cottonTshirt180Id, polyesterTshirtId, cottonPolyBlendId, organicCottonTshirtId,
     cottonCanvasBagId, organicCottonBagId, recycledPetBagId, juteBagId, nonWovenPpBagId,
     tinplateBadgeId, acrylicBadgeId, woodenBadgeId,
     ceramicMugWhiteId, ceramicMugColoredId, magicMugId, stainlessTravelMugId, enamelMugId, glassMugId,
-  ) ++ allCoatedGlossyIds ++ allCoatedMatteIds
+  ) ++ allCoatedGlossyIds ++ allCoatedMatteIds ++ allBindingMaterialIds
 
   private val allFinishIds: Set[FinishId] = Set(
     matteLaminationId, glossLaminationId, uvCoatingId, embossingId,
@@ -2139,6 +2262,16 @@ object SampleCatalog:
       cardboard350gBlackId      -> cardboard350gBlack,
       cardboard350gGreyId       -> cardboard350gGrey,
       cardboard350gBrownId      -> cardboard350gBrown,
+      // Binding Color Materials
+      bindingPlasticBlackId  -> bindingPlasticBlack,
+      bindingPlasticWhiteId  -> bindingPlasticWhite,
+      bindingPlasticSilverId -> bindingPlasticSilver,
+      bindingPlasticBlueId   -> bindingPlasticBlue,
+      bindingPlasticRedId    -> bindingPlasticRed,
+      bindingPlasticClearId  -> bindingPlasticClear,
+      bindingMetalBlackId    -> bindingMetalBlack,
+      bindingMetalSilverId   -> bindingMetalSilver,
+      bindingMetalWhiteId    -> bindingMetalWhite,
       // Promotional Materials
       cottonTshirt150Id      -> cottonTshirt150,
       cottonTshirt180Id      -> cottonTshirt180,

@@ -314,3 +314,6 @@ object PricePreview:
       case ComponentRole.BackCover => lang match
         case Language.En => "Back Cover"
         case Language.Cs => "Zadní deska"
+      case ComponentRole.Binding => lang match
+        case Language.En => "Binding"
+        case Language.Cs => "Vazba"

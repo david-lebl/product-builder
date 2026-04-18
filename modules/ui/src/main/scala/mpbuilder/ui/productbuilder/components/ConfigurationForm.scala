@@ -305,3 +305,6 @@ object ConfigurationForm:
       case ComponentRole.BackCover => lang match
         case Language.En => "Back Cover (Protective)"
         case Language.Cs => "Zadní deska (ochranná)"
+      case ComponentRole.Binding => lang match
+        case Language.En => "Binding Ring / Wire"
+        case Language.Cs => "Vazebný kroužek / drát"

@@ -24,6 +24,17 @@ object SamplePricelist:
       PricingRule.MaterialBasePrice(SampleCatalog.cardboard350gGreyId, Money("0.30")),
       PricingRule.MaterialBasePrice(SampleCatalog.cardboard350gBrownId, Money("0.30")),
 
+      // --- Binding color material prices (per unit, USD) ---
+      PricingRule.MaterialBasePrice(SampleCatalog.bindingPlasticBlackId,  Money("0.15")),
+      PricingRule.MaterialBasePrice(SampleCatalog.bindingPlasticWhiteId,  Money("0.15")),
+      PricingRule.MaterialBasePrice(SampleCatalog.bindingPlasticSilverId, Money("0.18")),
+      PricingRule.MaterialBasePrice(SampleCatalog.bindingPlasticBlueId,   Money("0.15")),
+      PricingRule.MaterialBasePrice(SampleCatalog.bindingPlasticRedId,    Money("0.15")),
+      PricingRule.MaterialBasePrice(SampleCatalog.bindingPlasticClearId,  Money("0.20")),
+      PricingRule.MaterialBasePrice(SampleCatalog.bindingMetalBlackId,    Money("0.25")),
+      PricingRule.MaterialBasePrice(SampleCatalog.bindingMetalSilverId,   Money("0.25")),
+      PricingRule.MaterialBasePrice(SampleCatalog.bindingMetalWhiteId,    Money("0.28")),
+
       // --- Material area price (for vinyl — per sqm) ---
       PricingRule.MaterialAreaPrice(SampleCatalog.vinylId, Money("18.00")),
       PricingRule.MaterialAreaPrice(SampleCatalog.clearVinylId, Money("22.00")),
@@ -205,6 +216,17 @@ object SamplePricelist:
       PricingRule.MaterialBasePrice(SampleCatalog.cardboard350gBlackId, Money("10")),
       PricingRule.MaterialBasePrice(SampleCatalog.cardboard350gGreyId, Money("8")),
       PricingRule.MaterialBasePrice(SampleCatalog.cardboard350gBrownId, Money("8")),
+
+      // --- Binding color material prices (CZK per unit) ---
+      PricingRule.MaterialBasePrice(SampleCatalog.bindingPlasticBlackId,  Money("4")),
+      PricingRule.MaterialBasePrice(SampleCatalog.bindingPlasticWhiteId,  Money("4")),
+      PricingRule.MaterialBasePrice(SampleCatalog.bindingPlasticSilverId, Money("5")),
+      PricingRule.MaterialBasePrice(SampleCatalog.bindingPlasticBlueId,   Money("4")),
+      PricingRule.MaterialBasePrice(SampleCatalog.bindingPlasticRedId,    Money("4")),
+      PricingRule.MaterialBasePrice(SampleCatalog.bindingPlasticClearId,  Money("5")),
+      PricingRule.MaterialBasePrice(SampleCatalog.bindingMetalBlackId,    Money("6")),
+      PricingRule.MaterialBasePrice(SampleCatalog.bindingMetalSilverId,   Money("6")),
+      PricingRule.MaterialBasePrice(SampleCatalog.bindingMetalWhiteId,    Money("7")),
 
       // --- Material area price (for vinyl — CZK per sqm) ---
       PricingRule.MaterialAreaPrice(SampleCatalog.vinylId, Money("420")),
@@ -541,6 +563,17 @@ object SamplePricelist:
       PricingRule.MaterialBasePrice(SampleCatalog.cardboard350gBlackId, Money("10")),
       PricingRule.MaterialBasePrice(SampleCatalog.cardboard350gGreyId, Money("8")),
       PricingRule.MaterialBasePrice(SampleCatalog.cardboard350gBrownId, Money("8")),
+
+      // --- Binding color material prices (CZK per unit) ---
+      PricingRule.MaterialBasePrice(SampleCatalog.bindingPlasticBlackId,  Money("4")),
+      PricingRule.MaterialBasePrice(SampleCatalog.bindingPlasticWhiteId,  Money("4")),
+      PricingRule.MaterialBasePrice(SampleCatalog.bindingPlasticSilverId, Money("5")),
+      PricingRule.MaterialBasePrice(SampleCatalog.bindingPlasticBlueId,   Money("4")),
+      PricingRule.MaterialBasePrice(SampleCatalog.bindingPlasticRedId,    Money("4")),
+      PricingRule.MaterialBasePrice(SampleCatalog.bindingPlasticClearId,  Money("5")),
+      PricingRule.MaterialBasePrice(SampleCatalog.bindingMetalBlackId,    Money("6")),
+      PricingRule.MaterialBasePrice(SampleCatalog.bindingMetalSilverId,   Money("6")),
+      PricingRule.MaterialBasePrice(SampleCatalog.bindingMetalWhiteId,    Money("7")),
 
       // --- Material base price (for corrugated — not sheet-fed) ---
       PricingRule.MaterialBasePrice(SampleCatalog.corrugatedId, Money("6")),

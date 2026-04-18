@@ -71,3 +71,9 @@ enum CompatibilityRule:
       predicate: ConfigurationPredicate,
       reason: String,
   )
+  case BindingMethodMaterialConstraint(
+      bindingMethod: BindingMethod,
+      role: ComponentRole,
+      allowedMaterialIds: Set[MaterialId],
+      reason: String,
+  )
