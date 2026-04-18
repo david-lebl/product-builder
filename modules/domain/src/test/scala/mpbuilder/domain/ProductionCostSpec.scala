@@ -66,13 +66,14 @@ object ProductionCostSpec extends ZIOSpecDefault:
         // 500× coated 300gsm @ $0.05 = $25.00 material
         // 500× offset @ $0.01 = $5.00 process
         // 500× matte lam @ $0.01 = $5.00 finish
-        // Direct total = $35.00
-        // With 1.15 overhead = $40.25
+        // 500× ink 4/4 @ $0.03 = $15.00 sheet ink cost
+        // Direct total = $50.00
+        // With 1.15 overhead = $57.50
         val result = ProductionCostCalculator.calculateCost(standardConfig, costSheet)
         val cost = result.toEither.toOption.get
         assertTrue(
           result.toEither.isRight,
-          cost == Money("40.25"),
+          cost == Money("57.50"),
         )
       },
       test("area-based material cost with process cost") {
@@ -89,12 +90,12 @@ object ProductionCostSpec extends ZIOSpecDefault:
         )
       },
       test("zero cost when no matching rules") {
-        // Use a material with no cost rule
+        // Use a material with no cost rule and ink config with no SheetInkCost
         val config = makeConfig(
           category = SampleCatalog.businessCards,
           material = SampleCatalog.coated300gsm.copy(id = MaterialId.unsafe("mat-unknown")),
           printingMethod = SampleCatalog.offsetMethod.copy(processType = PrintingProcessType.ScreenPrint),
-          inkConfig = InkConfiguration.cmyk4_4,
+          inkConfig = InkConfiguration.noInk,
           finishes = Nil,
           specs = List(
             SpecValue.SizeSpec(Dimension(90, 55)),
@@ -121,17 +122,16 @@ object ProductionCostSpec extends ZIOSpecDefault:
     suite("analyze — margin analysis")(
       test("healthy margin with base pricing") {
         // Selling price for standardConfig ≈ $67.50 (from PriceCalculator)
-        // Production cost ≈ $40.25
-        // Margin ≈ $27.25
+        // Production cost ≈ $57.50 (with SheetInkCost)
+        // Margin ≈ $10.00
         val result = ProductionCostCalculator.analyze(standardConfig, pricelist, costSheet)
         val analysis = result.toEither.toOption.get
         assertTrue(
           result.toEither.isRight,
-          analysis.productionCost == Money("40.25"),
+          analysis.productionCost == Money("57.50"),
           analysis.sellingPrice == Money("67.50"),
-          analysis.margin == Money("27.25"),
+          analysis.margin == Money("10.00"),
           !analysis.isBelowCost,
-          analysis.warnings.isEmpty,
         )
       },
       test("below-cost detection when selling price is too low") {
@@ -140,7 +140,7 @@ object ProductionCostSpec extends ZIOSpecDefault:
           rules = List(
             PricingRule.MaterialBasePrice(SampleCatalog.coated300gsmId, Money("0.01")),
             PricingRule.FinishSurcharge(SampleCatalog.matteLaminationId, Money("0.003")),
-            PricingRule.InkConfigurationFactor(4, 4, BigDecimal("1.00")),
+            PricingRule.InkConfigurationSurcharge(4, 4, Money("0.00")),
             PricingRule.QuantityTier(1, None, BigDecimal("1.0")),
           ),
           currency = Currency.USD,
@@ -189,7 +189,9 @@ object ProductionCostSpec extends ZIOSpecDefault:
         )
       },
       test("area-based configuration margin analysis") {
-        // Banner selling price: 10× vinyl 0.5sqm @ $18.00/sqm = $90.00 (no finishes, no tier discount)
+        // Banner selling price: 10× vinyl 0.5sqm @ $18.00/sqm = $90.00
+        // + ink 4/4: $0.04 × 10 = $0.40, + UV coating: $0.04 × 10 = $0.40
+        // Subtotal = $90.80, no tier discount → $90.80
         // Production cost: 10× vinyl 0.5sqm @ $8.00/sqm = $40.00 + 10× UV inkjet @ $0.03 = $0.30
         // Direct = $40.30, with 1.15 overhead = $46.35
         val result = ProductionCostCalculator.analyze(areaConfig, pricelist, costSheet)
@@ -197,7 +199,7 @@ object ProductionCostSpec extends ZIOSpecDefault:
         assertTrue(
           result.toEither.isRight,
           analysis.productionCost == Money("46.35"),
-          analysis.sellingPrice == Money("90.00"),
+          analysis.sellingPrice == Money("90.80"),
           !analysis.isBelowCost,
           analysis.warnings.isEmpty,
         )

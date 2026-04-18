@@ -567,13 +567,13 @@ object SamplePricelist:
       // --- Printing process surcharge (CZK) ---
       PricingRule.PrintingProcessSurcharge(PrintingProcessType.Letterpress, Money("5")),
 
-      // --- Ink configuration surcharges (flat per-unit, CZK) ---
-      // 1/0 mono front only is the baseline (zero surcharge).
-      PricingRule.InkConfigurationSurcharge(4, 4, Money("4")),
-      PricingRule.InkConfigurationSurcharge(4, 0, Money("2")),
-      PricingRule.InkConfigurationSurcharge(4, 1, Money("3")),
+      // --- Ink configuration surcharges (flat per-unit, CZK — sheet pricelist) ---
+      // Lower surcharges since sheet pricing has lower per-unit costs.
+      PricingRule.InkConfigurationSurcharge(4, 4, Money("0.50")),
+      PricingRule.InkConfigurationSurcharge(4, 0, Money("0.30")),
+      PricingRule.InkConfigurationSurcharge(4, 1, Money("0.40")),
       PricingRule.InkConfigurationSurcharge(1, 0, Money("0")),
-      PricingRule.InkConfigurationSurcharge(1, 1, Money("1")),
+      PricingRule.InkConfigurationSurcharge(1, 1, Money("0.15")),
 
       // --- Sheet quantity tiers (discount based on total physical sheets) ---
       PricingRule.SheetQuantityTier(1, Some(49), BigDecimal("1.0")),
