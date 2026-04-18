@@ -416,6 +416,29 @@ object SampleRules:
       SpecPredicate.MaxDimension(300, 300),
       "Eco bag print area must not exceed 300×300mm",
     ),
+
+    // --- Banners: gum rope requires grommets ---
+    CompatibilityRule.FinishRequiresFinishType(
+      cat.gumRopeId,
+      FinishType.Grommets,
+      "Gum rope requires grommets to be present for attachment",
+    ),
+
+    // --- Banners: oversized (>1500mm) restricts Express and Economy manufacturing speed ---
+    // When either dimension exceeds 1500mm, the banner must be produced externally,
+    // so Express and Economy speeds are not available (only Standard or no speed selected).
+    CompatibilityRule.ConfigurationConstraint(
+      cat.bannersId,
+      ConfigurationPredicate.Not(
+        ConfigurationPredicate.And(
+          ConfigurationPredicate.Not(
+            ConfigurationPredicate.Spec(SpecPredicate.MaxDimension(1500, 1500)),
+          ),
+          ConfigurationPredicate.HasManufacturingSpeed(Set(ManufacturingSpeed.Express, ManufacturingSpeed.Economy)),
+        ),
+      ),
+      "Banners larger than 1500mm require external production — Express and Economy speeds are not available. Delivery extended by 2–4 weeks.",
+    ),
   )
 
   val ruleset: CompatibilityRuleset = CompatibilityRuleset(

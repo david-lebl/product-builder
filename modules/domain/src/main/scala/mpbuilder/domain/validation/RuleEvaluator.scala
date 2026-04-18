@@ -288,6 +288,10 @@ object RuleEvaluator:
           evaluateConfigurationPredicate(right, components, specifications, printingMethod)
       case ConfigurationPredicate.Not(inner) =>
         !evaluateConfigurationPredicate(inner, components, specifications, printingMethod)
+      case ConfigurationPredicate.HasManufacturingSpeed(speeds) =>
+        specifications.get(SpecKind.ManufacturingSpeed) match
+          case Some(SpecValue.ManufacturingSpeedSpec(speed)) => speeds.contains(speed)
+          case _ => false
 
   def evaluateAll(
       rules: List[CompatibilityRule],

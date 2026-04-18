@@ -38,3 +38,9 @@ enum PricingRule:
   )
   // Global price floor applied after setup fees
   case MinimumOrderPrice(minTotal: Money)
+  // Area-tiered material pricing (pricePerSqMeter varies by unit area)
+  case MaterialAreaTier(materialId: MaterialId, minAreaSqM: BigDecimal, maxAreaSqM: Option[BigDecimal], pricePerSqMeter: Money)
+  // Grommet surcharge per square meter based on spacing
+  case GrommetSpacingAreaSurcharge(finishId: FinishId, maxSpacingMm: Int, pricePerSqMeter: Money)
+  // Finish priced per meter of length (e.g. gum rope)
+  case FinishLengthSurcharge(finishId: FinishId, pricePerMeter: Money)

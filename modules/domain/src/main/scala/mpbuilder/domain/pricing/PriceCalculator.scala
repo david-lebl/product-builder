@@ -184,6 +184,9 @@ object PriceCalculator:
   ): Validation[PricingError, ComponentBreakdown] =
     val effectiveQuantity = comp.sheetCount * quantity
 
+    val areaTierRules = rules.collect {
+      case r: PricingRule.MaterialAreaTier if r.materialId == comp.material.id => r
+    }
     val areaRule = rules.collectFirst {
       case r: PricingRule.MaterialAreaPrice if r.materialId == comp.material.id => r
     }
@@ -194,12 +197,20 @@ object PriceCalculator:
       case r: PricingRule.MaterialBasePrice if r.materialId == comp.material.id => r
     }
 
-    areaRule match
-      case Some(areaPrice) =>
+    // Area tiers take precedence over flat area price
+    val effectiveAreaRule: Option[Either[List[PricingRule.MaterialAreaTier], PricingRule.MaterialAreaPrice]] =
+      if areaTierRules.nonEmpty then Some(Left(areaTierRules))
+      else areaRule.map(Right(_))
+
+    effectiveAreaRule match
+      case Some(areaPricing) =>
         specs.get(SpecKind.Size) match
           case Some(SpecValue.SizeSpec(dim)) =>
             val areaSqM = BigDecimal(dim.widthMm) * BigDecimal(dim.heightMm) / BigDecimal(1_000_000)
-            val unitPrice = areaPrice.pricePerSqMeter * areaSqM
+            val pricePerSqM = areaPricing match
+              case Right(flat) => flat.pricePerSqMeter
+              case Left(tiers) => findBestAreaTier(tiers, areaSqM)
+            val unitPrice = pricePerSqM * areaSqM
             val materialLineTotal = unitPrice * effectiveQuantity
             val materialLine = LineItem(
               label = s"Material: ${comp.material.name(lang)}",
@@ -208,7 +219,7 @@ object PriceCalculator:
               lineTotal = materialLineTotal,
             )
             val inkConfigLine = computeInkConfigLine(comp.inkConfiguration, rules, unitPrice, materialLineTotal, effectiveQuantity)
-            val finishLines = computeFinishLines(comp.finishes, rules, quantity, lang)
+            val finishLines = computeFinishLines(comp.finishes, rules, quantity, lang, Some(dim))
             Validation.succeed(ComponentBreakdown(
               role = comp.role,
               materialLine = materialLine,
@@ -264,7 +275,8 @@ object PriceCalculator:
                     }
                   else None
 
-                val finishLines = computeFinishLines(comp.finishes, rules, quantity, lang)
+                val sizeForFinish = specs.get(SpecKind.Size).collect { case SpecValue.SizeSpec(d) => d }
+                val finishLines = computeFinishLines(comp.finishes, rules, quantity, lang, sizeForFinish)
                 Validation.succeed(ComponentBreakdown(
                   role = comp.role,
                   materialLine = materialLine,
@@ -287,7 +299,7 @@ object PriceCalculator:
                   lineTotal = materialLineTotal,
                 )
                 val inkConfigLine = computeInkConfigLine(comp.inkConfiguration, rules, bp.unitPrice, materialLineTotal, effectiveQuantity)
-                val finishLines = computeFinishLines(comp.finishes, rules, quantity, lang)
+                val finishLines = computeFinishLines(comp.finishes, rules, quantity, lang, None)
                 Validation.succeed(ComponentBreakdown(
                   role = comp.role,
                   materialLine = materialLine,
@@ -434,30 +446,80 @@ object PriceCalculator:
       rules: List[PricingRule],
       quantity: Int,
       lang: Language,
+      dim: Option[Dimension] = None,
   ): List[LineItem] =
     finishes.flatMap { finish =>
-      val byId = rules.collectFirst {
-        case r: PricingRule.FinishSurcharge if r.finishId == finish.id => r.surchargePerUnit
-      }
-      val byType = rules.collectFirst {
-        case r: PricingRule.FinishTypeSurcharge if r.finishType == finish.finishType => r.surchargePerUnit
-      }
-      // ID-level takes precedence over type-level
-      byId.orElse(byType).map { surcharge =>
-        // Lamination (and overlamination / soft-touch coating) applied to both sides
-        // costs twice as much: each side is an independent pass on press.
-        val sideFactor = finish.params match
-          case Some(FinishParameters.LaminationParams(FinishSide.Both)) => BigDecimal(2)
-          case _                                                         => BigDecimal(1)
-        val effectiveSurcharge = surcharge * sideFactor
-        LineItem(
-          label = s"Finish: ${finish.name(lang)}",
-          unitPrice = effectiveSurcharge,
-          quantity = quantity,
-          lineTotal = effectiveSurcharge * quantity,
-        )
-      }
+      computeSingleFinishLine(finish, rules, quantity, lang, dim)
     }
+
+  private def computeSingleFinishLine(
+      finish: SelectedFinish,
+      rules: List[PricingRule],
+      quantity: Int,
+      lang: Language,
+      dim: Option[Dimension],
+  ): List[LineItem] =
+    // --- Grommet spacing area surcharge ---
+    finish.params match
+      case Some(FinishParameters.GrommetParams(spacingMm)) =>
+        val grommetTiers = rules.collect {
+          case r: PricingRule.GrommetSpacingAreaSurcharge if r.finishId == finish.id => r
+        }.sortBy(_.maxSpacingMm)
+        val matchedTier = grommetTiers.find(_.maxSpacingMm >= spacingMm)
+          .orElse(grommetTiers.lastOption)
+        (matchedTier, dim) match
+          case (Some(tier), Some(d)) =>
+            val areaSqM = BigDecimal(d.widthMm) * BigDecimal(d.heightMm) / BigDecimal(1_000_000)
+            val unitPrice = tier.pricePerSqMeter * areaSqM
+            return List(LineItem(
+              label = s"Finish: ${finish.name(lang)}",
+              unitPrice = unitPrice,
+              quantity = quantity,
+              lineTotal = unitPrice * quantity,
+            ))
+          case _ => // fall through to standard pricing
+      case _ => // not grommets
+
+    // --- Finish length surcharge (e.g. gum rope) ---
+    finish.params match
+      case Some(FinishParameters.GumRopeParams(lengthMm)) =>
+        rules.collectFirst {
+          case r: PricingRule.FinishLengthSurcharge if r.finishId == finish.id => r.pricePerMeter
+        } match
+          case Some(pricePerMeter) =>
+            val lengthM = BigDecimal(lengthMm) / BigDecimal(1000)
+            val unitPrice = pricePerMeter * lengthM
+            return List(LineItem(
+              label = s"Finish: ${finish.name(lang)}",
+              unitPrice = unitPrice,
+              quantity = quantity,
+              lineTotal = unitPrice * quantity,
+            ))
+          case None => // fall through to standard pricing
+      case _ => // not gum rope
+
+    // --- Standard finish surcharge (per unit or per type) ---
+    val byId = rules.collectFirst {
+      case r: PricingRule.FinishSurcharge if r.finishId == finish.id => r.surchargePerUnit
+    }
+    val byType = rules.collectFirst {
+      case r: PricingRule.FinishTypeSurcharge if r.finishType == finish.finishType => r.surchargePerUnit
+    }
+    // ID-level takes precedence over type-level
+    byId.orElse(byType).map { surcharge =>
+      // Lamination (and overlamination / soft-touch coating) applied to both sides
+      // costs twice as much: each side is an independent pass on press.
+      val sideFactor = finish.params match
+        case Some(FinishParameters.LaminationParams(FinishSide.Both)) => BigDecimal(2)
+        case _                                                         => BigDecimal(1)
+      val effectiveSurcharge = surcharge * sideFactor
+      LineItem(
+        label = s"Finish: ${finish.name(lang)}",
+        unitPrice = effectiveSurcharge,
+        quantity = quantity,
+        lineTotal = effectiveSurcharge * quantity,
+      )
+    }.toList
 
   private def findProcessSurcharge(
       method: PrintingMethod,
@@ -510,6 +572,19 @@ object PriceCalculator:
           if r.minSheets <= totalSheets &&
             r.maxSheets.forall(_ >= totalSheets) => r
     }.sortBy(_.minSheets)(using scala.math.Ordering[Int].reverse).headOption
+
+  /** Find the best area tier for a given unit area. Returns the price/sqm from the
+    * most specific tier (highest minAreaSqM that fits). Falls back to the smallest tier.
+    */
+  private def findBestAreaTier(
+      tiers: List[PricingRule.MaterialAreaTier],
+      areaSqM: BigDecimal,
+  ): Money =
+    val matching = tiers.filter { t =>
+      t.minAreaSqM <= areaSqM && t.maxAreaSqM.forall(_ >= areaSqM)
+    }.sortBy(_.minAreaSqM)(using scala.math.Ordering[BigDecimal].reverse)
+    matching.headOption.map(_.pricePerSqMeter)
+      .getOrElse(tiers.sortBy(_.minAreaSqM).head.pricePerSqMeter)
 
   private object SheetNesting:
     def piecesPerSheet(

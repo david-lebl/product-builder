@@ -214,7 +214,7 @@ object WorkflowGenerator:
     // Large format finishing (grommets, hem) — depends on cutting or printing
     val largeFormatFinishes = component.finishes.filter(sf =>
       sf.finishType match
-        case FinishType.Grommets | FinishType.Hem | FinishType.Mounting => true
+        case FinishType.Grommets | FinishType.Hem | FinishType.Mounting | FinishType.GumRope => true
         case _ => false
     )
     if largeFormatFinishes.nonEmpty then

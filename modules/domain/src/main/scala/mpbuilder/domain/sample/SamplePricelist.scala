@@ -21,6 +21,12 @@ object SamplePricelist:
       PricingRule.MaterialAreaPrice(SampleCatalog.vinylId, Money("18.00")),
       PricingRule.MaterialAreaPrice(SampleCatalog.clearVinylId, Money("22.00")),
 
+      // --- PVC 510g banner area tiers (USD per sqm, by unit area) ---
+      PricingRule.MaterialAreaTier(SampleCatalog.pvc510gId, BigDecimal("0"), Some(BigDecimal("1")), Money("25.00")),
+      PricingRule.MaterialAreaTier(SampleCatalog.pvc510gId, BigDecimal("1"), Some(BigDecimal("2")), Money("21.00")),
+      PricingRule.MaterialAreaTier(SampleCatalog.pvc510gId, BigDecimal("2"), Some(BigDecimal("5")), Money("19.00")),
+      PricingRule.MaterialAreaTier(SampleCatalog.pvc510gId, BigDecimal("5"), None, Money("17.00")),
+
       // --- Roll-Up material prices ---
       // Banner film: area price (per sqm), stand: base price (per unit)
       PricingRule.MaterialAreaPrice(SampleCatalog.rollUpBannerFilmId, Money("12.00")),
@@ -37,6 +43,13 @@ object SamplePricelist:
       PricingRule.FinishSurcharge(SampleCatalog.dieCutId, Money("0.10")),
       PricingRule.FinishSurcharge(SampleCatalog.kissCutId, Money("0.05")),
       PricingRule.FinishSurcharge(SampleCatalog.grommetsId, Money("0.25")),
+
+      // --- Grommet spacing area surcharges (USD per sqm by spacing) ---
+      PricingRule.GrommetSpacingAreaSurcharge(SampleCatalog.grommetsId, 300, Money("2.50")),
+      PricingRule.GrommetSpacingAreaSurcharge(SampleCatalog.grommetsId, 500, Money("1.70")),
+
+      // --- Gum rope surcharge (USD per meter) ---
+      PricingRule.FinishLengthSurcharge(SampleCatalog.gumRopeId, Money("0.75")),
 
       // --- Finish surcharges (type-level) ---
       PricingRule.FinishTypeSurcharge(FinishType.UVCoating, Money("0.04")),
@@ -196,6 +209,13 @@ object SamplePricelist:
       PricingRule.MaterialAreaPrice(SampleCatalog.vinylId, Money("420")),
       PricingRule.MaterialAreaPrice(SampleCatalog.clearVinylId, Money("520")),
 
+      // --- PVC 510g banner area tiers (CZK per sqm, by unit area) ---
+      // ~600 CZK/m² for ≤1 m², ~500 for ≤2 m², ~450 for ≤5 m², ~400 for 5+ m²
+      PricingRule.MaterialAreaTier(SampleCatalog.pvc510gId, BigDecimal("0"), Some(BigDecimal("1")), Money("600")),
+      PricingRule.MaterialAreaTier(SampleCatalog.pvc510gId, BigDecimal("1"), Some(BigDecimal("2")), Money("500")),
+      PricingRule.MaterialAreaTier(SampleCatalog.pvc510gId, BigDecimal("2"), Some(BigDecimal("5")), Money("450")),
+      PricingRule.MaterialAreaTier(SampleCatalog.pvc510gId, BigDecimal("5"), None, Money("400")),
+
       // --- Roll-Up material prices (CZK) ---
       PricingRule.MaterialAreaPrice(SampleCatalog.rollUpBannerFilmId, Money("280")),
       PricingRule.MaterialBasePrice(SampleCatalog.rollUpStandEconomyId, Money("590")),
@@ -211,6 +231,13 @@ object SamplePricelist:
       PricingRule.FinishSurcharge(SampleCatalog.dieCutId, Money("3")),
       PricingRule.FinishSurcharge(SampleCatalog.kissCutId, Money("2")),
       PricingRule.FinishSurcharge(SampleCatalog.grommetsId, Money("8")),
+
+      // --- Grommet spacing area surcharges (CZK per sqm by spacing) ---
+      PricingRule.GrommetSpacingAreaSurcharge(SampleCatalog.grommetsId, 300, Money("60")),
+      PricingRule.GrommetSpacingAreaSurcharge(SampleCatalog.grommetsId, 500, Money("40")),
+
+      // --- Gum rope surcharge (CZK per meter) ---
+      PricingRule.FinishLengthSurcharge(SampleCatalog.gumRopeId, Money("18")),
 
       // --- Finish surcharges (type-level, CZK) ---
       PricingRule.FinishTypeSurcharge(FinishType.UVCoating, Money("1")),
@@ -516,6 +543,12 @@ object SamplePricelist:
       PricingRule.MaterialAreaPrice(SampleCatalog.vinylId, Money("420")),
       PricingRule.MaterialAreaPrice(SampleCatalog.clearVinylId, Money("520")),
 
+      // --- PVC 510g banner area tiers (CZK per sqm, by unit area) ---
+      PricingRule.MaterialAreaTier(SampleCatalog.pvc510gId, BigDecimal("0"), Some(BigDecimal("1")), Money("600")),
+      PricingRule.MaterialAreaTier(SampleCatalog.pvc510gId, BigDecimal("1"), Some(BigDecimal("2")), Money("500")),
+      PricingRule.MaterialAreaTier(SampleCatalog.pvc510gId, BigDecimal("2"), Some(BigDecimal("5")), Money("450")),
+      PricingRule.MaterialAreaTier(SampleCatalog.pvc510gId, BigDecimal("5"), None, Money("400")),
+
       // --- Roll-Up material prices (CZK) ---
       PricingRule.MaterialAreaPrice(SampleCatalog.rollUpBannerFilmId, Money("280")),
       PricingRule.MaterialBasePrice(SampleCatalog.rollUpStandEconomyId, Money("590")),
@@ -538,6 +571,13 @@ object SamplePricelist:
       PricingRule.FinishSurcharge(SampleCatalog.dieCutId, Money("3")),
       PricingRule.FinishSurcharge(SampleCatalog.kissCutId, Money("2")),
       PricingRule.FinishSurcharge(SampleCatalog.grommetsId, Money("8")),
+
+      // --- Grommet spacing area surcharges (CZK per sqm by spacing) ---
+      PricingRule.GrommetSpacingAreaSurcharge(SampleCatalog.grommetsId, 300, Money("60")),
+      PricingRule.GrommetSpacingAreaSurcharge(SampleCatalog.grommetsId, 500, Money("40")),
+
+      // --- Gum rope surcharge (CZK per meter) ---
+      PricingRule.FinishLengthSurcharge(SampleCatalog.gumRopeId, Money("18")),
 
       // --- Finish surcharges (type-level, CZK) ---
       PricingRule.FinishTypeSurcharge(FinishType.UVCoating, Money("1")),

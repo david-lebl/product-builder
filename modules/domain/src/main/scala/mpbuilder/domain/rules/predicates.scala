@@ -28,3 +28,4 @@ enum ConfigurationPredicate:
   case And(left: ConfigurationPredicate, right: ConfigurationPredicate)
   case Or(left: ConfigurationPredicate, right: ConfigurationPredicate)
   case Not(inner: ConfigurationPredicate)
+  case HasManufacturingSpeed(speeds: Set[ManufacturingSpeed])
