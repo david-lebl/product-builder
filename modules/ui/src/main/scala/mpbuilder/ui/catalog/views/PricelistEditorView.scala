@@ -100,7 +100,7 @@ object PricelistEditorView:
     case r: PricingRule.CategorySurcharge => s"CategorySurcharge: ${r.categoryId.value} = ${r.surchargePerUnit.value}/unit"
     case r: PricingRule.QuantityTier => s"QuantityTier: ${r.minQuantity}-${r.maxQuantity.getOrElse("∞")} × ${r.multiplier}"
     case r: PricingRule.SheetQuantityTier => s"SheetQuantityTier: ${r.minSheets}-${r.maxSheets.getOrElse("∞")} × ${r.multiplier}"
-    case r: PricingRule.InkConfigurationFactor => s"InkConfigFactor: ${r.frontColorCount}/${r.backColorCount} × ${r.materialMultiplier}"
+    case r: PricingRule.InkConfigurationSurcharge => s"InkConfigSurcharge: ${r.frontColorCount}/${r.backColorCount} +${r.surchargePerUnit.value}/unit"
     case r: PricingRule.CuttingSurcharge => s"CuttingSurcharge: ${r.costPerCut.value}/cut"
     case r: PricingRule.FinishTypeSetupFee => s"FinishTypeSetupFee: ${r.finishType} = ${r.setupCost.value}"
     case r: PricingRule.FinishSetupFee => s"FinishSetupFee: ${r.finishId.value} = ${r.setupCost.value}"
@@ -135,7 +135,7 @@ object PricelistEditorView:
       "MaterialBasePrice", "MaterialAreaPrice", "MaterialSheetPrice",
       "FinishSurcharge", "FinishTypeSurcharge",
       "PrintingProcessSurcharge", "CategorySurcharge",
-      "QuantityTier", "SheetQuantityTier", "InkConfigurationFactor",
+      "QuantityTier", "SheetQuantityTier", "InkConfigurationSurcharge",
       "CuttingSurcharge", "FinishTypeSetupFee", "FinishSetupFee", "FoldTypeSurcharge",
       "BindingMethodSurcharge", "FoldTypeSetupFee", "BindingMethodSetupFee", "MinimumOrderPrice",
     )
@@ -201,7 +201,7 @@ object PricelistEditorView:
             )
           else emptyNode,
 
-          if rt == "InkConfigurationFactor" then
+          if rt == "InkConfigurationSurcharge" then
             div(
               FormComponents.numberField("Front Color Count", frontColorVar.signal, frontColorVar.writer),
               FormComponents.numberField("Back Color Count", backColorVar.signal, backColorVar.writer),
@@ -217,7 +217,7 @@ object PricelistEditorView:
             FormComponents.enumSelectRequired[BindingMethod]("Binding Method", BindingMethod.values, bindingMethodVar.signal, bindingMethodVar.writer)
           else emptyNode,
 
-          if !Set("QuantityTier", "SheetQuantityTier", "InkConfigurationFactor").contains(rt) then
+          if !Set("QuantityTier", "SheetQuantityTier", "InkConfigurationSurcharge").contains(rt) then
             FormComponents.numberField("Amount", amountVar.signal, amountVar.writer)
           else emptyNode,
         )
@@ -282,12 +282,12 @@ object PricelistEditorView:
           m <- mult
           min <- minQty.toIntOption
         yield PricingRule.SheetQuantityTier(min, maxQty.toIntOption, m)
-      case "InkConfigurationFactor" =>
+      case "InkConfigurationSurcharge" =>
         for
-          m <- mult
+          surcharge <- money
           fc <- frontColor.toIntOption
           bc <- backColor.toIntOption
-        yield PricingRule.InkConfigurationFactor(fc, bc, m)
+        yield PricingRule.InkConfigurationSurcharge(fc, bc, surcharge)
       case "CuttingSurcharge" => money.map(m => PricingRule.CuttingSurcharge(m))
       case "FinishTypeSetupFee" => money.map(m => PricingRule.FinishTypeSetupFee(finishType, m))
       case "FinishSetupFee" => money.filter(_ => finishId.nonEmpty).map(m => PricingRule.FinishSetupFee(FinishId.unsafe(finishId), m))
@@ -309,7 +309,7 @@ object PricelistEditorView:
     case _: PricingRule.CategorySurcharge => "CategorySurcharge"
     case _: PricingRule.QuantityTier => "QuantityTier"
     case _: PricingRule.SheetQuantityTier => "SheetQuantityTier"
-    case _: PricingRule.InkConfigurationFactor => "InkConfigurationFactor"
+    case _: PricingRule.InkConfigurationSurcharge => "InkConfigurationSurcharge"
     case _: PricingRule.CuttingSurcharge => "CuttingSurcharge"
     case _: PricingRule.FinishTypeSetupFee => "FinishTypeSetupFee"
     case _: PricingRule.FinishSetupFee => "FinishSetupFee"
@@ -347,6 +347,7 @@ object PricelistEditorView:
     case r: PricingRule.FoldTypeSetupFee => r.setupCost.value
     case r: PricingRule.BindingMethodSetupFee => r.setupCost.value
     case r: PricingRule.MinimumOrderPrice => r.minTotal.value
+    case r: PricingRule.InkConfigurationSurcharge => r.surchargePerUnit.value
   }
 
   private def extractPricingFinishType(rule: Option[PricingRule]): Option[FinishType] = rule.collect {
@@ -375,15 +376,15 @@ object PricelistEditorView:
   private def extractMultiplier(rule: Option[PricingRule]): Option[BigDecimal] = rule.collect {
     case r: PricingRule.QuantityTier => r.multiplier
     case r: PricingRule.SheetQuantityTier => r.multiplier
-    case r: PricingRule.InkConfigurationFactor => r.materialMultiplier
+
   }
 
   private def extractFrontColor(rule: Option[PricingRule]): Option[Int] = rule.collect {
-    case r: PricingRule.InkConfigurationFactor => r.frontColorCount
+    case r: PricingRule.InkConfigurationSurcharge => r.frontColorCount
   }
 
   private def extractBackColor(rule: Option[PricingRule]): Option[Int] = rule.collect {
-    case r: PricingRule.InkConfigurationFactor => r.backColorCount
+    case r: PricingRule.InkConfigurationSurcharge => r.backColorCount
   }
 
   private def extractFoldType(rule: Option[PricingRule]): Option[FoldType] = rule.collect {
