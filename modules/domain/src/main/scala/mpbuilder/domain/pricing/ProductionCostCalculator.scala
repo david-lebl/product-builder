@@ -152,8 +152,9 @@ object ProductionCostCalculator:
         }.getOrElse(Money.zero)
 
         val materialCost = unitCost * effectiveQuantity
+        val inkCost = findSheetInkCost(comp.inkConfiguration, rules, effectiveQuantity)
         val finishCost = calculateFinishCosts(comp.finishes, rules, quantity)
-        Validation.succeed(materialCost + finishCost)
+        Validation.succeed(materialCost + inkCost + finishCost)
 
   private def calculateFinishCosts(
       finishes: List[SelectedFinish],
@@ -181,3 +182,14 @@ object ProductionCostCalculator:
     rules.collectFirst {
       case r: ProductionCostRule.OverheadFactor => r.factor
     }.getOrElse(BigDecimal(1))
+
+  private def findSheetInkCost(
+      inkConfig: InkConfiguration,
+      rules: List[ProductionCostRule],
+      effectiveQuantity: Int,
+  ): Money =
+    rules.collectFirst {
+      case r: ProductionCostRule.SheetInkCost
+          if r.frontColorCount == inkConfig.front.colorCount && r.backColorCount == inkConfig.back.colorCount =>
+        r.costPerSheet
+    }.map(_ * effectiveQuantity).getOrElse(Money.zero)

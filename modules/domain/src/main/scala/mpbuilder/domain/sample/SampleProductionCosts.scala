@@ -43,6 +43,13 @@ object SampleProductionCosts:
 
       // --- Overhead: 15% on all direct costs ---
       ProductionCostRule.OverheadFactor(BigDecimal("1.15")),
+
+      // --- Sheet ink costs (Minolta per-sheet charge by ink configuration) ---
+      ProductionCostRule.SheetInkCost(4, 4, Money("0.03")),
+      ProductionCostRule.SheetInkCost(4, 0, Money("0.02")),
+      ProductionCostRule.SheetInkCost(4, 1, Money("0.02")),
+      ProductionCostRule.SheetInkCost(1, 0, Money("0.01")),
+      ProductionCostRule.SheetInkCost(1, 1, Money("0.01")),
     ),
     currency = Currency.USD,
   )
@@ -69,6 +76,13 @@ object SampleProductionCosts:
       ProductionCostRule.FinishCost(SampleCatalog.foilStampingId, Money("1.60")),
 
       ProductionCostRule.OverheadFactor(BigDecimal("1.15")),
+
+      // --- Sheet ink costs (Minolta per-sheet charge, CZK) ---
+      ProductionCostRule.SheetInkCost(4, 4, Money("0.70")),
+      ProductionCostRule.SheetInkCost(4, 0, Money("0.45")),
+      ProductionCostRule.SheetInkCost(4, 1, Money("0.55")),
+      ProductionCostRule.SheetInkCost(1, 0, Money("0.20")),
+      ProductionCostRule.SheetInkCost(1, 1, Money("0.30")),
     ),
     currency = Currency.CZK,
   )

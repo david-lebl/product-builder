@@ -25,6 +25,9 @@ enum ProductionCostRule:
   /** Multiplier on total direct cost for overhead (e.g., 1.15 = 15% overhead). */
   case OverheadFactor(factor: BigDecimal)
 
+  /** Per-sheet ink cost by ink configuration (e.g., Minolta charge per printed sheet). */
+  case SheetInkCost(frontColorCount: Int, backColorCount: Int, costPerSheet: Money)
+
 /** A collection of production cost rules, analogous to `Pricelist`. */
 final case class ProductionCostSheet(
     rules: List[ProductionCostRule],
