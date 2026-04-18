@@ -339,8 +339,8 @@ object BasketServiceSpec extends ZIOSpecDefault:
 
         assertTrue(
           calculation.items.size == 1,
-          calculation.subtotal == Money("67.50"),
-          calculation.total == Money("67.50"),
+          calculation.subtotal == Money("90.00"),
+          calculation.total == Money("90.00"),
           calculation.currency == Currency.USD,
         )
       },
@@ -364,8 +364,8 @@ object BasketServiceSpec extends ZIOSpecDefault:
 
         assertTrue(
           calculation.items.size == 1,
-          calculation.subtotal == Money("202.50"),
-          calculation.total == Money("202.50"),
+          calculation.subtotal == Money("270.00"),
+          calculation.total == Money("270.00"),
         )
       },
       test("calculates total for multiple items") {
@@ -407,8 +407,8 @@ object BasketServiceSpec extends ZIOSpecDefault:
 
         assertTrue(
           calculation.items.size == 2,
-          calculation.subtotal == Money("91.50"),
-          calculation.total == Money("91.50"),
+          calculation.subtotal == Money("124.00"),
+          calculation.total == Money("124.00"),
         )
       },
     ),

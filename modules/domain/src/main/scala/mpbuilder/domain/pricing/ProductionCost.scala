@@ -22,6 +22,20 @@ enum ProductionCostRule:
   /** Per-unit cost for a specific finish operation. */
   case FinishCost(finishId: FinishId, costPerUnit: Money)
 
+  /** Per-sheet print cost for a specific process and ink configuration (e.g. Minolta C4080 click charge).
+    * Sheet dimensions enable nesting calculation to determine how many physical sheets are used.
+    */
+  case SheetPrintCost(
+      processType: PrintingProcessType,
+      frontColorCount: Int,
+      backColorCount: Int,
+      sheetWidthMm: Double,
+      sheetHeightMm: Double,
+      bleedMm: Double,
+      gutterMm: Double,
+      costPerSheet: Money,
+  )
+
   /** Multiplier on total direct cost for overhead (e.g., 1.15 = 15% overhead). */
   case OverheadFactor(factor: BigDecimal)
 

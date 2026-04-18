@@ -67,12 +67,12 @@ object SamplePricelist:
       // --- Printing process surcharge ---
       PricingRule.PrintingProcessSurcharge(PrintingProcessType.Letterpress, Money("0.20")),
 
-      // --- Ink configuration factors ---
-      PricingRule.InkConfigurationFactor(4, 4, BigDecimal("1.00")),
-      PricingRule.InkConfigurationFactor(4, 0, BigDecimal("0.60")),
-      PricingRule.InkConfigurationFactor(4, 1, BigDecimal("0.75")),
-      PricingRule.InkConfigurationFactor(1, 0, BigDecimal("0.40")),
-      PricingRule.InkConfigurationFactor(1, 1, BigDecimal("0.55")),
+      // --- Ink configuration surcharges (per unit, USD) ---
+      PricingRule.InkConfigurationSurcharge(4, 4, Money("0.05")),
+      PricingRule.InkConfigurationSurcharge(4, 0, Money("0.03")),
+      PricingRule.InkConfigurationSurcharge(4, 1, Money("0.04")),
+      PricingRule.InkConfigurationSurcharge(1, 0, Money("0.01")),
+      PricingRule.InkConfigurationSurcharge(1, 1, Money("0.02")),
 
       // --- Quantity tiers ---
       PricingRule.QuantityTier(1, Some(249), BigDecimal("1.0")),
@@ -238,17 +238,12 @@ object SamplePricelist:
       // --- Printing process surcharge (CZK) ---
       PricingRule.PrintingProcessSurcharge(PrintingProcessType.Letterpress, Money("5")),
 
-      // --- Ink configuration factors ---
-      // 4/4 CMYK both sides: full price
-      PricingRule.InkConfigurationFactor(4, 4, BigDecimal("1.00")),
-      // 4/0 CMYK front only: ~85% of 4/4 price (estimated from Czech market data)
-      PricingRule.InkConfigurationFactor(4, 0, BigDecimal("0.85")),
-      // 4/1 CMYK front + mono back
-      PricingRule.InkConfigurationFactor(4, 1, BigDecimal("0.90")),
-      // 1/0 Mono front only
-      PricingRule.InkConfigurationFactor(1, 0, BigDecimal("0.55")),
-      // 1/1 Mono both sides
-      PricingRule.InkConfigurationFactor(1, 1, BigDecimal("0.65")),
+      // --- Ink configuration surcharges (per unit, CZK) ---
+      PricingRule.InkConfigurationSurcharge(4, 4, Money("1.50")),
+      PricingRule.InkConfigurationSurcharge(4, 0, Money("0.90")),
+      PricingRule.InkConfigurationSurcharge(4, 1, Money("1.20")),
+      PricingRule.InkConfigurationSurcharge(1, 0, Money("0.30")),
+      PricingRule.InkConfigurationSurcharge(1, 1, Money("0.60")),
 
       // --- Quantity tiers (CZK market, steeper volume discounts) ---
       PricingRule.QuantityTier(1, Some(99), BigDecimal("1.0")),
@@ -568,12 +563,12 @@ object SamplePricelist:
       // --- Printing process surcharge (CZK) ---
       PricingRule.PrintingProcessSurcharge(PrintingProcessType.Letterpress, Money("5")),
 
-      // --- Ink configuration factors ---
-      PricingRule.InkConfigurationFactor(4, 4, BigDecimal("1.00")),
-      PricingRule.InkConfigurationFactor(4, 0, BigDecimal("0.85")),
-      PricingRule.InkConfigurationFactor(4, 1, BigDecimal("0.90")),
-      PricingRule.InkConfigurationFactor(1, 0, BigDecimal("0.55")),
-      PricingRule.InkConfigurationFactor(1, 1, BigDecimal("0.65")),
+      // --- Ink configuration surcharges (per unit, CZK) ---
+      PricingRule.InkConfigurationSurcharge(4, 4, Money("1.50")),
+      PricingRule.InkConfigurationSurcharge(4, 0, Money("0.90")),
+      PricingRule.InkConfigurationSurcharge(4, 1, Money("1.20")),
+      PricingRule.InkConfigurationSurcharge(1, 0, Money("0.30")),
+      PricingRule.InkConfigurationSurcharge(1, 1, Money("0.60")),
 
       // --- Sheet quantity tiers (discount based on total physical sheets) ---
       PricingRule.SheetQuantityTier(1, Some(49), BigDecimal("1.0")),

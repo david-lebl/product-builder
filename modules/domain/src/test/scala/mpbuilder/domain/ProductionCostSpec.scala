@@ -120,16 +120,16 @@ object ProductionCostSpec extends ZIOSpecDefault:
     ),
     suite("analyze — margin analysis")(
       test("healthy margin with base pricing") {
-        // Selling price for standardConfig ≈ $67.50 (from PriceCalculator)
+        // Selling price for standardConfig ≈ $90.00 (material $60 + ink 4/4 $25 + finish $15, 0.90× tier)
         // Production cost ≈ $40.25
-        // Margin ≈ $27.25
+        // Margin ≈ $49.75
         val result = ProductionCostCalculator.analyze(standardConfig, pricelist, costSheet)
         val analysis = result.toEither.toOption.get
         assertTrue(
           result.toEither.isRight,
           analysis.productionCost == Money("40.25"),
-          analysis.sellingPrice == Money("67.50"),
-          analysis.margin == Money("27.25"),
+          analysis.sellingPrice == Money("90.00"),
+          analysis.margin == Money("49.75"),
           !analysis.isBelowCost,
           analysis.warnings.isEmpty,
         )
@@ -140,7 +140,7 @@ object ProductionCostSpec extends ZIOSpecDefault:
           rules = List(
             PricingRule.MaterialBasePrice(SampleCatalog.coated300gsmId, Money("0.01")),
             PricingRule.FinishSurcharge(SampleCatalog.matteLaminationId, Money("0.003")),
-            PricingRule.InkConfigurationFactor(4, 4, BigDecimal("1.00")),
+            PricingRule.InkConfigurationSurcharge(4, 4, Money("0.05")),
             PricingRule.QuantityTier(1, None, BigDecimal("1.0")),
           ),
           currency = Currency.USD,
@@ -157,8 +157,8 @@ object ProductionCostSpec extends ZIOSpecDefault:
         )
       },
       test("low margin warning when margin is below threshold") {
-        // Use a threshold of 80% — the standard config has ~67% margin which is below 80%
-        val highThreshold = Percentage.unsafe(BigDecimal("80"))
+        // Use a threshold of 130% — the standard config has ~123% margin which is below 130%
+        val highThreshold = Percentage.unsafe(BigDecimal("130"))
         val result = ProductionCostCalculator.analyze(
           standardConfig,
           pricelist,
@@ -169,7 +169,7 @@ object ProductionCostSpec extends ZIOSpecDefault:
         assertTrue(
           !analysis.isBelowCost,
           analysis.warnings.exists {
-            case CostWarning.LowMargin(_, threshold) => threshold.value == BigDecimal("80")
+            case CostWarning.LowMargin(_, threshold) => threshold.value == BigDecimal("130")
             case _                                    => false
           },
         )
@@ -197,7 +197,7 @@ object ProductionCostSpec extends ZIOSpecDefault:
         assertTrue(
           result.toEither.isRight,
           analysis.productionCost == Money("46.35"),
-          analysis.sellingPrice == Money("90.00"),
+          analysis.sellingPrice == Money("90.50"),
           !analysis.isBelowCost,
           analysis.warnings.isEmpty,
         )

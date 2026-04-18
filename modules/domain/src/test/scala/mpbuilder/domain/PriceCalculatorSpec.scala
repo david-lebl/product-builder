@@ -64,9 +64,9 @@ object PriceCalculatorSpec extends ZIOSpecDefault:
           cb.finishLines.size == 1,
           cb.finishLines.head.unitPrice == Money("0.03"),
           cb.finishLines.head.lineTotal == Money("15.00"),
-          breakdown.subtotal == Money("75.00"),
+          breakdown.subtotal == Money("100.00"),
           breakdown.quantityMultiplier == BigDecimal("0.90"),
-          breakdown.total == Money("67.50"),
+          breakdown.total == Money("90.00"),
           breakdown.currency == Currency.USD,
         )
       },
@@ -93,9 +93,9 @@ object PriceCalculatorSpec extends ZIOSpecDefault:
           cb.materialLine.lineTotal == Money("90.00"),
           cb.finishLines.size == 1,
           cb.finishLines.head.unitPrice == Money("0.04"),
-          breakdown.subtotal == Money("90.40"),
+          breakdown.subtotal == Money("90.90"),
           breakdown.quantityMultiplier == BigDecimal("1.0"),
-          breakdown.total == Money("90.40"),
+          breakdown.total == Money("90.90"),
         )
       },
       test("quantity tier discount correctly applied") {
@@ -114,9 +114,9 @@ object PriceCalculatorSpec extends ZIOSpecDefault:
         val result = PriceCalculator.calculate(config, pricelist)
         val breakdown = result.toEither.toOption.get
         assertTrue(
-          breakdown.subtotal == Money("120.00"),
+          breakdown.subtotal == Money("170.00"),
           breakdown.quantityMultiplier == BigDecimal("0.80"),
-          breakdown.total == Money("96.00"),
+          breakdown.total == Money("136.00"),
         )
       },
       test("multiple finish surcharges accumulated") {
@@ -137,8 +137,8 @@ object PriceCalculatorSpec extends ZIOSpecDefault:
         val cb = firstBreakdown(breakdown)
         assertTrue(
           cb.finishLines.size == 2,
-          breakdown.subtotal == Money("175.00"),
-          breakdown.total == Money("157.50"),
+          breakdown.subtotal == Money("200.00"),
+          breakdown.total == Money("180.00"),
         )
       },
       test("letterpress process surcharge applied") {
@@ -160,8 +160,8 @@ object PriceCalculatorSpec extends ZIOSpecDefault:
           breakdown.processSurcharge.isDefined,
           breakdown.processSurcharge.get.unitPrice == Money("0.20"),
           breakdown.processSurcharge.get.lineTotal == Money("100.00"),
-          breakdown.subtotal == Money("160.00"),
-          breakdown.total == Money("144.00"),
+          breakdown.subtotal == Money("185.00"),
+          breakdown.total == Money("166.50"),
         )
       },
       test("ID-level finish surcharge takes precedence over type-level") {
@@ -285,11 +285,12 @@ object PriceCalculatorSpec extends ZIOSpecDefault:
         )
       },
       test("booklet with cover and body priced correctly") {
-        // Cover: coated300gsm (0.12) × 1 sheet × 500 = 60.00, matte lam: 0.03 × 500 = 15.00
-        // Body: coated300gsm (0.12) × 7 sheets × 500 = 420.00 (saddle stitch 32 pages: (32/4)-1 = 7)
-        // subtotal = 60.00 + 15.00 + 420.00 = 495.00
+        // Cover: coated300gsm (0.12) × 1 sheet × 500 = 60.00, matte lam: 0.03 × 500 = 15.00, ink 4/4: 0.05 × 500 = 25.00
+        // Body: coated300gsm (0.12) × 7 sheets × 500 = 420.00 (saddle stitch 32 pages: (32/4)-1 = 7), ink 4/4: 0.05 × 3500 = 175.00
+        // Binding saddle stitch: 0.05 × 500 = 25.00
+        // subtotal = 60 + 15 + 25 + 420 + 175 + 25 = 720.00
         // tier 250-999: 0.90×
-        // total = 495.00 × 0.90 = 445.50
+        // total = 720.00 × 0.90 = 648.00
         val config = ProductConfiguration(
           id = configId,
           category = SampleCatalog.booklets,
@@ -321,19 +322,21 @@ object PriceCalculatorSpec extends ZIOSpecDefault:
           bodyBd.materialLine.lineTotal == Money("420.00"),
           breakdown.bindingSurcharge.isDefined,
           breakdown.bindingSurcharge.get.lineTotal == Money("25.00"),
-          breakdown.subtotal == Money("520.00"),
+          breakdown.subtotal == Money("720.00"),
           breakdown.quantityMultiplier == BigDecimal("0.90"),
-          breakdown.total == Money("468.00"),
+          breakdown.total == Money("648.00"),
         )
       },
       test("calendar with different materials per component") {
         // Cover: coatedSilk250gsm (0.11) × 1 × 100 = 11.00
-        // Cover ink config (4/0, multiplier 0.60): 11.00 × (0.60 - 1.0) = -4.40
+        // Cover ink config (4/0 surcharge): 0.03 × 100 = 3.00
         // Cover gloss lam: 0.03 × 100 = 3.00
         // Body: coated300gsm (0.12) × 6 × 100 = 72.00  (spiral 14 pages: (14-2)/2 = 6)
-        // subtotal = 11.00 + (-4.40) + 3.00 + 72.00 = 81.60
+        // Body ink config (4/4 surcharge): 0.05 × 600 = 30.00
+        // Spiral binding: 0.20 × 100 = 20.00
+        // subtotal = 11.00 + 3.00 + 3.00 + 72.00 + 30.00 + 20.00 = 139.00
         // tier 1-249: 1.0×
-        // total = 81.60
+        // total = 139.00
         val config = ProductConfiguration(
           id = configId,
           category = SampleCatalog.calendars,
@@ -363,11 +366,11 @@ object PriceCalculatorSpec extends ZIOSpecDefault:
           bodyBd.materialLine.lineTotal == Money("72.00"),
           breakdown.bindingSurcharge.isDefined,
           breakdown.bindingSurcharge.get.lineTotal == Money("20.00"),
-          breakdown.subtotal == Money("101.60"),
-          breakdown.total == Money("101.60"),
+          breakdown.subtotal == Money("139.00"),
+          breakdown.total == Money("139.00"),
         )
       },
-      test("4/0 ink configuration applies lower material multiplier than 4/4") {
+      test("4/0 ink configuration has lower surcharge than 4/4") {
         val config = makeConfig(
           category = SampleCatalog.businessCards,
           material = SampleCatalog.coated300gsm,
@@ -385,12 +388,12 @@ object PriceCalculatorSpec extends ZIOSpecDefault:
         val cb = firstBreakdown(breakdown)
         assertTrue(
           cb.inkConfigLine.isDefined,
-          cb.inkConfigLine.get.lineTotal == Money("-24.00"),
-          breakdown.subtotal == Money("36.00"),
-          breakdown.total == Money("32.40"),
+          cb.inkConfigLine.get.lineTotal == Money("15.00"),
+          breakdown.subtotal == Money("75.00"),
+          breakdown.total == Money("67.50"),
         )
       },
-      test("4/4 ink configuration produces no ink config line") {
+      test("4/4 ink configuration adds full-colour surcharge") {
         val config = makeConfig(
           category = SampleCatalog.businessCards,
           material = SampleCatalog.coated300gsm,
@@ -406,7 +409,10 @@ object PriceCalculatorSpec extends ZIOSpecDefault:
         val result = PriceCalculator.calculate(config, pricelist)
         val breakdown = result.toEither.toOption.get
         val cb = firstBreakdown(breakdown)
-        assertTrue(cb.inkConfigLine.isEmpty)
+        assertTrue(
+          cb.inkConfigLine.isDefined,
+          cb.inkConfigLine.get.lineTotal == Money("25.00"),
+        )
       },
     ),
     suite("error cases")(
@@ -495,8 +501,8 @@ object PriceCalculatorSpec extends ZIOSpecDefault:
           cb.materialLine.unitPrice == Money("0.11"),
           breakdown.bindingSurcharge.isDefined,
           breakdown.bindingSurcharge.get.lineTotal == Money("20.00"),
-          breakdown.subtotal == Money("34.00"),
-          breakdown.total == Money("34.00"),
+          breakdown.subtotal == Money("39.00"),
+          breakdown.total == Money("39.00"),
         )
       },
       test("Yupo synthetic material priced correctly") {
@@ -517,8 +523,8 @@ object PriceCalculatorSpec extends ZIOSpecDefault:
         val cb = firstBreakdown(breakdown)
         assertTrue(
           cb.materialLine.unitPrice == Money("0.18"),
-          breakdown.subtotal == Money("110.00"),
-          breakdown.total == Money("99.00"),
+          breakdown.subtotal == Money("135.00"),
+          breakdown.total == Money("121.50"),
         )
       },
       test("Cotton paper with letterpress process surcharge") {
@@ -541,8 +547,8 @@ object PriceCalculatorSpec extends ZIOSpecDefault:
           cb.materialLine.unitPrice == Money("0.22"),
           breakdown.processSurcharge.isDefined,
           breakdown.processSurcharge.get.label.contains("Letterpress"),
-          breakdown.subtotal == Money("63.00"),
-          breakdown.total == Money("63.00"),
+          breakdown.subtotal == Money("70.50"),
+          breakdown.total == Money("70.50"),
         )
       },
     ),
@@ -617,14 +623,14 @@ object PriceCalculatorSpec extends ZIOSpecDefault:
         val breakdown = result.toEither.toOption.get
         val cb = firstBreakdown(breakdown)
         // material: 12 × 1 = 12
-        // ink config 4/0: 12 × (0.85 - 1.0) = -1.80
-        // subtotal = 12 + (-1.80) = 10.20
-        // tier 1-99: 1.0×, no setup fees → billable = 10.20
+        // ink config 4/0 surcharge: 1 × 0.90 = 0.90
+        // subtotal = 12 + 0.90 = 12.90
+        // tier 1-99: 1.0×, no setup fees → billable = 12.90
         // minimum 500 triggered → total = 500
         assertTrue(
           cb.inkConfigLine.isDefined,
-          cb.inkConfigLine.get.lineTotal == Money("-1.80"),
-          breakdown.subtotal == Money("10.20"),
+          cb.inkConfigLine.get.lineTotal == Money("0.90"),
+          breakdown.subtotal == Money("12.90"),
           breakdown.minimumApplied.isDefined,
           breakdown.total == Money("500.00"),
         )
@@ -645,13 +651,13 @@ object PriceCalculatorSpec extends ZIOSpecDefault:
         val result = PriceCalculator.calculate(config, pricelistCzk)
         val breakdown = result.toEither.toOption.get
         val cb = firstBreakdown(breakdown)
-        // material: 12 × 1000 = 12000
+        // material: 12 × 1000 = 12000, ink 4/4 surcharge: 1000 × 1.50 = 1500, subtotal = 13500
         // tier 1000+: 0.40×
-        // total = 12000 × 0.40 = 4800 (i.e. 4.80 Kč/pc, approximates 6 Kč from table)
+        // total = 13500 × 0.40 = 5400
         assertTrue(
           cb.materialLine.unitPrice == Money("12"),
           breakdown.quantityMultiplier == BigDecimal("0.40"),
-          breakdown.total == Money("4800.00"),
+          breakdown.total == Money("5400.00"),
           breakdown.currency == Currency.CZK,
         )
       },
@@ -754,7 +760,7 @@ object PriceCalculatorSpec extends ZIOSpecDefault:
           cb.cuttingLine.get.unitPrice == Money("0.10"),
           cb.cuttingLine.get.quantity == 50,
           cb.cuttingLine.get.lineTotal == Money("5.00"),
-          breakdown.subtotal == Money("405"),
+          breakdown.subtotal == Money("555"),
         )
       },
       test("business card on SRA3 sheet — many pieces/sheet, whole-sheet pricing") {
@@ -908,10 +914,9 @@ object PriceCalculatorSpec extends ZIOSpecDefault:
           cb.materialLine.unitPrice == Money("8"),
         )
       },
-      test("sheet pricing + ink config factor interaction") {
+      test("sheet pricing + ink config surcharge interaction") {
         // A4 on SRA3: 2 pieces/sheet, sheetsUsed = 50
-        // Material: 8 × 50 = 400, perPiecePrice = 4
-        // ink config 4/0 factor = 0.85 → adjustment = 4 × (0.85 - 1.0) = -0.60
+        // Material: 8 × 50 = 400, ink 4/0 surcharge: 0.90 CZK/unit × 100 units = 90
         val config = makeConfig(
           category = SampleCatalog.flyers,
           material = SampleCatalog.coatedGlossy90gsm,
@@ -931,7 +936,7 @@ object PriceCalculatorSpec extends ZIOSpecDefault:
           result.toEither.isRight,
           cb.materialLine.unitPrice == Money("8"),
           cb.inkConfigLine.isDefined,
-          cb.inkConfigLine.get.unitPrice == Money("-0.60"),
+          cb.inkConfigLine.get.unitPrice == Money("0.90"),
         )
       },
       test("rotated orientation yields more pieces") {

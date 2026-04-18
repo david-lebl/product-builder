@@ -207,7 +207,7 @@ object PriceCalculator:
               quantity = effectiveQuantity,
               lineTotal = materialLineTotal,
             )
-            val inkConfigLine = computeInkConfigLine(comp.inkConfiguration, rules, unitPrice, materialLineTotal, effectiveQuantity)
+            val inkConfigLine = computeInkConfigLine(comp.inkConfiguration, rules, effectiveQuantity)
             val finishLines = computeFinishLines(comp.finishes, rules, quantity, lang)
             Validation.succeed(ComponentBreakdown(
               role = comp.role,
@@ -246,8 +246,7 @@ object PriceCalculator:
                   lineTotal = materialLineTotal,
                 )
 
-                val perPiecePrice = materialLineTotal / effectiveQuantity
-                val inkConfigLine = computeInkConfigLine(comp.inkConfiguration, rules, perPiecePrice, materialLineTotal, effectiveQuantity)
+                val inkConfigLine = computeInkConfigLine(comp.inkConfiguration, rules, effectiveQuantity)
 
                 val cuttingRule = rules.collectFirst { case r: PricingRule.CuttingSurcharge => r }
                 val numCuts = pps - 1
@@ -286,7 +285,7 @@ object PriceCalculator:
                   quantity = effectiveQuantity,
                   lineTotal = materialLineTotal,
                 )
-                val inkConfigLine = computeInkConfigLine(comp.inkConfiguration, rules, bp.unitPrice, materialLineTotal, effectiveQuantity)
+                val inkConfigLine = computeInkConfigLine(comp.inkConfiguration, rules, effectiveQuantity)
                 val finishLines = computeFinishLines(comp.finishes, rules, quantity, lang)
                 Validation.succeed(ComponentBreakdown(
                   role = comp.role,
@@ -307,25 +306,20 @@ object PriceCalculator:
   private def computeInkConfigLine(
       inkConfig: InkConfiguration,
       rules: List[PricingRule],
-      materialUnitPrice: Money,
-      materialLineTotal: Money,
       effectiveQuantity: Int,
   ): Option[LineItem] =
     rules.collectFirst {
-      case r: PricingRule.InkConfigurationFactor
+      case r: PricingRule.InkConfigurationSurcharge
           if r.frontColorCount == inkConfig.front.colorCount && r.backColorCount == inkConfig.back.colorCount =>
-        r.materialMultiplier
-    }.flatMap { multiplier =>
-      if multiplier == BigDecimal(1) then scala.None
+        r.surchargePerUnit
+    }.flatMap { surcharge =>
+      if surcharge.value == BigDecimal(0) then scala.None
       else
-        val adjustmentFactor = multiplier - BigDecimal(1)
-        val unitAdjustment = materialUnitPrice * adjustmentFactor
-        val lineTotal = materialLineTotal * adjustmentFactor
         Some(LineItem(
           label = s"Ink configuration: ${inkConfig.notation}",
-          unitPrice = unitAdjustment,
+          unitPrice = surcharge,
           quantity = effectiveQuantity,
-          lineTotal = lineTotal,
+          lineTotal = surcharge * effectiveQuantity,
         ))
     }
 
@@ -511,23 +505,3 @@ object PriceCalculator:
             r.maxSheets.forall(_ >= totalSheets) => r
     }.sortBy(_.minSheets)(using scala.math.Ordering[Int].reverse).headOption
 
-  private object SheetNesting:
-    def piecesPerSheet(
-        sheetW: Double,
-        sheetH: Double,
-        itemW: Double,
-        itemH: Double,
-        bleedMm: Double,
-        gutterMm: Double,
-    ): Int =
-      val effectiveW = itemW + 2 * bleedMm
-      val effectiveH = itemH + 2 * bleedMm
-
-      def countOrientation(ew: Double, eh: Double): Int =
-        val cols = math.floor((sheetW + gutterMm) / (ew + gutterMm)).toInt
-        val rows = math.floor((sheetH + gutterMm) / (eh + gutterMm)).toInt
-        cols * rows
-
-      val normal = countOrientation(effectiveW, effectiveH)
-      val rotated = countOrientation(effectiveH, effectiveW)
-      math.max(math.max(normal, rotated), 1)

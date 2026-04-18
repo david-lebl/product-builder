@@ -27,8 +27,9 @@ object ProductionCostCalculator:
       costSheet: ProductionCostSheet,
   ): Validation[PricingError, Money] =
     extractQuantity(config.specifications).flatMap { quantity =>
+      val processType = config.printingMethod.processType
       val componentCosts = config.components.map { comp =>
-        calculateComponentCost(comp, config.specifications, costSheet.rules, quantity)
+        calculateComponentCost(comp, config.specifications, costSheet.rules, processType, quantity)
       }
 
       val componentCostsV = componentCosts.foldLeft(
@@ -125,6 +126,7 @@ object ProductionCostCalculator:
       comp: ProductComponent,
       specs: ProductSpecifications,
       rules: List[ProductionCostRule],
+      processType: PrintingProcessType,
       quantity: Int,
   ): Validation[PricingError, Money] =
     val effectiveQuantity = comp.sheetCount * quantity
@@ -153,7 +155,31 @@ object ProductionCostCalculator:
 
         val materialCost = unitCost * effectiveQuantity
         val finishCost = calculateFinishCosts(comp.finishes, rules, quantity)
-        Validation.succeed(materialCost + finishCost)
+        val sheetPrintCost = calculateSheetPrintCost(comp, specs, processType, rules, quantity)
+        Validation.succeed(materialCost + finishCost + sheetPrintCost)
+
+  private def calculateSheetPrintCost(
+      comp: ProductComponent,
+      specs: ProductSpecifications,
+      processType: PrintingProcessType,
+      rules: List[ProductionCostRule],
+      quantity: Int,
+  ): Money =
+    val ink = comp.inkConfiguration
+    rules.collectFirst {
+      case r: ProductionCostRule.SheetPrintCost
+          if r.processType == processType &&
+             r.frontColorCount == ink.front.colorCount &&
+             r.backColorCount == ink.back.colorCount =>
+        (r.sheetWidthMm, r.sheetHeightMm, r.bleedMm, r.gutterMm, r.costPerSheet)
+    }.flatMap { (sw, sh, bleed, gutter, costPerSheet) =>
+      specs.get(SpecKind.Size).collect { case SpecValue.SizeSpec(dim) =>
+        val pps = SheetNesting.piecesPerSheet(
+          sw, sh, dim.widthMm.toDouble, dim.heightMm.toDouble, bleed, gutter)
+        val sheetsUsed = math.ceil((comp.sheetCount * quantity).toDouble / pps).toInt
+        costPerSheet * sheetsUsed
+      }
+    }.getOrElse(Money.zero)
 
   private def calculateFinishCosts(
       finishes: List[SelectedFinish],

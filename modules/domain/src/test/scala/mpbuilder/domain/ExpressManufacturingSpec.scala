@@ -125,8 +125,8 @@ object ExpressManufacturingSpec extends ZIOSpecDefault:
       assertTrue(
         result.toEither.isRight,
         bd.speedSurcharge.isEmpty,
-        // 500 × $0.12 = $60, tier 250-999 → 0.90 → $54
-        bd.total == Money("54.00"),
+        // 500 × $0.12 material + 500 × $0.05 ink (4/4) = $85, tier 250-999 × 0.90 → $76.50
+        bd.total == Money("76.50"),
       )
     },
     test("Express tier with base multiplier 1.35 adds +35% surcharge line item") {
@@ -138,10 +138,10 @@ object ExpressManufacturingSpec extends ZIOSpecDefault:
         result.toEither.isRight,
         bd.speedSurcharge.isDefined,
         bd.speedSurcharge.get.label.contains("+35%"),
-        // discountedSubtotal = $54.00, surcharge = 54 * 0.35 = $18.90
-        bd.speedSurcharge.get.lineTotal == Money("18.90"),
-        // total = 54.00 * 1.35 = $72.90
-        bd.total == Money("72.90"),
+        // discountedSubtotal = $76.50 (material $60 + ink 4/4 $25, then 0.90×), surcharge = 76.50 * 0.35 = $26.775 → $26.78
+        bd.speedSurcharge.get.lineTotal == Money("26.78"),
+        // total = 76.50 * 1.35 = $103.275 → $103.28
+        bd.total == Money("103.28"),
       )
     },
     test("Standard tier with multiplier 1.0 produces no surcharge line item") {
@@ -152,7 +152,7 @@ object ExpressManufacturingSpec extends ZIOSpecDefault:
       assertTrue(
         result.toEither.isRight,
         bd.speedSurcharge.isEmpty,
-        bd.total == Money("54.00"),
+        bd.total == Money("76.50"),
       )
     },
     test("Economy tier with multiplier 0.85 produces a −15% discount line item") {
@@ -164,8 +164,8 @@ object ExpressManufacturingSpec extends ZIOSpecDefault:
         result.toEither.isRight,
         bd.speedSurcharge.isDefined,
         bd.speedSurcharge.get.label.contains("-15%"),
-        // discountedSubtotal = $54.00 * 0.85 = $45.90
-        bd.total == Money("45.90"),
+        // discountedSubtotal = $76.50 * 0.85 = $65.025 → $65.03
+        bd.total == Money("65.03"),
       )
     },
     test("Express at 70% utilisation adds queue threshold adjustment") {
@@ -183,8 +183,8 @@ object ExpressManufacturingSpec extends ZIOSpecDefault:
       assertTrue(
         bd.speedSurcharge.isDefined,
         bd.speedSurcharge.get.label.contains("+60%"),
-        // 54.00 * 1.60 = $86.40
-        bd.total == Money("86.40"),
+        // 76.50 * 1.60 = $122.40
+        bd.total == Money("122.40"),
       )
     },
     test("Express surcharge is capped at expressSurchargeCap") {
@@ -201,8 +201,8 @@ object ExpressManufacturingSpec extends ZIOSpecDefault:
       assertTrue(
         bd.speedSurcharge.isDefined,
         bd.speedSurcharge.get.label.contains("+100%"),
-        // 54.00 * 2.00 = $108.00
-        bd.total == Money("108.00"),
+        // 76.50 * 2.00 = $153.00
+        bd.total == Money("153.00"),
       )
     },
     test("Economy price is fixed regardless of queue utilisation") {
@@ -218,7 +218,7 @@ object ExpressManufacturingSpec extends ZIOSpecDefault:
       // Economy always uses base multiplier 0.85, no dynamic adjustments
       assertTrue(
         bd.speedSurcharge.isDefined,
-        bd.total == Money("45.90"),
+        bd.total == Money("65.03"),
       )
     },
     test("Speed surcharge is applied after quantity discount but before setup fees") {
@@ -245,14 +245,14 @@ object ExpressManufacturingSpec extends ZIOSpecDefault:
       val context = PricingContext.default
       val result  = PriceCalculator.calculateWithContext(config, pricelist, context)
       val bd      = result.toEither.toOption.get
-      // subtotal = 500 * (0.12 + 0.03) = $75.00, qty multiplier 0.90 → discountedSubtotal = $67.50
-      // speed surcharge: 67.50 * 0.35 = $23.625 → rounded $23.63
-      // afterSpeed: 67.50 * 1.35 = $91.125 → rounded $91.13
+      // subtotal = 500 * (0.12 material + 0.05 ink + 0.03 finish) = $100.00, qty 0.90× → discountedSubtotal = $90.00
+      // speed surcharge: 90.00 * 0.35 = $31.50
+      // afterSpeed: 90.00 * 1.35 = $121.50
       // setup fees added after speed surcharge
       assertTrue(
         bd.speedSurcharge.isDefined,
         bd.quantityMultiplier == BigDecimal("0.90"),
-        bd.speedSurcharge.get.lineTotal == Money("23.63"),
+        bd.speedSurcharge.get.lineTotal == Money("31.50"),
       )
     },
     test("backward-compatible calculate method uses default context") {

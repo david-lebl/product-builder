@@ -41,6 +41,13 @@ object SampleProductionCosts:
       ProductionCostRule.FinishCost(SampleCatalog.foilStampingId, Money("0.07")),
       ProductionCostRule.FinishCost(SampleCatalog.dieCutId, Money("0.05")),
 
+      // --- Konica Minolta C4080 click charges (USD) — SRA3 (320×450mm), bleed 3mm, gutter 2mm ---
+      ProductionCostRule.SheetPrintCost(PrintingProcessType.Digital, 4, 4, 320, 450, 3, 2, Money("0.16")),
+      ProductionCostRule.SheetPrintCost(PrintingProcessType.Digital, 4, 0, 320, 450, 3, 2, Money("0.08")),
+      ProductionCostRule.SheetPrintCost(PrintingProcessType.Digital, 4, 1, 320, 450, 3, 2, Money("0.12")),
+      ProductionCostRule.SheetPrintCost(PrintingProcessType.Digital, 1, 0, 320, 450, 3, 2, Money("0.03")),
+      ProductionCostRule.SheetPrintCost(PrintingProcessType.Digital, 1, 1, 320, 450, 3, 2, Money("0.06")),
+
       // --- Overhead: 15% on all direct costs ---
       ProductionCostRule.OverheadFactor(BigDecimal("1.15")),
     ),
@@ -67,6 +74,13 @@ object SampleProductionCosts:
       ProductionCostRule.FinishCost(SampleCatalog.glossLaminationId, Money("0.25")),
       ProductionCostRule.FinishCost(SampleCatalog.embossingId, Money("1.00")),
       ProductionCostRule.FinishCost(SampleCatalog.foilStampingId, Money("1.60")),
+
+      // --- Konica Minolta C4080 click charges (CZK) — SRA3 (320×450mm), bleed 3mm, gutter 2mm ---
+      ProductionCostRule.SheetPrintCost(PrintingProcessType.Digital, 4, 4, 320, 450, 3, 2, Money("4.00")),
+      ProductionCostRule.SheetPrintCost(PrintingProcessType.Digital, 4, 0, 320, 450, 3, 2, Money("2.00")),
+      ProductionCostRule.SheetPrintCost(PrintingProcessType.Digital, 4, 1, 320, 450, 3, 2, Money("3.00")),
+      ProductionCostRule.SheetPrintCost(PrintingProcessType.Digital, 1, 0, 320, 450, 3, 2, Money("0.80")),
+      ProductionCostRule.SheetPrintCost(PrintingProcessType.Digital, 1, 1, 320, 450, 3, 2, Money("1.60")),
 
       ProductionCostRule.OverheadFactor(BigDecimal("1.15")),
     ),
