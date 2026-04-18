@@ -299,3 +299,9 @@ object ConfigurationForm:
       case ComponentRole.Stand => lang match
         case Language.En => "Stand / Platform"
         case Language.Cs => "Stojánek / platforma"
+      case ComponentRole.FrontCover => lang match
+        case Language.En => "Front Cover (Protective)"
+        case Language.Cs => "Přední deska (ochranná)"
+      case ComponentRole.BackCover => lang match
+        case Language.En => "Back Cover (Protective)"
+        case Language.Cs => "Zadní deska (ochranná)"

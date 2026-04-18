@@ -308,3 +308,9 @@ object PricePreview:
       case ComponentRole.Stand => lang match
         case Language.En => "Stand"
         case Language.Cs => "Stojánek"
+      case ComponentRole.FrontCover => lang match
+        case Language.En => "Front Cover"
+        case Language.Cs => "Přední deska"
+      case ComponentRole.BackCover => lang match
+        case Language.En => "Back Cover"
+        case Language.Cs => "Zadní deska"

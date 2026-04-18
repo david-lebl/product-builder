@@ -5,6 +5,8 @@ enum ComponentRole:
   case Cover
   case Body
   case Stand
+  case FrontCover
+  case BackCover
 
 final case class ComponentTemplate(
     role: ComponentRole,

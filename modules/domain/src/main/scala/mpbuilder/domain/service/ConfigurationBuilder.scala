@@ -88,9 +88,11 @@ object ConfigurationBuilder:
       specs: ProductSpecifications,
   ): Int =
     role match
-      case ComponentRole.Main  => 1
-      case ComponentRole.Cover => 1
-      case ComponentRole.Stand => 1
+      case ComponentRole.Main       => 1
+      case ComponentRole.Cover      => 1
+      case ComponentRole.Stand      => 1
+      case ComponentRole.FrontCover => 1
+      case ComponentRole.BackCover  => 1
       case ComponentRole.Body =>
         val totalPages = specs.get(SpecKind.Pages) match
           case Some(SpecValue.PagesSpec(count)) => count

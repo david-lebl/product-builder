@@ -17,6 +17,13 @@ object SamplePricelist:
       PricingRule.MaterialBasePrice(SampleCatalog.adhesiveStockId, Money("0.14")),
       PricingRule.MaterialBasePrice(SampleCatalog.cottonId, Money("0.22")),
 
+      // --- Calendar protective cover material prices (per unit, USD) ---
+      PricingRule.MaterialBasePrice(SampleCatalog.transparentPlasticCoverId, Money("0.20")),
+      PricingRule.MaterialBasePrice(SampleCatalog.cardboard350gWhiteId, Money("0.30")),
+      PricingRule.MaterialBasePrice(SampleCatalog.cardboard350gBlackId, Money("0.40")),
+      PricingRule.MaterialBasePrice(SampleCatalog.cardboard350gGreyId, Money("0.30")),
+      PricingRule.MaterialBasePrice(SampleCatalog.cardboard350gBrownId, Money("0.30")),
+
       // --- Material area price (for vinyl — per sqm) ---
       PricingRule.MaterialAreaPrice(SampleCatalog.vinylId, Money("18.00")),
       PricingRule.MaterialAreaPrice(SampleCatalog.clearVinylId, Money("22.00")),
@@ -191,6 +198,13 @@ object SamplePricelist:
       PricingRule.MaterialBasePrice(SampleCatalog.yupoId, Money("16")),
       PricingRule.MaterialBasePrice(SampleCatalog.adhesiveStockId, Money("10")),
       PricingRule.MaterialBasePrice(SampleCatalog.cottonId, Money("18")),
+
+      // --- Calendar protective cover material prices (CZK per unit) ---
+      PricingRule.MaterialBasePrice(SampleCatalog.transparentPlasticCoverId, Money("5")),
+      PricingRule.MaterialBasePrice(SampleCatalog.cardboard350gWhiteId, Money("8")),
+      PricingRule.MaterialBasePrice(SampleCatalog.cardboard350gBlackId, Money("10")),
+      PricingRule.MaterialBasePrice(SampleCatalog.cardboard350gGreyId, Money("8")),
+      PricingRule.MaterialBasePrice(SampleCatalog.cardboard350gBrownId, Money("8")),
 
       // --- Material area price (for vinyl — CZK per sqm) ---
       PricingRule.MaterialAreaPrice(SampleCatalog.vinylId, Money("420")),
@@ -520,6 +534,13 @@ object SamplePricelist:
       PricingRule.MaterialAreaPrice(SampleCatalog.rollUpBannerFilmId, Money("280")),
       PricingRule.MaterialBasePrice(SampleCatalog.rollUpStandEconomyId, Money("590")),
       PricingRule.MaterialBasePrice(SampleCatalog.rollUpStandPremiumId, Money("1290")),
+
+      // --- Calendar protective cover material prices (CZK per unit) ---
+      PricingRule.MaterialBasePrice(SampleCatalog.transparentPlasticCoverId, Money("5")),
+      PricingRule.MaterialBasePrice(SampleCatalog.cardboard350gWhiteId, Money("8")),
+      PricingRule.MaterialBasePrice(SampleCatalog.cardboard350gBlackId, Money("10")),
+      PricingRule.MaterialBasePrice(SampleCatalog.cardboard350gGreyId, Money("8")),
+      PricingRule.MaterialBasePrice(SampleCatalog.cardboard350gBrownId, Money("8")),
 
       // --- Material base price (for corrugated — not sheet-fed) ---
       PricingRule.MaterialBasePrice(SampleCatalog.corrugatedId, Money("6")),

@@ -3,7 +3,7 @@ package mpbuilder.domain.model
 import zio.prelude.*
 
 enum MaterialFamily:
-  case Paper, Vinyl, Cardboard, Fabric, Hardware
+  case Paper, Vinyl, Cardboard, Fabric, Hardware, Plastic
 
 enum MaterialProperty:
   case Recyclable, WaterResistant, Glossy, Matte, Textured, SmoothSurface, Transparent

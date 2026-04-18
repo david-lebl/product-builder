@@ -93,6 +93,13 @@ object SampleCatalog:
   val rollUpStandEconomyId: MaterialId  = MaterialId.unsafe("mat-rollup-stand-economy")
   val rollUpStandPremiumId: MaterialId  = MaterialId.unsafe("mat-rollup-stand-premium")
 
+  // --- Calendar Protective Cover Material IDs ---
+  val transparentPlasticCoverId: MaterialId  = MaterialId.unsafe("mat-transparent-plastic-cover")
+  val cardboard350gWhiteId: MaterialId       = MaterialId.unsafe("mat-cardboard-350g-white")
+  val cardboard350gBlackId: MaterialId       = MaterialId.unsafe("mat-cardboard-350g-black")
+  val cardboard350gGreyId: MaterialId        = MaterialId.unsafe("mat-cardboard-350g-grey")
+  val cardboard350gBrownId: MaterialId       = MaterialId.unsafe("mat-cardboard-350g-brown")
+
   // --- Promotional Material IDs ---
   // T-Shirts
   val cottonTshirt150Id: MaterialId       = MaterialId.unsafe("mat-cotton-tshirt-150")
@@ -773,6 +780,67 @@ object SampleCatalog:
     )),
   )
 
+  // --- Calendar Protective Cover Materials ---
+  val transparentPlasticCover: Material = Material(
+    id = transparentPlasticCoverId,
+    name = LocalizedString("Transparent Plastic Cover", "Průhledný plastový obal"),
+    family = MaterialFamily.Plastic,
+    weight = None,
+    properties = Set(MaterialProperty.Transparent, MaterialProperty.SmoothSurface),
+    description = Some(LocalizedString(
+      "Clear transparent PVC or PP plastic cover for calendar front protection. Protects the printed cover while keeping it visible.",
+      "Čirý průhledný PVC nebo PP plastový obal pro ochranu přední strany kalendáře. Chrání potištěnou obálku a zároveň ji ponechává viditelnou.",
+    )),
+  )
+
+  val cardboard350gWhite: Material = Material(
+    id = cardboard350gWhiteId,
+    name = LocalizedString("Cardboard 350gsm White", "Karton 350g bílý"),
+    family = MaterialFamily.Cardboard,
+    weight = Some(PaperWeight.unsafe(350)),
+    properties = Set(MaterialProperty.SmoothSurface, MaterialProperty.Recyclable),
+    description = Some(LocalizedString(
+      "Sturdy 350gsm white cardboard for calendar back cover. Provides rigid support and a clean appearance.",
+      "Pevný 350g bílý karton pro zadní desku kalendáře. Poskytuje tuhý podklad a čistý vzhled.",
+    )),
+  )
+
+  val cardboard350gBlack: Material = Material(
+    id = cardboard350gBlackId,
+    name = LocalizedString("Cardboard 350gsm Black", "Karton 350g černý"),
+    family = MaterialFamily.Cardboard,
+    weight = Some(PaperWeight.unsafe(350)),
+    properties = Set(MaterialProperty.SmoothSurface, MaterialProperty.Recyclable),
+    description = Some(LocalizedString(
+      "Sturdy 350gsm black cardboard for calendar back cover. Premium look with rigid support.",
+      "Pevný 350g černý karton pro zadní desku kalendáře. Prémiový vzhled s tuhým podkladem.",
+    )),
+  )
+
+  val cardboard350gGrey: Material = Material(
+    id = cardboard350gGreyId,
+    name = LocalizedString("Cardboard 350gsm Grey", "Karton 350g šedý"),
+    family = MaterialFamily.Cardboard,
+    weight = Some(PaperWeight.unsafe(350)),
+    properties = Set(MaterialProperty.SmoothSurface, MaterialProperty.Recyclable),
+    description = Some(LocalizedString(
+      "Sturdy 350gsm grey cardboard for calendar back cover. Neutral appearance with rigid support.",
+      "Pevný 350g šedý karton pro zadní desku kalendáře. Neutrální vzhled s tuhým podkladem.",
+    )),
+  )
+
+  val cardboard350gBrown: Material = Material(
+    id = cardboard350gBrownId,
+    name = LocalizedString("Cardboard 350gsm Brown", "Karton 350g hnědý"),
+    family = MaterialFamily.Cardboard,
+    weight = Some(PaperWeight.unsafe(350)),
+    properties = Set(MaterialProperty.Textured, MaterialProperty.Recyclable),
+    description = Some(LocalizedString(
+      "Sturdy 350gsm brown cardboard (kraft-like) for calendar back cover. Eco-friendly appearance with rigid support.",
+      "Pevný 350g hnědý karton (kraftového typu) pro zadní desku kalendáře. Ekologický vzhled s tuhým podkladem.",
+    )),
+  )
+
   // --- Promotional Materials: T-Shirts ---
   val cottonTshirt150: Material = Material(
     id = cottonTshirt150Id,
@@ -1390,6 +1458,18 @@ object SampleCatalog:
           mediumHeavyCoatedGlossyIds ++ mediumHeavyCoatedMatteIds,
         allowedFinishIds = Set(perforationId),
       ),
+      ComponentTemplate(
+        role = ComponentRole.FrontCover,
+        allowedMaterialIds = Set(transparentPlasticCoverId),
+        allowedFinishIds = Set.empty,
+        optional = true,
+      ),
+      ComponentTemplate(
+        role = ComponentRole.BackCover,
+        allowedMaterialIds = Set(cardboard350gWhiteId, cardboard350gBlackId, cardboard350gGreyId, cardboard350gBrownId),
+        allowedFinishIds = Set.empty,
+        optional = true,
+      ),
     ),
     requiredSpecKinds = Set(SpecKind.Size, SpecKind.Quantity, SpecKind.Pages, SpecKind.BindingMethod, SpecKind.BindingColor),
     allowedPrintingMethodIds = Set(digitalId),
@@ -1402,8 +1482,8 @@ object SampleCatalog:
         id = PresetId.unsafe("preset-calendars-wall"),
         name = LocalizedString("Wall Calendar", "Nástěnný kalendář"),
         description = Some(LocalizedString(
-          "Glossy 250gsm cover + 170gsm body, 4+4 CMYK, A4, metal wire, 28 pages, 50 pcs",
-          "Lesklý 250g obálka + 170g tělo, 4+4 CMYK, A4, drátěná vazba, 28 stran, 50 ks",
+          "Glossy 250gsm cover + 170gsm body, 4+4 CMYK, A4, metal wire, 28 pages, 50 pcs, with transparent front cover and white cardboard back",
+          "Lesklý 250g obálka + 170g tělo, 4+4 CMYK, A4, drátěná vazba, 28 stran, 50 ks, s průhlednou přední deskou a bílým kartonovým zadním dílem",
         )),
         printingMethodId = digitalId,
         componentPresets = List(
@@ -1416,6 +1496,16 @@ object SampleCatalog:
             role = ComponentRole.Body,
             materialId = coatedGlossy170gsmId,
             inkConfiguration = InkConfiguration.cmyk4_4,
+          ),
+          ComponentPreset(
+            role = ComponentRole.FrontCover,
+            materialId = transparentPlasticCoverId,
+            inkConfiguration = InkConfiguration.noInk,
+          ),
+          ComponentPreset(
+            role = ComponentRole.BackCover,
+            materialId = cardboard350gWhiteId,
+            inkConfiguration = InkConfiguration.noInk,
           ),
         ),
         specOverrides = List(
@@ -1430,8 +1520,8 @@ object SampleCatalog:
         id = PresetId.unsafe("preset-calendars-desk"),
         name = LocalizedString("Desk Calendar", "Stolní kalendář"),
         description = Some(LocalizedString(
-          "Matte 300gsm cover + 200gsm body, 4+4 CMYK, A5, metal wire, 28 pages, 50 pcs",
-          "Matný 300g obálka + 200g tělo, 4+4 CMYK, A5, drátěná vazba, 28 stran, 50 ks",
+          "Matte 300gsm cover + 200gsm body, 4+4 CMYK, A5, metal wire, 28 pages, 50 pcs, with transparent front cover and grey cardboard back",
+          "Matný 300g obálka + 200g tělo, 4+4 CMYK, A5, drátěná vazba, 28 stran, 50 ks, s průhlednou přední deskou a šedým kartonovým zadním dílem",
         )),
         printingMethodId = digitalId,
         componentPresets = List(
@@ -1444,6 +1534,16 @@ object SampleCatalog:
             role = ComponentRole.Body,
             materialId = coatedMatte200gsmId,
             inkConfiguration = InkConfiguration.cmyk4_4,
+          ),
+          ComponentPreset(
+            role = ComponentRole.FrontCover,
+            materialId = transparentPlasticCoverId,
+            inkConfiguration = InkConfiguration.noInk,
+          ),
+          ComponentPreset(
+            role = ComponentRole.BackCover,
+            materialId = cardboard350gGreyId,
+            inkConfiguration = InkConfiguration.noInk,
           ),
         ),
         specOverrides = List(
@@ -1460,6 +1560,8 @@ object SampleCatalog:
   private val allMaterialIds: Set[MaterialId] = Set(
     coated300gsmId, uncoatedBondId, kraftId, vinylId, corrugatedId,
     coatedSilk250gsmId, yupoId, adhesiveStockId, cottonId, clearVinylId,
+    // Calendar protective covers
+    transparentPlasticCoverId, cardboard350gWhiteId, cardboard350gBlackId, cardboard350gGreyId, cardboard350gBrownId,
     // Promotional materials
     cottonTshirt150Id, cottonTshirt180Id, polyesterTshirtId, cottonPolyBlendId, organicCottonTshirtId,
     cottonCanvasBagId, organicCottonBagId, recycledPetBagId, juteBagId, nonWovenPpBagId,
@@ -2031,6 +2133,12 @@ object SampleCatalog:
       rollUpBannerFilmId    -> rollUpBannerFilm,
       rollUpStandEconomyId  -> rollUpStandEconomy,
       rollUpStandPremiumId  -> rollUpStandPremium,
+      // Calendar Protective Covers
+      transparentPlasticCoverId -> transparentPlasticCover,
+      cardboard350gWhiteId      -> cardboard350gWhite,
+      cardboard350gBlackId      -> cardboard350gBlack,
+      cardboard350gGreyId       -> cardboard350gGrey,
+      cardboard350gBrownId      -> cardboard350gBrown,
       // Promotional Materials
       cottonTshirt150Id      -> cottonTshirt150,
       cottonTshirt180Id      -> cottonTshirt180,
