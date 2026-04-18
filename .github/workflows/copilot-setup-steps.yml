@@ -1,0 +1,52 @@
+name: "Copilot Setup Steps"
+
+# Run automatically when this file is changed (for easy validation),
+# and allow manual runs from the Actions tab.
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - .github/workflows/copilot-setup-steps.yml
+  pull_request:
+    paths:
+      - .github/workflows/copilot-setup-steps.yml
+
+jobs:
+  # Job name MUST be `copilot-setup-steps` to be picked up by Copilot cloud agent.
+  copilot-setup-steps:
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # Install Temurin JDK 17 — its bundled CA certificates include the root CAs
+      # needed by Coursier to download from Maven Central (repo1.maven.org).
+      # Without this step the default JVM in the runner environment fails with an
+      # SSLHandshakeException when Mill tries to resolve mill-runner-daemon.
+      - name: Set up JDK 17 (Temurin)
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+
+      - name: Cache Coursier
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/coursier
+          key: ${{ runner.os }}-coursier-${{ hashFiles('**/*.mill', '.mill-version') }}
+          restore-keys: ${{ runner.os }}-coursier-
+
+      - name: Cache Mill download
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/mill
+          key: ${{ runner.os }}-mill-${{ hashFiles('.mill-version') }}
+
+      # Pre-warm Mill by compiling all modules. This downloads and caches all
+      # Coursier-managed JARs so subsequent agent commands run offline.
+      - name: Pre-warm Mill (compile all modules)
+        run: ./mill __.compile
