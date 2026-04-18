@@ -105,6 +105,6 @@ object ConfigurationBuilder:
             (totalPages / 4) - 1
           case Some(BindingMethod.PerfectBinding) | Some(BindingMethod.CaseBinding) =>
             (totalPages - 4) / 2
-          case Some(BindingMethod.SpiralBinding) | Some(BindingMethod.WireOBinding) =>
+          case Some(BindingMethod.PlasticOBinding) | Some(BindingMethod.MetalWireBinding) =>
             (totalPages - 2) / 2
           case None => 1

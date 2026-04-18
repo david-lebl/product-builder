@@ -14,6 +14,7 @@ enum SpecPredicate:
   case PagesDivisibleBy(n: Int)
   case SquareDimension()
   case AllowedDimensions(sizes: Set[(Double, Double)])
+  case HasBindingColor()
 
 enum ConfigurationPredicate:
   case Spec(predicate: SpecPredicate)

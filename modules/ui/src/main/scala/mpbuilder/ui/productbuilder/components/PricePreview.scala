@@ -180,7 +180,7 @@ object PricePreview:
               }
 
               val surchargeLines =
-                List(breakdown.processSurcharge, breakdown.categorySurcharge, breakdown.foldSurcharge, breakdown.bindingSurcharge)
+                List(breakdown.processSurcharge, breakdown.categorySurcharge, breakdown.foldSurcharge, breakdown.bindingSurcharge, breakdown.calendarCoverSurcharge, breakdown.bindingColorSurcharge)
                   .flatten
                   .map { item =>
                     div(

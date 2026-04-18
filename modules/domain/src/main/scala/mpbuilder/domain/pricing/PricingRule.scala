@@ -38,3 +38,7 @@ enum PricingRule:
   )
   // Global price floor applied after setup fees
   case MinimumOrderPrice(minTotal: Money)
+  // Per-unit surcharge for calendar physical cover (front plastic / back cardboard)
+  case CalendarCoverSurcharge(option: CalendarCoverOption, surchargePerUnit: Money)
+  // Per-unit surcharge for non-default binding ring/wire color
+  case BindingColorSurcharge(color: BindingColor, surchargePerUnit: Money)

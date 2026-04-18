@@ -563,6 +563,20 @@ object ProductBuilderViewModel:
       }
     }
 
+  def selectedBindingColor: Signal[Option[BindingColor]] =
+    state.map { s =>
+      s.specifications.collectFirst {
+        case SpecValue.BindingColorSpec(color) => color
+      }
+    }
+
+  def selectedCalendarCover: Signal[Option[(CalendarCoverOption, Option[CoverColor])]] =
+    state.map { s =>
+      s.specifications.collectFirst {
+        case SpecValue.CalendarCoverSpec(opt, color) => (opt, color)
+      }
+    }
+
   // ── Express Manufacturing: simulated station utilisation ──────────────
 
   private val simulatedStationUtilisation: List[StationUtilisation] = List(

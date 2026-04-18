@@ -299,8 +299,8 @@ object SpecificationForm:
               case Language.Cs => "Typ vazby:"
             }),
             HelpInfo(lang.map {
-              case Language.En => "How the pages are held together. Saddle stitch (stapled) is cheapest for thin booklets. Perfect binding (glued spine) is for thicker publications. Wire-O and spiral allow the book to lay flat when open."
-              case Language.Cs => "Způsob spojení stránek. Sešitová vazba (sešitá) je nejlevnější pro tenké brožury. Lepená vazba (lepený hřbet) je pro silnější publikace. Wire-O a kroužková vazba umožňují, aby kniha ležela naplocho při otevření."
+              case Language.En => "How the pages are held together. Saddle stitch (stapled) is cheapest for thin booklets. Perfect binding (glued spine) is for thicker publications. Plastic O-Binding uses a plastic ring; Metal Wire Binding uses a metal wire — both allow the book to lay flat when open."
+              case Language.Cs => "Způsob spojení stránek. Sešitová vazba (sešitá) je nejlevnější pro tenké brožury. Lepená vazba (lepený hřbet) je pro silnější publikace. Plastová O-vazba používá plastový kroužek; kovová drátová vazba používá kovový drát — obě umožňují, aby kniha ležela naplocho při otevření."
             }),
           ),
           div(
@@ -321,6 +321,132 @@ object SpecificationForm:
                   BindingMethod.values.find(_.toString == value).foreach { bm =>
                     ProductBuilderViewModel.removeSpecification(classOf[SpecValue.BindingMethodSpec])
                     ProductBuilderViewModel.addSpecification(SpecValue.BindingMethodSpec(bm))
+                  }
+              },
+            ),
+          ),
+        ),
+      ),
+
+      // Calendar Cover Option (required for Calendars)
+      div(
+        Visibility.when(requiredSpecs.map(_.contains(SpecKind.CalendarCover))),
+        div(
+          cls := "form-group form-group--horizontal",
+          div(
+            cls := "label-with-help",
+            label(child.text <-- lang.map {
+              case Language.En => "Physical Cover:"
+              case Language.Cs => "Fyzický kryt:"
+            }),
+            HelpInfo(lang.map {
+              case Language.En => "Add a physical protective cover to the calendar. Front cover is a transparent plastic sheet. Back cover is 350gsm cardboard in the colour of your choice."
+              case Language.Cs => "Přidejte fyzický ochranný kryt ke kalendáři. Přední kryt je průhledná plastová fólie. Zadní kryt je kartón 350g ve vámi zvolené barvě."
+            }),
+          ),
+          div(
+            cls := "form-group__control",
+            select(
+              children <-- lang.combineWith(ProductBuilderViewModel.selectedCalendarCover).map {
+                case (l, selOpt) =>
+                  val sel = selOpt.map(_._1.toString).getOrElse("")
+                  val ph = l match
+                    case Language.En => "-- Select cover option --"
+                    case Language.Cs => "-- Vyberte typ krytu --"
+                  val placeholderOpt = List(option(ph, value := "", com.raquo.laminar.api.L.selected := sel.isEmpty))
+                  placeholderOpt ++ CalendarCoverOption.values.toList.map { opt =>
+                    option(calendarCoverLabel(opt, l), value := opt.toString, com.raquo.laminar.api.L.selected := (opt.toString == sel))
+                  }
+              },
+              onChange.mapToValue --> Observer[String] { value =>
+                if value.nonEmpty then
+                  CalendarCoverOption.values.find(_.toString == value).foreach { opt =>
+                    val currentColor = ProductBuilderViewModel.selectedCalendarCover.now().flatMap(_._2)
+                    val backColor = if opt == CalendarCoverOption.BackOnly || opt == CalendarCoverOption.FrontAndBack then
+                      Some(currentColor.getOrElse(CoverColor.White))
+                    else None
+                    ProductBuilderViewModel.removeSpecification(classOf[SpecValue.CalendarCoverSpec])
+                    ProductBuilderViewModel.addSpecification(SpecValue.CalendarCoverSpec(opt, backColor))
+                  }
+              },
+            ),
+          ),
+        ),
+        // Back cover colour (shown only when back cover is selected)
+        div(
+          Visibility.when(ProductBuilderViewModel.selectedCalendarCover.map { sel =>
+            sel.exists { case (opt, _) => opt == CalendarCoverOption.BackOnly || opt == CalendarCoverOption.FrontAndBack }
+          }),
+          cls := "form-group form-group--horizontal",
+          label(child.text <-- lang.map {
+            case Language.En => "Back Cover Colour:"
+            case Language.Cs => "Barva zadního krytu:"
+          }),
+          div(
+            cls := "form-group__control",
+            select(
+              children <-- lang.combineWith(ProductBuilderViewModel.selectedCalendarCover).map {
+                case (l, selOpt) =>
+                  val sel = selOpt.flatMap(_._2).map(_.toString).getOrElse("")
+                  val ph = l match
+                    case Language.En => "-- Select colour --"
+                    case Language.Cs => "-- Vyberte barvu --"
+                  val placeholderOpt = List(option(ph, value := "", com.raquo.laminar.api.L.selected := sel.isEmpty))
+                  placeholderOpt ++ CoverColor.values.toList.map { c =>
+                    option(coverColorLabel(c, l), value := c.toString, com.raquo.laminar.api.L.selected := (c.toString == sel))
+                  }
+              },
+              onChange.mapToValue --> Observer[String] { value =>
+                if value.nonEmpty then
+                  CoverColor.values.find(_.toString == value).foreach { c =>
+                    val currentOpt = ProductBuilderViewModel.selectedCalendarCover.now().map(_._1).getOrElse(CalendarCoverOption.BackOnly)
+                    ProductBuilderViewModel.removeSpecification(classOf[SpecValue.CalendarCoverSpec])
+                    ProductBuilderViewModel.addSpecification(SpecValue.CalendarCoverSpec(currentOpt, Some(c)))
+                  }
+              },
+            ),
+          ),
+        ),
+      ),
+
+      // Binding Colour (shown for Plastic O-Binding or Metal Wire Binding)
+      div(
+        Visibility.when(ProductBuilderViewModel.selectedBindingMethod.map {
+          case Some(BindingMethod.PlasticOBinding) | Some(BindingMethod.MetalWireBinding) => true
+          case _ => false
+        }),
+        div(
+          cls := "form-group form-group--horizontal",
+          div(
+            cls := "label-with-help",
+            label(child.text <-- lang.map {
+              case Language.En => "Binding Colour:"
+              case Language.Cs => "Barva vazby:"
+            }),
+            HelpInfo(lang.map {
+              case Language.En => "Choose the colour of the plastic ring or metal wire. Black is standard and has no extra charge. Other colours have a small surcharge."
+              case Language.Cs => "Vyberte barvu plastového kroužku nebo kovového drátu. Černá je standardní a bez příplatku. Ostatní barvy mají malý příplatek."
+            }),
+          ),
+          div(
+            cls := "form-group__control",
+            select(
+              children <-- lang.combineWith(ProductBuilderViewModel.selectedBindingColor).map {
+                case (l, selOpt) =>
+                  val sel = selOpt.map(_.toString).getOrElse("")
+                  val ph = l match
+                    case Language.En => "-- Select colour --"
+                    case Language.Cs => "-- Vyberte barvu --"
+                  val placeholderOpt = List(option(ph, value := "", com.raquo.laminar.api.L.selected := sel.isEmpty))
+                  placeholderOpt ++ BindingColor.values.toList.map { c =>
+                    option(bindingColorLabel(c, l), value := c.toString, com.raquo.laminar.api.L.selected := (c.toString == sel))
+                  }
+              },
+              onChange.mapToValue --> Observer[String] { value =>
+                if value.nonEmpty then
+                  BindingColor.values.find(_.toString == value).foreach { c =>
+                    ProductBuilderViewModel.removeSpecification(classOf[SpecValue.BindingColorSpec])
+                    ProductBuilderViewModel.addSpecification(SpecValue.BindingColorSpec(c))
                   }
               },
             ),
@@ -425,11 +551,32 @@ object SpecificationForm:
     case FoldType.CrossFold   => lang match { case Language.En => "Cross Fold";   case Language.Cs => "Křížový sklad" }
 
   private def bindingMethodLabel(bm: BindingMethod, lang: Language): String = bm match
-    case BindingMethod.SaddleStitch    => lang match { case Language.En => "Saddle Stitch";    case Language.Cs => "V1 – sešitová vazba" }
-    case BindingMethod.PerfectBinding  => lang match { case Language.En => "Perfect Binding";  case Language.Cs => "V2 – lepená vazba" }
-    case BindingMethod.SpiralBinding   => lang match { case Language.En => "Spiral Binding";   case Language.Cs => "Kroužková vazba" }
-    case BindingMethod.WireOBinding    => lang match { case Language.En => "Wire-O Binding";   case Language.Cs => "Wire-O vazba" }
-    case BindingMethod.CaseBinding     => lang match { case Language.En => "Case Binding";     case Language.Cs => "V8 – tuhá vazba" }
+    case BindingMethod.SaddleStitch    => lang match { case Language.En => "Saddle Stitch";       case Language.Cs => "V1 – sešitová vazba" }
+    case BindingMethod.PerfectBinding  => lang match { case Language.En => "Perfect Binding";     case Language.Cs => "V2 – lepená vazba" }
+    case BindingMethod.PlasticOBinding => lang match { case Language.En => "Plastic O-Binding";   case Language.Cs => "Plastová O-vazba" }
+    case BindingMethod.MetalWireBinding => lang match { case Language.En => "Metal Wire Binding"; case Language.Cs => "Kovová drátová vazba" }
+    case BindingMethod.CaseBinding     => lang match { case Language.En => "Case Binding";        case Language.Cs => "V8 – tuhá vazba" }
+
+  private def calendarCoverLabel(opt: CalendarCoverOption, lang: Language): String = opt match
+    case CalendarCoverOption.NoCover      => lang match { case Language.En => "No cover";                             case Language.Cs => "Bez krytu" }
+    case CalendarCoverOption.FrontOnly    => lang match { case Language.En => "Front only (transparent plastic)";     case Language.Cs => "Pouze přední (průhledný plast)" }
+    case CalendarCoverOption.BackOnly     => lang match { case Language.En => "Back only (350gsm cardboard)";         case Language.Cs => "Pouze zadní (kartón 350g)" }
+    case CalendarCoverOption.FrontAndBack => lang match { case Language.En => "Front + back (plastic + cardboard)";   case Language.Cs => "Přední + zadní (plast + kartón)" }
+
+  private def coverColorLabel(c: CoverColor, lang: Language): String = c match
+    case CoverColor.White => lang match { case Language.En => "White"; case Language.Cs => "Bílá" }
+    case CoverColor.Black => lang match { case Language.En => "Black"; case Language.Cs => "Černá" }
+    case CoverColor.Red   => lang match { case Language.En => "Red";   case Language.Cs => "Červená" }
+    case CoverColor.Blue  => lang match { case Language.En => "Blue";  case Language.Cs => "Modrá" }
+    case CoverColor.Green => lang match { case Language.En => "Green"; case Language.Cs => "Zelená" }
+
+  private def bindingColorLabel(c: BindingColor, lang: Language): String = c match
+    case BindingColor.Black  => lang match { case Language.En => "Black (standard)"; case Language.Cs => "Černá (standard)" }
+    case BindingColor.White  => lang match { case Language.En => "White";            case Language.Cs => "Bílá" }
+    case BindingColor.Silver => lang match { case Language.En => "Silver";           case Language.Cs => "Stříbrná" }
+    case BindingColor.Gold   => lang match { case Language.En => "Gold";             case Language.Cs => "Zlatá" }
+    case BindingColor.Red    => lang match { case Language.En => "Red";              case Language.Cs => "Červená" }
+    case BindingColor.Blue   => lang match { case Language.En => "Blue";             case Language.Cs => "Modrá" }
 
   private def speedTierCard(
     speed: ManufacturingSpeed,

@@ -43,6 +43,15 @@ object PriceCalculator:
         val foldSurcharge = findFoldSurcharge(foldType, rules, quantity, lang)
         val bindingSurcharge = findBindingSurcharge(bindingMethod, rules, quantity, lang)
 
+        val calendarCover = config.specifications.get(SpecKind.CalendarCover).collect {
+          case SpecValue.CalendarCoverSpec(opt, _) => opt
+        }
+        val bindingColor = config.specifications.get(SpecKind.BindingColor).collect {
+          case SpecValue.BindingColorSpec(c) => c
+        }
+        val calendarCoverSurcharge = findCalendarCoverSurcharge(calendarCover, rules, quantity, lang)
+        val bindingColorSurcharge = findBindingColorSurcharge(bindingColor, rules, quantity, lang)
+
         val componentTotals = componentBreakdowns.flatMap { cb =>
           cb.materialLine.lineTotal ::
             cb.cuttingLine.map(_.lineTotal).toList :::
@@ -55,7 +64,9 @@ object PriceCalculator:
             processSurcharge.map(_.lineTotal).toList :::
             categorySurcharge.map(_.lineTotal).toList :::
             foldSurcharge.map(_.lineTotal).toList :::
-            bindingSurcharge.map(_.lineTotal).toList
+            bindingSurcharge.map(_.lineTotal).toList :::
+            calendarCoverSurcharge.map(_.lineTotal).toList :::
+            bindingColorSurcharge.map(_.lineTotal).toList
 
         val subtotal = allLineTotals.foldLeft(Money.zero)(_ + _)
 
@@ -95,6 +106,8 @@ object PriceCalculator:
           categorySurcharge = categorySurcharge,
           foldSurcharge = foldSurcharge,
           bindingSurcharge = bindingSurcharge,
+          calendarCoverSurcharge = calendarCoverSurcharge,
+          bindingColorSurcharge = bindingColorSurcharge,
           subtotal = subtotal,
           quantityMultiplier = multiplier,
           speedSurcharge = speedSurcharge,
@@ -412,6 +425,62 @@ object PriceCalculator:
       }
     }
 
+  private def findCalendarCoverSurcharge(
+      option: Option[CalendarCoverOption],
+      rules: List[PricingRule],
+      quantity: Int,
+      lang: Language,
+  ): Option[LineItem] =
+    option.flatMap { opt =>
+      if opt == CalendarCoverOption.NoCover then None
+      else
+        rules.collectFirst {
+          case r: PricingRule.CalendarCoverSurcharge if r.option == opt => r.surchargePerUnit
+        }.map { surcharge =>
+          LineItem(
+            label = calendarCoverName(opt, lang),
+            unitPrice = surcharge,
+            quantity = quantity,
+            lineTotal = surcharge * quantity,
+          )
+        }
+    }
+
+  private def findBindingColorSurcharge(
+      color: Option[BindingColor],
+      rules: List[PricingRule],
+      quantity: Int,
+      lang: Language,
+  ): Option[LineItem] =
+    color.flatMap { c =>
+      rules.collectFirst {
+        case r: PricingRule.BindingColorSurcharge if r.color == c => r.surchargePerUnit
+      }.map { surcharge =>
+        LineItem(
+          label = lang match
+            case Language.Cs => s"Barva vazby: ${bindingColorName(c, lang)}"
+            case _           => s"Binding color: ${bindingColorName(c, lang)}",
+          unitPrice = surcharge,
+          quantity = quantity,
+          lineTotal = surcharge * quantity,
+        )
+      }
+    }
+
+  private def calendarCoverName(opt: CalendarCoverOption, lang: Language): String = opt match
+    case CalendarCoverOption.NoCover      => lang match { case Language.Cs => "Bez krytu";                case _ => "No cover" }
+    case CalendarCoverOption.FrontOnly    => lang match { case Language.Cs => "Přední průhledný kryt";    case _ => "Front transparent cover" }
+    case CalendarCoverOption.BackOnly     => lang match { case Language.Cs => "Zadní kartónový kryt";     case _ => "Back cardboard cover" }
+    case CalendarCoverOption.FrontAndBack => lang match { case Language.Cs => "Přední + zadní kryt";      case _ => "Front + back covers" }
+
+  private def bindingColorName(c: BindingColor, lang: Language): String = c match
+    case BindingColor.Black  => lang match { case Language.Cs => "Černá";   case _ => "Black" }
+    case BindingColor.White  => lang match { case Language.Cs => "Bílá";    case _ => "White" }
+    case BindingColor.Silver => lang match { case Language.Cs => "Stříbrná"; case _ => "Silver" }
+    case BindingColor.Gold   => lang match { case Language.Cs => "Zlatá";   case _ => "Gold" }
+    case BindingColor.Red    => lang match { case Language.Cs => "Červená"; case _ => "Red" }
+    case BindingColor.Blue   => lang match { case Language.Cs => "Modrá";   case _ => "Blue" }
+
   private def foldTypeName(ft: FoldType, lang: Language): String = ft match
     case FoldType.Half       => lang match { case Language.Cs => "Přeložení na půl";    case _ => "Half Fold" }
     case FoldType.Tri        => lang match { case Language.Cs => "Trojsložení";          case _ => "Tri Fold" }
@@ -425,8 +494,8 @@ object PriceCalculator:
   private def bindingMethodName(bm: BindingMethod, lang: Language): String = bm match
     case BindingMethod.SaddleStitch   => lang match { case Language.Cs => "Sešití na svorky"; case _ => "Saddle Stitch" }
     case BindingMethod.PerfectBinding => lang match { case Language.Cs => "Lepená vazba";      case _ => "Perfect Binding" }
-    case BindingMethod.SpiralBinding  => lang match { case Language.Cs => "Spirálová vazba";   case _ => "Spiral Binding" }
-    case BindingMethod.WireOBinding   => lang match { case Language.Cs => "Wire-O vazba";      case _ => "Wire-O Binding" }
+    case BindingMethod.PlasticOBinding  => lang match { case Language.Cs => "Plastová O-vazba";  case _ => "Plastic O-Binding" }
+    case BindingMethod.MetalWireBinding => lang match { case Language.Cs => "Kovová drátová vazba"; case _ => "Metal Wire Binding" }
     case BindingMethod.CaseBinding    => lang match { case Language.Cs => "Pevná vazba";       case _ => "Case Binding" }
 
   private def computeFinishLines(

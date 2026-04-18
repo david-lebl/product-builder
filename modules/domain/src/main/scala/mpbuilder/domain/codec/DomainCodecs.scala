@@ -119,6 +119,15 @@ object DomainCodecs:
   given JsonEncoder[BindingMethod] = JsonEncoder[String].contramap(_.toString)
   given JsonDecoder[BindingMethod] = JsonDecoder[String].map(BindingMethod.valueOf)
 
+  given JsonEncoder[BindingColor] = JsonEncoder[String].contramap(_.toString)
+  given JsonDecoder[BindingColor] = JsonDecoder[String].map(BindingColor.valueOf)
+
+  given JsonEncoder[CoverColor] = JsonEncoder[String].contramap(_.toString)
+  given JsonDecoder[CoverColor] = JsonDecoder[String].map(CoverColor.valueOf)
+
+  given JsonEncoder[CalendarCoverOption] = JsonEncoder[String].contramap(_.toString)
+  given JsonDecoder[CalendarCoverOption] = JsonDecoder[String].map(CalendarCoverOption.valueOf)
+
   // ── Manufacturing speed ──────────────────────────────────────────────────
 
   given JsonEncoder[ManufacturingSpeed] = JsonEncoder[String].contramap(_.toString)

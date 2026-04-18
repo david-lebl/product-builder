@@ -24,6 +24,8 @@ final case class PriceBreakdown(
     categorySurcharge: Option[LineItem],
     foldSurcharge: Option[LineItem],
     bindingSurcharge: Option[LineItem],
+    calendarCoverSurcharge: Option[LineItem],
+    bindingColorSurcharge: Option[LineItem],
     subtotal: Money,
     quantityMultiplier: BigDecimal,
     speedSurcharge: Option[LineItem],

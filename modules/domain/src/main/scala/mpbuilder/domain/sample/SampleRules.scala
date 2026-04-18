@@ -146,9 +146,9 @@ object SampleRules:
       cat.bookletsId,
       SpecPredicate.AllowedBindingMethods(Set(
         BindingMethod.SaddleStitch, BindingMethod.PerfectBinding,
-        BindingMethod.SpiralBinding, BindingMethod.WireOBinding,
+        BindingMethod.PlasticOBinding, BindingMethod.MetalWireBinding,
       )),
-      "Booklets only support saddle stitch, perfect binding, spiral or wire-o binding",
+      "Booklets only support saddle stitch, perfect binding, plastic o-ring or metal wire binding",
     ),
     // Booklets: min pages 8
     CompatibilityRule.SpecConstraint(
@@ -197,8 +197,8 @@ object SampleRules:
     // Calendars: allowed binding methods
     CompatibilityRule.SpecConstraint(
       cat.calendarsId,
-      SpecPredicate.AllowedBindingMethods(Set(BindingMethod.SpiralBinding, BindingMethod.WireOBinding)),
-      "Calendars only support spiral or wire-o binding",
+      SpecPredicate.AllowedBindingMethods(Set(BindingMethod.PlasticOBinding, BindingMethod.MetalWireBinding)),
+      "Calendars only support plastic o-ring or metal wire binding",
     ),
     // Calendars: min pages 12
     CompatibilityRule.SpecConstraint(
@@ -237,11 +237,11 @@ object SampleRules:
     CompatibilityRule.TechnologyConstraint(
       ConfigurationPredicate.Or(
         ConfigurationPredicate.Not(ConfigurationPredicate.BindingMethodIs(
-          Set(BindingMethod.PerfectBinding, BindingMethod.SpiralBinding, BindingMethod.WireOBinding),
+          Set(BindingMethod.PerfectBinding, BindingMethod.PlasticOBinding, BindingMethod.MetalWireBinding),
         )),
         ConfigurationPredicate.Spec(SpecPredicate.PagesDivisibleBy(2)),
       ),
-      "Perfect binding, spiral and wire-o binding require page count divisible by 2",
+      "Perfect binding, plastic o-ring and metal wire binding require page count divisible by 2",
     ),
     // Saddle stitch on heavy paper (>=300gsm) is limited to 80 pages
     CompatibilityRule.TechnologyConstraint(
@@ -415,6 +415,15 @@ object SampleRules:
       cat.ecoBagsId,
       SpecPredicate.MaxDimension(300, 300),
       "Eco bag print area must not exceed 300×300mm",
+    ),
+
+    // --- Binding color: only valid with plastic o-ring or metal wire binding ---
+    CompatibilityRule.TechnologyConstraint(
+      ConfigurationPredicate.Or(
+        ConfigurationPredicate.Not(ConfigurationPredicate.Spec(SpecPredicate.HasBindingColor)),
+        ConfigurationPredicate.BindingMethodIs(Set(BindingMethod.PlasticOBinding, BindingMethod.MetalWireBinding)),
+      ),
+      "Binding color selection is only available for plastic o-ring or metal wire binding",
     ),
   )
 

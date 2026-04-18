@@ -245,6 +245,10 @@ object RuleEvaluator:
             else Validation.unit
           case _ => Validation.unit
 
+      case SpecPredicate.HasBindingColor() =>
+        if specs.get(SpecKind.BindingColor).isDefined then Validation.unit
+        else Validation.fail(ConfigurationError.SpecConstraintViolation(categoryId, predicate, reason))
+
   def evaluateConfigurationPredicate(
       predicate: ConfigurationPredicate,
       components: List[ProductComponent],

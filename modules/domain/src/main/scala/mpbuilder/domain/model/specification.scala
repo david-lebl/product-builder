@@ -50,7 +50,16 @@ enum FoldType:
   case Half, Tri, Gate, Accordion, ZFold, RollFold, FrenchFold, CrossFold
 
 enum BindingMethod:
-  case SaddleStitch, PerfectBinding, SpiralBinding, WireOBinding, CaseBinding
+  case SaddleStitch, PerfectBinding, PlasticOBinding, MetalWireBinding, CaseBinding
+
+enum BindingColor:
+  case Black, White, Silver, Gold, Red, Blue
+
+enum CoverColor:
+  case White, Black, Red, Blue, Green
+
+enum CalendarCoverOption:
+  case NoCover, FrontOnly, BackOnly, FrontAndBack
 
 enum SpecValue:
   case SizeSpec(dimension: Dimension)
@@ -61,6 +70,8 @@ enum SpecValue:
   case FoldTypeSpec(foldType: FoldType)
   case BindingMethodSpec(method: BindingMethod)
   case ManufacturingSpeedSpec(speed: mpbuilder.domain.model.ManufacturingSpeed)
+  case BindingColorSpec(color: BindingColor)
+  case CalendarCoverSpec(option: CalendarCoverOption, backCoverColor: Option[CoverColor])
 
 object SpecValue:
   def specKind(sv: SpecValue): SpecKind = sv match
@@ -72,6 +83,8 @@ object SpecValue:
     case _: SpecValue.FoldTypeSpec            => SpecKind.FoldType
     case _: SpecValue.BindingMethodSpec       => SpecKind.BindingMethod
     case _: SpecValue.ManufacturingSpeedSpec  => SpecKind.ManufacturingSpeed
+    case _: SpecValue.BindingColorSpec        => SpecKind.BindingColor
+    case _: SpecValue.CalendarCoverSpec       => SpecKind.CalendarCover
 
 final case class ProductSpecifications(specs: Map[SpecKind, SpecValue]):
   def get(kind: SpecKind): Option[SpecValue] = specs.get(kind)

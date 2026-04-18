@@ -60,9 +60,21 @@ object SamplePricelist:
       // --- Binding method surcharges (per unit, USD) ---
       PricingRule.BindingMethodSurcharge(BindingMethod.SaddleStitch, Money("0.05")),
       PricingRule.BindingMethodSurcharge(BindingMethod.PerfectBinding, Money("0.12")),
-      PricingRule.BindingMethodSurcharge(BindingMethod.SpiralBinding, Money("0.20")),
-      PricingRule.BindingMethodSurcharge(BindingMethod.WireOBinding, Money("0.25")),
+      PricingRule.BindingMethodSurcharge(BindingMethod.PlasticOBinding, Money("0.20")),
+      PricingRule.BindingMethodSurcharge(BindingMethod.MetalWireBinding, Money("0.25")),
       PricingRule.BindingMethodSurcharge(BindingMethod.CaseBinding, Money("0.60")),
+
+      // --- Calendar cover surcharges (per unit, USD) ---
+      PricingRule.CalendarCoverSurcharge(CalendarCoverOption.FrontOnly,    Money("0.10")),
+      PricingRule.CalendarCoverSurcharge(CalendarCoverOption.BackOnly,     Money("0.30")),
+      PricingRule.CalendarCoverSurcharge(CalendarCoverOption.FrontAndBack, Money("0.40")),
+
+      // --- Binding color surcharges — Black is standard (no surcharge) ---
+      PricingRule.BindingColorSurcharge(BindingColor.White,  Money("0.05")),
+      PricingRule.BindingColorSurcharge(BindingColor.Silver, Money("0.05")),
+      PricingRule.BindingColorSurcharge(BindingColor.Gold,   Money("0.08")),
+      PricingRule.BindingColorSurcharge(BindingColor.Red,    Money("0.05")),
+      PricingRule.BindingColorSurcharge(BindingColor.Blue,   Money("0.05")),
 
       // --- Printing process surcharge ---
       PricingRule.PrintingProcessSurcharge(PrintingProcessType.Letterpress, Money("0.20")),
@@ -231,9 +243,21 @@ object SamplePricelist:
       // --- Binding method surcharges (per unit, CZK) ---
       PricingRule.BindingMethodSurcharge(BindingMethod.SaddleStitch, Money("2")),
       PricingRule.BindingMethodSurcharge(BindingMethod.PerfectBinding, Money("5")),
-      PricingRule.BindingMethodSurcharge(BindingMethod.SpiralBinding, Money("8")),
-      PricingRule.BindingMethodSurcharge(BindingMethod.WireOBinding, Money("10")),
+      PricingRule.BindingMethodSurcharge(BindingMethod.PlasticOBinding, Money("8")),
+      PricingRule.BindingMethodSurcharge(BindingMethod.MetalWireBinding, Money("10")),
       PricingRule.BindingMethodSurcharge(BindingMethod.CaseBinding, Money("25")),
+
+      // --- Calendar cover surcharges (per unit, CZK) ---
+      PricingRule.CalendarCoverSurcharge(CalendarCoverOption.FrontOnly,    Money("3")),
+      PricingRule.CalendarCoverSurcharge(CalendarCoverOption.BackOnly,     Money("8")),
+      PricingRule.CalendarCoverSurcharge(CalendarCoverOption.FrontAndBack, Money("11")),
+
+      // --- Binding color surcharges (CZK) — Black is standard ---
+      PricingRule.BindingColorSurcharge(BindingColor.White,  Money("1")),
+      PricingRule.BindingColorSurcharge(BindingColor.Silver, Money("1")),
+      PricingRule.BindingColorSurcharge(BindingColor.Gold,   Money("2")),
+      PricingRule.BindingColorSurcharge(BindingColor.Red,    Money("1")),
+      PricingRule.BindingColorSurcharge(BindingColor.Blue,   Money("1")),
 
       // --- Printing process surcharge (CZK) ---
       PricingRule.PrintingProcessSurcharge(PrintingProcessType.Letterpress, Money("5")),
@@ -289,8 +313,8 @@ object SamplePricelist:
       // --- Binding method setup fees (one-time, not discounted) ---
       PricingRule.BindingMethodSetupFee(BindingMethod.SaddleStitch, Money("80")),
       PricingRule.BindingMethodSetupFee(BindingMethod.PerfectBinding, Money("150")),
-      PricingRule.BindingMethodSetupFee(BindingMethod.SpiralBinding, Money("100")),
-      PricingRule.BindingMethodSetupFee(BindingMethod.WireOBinding, Money("100")),
+      PricingRule.BindingMethodSetupFee(BindingMethod.PlasticOBinding, Money("100")),
+      PricingRule.BindingMethodSetupFee(BindingMethod.MetalWireBinding, Money("100")),
       PricingRule.BindingMethodSetupFee(BindingMethod.CaseBinding, Money("400")),
 
       // --- Manufacturing speed surcharges ---
@@ -561,9 +585,21 @@ object SamplePricelist:
       // --- Binding method surcharges (per unit, CZK) ---
       PricingRule.BindingMethodSurcharge(BindingMethod.SaddleStitch, Money("1")),
       PricingRule.BindingMethodSurcharge(BindingMethod.PerfectBinding, Money("5")),
-      PricingRule.BindingMethodSurcharge(BindingMethod.SpiralBinding, Money("15")),
-      PricingRule.BindingMethodSurcharge(BindingMethod.WireOBinding, Money("18")),
+      PricingRule.BindingMethodSurcharge(BindingMethod.PlasticOBinding, Money("15")),
+      PricingRule.BindingMethodSurcharge(BindingMethod.MetalWireBinding, Money("18")),
       PricingRule.BindingMethodSurcharge(BindingMethod.CaseBinding, Money("25")),
+
+      // --- Calendar cover surcharges (per unit, CZK) ---
+      PricingRule.CalendarCoverSurcharge(CalendarCoverOption.FrontOnly,    Money("3")),
+      PricingRule.CalendarCoverSurcharge(CalendarCoverOption.BackOnly,     Money("8")),
+      PricingRule.CalendarCoverSurcharge(CalendarCoverOption.FrontAndBack, Money("11")),
+
+      // --- Binding color surcharges (CZK) — Black is standard ---
+      PricingRule.BindingColorSurcharge(BindingColor.White,  Money("1")),
+      PricingRule.BindingColorSurcharge(BindingColor.Silver, Money("1")),
+      PricingRule.BindingColorSurcharge(BindingColor.Gold,   Money("2")),
+      PricingRule.BindingColorSurcharge(BindingColor.Red,    Money("1")),
+      PricingRule.BindingColorSurcharge(BindingColor.Blue,   Money("1")),
 
       // --- Printing process surcharge (CZK) ---
       PricingRule.PrintingProcessSurcharge(PrintingProcessType.Letterpress, Money("5")),
@@ -614,8 +650,8 @@ object SamplePricelist:
       // --- Binding method setup fees (one-time, not discounted) ---
       PricingRule.BindingMethodSetupFee(BindingMethod.SaddleStitch, Money("50")),
       PricingRule.BindingMethodSetupFee(BindingMethod.PerfectBinding, Money("150")),
-      PricingRule.BindingMethodSetupFee(BindingMethod.SpiralBinding, Money("100")),
-      PricingRule.BindingMethodSetupFee(BindingMethod.WireOBinding, Money("100")),
+      PricingRule.BindingMethodSetupFee(BindingMethod.PlasticOBinding, Money("100")),
+      PricingRule.BindingMethodSetupFee(BindingMethod.MetalWireBinding, Money("100")),
       PricingRule.BindingMethodSetupFee(BindingMethod.CaseBinding, Money("400")),
 
       // --- Manufacturing speed surcharges ---
