@@ -197,6 +197,14 @@ object RuleEvaluator:
             else Validation.unit
           case _ => Validation.unit
 
+      case SpecPredicate.AllowedBindingColors(colors) =>
+        specs.get(SpecKind.BindingColor) match
+          case Some(SpecValue.BindingColorSpec(color)) =>
+            if !colors.contains(color) then
+              Validation.fail(ConfigurationError.SpecConstraintViolation(categoryId, predicate, reason))
+            else Validation.unit
+          case _ => Validation.unit
+
       case SpecPredicate.AllowedFoldTypes(foldTypes) =>
         specs.get(SpecKind.FoldType) match
           case Some(SpecValue.FoldTypeSpec(ft)) =>

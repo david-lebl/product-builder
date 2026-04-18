@@ -429,6 +429,14 @@ object PriceCalculator:
     case BindingMethod.MetalWireBinding => lang match { case Language.Cs => "Drátěná vazba";            case _ => "Metal Wire Binding" }
     case BindingMethod.CaseBinding    => lang match { case Language.Cs => "Pevná vazba";       case _ => "Case Binding" }
 
+  private def bindingColorName(bc: BindingColor, lang: Language): String = bc match
+    case BindingColor.Black  => lang match { case Language.Cs => "Černá";    case _ => "Black" }
+    case BindingColor.White  => lang match { case Language.Cs => "Bílá";     case _ => "White" }
+    case BindingColor.Silver => lang match { case Language.Cs => "Stříbrná"; case _ => "Silver" }
+    case BindingColor.Blue   => lang match { case Language.Cs => "Modrá";    case _ => "Blue" }
+    case BindingColor.Red    => lang match { case Language.Cs => "Červená";  case _ => "Red" }
+    case BindingColor.Clear  => lang match { case Language.Cs => "Průhledná"; case _ => "Clear" }
+
   private def computeFinishLines(
       finishes: List[SelectedFinish],
       rules: List[PricingRule],

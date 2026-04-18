@@ -8,6 +8,7 @@ enum SpecPredicate:
   case MinQuantity(min: Int)
   case MaxQuantity(max: Int)
   case AllowedBindingMethods(methods: Set[BindingMethod])
+  case AllowedBindingColors(colors: Set[BindingColor])
   case AllowedFoldTypes(foldTypes: Set[FoldType])
   case MinPages(min: Int)
   case MaxPages(max: Int)

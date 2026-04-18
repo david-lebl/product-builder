@@ -1391,7 +1391,7 @@ object SampleCatalog:
         allowedFinishIds = Set(perforationId),
       ),
     ),
-    requiredSpecKinds = Set(SpecKind.Size, SpecKind.Quantity, SpecKind.Pages, SpecKind.BindingMethod),
+    requiredSpecKinds = Set(SpecKind.Size, SpecKind.Quantity, SpecKind.Pages, SpecKind.BindingMethod, SpecKind.BindingColor),
     allowedPrintingMethodIds = Set(digitalId),
     description = Some(LocalizedString(
       "Wall and desk calendars with cover and monthly pages. Separate cover and body components allow different paper choices. Metal wire binding is most common.",
@@ -1423,6 +1423,7 @@ object SampleCatalog:
           SpecValue.QuantitySpec(Quantity.unsafe(50)),
           SpecValue.PagesSpec(28),
           SpecValue.BindingMethodSpec(BindingMethod.MetalWireBinding),
+          SpecValue.BindingColorSpec(BindingColor.Silver),
         ),
       ),
       CategoryPreset(
@@ -1450,6 +1451,7 @@ object SampleCatalog:
           SpecValue.QuantitySpec(Quantity.unsafe(50)),
           SpecValue.PagesSpec(28),
           SpecValue.BindingMethodSpec(BindingMethod.MetalWireBinding),
+          SpecValue.BindingColorSpec(BindingColor.Black),
         ),
       ),
     ),
