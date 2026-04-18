@@ -47,7 +47,7 @@ There are 17 rule types, each a variant of the `PricingRule` sealed enum:
 | `BindingMethodSurcharge` | Per-unit surcharge for a binding method | Saddle stitch = $0.05/unit |
 | `QuantityTier` | Multiplier on subtotal based on product quantity | 1000+ units = 0.80× |
 | `SheetQuantityTier` | Multiplier on subtotal based on total physical sheets | 250+ sheets = 0.80× |
-| `InkConfigurationFactor` | Multiplier on material cost by ink color counts | 4/4 CMYK = 1.20× |
+| `InkConfigurationSurcharge` | Fixed per-unit surcharge by ink color counts, added on top of material cost | 4/4 CMYK = +$0.05/unit |
 | `CuttingSurcharge` | Per-cut surcharge for sheet-priced materials | 8 CZK/cut |
 | `FinishSetupFee` | One-time setup fee for a specific finish (by ID) | Matte lam setup = 50 CZK |
 | `FinishTypeSetupFee` | One-time setup fee for a finish type | Any lamination setup = 50 CZK |
@@ -74,7 +74,7 @@ Given a valid `ProductConfiguration` and a `Pricelist`, the `PriceCalculator` pe
    - If a `MaterialSheetPrice` exists, compute the number of physical sheets needed and the total sheet cost. Fails with `NoSizeForSheetPricing` if no size spec is present.
    - Otherwise, fall back to `MaterialBasePrice`. Fails with `NoBasePriceForMaterial` if no rule exists.
 
-**3. Apply ink configuration factor.** If an `InkConfigurationFactor` matches the front/back color counts, it multiplies the material cost. A factor of 1.0 (identity) produces no line item.
+**3. Apply ink configuration surcharge.** If an `InkConfigurationSurcharge` matches the front/back color counts, a fixed per-unit surcharge is added as a separate line item on top of the material cost. The surcharge is completely independent of material price. No rule entry (e.g., `noInk`) means no ink line item.
 
 **4. Compute finish surcharges.** For each finish on the configuration:
    - Look for a `FinishSurcharge` matching the finish's ID (most specific).
@@ -113,16 +113,17 @@ Given a valid `ProductConfiguration` and a `Pricelist`, the `PriceCalculator` pe
 
 ### Worked Example: Business Cards
 
-Configuration: 500× Coated Art Paper 300gsm + Matte Lamination + Offset Printing (USD pricelist)
+Configuration: 500× Coated Art Paper 300gsm + Matte Lamination + Offset Printing + 4/4 CMYK (USD pricelist)
 
 ```
 Material: Coated Art Paper 300gsm    $0.12 × 500 =  $60.00
+Ink: 4/4 CMYK surcharge             $0.05 × 500 =  $25.00
 Finish: Matte Lamination             $0.03 × 500 =  $15.00
                                               ─────────────
-Subtotal                                         =  $75.00
+Subtotal                                         = $100.00
 Quantity tier (250–999)                          ×    0.90
                                               ─────────────
-Total                                            =  $67.50
+Total                                            =  $90.00
 ```
 
 ### Worked Example: Tri-fold Brochure with Setup Fee
@@ -146,18 +147,19 @@ Total                                               = 2,245.00 CZK
 
 ### Worked Example: Banner (Area-Based)
 
-Configuration: 10× Adhesive Vinyl (1000×500mm) + UV Coating + UV Curable Inkjet
+Configuration: 10× Adhesive Vinyl (1000×500mm) + UV Coating + UV Curable Inkjet + 4/4 CMYK (USD pricelist)
 
 ```
 Area per unit: 1000mm × 500mm = 0.5 m²
 Material: Adhesive Vinyl       $18.00/m² × 0.5 = $9.00/unit
-Material line:                  $9.00 × 10 =  $90.00
-Finish: UV Coating              $0.04 × 10 =   $0.40
-                                        ─────────────
-Subtotal                                   =  $90.40
-Quantity tier (1–249)                      ×    1.00
-                                        ─────────────
-Total                                     =  $90.40
+Material line:                   $9.00 × 10 =  $90.00
+Ink: 4/4 CMYK surcharge         $0.05 × 10 =   $0.50
+Finish: UV Coating               $0.04 × 10 =   $0.40
+                                         ─────────────
+Subtotal                                    =  $90.90
+Quantity tier (1–249)                       ×    1.00
+                                         ─────────────
+Total                                      =  $90.90
 ```
 
 ## Output: PriceBreakdown
