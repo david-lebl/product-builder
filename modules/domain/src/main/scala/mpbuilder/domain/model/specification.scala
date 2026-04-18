@@ -50,7 +50,7 @@ enum FoldType:
   case Half, Tri, Gate, Accordion, ZFold, RollFold, FrenchFold, CrossFold
 
 enum BindingMethod:
-  case SaddleStitch, PerfectBinding, SpiralBinding, WireOBinding, CaseBinding
+  case SaddleStitch, PerfectBinding, PlasticOBinding, MetalWireBinding, CaseBinding
 
 enum SpecValue:
   case SizeSpec(dimension: Dimension)

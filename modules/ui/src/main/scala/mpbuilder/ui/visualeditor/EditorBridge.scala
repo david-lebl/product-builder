@@ -47,7 +47,7 @@ object EditorBridge:
           case SpecValue.BindingMethodSpec(m) => m
         }
         binding match
-          case Some(BindingMethod.SpiralBinding) | Some(BindingMethod.WireOBinding) =>
+          case Some(BindingMethod.PlasticOBinding) | Some(BindingMethod.MetalWireBinding) =>
             Some(VisualProductType.MonthlyCalendar)
           case _ => Some(VisualProductType.MonthlyCalendar)
       case "cat-booklets" => Some(VisualProductType.PhotoBook)

@@ -1394,16 +1394,16 @@ object SampleCatalog:
     requiredSpecKinds = Set(SpecKind.Size, SpecKind.Quantity, SpecKind.Pages, SpecKind.BindingMethod),
     allowedPrintingMethodIds = Set(digitalId),
     description = Some(LocalizedString(
-      "Wall and desk calendars with cover and monthly pages. Separate cover and body components allow different paper choices. Wire-o binding is most common.",
-      "Nástěnné a stolní kalendáře s obálkou a měsíčními stránkami. Samostatná obálka a vnitřní strany umožňují různé volby papíru. Kroužková vazba je nejběžnější.",
+      "Wall and desk calendars with cover and monthly pages. Separate cover and body components allow different paper choices. Metal wire binding is most common.",
+      "Nástěnné a stolní kalendáře s obálkou a měsíčními stránkami. Samostatná obálka a vnitřní strany umožňují různé volby papíru. Drátěná vazba je nejběžnější.",
     )),
     presets = List(
       CategoryPreset(
         id = PresetId.unsafe("preset-calendars-wall"),
         name = LocalizedString("Wall Calendar", "Nástěnný kalendář"),
         description = Some(LocalizedString(
-          "Glossy 250gsm cover + 170gsm body, 4+4 CMYK, A4, wire-o, 28 pages, 50 pcs",
-          "Lesklý 250g obálka + 170g tělo, 4+4 CMYK, A4, kroužková vazba, 28 stran, 50 ks",
+          "Glossy 250gsm cover + 170gsm body, 4+4 CMYK, A4, metal wire, 28 pages, 50 pcs",
+          "Lesklý 250g obálka + 170g tělo, 4+4 CMYK, A4, drátěná vazba, 28 stran, 50 ks",
         )),
         printingMethodId = digitalId,
         componentPresets = List(
@@ -1422,15 +1422,15 @@ object SampleCatalog:
           SpecValue.SizeSpec(Dimension(210, 297)),
           SpecValue.QuantitySpec(Quantity.unsafe(50)),
           SpecValue.PagesSpec(28),
-          SpecValue.BindingMethodSpec(BindingMethod.WireOBinding),
+          SpecValue.BindingMethodSpec(BindingMethod.MetalWireBinding),
         ),
       ),
       CategoryPreset(
         id = PresetId.unsafe("preset-calendars-desk"),
         name = LocalizedString("Desk Calendar", "Stolní kalendář"),
         description = Some(LocalizedString(
-          "Matte 300gsm cover + 200gsm body, 4+4 CMYK, A5, wire-o, 28 pages, 50 pcs",
-          "Matný 300g obálka + 200g tělo, 4+4 CMYK, A5, kroužková vazba, 28 stran, 50 ks",
+          "Matte 300gsm cover + 200gsm body, 4+4 CMYK, A5, metal wire, 28 pages, 50 pcs",
+          "Matný 300g obálka + 200g tělo, 4+4 CMYK, A5, drátěná vazba, 28 stran, 50 ks",
         )),
         printingMethodId = digitalId,
         componentPresets = List(
@@ -1449,7 +1449,7 @@ object SampleCatalog:
           SpecValue.SizeSpec(Dimension(148, 210)),
           SpecValue.QuantitySpec(Quantity.unsafe(50)),
           SpecValue.PagesSpec(28),
-          SpecValue.BindingMethodSpec(BindingMethod.WireOBinding),
+          SpecValue.BindingMethodSpec(BindingMethod.MetalWireBinding),
         ),
       ),
     ),

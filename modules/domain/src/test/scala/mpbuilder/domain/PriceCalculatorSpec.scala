@@ -346,7 +346,7 @@ object PriceCalculatorSpec extends ZIOSpecDefault:
             SpecValue.SizeSpec(Dimension(297, 210)),
             SpecValue.QuantitySpec(Quantity.unsafe(100)),
             SpecValue.PagesSpec(14),
-            SpecValue.BindingMethodSpec(BindingMethod.SpiralBinding),
+            SpecValue.BindingMethodSpec(BindingMethod.PlasticOBinding),
           )),
         )
 
@@ -484,7 +484,7 @@ object PriceCalculatorSpec extends ZIOSpecDefault:
             SpecValue.SizeSpec(Dimension(297, 210)),
             SpecValue.QuantitySpec(Quantity.unsafe(100)),
             SpecValue.PagesSpec(14),
-            SpecValue.BindingMethodSpec(BindingMethod.SpiralBinding),
+            SpecValue.BindingMethodSpec(BindingMethod.PlasticOBinding),
           ),
         )
 
@@ -1257,7 +1257,7 @@ object PriceCalculatorSpec extends ZIOSpecDefault:
         val customPricelist = Pricelist(
           rules = List(
             PricingRule.MaterialBasePrice(SampleCatalog.coated300gsmId, Money("0.10")),
-            PricingRule.BindingMethodSetupFee(BindingMethod.SpiralBinding, Money("100")),
+            PricingRule.BindingMethodSetupFee(BindingMethod.PlasticOBinding, Money("100")),
             PricingRule.QuantityTier(1, None, BigDecimal("0.50")),
           ),
           currency = Currency.USD,
@@ -1272,17 +1272,17 @@ object PriceCalculatorSpec extends ZIOSpecDefault:
           specs = List(
             SpecValue.SizeSpec(Dimension(210, 148)),
             SpecValue.QuantitySpec(Quantity.unsafe(100)),
-            SpecValue.BindingMethodSpec(BindingMethod.SpiralBinding),
+            SpecValue.BindingMethodSpec(BindingMethod.PlasticOBinding),
           ),
         )
         val result = PriceCalculator.calculate(config, customPricelist)
         val breakdown = result.toEither.toOption.get
         // material: 0.10 × 100 = 10, tier 0.50×: discountedSubtotal = 5
-        // spiral binding setup fee: 100 (not discounted)
+        // plastic o-binding setup fee: 100 (not discounted)
         // total = 5 + 100 = 105
         assertTrue(
-          breakdown.setupFees.exists(_.label.contains("Spiral")),
-          breakdown.setupFees.find(_.label.contains("Spiral")).get.lineTotal == Money("100"),
+          breakdown.setupFees.exists(_.label.contains("Plastic O-Binding")),
+          breakdown.setupFees.find(_.label.contains("Plastic O-Binding")).get.lineTotal == Money("100"),
           breakdown.total == Money("105.00"),
         )
       },

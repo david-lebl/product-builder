@@ -141,14 +141,14 @@ object SampleRules:
       ),
       "White ink requires transparent material or UV inkjet printing",
     ),
-    // Booklets: allowed binding methods (saddle stitch, perfect binding, spiral, wire-o)
+    // Booklets: allowed binding methods (saddle stitch, perfect binding, plastic o-binding, metal wire)
     CompatibilityRule.SpecConstraint(
       cat.bookletsId,
       SpecPredicate.AllowedBindingMethods(Set(
         BindingMethod.SaddleStitch, BindingMethod.PerfectBinding,
-        BindingMethod.SpiralBinding, BindingMethod.WireOBinding,
+        BindingMethod.PlasticOBinding, BindingMethod.MetalWireBinding,
       )),
-      "Booklets only support saddle stitch, perfect binding, spiral or wire-o binding",
+      "Booklets only support saddle stitch, perfect binding, plastic o-binding or metal wire binding",
     ),
     // Booklets: min pages 8
     CompatibilityRule.SpecConstraint(
@@ -197,8 +197,8 @@ object SampleRules:
     // Calendars: allowed binding methods
     CompatibilityRule.SpecConstraint(
       cat.calendarsId,
-      SpecPredicate.AllowedBindingMethods(Set(BindingMethod.SpiralBinding, BindingMethod.WireOBinding)),
-      "Calendars only support spiral or wire-o binding",
+      SpecPredicate.AllowedBindingMethods(Set(BindingMethod.PlasticOBinding, BindingMethod.MetalWireBinding)),
+      "Calendars only support plastic o-binding or metal wire binding",
     ),
     // Calendars: min pages 12
     CompatibilityRule.SpecConstraint(
@@ -233,15 +233,15 @@ object SampleRules:
       ),
       "Saddle stitch binding requires page count divisible by 4",
     ),
-    // Perfect binding, spiral binding and wire-o binding require page count divisible by 2
+    // Perfect binding, plastic o-binding and metal wire binding require page count divisible by 2
     CompatibilityRule.TechnologyConstraint(
       ConfigurationPredicate.Or(
         ConfigurationPredicate.Not(ConfigurationPredicate.BindingMethodIs(
-          Set(BindingMethod.PerfectBinding, BindingMethod.SpiralBinding, BindingMethod.WireOBinding),
+          Set(BindingMethod.PerfectBinding, BindingMethod.PlasticOBinding, BindingMethod.MetalWireBinding),
         )),
         ConfigurationPredicate.Spec(SpecPredicate.PagesDivisibleBy(2)),
       ),
-      "Perfect binding, spiral and wire-o binding require page count divisible by 2",
+      "Perfect binding, plastic o-binding and metal wire binding require page count divisible by 2",
     ),
     // Saddle stitch on heavy paper (>=300gsm) is limited to 80 pages
     CompatibilityRule.TechnologyConstraint(

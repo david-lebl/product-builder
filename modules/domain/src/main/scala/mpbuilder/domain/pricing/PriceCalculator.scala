@@ -425,8 +425,8 @@ object PriceCalculator:
   private def bindingMethodName(bm: BindingMethod, lang: Language): String = bm match
     case BindingMethod.SaddleStitch   => lang match { case Language.Cs => "Sešití na svorky"; case _ => "Saddle Stitch" }
     case BindingMethod.PerfectBinding => lang match { case Language.Cs => "Lepená vazba";      case _ => "Perfect Binding" }
-    case BindingMethod.SpiralBinding  => lang match { case Language.Cs => "Spirálová vazba";   case _ => "Spiral Binding" }
-    case BindingMethod.WireOBinding   => lang match { case Language.Cs => "Wire-O vazba";      case _ => "Wire-O Binding" }
+    case BindingMethod.PlasticOBinding  => lang match { case Language.Cs => "Plastová kroužková vazba"; case _ => "Plastic O-Binding" }
+    case BindingMethod.MetalWireBinding => lang match { case Language.Cs => "Drátěná vazba";            case _ => "Metal Wire Binding" }
     case BindingMethod.CaseBinding    => lang match { case Language.Cs => "Pevná vazba";       case _ => "Case Binding" }
 
   private def computeFinishLines(
