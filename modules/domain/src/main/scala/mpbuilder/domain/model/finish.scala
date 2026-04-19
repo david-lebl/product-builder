@@ -9,6 +9,7 @@ enum FinishType:
   case DieCut, ContourCut, KissCut, Scoring, Perforation, RoundCorners, Drilling, Numbering, Binding, Mounting
   case Grommets, Hem
   case Embroidery
+  case HangingStrip, IndexTab, ShrinkWrap
 
 object FinishType:
   extension (ft: FinishType) def finishCategory: FinishCategory = ft match
@@ -16,7 +17,7 @@ object FinishType:
       FinishCategory.Surface
     case Embossing | Debossing | FoilStamping | Thermography | EdgePainting | Varnish =>
       FinishCategory.Decorative
-    case DieCut | ContourCut | KissCut | Scoring | Perforation | RoundCorners | Drilling | Numbering | Binding | Mounting =>
+    case DieCut | ContourCut | KissCut | Scoring | Perforation | RoundCorners | Drilling | Numbering | Binding | Mounting | HangingStrip | IndexTab | ShrinkWrap =>
       FinishCategory.Structural
     case Grommets | Hem =>
       FinishCategory.LargeFormat
@@ -44,6 +45,9 @@ object FinishParameters:
   final case class FoilStampingParams(color: FoilColor) extends FinishParameters
   final case class GrommetParams(spacingMm: Int) extends FinishParameters
   final case class PerforationParams(pitchMm: Int) extends FinishParameters
+  final case class SaddleStitchParams(stapleCount: Int) extends FinishParameters
+  final case class DrillingParams(holeCount: Int, positionMm: List[Double]) extends FinishParameters
+  final case class IndexTabParams(tabCount: Int, tabWidthMm: Int) extends FinishParameters
 
 final case class SelectedFinish(finish: Finish, params: Option[FinishParameters] = None):
   export finish.{id, name, finishType, side}

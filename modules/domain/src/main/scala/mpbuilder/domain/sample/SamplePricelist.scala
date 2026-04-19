@@ -60,8 +60,8 @@ object SamplePricelist:
       // --- Binding method surcharges (per unit, USD) ---
       PricingRule.BindingMethodSurcharge(BindingMethod.SaddleStitch, Money("0.05")),
       PricingRule.BindingMethodSurcharge(BindingMethod.PerfectBinding, Money("0.12")),
-      PricingRule.BindingMethodSurcharge(BindingMethod.SpiralBinding, Money("0.20")),
-      PricingRule.BindingMethodSurcharge(BindingMethod.WireOBinding, Money("0.25")),
+      PricingRule.BindingMethodSurcharge(BindingMethod.PlasticCoilBinding, Money("0.20")),
+      PricingRule.BindingMethodSurcharge(BindingMethod.MetalWireBinding, Money("0.25")),
       PricingRule.BindingMethodSurcharge(BindingMethod.CaseBinding, Money("0.60")),
 
       // --- Printing process surcharge ---

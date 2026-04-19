@@ -245,6 +245,14 @@ object RuleEvaluator:
             else Validation.unit
           case _ => Validation.unit
 
+      case SpecPredicate.AllowedBindingEdges(edges) =>
+        specs.get(SpecKind.BindingEdge) match
+          case Some(SpecValue.BindingEdgeSpec(edge)) =>
+            if !edges.contains(edge) then
+              Validation.fail(ConfigurationError.SpecConstraintViolation(categoryId, predicate, reason))
+            else Validation.unit
+          case _ => Validation.unit
+
   def evaluateConfigurationPredicate(
       predicate: ConfigurationPredicate,
       components: List[ProductComponent],
@@ -280,6 +288,10 @@ object RuleEvaluator:
         specifications.get(SpecKind.BindingMethod) match
           case Some(SpecValue.BindingMethodSpec(method)) => methods.contains(method)
           case _                                         => false
+      case ConfigurationPredicate.HasComponentRole(role) =>
+        components.exists(_.role == role)
+      case ConfigurationPredicate.BindingMaterialIs(materialIds) =>
+        components.exists(c => c.role == ComponentRole.Binding && materialIds.contains(c.material.id))
       case ConfigurationPredicate.And(left, right) =>
         evaluateConfigurationPredicate(left, components, specifications, printingMethod) &&
           evaluateConfigurationPredicate(right, components, specifications, printingMethod)

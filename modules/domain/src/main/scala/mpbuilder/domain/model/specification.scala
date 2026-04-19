@@ -50,7 +50,13 @@ enum FoldType:
   case Half, Tri, Gate, Accordion, ZFold, RollFold, FrenchFold, CrossFold
 
 enum BindingMethod:
-  case SaddleStitch, PerfectBinding, SpiralBinding, WireOBinding, CaseBinding
+  case SaddleStitch, PerfectBinding, PlasticCoilBinding, MetalWireBinding, CaseBinding
+
+enum BindingEdge:
+  case Top, Left, Right
+
+enum BindingPitch:
+  case ThreeToOne, FourToOne
 
 enum SpecValue:
   case SizeSpec(dimension: Dimension)
@@ -61,6 +67,8 @@ enum SpecValue:
   case FoldTypeSpec(foldType: FoldType)
   case BindingMethodSpec(method: BindingMethod)
   case ManufacturingSpeedSpec(speed: mpbuilder.domain.model.ManufacturingSpeed)
+  case BindingEdgeSpec(edge: BindingEdge)
+  case BindingPitchSpec(pitch: BindingPitch)
 
 object SpecValue:
   def specKind(sv: SpecValue): SpecKind = sv match
@@ -72,6 +80,8 @@ object SpecValue:
     case _: SpecValue.FoldTypeSpec            => SpecKind.FoldType
     case _: SpecValue.BindingMethodSpec       => SpecKind.BindingMethod
     case _: SpecValue.ManufacturingSpeedSpec  => SpecKind.ManufacturingSpeed
+    case _: SpecValue.BindingEdgeSpec         => SpecKind.BindingEdge
+    case _: SpecValue.BindingPitchSpec        => SpecKind.BindingPitch
 
 final case class ProductSpecifications(specs: Map[SpecKind, SpecValue]):
   def get(kind: SpecKind): Option[SpecValue] = specs.get(kind)

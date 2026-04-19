@@ -1,7 +1,7 @@
 package mpbuilder.domain.model
 
 enum SpecKind:
-  case Size, Quantity, Orientation, Bleed, Pages, FoldType, BindingMethod, ManufacturingSpeed
+  case Size, Quantity, Orientation, Bleed, Pages, FoldType, BindingMethod, ManufacturingSpeed, BindingEdge, BindingPitch
 
 final case class ProductCategory(
     id: CategoryId,

@@ -119,6 +119,12 @@ object DomainCodecs:
   given JsonEncoder[BindingMethod] = JsonEncoder[String].contramap(_.toString)
   given JsonDecoder[BindingMethod] = JsonDecoder[String].map(BindingMethod.valueOf)
 
+  given JsonEncoder[BindingEdge] = JsonEncoder[String].contramap(_.toString)
+  given JsonDecoder[BindingEdge] = JsonDecoder[String].map(BindingEdge.valueOf)
+
+  given JsonEncoder[BindingPitch] = JsonEncoder[String].contramap(_.toString)
+  given JsonDecoder[BindingPitch] = JsonDecoder[String].map(BindingPitch.valueOf)
+
   // ── Manufacturing speed ──────────────────────────────────────────────────
 
   given JsonEncoder[ManufacturingSpeed] = JsonEncoder[String].contramap(_.toString)
@@ -140,6 +146,9 @@ object DomainCodecs:
   given JsonCodec[FinishParameters.FoilStampingParams] = DeriveJsonCodec.gen[FinishParameters.FoilStampingParams]
   given JsonCodec[FinishParameters.GrommetParams] = DeriveJsonCodec.gen[FinishParameters.GrommetParams]
   given JsonCodec[FinishParameters.PerforationParams] = DeriveJsonCodec.gen[FinishParameters.PerforationParams]
+  given JsonCodec[FinishParameters.SaddleStitchParams] = DeriveJsonCodec.gen[FinishParameters.SaddleStitchParams]
+  given JsonCodec[FinishParameters.DrillingParams] = DeriveJsonCodec.gen[FinishParameters.DrillingParams]
+  given JsonCodec[FinishParameters.IndexTabParams] = DeriveJsonCodec.gen[FinishParameters.IndexTabParams]
   given JsonCodec[FinishParameters] = DeriveJsonCodec.gen[FinishParameters]
 
   given JsonCodec[FinishSelection] = DeriveJsonCodec.gen[FinishSelection]

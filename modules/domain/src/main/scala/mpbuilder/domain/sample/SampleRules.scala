@@ -141,14 +141,14 @@ object SampleRules:
       ),
       "White ink requires transparent material or UV inkjet printing",
     ),
-    // Booklets: allowed binding methods (saddle stitch, perfect binding, spiral, wire-o)
+    // Booklets: allowed binding methods (saddle stitch, perfect binding, plastic coil, metal wire)
     CompatibilityRule.SpecConstraint(
       cat.bookletsId,
       SpecPredicate.AllowedBindingMethods(Set(
         BindingMethod.SaddleStitch, BindingMethod.PerfectBinding,
-        BindingMethod.SpiralBinding, BindingMethod.WireOBinding,
+        BindingMethod.PlasticCoilBinding, BindingMethod.MetalWireBinding,
       )),
-      "Booklets only support saddle stitch, perfect binding, spiral or wire-o binding",
+      "Booklets only support saddle stitch, perfect binding, plastic coil or metal wire binding",
     ),
     // Booklets: min pages 8
     CompatibilityRule.SpecConstraint(
@@ -197,8 +197,8 @@ object SampleRules:
     // Calendars: allowed binding methods
     CompatibilityRule.SpecConstraint(
       cat.calendarsId,
-      SpecPredicate.AllowedBindingMethods(Set(BindingMethod.SpiralBinding, BindingMethod.WireOBinding)),
-      "Calendars only support spiral or wire-o binding",
+      SpecPredicate.AllowedBindingMethods(Set(BindingMethod.PlasticCoilBinding, BindingMethod.MetalWireBinding)),
+      "Calendars only support plastic coil or metal wire binding",
     ),
     // Calendars: min pages 12
     CompatibilityRule.SpecConstraint(
@@ -233,15 +233,15 @@ object SampleRules:
       ),
       "Saddle stitch binding requires page count divisible by 4",
     ),
-    // Perfect binding, spiral binding and wire-o binding require page count divisible by 2
+    // Perfect binding, plastic coil binding and metal wire binding require page count divisible by 2
     CompatibilityRule.TechnologyConstraint(
       ConfigurationPredicate.Or(
         ConfigurationPredicate.Not(ConfigurationPredicate.BindingMethodIs(
-          Set(BindingMethod.PerfectBinding, BindingMethod.SpiralBinding, BindingMethod.WireOBinding),
+          Set(BindingMethod.PerfectBinding, BindingMethod.PlasticCoilBinding, BindingMethod.MetalWireBinding),
         )),
         ConfigurationPredicate.Spec(SpecPredicate.PagesDivisibleBy(2)),
       ),
-      "Perfect binding, spiral and wire-o binding require page count divisible by 2",
+      "Perfect binding, plastic coil and metal wire binding require page count divisible by 2",
     ),
     // Saddle stitch on heavy paper (>=300gsm) is limited to 80 pages
     CompatibilityRule.TechnologyConstraint(
@@ -416,9 +416,58 @@ object SampleRules:
       SpecPredicate.MaxDimension(300, 300),
       "Eco bag print area must not exceed 300×300mm",
     ),
+
+    // --- Binding material type constraints ---
+    // Plastic coil binding requires a plastic coil material in the Binding component
+    CompatibilityRule.TechnologyConstraint(
+      ConfigurationPredicate.Or(
+        ConfigurationPredicate.Not(ConfigurationPredicate.BindingMethodIs(Set(BindingMethod.PlasticCoilBinding))),
+        ConfigurationPredicate.Or(
+          ConfigurationPredicate.Not(ConfigurationPredicate.HasComponentRole(ComponentRole.Binding)),
+          ConfigurationPredicate.BindingMaterialIs(Set(
+            cat.blackPlasticCoilId, cat.whitePlasticCoilId,
+            cat.clearPlasticCoilId, cat.silverPlasticCoilId,
+          )),
+        ),
+      ),
+      "Plastic coil binding requires a plastic coil material for the binding element",
+    ),
+    // Metal wire binding requires a metal wire material in the Binding component
+    CompatibilityRule.TechnologyConstraint(
+      ConfigurationPredicate.Or(
+        ConfigurationPredicate.Not(ConfigurationPredicate.BindingMethodIs(Set(BindingMethod.MetalWireBinding))),
+        ConfigurationPredicate.Or(
+          ConfigurationPredicate.Not(ConfigurationPredicate.HasComponentRole(ComponentRole.Binding)),
+          ConfigurationPredicate.BindingMaterialIs(Set(
+            cat.blackMetalWireId, cat.silverMetalWireId, cat.whiteMetalWireId,
+          )),
+        ),
+      ),
+      "Metal wire binding requires a metal wire material for the binding element",
+    ),
+    // Top binding edge only valid with plastic coil or metal wire binding
+    CompatibilityRule.TechnologyConstraint(
+      ConfigurationPredicate.Or(
+        ConfigurationPredicate.Not(ConfigurationPredicate.Spec(SpecPredicate.AllowedBindingEdges(Set(BindingEdge.Top)))),
+        ConfigurationPredicate.BindingMethodIs(Set(BindingMethod.PlasticCoilBinding, BindingMethod.MetalWireBinding)),
+      ),
+      "Top edge binding is only supported with plastic coil or metal wire binding",
+    ),
+    // Calendars: top or left binding edge only
+    CompatibilityRule.SpecConstraint(
+      cat.calendarsId,
+      SpecPredicate.AllowedBindingEdges(Set(BindingEdge.Top, BindingEdge.Left)),
+      "Calendars support top or left binding edge only",
+    ),
+    // Booklets: left or right binding edge only
+    CompatibilityRule.SpecConstraint(
+      cat.bookletsId,
+      SpecPredicate.AllowedBindingEdges(Set(BindingEdge.Left, BindingEdge.Right)),
+      "Booklets support left or right binding edge only",
+    ),
   )
 
   val ruleset: CompatibilityRuleset = CompatibilityRuleset(
     rules = rules,
-    version = "3.0.0",
+    version = "4.0.0",
   )

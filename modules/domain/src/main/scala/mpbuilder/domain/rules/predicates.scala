@@ -14,6 +14,7 @@ enum SpecPredicate:
   case PagesDivisibleBy(n: Int)
   case SquareDimension()
   case AllowedDimensions(sizes: Set[(Double, Double)])
+  case AllowedBindingEdges(edges: Set[BindingEdge])
 
 enum ConfigurationPredicate:
   case Spec(predicate: SpecPredicate)
@@ -25,6 +26,8 @@ enum ConfigurationPredicate:
   case MaxColorCountPerSide(max: Int)
   case BindingMethodIs(methods: Set[BindingMethod])
   case HasInkType(inkType: InkType)
+  case HasComponentRole(role: ComponentRole)
+  case BindingMaterialIs(materialIds: Set[MaterialId])
   case And(left: ConfigurationPredicate, right: ConfigurationPredicate)
   case Or(left: ConfigurationPredicate, right: ConfigurationPredicate)
   case Not(inner: ConfigurationPredicate)

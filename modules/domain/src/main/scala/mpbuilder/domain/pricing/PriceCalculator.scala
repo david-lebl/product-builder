@@ -423,11 +423,11 @@ object PriceCalculator:
     case FoldType.CrossFold  => lang match { case Language.Cs => "Křížové složení";     case _ => "Cross Fold" }
 
   private def bindingMethodName(bm: BindingMethod, lang: Language): String = bm match
-    case BindingMethod.SaddleStitch   => lang match { case Language.Cs => "Sešití na svorky"; case _ => "Saddle Stitch" }
-    case BindingMethod.PerfectBinding => lang match { case Language.Cs => "Lepená vazba";      case _ => "Perfect Binding" }
-    case BindingMethod.SpiralBinding  => lang match { case Language.Cs => "Spirálová vazba";   case _ => "Spiral Binding" }
-    case BindingMethod.WireOBinding   => lang match { case Language.Cs => "Wire-O vazba";      case _ => "Wire-O Binding" }
-    case BindingMethod.CaseBinding    => lang match { case Language.Cs => "Pevná vazba";       case _ => "Case Binding" }
+    case BindingMethod.SaddleStitch       => lang match { case Language.Cs => "Sešití na svorky";     case _ => "Saddle Stitch" }
+    case BindingMethod.PerfectBinding     => lang match { case Language.Cs => "Lepená vazba";          case _ => "Perfect Binding" }
+    case BindingMethod.PlasticCoilBinding => lang match { case Language.Cs => "Plastová kroužková vazba"; case _ => "Plastic Coil Binding" }
+    case BindingMethod.MetalWireBinding   => lang match { case Language.Cs => "Kovová Wire-O vazba";  case _ => "Metal Wire Binding" }
+    case BindingMethod.CaseBinding        => lang match { case Language.Cs => "Pevná vazba";           case _ => "Case Binding" }
 
   private def computeFinishLines(
       finishes: List[SelectedFinish],

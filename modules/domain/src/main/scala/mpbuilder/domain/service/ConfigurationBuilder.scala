@@ -91,6 +91,13 @@ object ConfigurationBuilder:
       case ComponentRole.Main  => 1
       case ComponentRole.Cover => 1
       case ComponentRole.Stand => 1
+      case ComponentRole.FrontCover => 1
+      case ComponentRole.BackCover => 1
+      case ComponentRole.Binding => 1
+      case ComponentRole.HangingStrip => 1
+      case ComponentRole.CaseBoard => 1
+      case ComponentRole.Endpaper => 1
+      case ComponentRole.Packaging => 1
       case ComponentRole.Body =>
         val totalPages = specs.get(SpecKind.Pages) match
           case Some(SpecValue.PagesSpec(count)) => count
@@ -105,6 +112,6 @@ object ConfigurationBuilder:
             (totalPages / 4) - 1
           case Some(BindingMethod.PerfectBinding) | Some(BindingMethod.CaseBinding) =>
             (totalPages - 4) / 2
-          case Some(BindingMethod.SpiralBinding) | Some(BindingMethod.WireOBinding) =>
+          case Some(BindingMethod.PlasticCoilBinding) | Some(BindingMethod.MetalWireBinding) =>
             (totalPages - 2) / 2
           case None => 1
