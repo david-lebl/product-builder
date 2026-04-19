@@ -32,15 +32,18 @@ Pricelist(
 
 ### Pricing Rules
 
-There are 17 rule types, each a variant of the `PricingRule` sealed enum:
+There are 20 rule types, each a variant of the `PricingRule` sealed enum:
 
 | Rule | Purpose | Example |
 |------|---------|---------|
 | `MaterialBasePrice` | Flat per-unit price for a material | Coated 300gsm = $0.12/unit |
 | `MaterialAreaPrice` | Price per square meter (for large-format) | Vinyl = $18.00/m² |
+| `MaterialAreaTier` | Area-tiered pricing (volume discount by total area) | PVC 510g: 0-2m² = 600 CZK/m², 10+m² = 400 CZK/m² |
 | `MaterialSheetPrice` | Price per physical press sheet | Coated 135gsm = 8 CZK/sheet |
 | `FinishSurcharge` | Per-unit surcharge for a specific finish (by ID) | Matte lamination = $0.03/unit |
 | `FinishTypeSurcharge` | Per-unit surcharge for a finish type | All lamination = $0.04/unit |
+| `GrommetSpacingAreaSurcharge` | Grommet surcharge per m² based on spacing | 50cm spacing = 40 CZK/m² |
+| `FinishLengthSurcharge` | Per-meter surcharge for length-based finishes | Gum rope = 18 CZK/m |
 | `PrintingProcessSurcharge` | Per-unit surcharge for a printing process | Letterpress = $0.20/unit |
 | `CategorySurcharge` | Per-unit surcharge for a product category | Packaging premium |
 | `FoldTypeSurcharge` | Per-unit surcharge for a fold type | Tri-fold = $0.02/unit |
@@ -56,6 +59,12 @@ There are 17 rule types, each a variant of the `PricingRule` sealed enum:
 | `MinimumOrderPrice` | Price floor applied after all other calculations | Minimum 500 CZK |
 
 **Per-unit surcharges** (material, finish, fold, binding, process, category) are included in the subtotal and are subject to the quantity tier discount.
+
+**Area-tiered pricing** (`MaterialAreaTier`) provides volume discounts based on total order area (unit area × quantity). When area tier rules exist for a material, they take precedence over flat `MaterialAreaPrice`. The ink configuration factor is skipped for area-tiered materials, since the area price already includes printing costs. This is used for banner products where larger orders get progressively better per-m² rates.
+
+**Grommet spacing surcharges** (`GrommetSpacingAreaSurcharge`) charge per m² of product area based on the grommet spacing selected. Closer spacing = more grommets = higher per-m² cost. The calculator reads the spacing from `GrommetParams` attached to the finish.
+
+**Length-based surcharges** (`FinishLengthSurcharge`) charge per meter for finishes where the customer specifies a length (e.g., gum rope). The calculator reads the length from `GumRopeParams` attached to the finish.
 
 **Setup fees** are added _after_ the discount multiplier — they represent real machine setup costs that don't scale with volume, so they are intentionally never discounted.
 
