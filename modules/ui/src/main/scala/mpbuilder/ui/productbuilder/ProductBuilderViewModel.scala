@@ -558,6 +558,13 @@ object ProductBuilderViewModel:
       }
     }
 
+  def selectedBindingEdge: Signal[Option[BindingEdge]] =
+    state.map { s =>
+      s.specifications.collectFirst {
+        case SpecValue.BindingEdgeSpec(edge) => edge
+      }
+    }
+
   def selectedManufacturingSpeed: Signal[Option[ManufacturingSpeed]] =
     state.map { s =>
       s.specifications.collectFirst {

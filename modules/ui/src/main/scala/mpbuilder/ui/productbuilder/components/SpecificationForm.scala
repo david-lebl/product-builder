@@ -347,8 +347,7 @@ object SpecificationForm:
           div(
             cls := "form-group__control",
             select(
-              children <-- lang.combineWith(ProductBuilderViewModel.selectedSpecs).map { case (l, specs) =>
-                val selOpt = specs.collectFirst { case SpecValue.BindingEdgeSpec(e) => e }
+              children <-- lang.combineWith(ProductBuilderViewModel.selectedBindingEdge).map { case (l, selOpt) =>
                 val sel = selOpt.map(_.toString).getOrElse("")
                 val ph = l match
                   case Language.En => "-- Select binding edge --"

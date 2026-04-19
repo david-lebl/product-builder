@@ -273,4 +273,13 @@ object BasketView:
       case Some(PerforationParams(pitch)) => lang match
         case Language.En => s" (${pitch}mm pitch)"
         case Language.Cs => s" (rozteč ${pitch}mm)"
+      case Some(SaddleStitchParams(count)) => lang match
+        case Language.En => s" ($count staples)"
+        case Language.Cs => s" ($count svorek)"
+      case Some(DrillingParams(holes, _)) => lang match
+        case Language.En => s" ($holes holes)"
+        case Language.Cs => s" ($holes otvorů)"
+      case Some(IndexTabParams(tabs, width)) => lang match
+        case Language.En => s" ($tabs tabs, ${width}mm)"
+        case Language.Cs => s" ($tabs záložek, ${width}mm)"
     sf.name(lang) + paramsDesc
