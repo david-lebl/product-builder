@@ -61,7 +61,7 @@ object ConfigurationBuilderSpec extends ZIOSpecDefault:
         val request = ConfigurationRequest(
           categoryId = SampleCatalog.bannersId,
           printingMethodId = SampleCatalog.uvInkjetId,
-          components = List(mainComponent(SampleCatalog.vinylId, InkConfiguration.cmyk4_4, List(FinishSelection(SampleCatalog.uvCoatingId)))),
+          components = List(mainComponent(SampleCatalog.pvc510gId, InkConfiguration.cmyk4_4, List(FinishSelection(SampleCatalog.uvCoatingId)))),
           specs = List(
             SpecValue.SizeSpec(Dimension(1000, 500)),
             SpecValue.QuantitySpec(Quantity.unsafe(10)),
@@ -423,7 +423,7 @@ object ConfigurationBuilderSpec extends ZIOSpecDefault:
         val request = ConfigurationRequest(
           categoryId = SampleCatalog.bannersId,
           printingMethodId = SampleCatalog.uvInkjetId,
-          components = List(mainComponent(SampleCatalog.vinylId, InkConfiguration(InkSetup.pms(2), InkSetup.none))),
+          components = List(mainComponent(SampleCatalog.pvc510gId, InkConfiguration(InkSetup.pms(2), InkSetup.none))),
           specs = List(
             SpecValue.SizeSpec(Dimension(1000, 500)),
             SpecValue.QuantitySpec(Quantity.unsafe(10)),
@@ -1099,7 +1099,7 @@ object ConfigurationBuilderSpec extends ZIOSpecDefault:
           categoryId = SampleCatalog.bannersId,
           printingMethodId = SampleCatalog.uvInkjetId,
           components = List(mainComponent(
-            SampleCatalog.vinylId,
+            SampleCatalog.pvc510gId,
             InkConfiguration.cmyk4_4,
             List(FinishSelection(SampleCatalog.grommetsId, Some(FinishParameters.GrommetParams(500)))),
           )),
@@ -1116,7 +1116,7 @@ object ConfigurationBuilderSpec extends ZIOSpecDefault:
           categoryId = SampleCatalog.bannersId,
           printingMethodId = SampleCatalog.uvInkjetId,
           components = List(mainComponent(
-            SampleCatalog.vinylId,
+            SampleCatalog.pvc510gId,
             InkConfiguration.cmyk4_4,
             List(FinishSelection(SampleCatalog.grommetsId, Some(FinishParameters.GrommetParams(0)))),
           )),
