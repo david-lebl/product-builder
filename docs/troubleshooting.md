@@ -80,6 +80,31 @@ sudo apt-get install -y temurin-17-jdk   # or use SDKMAN / jabba
 
 ---
 
+### Global TechnologyConstraint rules fail on unrelated product categories
+
+**Symptom:** Adding a `TechnologyConstraint` rule (e.g., "top edge binding requires coil/wire") causes validation failures for completely unrelated products like business cards and banners.
+
+**Cause:** `TechnologyConstraint` rules are evaluated globally — they are not scoped to a specific category (unlike `SpecConstraint`). If the rule's guard predicate passes when a spec is absent (e.g., `AllowedBindingEdges` returns success when no binding edge is set), the `Not(...)` wrapper inverts it, and the overall `Or(Not(...), ...)` fails.
+
+**Solution:** Use predicates that return `false` when the relevant spec is absent. For example, use `BindingEdgeIs(edges)` (which returns `false` when no edge is set) instead of `Spec(AllowedBindingEdges(edges))` (which returns success/unit when no spec exists). The pattern is:
+```scala
+// ✅ Correct — fires only when binding edge IS set to Top
+ConfigurationPredicate.Or(
+  ConfigurationPredicate.Not(ConfigurationPredicate.BindingEdgeIs(Set(BindingEdge.Top))),
+  ConfigurationPredicate.BindingMethodIs(Set(...)),
+)
+
+// ❌ Wrong — fires for ALL products because Not(AllowedBindingEdges) is false when no edge exists
+ConfigurationPredicate.Or(
+  ConfigurationPredicate.Not(ConfigurationPredicate.Spec(SpecPredicate.AllowedBindingEdges(Set(BindingEdge.Top)))),
+  ConfigurationPredicate.BindingMethodIs(Set(...)),
+)
+```
+
+**Files:** `modules/domain/src/main/scala/mpbuilder/domain/rules/predicates.scala`, `modules/domain/src/main/scala/mpbuilder/domain/sample/SampleRules.scala`
+
+---
+
 ## UI & Scala.js
 
 ### Laminar `combineWith` tuple flattening issues
