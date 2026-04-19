@@ -1,15 +1,10 @@
 name: "Copilot Setup Steps"
 
-# Run automatically when this file is changed (for easy validation),
-# and allow manual runs from the Actions tab.
+# Allow manual runs from the Actions tab for validation.
+# Copilot coding agent runs the `copilot-setup-steps` job automatically
+# before starting any task — no push/PR trigger needed.
 on:
   workflow_dispatch:
-  push:
-    paths:
-      - .github/workflows/copilot-setup-steps.yml
-  pull_request:
-    paths:
-      - .github/workflows/copilot-setup-steps.yml
 
 jobs:
   # Job name MUST be `copilot-setup-steps` to be picked up by Copilot cloud agent.
