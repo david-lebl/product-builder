@@ -252,6 +252,7 @@ object WorkflowGeneratorSpec extends ZIOSpecDefault:
             SpecValue.QuantitySpec(Quantity.unsafe(100)),
             SpecValue.PagesSpec(16),
             SpecValue.BindingMethodSpec(BindingMethod.SaddleStitch),
+            SpecValue.BindingEdgeSpec(BindingEdge.Left),
           ),
         )
         val wf = generate(config)
@@ -281,6 +282,7 @@ object WorkflowGeneratorSpec extends ZIOSpecDefault:
             SpecValue.QuantitySpec(Quantity.unsafe(100)),
             SpecValue.PagesSpec(16),
             SpecValue.BindingMethodSpec(BindingMethod.SaddleStitch),
+            SpecValue.BindingEdgeSpec(BindingEdge.Left),
           ),
         )
         val wf = generate(config)
@@ -300,6 +302,7 @@ object WorkflowGeneratorSpec extends ZIOSpecDefault:
             SpecValue.QuantitySpec(Quantity.unsafe(100)),
             SpecValue.PagesSpec(16),
             SpecValue.BindingMethodSpec(BindingMethod.SaddleStitch),
+            SpecValue.BindingEdgeSpec(BindingEdge.Left),
           ),
         )
         val wf = generate(config)
@@ -388,6 +391,7 @@ object WorkflowGeneratorSpec extends ZIOSpecDefault:
             SpecValue.QuantitySpec(Quantity.unsafe(100)),
             SpecValue.PagesSpec(16),
             SpecValue.BindingMethodSpec(BindingMethod.SaddleStitch),
+            SpecValue.BindingEdgeSpec(BindingEdge.Left),
           ),
         )
         val wf = generate(config)
@@ -408,6 +412,7 @@ object WorkflowGeneratorSpec extends ZIOSpecDefault:
             SpecValue.QuantitySpec(Quantity.unsafe(100)),
             SpecValue.PagesSpec(16),
             SpecValue.BindingMethodSpec(BindingMethod.SaddleStitch),
+            SpecValue.BindingEdgeSpec(BindingEdge.Left),
           ),
         )
         val wf = generate(config)

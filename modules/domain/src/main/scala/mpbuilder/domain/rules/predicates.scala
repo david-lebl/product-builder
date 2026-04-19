@@ -28,6 +28,7 @@ enum ConfigurationPredicate:
   case HasInkType(inkType: InkType)
   case HasComponentRole(role: ComponentRole)
   case BindingMaterialIs(materialIds: Set[MaterialId])
+  case BindingEdgeIs(edges: Set[BindingEdge])
   case And(left: ConfigurationPredicate, right: ConfigurationPredicate)
   case Or(left: ConfigurationPredicate, right: ConfigurationPredicate)
   case Not(inner: ConfigurationPredicate)

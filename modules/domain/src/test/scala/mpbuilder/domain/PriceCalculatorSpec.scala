@@ -303,6 +303,7 @@ object PriceCalculatorSpec extends ZIOSpecDefault:
             SpecValue.QuantitySpec(Quantity.unsafe(500)),
             SpecValue.PagesSpec(32),
             SpecValue.BindingMethodSpec(BindingMethod.SaddleStitch),
+            SpecValue.BindingEdgeSpec(BindingEdge.Left),
           )),
         )
 
@@ -347,6 +348,7 @@ object PriceCalculatorSpec extends ZIOSpecDefault:
             SpecValue.QuantitySpec(Quantity.unsafe(100)),
             SpecValue.PagesSpec(14),
             SpecValue.BindingMethodSpec(BindingMethod.PlasticCoilBinding),
+            SpecValue.BindingEdgeSpec(BindingEdge.Top),
           )),
         )
 
@@ -485,6 +487,7 @@ object PriceCalculatorSpec extends ZIOSpecDefault:
             SpecValue.QuantitySpec(Quantity.unsafe(100)),
             SpecValue.PagesSpec(14),
             SpecValue.BindingMethodSpec(BindingMethod.PlasticCoilBinding),
+            SpecValue.BindingEdgeSpec(BindingEdge.Top),
           ),
         )
 
@@ -1034,6 +1037,7 @@ object PriceCalculatorSpec extends ZIOSpecDefault:
             SpecValue.QuantitySpec(Quantity.unsafe(100)),
             SpecValue.PagesSpec(32),
             SpecValue.BindingMethodSpec(BindingMethod.SaddleStitch),
+            SpecValue.BindingEdgeSpec(BindingEdge.Left),
           )),
         )
 
@@ -1069,6 +1073,7 @@ object PriceCalculatorSpec extends ZIOSpecDefault:
             SpecValue.QuantitySpec(Quantity.unsafe(10)),
             SpecValue.PagesSpec(8),
             SpecValue.BindingMethodSpec(BindingMethod.SaddleStitch),
+            SpecValue.BindingEdgeSpec(BindingEdge.Left),
           )),
         )
 
@@ -1176,6 +1181,7 @@ object PriceCalculatorSpec extends ZIOSpecDefault:
             SpecValue.SizeSpec(Dimension(210, 148)),
             SpecValue.QuantitySpec(Quantity.unsafe(50)),
             SpecValue.BindingMethodSpec(BindingMethod.PerfectBinding),
+            SpecValue.BindingEdgeSpec(BindingEdge.Left),
           ),
         )
         val result = PriceCalculator.calculate(config, customPricelist)
@@ -1273,16 +1279,17 @@ object PriceCalculatorSpec extends ZIOSpecDefault:
             SpecValue.SizeSpec(Dimension(210, 148)),
             SpecValue.QuantitySpec(Quantity.unsafe(100)),
             SpecValue.BindingMethodSpec(BindingMethod.PlasticCoilBinding),
+            SpecValue.BindingEdgeSpec(BindingEdge.Left),
           ),
         )
         val result = PriceCalculator.calculate(config, customPricelist)
         val breakdown = result.toEither.toOption.get
         // material: 0.10 × 100 = 10, tier 0.50×: discountedSubtotal = 5
-        // spiral binding setup fee: 100 (not discounted)
+        // plastic coil binding setup fee: 100 (not discounted)
         // total = 5 + 100 = 105
         assertTrue(
-          breakdown.setupFees.exists(_.label.contains("Spiral")),
-          breakdown.setupFees.find(_.label.contains("Spiral")).get.lineTotal == Money("100"),
+          breakdown.setupFees.exists(_.label.contains("Plastic Coil")),
+          breakdown.setupFees.find(_.label.contains("Plastic Coil")).get.lineTotal == Money("100"),
           breakdown.total == Money("105.00"),
         )
       },
@@ -1438,6 +1445,7 @@ object PriceCalculatorSpec extends ZIOSpecDefault:
             SpecValue.QuantitySpec(Quantity.unsafe(100)),
             SpecValue.PagesSpec(8),
             SpecValue.BindingMethodSpec(BindingMethod.SaddleStitch),
+            SpecValue.BindingEdgeSpec(BindingEdge.Left),
           )),
         )
         val result = PriceCalculator.calculate(config, customPricelist)

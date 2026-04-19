@@ -248,10 +248,10 @@ object CatalogQueryServiceSpec extends ZIOSpecDefault:
           specs == Set(SpecKind.Size, SpecKind.Quantity, SpecKind.FoldType),
         )
       },
-      test("booklets require Size, Quantity, Pages, BindingMethod") {
+      test("booklets require Size, Quantity, Pages, BindingMethod, BindingEdge") {
         val specs = CatalogQueryService.requiredSpecifications(SampleCatalog.bookletsId, catalog)
         assertTrue(
-          specs == Set(SpecKind.Size, SpecKind.Quantity, SpecKind.Pages, SpecKind.BindingMethod),
+          specs == Set(SpecKind.Size, SpecKind.Quantity, SpecKind.Pages, SpecKind.BindingMethod, SpecKind.BindingEdge),
         )
       },
       test("unknown category returns empty") {

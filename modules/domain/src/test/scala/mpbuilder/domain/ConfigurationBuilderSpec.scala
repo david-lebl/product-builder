@@ -100,6 +100,7 @@ object ConfigurationBuilderSpec extends ZIOSpecDefault:
             SpecValue.QuantitySpec(Quantity.unsafe(500)),
             SpecValue.PagesSpec(32),
             SpecValue.BindingMethodSpec(BindingMethod.SaddleStitch),
+            SpecValue.BindingEdgeSpec(BindingEdge.Left),
           ),
         )
 
@@ -122,6 +123,7 @@ object ConfigurationBuilderSpec extends ZIOSpecDefault:
             SpecValue.QuantitySpec(Quantity.unsafe(100)),
             SpecValue.PagesSpec(14),
             SpecValue.BindingMethodSpec(BindingMethod.PlasticCoilBinding),
+            SpecValue.BindingEdgeSpec(BindingEdge.Top),
           ),
         )
 
@@ -164,6 +166,7 @@ object ConfigurationBuilderSpec extends ZIOSpecDefault:
             SpecValue.QuantitySpec(Quantity.unsafe(500)),
             SpecValue.PagesSpec(16),
             SpecValue.BindingMethodSpec(BindingMethod.SaddleStitch),
+            SpecValue.BindingEdgeSpec(BindingEdge.Left),
           ),
         )
 
@@ -188,6 +191,7 @@ object ConfigurationBuilderSpec extends ZIOSpecDefault:
             SpecValue.QuantitySpec(Quantity.unsafe(100)),
             SpecValue.PagesSpec(14),
             SpecValue.BindingMethodSpec(BindingMethod.PlasticCoilBinding),
+            SpecValue.BindingEdgeSpec(BindingEdge.Top),
           ),
         )
 
@@ -204,6 +208,7 @@ object ConfigurationBuilderSpec extends ZIOSpecDefault:
             SpecValue.QuantitySpec(Quantity.unsafe(500)),
             SpecValue.PagesSpec(32),
             SpecValue.BindingMethodSpec(BindingMethod.SaddleStitch),
+            SpecValue.BindingEdgeSpec(BindingEdge.Left),
           ),
         )
 
@@ -226,6 +231,7 @@ object ConfigurationBuilderSpec extends ZIOSpecDefault:
             SpecValue.QuantitySpec(Quantity.unsafe(500)),
             SpecValue.PagesSpec(32),
             SpecValue.BindingMethodSpec(BindingMethod.SaddleStitch),
+            SpecValue.BindingEdgeSpec(BindingEdge.Left),
           ),
         )
 
@@ -248,6 +254,7 @@ object ConfigurationBuilderSpec extends ZIOSpecDefault:
             SpecValue.QuantitySpec(Quantity.unsafe(500)),
             SpecValue.PagesSpec(32),
             SpecValue.BindingMethodSpec(BindingMethod.SaddleStitch),
+            SpecValue.BindingEdgeSpec(BindingEdge.Left),
           ),
         )
 
@@ -270,6 +277,7 @@ object ConfigurationBuilderSpec extends ZIOSpecDefault:
             SpecValue.QuantitySpec(Quantity.unsafe(500)),
             SpecValue.PagesSpec(16),
             SpecValue.BindingMethodSpec(BindingMethod.SaddleStitch),
+            SpecValue.BindingEdgeSpec(BindingEdge.Left),
           ),
         )
 
@@ -603,6 +611,7 @@ object ConfigurationBuilderSpec extends ZIOSpecDefault:
             SpecValue.QuantitySpec(Quantity.unsafe(500)),
             SpecValue.PagesSpec(32),
             SpecValue.BindingMethodSpec(BindingMethod.CaseBinding),
+            SpecValue.BindingEdgeSpec(BindingEdge.Left),
           ),
         )
 
@@ -625,6 +634,7 @@ object ConfigurationBuilderSpec extends ZIOSpecDefault:
             SpecValue.QuantitySpec(Quantity.unsafe(500)),
             SpecValue.PagesSpec(4),
             SpecValue.BindingMethodSpec(BindingMethod.SaddleStitch),
+            SpecValue.BindingEdgeSpec(BindingEdge.Left),
           ),
         )
 
@@ -684,6 +694,7 @@ object ConfigurationBuilderSpec extends ZIOSpecDefault:
             SpecValue.QuantitySpec(Quantity.unsafe(100)),
             SpecValue.PagesSpec(14),
             SpecValue.BindingMethodSpec(BindingMethod.SaddleStitch),
+            SpecValue.BindingEdgeSpec(BindingEdge.Top),
           ),
         )
 
@@ -706,6 +717,7 @@ object ConfigurationBuilderSpec extends ZIOSpecDefault:
             SpecValue.QuantitySpec(Quantity.unsafe(100)),
             SpecValue.PagesSpec(8),
             SpecValue.BindingMethodSpec(BindingMethod.PlasticCoilBinding),
+            SpecValue.BindingEdgeSpec(BindingEdge.Top),
           ),
         )
 
@@ -728,6 +740,7 @@ object ConfigurationBuilderSpec extends ZIOSpecDefault:
             SpecValue.QuantitySpec(Quantity.unsafe(100)),
             SpecValue.PagesSpec(30),
             SpecValue.BindingMethodSpec(BindingMethod.PlasticCoilBinding),
+            SpecValue.BindingEdgeSpec(BindingEdge.Top),
           ),
         )
 
@@ -835,6 +848,7 @@ object ConfigurationBuilderSpec extends ZIOSpecDefault:
             SpecValue.QuantitySpec(Quantity.unsafe(500)),
             SpecValue.PagesSpec(18), // 18 is not divisible by 4
             SpecValue.BindingMethodSpec(BindingMethod.SaddleStitch),
+            SpecValue.BindingEdgeSpec(BindingEdge.Left),
           ),
         )
         val result = ConfigurationBuilder.build(request, catalog, ruleset, configId)
@@ -854,6 +868,7 @@ object ConfigurationBuilderSpec extends ZIOSpecDefault:
             SpecValue.QuantitySpec(Quantity.unsafe(500)),
             SpecValue.PagesSpec(20), // 20 is divisible by 4
             SpecValue.BindingMethodSpec(BindingMethod.SaddleStitch),
+            SpecValue.BindingEdgeSpec(BindingEdge.Left),
           ),
         )
         val result = ConfigurationBuilder.build(request, catalog, ruleset, configId)
@@ -872,6 +887,7 @@ object ConfigurationBuilderSpec extends ZIOSpecDefault:
             SpecValue.QuantitySpec(Quantity.unsafe(300)),
             SpecValue.PagesSpec(41), // 41 is not divisible by 2
             SpecValue.BindingMethodSpec(BindingMethod.PerfectBinding),
+            SpecValue.BindingEdgeSpec(BindingEdge.Left),
           ),
         )
         val result = ConfigurationBuilder.build(request, catalog, ruleset, configId)
@@ -891,6 +907,7 @@ object ConfigurationBuilderSpec extends ZIOSpecDefault:
             SpecValue.QuantitySpec(Quantity.unsafe(300)),
             SpecValue.PagesSpec(42), // 42 is divisible by 2
             SpecValue.BindingMethodSpec(BindingMethod.PerfectBinding),
+            SpecValue.BindingEdgeSpec(BindingEdge.Left),
           ),
         )
         val result = ConfigurationBuilder.build(request, catalog, ruleset, configId)
@@ -909,6 +926,7 @@ object ConfigurationBuilderSpec extends ZIOSpecDefault:
             SpecValue.QuantitySpec(Quantity.unsafe(200)),
             SpecValue.PagesSpec(84), // 84 pages, divisible by 4 but >80 with heavy stock
             SpecValue.BindingMethodSpec(BindingMethod.SaddleStitch),
+            SpecValue.BindingEdgeSpec(BindingEdge.Left),
           ),
         )
         val result = ConfigurationBuilder.build(request, catalog, ruleset, configId)
@@ -928,6 +946,7 @@ object ConfigurationBuilderSpec extends ZIOSpecDefault:
             SpecValue.QuantitySpec(Quantity.unsafe(200)),
             SpecValue.PagesSpec(80), // exactly 80 pages, divisible by 4, at the limit
             SpecValue.BindingMethodSpec(BindingMethod.SaddleStitch),
+            SpecValue.BindingEdgeSpec(BindingEdge.Left),
           ),
         )
         val result = ConfigurationBuilder.build(request, catalog, ruleset, configId)
@@ -964,6 +983,7 @@ object ConfigurationBuilderSpec extends ZIOSpecDefault:
             SpecValue.QuantitySpec(Quantity.unsafe(100)),
             SpecValue.PagesSpec(30), // 30 is divisible by 2 (not 4), valid for spiral
             SpecValue.BindingMethodSpec(BindingMethod.PlasticCoilBinding),
+            SpecValue.BindingEdgeSpec(BindingEdge.Left),
           ),
         )
         val result = ConfigurationBuilder.build(request, catalog, ruleset, configId)

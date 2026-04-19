@@ -206,6 +206,20 @@ object SamplePricelist:
       PricingRule.MaterialBasePrice(SampleCatalog.adhesiveStockId, Money("10")),
       PricingRule.MaterialBasePrice(SampleCatalog.cottonId, Money("18")),
 
+      // --- Binding hardware material prices (CZK per unit) ---
+      PricingRule.MaterialBasePrice(SampleCatalog.blackMetalWireId, Money("4")),
+      PricingRule.MaterialBasePrice(SampleCatalog.silverMetalWireId, Money("5")),
+      PricingRule.MaterialBasePrice(SampleCatalog.whiteMetalWireId, Money("4")),
+      PricingRule.MaterialBasePrice(SampleCatalog.blackPlasticCoilId, Money("3")),
+      PricingRule.MaterialBasePrice(SampleCatalog.whitePlasticCoilId, Money("3")),
+      PricingRule.MaterialBasePrice(SampleCatalog.clearPlasticCoilId, Money("4")),
+      PricingRule.MaterialBasePrice(SampleCatalog.silverPlasticCoilId, Money("4")),
+
+      // --- Calendar cover material prices (CZK per unit) ---
+      PricingRule.MaterialBasePrice(SampleCatalog.clearPvcCoverId, Money("2")),
+      PricingRule.MaterialBasePrice(SampleCatalog.clearPetCoverId, Money("3")),
+      PricingRule.MaterialBasePrice(SampleCatalog.cardboard350gsmBackId, Money("2")),
+
       // --- Material area price (for vinyl — CZK per sqm) ---
       PricingRule.MaterialAreaPrice(SampleCatalog.vinylId, Money("420")),
       PricingRule.MaterialAreaPrice(SampleCatalog.clearVinylId, Money("520")),
@@ -537,6 +551,20 @@ object SamplePricelist:
 
       // --- Material base price (for corrugated — not sheet-fed) ---
       PricingRule.MaterialBasePrice(SampleCatalog.corrugatedId, Money("6")),
+
+      // --- Binding hardware material prices (CZK per unit) ---
+      PricingRule.MaterialBasePrice(SampleCatalog.blackMetalWireId, Money("4")),
+      PricingRule.MaterialBasePrice(SampleCatalog.silverMetalWireId, Money("5")),
+      PricingRule.MaterialBasePrice(SampleCatalog.whiteMetalWireId, Money("4")),
+      PricingRule.MaterialBasePrice(SampleCatalog.blackPlasticCoilId, Money("3")),
+      PricingRule.MaterialBasePrice(SampleCatalog.whitePlasticCoilId, Money("3")),
+      PricingRule.MaterialBasePrice(SampleCatalog.clearPlasticCoilId, Money("4")),
+      PricingRule.MaterialBasePrice(SampleCatalog.silverPlasticCoilId, Money("4")),
+
+      // --- Calendar cover material prices (CZK per unit) ---
+      PricingRule.MaterialBasePrice(SampleCatalog.clearPvcCoverId, Money("2")),
+      PricingRule.MaterialBasePrice(SampleCatalog.clearPetCoverId, Money("3")),
+      PricingRule.MaterialBasePrice(SampleCatalog.cardboard350gsmBackId, Money("2")),
 
       // --- Cutting surcharge ---
       PricingRule.CuttingSurcharge(costPerCut = Money("0.10")),

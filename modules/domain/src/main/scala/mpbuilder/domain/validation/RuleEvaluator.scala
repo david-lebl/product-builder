@@ -292,6 +292,10 @@ object RuleEvaluator:
         components.exists(_.role == role)
       case ConfigurationPredicate.BindingMaterialIs(materialIds) =>
         components.exists(c => c.role == ComponentRole.Binding && materialIds.contains(c.material.id))
+      case ConfigurationPredicate.BindingEdgeIs(edges) =>
+        specifications.get(SpecKind.BindingEdge) match
+          case Some(SpecValue.BindingEdgeSpec(edge)) => edges.contains(edge)
+          case _                                     => false
       case ConfigurationPredicate.And(left, right) =>
         evaluateConfigurationPredicate(left, components, specifications, printingMethod) &&
           evaluateConfigurationPredicate(right, components, specifications, printingMethod)

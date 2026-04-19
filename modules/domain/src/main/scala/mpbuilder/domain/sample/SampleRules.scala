@@ -448,7 +448,7 @@ object SampleRules:
     // Top binding edge only valid with plastic coil or metal wire binding
     CompatibilityRule.TechnologyConstraint(
       ConfigurationPredicate.Or(
-        ConfigurationPredicate.Not(ConfigurationPredicate.Spec(SpecPredicate.AllowedBindingEdges(Set(BindingEdge.Top)))),
+        ConfigurationPredicate.Not(ConfigurationPredicate.BindingEdgeIs(Set(BindingEdge.Top))),
         ConfigurationPredicate.BindingMethodIs(Set(BindingMethod.PlasticCoilBinding, BindingMethod.MetalWireBinding)),
       ),
       "Top edge binding is only supported with plastic coil or metal wire binding",
