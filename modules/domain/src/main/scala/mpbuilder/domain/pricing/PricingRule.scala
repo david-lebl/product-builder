@@ -30,6 +30,8 @@ enum PricingRule:
   // One-time setup fees for fold type and binding method (added after discount)
   case FoldTypeSetupFee(foldType: FoldType, setupCost: Money)
   case BindingMethodSetupFee(bindingMethod: BindingMethod, setupCost: Money)
+  // Per-unit surcharge for scoring (creasing) by crease count — overrides FinishTypeSurcharge(Scoring)
+  case ScoringCountSurcharge(count: Int, surchargePerUnit: Money)
   // Manufacturing speed surcharge — applied to discounted subtotal before setup fees
   case ManufacturingSpeedSurcharge(
       tier: ManufacturingSpeed,

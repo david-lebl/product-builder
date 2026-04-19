@@ -43,6 +43,11 @@ object SamplePricelist:
       PricingRule.FinishTypeSurcharge(FinishType.AqueousCoating, Money("0.02")),
       PricingRule.FinishTypeSurcharge(FinishType.Varnish, Money("0.06")),
       PricingRule.FinishTypeSurcharge(FinishType.Scoring, Money("0.02")),
+      // Scoring count-based surcharges (per unit, USD) — override FinishTypeSurcharge when ScoringParams present
+      PricingRule.ScoringCountSurcharge(1, Money("0.024")),
+      PricingRule.ScoringCountSurcharge(2, Money("0.04")),
+      PricingRule.ScoringCountSurcharge(3, Money("0.052")),
+      PricingRule.ScoringCountSurcharge(4, Money("0.06")),
       PricingRule.FinishTypeSurcharge(FinishType.Perforation, Money("0.02")),
       PricingRule.FinishTypeSurcharge(FinishType.RoundCorners, Money("0.02")),
       PricingRule.FinishTypeSurcharge(FinishType.Overlamination, Money("2.50")),
@@ -546,6 +551,11 @@ object SamplePricelist:
       PricingRule.FinishTypeSurcharge(FinishType.RoundCorners, Money("0.50")),
       PricingRule.FinishTypeSurcharge(FinishType.Perforation, Money("0.50")),
       PricingRule.FinishTypeSurcharge(FinishType.Scoring, Money("0.50")),
+      // Scoring count-based surcharges (per unit, CZK) — override FinishTypeSurcharge when ScoringParams present
+      PricingRule.ScoringCountSurcharge(1, Money("0.60")),
+      PricingRule.ScoringCountSurcharge(2, Money("1.00")),
+      PricingRule.ScoringCountSurcharge(3, Money("1.30")),
+      PricingRule.ScoringCountSurcharge(4, Money("1.50")),
       PricingRule.FinishTypeSurcharge(FinishType.Overlamination, Money("60")),
 
       // --- Fold type surcharges (per unit, CZK) ---

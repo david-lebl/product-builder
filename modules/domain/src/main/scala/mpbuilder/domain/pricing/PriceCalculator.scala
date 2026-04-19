@@ -436,14 +436,22 @@ object PriceCalculator:
       lang: Language,
   ): List[LineItem] =
     finishes.flatMap { finish =>
+      // For Scoring finishes with ScoringParams, prefer ScoringCountSurcharge rules
+      val scoringCountSurcharge = finish.params match
+        case Some(FinishParameters.ScoringParams(count)) if finish.finishType == FinishType.Scoring =>
+          rules.collectFirst {
+            case r: PricingRule.ScoringCountSurcharge if r.count == count => r.surchargePerUnit
+          }
+        case _ => None
+
       val byId = rules.collectFirst {
         case r: PricingRule.FinishSurcharge if r.finishId == finish.id => r.surchargePerUnit
       }
       val byType = rules.collectFirst {
         case r: PricingRule.FinishTypeSurcharge if r.finishType == finish.finishType => r.surchargePerUnit
       }
-      // ID-level takes precedence over type-level
-      byId.orElse(byType).map { surcharge =>
+      // ScoringCountSurcharge takes precedence, then ID-level, then type-level
+      scoringCountSurcharge.orElse(byId).orElse(byType).map { surcharge =>
         // Lamination (and overlamination / soft-touch coating) applied to both sides
         // costs twice as much: each side is an independent pass on press.
         val sideFactor = finish.params match

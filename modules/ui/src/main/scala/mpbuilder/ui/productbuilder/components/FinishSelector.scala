@@ -52,6 +52,8 @@ object FinishSelector:
     val defaultParams: Option[FinishParameters] = finish.finishType match
       case FinishType.Lamination | FinishType.Overlamination | FinishType.SoftTouchCoating =>
         Some(FinishParameters.LaminationParams(FinishSide.Both))
+      case FinishType.Scoring =>
+        Some(FinishParameters.ScoringParams(1))
       case _ => None
 
     div(
@@ -286,6 +288,45 @@ object FinishSelector:
                 v.toIntOption.filter(_ > 0).foreach { pitch =>
                   ProductBuilderViewModel.setFinishParams(role, finish.id, Some(FinishParameters.PerforationParams(pitch)))
                 }
+              },
+            ),
+          ),
+        )
+
+      case FinishType.Scoring =>
+        div(
+          cls := "finish-params",
+          Visibility.when(isSelected),
+          div(
+            cls := "finish-params-row",
+            span(
+              cls := "finish-params-label",
+              lang match
+                case Language.En => "Creases:"
+                case Language.Cs => "Počet bigů:"
+            ),
+            div(
+              cls := "finish-params-options",
+              List(1, 2, 3, 4).map { count =>
+                label(
+                  cls := "radio-label",
+                  input(
+                    typ := "radio",
+                    nameAttr := s"creases-${finish.id.value}-$role",
+                    value := count.toString,
+                    checked <-- currentParams.map {
+                      case Some(FinishParameters.ScoringParams(c)) => c == count
+                      case _                                       => count == 1
+                    },
+                    onChange --> { _ =>
+                      ProductBuilderViewModel.setFinishParams(role, finish.id, Some(FinishParameters.ScoringParams(count)))
+                    },
+                  ),
+                  span(lang match
+                    case Language.En => if count == 1 then "1 crease" else s"$count creases"
+                    case Language.Cs => if count == 1 then "1 big" else s"$count bigy"
+                  ),
+                )
               },
             ),
           ),

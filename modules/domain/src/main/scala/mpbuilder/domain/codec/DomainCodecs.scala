@@ -140,6 +140,7 @@ object DomainCodecs:
   given JsonCodec[FinishParameters.FoilStampingParams] = DeriveJsonCodec.gen[FinishParameters.FoilStampingParams]
   given JsonCodec[FinishParameters.GrommetParams] = DeriveJsonCodec.gen[FinishParameters.GrommetParams]
   given JsonCodec[FinishParameters.PerforationParams] = DeriveJsonCodec.gen[FinishParameters.PerforationParams]
+  given JsonCodec[FinishParameters.ScoringParams] = DeriveJsonCodec.gen[FinishParameters.ScoringParams]
   given JsonCodec[FinishParameters] = DeriveJsonCodec.gen[FinishParameters]
 
   given JsonCodec[FinishSelection] = DeriveJsonCodec.gen[FinishSelection]

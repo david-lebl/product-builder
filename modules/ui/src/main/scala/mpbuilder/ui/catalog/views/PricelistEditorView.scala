@@ -110,6 +110,7 @@ object PricelistEditorView:
     case r: PricingRule.BindingMethodSetupFee => s"BindingSetupFee: ${r.bindingMethod} = ${r.setupCost.value}"
     case r: PricingRule.MinimumOrderPrice => s"MinimumOrderPrice: ${r.minTotal.value}"
     case r: PricingRule.ManufacturingSpeedSurcharge => s"SpeedSurcharge: ${r.tier} × ${r.multiplier}"
+    case r: PricingRule.ScoringCountSurcharge => s"ScoringCountSurcharge: ${r.count} creases = ${r.surchargePerUnit.value}/unit"
 
   private def pricingRuleForm(existing: Option[PricingRule], index: Int): HtmlElement =
     val ruleTypeVar = Var(existing.map(pricingRuleTypeName).getOrElse("MaterialBasePrice"))
@@ -137,7 +138,7 @@ object PricelistEditorView:
       "PrintingProcessSurcharge", "CategorySurcharge",
       "QuantityTier", "SheetQuantityTier", "InkConfigurationFactor",
       "CuttingSurcharge", "FinishTypeSetupFee", "FinishSetupFee", "FoldTypeSurcharge",
-      "BindingMethodSurcharge", "FoldTypeSetupFee", "BindingMethodSetupFee", "MinimumOrderPrice",
+      "BindingMethodSurcharge", "FoldTypeSetupFee", "BindingMethodSetupFee", "ScoringCountSurcharge", "MinimumOrderPrice",
     )
 
     div(
@@ -215,6 +216,10 @@ object PricelistEditorView:
 
           if Set("BindingMethodSurcharge", "BindingMethodSetupFee").contains(rt) then
             FormComponents.enumSelectRequired[BindingMethod]("Binding Method", BindingMethod.values, bindingMethodVar.signal, bindingMethodVar.writer)
+          else emptyNode,
+
+          if rt == "ScoringCountSurcharge" then
+            FormComponents.numberField("Crease Count (1-4)", minQtyVar.signal, minQtyVar.writer)
           else emptyNode,
 
           if !Set("QuantityTier", "SheetQuantityTier", "InkConfigurationFactor").contains(rt) then
@@ -295,6 +300,12 @@ object PricelistEditorView:
       case "BindingMethodSurcharge" => money.map(m => PricingRule.BindingMethodSurcharge(bindingMethod, m))
       case "FoldTypeSetupFee" => money.map(m => PricingRule.FoldTypeSetupFee(foldType, m))
       case "BindingMethodSetupFee" => money.map(m => PricingRule.BindingMethodSetupFee(bindingMethod, m))
+      case "ScoringCountSurcharge" =>
+        for
+          m <- money
+          count <- minQty.toIntOption
+          if count >= 1 && count <= 4
+        yield PricingRule.ScoringCountSurcharge(count, m)
       case "MinimumOrderPrice" => money.map(m => PricingRule.MinimumOrderPrice(m))
       case _ => None
 
@@ -319,6 +330,7 @@ object PricelistEditorView:
     case _: PricingRule.BindingMethodSetupFee => "BindingMethodSetupFee"
     case _: PricingRule.MinimumOrderPrice => "MinimumOrderPrice"
     case _: PricingRule.ManufacturingSpeedSurcharge => "ManufacturingSpeedSurcharge"
+    case _: PricingRule.ScoringCountSurcharge => "ScoringCountSurcharge"
 
   private def extractPricingMaterialId(rule: Option[PricingRule]): Option[String] = rule.collect {
     case r: PricingRule.MaterialBasePrice => r.materialId.value
@@ -347,6 +359,7 @@ object PricelistEditorView:
     case r: PricingRule.FoldTypeSetupFee => r.setupCost.value
     case r: PricingRule.BindingMethodSetupFee => r.setupCost.value
     case r: PricingRule.MinimumOrderPrice => r.minTotal.value
+    case r: PricingRule.ScoringCountSurcharge => r.surchargePerUnit.value
   }
 
   private def extractPricingFinishType(rule: Option[PricingRule]): Option[FinishType] = rule.collect {
@@ -365,6 +378,7 @@ object PricelistEditorView:
   private def extractMinQty(rule: Option[PricingRule]): Option[Int] = rule.collect {
     case r: PricingRule.QuantityTier => r.minQuantity
     case r: PricingRule.SheetQuantityTier => r.minSheets
+    case r: PricingRule.ScoringCountSurcharge => r.count
   }
 
   private def extractMaxQty(rule: Option[PricingRule]): Option[Int] = rule.collect {
