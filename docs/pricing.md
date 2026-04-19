@@ -32,7 +32,7 @@ Pricelist(
 
 ### Pricing Rules
 
-There are 17 rule types, each a variant of the `PricingRule` sealed enum:
+There are 18 rule types, each a variant of the `PricingRule` sealed enum:
 
 | Rule | Purpose | Example |
 |------|---------|---------|
@@ -48,6 +48,7 @@ There are 17 rule types, each a variant of the `PricingRule` sealed enum:
 | `QuantityTier` | Multiplier on subtotal based on product quantity | 1000+ units = 0.80× |
 | `SheetQuantityTier` | Multiplier on subtotal based on total physical sheets | 250+ sheets = 0.80× |
 | `InkConfigurationFactor` | Multiplier on material cost by ink color counts | 4/4 CMYK = 1.20× |
+| `InkConfigurationSurcharge` | Fixed per-unit surcharge for an ink configuration | 4/4 CMYK = 5 CZK/sheet |
 | `CuttingSurcharge` | Per-cut surcharge for sheet-priced materials | 8 CZK/cut |
 | `FinishSetupFee` | One-time setup fee for a specific finish (by ID) | Matte lam setup = 50 CZK |
 | `FinishTypeSetupFee` | One-time setup fee for a finish type | Any lamination setup = 50 CZK |
@@ -74,7 +75,10 @@ Given a valid `ProductConfiguration` and a `Pricelist`, the `PriceCalculator` pe
    - If a `MaterialSheetPrice` exists, compute the number of physical sheets needed and the total sheet cost. Fails with `NoSizeForSheetPricing` if no size spec is present.
    - Otherwise, fall back to `MaterialBasePrice`. Fails with `NoBasePriceForMaterial` if no rule exists.
 
-**3. Apply ink configuration factor.** If an `InkConfigurationFactor` matches the front/back color counts, it multiplies the material cost. A factor of 1.0 (identity) produces no line item.
+**3. Apply ink configuration adjustment.** Two rule types are supported:
+   - `InkConfigurationSurcharge` (preferred for sheet pricing): adds a fixed monetary surcharge per unit regardless of material cost. The calculator checks for this rule first.
+   - `InkConfigurationFactor` (legacy/base-price pricelists): multiplies the material cost by a factor. Used as fallback when no `InkConfigurationSurcharge` exists for the configuration.
+   A factor of 1.0 or a surcharge of 0 both produce no line item.
 
 **4. Compute finish surcharges.** For each finish on the configuration:
    - Look for a `FinishSurcharge` matching the finish's ID (most specific).

@@ -698,7 +698,7 @@ object PriceCalculatorSpec extends ZIOSpecDefault:
         // SRA3 = 320×450mm
         // Normal: cols=floor((320+2)/(426+2))=0, rows=... → 0
         // Rotated: cols=floor((320+2)/(303+2))=1, rows=floor((450+2)/(426+2))=1 → 1
-        // So 1 piece/sheet, unitPrice = 8/1 = 8, no cuts
+        // So 1 piece/sheet, unitPrice = 3/1 = 3, no cuts
         val config = makeConfig(
           category = SampleCatalog.flyers,
           material = SampleCatalog.coatedGlossy90gsm,
@@ -716,9 +716,9 @@ object PriceCalculatorSpec extends ZIOSpecDefault:
         val cb = firstBreakdown(breakdown)
         assertTrue(
           result.toEither.isRight,
-          cb.materialLine.unitPrice == Money("8"),
+          cb.materialLine.unitPrice == Money("3"),
           cb.materialLine.quantity == 100,
-          cb.materialLine.lineTotal == Money("800"),
+          cb.materialLine.lineTotal == Money("300"),
           cb.cuttingLine.isEmpty,
         )
       },
@@ -728,8 +728,10 @@ object PriceCalculatorSpec extends ZIOSpecDefault:
         // Normal: cols=floor(322/218)=1, rows=floor(452/305)=1 → 1
         // Rotated: cols=floor(322/305)=1, rows=floor(452/218)=2 → 2
         // So 2 pieces/sheet, sheetsUsed = ceil(100/2) = 50
-        // Material: 8 CZK/sheet × 50 = 400
+        // Material: 3 CZK/sheet × 50 = 150
+        // Ink config 4/4: 5 CZK/unit × 100 = 500
         // Cuts: 1 cut × 0.10 = 0.10 CZK/sheet × 50 = 5.00
+        // Subtotal: 150 + 500 + 5 = 655
         val config = makeConfig(
           category = SampleCatalog.flyers,
           material = SampleCatalog.coatedGlossy90gsm,
@@ -747,14 +749,14 @@ object PriceCalculatorSpec extends ZIOSpecDefault:
         val cb = firstBreakdown(breakdown)
         assertTrue(
           result.toEither.isRight,
-          cb.materialLine.unitPrice == Money("8"),
+          cb.materialLine.unitPrice == Money("3"),
           cb.materialLine.quantity == 50,
-          cb.materialLine.lineTotal == Money("400"),
+          cb.materialLine.lineTotal == Money("150"),
           cb.cuttingLine.isDefined,
           cb.cuttingLine.get.unitPrice == Money("0.10"),
           cb.cuttingLine.get.quantity == 50,
           cb.cuttingLine.get.lineTotal == Money("5.00"),
-          breakdown.subtotal == Money("405"),
+          breakdown.subtotal == Money("655"),
         )
       },
       test("business card on SRA3 sheet — many pieces/sheet, whole-sheet pricing") {
@@ -763,7 +765,7 @@ object PriceCalculatorSpec extends ZIOSpecDefault:
         // Normal: cols=floor(322/98)=3, rows=floor(452/63)=7 → 21
         // Rotated: cols=floor(322/63)=5, rows=floor(452/98)=4 → 20
         // So 21 pieces/sheet, sheetsUsed = ceil(100/21) = 5
-        // Material: 18 CZK/sheet × 5 = 90
+        // Material: 13 CZK/sheet × 5 = 65
         val config = makeConfig(
           category = SampleCatalog.businessCards,
           material = SampleCatalog.coated300gsm,
@@ -781,9 +783,9 @@ object PriceCalculatorSpec extends ZIOSpecDefault:
         val cb = firstBreakdown(breakdown)
         assertTrue(
           result.toEither.isRight,
-          cb.materialLine.unitPrice == Money("18"),
+          cb.materialLine.unitPrice == Money("13"),
           cb.materialLine.quantity == 5,
-          cb.materialLine.lineTotal == Money("90"),
+          cb.materialLine.lineTotal == Money("65"),
           cb.cuttingLine.isDefined,
         )
       },
@@ -793,7 +795,7 @@ object PriceCalculatorSpec extends ZIOSpecDefault:
         // Normal: cols=floor(322/48)=6, rows=floor(452/38)=11 → 66
         // Rotated: cols=floor(322/38)=8, rows=floor(452/48)=9 → 72
         // 72 pieces/sheet, sheetsUsed = ceil(100/72) = 2
-        // Material: 18 CZK/sheet × 2 = 36
+        // Material: 13 CZK/sheet × 2 = 26
         val config = makeConfig(
           category = SampleCatalog.businessCards,
           material = SampleCatalog.coated300gsm,
@@ -811,9 +813,9 @@ object PriceCalculatorSpec extends ZIOSpecDefault:
         val cb = firstBreakdown(breakdown)
         assertTrue(
           result.toEither.isRight,
-          cb.materialLine.unitPrice == Money("18"),
+          cb.materialLine.unitPrice == Money("13"),
           cb.materialLine.quantity == 2,
-          cb.materialLine.lineTotal == Money("36"),
+          cb.materialLine.lineTotal == Money("26"),
         )
       },
       test("missing SizeSpec returns NoSizeForSheetPricing error") {
@@ -908,10 +910,10 @@ object PriceCalculatorSpec extends ZIOSpecDefault:
           cb.materialLine.unitPrice == Money("8"),
         )
       },
-      test("sheet pricing + ink config factor interaction") {
+      test("sheet pricing + ink config surcharge interaction") {
         // A4 on SRA3: 2 pieces/sheet, sheetsUsed = 50
-        // Material: 8 × 50 = 400, perPiecePrice = 4
-        // ink config 4/0 factor = 0.85 → adjustment = 4 × (0.85 - 1.0) = -0.60
+        // Material: 3 × 50 = 150, perPiecePrice = 1.50
+        // ink config 4/0 surcharge = 3 CZK/unit (flat addition, independent of material cost)
         val config = makeConfig(
           category = SampleCatalog.flyers,
           material = SampleCatalog.coatedGlossy90gsm,
@@ -929,9 +931,9 @@ object PriceCalculatorSpec extends ZIOSpecDefault:
         val cb = firstBreakdown(breakdown)
         assertTrue(
           result.toEither.isRight,
-          cb.materialLine.unitPrice == Money("8"),
+          cb.materialLine.unitPrice == Money("3"),
           cb.inkConfigLine.isDefined,
-          cb.inkConfigLine.get.unitPrice == Money("-0.60"),
+          cb.inkConfigLine.get.unitPrice == Money("3"),
         )
       },
       test("rotated orientation yields more pieces") {
@@ -940,7 +942,7 @@ object PriceCalculatorSpec extends ZIOSpecDefault:
         // Normal: cols=floor(322/158)=2, rows=floor(452/108)=4 → 8
         // Rotated: cols=floor(322/108)=2, rows=floor(452/158)=2 → 4
         // Normal wins with 8 pieces, sheetsUsed = ceil(100/8) = 13
-        // Material: 8 CZK/sheet × 13 = 104
+        // Material: 3 CZK/sheet × 13 = 39
         val config = makeConfig(
           category = SampleCatalog.flyers,
           material = SampleCatalog.coatedGlossy90gsm,
@@ -958,7 +960,7 @@ object PriceCalculatorSpec extends ZIOSpecDefault:
         val cb = firstBreakdown(breakdown)
         assertTrue(
           result.toEither.isRight,
-          cb.materialLine.unitPrice == Money("8"),
+          cb.materialLine.unitPrice == Money("3"),
           cb.materialLine.quantity == 13,
           cb.cuttingLine.isDefined,
           cb.cuttingLine.get.quantity == 13,

@@ -311,23 +311,40 @@ object PriceCalculator:
       materialLineTotal: Money,
       effectiveQuantity: Int,
   ): Option[LineItem] =
-    rules.collectFirst {
-      case r: PricingRule.InkConfigurationFactor
+    // InkConfigurationSurcharge (flat per-unit) takes precedence over InkConfigurationFactor (percentage).
+    val surchargeRule = rules.collectFirst {
+      case r: PricingRule.InkConfigurationSurcharge
           if r.frontColorCount == inkConfig.front.colorCount && r.backColorCount == inkConfig.back.colorCount =>
-        r.materialMultiplier
-    }.flatMap { multiplier =>
-      if multiplier == BigDecimal(1) then scala.None
-      else
-        val adjustmentFactor = multiplier - BigDecimal(1)
-        val unitAdjustment = materialUnitPrice * adjustmentFactor
-        val lineTotal = materialLineTotal * adjustmentFactor
-        Some(LineItem(
-          label = s"Ink configuration: ${inkConfig.notation}",
-          unitPrice = unitAdjustment,
-          quantity = effectiveQuantity,
-          lineTotal = lineTotal,
-        ))
+        r.surchargePerUnit
     }
+    surchargeRule match
+      case Some(surcharge) =>
+        if surcharge == Money.zero then scala.None
+        else
+          Some(LineItem(
+            label = s"Ink configuration: ${inkConfig.notation}",
+            unitPrice = surcharge,
+            quantity = effectiveQuantity,
+            lineTotal = surcharge * effectiveQuantity,
+          ))
+      case None =>
+        rules.collectFirst {
+          case r: PricingRule.InkConfigurationFactor
+              if r.frontColorCount == inkConfig.front.colorCount && r.backColorCount == inkConfig.back.colorCount =>
+            r.materialMultiplier
+        }.flatMap { multiplier =>
+          if multiplier == BigDecimal(1) then scala.None
+          else
+            val adjustmentFactor = multiplier - BigDecimal(1)
+            val unitAdjustment = materialUnitPrice * adjustmentFactor
+            val lineTotal = materialLineTotal * adjustmentFactor
+            Some(LineItem(
+              label = s"Ink configuration: ${inkConfig.notation}",
+              unitPrice = unitAdjustment,
+              quantity = effectiveQuantity,
+              lineTotal = lineTotal,
+            ))
+        }
 
   private def collectSetupFees(
       finishes: List[SelectedFinish],

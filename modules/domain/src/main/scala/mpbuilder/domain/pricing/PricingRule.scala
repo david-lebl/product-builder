@@ -20,6 +20,9 @@ enum PricingRule:
   case QuantityTier(minQuantity: Int, maxQuantity: Option[Int], multiplier: BigDecimal)
   case SheetQuantityTier(minSheets: Int, maxSheets: Option[Int], multiplier: BigDecimal)
   case InkConfigurationFactor(frontColorCount: Int, backColorCount: Int, materialMultiplier: BigDecimal)
+  // Fixed per-unit (per sheet) surcharge for an ink configuration, independent of material cost.
+  // Preferred over InkConfigurationFactor for sheet-based pricing — reflects actual printing cost.
+  case InkConfigurationSurcharge(frontColorCount: Int, backColorCount: Int, surchargePerUnit: Money)
   case CuttingSurcharge(costPerCut: Money)
   // One-time machine setup cost; added after the volume-discount multiplier
   case FinishTypeSetupFee(finishType: FinishType, setupCost: Money)
