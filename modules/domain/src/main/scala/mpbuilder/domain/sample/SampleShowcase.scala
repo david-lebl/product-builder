@@ -291,12 +291,12 @@ object SampleShowcase:
       "Velkoformátové efektní prezentace",
     ),
     detailedDescription = LocalizedString(
-      "Durable vinyl banners printed with UV-curable inkjet technology for vivid, " +
+      "Durable PVC 510g banners printed with UV-curable inkjet technology for vivid, " +
         "weather-resistant graphics. Ideal for outdoor events, trade shows, storefronts, " +
-        "and construction site signage. Available with grommets for easy hanging.",
-      "Odolné vinylové bannery tištěné UV inkoustem pro živé, " +
+        "and construction site signage. Available with grommets for easy hanging and gum rope for tensioning.",
+      "Odolné PVC 510g bannery tištěné UV inkoustem pro živé, " +
         "povětrnostně odolné grafiky. Ideální pro venkovní akce, veletrhy, výlohy " +
-        "a stavební reklamu. K dispozici s průchodkami pro snadné zavěšení.",
+        "a stavební reklamu. K dispozici s průchodkami pro snadné zavěšení a gumovým lanem pro napnutí.",
     ),
     imageUrl = "https://images.unsplash.com/photo-1558452919-08ae4aea8e29?w=600&h=400&fit=crop",
     galleryImageUrls = List(
@@ -305,21 +305,21 @@ object SampleShowcase:
     variations = List(
       ProductVariation(
         LocalizedString("Indoor", "Interiérový"),
-        LocalizedString("Vinyl, 1000×2000 mm, smooth surface for indoor displays", "Vinyl, 1000×2000 mm, hladký povrch pro interiérové prezentace"),
+        LocalizedString("PVC 510g, 1000×1000 mm, smooth surface for indoor displays", "PVC 510g, 1000×1000 mm, hladký povrch pro interiérové prezentace"),
         presetId = Some(PresetId.unsafe("preset-banners-standard")),
       ),
       ProductVariation(
         LocalizedString("Outdoor with Grommets", "Exteriérový s průchodkami"),
-        LocalizedString("Vinyl with UV coating + grommets, 1500×3000 mm", "Vinyl s UV lakem + průchodky, 1500×3000 mm"),
+        LocalizedString("PVC 510g with UV coating + grommets, 1000×1500 mm", "PVC 510g s UV lakem + průchodky, 1000×1500 mm"),
         presetId = Some(PresetId.unsafe("preset-banners-outdoor")),
       ),
     ),
     features = List(
       ProductFeature("☀️", LocalizedString("Weather Resistant", "Odolné počasí"), LocalizedString("UV-curable inks resist fading", "UV inkousty odolné vyblednutí")),
-      ProductFeature("📏", LocalizedString("Custom Sizes", "Vlastní rozměry"), LocalizedString("Any size up to 5m wide", "Jakákoliv velikost do šířky 5m")),
-      ProductFeature("🔩", LocalizedString("Grommets Available", "Průchodky k dispozici"), LocalizedString("Metal eyelets for easy installation", "Kovové očka pro snadnou instalaci")),
+      ProductFeature("📏", LocalizedString("Custom Sizes", "Vlastní rozměry"), LocalizedString("Any size up to 150cm for in-house production", "Jakákoliv velikost do 150 cm pro vlastní výrobu")),
+      ProductFeature("🔩", LocalizedString("Grommets & Rope", "Průchodky a lano"), LocalizedString("Metal eyelets with optional gum rope for tensioning", "Kovové průchodky s volitelným gumovým lanem pro napnutí")),
     ),
-    popularFinishes = List("Grommets", "UV Coating"),
+    popularFinishes = List("Grommets", "UV Coating", "Gum Rope"),
     turnaroundDays = Some("3-5"),
     sortOrder = 20,
   )

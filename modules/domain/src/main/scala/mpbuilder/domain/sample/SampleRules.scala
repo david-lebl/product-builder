@@ -124,11 +124,23 @@ object SampleRules:
       SpecPredicate.MinDimension(300, 200),
       "Banners must be at least 300x200mm",
     ),
+    // Banners: max size 1500x1500mm (in-house production limit)
+    CompatibilityRule.SpecConstraint(
+      cat.bannersId,
+      SpecPredicate.MaxDimension(1500, 1500),
+      "Banners must not exceed 1500mm (150cm) in either dimension for in-house production",
+    ),
     // Banners: only CMYK ink type (now a ConfigurationConstraint)
     CompatibilityRule.ConfigurationConstraint(
       cat.bannersId,
       ConfigurationPredicate.AllowedInkTypes(Set(InkType.CMYK)),
       "Banners only support CMYK ink type",
+    ),
+    // Gum rope requires grommets to be present
+    CompatibilityRule.FinishRequiresFinishType(
+      cat.gumRopeId,
+      FinishType.Grommets,
+      "Gum rope requires grommets to be present — the rope is threaded through the eyelets",
     ),
     // White ink requires transparent material or UV inkjet printing
     CompatibilityRule.TechnologyConstraint(

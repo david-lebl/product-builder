@@ -132,3 +132,10 @@ object ConfigurationValidator:
           if finish.finishType == FinishType.Perforation then Validation.unit
           else Validation.fail(ConfigurationError.InvalidFinishParameters(finish.id, s"PerforationParams can only be used with Perforation finish type")),
         )
+      case FinishParameters.GumRopeParams(lengthMm) =>
+        List(
+          if lengthMm > 0 then Validation.unit
+          else Validation.fail(ConfigurationError.InvalidFinishParameters(finish.id, s"GumRopeParams lengthMm must be greater than 0, got $lengthMm")),
+          if finish.finishType == FinishType.GumRope then Validation.unit
+          else Validation.fail(ConfigurationError.InvalidFinishParameters(finish.id, s"GumRopeParams can only be used with GumRope finish type")),
+        )
