@@ -132,3 +132,28 @@ object ConfigurationValidator:
           if finish.finishType == FinishType.Perforation then Validation.unit
           else Validation.fail(ConfigurationError.InvalidFinishParameters(finish.id, s"PerforationParams can only be used with Perforation finish type")),
         )
+      case FinishParameters.SaddleStitchParams(stapleCount) =>
+        List(
+          if stapleCount >= 1 && stapleCount <= 6 then Validation.unit
+          else Validation.fail(ConfigurationError.InvalidFinishParameters(finish.id, s"stapleCount must be between 1 and 6, got $stapleCount")),
+          if finish.finishType == FinishType.Binding then Validation.unit
+          else Validation.fail(ConfigurationError.InvalidFinishParameters(finish.id, s"SaddleStitchParams can only be used with Binding finish type")),
+        )
+      case FinishParameters.DrillingParams(holeCount, positionMm) =>
+        List(
+          if holeCount >= 1 && holeCount <= 10 then Validation.unit
+          else Validation.fail(ConfigurationError.InvalidFinishParameters(finish.id, s"holeCount must be between 1 and 10, got $holeCount")),
+          if positionMm.forall(_ > 0) then Validation.unit
+          else Validation.fail(ConfigurationError.InvalidFinishParameters(finish.id, s"All drilling position values must be positive")),
+          if finish.finishType == FinishType.Drilling then Validation.unit
+          else Validation.fail(ConfigurationError.InvalidFinishParameters(finish.id, s"DrillingParams can only be used with Drilling finish type")),
+        )
+      case FinishParameters.IndexTabParams(tabCount, tabWidthMm) =>
+        List(
+          if tabCount >= 1 && tabCount <= 31 then Validation.unit
+          else Validation.fail(ConfigurationError.InvalidFinishParameters(finish.id, s"tabCount must be between 1 and 31, got $tabCount")),
+          if tabWidthMm >= 5 && tabWidthMm <= 30 then Validation.unit
+          else Validation.fail(ConfigurationError.InvalidFinishParameters(finish.id, s"tabWidthMm must be between 5 and 30, got $tabWidthMm")),
+          if finish.finishType == FinishType.IndexTab then Validation.unit
+          else Validation.fail(ConfigurationError.InvalidFinishParameters(finish.id, s"IndexTabParams can only be used with IndexTab finish type")),
+        )

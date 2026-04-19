@@ -69,6 +69,8 @@ object PresetPriceService:
       specs += SpecValue.FoldTypeSpec(FoldType.Half)
     if kinds.contains(SpecKind.BindingMethod) then
       specs += SpecValue.BindingMethodSpec(BindingMethod.SaddleStitch)
+    if kinds.contains(SpecKind.BindingEdge) then
+      specs += SpecValue.BindingEdgeSpec(BindingEdge.Left)
     if kinds.contains(SpecKind.Pages) then
       specs += SpecValue.PagesSpec(8)
     specs.result()

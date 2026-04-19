@@ -346,7 +346,7 @@ object PriceCalculatorSpec extends ZIOSpecDefault:
             SpecValue.SizeSpec(Dimension(297, 210)),
             SpecValue.QuantitySpec(Quantity.unsafe(100)),
             SpecValue.PagesSpec(14),
-            SpecValue.BindingMethodSpec(BindingMethod.SpiralBinding),
+            SpecValue.BindingMethodSpec(BindingMethod.PlasticCoilBinding),
           )),
         )
 
@@ -484,7 +484,7 @@ object PriceCalculatorSpec extends ZIOSpecDefault:
             SpecValue.SizeSpec(Dimension(297, 210)),
             SpecValue.QuantitySpec(Quantity.unsafe(100)),
             SpecValue.PagesSpec(14),
-            SpecValue.BindingMethodSpec(BindingMethod.SpiralBinding),
+            SpecValue.BindingMethodSpec(BindingMethod.PlasticCoilBinding),
           ),
         )
 
@@ -1257,7 +1257,7 @@ object PriceCalculatorSpec extends ZIOSpecDefault:
         val customPricelist = Pricelist(
           rules = List(
             PricingRule.MaterialBasePrice(SampleCatalog.coated300gsmId, Money("0.10")),
-            PricingRule.BindingMethodSetupFee(BindingMethod.SpiralBinding, Money("100")),
+            PricingRule.BindingMethodSetupFee(BindingMethod.PlasticCoilBinding, Money("100")),
             PricingRule.QuantityTier(1, None, BigDecimal("0.50")),
           ),
           currency = Currency.USD,
@@ -1272,7 +1272,7 @@ object PriceCalculatorSpec extends ZIOSpecDefault:
           specs = List(
             SpecValue.SizeSpec(Dimension(210, 148)),
             SpecValue.QuantitySpec(Quantity.unsafe(100)),
-            SpecValue.BindingMethodSpec(BindingMethod.SpiralBinding),
+            SpecValue.BindingMethodSpec(BindingMethod.PlasticCoilBinding),
           ),
         )
         val result = PriceCalculator.calculate(config, customPricelist)

@@ -121,7 +121,7 @@ object ConfigurationBuilderSpec extends ZIOSpecDefault:
             SpecValue.SizeSpec(Dimension(297, 210)),
             SpecValue.QuantitySpec(Quantity.unsafe(100)),
             SpecValue.PagesSpec(14),
-            SpecValue.BindingMethodSpec(BindingMethod.SpiralBinding),
+            SpecValue.BindingMethodSpec(BindingMethod.PlasticCoilBinding),
           ),
         )
 
@@ -187,7 +187,7 @@ object ConfigurationBuilderSpec extends ZIOSpecDefault:
             SpecValue.SizeSpec(Dimension(297, 210)),
             SpecValue.QuantitySpec(Quantity.unsafe(100)),
             SpecValue.PagesSpec(14),
-            SpecValue.BindingMethodSpec(BindingMethod.SpiralBinding),
+            SpecValue.BindingMethodSpec(BindingMethod.PlasticCoilBinding),
           ),
         )
 
@@ -705,7 +705,7 @@ object ConfigurationBuilderSpec extends ZIOSpecDefault:
             SpecValue.SizeSpec(Dimension(297, 210)),
             SpecValue.QuantitySpec(Quantity.unsafe(100)),
             SpecValue.PagesSpec(8),
-            SpecValue.BindingMethodSpec(BindingMethod.SpiralBinding),
+            SpecValue.BindingMethodSpec(BindingMethod.PlasticCoilBinding),
           ),
         )
 
@@ -727,7 +727,7 @@ object ConfigurationBuilderSpec extends ZIOSpecDefault:
             SpecValue.SizeSpec(Dimension(297, 210)),
             SpecValue.QuantitySpec(Quantity.unsafe(100)),
             SpecValue.PagesSpec(30),
-            SpecValue.BindingMethodSpec(BindingMethod.SpiralBinding),
+            SpecValue.BindingMethodSpec(BindingMethod.PlasticCoilBinding),
           ),
         )
 
@@ -963,7 +963,7 @@ object ConfigurationBuilderSpec extends ZIOSpecDefault:
             SpecValue.SizeSpec(Dimension(210, 148)),
             SpecValue.QuantitySpec(Quantity.unsafe(100)),
             SpecValue.PagesSpec(30), // 30 is divisible by 2 (not 4), valid for spiral
-            SpecValue.BindingMethodSpec(BindingMethod.SpiralBinding),
+            SpecValue.BindingMethodSpec(BindingMethod.PlasticCoilBinding),
           ),
         )
         val result = ConfigurationBuilder.build(request, catalog, ruleset, configId)

@@ -299,8 +299,8 @@ object SpecificationForm:
               case Language.Cs => "Typ vazby:"
             }),
             HelpInfo(lang.map {
-              case Language.En => "How the pages are held together. Saddle stitch (stapled) is cheapest for thin booklets. Perfect binding (glued spine) is for thicker publications. Wire-O and spiral allow the book to lay flat when open."
-              case Language.Cs => "Způsob spojení stránek. Sešitová vazba (sešitá) je nejlevnější pro tenké brožury. Lepená vazba (lepený hřbet) je pro silnější publikace. Wire-O a kroužková vazba umožňují, aby kniha ležela naplocho při otevření."
+              case Language.En => "How the pages are held together. Saddle stitch (stapled) is cheapest for thin booklets. Perfect binding (glued spine) is for thicker publications. Metal wire and plastic coil allow the book to lay flat when open."
+              case Language.Cs => "Způsob spojení stránek. Sešitová vazba (sešitá) je nejlevnější pro tenké brožury. Lepená vazba (lepený hřbet) je pro silnější publikace. Kovová drátěná a plastová kroužková vazba umožňují, aby kniha ležela naplocho při otevření."
             }),
           ),
           div(
@@ -321,6 +321,48 @@ object SpecificationForm:
                   BindingMethod.values.find(_.toString == value).foreach { bm =>
                     ProductBuilderViewModel.removeSpecification(classOf[SpecValue.BindingMethodSpec])
                     ProductBuilderViewModel.addSpecification(SpecValue.BindingMethodSpec(bm))
+                  }
+              },
+            ),
+          ),
+        ),
+      ),
+
+      // Binding Edge (required for Booklets and Calendars with binding)
+      div(
+        Visibility.when(requiredSpecs.map(_.contains(SpecKind.BindingEdge))),
+        div(
+          cls := "form-group form-group--horizontal",
+          div(
+            cls := "label-with-help",
+            label(child.text <-- lang.map {
+              case Language.En => "Binding Edge:"
+              case Language.Cs => "Okraj vazby:"
+            }),
+            HelpInfo(lang.map {
+              case Language.En => "Which edge of the page the binding is on. Top binding is standard for wall calendars. Left binding is standard for booklets."
+              case Language.Cs => "Na kterém okraji stránky je vazba. Horní vazba je standardní pro nástěnné kalendáře. Levá vazba je standardní pro brožury."
+            }),
+          ),
+          div(
+            cls := "form-group__control",
+            select(
+              children <-- lang.combineWith(ProductBuilderViewModel.selectedSpecs).map { case (l, specs) =>
+                val selOpt = specs.collectFirst { case SpecValue.BindingEdgeSpec(e) => e }
+                val sel = selOpt.map(_.toString).getOrElse("")
+                val ph = l match
+                  case Language.En => "-- Select binding edge --"
+                  case Language.Cs => "-- Vyberte okraj vazby --"
+                val placeholderOpt = List(option(ph, value := "", com.raquo.laminar.api.L.selected := sel.isEmpty))
+                placeholderOpt ++ BindingEdge.values.toList.map { be =>
+                  option(bindingEdgeLabel(be, l), value := be.toString, com.raquo.laminar.api.L.selected := (be.toString == sel))
+                }
+              },
+              onChange.mapToValue --> Observer[String] { value =>
+                if value.nonEmpty then
+                  BindingEdge.values.find(_.toString == value).foreach { be =>
+                    ProductBuilderViewModel.removeSpecification(classOf[SpecValue.BindingEdgeSpec])
+                    ProductBuilderViewModel.addSpecification(SpecValue.BindingEdgeSpec(be))
                   }
               },
             ),
@@ -430,6 +472,11 @@ object SpecificationForm:
     case BindingMethod.PlasticCoilBinding => lang match { case Language.En => "Plastic Coil Binding";  case Language.Cs => "Plastová kroužková vazba" }
     case BindingMethod.MetalWireBinding   => lang match { case Language.En => "Metal Wire Binding";    case Language.Cs => "Kovová Wire-O vazba" }
     case BindingMethod.CaseBinding        => lang match { case Language.En => "Case Binding";          case Language.Cs => "V8 – tuhá vazba" }
+
+  private def bindingEdgeLabel(be: BindingEdge, lang: Language): String = be match
+    case BindingEdge.Top   => lang match { case Language.En => "Top";   case Language.Cs => "Horní" }
+    case BindingEdge.Left  => lang match { case Language.En => "Left";  case Language.Cs => "Levý" }
+    case BindingEdge.Right => lang match { case Language.En => "Right"; case Language.Cs => "Pravý" }
 
   private def speedTierCard(
     speed: ManufacturingSpeed,
