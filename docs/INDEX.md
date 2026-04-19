@@ -9,7 +9,7 @@ Core feature specifications — stable documents describing *what* the system do
 | Document | Description |
 |----------|-------------|
 | [features.md](features.md) | Comprehensive feature overview of the entire system |
-| [pricing.md](pricing.md) | Pricing engine specification with 17 rule types and worked examples |
+| [pricing.md](pricing.md) | Pricing engine specification with 18 rule types and worked examples |
 | [visual-product-types.md](visual-product-types.md) | Visual editor product types (calendars, photo books, wall pictures) and formats |
 | [manufacturing-speed-pipeline.md](manufacturing-speed-pipeline.md) | Order completion time estimation — 8-stage pipeline specification |
 | [new-product-specification.md](new-product-specification.md) | Specification for adding new product types to the system |

@@ -32,7 +32,7 @@ Pricelist(
 
 ### Pricing Rules
 
-There are 17 rule types, each a variant of the `PricingRule` sealed enum:
+There are 18 rule types, each a variant of the `PricingRule` sealed enum:
 
 | Rule | Purpose | Example |
 |------|---------|---------|
@@ -53,6 +53,7 @@ There are 17 rule types, each a variant of the `PricingRule` sealed enum:
 | `FinishTypeSetupFee` | One-time setup fee for a finish type | Any lamination setup = 50 CZK |
 | `FoldTypeSetupFee` | One-time setup fee for a fold type | Tri-fold setup = 80 CZK |
 | `BindingMethodSetupFee` | One-time setup fee for a binding method | Saddle stitch setup = 150 CZK |
+| `ScoringCountSurcharge` | Per-unit surcharge for scoring by crease count | 2 creases = 1.00 CZK/unit |
 | `MinimumOrderPrice` | Price floor applied after all other calculations | Minimum 500 CZK |
 
 **Per-unit surcharges** (material, finish, fold, binding, process, category) are included in the subtotal and are subject to the quantity tier discount.
@@ -77,9 +78,10 @@ Given a valid `ProductConfiguration` and a `Pricelist`, the `PriceCalculator` pe
 **3. Apply ink configuration factor.** If an `InkConfigurationFactor` matches the front/back color counts, it multiplies the material cost. A factor of 1.0 (identity) produces no line item.
 
 **4. Compute finish surcharges.** For each finish on the configuration:
-   - Look for a `FinishSurcharge` matching the finish's ID (most specific).
+   - For Scoring finishes with `ScoringParams`, look for a `ScoringCountSurcharge` matching the crease count (most specific).
+   - If not found (or no params), look for a `FinishSurcharge` matching the finish's ID.
    - If not found, look for a `FinishTypeSurcharge` matching the finish's type.
-   - If neither exists, the finish is free (gracefully skipped).
+   - If none exists, the finish is free (gracefully skipped).
 
 **5. Find process surcharge.** If a `PrintingProcessSurcharge` matches the configuration's printing process type, add it.
 
@@ -109,6 +111,7 @@ Given a valid `ProductConfiguration` and a `Pricelist`, the `PriceCalculator` pe
 ### Specificity / Precedence
 
 - **ID-level rules override type-level rules** for both surcharges and setup fees. If both a `FinishSurcharge(finishId=X)` and a `FinishTypeSurcharge(finishType=Lamination)` exist and finish X is a Lamination, the ID-level surcharge is used. Same applies to `FinishSetupFee` vs `FinishTypeSetupFee`.
+- **Scoring count surcharges override both ID and type-level.** When a Scoring finish has `ScoringParams(count)`, a matching `ScoringCountSurcharge(count)` takes priority over `FinishSurcharge` and `FinishTypeSurcharge`.
 - For quantity tiers, the **most specific matching tier wins** — the tier with the highest `minQuantity` that is ≤ the actual quantity.
 
 ### Worked Example: Business Cards
