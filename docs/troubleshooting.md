@@ -44,11 +44,25 @@ Note: Use the `-mill.sh` suffix for Linux (not `.exe`).
 
 ---
 
-### Mill SSL issues in sandbox environments
+### Mill SSL issues in Copilot Agent environment
 
-**Symptom:** Mill fails to download dependencies due to SSL certificate issues in sandboxed environments.
+**Symptom:** `javax.net.ssl.SSLHandshakeException: PKIX path building failed` when Mill (via Coursier) tries to download `mill-runner-daemon` or other JARs from Maven Central. The native Mill binary downloads fine, but dependency resolution fails.
 
-**Solution:** Fall back to sbt for building in sandboxed environments. See sbt installation instructions above.
+**Cause:** The default JVM in the Copilot Agent runner lacks the root CA certificates required to validate Maven Central's TLS certificate. Installing Temurin JDK 17 (via `actions/setup-java`) provides an up-to-date CA bundle that resolves this.
+
+**Solution:** The repository ships `.github/workflows/copilot-setup-steps.yml` which the Copilot Agent runs automatically before starting work. It installs Temurin JDK 17 and pre-warms the Coursier cache so all subsequent `./mill` commands work without network access.
+
+If you need to fix this manually in a fresh shell (e.g. outside the Copilot Agent):
+```bash
+# Option A — pass the JVM flag that disables SSL verification (dev-only, not for CI)
+JAVA_OPTS="-Djavax.net.ssl.trustStore=/etc/ssl/certs/java/cacerts" ./mill __.compile
+
+# Option B — install Temurin JDK and re-run
+sudo apt-get install -y temurin-17-jdk   # or use SDKMAN / jabba
+./mill __.compile
+```
+
+**Files:** `.github/workflows/copilot-setup-steps.yml`
 
 ---
 
