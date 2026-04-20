@@ -132,3 +132,10 @@ object ConfigurationValidator:
           if finish.finishType == FinishType.Perforation then Validation.unit
           else Validation.fail(ConfigurationError.InvalidFinishParameters(finish.id, s"PerforationParams can only be used with Perforation finish type")),
         )
+      case FinishParameters.RopeParams(lengthMeters) =>
+        List(
+          if lengthMeters > 0 && lengthMeters <= 50 then Validation.unit
+          else Validation.fail(ConfigurationError.InvalidFinishParameters(finish.id, s"RopeParams lengthMeters must be between 0 and 50 m, got $lengthMeters")),
+          if finish.finishType == FinishType.RopeAccessory then Validation.unit
+          else Validation.fail(ConfigurationError.InvalidFinishParameters(finish.id, s"RopeParams can only be used with RopeAccessory finish type")),
+        )

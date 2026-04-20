@@ -71,10 +71,10 @@ object PriceCalculatorSpec extends ZIOSpecDefault:
         )
       },
       test("banner with area-based calculation") {
-        // 10× vinyl 1000×500mm + UV coating + UV inkjet
+        // 10× PVC 510g 1000×500mm + UV coating + UV inkjet (USD pricelist, flat area price)
         val config = makeConfig(
           category = SampleCatalog.banners,
-          material = SampleCatalog.vinyl,
+          material = SampleCatalog.pvc510g,
           printingMethod = SampleCatalog.uvInkjetMethod,
           inkConfig = InkConfiguration.cmyk4_4,
           finishes = List(SelectedFinish(SampleCatalog.uvCoating)),
@@ -458,7 +458,7 @@ object PriceCalculatorSpec extends ZIOSpecDefault:
       test("area pricing without size spec returns NoSizeForAreaPricing") {
         val config = makeConfig(
           category = SampleCatalog.banners,
-          material = SampleCatalog.vinyl,
+          material = SampleCatalog.pvc510g,
           printingMethod = SampleCatalog.uvInkjetMethod,
           inkConfig = InkConfiguration.cmyk4_4,
           finishes = Nil,
@@ -471,6 +471,191 @@ object PriceCalculatorSpec extends ZIOSpecDefault:
         val errors = result.toEither.left.toOption.get.toList
         assertTrue(
           errors.exists(_.isInstanceOf[PricingError.NoSizeForAreaPricing]),
+        )
+      },
+      test("banner PVC 510g CZK tier: 1 m² → 600 CZK/m²") {
+        // 1000×1000mm = 1.0 m²  → tier 0 m² → 600 CZK/m² → unit = 600
+        val config = makeConfig(
+          category = SampleCatalog.banners,
+          material = SampleCatalog.pvc510g,
+          printingMethod = SampleCatalog.uvInkjetMethod,
+          inkConfig = InkConfiguration.cmyk4_0,
+          finishes = Nil,
+          specs = List(
+            SpecValue.SizeSpec(Dimension(1000, 1000)),
+            SpecValue.QuantitySpec(Quantity.unsafe(1)),
+          ),
+        )
+        val result = PriceCalculator.calculate(config, pricelistCzk)
+        val breakdown = result.toEither.toOption.get
+        val cb = firstBreakdown(breakdown)
+        assertTrue(
+          result.toEither.isRight,
+          cb.materialLine.unitPrice == Money("600"),
+          cb.materialLine.lineTotal == Money("600"),
+        )
+      },
+      test("banner PVC 510g CZK tier: 2 m² → 500 CZK/m²") {
+        // 1000×2000mm = 2.0 m² → tier 2 m² → 500 CZK/m² → unit = 1000
+        val config = makeConfig(
+          category = SampleCatalog.banners,
+          material = SampleCatalog.pvc510g,
+          printingMethod = SampleCatalog.uvInkjetMethod,
+          inkConfig = InkConfiguration.cmyk4_0,
+          finishes = Nil,
+          specs = List(
+            SpecValue.SizeSpec(Dimension(1000, 2000)),
+            SpecValue.QuantitySpec(Quantity.unsafe(1)),
+          ),
+        )
+        val result = PriceCalculator.calculate(config, pricelistCzk)
+        val breakdown = result.toEither.toOption.get
+        val cb = firstBreakdown(breakdown)
+        assertTrue(
+          result.toEither.isRight,
+          cb.materialLine.unitPrice == Money("1000"),
+          cb.materialLine.lineTotal == Money("1000"),
+        )
+      },
+      test("banner PVC 510g CZK tier: 5 m² → 450 CZK/m²") {
+        // 2500×2000mm = 5.0 m² → tier 5 m² → 450 CZK/m² → unit = 2250
+        val config = makeConfig(
+          category = SampleCatalog.banners,
+          material = SampleCatalog.pvc510g,
+          printingMethod = SampleCatalog.uvInkjetMethod,
+          inkConfig = InkConfiguration.cmyk4_0,
+          finishes = Nil,
+          specs = List(
+            SpecValue.SizeSpec(Dimension(2500, 2000)),
+            SpecValue.QuantitySpec(Quantity.unsafe(1)),
+          ),
+        )
+        val result = PriceCalculator.calculate(config, pricelistCzk)
+        val breakdown = result.toEither.toOption.get
+        val cb = firstBreakdown(breakdown)
+        assertTrue(
+          result.toEither.isRight,
+          cb.materialLine.unitPrice == Money("2250"),
+          cb.materialLine.lineTotal == Money("2250"),
+        )
+      },
+      test("banner PVC 510g CZK tier: 10 m² → 400 CZK/m²") {
+        // 4000×2500mm = 10.0 m² → tier 10 m² → 400 CZK/m² → unit = 4000
+        val config = makeConfig(
+          category = SampleCatalog.banners,
+          material = SampleCatalog.pvc510g,
+          printingMethod = SampleCatalog.uvInkjetMethod,
+          inkConfig = InkConfiguration.cmyk4_0,
+          finishes = Nil,
+          specs = List(
+            SpecValue.SizeSpec(Dimension(4000, 2500)),
+            SpecValue.QuantitySpec(Quantity.unsafe(1)),
+          ),
+        )
+        val result = PriceCalculator.calculate(config, pricelistCzk)
+        val breakdown = result.toEither.toOption.get
+        val cb = firstBreakdown(breakdown)
+        assertTrue(
+          result.toEither.isRight,
+          cb.materialLine.unitPrice == Money("4000"),
+          cb.materialLine.lineTotal == Money("4000"),
+        )
+      },
+      test("grommets with GrommetParams(500) on 1 m² banner → 40 CZK/m² surcharge") {
+        // 1000×1000mm = 1 m², spacing 500mm → tier 500 → 40 CZK/m² → surcharge = 40
+        val config = makeConfig(
+          category = SampleCatalog.banners,
+          material = SampleCatalog.pvc510g,
+          printingMethod = SampleCatalog.uvInkjetMethod,
+          inkConfig = InkConfiguration.cmyk4_0,
+          finishes = List(SelectedFinish(SampleCatalog.grommets, Some(FinishParameters.GrommetParams(500)))),
+          specs = List(
+            SpecValue.SizeSpec(Dimension(1000, 1000)),
+            SpecValue.QuantitySpec(Quantity.unsafe(1)),
+          ),
+        )
+        val result = PriceCalculator.calculate(config, pricelistCzk)
+        val breakdown = result.toEither.toOption.get
+        val cb = firstBreakdown(breakdown)
+        assertTrue(
+          result.toEither.isRight,
+          cb.finishLines.size == 1,
+          cb.finishLines.head.unitPrice == Money("40"),
+        )
+      },
+      test("grommets with GrommetParams(300) on 1 m² banner → 60 CZK/m² surcharge") {
+        // 1000×1000mm = 1 m², spacing 300mm → tier 300 → 60 CZK/m² → surcharge = 60
+        val config = makeConfig(
+          category = SampleCatalog.banners,
+          material = SampleCatalog.pvc510g,
+          printingMethod = SampleCatalog.uvInkjetMethod,
+          inkConfig = InkConfiguration.cmyk4_0,
+          finishes = List(SelectedFinish(SampleCatalog.grommets, Some(FinishParameters.GrommetParams(300)))),
+          specs = List(
+            SpecValue.SizeSpec(Dimension(1000, 1000)),
+            SpecValue.QuantitySpec(Quantity.unsafe(1)),
+          ),
+        )
+        val result = PriceCalculator.calculate(config, pricelistCzk)
+        val breakdown = result.toEither.toOption.get
+        val cb = firstBreakdown(breakdown)
+        assertTrue(
+          result.toEither.isRight,
+          cb.finishLines.size == 1,
+          cb.finishLines.head.unitPrice == Money("60"),
+        )
+      },
+      test("gum rope with RopeParams(10) → 180 CZK") {
+        // 18 CZK/m × 10 m = 180 CZK
+        val config = makeConfig(
+          category = SampleCatalog.banners,
+          material = SampleCatalog.pvc510g,
+          printingMethod = SampleCatalog.uvInkjetMethod,
+          inkConfig = InkConfiguration.cmyk4_0,
+          finishes = List(
+            SelectedFinish(SampleCatalog.grommets, Some(FinishParameters.GrommetParams(500))),
+            SelectedFinish(SampleCatalog.gumRope, Some(FinishParameters.RopeParams(BigDecimal("10")))),
+          ),
+          specs = List(
+            SpecValue.SizeSpec(Dimension(1000, 1000)),
+            SpecValue.QuantitySpec(Quantity.unsafe(1)),
+          ),
+        )
+        val result = PriceCalculator.calculate(config, pricelistCzk)
+        val breakdown = result.toEither.toOption.get
+        val cb = firstBreakdown(breakdown)
+        val ropeLine = cb.finishLines.find(_.label.contains("Gum rope")).orElse(cb.finishLines.find(_.label.contains("rope")))
+        assertTrue(
+          result.toEither.isRight,
+          cb.finishLines.size == 2,
+          ropeLine.isDefined,
+          ropeLine.get.unitPrice == Money("180"),
+        )
+      },
+      test("gum rope with RopeParams(25) → 450 CZK") {
+        // 18 CZK/m × 25 m = 450 CZK
+        val config = makeConfig(
+          category = SampleCatalog.banners,
+          material = SampleCatalog.pvc510g,
+          printingMethod = SampleCatalog.uvInkjetMethod,
+          inkConfig = InkConfiguration.cmyk4_0,
+          finishes = List(
+            SelectedFinish(SampleCatalog.grommets, Some(FinishParameters.GrommetParams(500))),
+            SelectedFinish(SampleCatalog.gumRope, Some(FinishParameters.RopeParams(BigDecimal("25")))),
+          ),
+          specs = List(
+            SpecValue.SizeSpec(Dimension(1000, 1000)),
+            SpecValue.QuantitySpec(Quantity.unsafe(1)),
+          ),
+        )
+        val result = PriceCalculator.calculate(config, pricelistCzk)
+        val breakdown = result.toEither.toOption.get
+        val cb = firstBreakdown(breakdown)
+        val ropeLine = cb.finishLines.find(_.label.contains("Gum rope")).orElse(cb.finishLines.find(_.label.contains("rope")))
+        assertTrue(
+          result.toEither.isRight,
+          ropeLine.isDefined,
+          ropeLine.get.unitPrice == Money("450"),
         )
       },
       test("calendar with new material priced correctly") {

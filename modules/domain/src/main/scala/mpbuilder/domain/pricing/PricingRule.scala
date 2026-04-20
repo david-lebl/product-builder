@@ -2,6 +2,14 @@ package mpbuilder.domain.pricing
 
 import mpbuilder.domain.model.*
 
+/** Area price tier for materials: if both [[MaterialAreaTier]] and [[MaterialAreaPrice]] exist for the same material,
+  * [[MaterialAreaTier]] wins. The tier with the largest `minSqm` that is ≤ the component area is selected.
+  */
+final case class AreaTier(minSqm: BigDecimal, pricePerSqMeter: Money)
+
+/** Spacing-based grommet tier: price per m² for a given grommet spacing. */
+final case class GrommetSpacingTier(spacingMm: Int, pricePerSqMeter: Money)
+
 enum PricingRule:
   case MaterialBasePrice(materialId: MaterialId, unitPrice: Money)
   case MaterialAreaPrice(materialId: MaterialId, pricePerSqMeter: Money)
@@ -38,3 +46,9 @@ enum PricingRule:
   )
   // Global price floor applied after setup fees
   case MinimumOrderPrice(minTotal: Money)
+  // Area-tiered material price: selects the tier with the largest minSqm ≤ area; wins over MaterialAreaPrice
+  case MaterialAreaTier(materialId: MaterialId, tiers: List[AreaTier])
+  // Grommet pricing driven by spacing: area-based surcharge keyed by spacingMm
+  case GrommetSpacingAreaPrice(finishId: FinishId, tiers: List[GrommetSpacingTier])
+  // Linear-meter pricing for rope/accessory finishes
+  case FinishLinearMeterPrice(finishId: FinishId, pricePerMeter: Money)

@@ -27,11 +27,11 @@ object CatalogQueryServiceSpec extends ZIOSpecDefault:
           !materialIds.contains(SampleCatalog.coatedGlossy90gsmId),
         )
       },
-      test("returns only vinyl for banners (Main)") {
+      test("returns only PVC 510g for banners (Main)") {
         val materials = CatalogQueryService.availableMaterials(SampleCatalog.bannersId, catalog, ComponentRole.Main)
         assertTrue(
           materials.size == 1,
-          materials.head.id == SampleCatalog.vinylId,
+          materials.head.id == SampleCatalog.pvc510gId,
         )
       },
       test("returns expanded paper selection for brochures") {

@@ -61,7 +61,7 @@ object ConfigurationBuilderSpec extends ZIOSpecDefault:
         val request = ConfigurationRequest(
           categoryId = SampleCatalog.bannersId,
           printingMethodId = SampleCatalog.uvInkjetId,
-          components = List(mainComponent(SampleCatalog.vinylId, InkConfiguration.cmyk4_4, List(FinishSelection(SampleCatalog.uvCoatingId)))),
+          components = List(mainComponent(SampleCatalog.pvc510gId, InkConfiguration.cmyk4_4, List(FinishSelection(SampleCatalog.uvCoatingId)))),
           specs = List(
             SpecValue.SizeSpec(Dimension(1000, 500)),
             SpecValue.QuantitySpec(Quantity.unsafe(10)),
@@ -423,7 +423,7 @@ object ConfigurationBuilderSpec extends ZIOSpecDefault:
         val request = ConfigurationRequest(
           categoryId = SampleCatalog.bannersId,
           printingMethodId = SampleCatalog.uvInkjetId,
-          components = List(mainComponent(SampleCatalog.vinylId, InkConfiguration(InkSetup.pms(2), InkSetup.none))),
+          components = List(mainComponent(SampleCatalog.pvc510gId, InkConfiguration(InkSetup.pms(2), InkSetup.none))),
           specs = List(
             SpecValue.SizeSpec(Dimension(1000, 500)),
             SpecValue.QuantitySpec(Quantity.unsafe(10)),
@@ -640,7 +640,7 @@ object ConfigurationBuilderSpec extends ZIOSpecDefault:
         val request = ConfigurationRequest(
           categoryId = SampleCatalog.bannersId,
           printingMethodId = SampleCatalog.digitalId, // banners only allow UV inkjet
-          components = List(mainComponent(SampleCatalog.vinylId, InkConfiguration.cmyk4_4)),
+          components = List(mainComponent(SampleCatalog.pvc510gId, InkConfiguration.cmyk4_4)),
           specs = List(
             SpecValue.SizeSpec(Dimension(1000, 500)),
             SpecValue.QuantitySpec(Quantity.unsafe(10)),
@@ -1099,7 +1099,7 @@ object ConfigurationBuilderSpec extends ZIOSpecDefault:
           categoryId = SampleCatalog.bannersId,
           printingMethodId = SampleCatalog.uvInkjetId,
           components = List(mainComponent(
-            SampleCatalog.vinylId,
+            SampleCatalog.pvc510gId,
             InkConfiguration.cmyk4_4,
             List(FinishSelection(SampleCatalog.grommetsId, Some(FinishParameters.GrommetParams(500)))),
           )),
@@ -1116,7 +1116,7 @@ object ConfigurationBuilderSpec extends ZIOSpecDefault:
           categoryId = SampleCatalog.bannersId,
           printingMethodId = SampleCatalog.uvInkjetId,
           components = List(mainComponent(
-            SampleCatalog.vinylId,
+            SampleCatalog.pvc510gId,
             InkConfiguration.cmyk4_4,
             List(FinishSelection(SampleCatalog.grommetsId, Some(FinishParameters.GrommetParams(0)))),
           )),
@@ -1162,6 +1162,43 @@ object ConfigurationBuilderSpec extends ZIOSpecDefault:
         )
         val result = ConfigurationBuilder.build(request, catalog, ruleset, configId)
         assertTrue(result.toEither.isRight)
+      },
+      test("gum rope without grommets is rejected") {
+        val request = ConfigurationRequest(
+          categoryId = SampleCatalog.bannersId,
+          printingMethodId = SampleCatalog.uvInkjetId,
+          components = List(mainComponent(
+            SampleCatalog.pvc510gId,
+            InkConfiguration.cmyk4_0,
+            List(FinishSelection(SampleCatalog.gumRopeId, Some(FinishParameters.RopeParams(BigDecimal("10"))))),
+          )),
+          specs = List(
+            SpecValue.SizeSpec(Dimension(1000, 1000)),
+            SpecValue.QuantitySpec(Quantity.unsafe(1)),
+          ),
+        )
+        val result = ConfigurationBuilder.build(request, catalog, ruleset, configId)
+        val errors = result.toEither.left.toOption.get.toList
+        assertTrue(
+          errors.exists(e => e.isInstanceOf[ConfigurationError.ConfigurationConstraintViolation] &&
+            e.asInstanceOf[ConfigurationError.ConfigurationConstraintViolation].reason.contains("Gum rope requires grommets")),
+        )
+      },
+      test("banner 200×100 cm (2000×1000 mm) exceeds max dimension and is rejected") {
+        val request = ConfigurationRequest(
+          categoryId = SampleCatalog.bannersId,
+          printingMethodId = SampleCatalog.uvInkjetId,
+          components = List(mainComponent(SampleCatalog.pvc510gId, InkConfiguration.cmyk4_0)),
+          specs = List(
+            SpecValue.SizeSpec(Dimension(2000, 1000)),
+            SpecValue.QuantitySpec(Quantity.unsafe(1)),
+          ),
+        )
+        val result = ConfigurationBuilder.build(request, catalog, ruleset, configId)
+        val errors = result.toEither.left.toOption.get.toList
+        assertTrue(
+          errors.exists(_.isInstanceOf[ConfigurationError.SpecConstraintViolation]),
+        )
       },
     ),
     suite("white ink (transparent material) validation")(

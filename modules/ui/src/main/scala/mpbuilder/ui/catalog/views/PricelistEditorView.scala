@@ -319,6 +319,9 @@ object PricelistEditorView:
     case _: PricingRule.BindingMethodSetupFee => "BindingMethodSetupFee"
     case _: PricingRule.MinimumOrderPrice => "MinimumOrderPrice"
     case _: PricingRule.ManufacturingSpeedSurcharge => "ManufacturingSpeedSurcharge"
+    case _: PricingRule.MaterialAreaTier => "MaterialAreaTier"
+    case _: PricingRule.GrommetSpacingAreaPrice => "GrommetSpacingAreaPrice"
+    case _: PricingRule.FinishLinearMeterPrice => "FinishLinearMeterPrice"
 
   private def extractPricingMaterialId(rule: Option[PricingRule]): Option[String] = rule.collect {
     case r: PricingRule.MaterialBasePrice => r.materialId.value
