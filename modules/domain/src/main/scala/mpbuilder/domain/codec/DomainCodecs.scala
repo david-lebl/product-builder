@@ -140,6 +140,7 @@ object DomainCodecs:
   given JsonCodec[FinishParameters.FoilStampingParams] = DeriveJsonCodec.gen[FinishParameters.FoilStampingParams]
   given JsonCodec[FinishParameters.GrommetParams] = DeriveJsonCodec.gen[FinishParameters.GrommetParams]
   given JsonCodec[FinishParameters.PerforationParams] = DeriveJsonCodec.gen[FinishParameters.PerforationParams]
+  given JsonCodec[FinishParameters.RopeParams] = DeriveJsonCodec.gen[FinishParameters.RopeParams]
   given JsonCodec[FinishParameters] = DeriveJsonCodec.gen[FinishParameters]
 
   given JsonCodec[FinishSelection] = DeriveJsonCodec.gen[FinishSelection]
@@ -197,6 +198,8 @@ object DomainCodecs:
 
   // ── Pricing rules ────────────────────────────────────────────────────────
 
+  given JsonCodec[AreaTier] = DeriveJsonCodec.gen[AreaTier]
+  given JsonCodec[GrommetSpacingTier] = DeriveJsonCodec.gen[GrommetSpacingTier]
   given JsonCodec[PricingRule] = DeriveJsonCodec.gen[PricingRule]
   given JsonCodec[Pricelist] = DeriveJsonCodec.gen[Pricelist]
 

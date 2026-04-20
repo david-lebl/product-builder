@@ -273,4 +273,7 @@ object BasketView:
       case Some(PerforationParams(pitch)) => lang match
         case Language.En => s" (${pitch}mm pitch)"
         case Language.Cs => s" (rozteč ${pitch}mm)"
+      case Some(RopeParams(length)) => lang match
+        case Language.En => s" (${length}m)"
+        case Language.Cs => s" (${length}m)"
     sf.name(lang) + paramsDesc

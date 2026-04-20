@@ -7,7 +7,7 @@ enum FinishType:
   case Lamination, Overlamination, UVCoating, AqueousCoating, SoftTouchCoating, Varnish
   case Embossing, Debossing, FoilStamping, Thermography, EdgePainting
   case DieCut, ContourCut, KissCut, Scoring, Perforation, RoundCorners, Drilling, Numbering, Binding, Mounting
-  case Grommets, Hem
+  case Grommets, Hem, RopeAccessory
   case Embroidery
 
 object FinishType:
@@ -18,7 +18,7 @@ object FinishType:
       FinishCategory.Decorative
     case DieCut | ContourCut | KissCut | Scoring | Perforation | RoundCorners | Drilling | Numbering | Binding | Mounting =>
       FinishCategory.Structural
-    case Grommets | Hem =>
+    case Grommets | Hem | RopeAccessory =>
       FinishCategory.LargeFormat
     case Embroidery =>
       FinishCategory.Decorative
@@ -44,6 +44,7 @@ object FinishParameters:
   final case class FoilStampingParams(color: FoilColor) extends FinishParameters
   final case class GrommetParams(spacingMm: Int) extends FinishParameters
   final case class PerforationParams(pitchMm: Int) extends FinishParameters
+  final case class RopeParams(lengthMeters: BigDecimal) extends FinishParameters
 
 final case class SelectedFinish(finish: Finish, params: Option[FinishParameters] = None):
   export finish.{id, name, finishType, side}

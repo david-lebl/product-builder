@@ -124,7 +124,7 @@ object LocalizationSpec extends ZIOSpecDefault:
           bc.isDefined,
           banners.isDefined,
           bc.get(Language.En).contains("business cards"),
-          banners.get(Language.En).contains("vinyl banners"),
+          banners.get(Language.En).contains("PVC banners"),
           bc.get(Language.Cs).nonEmpty,
           banners.get(Language.Cs).nonEmpty,
         )

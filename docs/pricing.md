@@ -32,15 +32,18 @@ Pricelist(
 
 ### Pricing Rules
 
-There are 17 rule types, each a variant of the `PricingRule` sealed enum:
+There are 20 rule types, each a variant of the `PricingRule` sealed enum:
 
 | Rule | Purpose | Example |
 |------|---------|---------|
 | `MaterialBasePrice` | Flat per-unit price for a material | Coated 300gsm = $0.12/unit |
-| `MaterialAreaPrice` | Price per square meter (for large-format) | Vinyl = $18.00/m² |
+| `MaterialAreaPrice` | Flat price per square meter (for large-format) | Vinyl = $18.00/m² |
+| `MaterialAreaTier` | Area-tiered price per square meter — picks highest matching tier | PVC 510g: 600/500/450/400 CZK/m² |
 | `MaterialSheetPrice` | Price per physical press sheet | Coated 135gsm = 8 CZK/sheet |
 | `FinishSurcharge` | Per-unit surcharge for a specific finish (by ID) | Matte lamination = $0.03/unit |
 | `FinishTypeSurcharge` | Per-unit surcharge for a finish type | All lamination = $0.04/unit |
+| `GrommetSpacingAreaPrice` | Area-based grommet price keyed by grommet spacing | 40 CZK/m² at 500mm spacing |
+| `FinishLinearMeterPrice` | Price per linear metre for rope/accessory finishes | Gum rope = 18 CZK/m |
 | `PrintingProcessSurcharge` | Per-unit surcharge for a printing process | Letterpress = $0.20/unit |
 | `CategorySurcharge` | Per-unit surcharge for a product category | Packaging premium |
 | `FoldTypeSurcharge` | Per-unit surcharge for a fold type | Tri-fold = $0.02/unit |
@@ -69,17 +72,19 @@ Given a valid `ProductConfiguration` and a `Pricelist`, the `PriceCalculator` pe
 
 **1. Extract quantity** from the configuration's specifications. Fails with `NoQuantityInSpecifications` if absent.
 
-**2. Resolve material unit price.** The calculator checks for an area-based rule first:
-   - If a `MaterialAreaPrice` exists for this material, compute: `pricePerSqMeter × (width × height / 1,000,000)`. Fails with `NoSizeForAreaPricing` if no size spec is present.
-   - If a `MaterialSheetPrice` exists, compute the number of physical sheets needed and the total sheet cost. Fails with `NoSizeForSheetPricing` if no size spec is present.
-   - Otherwise, fall back to `MaterialBasePrice`. Fails with `NoBasePriceForMaterial` if no rule exists.
+**2. Resolve material unit price.** The calculator checks for pricing rules in priority order:
+   - **`MaterialAreaTier`** (highest priority): if a tiered area rule exists for this material, compute `pricePerSqMeter × area_m²` using the tier with the highest `minSqm ≤ area`. Fails with `NoSizeForAreaPricing` if no size spec is present.
+   - **`MaterialAreaPrice`**: if a flat area rule exists, compute `pricePerSqMeter × area_m²`. Fails with `NoSizeForAreaPricing` if no size spec is present.
+   - **`MaterialSheetPrice`**: compute the number of physical sheets needed and the total sheet cost. Fails with `NoSizeForSheetPricing` if no size spec is present.
+   - **`MaterialBasePrice`** (fallback): flat per-unit price. Fails with `NoBasePriceForMaterial` if no rule exists.
 
 **3. Apply ink configuration factor.** If an `InkConfigurationFactor` matches the front/back color counts, it multiplies the material cost. A factor of 1.0 (identity) produces no line item.
 
-**4. Compute finish surcharges.** For each finish on the configuration:
-   - Look for a `FinishSurcharge` matching the finish's ID (most specific).
-   - If not found, look for a `FinishTypeSurcharge` matching the finish's type.
-   - If neither exists, the finish is free (gracefully skipped).
+**4. Compute finish surcharges.** For each finish on the configuration, three pricing mechanisms are tried in order:
+   - **`GrommetSpacingAreaPrice`**: if the finish has `GrommetParams`, find the tier with the highest `spacingMm ≤ selected spacing` and compute `pricePerSqMeter × area_m²`. The line item label shows the approximate grommet count (`2·(w+h)/spacing + 4 corners`).
+   - **`FinishLinearMeterPrice`**: if the finish has `RopeParams`, compute `pricePerMeter × lengthMeters`.
+   - **`FinishSurcharge` / `FinishTypeSurcharge`** (fallback): ID-level surcharge takes precedence over type-level surcharge.
+   - If none of the above apply, the finish is free (gracefully skipped).
 
 **5. Find process surcharge.** If a `PrintingProcessSurcharge` matches the configuration's printing process type, add it.
 

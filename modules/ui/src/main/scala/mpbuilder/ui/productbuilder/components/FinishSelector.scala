@@ -5,6 +5,7 @@ import mpbuilder.ui.productbuilder.ProductBuilderViewModel
 import mpbuilder.uikit.feedback.HelpInfo
 import mpbuilder.domain.model.*
 import mpbuilder.uikit.util.Visibility
+import mpbuilder.domain.sample.SampleCatalog
 
 object FinishSelector:
   def apply(role: ComponentRole): Element =
@@ -52,6 +53,8 @@ object FinishSelector:
     val defaultParams: Option[FinishParameters] = finish.finishType match
       case FinishType.Lamination | FinishType.Overlamination | FinishType.SoftTouchCoating =>
         Some(FinishParameters.LaminationParams(FinishSide.Both))
+      case FinishType.RopeAccessory =>
+        Some(FinishParameters.RopeParams(BigDecimal("5")))
       case _ => None
 
     div(
@@ -257,6 +260,62 @@ object FinishSelector:
                   ProductBuilderViewModel.setFinishParams(role, finish.id, Some(FinishParameters.GrommetParams(spacing)))
                 }
               },
+            ),
+          ),
+        )
+
+      case FinishType.RopeAccessory =>
+        val grommetsSelected = ProductBuilderViewModel.selectedFinishIds(role).map(_.contains(SampleCatalog.grommetsId))
+        div(
+          cls := "finish-params",
+          Visibility.when(isSelected),
+          div(
+            cls := "finish-params-row",
+            span(
+              cls := "finish-params-label",
+              lang match
+                case Language.En => "Length (m):"
+                case Language.Cs => "Délka (m):"
+            ),
+            input(
+              typ := "number",
+              cls := "finish-params-input",
+              minAttr := "0.5",
+              maxAttr := "50",
+              stepAttr := "0.5",
+              placeholder := "5",
+              value <-- currentParams.map {
+                case Some(FinishParameters.RopeParams(l)) => l.toString
+                case _                                    => ""
+              },
+              onInput.mapToValue --> { v =>
+                v.toDoubleOption.filter(l => l > 0 && l <= 50).foreach { len =>
+                  ProductBuilderViewModel.setFinishParams(role, finish.id, Some(FinishParameters.RopeParams(BigDecimal(len))))
+                }
+              },
+            ),
+          ),
+          div(
+            cls := "finish-params-warning",
+            Visibility.when(currentParams.map {
+              case Some(FinishParameters.RopeParams(l)) => l > 20
+              case _                                    => false
+            }),
+            span(
+              cls := "warning-text",
+              lang match
+                case Language.En => "⚠ Long rope (> 20 m): please confirm with the print shop."
+                case Language.Cs => "⚠ Dlouhý provaz (> 20 m): prosím potvrďte s tiskárnou."
+            ),
+          ),
+          div(
+            cls := "finish-params-info",
+            Visibility.when(grommetsSelected.map(!_)),
+            span(
+              cls := "info-note",
+              lang match
+                case Language.En => "ℹ Requires grommets"
+                case Language.Cs => "ℹ Vyžaduje průchodky"
             ),
           ),
         )

@@ -157,7 +157,7 @@ object WorkflowGeneratorSpec extends ZIOSpecDefault:
         val config = buildConfig(
           SampleCatalog.bannersId,
           SampleCatalog.uvInkjetId,
-          List(mainComp(SampleCatalog.vinylId, InkConfiguration.cmyk4_0)),
+          List(mainComp(SampleCatalog.pvc510gId, InkConfiguration.cmyk4_0)),
           List(
             SpecValue.SizeSpec(Dimension(1000, 500)),
             SpecValue.QuantitySpec(Quantity.unsafe(10)),

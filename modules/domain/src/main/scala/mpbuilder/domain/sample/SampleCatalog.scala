@@ -15,6 +15,7 @@ object SampleCatalog:
   val adhesiveStockId: MaterialId   = MaterialId.unsafe("mat-adhesive-stock")
   val cottonId: MaterialId          = MaterialId.unsafe("mat-cotton-300gsm")
   val clearVinylId: MaterialId      = MaterialId.unsafe("mat-clear-vinyl")
+  val pvc510gId: MaterialId         = MaterialId.unsafe("mat-pvc-510g")
 
   // --- Coated Art Paper Glossy IDs ---
   val coatedGlossy90gsmId: MaterialId  = MaterialId.unsafe("mat-coated-glossy-90gsm")
@@ -54,6 +55,7 @@ object SampleCatalog:
   val grommetsId: FinishId          = FinishId.unsafe("fin-grommets")
   val kissCutId: FinishId           = FinishId.unsafe("fin-kiss-cut")
   val overlaminationId: FinishId    = FinishId.unsafe("fin-overlamination")
+  val gumRopeId: FinishId           = FinishId.unsafe("fin-gum-rope")
 
   // --- Promotional Finish IDs ---
   val heatPressId: FinishId          = FinishId.unsafe("fin-heat-press")
@@ -175,6 +177,18 @@ object SampleCatalog:
     description = Some(LocalizedString(
       "Durable, weather-resistant adhesive vinyl for outdoor banners, vehicle wraps, and signage. Resistant to UV, rain, and temperature changes.",
       "Odolný, povětrnostně stálý samolepicí vinyl pro venkovní bannery, polepy vozidel a značení. Odolný vůči UV, dešti a změnám teploty.",
+    )),
+  )
+
+  val pvc510g: Material = Material(
+    id = pvc510gId,
+    name = LocalizedString("PVC Banner 510g", "PVC banner 510g"),
+    family = MaterialFamily.Vinyl,
+    weight = None,
+    properties = Set(MaterialProperty.WaterResistant, MaterialProperty.SmoothSurface),
+    description = Some(LocalizedString(
+      "Heavy-duty 510 g/m² PVC frontlit banner material. Excellent UV and weather resistance for outdoor large-format banners. Suitable for grommets and hem finishing.",
+      "Odolný PVC frontlit bannerový materiál 510 g/m². Vynikající odolnost proti UV záření a povětrnostním vlivům pro venkovní velkoformátové bannery. Vhodný pro průchodky a lemování.",
     )),
   )
 
@@ -636,6 +650,17 @@ object SampleCatalog:
     description = Some(LocalizedString(
       "Additional protective laminate layer for large-format prints. Shields against UV fading, scratches, and moisture. Extends the life of outdoor graphics significantly.",
       "Dodatečná ochranná laminátová vrstva pro velkoformátové tisky. Chrání před UV vyblednutím, poškrábáním a vlhkostí. Výrazně prodlužuje životnost venkovní grafiky.",
+    )),
+  )
+
+  val gumRope: Finish = Finish(
+    id = gumRopeId,
+    name = LocalizedString("Gum rope", "Gumový provaz"),
+    finishType = FinishType.RopeAccessory,
+    side = FinishSide.Both,
+    description = Some(LocalizedString(
+      "Elastic tension rope threaded through the grommets for easy hanging and tensioning of large-format banners. Priced per metre. Requires grommets.",
+      "Elastický napínací provaz navlečený průchodkami pro snadné zavěšení a napnutí velkoformátových bannerů. Cena za metr. Vyžaduje průchodky.",
     )),
   )
 
@@ -1181,31 +1206,31 @@ object SampleCatalog:
     name = LocalizedString("Banners", "Bannery"),
     components = List(ComponentTemplate(
       ComponentRole.Main,
-      allowedMaterialIds = Set(vinylId),
-      allowedFinishIds = Set(uvCoatingId, dieCutId, grommetsId),
+      allowedMaterialIds = Set(pvc510gId),
+      allowedFinishIds = Set(uvCoatingId, dieCutId, grommetsId, gumRopeId),
     )),
     requiredSpecKinds = Set(SpecKind.Size, SpecKind.Quantity),
     allowedPrintingMethodIds = Set(uvInkjetId),
     description = Some(LocalizedString(
-      "Large-format vinyl banners for outdoor and indoor use. Printed with UV-curable inks for weather resistance. Optional grommets for hanging and die-cutting for custom shapes.",
-      "Velkoformátové vinylové bannery pro venkovní i vnitřní použití. Tištěné UV vytvrzovanými inkousty pro odolnost proti povětrnostním vlivům. Volitelné průchodky pro zavěšení a výsek pro vlastní tvary.",
+      "Large-format PVC banners for outdoor and indoor use. Printed with UV-curable inks for weather resistance. Optional grommets for hanging, gum rope for tensioning, and die-cutting for custom shapes.",
+      "Velkoformátové PVC bannery pro venkovní i vnitřní použití. Tištěné UV vytvrzovanými inkousty pro odolnost proti povětrnostním vlivům. Volitelné průchodky pro zavěšení, gumový provaz pro napnutí a výsek pro vlastní tvary.",
     )),
     presets = List(
       CategoryPreset(
         id = PresetId.unsafe("preset-banners-standard"),
         name = LocalizedString("Standard", "Standardní"),
         description = Some(LocalizedString(
-          "Vinyl, 4+0 CMYK, 1000×2000 mm, 1 pc",
-          "Vinyl, 4+0 CMYK, 1000×2000 mm, 1 ks",
+          "PVC 510g, 4+0 CMYK, 1000×1000 mm, 1 pc",
+          "PVC 510g, 4+0 CMYK, 1000×1000 mm, 1 ks",
         )),
         printingMethodId = uvInkjetId,
         componentPresets = List(ComponentPreset(
           role = ComponentRole.Main,
-          materialId = vinylId,
+          materialId = pvc510gId,
           inkConfiguration = InkConfiguration.cmyk4_0,
         )),
         specOverrides = List(
-          SpecValue.SizeSpec(Dimension(1000, 2000)),
+          SpecValue.SizeSpec(Dimension(1000, 1000)),
           SpecValue.QuantitySpec(Quantity.unsafe(1)),
         ),
       ),
@@ -1213,21 +1238,21 @@ object SampleCatalog:
         id = PresetId.unsafe("preset-banners-outdoor"),
         name = LocalizedString("Outdoor with Grommets", "Exteriérový s průchodkami"),
         description = Some(LocalizedString(
-          "Vinyl, 4+0 CMYK, UV coating + grommets, 1500×3000 mm, 1 pc",
-          "Vinyl, 4+0 CMYK, UV lak + průchodky, 1500×3000 mm, 1 ks",
+          "PVC 510g, 4+0 CMYK, UV coating + grommets (500 mm), 1000×1500 mm, 1 pc",
+          "PVC 510g, 4+0 CMYK, UV lak + průchodky (500 mm), 1000×1500 mm, 1 ks",
         )),
         printingMethodId = uvInkjetId,
         componentPresets = List(ComponentPreset(
           role = ComponentRole.Main,
-          materialId = vinylId,
+          materialId = pvc510gId,
           inkConfiguration = InkConfiguration.cmyk4_0,
           finishSelections = List(
             FinishSelection(uvCoatingId),
-            FinishSelection(grommetsId),
+            FinishSelection(grommetsId, Some(FinishParameters.GrommetParams(500))),
           ),
         )),
         specOverrides = List(
-          SpecValue.SizeSpec(Dimension(1500, 3000)),
+          SpecValue.SizeSpec(Dimension(1000, 1500)),
           SpecValue.QuantitySpec(Quantity.unsafe(1)),
         ),
       ),
@@ -1458,6 +1483,7 @@ object SampleCatalog:
   private val allMaterialIds: Set[MaterialId] = Set(
     coated300gsmId, uncoatedBondId, kraftId, vinylId, corrugatedId,
     coatedSilk250gsmId, yupoId, adhesiveStockId, cottonId, clearVinylId,
+    pvc510gId,
     // Promotional materials
     cottonTshirt150Id, cottonTshirt180Id, polyesterTshirtId, cottonPolyBlendId, organicCottonTshirtId,
     cottonCanvasBagId, organicCottonBagId, recycledPetBagId, juteBagId, nonWovenPpBagId,
@@ -1469,7 +1495,7 @@ object SampleCatalog:
     matteLaminationId, glossLaminationId, uvCoatingId, embossingId,
     foilStampingId, dieCutId, varnishId, softTouchCoatingId, aqueousCoatingId,
     debossingId, scoringId, perforationId, roundCornersId, grommetsId, kissCutId,
-    overlaminationId,
+    overlaminationId, gumRopeId,
     // Promotional finishes
     heatPressId, labelPrintId, foldBagId, mylarOverlayId, safetyPinId, magnetBackId,
     bottleOpenerId, dishwasherCoatId, giftBoxId, glossyGlazeId, embroideryId, reinforcedHandlesId,
@@ -2006,6 +2032,7 @@ object SampleCatalog:
       adhesiveStockId     -> adhesiveStock,
       cottonId            -> cotton,
       clearVinylId        -> clearVinyl,
+      pvc510gId           -> pvc510g,
       // Coated Art Paper Glossy
       coatedGlossy90gsmId  -> coatedGlossy90gsm,
       coatedGlossy115gsmId -> coatedGlossy115gsm,
@@ -2067,6 +2094,7 @@ object SampleCatalog:
       grommetsId         -> grommets,
       kissCutId          -> kissCut,
       overlaminationId   -> overlamination,
+      gumRopeId          -> gumRope,
       // Promotional Finishes
       heatPressId         -> heatPress,
       labelPrintId        -> labelPrint,

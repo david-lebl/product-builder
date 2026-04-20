@@ -276,6 +276,8 @@ object RuleEvaluator:
         components.exists { comp =>
           comp.inkConfiguration.front.inkType == inkType || comp.inkConfiguration.back.inkType == inkType
         }
+      case ConfigurationPredicate.HasFinishId(finishId) =>
+        components.exists(_.finishes.exists(_.id == finishId))
       case ConfigurationPredicate.BindingMethodIs(methods) =>
         specifications.get(SpecKind.BindingMethod) match
           case Some(SpecValue.BindingMethodSpec(method)) => methods.contains(method)
