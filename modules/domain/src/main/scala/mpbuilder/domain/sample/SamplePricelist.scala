@@ -49,6 +49,14 @@ object SamplePricelist:
       PricingRule.FinishTypeSurcharge(FinishType.RoundCorners, Money("0.02")),
       PricingRule.FinishTypeSurcharge(FinishType.Overlamination, Money("2.50")),
 
+      // --- Scoring count surcharges (per piece, USD; discountable) ---
+      PricingRule.ScoringCountSurcharge(1, Money("0.03")),
+      PricingRule.ScoringCountSurcharge(2, Money("0.05")),
+      PricingRule.ScoringCountSurcharge(3, Money("0.06")),
+      PricingRule.ScoringCountSurcharge(4, Money("0.07")),
+      // Scoring setup fee (flat, not discounted)
+      PricingRule.ScoringSetupFee(Money("2.50")),
+
       // --- Fold type surcharges (per unit, USD) ---
       PricingRule.FoldTypeSurcharge(FoldType.Half, Money("0.02")),
       PricingRule.FoldTypeSurcharge(FoldType.Tri, Money("0.03")),
@@ -239,6 +247,14 @@ object SamplePricelist:
       PricingRule.FinishTypeSurcharge(FinishType.AqueousCoating, Money("0.50")),
       PricingRule.FinishTypeSurcharge(FinishType.Varnish, Money("1.50")),
       PricingRule.FinishTypeSurcharge(FinishType.Overlamination, Money("60")),
+
+      // --- Scoring count surcharges (per piece, CZK; discountable) ---
+      PricingRule.ScoringCountSurcharge(1, Money("0.60")),
+      PricingRule.ScoringCountSurcharge(2, Money("1.00")),
+      PricingRule.ScoringCountSurcharge(3, Money("1.30")),
+      PricingRule.ScoringCountSurcharge(4, Money("1.50")),
+      // Scoring setup fee (flat, not discounted; replaces FinishTypeSetupFee for Scoring)
+      PricingRule.ScoringSetupFee(Money("60")),
 
       // --- Fold type surcharges (per unit, CZK) ---
       PricingRule.FoldTypeSurcharge(FoldType.Half, Money("0.50")),

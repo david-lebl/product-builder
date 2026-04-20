@@ -70,6 +70,9 @@ object CatalogQueryService:
             case CompatibilityRule.FinishRequiresFinishType(_, _, _)    => true
             case CompatibilityRule.ConfigurationConstraint(_, _, _)     => true
             case CompatibilityRule.TechnologyConstraint(_, _)           => true
+            case CompatibilityRule.ScoringMaxCreasesForCategory(_, _, _)      => true
+            case CompatibilityRule.ScoringMaxCreasesForMaterial(_, _, _)      => true
+            case CompatibilityRule.ScoringMaxCreasesForPrintingProcess(_, _, _) => true
           }
         }
 
@@ -92,3 +95,24 @@ object CatalogQueryService:
           catalog.printingMethods.values.toList
         else
           category.allowedPrintingMethodIds.toList.flatMap(catalog.printingMethods.get)
+
+  /** Returns the effective maximum crease count for scoring, computed as the minimum across all applicable
+    * `ScoringMaxCreasesFor*` rules for the given (category, material, printing method) combination.
+    * Returns `None` if no cap rules apply (scoring not offered / no cap defined).
+    */
+  def scoringMaxCreases(
+      categoryId: CategoryId,
+      materialId: MaterialId,
+      ruleset: CompatibilityRuleset,
+      printingMethodId: Option[PrintingMethodId],
+      catalog: ProductCatalog,
+  ): Option[Int] =
+    val printingMethod = printingMethodId.flatMap(catalog.printingMethods.get)
+
+    val caps = ruleset.rules.collect {
+      case CompatibilityRule.ScoringMaxCreasesForCategory(catId, max, _) if catId == categoryId => max
+      case CompatibilityRule.ScoringMaxCreasesForMaterial(matId, max, _) if matId == materialId => max
+      case CompatibilityRule.ScoringMaxCreasesForPrintingProcess(processType, max, _)
+          if printingMethod.exists(_.processType == processType) => max
+    }
+    if caps.isEmpty then None else Some(caps.min)

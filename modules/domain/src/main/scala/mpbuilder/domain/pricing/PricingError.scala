@@ -7,6 +7,7 @@ enum PricingError:
   case NoQuantityInSpecifications
   case NoSizeForAreaPricing(materialId: MaterialId, role: ComponentRole)
   case NoSizeForSheetPricing(materialId: MaterialId, role: ComponentRole)
+  case MissingScoringPrice(creaseCount: Int)
 
   def message: String = message(Language.En)
 
@@ -23,3 +24,6 @@ enum PricingError:
     case NoSizeForSheetPricing(materialId, role) => lang match
       case Language.En => s"Sheet-based pricing requires size specification for material '${materialId.value}' in component '$role'"
       case Language.Cs => s"Archová kalkulace vyžaduje specifikaci rozměrů pro materiál '${materialId.value}' v komponentu '$role'"
+    case MissingScoringPrice(creaseCount) => lang match
+      case Language.En => s"No scoring price rule found for $creaseCount crease(s)"
+      case Language.Cs => s"Nebyla nalezena cenová pravidla pro bigování s $creaseCount linkou/linkami"

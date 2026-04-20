@@ -31,6 +31,7 @@ enum ConfigurationError:
   case InvalidComponentRoles(categoryId: CategoryId, expectedRoles: Set[ComponentRole], actualRoles: Set[ComponentRole])
   case MissingComponent(categoryId: CategoryId, role: ComponentRole)
   case InvalidFinishParameters(finishId: FinishId, reason: String)
+  case ScoringCreaseLimitExceeded(maxCreases: Int, actualCreases: Int, reason: String)
 
   def message: String = message(Language.En)
 
@@ -116,3 +117,6 @@ enum ConfigurationError:
     case InvalidFinishParameters(finId, reason) => lang match
       case Language.En => s"Invalid parameters for finish '${finId.value}': $reason"
       case Language.Cs => s"Neplatné parametry pro úpravu '${finId.value}': $reason"
+    case ScoringCreaseLimitExceeded(maxCreases, actualCreases, reason) => lang match
+      case Language.En => s"Crease count $actualCreases exceeds the maximum of $maxCreases: $reason"
+      case Language.Cs => s"Počet linek $actualCreases překračuje maximum $maxCreases: $reason"

@@ -1055,7 +1055,7 @@ object SampleCatalog:
       ComponentRole.Main,
       allowedMaterialIds = Set(coated300gsmId, uncoatedBondId) ++
       allCoatedGlossyIds ++ allCoatedMatteIds,
-      allowedFinishIds = Set(matteLaminationId, glossLaminationId, uvCoatingId, varnishId, aqueousCoatingId, roundCornersId),
+      allowedFinishIds = Set(matteLaminationId, glossLaminationId, uvCoatingId, varnishId, aqueousCoatingId, roundCornersId, scoringId),
     )),
     requiredSpecKinds = Set(SpecKind.Size, SpecKind.Quantity, SpecKind.Orientation),
     allowedPrintingMethodIds = Set(digitalId),

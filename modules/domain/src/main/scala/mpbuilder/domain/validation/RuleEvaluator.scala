@@ -150,6 +150,54 @@ object RuleEvaluator:
           case false => Validation.fail(ConfigurationError.TechnologyConstraintViolation(reason))
           case true  => Validation.unit
 
+      case CompatibilityRule.ScoringMaxCreasesForCategory(catId, maxCreases, reason) =>
+        if categoryId == catId then
+          val violations = components.flatMap { comp =>
+            comp.finishes.collect {
+              case sf if sf.finishType == FinishType.Scoring =>
+                sf.params match
+                  case Some(FinishParameters.ScoringParams(count)) if count > maxCreases =>
+                    Some(ConfigurationError.ScoringCreaseLimitExceeded(maxCreases, count, reason))
+                  case _ => None
+            }.flatten
+          }
+          violations.foldLeft(Validation.unit: Validation[ConfigurationError, Unit])((acc, e) =>
+            acc.zipRight(Validation.fail(e)),
+          )
+        else Validation.unit
+
+      case CompatibilityRule.ScoringMaxCreasesForMaterial(materialId, maxCreases, reason) =>
+        val violations = components.flatMap { comp =>
+          if comp.material.id == materialId then
+            comp.finishes.collect {
+              case sf if sf.finishType == FinishType.Scoring =>
+                sf.params match
+                  case Some(FinishParameters.ScoringParams(count)) if count > maxCreases =>
+                    Some(ConfigurationError.ScoringCreaseLimitExceeded(maxCreases, count, reason))
+                  case _ => None
+            }.flatten
+          else Nil
+        }
+        violations.foldLeft(Validation.unit: Validation[ConfigurationError, Unit])((acc, e) =>
+          acc.zipRight(Validation.fail(e)),
+        )
+
+      case CompatibilityRule.ScoringMaxCreasesForPrintingProcess(processType, maxCreases, reason) =>
+        if printingMethod.processType == processType then
+          val violations = components.flatMap { comp =>
+            comp.finishes.collect {
+              case sf if sf.finishType == FinishType.Scoring =>
+                sf.params match
+                  case Some(FinishParameters.ScoringParams(count)) if count > maxCreases =>
+                    Some(ConfigurationError.ScoringCreaseLimitExceeded(maxCreases, count, reason))
+                  case _ => None
+            }.flatten
+          }
+          violations.foldLeft(Validation.unit: Validation[ConfigurationError, Unit])((acc, e) =>
+            acc.zipRight(Validation.fail(e)),
+          )
+        else Validation.unit
+
   private def evaluateSpecPredicate(
       predicate: SpecPredicate,
       specs: ProductSpecifications,

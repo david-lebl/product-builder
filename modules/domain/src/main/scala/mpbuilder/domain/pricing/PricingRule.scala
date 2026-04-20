@@ -52,3 +52,7 @@ enum PricingRule:
   case GrommetSpacingAreaPrice(finishId: FinishId, tiers: List[GrommetSpacingTier])
   // Linear-meter pricing for rope/accessory finishes
   case FinishLinearMeterPrice(finishId: FinishId, pricePerMeter: Money)
+  // Per-piece scoring surcharge keyed on crease count (discountable, applied before quantity multiplier)
+  case ScoringCountSurcharge(creaseCount: Int, surchargePerUnit: Money)
+  // One-time flat setup fee for creasing/scoring (not discounted; takes precedence over FinishTypeSetupFee for Scoring)
+  case ScoringSetupFee(setupCost: Money)
