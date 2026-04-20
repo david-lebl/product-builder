@@ -9,7 +9,7 @@ Core feature specifications — stable documents describing *what* the system do
 | Document | Description |
 |----------|-------------|
 | [features.md](features.md) | Comprehensive feature overview of the entire system |
-| [pricing.md](pricing.md) | Pricing engine specification with 17 rule types and worked examples |
+| [pricing.md](pricing.md) | Pricing engine specification with 20 rule types and worked examples |
 | [visual-product-types.md](visual-product-types.md) | Visual editor product types (calendars, photo books, wall pictures) and formats |
 | [manufacturing-speed-pipeline.md](manufacturing-speed-pipeline.md) | Order completion time estimation — 8-stage pipeline specification |
 | [new-product-specification.md](new-product-specification.md) | Specification for adding new product types to the system |
@@ -73,5 +73,6 @@ Session-by-session work logs documenting what was done, decisions made, and issu
 | Document | Description |
 |----------|-------------|
 | [changelog/README.md](changelog/README.md) | Changelog format, template, and log entries index |
+| [changelog/2026-04-20-banner-product-overhaul.md](changelog/2026-04-20-banner-product-overhaul.md) | Session log for Banner Product Overhaul (PVC 510g, area tiers, gum rope, max-dimension rule) |
 | [changelog/2026-04-16-remove-sbt-from-docs-and-pipeline.md](changelog/2026-04-16-remove-sbt-from-docs-and-pipeline.md) | Session log for removing sbt from root docs and CI pipeline |
 | [changelog/2026-04-15-price-preview-validate-button-layout.md](changelog/2026-04-15-price-preview-validate-button-layout.md) | Session log for moving validate action/per-item price into the price preview card |

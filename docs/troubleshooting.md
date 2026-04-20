@@ -142,3 +142,29 @@ signal1.combineWith(signal2).map { case (a, b) => ... }
 
 **Files:** Relevant file paths (optional).
 ```
+
+---
+
+### `PriceCalculator` match structure produces unreachable case for sheet/base pricing
+
+**Symptom:** After adding a new priority-based match at the top of `calculateComponentBreakdown` (e.g. `areaTierRule match`), sheet-priced and base-priced materials silently fall through to `NoSizeForAreaPricing` / `NoBasePriceForMaterial` errors instead of computing correctly.
+
+**Cause:** The pattern `someOption.orElse(anotherOption) match { case Some(x) => …; case _ => …; case None => … }` has an unreachable `case None =>` because `case _` is exhaustive. The sheet/base fallback was placed in the dead `case None` branch.
+
+**Solution:** Use a strictly nested match structure with no wildcard `case _` at the outer level:
+```scala
+areaTierRule match
+  case Some(tierRule) => // tier area pricing
+  case None =>
+    areaRule match
+      case Some(areaPrice) => // flat area pricing
+      case None =>
+        sheetRule match
+          case Some(sp) => // sheet pricing
+          case None =>
+            baseRule match
+              case Some(bp) => // base pricing
+              case None => Validation.fail(…)
+```
+
+**Files:** `modules/domain/src/main/scala/mpbuilder/domain/pricing/PriceCalculator.scala`

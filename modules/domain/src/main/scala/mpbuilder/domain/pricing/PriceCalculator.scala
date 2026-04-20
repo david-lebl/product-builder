@@ -490,7 +490,7 @@ object PriceCalculator:
                 .maxByOption(_.spacingMm)
               selectedTier.map { tier =>
                 val perimeterMm = 2.0 * (dim.widthMm + dim.heightMm)
-                val approxCount = math.ceil(perimeterMm / spacingMm).toInt + 4
+                val approxCount = math.ceil(perimeterMm / spacingMm).toInt + 4 // + 4 corner grommets
                 val surchargePerUnit = tier.pricePerSqMeter * areaSqM
                 val lineTotal = surchargePerUnit * quantity
                 LineItem(

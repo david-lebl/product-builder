@@ -624,7 +624,8 @@ object PriceCalculatorSpec extends ZIOSpecDefault:
         val result = PriceCalculator.calculate(config, pricelistCzk)
         val breakdown = result.toEither.toOption.get
         val cb = firstBreakdown(breakdown)
-        val ropeLine = cb.finishLines.find(_.label.contains("Gum rope")).orElse(cb.finishLines.find(_.label.contains("rope")))
+        // Gum rope is the second finish line (after grommets), 18 CZK/m × 10 m = 180 CZK
+        val ropeLine = cb.finishLines.find(_.unitPrice == Money("180"))
         assertTrue(
           result.toEither.isRight,
           cb.finishLines.size == 2,
@@ -651,7 +652,8 @@ object PriceCalculatorSpec extends ZIOSpecDefault:
         val result = PriceCalculator.calculate(config, pricelistCzk)
         val breakdown = result.toEither.toOption.get
         val cb = firstBreakdown(breakdown)
-        val ropeLine = cb.finishLines.find(_.label.contains("Gum rope")).orElse(cb.finishLines.find(_.label.contains("rope")))
+        // Gum rope: 18 CZK/m × 25 m = 450 CZK
+        val ropeLine = cb.finishLines.find(_.unitPrice == Money("450"))
         assertTrue(
           result.toEither.isRight,
           ropeLine.isDefined,
