@@ -386,7 +386,10 @@ object FinishSelector:
                     ),
                     span(lang match
                       case Language.En => if count == 1 then "1 crease" else s"$count creases"
-                      case Language.Cs => if count == 1 then "1 linka" else s"$count linky"
+                      case Language.Cs => count match
+                        case 1           => "1 linka"
+                        case n if n <= 4 => s"$n linky"
+                        case n           => s"$n linek"
                     ),
                   )
                 }

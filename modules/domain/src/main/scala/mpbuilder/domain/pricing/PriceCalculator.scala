@@ -517,7 +517,10 @@ object PriceCalculator:
           case Some(surcharge) =>
             val label = lang match
               case Language.En => if creaseCount == 1 then "Creasing: 1 crease" else s"Creasing: $creaseCount creases"
-              case Language.Cs => if creaseCount == 1 then "Bigování: 1 linka" else s"Bigování: $creaseCount linky"
+              case Language.Cs => creaseCount match
+                case 1            => "Bigování: 1 linka"
+                case n if n <= 4  => s"Bigování: $n linky"
+                case n            => s"Bigování: $n linek"
             Validation.succeed(List(LineItem(label, surcharge, quantity, surcharge * quantity)))
           case None =>
             Validation.fail(PricingError.MissingScoringPrice(creaseCount))

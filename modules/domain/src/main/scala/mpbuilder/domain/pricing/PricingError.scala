@@ -26,4 +26,7 @@ enum PricingError:
       case Language.Cs => s"Archová kalkulace vyžaduje specifikaci rozměrů pro materiál '${materialId.value}' v komponentu '$role'"
     case MissingScoringPrice(creaseCount) => lang match
       case Language.En => s"No scoring price rule found for $creaseCount crease(s)"
-      case Language.Cs => s"Nebyla nalezena cenová pravidla pro bigování s $creaseCount linkou/linkami"
+      case Language.Cs => creaseCount match
+        case 1           => "Nebyla nalezena cenová pravidla pro bigování s 1 linkou"
+        case n if n <= 4 => s"Nebyla nalezena cenová pravidla pro bigování s $n linkami"
+        case n           => s"Nebyla nalezena cenová pravidla pro bigování s $n linkami"
