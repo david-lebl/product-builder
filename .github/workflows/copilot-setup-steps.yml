@@ -40,8 +40,3 @@ jobs:
         with:
           path: ~/.cache/mill
           key: ${{ runner.os }}-mill-${{ hashFiles('.mill-version') }}
-
-      # Pre-warm Mill by compiling all modules. This downloads and caches all
-      # Coursier-managed JARs so subsequent agent commands run offline.
-      - name: Pre-warm Mill (compile all modules)
-        run: ./mill __.compile
