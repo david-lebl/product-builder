@@ -597,13 +597,22 @@ object SamplePricelist:
       // Gum rope: linear-metre pricing
       PricingRule.FinishLinearMeterPrice(SampleCatalog.gumRopeId, Money("18")),
 
+      // --- Scoring count surcharges (per piece, CZK; discountable) ---
+      PricingRule.ScoringCountSurcharge(1, Money("0.60")),
+      PricingRule.ScoringCountSurcharge(2, Money("1.00")),
+      PricingRule.ScoringCountSurcharge(3, Money("1.30")),
+      PricingRule.ScoringCountSurcharge(4, Money("1.50")),
+      PricingRule.ScoringCountSurcharge(5, Money("1.70")),
+      PricingRule.ScoringCountSurcharge(6, Money("1.90")),
+      PricingRule.ScoringCountSurcharge(7, Money("2.10")),
+      PricingRule.ScoringCountSurcharge(8, Money("2.30")),
+
       // --- Finish surcharges (type-level, CZK) ---
       PricingRule.FinishTypeSurcharge(FinishType.UVCoating, Money("1")),
       PricingRule.FinishTypeSurcharge(FinishType.AqueousCoating, Money("0.50")),
       PricingRule.FinishTypeSurcharge(FinishType.Varnish, Money("1.50")),
       PricingRule.FinishTypeSurcharge(FinishType.RoundCorners, Money("0.50")),
       PricingRule.FinishTypeSurcharge(FinishType.Perforation, Money("0.50")),
-      PricingRule.FinishTypeSurcharge(FinishType.Scoring, Money("0.50")),
       PricingRule.FinishTypeSurcharge(FinishType.Overlamination, Money("60")),
 
       // --- Fold type surcharges (per unit, CZK) ---
@@ -655,7 +664,8 @@ object SamplePricelist:
       PricingRule.FinishSetupFee(SampleCatalog.dieCutId, Money("600")),
       PricingRule.FinishSetupFee(SampleCatalog.kissCutId, Money("200")),
       // Structural — machine/blade setup
-      PricingRule.FinishTypeSetupFee(FinishType.Scoring, Money("50")),
+      // ScoringSetupFee takes precedence over FinishTypeSetupFee for Scoring
+      PricingRule.ScoringSetupFee(Money("60")),
       PricingRule.FinishTypeSetupFee(FinishType.Perforation, Money("60")),
       PricingRule.FinishTypeSetupFee(FinishType.RoundCorners, Money("40")),
 

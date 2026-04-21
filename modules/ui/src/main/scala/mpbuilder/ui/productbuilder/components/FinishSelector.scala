@@ -366,33 +366,33 @@ object FinishSelector:
                 case Language.Cs => "Počet linek:"
             ),
             div(
-              cls := "finish-params-options",
-              children <-- maxCreasesSignal.map { maxOpt =>
-                val max = maxOpt.getOrElse(4)
-                (1 to max).toList.map { count =>
-                  label(
-                    cls := "radio-label",
-                    input(
-                      typ := "radio",
-                      nameAttr := s"creases-${finish.id.value}-$role",
-                      value := count.toString,
-                      checked <-- currentParams.map {
-                        case Some(FinishParameters.ScoringParams(c)) => c == count
-                        case _                                        => count == 1
-                      },
-                      onChange --> { _ =>
-                        ProductBuilderViewModel.setFinishParams(role, finish.id, Some(FinishParameters.ScoringParams(count)))
-                      },
-                    ),
-                    span(lang match
-                      case Language.En => if count == 1 then "1 crease" else s"$count creases"
-                      case Language.Cs => count match
-                        case 1           => "1 linka"
-                        case n if n <= 4 => s"$n linky"
-                        case n           => s"$n linek"
-                    ),
+              cls := "finish-params-input-group",
+              input(
+                typ := "number",
+                cls := "finish-params-input",
+                minAttr := "1",
+                maxAttr <-- maxCreasesSignal.map(_.getOrElse(12).toString),
+                value <-- currentParams.map {
+                  case Some(FinishParameters.ScoringParams(c)) => c.toString
+                  case _                                       => "1"
+                },
+                onInput.mapToValue --> { v =>
+                  v.toIntOption.filter(_ >= 1).foreach { count =>
+                    ProductBuilderViewModel.setFinishParams(role, finish.id, Some(FinishParameters.ScoringParams(count)))
+                  }
+                },
+              ),
+              child <-- maxCreasesSignal.combineWith(currentParams).map { (maxOpt, params) =>
+                val max = maxOpt.getOrElse(12)
+                val current = params.collect { case FinishParameters.ScoringParams(c) => c }.getOrElse(1)
+                if current > max then
+                  span(
+                    cls := "finish-params-error",
+                    lang match
+                      case Language.En => s"Maximum $max crease(s) allowed"
+                      case Language.Cs => s"Povoleno maximálně $max linek",
                   )
-                }
+                else emptyNode
               },
             ),
           ),
