@@ -291,6 +291,18 @@ button:disabled {
     font-size: 0.9rem;
 }
 
+.finish-params-input-group {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.finish-params-error {
+    font-size: 0.82rem;
+    color: var(--color-error, #c62828);
+}
+
 .finish-params-select {
     width: auto !important;
     min-width: 150px;
