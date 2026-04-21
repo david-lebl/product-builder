@@ -71,3 +71,19 @@ enum CompatibilityRule:
       predicate: ConfigurationPredicate,
       reason: String,
   )
+  // Scoring/creasing crease-count caps (effective cap = min across all applicable rules)
+  case ScoringMaxCreasesForCategory(
+      categoryId: CategoryId,
+      maxCreases: Int,
+      reason: String,
+  )
+  case ScoringMaxCreasesForMaterial(
+      materialId: MaterialId,
+      maxCreases: Int,
+      reason: String,
+  )
+  case ScoringMaxCreasesForPrintingProcess(
+      processType: PrintingProcessType,
+      maxCreases: Int,
+      reason: String,
+  )

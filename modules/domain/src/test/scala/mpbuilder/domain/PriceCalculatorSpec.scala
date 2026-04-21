@@ -1754,4 +1754,293 @@ object PriceCalculatorSpec extends ZIOSpecDefault:
         )
       },
     ),
+    suite("scoring / creasing pricing")(
+      test("ScoringParams(1) → 0.60 CZK/pc × 500 = 300 CZK finish line") {
+        val customPricelist = Pricelist(
+          rules = List(
+            PricingRule.MaterialBasePrice(SampleCatalog.coated300gsmId, Money("0.10")),
+            PricingRule.ScoringCountSurcharge(1, Money("0.60")),
+            PricingRule.ScoringCountSurcharge(2, Money("1.00")),
+            PricingRule.ScoringCountSurcharge(3, Money("1.30")),
+            PricingRule.ScoringCountSurcharge(4, Money("1.50")),
+            PricingRule.QuantityTier(1, None, BigDecimal("1.0")),
+          ),
+          currency = Currency.CZK,
+          version = "test",
+        )
+        val config = makeConfig(
+          category = SampleCatalog.brochures,
+          material = SampleCatalog.coated300gsm,
+          printingMethod = SampleCatalog.digitalMethod,
+          inkConfig = InkConfiguration.cmyk4_4,
+          finishes = List(SelectedFinish(SampleCatalog.scoring, Some(FinishParameters.ScoringParams(1)))),
+          specs = List(
+            SpecValue.SizeSpec(Dimension(210, 297)),
+            SpecValue.QuantitySpec(Quantity.unsafe(500)),
+          ),
+        )
+        val result = PriceCalculator.calculate(config, customPricelist)
+        val breakdown = result.toEither.toOption.get
+        val cb = firstBreakdown(breakdown)
+        assertTrue(
+          result.toEither.isRight,
+          cb.finishLines.size == 1,
+          cb.finishLines.head.unitPrice == Money("0.60"),
+          cb.finishLines.head.quantity == 500,
+          cb.finishLines.head.lineTotal == Money("300"),
+        )
+      },
+      test("ScoringParams(2) → 1.00 CZK/pc pricing matches tier") {
+        val customPricelist = Pricelist(
+          rules = List(
+            PricingRule.MaterialBasePrice(SampleCatalog.coated300gsmId, Money("0.10")),
+            PricingRule.ScoringCountSurcharge(1, Money("0.60")),
+            PricingRule.ScoringCountSurcharge(2, Money("1.00")),
+            PricingRule.ScoringCountSurcharge(3, Money("1.30")),
+            PricingRule.ScoringCountSurcharge(4, Money("1.50")),
+            PricingRule.QuantityTier(1, None, BigDecimal("1.0")),
+          ),
+          currency = Currency.CZK,
+          version = "test",
+        )
+        val config = makeConfig(
+          category = SampleCatalog.brochures,
+          material = SampleCatalog.coated300gsm,
+          printingMethod = SampleCatalog.digitalMethod,
+          inkConfig = InkConfiguration.cmyk4_4,
+          finishes = List(SelectedFinish(SampleCatalog.scoring, Some(FinishParameters.ScoringParams(2)))),
+          specs = List(
+            SpecValue.SizeSpec(Dimension(210, 297)),
+            SpecValue.QuantitySpec(Quantity.unsafe(100)),
+          ),
+        )
+        val result = PriceCalculator.calculate(config, customPricelist)
+        val breakdown = result.toEither.toOption.get
+        val cb = firstBreakdown(breakdown)
+        assertTrue(
+          cb.finishLines.size == 1,
+          cb.finishLines.head.unitPrice == Money("1.00"),
+          cb.finishLines.head.lineTotal == Money("100"),
+        )
+      },
+      test("ScoringParams(3) → 1.30 CZK/pc pricing matches tier") {
+        val customPricelist = Pricelist(
+          rules = List(
+            PricingRule.MaterialBasePrice(SampleCatalog.coated300gsmId, Money("0.10")),
+            PricingRule.ScoringCountSurcharge(3, Money("1.30")),
+            PricingRule.QuantityTier(1, None, BigDecimal("1.0")),
+          ),
+          currency = Currency.CZK,
+          version = "test",
+        )
+        val config = makeConfig(
+          category = SampleCatalog.brochures,
+          material = SampleCatalog.coated300gsm,
+          printingMethod = SampleCatalog.digitalMethod,
+          inkConfig = InkConfiguration.cmyk4_4,
+          finishes = List(SelectedFinish(SampleCatalog.scoring, Some(FinishParameters.ScoringParams(3)))),
+          specs = List(
+            SpecValue.SizeSpec(Dimension(210, 297)),
+            SpecValue.QuantitySpec(Quantity.unsafe(200)),
+          ),
+        )
+        val result = PriceCalculator.calculate(config, customPricelist)
+        val breakdown = result.toEither.toOption.get
+        val cb = firstBreakdown(breakdown)
+        assertTrue(
+          cb.finishLines.head.unitPrice == Money("1.30"),
+          cb.finishLines.head.lineTotal == Money("260"),
+        )
+      },
+      test("ScoringParams(4) → 1.50 CZK/pc pricing matches tier") {
+        val customPricelist = Pricelist(
+          rules = List(
+            PricingRule.MaterialBasePrice(SampleCatalog.coated300gsmId, Money("0.10")),
+            PricingRule.ScoringCountSurcharge(4, Money("1.50")),
+            PricingRule.QuantityTier(1, None, BigDecimal("1.0")),
+          ),
+          currency = Currency.CZK,
+          version = "test",
+        )
+        val config = makeConfig(
+          category = SampleCatalog.brochures,
+          material = SampleCatalog.coated300gsm,
+          printingMethod = SampleCatalog.digitalMethod,
+          inkConfig = InkConfiguration.cmyk4_4,
+          finishes = List(SelectedFinish(SampleCatalog.scoring, Some(FinishParameters.ScoringParams(4)))),
+          specs = List(
+            SpecValue.SizeSpec(Dimension(210, 297)),
+            SpecValue.QuantitySpec(Quantity.unsafe(500)),
+          ),
+        )
+        val result = PriceCalculator.calculate(config, customPricelist)
+        val breakdown = result.toEither.toOption.get
+        val cb = firstBreakdown(breakdown)
+        assertTrue(
+          cb.finishLines.head.unitPrice == Money("1.50"),
+          cb.finishLines.head.lineTotal == Money("750"),
+        )
+      },
+      test("ScoringCountSurcharge is discounted by the quantity multiplier") {
+        val customPricelist = Pricelist(
+          rules = List(
+            PricingRule.MaterialBasePrice(SampleCatalog.coated300gsmId, Money("1.00")),
+            PricingRule.ScoringCountSurcharge(2, Money("1.00")),
+            PricingRule.QuantityTier(1, None, BigDecimal("0.50")),
+          ),
+          currency = Currency.USD,
+          version = "test",
+        )
+        val config = makeConfig(
+          category = SampleCatalog.brochures,
+          material = SampleCatalog.coated300gsm,
+          printingMethod = SampleCatalog.digitalMethod,
+          inkConfig = InkConfiguration.cmyk4_4,
+          finishes = List(SelectedFinish(SampleCatalog.scoring, Some(FinishParameters.ScoringParams(2)))),
+          specs = List(
+            SpecValue.SizeSpec(Dimension(210, 297)),
+            SpecValue.QuantitySpec(Quantity.unsafe(100)),
+          ),
+        )
+        val result = PriceCalculator.calculate(config, customPricelist)
+        val breakdown = result.toEither.toOption.get
+        // material: 1.00 × 100 = 100; scoring: 1.00 × 100 = 100; subtotal = 200
+        // tier 0.50×: discountedSubtotal = 100
+        // no setup fees → total = 100
+        assertTrue(
+          result.toEither.isRight,
+          breakdown.subtotal == Money("200.00"),
+          breakdown.quantityMultiplier == BigDecimal("0.50"),
+          breakdown.total == Money("100.00"),
+        )
+      },
+      test("ScoringSetupFee is not discounted by quantity multiplier") {
+        val customPricelist = Pricelist(
+          rules = List(
+            PricingRule.MaterialBasePrice(SampleCatalog.coated300gsmId, Money("0.10")),
+            PricingRule.ScoringCountSurcharge(1, Money("0.50")),
+            PricingRule.ScoringSetupFee(Money("60")),
+            PricingRule.QuantityTier(1, None, BigDecimal("0.50")),
+          ),
+          currency = Currency.CZK,
+          version = "test",
+        )
+        val config = makeConfig(
+          category = SampleCatalog.brochures,
+          material = SampleCatalog.coated300gsm,
+          printingMethod = SampleCatalog.digitalMethod,
+          inkConfig = InkConfiguration.cmyk4_4,
+          finishes = List(SelectedFinish(SampleCatalog.scoring, Some(FinishParameters.ScoringParams(1)))),
+          specs = List(
+            SpecValue.SizeSpec(Dimension(210, 297)),
+            SpecValue.QuantitySpec(Quantity.unsafe(100)),
+          ),
+        )
+        val result = PriceCalculator.calculate(config, customPricelist)
+        val breakdown = result.toEither.toOption.get
+        // material: 0.10 × 100 = 10; scoring: 0.50 × 100 = 50; subtotal = 60
+        // tier 0.50×: discountedSubtotal = 30
+        // scoring setup fee: 60 (not discounted)
+        // total = 30 + 60 = 90
+        assertTrue(
+          result.toEither.isRight,
+          breakdown.quantityMultiplier == BigDecimal("0.50"),
+          breakdown.setupFees.exists(_.label.contains("Creasing")),
+          breakdown.setupFees.find(_.label.contains("Creasing")).get.lineTotal == Money("60"),
+          breakdown.total == Money("90.00"),
+        )
+      },
+      test("ScoringSetupFee overrides FinishTypeSetupFee for Scoring") {
+        // When both ScoringSetupFee and FinishTypeSetupFee(Scoring) exist, only ScoringSetupFee fires
+        val customPricelist = Pricelist(
+          rules = List(
+            PricingRule.MaterialBasePrice(SampleCatalog.coated300gsmId, Money("0.10")),
+            PricingRule.ScoringCountSurcharge(1, Money("0.50")),
+            PricingRule.ScoringSetupFee(Money("60")),
+            PricingRule.FinishTypeSetupFee(FinishType.Scoring, Money("999")),
+            PricingRule.QuantityTier(1, None, BigDecimal("1.0")),
+          ),
+          currency = Currency.CZK,
+          version = "test",
+        )
+        val config = makeConfig(
+          category = SampleCatalog.brochures,
+          material = SampleCatalog.coated300gsm,
+          printingMethod = SampleCatalog.digitalMethod,
+          inkConfig = InkConfiguration.cmyk4_4,
+          finishes = List(SelectedFinish(SampleCatalog.scoring, Some(FinishParameters.ScoringParams(1)))),
+          specs = List(
+            SpecValue.SizeSpec(Dimension(210, 297)),
+            SpecValue.QuantitySpec(Quantity.unsafe(10)),
+          ),
+        )
+        val result = PriceCalculator.calculate(config, customPricelist)
+        val breakdown = result.toEither.toOption.get
+        assertTrue(
+          breakdown.setupFees.size == 1,
+          breakdown.setupFees.head.lineTotal == Money("60"),
+        )
+      },
+      test("unparameterized Scoring still priced by legacy FinishTypeSurcharge") {
+        // Plain Scoring finish (no ScoringParams) → legacy path
+        val customPricelist = Pricelist(
+          rules = List(
+            PricingRule.MaterialBasePrice(SampleCatalog.coated300gsmId, Money("0.10")),
+            PricingRule.FinishTypeSurcharge(FinishType.Scoring, Money("0.02")),
+            PricingRule.QuantityTier(1, None, BigDecimal("1.0")),
+          ),
+          currency = Currency.USD,
+          version = "test",
+        )
+        val config = makeConfig(
+          category = SampleCatalog.brochures,
+          material = SampleCatalog.coated300gsm,
+          printingMethod = SampleCatalog.digitalMethod,
+          inkConfig = InkConfiguration.cmyk4_4,
+          finishes = List(SelectedFinish(SampleCatalog.scoring, None)),
+          specs = List(
+            SpecValue.SizeSpec(Dimension(210, 297)),
+            SpecValue.QuantitySpec(Quantity.unsafe(100)),
+          ),
+        )
+        val result = PriceCalculator.calculate(config, customPricelist)
+        val breakdown = result.toEither.toOption.get
+        val cb = firstBreakdown(breakdown)
+        assertTrue(
+          result.toEither.isRight,
+          cb.finishLines.size == 1,
+          cb.finishLines.head.unitPrice == Money("0.02"),
+        )
+      },
+      test("missing ScoringCountSurcharge rule → MissingScoringPrice error") {
+        val customPricelist = Pricelist(
+          rules = List(
+            PricingRule.MaterialBasePrice(SampleCatalog.coated300gsmId, Money("0.10")),
+            // No ScoringCountSurcharge rule at all
+            PricingRule.QuantityTier(1, None, BigDecimal("1.0")),
+          ),
+          currency = Currency.USD,
+          version = "test",
+        )
+        val config = makeConfig(
+          category = SampleCatalog.brochures,
+          material = SampleCatalog.coated300gsm,
+          printingMethod = SampleCatalog.digitalMethod,
+          inkConfig = InkConfiguration.cmyk4_4,
+          finishes = List(SelectedFinish(SampleCatalog.scoring, Some(FinishParameters.ScoringParams(3)))),
+          specs = List(
+            SpecValue.SizeSpec(Dimension(210, 297)),
+            SpecValue.QuantitySpec(Quantity.unsafe(100)),
+          ),
+        )
+        val result = PriceCalculator.calculate(config, customPricelist)
+        val errors = result.toEither.left.toOption.get.toList
+        assertTrue(
+          errors.exists {
+            case PricingError.MissingScoringPrice(3) => true
+            case _                                   => false
+          },
+        )
+      },
+    ),
   )

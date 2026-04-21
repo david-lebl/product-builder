@@ -46,6 +46,8 @@ Brief description of what was accomplished in this session.
 
 | Date | Title | PR | Type |
 |------|-------|----|------|
+| 2026-04-21 | [Scoring: stepper input and pricing fix](2026-04-21-scoring-stepper-and-pricing-fix.md) | — | bugfix |
+| 2026-04-20 | [Creasing/Scoring feature](2026-04-20-scoring-creasing-feature.md) | — | feature |
 | 2026-04-20 | [Banner Product Overhaul](2026-04-20-banner-product-overhaul.md) | — | feature |
 | 2026-04-18 | [Fix Mill SSL failure in Copilot Agent environment](2026-04-18-fix-mill-ssl-copilot-agent.md) | — | bugfix |
 | 2026-04-16 | [Compact UI Redesign for ProductBuilderApp](2026-04-16-compact-ui-redesign.md) | — | refactoring |

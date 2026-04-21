@@ -55,6 +55,8 @@ object FinishSelector:
         Some(FinishParameters.LaminationParams(FinishSide.Both))
       case FinishType.RopeAccessory =>
         Some(FinishParameters.RopeParams(BigDecimal("5")))
+      case FinishType.Scoring =>
+        Some(FinishParameters.ScoringParams(1))
       case _ => None
 
     div(
@@ -345,6 +347,52 @@ object FinishSelector:
                 v.toIntOption.filter(_ > 0).foreach { pitch =>
                   ProductBuilderViewModel.setFinishParams(role, finish.id, Some(FinishParameters.PerforationParams(pitch)))
                 }
+              },
+            ),
+          ),
+        )
+
+      case FinishType.Scoring =>
+        val maxCreasesSignal = ProductBuilderViewModel.scoringMaxCreases(role)
+        div(
+          cls := "finish-params",
+          Visibility.when(isSelected),
+          div(
+            cls := "finish-params-row",
+            span(
+              cls := "finish-params-label",
+              lang match
+                case Language.En => "Creases:"
+                case Language.Cs => "Počet linek:"
+            ),
+            div(
+              cls := "finish-params-input-group",
+              input(
+                typ := "number",
+                cls := "finish-params-input",
+                minAttr := "1",
+                maxAttr <-- maxCreasesSignal.map(_.getOrElse(12).toString),
+                value <-- currentParams.map {
+                  case Some(FinishParameters.ScoringParams(c)) => c.toString
+                  case _                                       => "1"
+                },
+                onInput.mapToValue --> { v =>
+                  v.toIntOption.filter(_ >= 1).foreach { count =>
+                    ProductBuilderViewModel.setFinishParams(role, finish.id, Some(FinishParameters.ScoringParams(count)))
+                  }
+                },
+              ),
+              child <-- maxCreasesSignal.combineWith(currentParams).map { (maxOpt, params) =>
+                val max = maxOpt.getOrElse(12)
+                val current = params.collect { case FinishParameters.ScoringParams(c) => c }.getOrElse(1)
+                if current > max then
+                  span(
+                    cls := "finish-params-error",
+                    lang match
+                      case Language.En => s"Maximum $max crease(s) allowed"
+                      case Language.Cs => s"Povoleno maximálně $max linek",
+                  )
+                else emptyNode
               },
             ),
           ),

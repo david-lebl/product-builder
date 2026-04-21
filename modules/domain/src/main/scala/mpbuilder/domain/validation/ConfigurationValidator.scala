@@ -139,3 +139,10 @@ object ConfigurationValidator:
           if finish.finishType == FinishType.RopeAccessory then Validation.unit
           else Validation.fail(ConfigurationError.InvalidFinishParameters(finish.id, s"RopeParams can only be used with RopeAccessory finish type")),
         )
+      case FinishParameters.ScoringParams(creaseCount) =>
+        List(
+          if creaseCount >= 1 then Validation.unit
+          else Validation.fail(ConfigurationError.InvalidFinishParameters(finish.id, s"ScoringParams creaseCount must be ≥ 1, got $creaseCount")),
+          if finish.finishType == FinishType.Scoring then Validation.unit
+          else Validation.fail(ConfigurationError.InvalidFinishParameters(finish.id, s"ScoringParams can only be used with Scoring finish type")),
+        )

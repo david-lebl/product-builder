@@ -431,6 +431,20 @@ object SampleRules:
       SpecPredicate.MaxDimension(300, 300),
       "Eco bag print area must not exceed 300×300mm",
     ),
+
+    // --- Scoring / creasing max-crease caps ---
+    // Brochures: max 4 creases (folded print; scoring for heavy stock clean folds)
+    CompatibilityRule.ScoringMaxCreasesForCategory(
+      cat.brochuresId,
+      4,
+      "Brochures support up to 4 score lines",
+    ),
+    // Flyers: max 4 creases
+    CompatibilityRule.ScoringMaxCreasesForCategory(
+      cat.flyersId,
+      4,
+      "Flyers support up to 4 score lines",
+    ),
   )
 
   val ruleset: CompatibilityRuleset = CompatibilityRuleset(

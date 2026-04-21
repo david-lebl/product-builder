@@ -504,6 +504,21 @@ object ProductBuilderViewModel:
           List.empty
     }
 
+  /** Effective maximum crease count for the Scoring finish for a given component role.
+    * Returns None if no ScoringMaxCreasesFor* cap rule applies (scoring not capped / not offered).
+    */
+  def scoringMaxCreases(role: ComponentRole): Signal[Option[Int]] =
+    state.map { s =>
+      val materialId = s.componentStates.get(role).flatMap(_.selectedMaterialId)
+      s.selectedCategoryId match
+        case Some(categoryId) =>
+          materialId match
+            case Some(matId) =>
+              CatalogQueryService.scoringMaxCreases(categoryId, matId, ruleset, s.selectedPrintingMethodId, catalog)
+            case None => None
+        case None => None
+    }
+
   // Get required spec kinds for the selected category
   def requiredSpecKinds: Signal[Set[SpecKind]] =
     state.map { s =>

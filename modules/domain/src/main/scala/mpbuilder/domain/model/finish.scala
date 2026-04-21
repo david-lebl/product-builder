@@ -45,6 +45,7 @@ object FinishParameters:
   final case class GrommetParams(spacingMm: Int) extends FinishParameters
   final case class PerforationParams(pitchMm: Int) extends FinishParameters
   final case class RopeParams(lengthMeters: BigDecimal) extends FinishParameters
+  final case class ScoringParams(creaseCount: Int) extends FinishParameters
 
 final case class SelectedFinish(finish: Finish, params: Option[FinishParameters] = None):
   export finish.{id, name, finishType, side}

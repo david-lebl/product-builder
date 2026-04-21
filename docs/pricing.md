@@ -32,7 +32,7 @@ Pricelist(
 
 ### Pricing Rules
 
-There are 20 rule types, each a variant of the `PricingRule` sealed enum:
+There are 22 rule types, each a variant of the `PricingRule` sealed enum:
 
 | Rule | Purpose | Example |
 |------|---------|---------|
@@ -44,6 +44,8 @@ There are 20 rule types, each a variant of the `PricingRule` sealed enum:
 | `FinishTypeSurcharge` | Per-unit surcharge for a finish type | All lamination = $0.04/unit |
 | `GrommetSpacingAreaPrice` | Area-based grommet price keyed by grommet spacing | 40 CZK/m² at 500mm spacing |
 | `FinishLinearMeterPrice` | Price per linear metre for rope/accessory finishes | Gum rope = 18 CZK/m |
+| `ScoringCountSurcharge` | Per-unit surcharge for creasing, keyed on crease count (discountable) | 2 creases = 1.00 CZK/unit |
+| `ScoringSetupFee` | One-time flat setup fee for any Scoring finish (not discounted; overrides `FinishTypeSetupFee` for Scoring) | 60 CZK |
 | `PrintingProcessSurcharge` | Per-unit surcharge for a printing process | Letterpress = $0.20/unit |
 | `CategorySurcharge` | Per-unit surcharge for a product category | Packaging premium |
 | `FoldTypeSurcharge` | Per-unit surcharge for a fold type | Tri-fold = $0.02/unit |
@@ -80,10 +82,11 @@ Given a valid `ProductConfiguration` and a `Pricelist`, the `PriceCalculator` pe
 
 **3. Apply ink configuration factor.** If an `InkConfigurationFactor` matches the front/back color counts, it multiplies the material cost. A factor of 1.0 (identity) produces no line item.
 
-**4. Compute finish surcharges.** For each finish on the configuration, three pricing mechanisms are tried in order:
+**4. Compute finish surcharges.** For each finish on the configuration, four pricing mechanisms are tried in order:
+   - **`ScoringCountSurcharge`** (highest priority for Scoring): if the finish has `ScoringParams(creaseCount)`, find the rule matching that exact `creaseCount`. Fails with `MissingScoringPrice(creaseCount)` if no matching rule exists — silent zero-pricing is never allowed for parameterized scoring.
    - **`GrommetSpacingAreaPrice`**: if the finish has `GrommetParams`, find the tier with the highest `spacingMm ≤ selected spacing` and compute `pricePerSqMeter × area_m²`. The line item label shows the approximate grommet count (`2·(w+h)/spacing + 4 corners`).
    - **`FinishLinearMeterPrice`**: if the finish has `RopeParams`, compute `pricePerMeter × lengthMeters`.
-   - **`FinishSurcharge` / `FinishTypeSurcharge`** (fallback): ID-level surcharge takes precedence over type-level surcharge.
+   - **`FinishSurcharge` / `FinishTypeSurcharge`** (fallback): ID-level surcharge takes precedence over type-level surcharge. A plain Scoring finish with no `ScoringParams` is also priced here for backward compatibility.
    - If none of the above apply, the finish is free (gracefully skipped).
 
 **5. Find process surcharge.** If a `PrintingProcessSurcharge` matches the configuration's printing process type, add it.
@@ -103,6 +106,7 @@ Given a valid `ProductConfiguration` and a `Pricelist`, the `PriceCalculator` pe
 
 **11. Collect setup fees.** One-time fees are gathered for each unique finish, fold type, and binding method in the configuration:
    - For finishes: `FinishSetupFee` (by ID) takes precedence over `FinishTypeSetupFee` (by type). If the same finish ID appears on multiple components (e.g., lamination on Cover and Body), the fee is charged only once.
+   - For the Scoring finish specifically: `ScoringSetupFee` fires once if any Scoring finish is present, and suppresses `FinishTypeSetupFee(Scoring)` — the dedicated rule takes precedence.
    - For fold type: `FoldTypeSetupFee` matches the configuration's fold type spec.
    - For binding method: `BindingMethodSetupFee` matches the configuration's binding method spec.
    - Setup fees are added to the discounted subtotal — they are **not** reduced by the quantity multiplier.
@@ -114,6 +118,8 @@ Given a valid `ProductConfiguration` and a `Pricelist`, the `PriceCalculator` pe
 ### Specificity / Precedence
 
 - **ID-level rules override type-level rules** for both surcharges and setup fees. If both a `FinishSurcharge(finishId=X)` and a `FinishTypeSurcharge(finishType=Lamination)` exist and finish X is a Lamination, the ID-level surcharge is used. Same applies to `FinishSetupFee` vs `FinishTypeSetupFee`.
+- **`ScoringSetupFee` overrides `FinishTypeSetupFee(Scoring)`** — once `ScoringSetupFee` exists in the pricelist, the generic type-level fallback is suppressed for the Scoring finish type.
+- **Parameterized Scoring overrides the legacy finish path** — a `SelectedFinish` with `ScoringParams` is priced exclusively by `ScoringCountSurcharge`; the `FinishSurcharge`/`FinishTypeSurcharge` path is bypassed. A plain Scoring finish without params still uses the legacy path for backward compatibility.
 - For quantity tiers, the **most specific matching tier wins** — the tier with the highest `minQuantity` that is ≤ the actual quantity.
 
 ### Worked Example: Business Cards
@@ -148,6 +154,25 @@ Setup: Tri-fold (one-time)                          +    80.00 CZK
                                                     ─────────────
 Total                                               = 2,245.00 CZK
 ```
+
+### Worked Example: Creased Brochure (Scoring)
+
+Configuration: 500× Coated Art Paper 300gsm + Scoring (2 creases) + Digital Printing (CZK pricelist)
+
+```
+Material: Coated Art Paper 300gsm    12.00 CZK × 500 = 6,000.00 CZK
+Finish: Creasing (2 creases)          1.00 CZK × 500 =   500.00 CZK
+                                                   ─────────────
+Subtotal                                           = 6,500.00 CZK
+Quantity tier (500–999)                            ×      0.85
+                                                   ─────────────
+Discounted subtotal                                = 5,525.00 CZK
+Setup: Creasing (one-time)                         +    60.00 CZK
+                                                   ─────────────
+Total                                              = 5,585.00 CZK
+```
+
+Note: the `ScoringCountSurcharge(2, 1.00 CZK)` rule is an exact-match on crease count (not a per-crease unit price), so selecting 3 creases would use `ScoringCountSurcharge(3, 1.30 CZK)` and produce a different price point.
 
 ### Worked Example: Banner (Area-Based)
 
