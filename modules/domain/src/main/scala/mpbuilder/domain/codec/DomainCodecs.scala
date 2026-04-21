@@ -69,7 +69,17 @@ object DomainCodecs:
   given JsonEncoder[PaperWeight] = JsonEncoder[Int].contramap(_.gsm)
   given JsonDecoder[PaperWeight] = JsonDecoder[Int].map(PaperWeight.unsafe)
 
+  given JsonEncoder[HexColor] = JsonEncoder[String].contramap(_.value)
+  given JsonDecoder[HexColor] = JsonDecoder[String].map(HexColor.unsafe)
+
+  given JsonCodec[MaterialAttribute] = DeriveJsonCodec.gen[MaterialAttribute]
+
   given JsonCodec[Material] = DeriveJsonCodec.gen[Material]
+
+  // ── BoundEdge ─────────────────────────────────────────────────────────────
+
+  given JsonEncoder[BoundEdge] = JsonEncoder[String].contramap(_.toString)
+  given JsonDecoder[BoundEdge] = JsonDecoder[String].map(BoundEdge.valueOf)
 
   // ── Finish types ─────────────────────────────────────────────────────────
 

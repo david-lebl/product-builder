@@ -295,7 +295,7 @@ object PriceCalculatorSpec extends ZIOSpecDefault:
           category = SampleCatalog.booklets,
           printingMethod = SampleCatalog.offsetMethod,
           components = List(
-            ProductComponent(ComponentRole.Cover, SampleCatalog.coated300gsm, InkConfiguration.cmyk4_4, List(SelectedFinish(SampleCatalog.matteLamination)), sheetCount = 1),
+            ProductComponent(ComponentRole.FrontCover, SampleCatalog.coated300gsm, InkConfiguration.cmyk4_4, List(SelectedFinish(SampleCatalog.matteLamination)), sheetCount = 1),
             ProductComponent(ComponentRole.Body, SampleCatalog.coated300gsm, InkConfiguration.cmyk4_4, Nil, sheetCount = 7),
           ),
           specifications = ProductSpecifications.fromSpecs(List(
@@ -308,7 +308,7 @@ object PriceCalculatorSpec extends ZIOSpecDefault:
 
         val result = PriceCalculator.calculate(config, pricelist)
         val breakdown = result.toEither.toOption.get
-        val coverBd = breakdown.componentBreakdowns.find(_.role == ComponentRole.Cover).get
+        val coverBd = breakdown.componentBreakdowns.find(_.role == ComponentRole.FrontCover).get
         val bodyBd = breakdown.componentBreakdowns.find(_.role == ComponentRole.Body).get
         // Saddle stitch surcharge: 0.05 × 500 = 25.00
         assertTrue(
@@ -330,31 +330,32 @@ object PriceCalculatorSpec extends ZIOSpecDefault:
         // Cover: coatedSilk250gsm (0.11) × 1 × 100 = 11.00
         // Cover ink config (4/0, multiplier 0.60): 11.00 × (0.60 - 1.0) = -4.40
         // Cover gloss lam: 0.03 × 100 = 3.00
-        // Body: coated300gsm (0.12) × 6 × 100 = 72.00  (spiral 14 pages: (14-2)/2 = 6)
-        // subtotal = 11.00 + (-4.40) + 3.00 + 72.00 = 81.60
+        // Body: coated300gsm (0.12) × 6 × 100 = 72.00  (loop 14 pages: (14-2)/2 = 6)
+        // subtotal = 11.00 + (-4.40) + 3.00 + 72.00 = 81.60 + binding surcharge 20.00 = 101.60
         // tier 1-249: 1.0×
-        // total = 81.60
+        // setup fee: LoopBinding 15.00
+        // total = 101.60 + 15.00 = 116.60
         val config = ProductConfiguration(
           id = configId,
           category = SampleCatalog.calendars,
           printingMethod = SampleCatalog.digitalMethod,
           components = List(
-            ProductComponent(ComponentRole.Cover, SampleCatalog.coatedSilk250gsm, InkConfiguration.cmyk4_0, List(SelectedFinish(SampleCatalog.glossLamination)), sheetCount = 1),
+            ProductComponent(ComponentRole.FrontCover, SampleCatalog.coatedSilk250gsm, InkConfiguration.cmyk4_0, List(SelectedFinish(SampleCatalog.glossLamination)), sheetCount = 1),
             ProductComponent(ComponentRole.Body, SampleCatalog.coated300gsm, InkConfiguration.cmyk4_4, Nil, sheetCount = 6),
           ),
           specifications = ProductSpecifications.fromSpecs(List(
             SpecValue.SizeSpec(Dimension(297, 210)),
             SpecValue.QuantitySpec(Quantity.unsafe(100)),
             SpecValue.PagesSpec(14),
-            SpecValue.BindingMethodSpec(BindingMethod.SpiralBinding),
+            SpecValue.BindingMethodSpec(BindingMethod.LoopBinding),
           )),
         )
 
         val result = PriceCalculator.calculate(config, pricelist)
         val breakdown = result.toEither.toOption.get
-        val coverBd = breakdown.componentBreakdowns.find(_.role == ComponentRole.Cover).get
+        val coverBd = breakdown.componentBreakdowns.find(_.role == ComponentRole.FrontCover).get
         val bodyBd = breakdown.componentBreakdowns.find(_.role == ComponentRole.Body).get
-        // Spiral binding surcharge: 0.20 × 100 = 20.00
+        // Loop binding surcharge: 0.20 × 100 = 20.00; setup fee: 15.00 (not in subtotal)
         assertTrue(
           result.toEither.isRight,
           coverBd.materialLine.unitPrice == Money("0.11"),
@@ -364,7 +365,8 @@ object PriceCalculatorSpec extends ZIOSpecDefault:
           breakdown.bindingSurcharge.isDefined,
           breakdown.bindingSurcharge.get.lineTotal == Money("20.00"),
           breakdown.subtotal == Money("101.60"),
-          breakdown.total == Money("101.60"),
+          breakdown.setupFees.exists(_.label.contains("Loop")),
+          breakdown.total == Money("116.60"),
         )
       },
       test("4/0 ink configuration applies lower material multiplier than 4/4") {
@@ -671,19 +673,23 @@ object PriceCalculatorSpec extends ZIOSpecDefault:
             SpecValue.SizeSpec(Dimension(297, 210)),
             SpecValue.QuantitySpec(Quantity.unsafe(100)),
             SpecValue.PagesSpec(14),
-            SpecValue.BindingMethodSpec(BindingMethod.SpiralBinding),
+            SpecValue.BindingMethodSpec(BindingMethod.LoopBinding),
           ),
         )
 
         val result = PriceCalculator.calculate(config, pricelist)
         val breakdown = result.toEither.toOption.get
         val cb = firstBreakdown(breakdown)
+        // material: 0.11 × 100 = 11.00; matte lam: 0.03 × 100 = 3.00
+        // binding surcharge: 0.20 × 100 = 20.00; subtotal = 34.00
+        // setup fee: LoopBinding 15.00; total = 49.00
         assertTrue(
           cb.materialLine.unitPrice == Money("0.11"),
           breakdown.bindingSurcharge.isDefined,
           breakdown.bindingSurcharge.get.lineTotal == Money("20.00"),
           breakdown.subtotal == Money("34.00"),
-          breakdown.total == Money("34.00"),
+          breakdown.setupFees.exists(_.label.contains("Loop")),
+          breakdown.total == Money("49.00"),
         )
       },
       test("Yupo synthetic material priced correctly") {
@@ -1213,7 +1219,7 @@ object PriceCalculatorSpec extends ZIOSpecDefault:
           category = SampleCatalog.booklets,
           printingMethod = SampleCatalog.offsetMethod,
           components = List(
-            ProductComponent(ComponentRole.Cover, SampleCatalog.coated300gsm, InkConfiguration.cmyk4_4, Nil, sheetCount = 1),
+            ProductComponent(ComponentRole.FrontCover, SampleCatalog.coated300gsm, InkConfiguration.cmyk4_4, Nil, sheetCount = 1),
             ProductComponent(ComponentRole.Body, SampleCatalog.coated300gsm, InkConfiguration.cmyk4_4, Nil, sheetCount = 7),
           ),
           specifications = ProductSpecifications.fromSpecs(List(
@@ -1226,7 +1232,7 @@ object PriceCalculatorSpec extends ZIOSpecDefault:
 
         val result = PriceCalculator.calculate(config, SamplePricelist.pricelistCzkSheet)
         val breakdown = result.toEither.toOption.get
-        val coverBd = breakdown.componentBreakdowns.find(_.role == ComponentRole.Cover).get
+        val coverBd = breakdown.componentBreakdowns.find(_.role == ComponentRole.FrontCover).get
         val bodyBd = breakdown.componentBreakdowns.find(_.role == ComponentRole.Body).get
         val totalSheets = coverBd.sheetsUsed + bodyBd.sheetsUsed
         assertTrue(
@@ -1248,7 +1254,7 @@ object PriceCalculatorSpec extends ZIOSpecDefault:
           category = SampleCatalog.booklets,
           printingMethod = SampleCatalog.offsetMethod,
           components = List(
-            ProductComponent(ComponentRole.Cover, SampleCatalog.coated300gsm, InkConfiguration.cmyk4_4, Nil, sheetCount = 1),
+            ProductComponent(ComponentRole.FrontCover, SampleCatalog.coated300gsm, InkConfiguration.cmyk4_4, Nil, sheetCount = 1),
             ProductComponent(ComponentRole.Body, SampleCatalog.coated300gsm, InkConfiguration.cmyk4_4, Nil, sheetCount = 1),
           ),
           specifications = ProductSpecifications.fromSpecs(List(
@@ -1261,7 +1267,7 @@ object PriceCalculatorSpec extends ZIOSpecDefault:
 
         val result = PriceCalculator.calculate(config, SamplePricelist.pricelistCzkSheet)
         val breakdown = result.toEither.toOption.get
-        val coverBd = breakdown.componentBreakdowns.find(_.role == ComponentRole.Cover).get
+        val coverBd = breakdown.componentBreakdowns.find(_.role == ComponentRole.FrontCover).get
         val bodyBd = breakdown.componentBreakdowns.find(_.role == ComponentRole.Body).get
         val totalSheets = coverBd.sheetsUsed + bodyBd.sheetsUsed
         assertTrue(
@@ -1444,7 +1450,7 @@ object PriceCalculatorSpec extends ZIOSpecDefault:
         val customPricelist = Pricelist(
           rules = List(
             PricingRule.MaterialBasePrice(SampleCatalog.coated300gsmId, Money("0.10")),
-            PricingRule.BindingMethodSetupFee(BindingMethod.SpiralBinding, Money("100")),
+            PricingRule.BindingMethodSetupFee(BindingMethod.LoopBinding, Money("100")),
             PricingRule.QuantityTier(1, None, BigDecimal("0.50")),
           ),
           currency = Currency.USD,
@@ -1459,7 +1465,7 @@ object PriceCalculatorSpec extends ZIOSpecDefault:
           specs = List(
             SpecValue.SizeSpec(Dimension(210, 148)),
             SpecValue.QuantitySpec(Quantity.unsafe(100)),
-            SpecValue.BindingMethodSpec(BindingMethod.SpiralBinding),
+            SpecValue.BindingMethodSpec(BindingMethod.LoopBinding),
           ),
         )
         val result = PriceCalculator.calculate(config, customPricelist)
@@ -1468,8 +1474,8 @@ object PriceCalculatorSpec extends ZIOSpecDefault:
         // spiral binding setup fee: 100 (not discounted)
         // total = 5 + 100 = 105
         assertTrue(
-          breakdown.setupFees.exists(_.label.contains("Spiral")),
-          breakdown.setupFees.find(_.label.contains("Spiral")).get.lineTotal == Money("100"),
+          breakdown.setupFees.exists(_.label.contains("Loop")),
+          breakdown.setupFees.find(_.label.contains("Loop")).get.lineTotal == Money("100"),
           breakdown.total == Money("105.00"),
         )
       },
@@ -1617,7 +1623,7 @@ object PriceCalculatorSpec extends ZIOSpecDefault:
           category = SampleCatalog.booklets,
           printingMethod = SampleCatalog.offsetMethod,
           components = List(
-            ProductComponent(ComponentRole.Cover, SampleCatalog.coated300gsm, InkConfiguration.cmyk4_4, List(SelectedFinish(SampleCatalog.matteLamination)), sheetCount = 1),
+            ProductComponent(ComponentRole.FrontCover, SampleCatalog.coated300gsm, InkConfiguration.cmyk4_4, List(SelectedFinish(SampleCatalog.matteLamination)), sheetCount = 1),
             ProductComponent(ComponentRole.Body, SampleCatalog.coated300gsm, InkConfiguration.cmyk4_4, List(SelectedFinish(SampleCatalog.matteLamination)), sheetCount = 1),
           ),
           specifications = ProductSpecifications.fromSpecs(List(

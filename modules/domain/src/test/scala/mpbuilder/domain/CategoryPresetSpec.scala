@@ -178,7 +178,7 @@ object CategoryPresetSpec extends ZIOSpecDefault:
         val preset = SampleCatalog.booklets.presets.head
         val roles = preset.componentPresets.map(_.role).toSet
         assertTrue(
-          roles.contains(ComponentRole.Cover),
+          roles.contains(ComponentRole.FrontCover),
           roles.contains(ComponentRole.Body),
         )
       },

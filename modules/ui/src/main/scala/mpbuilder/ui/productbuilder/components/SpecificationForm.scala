@@ -427,8 +427,7 @@ object SpecificationForm:
   private def bindingMethodLabel(bm: BindingMethod, lang: Language): String = bm match
     case BindingMethod.SaddleStitch    => lang match { case Language.En => "Saddle Stitch";    case Language.Cs => "V1 – sešitová vazba" }
     case BindingMethod.PerfectBinding  => lang match { case Language.En => "Perfect Binding";  case Language.Cs => "V2 – lepená vazba" }
-    case BindingMethod.SpiralBinding   => lang match { case Language.En => "Spiral Binding";   case Language.Cs => "Kroužková vazba" }
-    case BindingMethod.WireOBinding    => lang match { case Language.En => "Wire-O Binding";   case Language.Cs => "Wire-O vazba" }
+    case BindingMethod.LoopBinding     => lang match { case Language.En => "Loop Binding (Coil/Wire-O)"; case Language.Cs => "Kroužková/Wire-O vazba" }
     case BindingMethod.CaseBinding     => lang match { case Language.En => "Case Binding";     case Language.Cs => "V8 – tuhá vazba" }
 
   private def speedTierCard(

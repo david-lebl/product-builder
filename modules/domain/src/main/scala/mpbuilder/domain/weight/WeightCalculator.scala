@@ -32,6 +32,17 @@ object WeightCalculator:
       specs: ProductSpecifications,
       quantity: Int,
   ): Validation[WeightError, ComponentWeightBreakdown] =
+    // Binding components have no paper weight — report zero weight and skip area calculation
+    if comp.role == ComponentRole.Binding then
+      return Validation.succeed(ComponentWeightBreakdown(
+        role           = comp.role,
+        materialName   = comp.material.name.value,
+        gsmWeight      = 0,
+        sheetsPerItem  = 0,
+        sheetAreaM2    = 0.0,
+        weightPerItemG = 0.0,
+        totalWeightG   = 0.0,
+      ))
     specs.get(SpecKind.Size) match
       case Some(SpecValue.SizeSpec(dim)) =>
         comp.material.weight match
@@ -40,7 +51,9 @@ object WeightCalculator:
             val isSaddleStitchFolded =
               specs.get(SpecKind.BindingMethod)
                    .contains(SpecValue.BindingMethodSpec(BindingMethod.SaddleStitch)) &&
-                (comp.role == ComponentRole.Cover || comp.role == ComponentRole.Body)
+                (comp.role == ComponentRole.FrontCover ||
+                 comp.role == ComponentRole.BackCover ||
+                 comp.role == ComponentRole.Body)
             val flatWidthMm = if isSaddleStitchFolded then dim.widthMm * 2 else dim.widthMm
             val sheetAreaM2 = (flatWidthMm / 1000.0) * (dim.heightMm / 1000.0)
             val weightPerItemG = comp.sheetCount * sheetAreaM2 * gsm

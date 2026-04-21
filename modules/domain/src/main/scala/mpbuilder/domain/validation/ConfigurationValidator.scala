@@ -20,7 +20,7 @@ object ConfigurationValidator:
         ruleset.rules,
         components,
         specifications,
-        category.id,
+        category,
         printingMethod,
       ),
     )

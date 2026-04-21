@@ -76,7 +76,7 @@ object CatalogQueryServiceSpec extends ZIOSpecDefault:
         assertTrue(materials.isEmpty)
       },
       test("returns cover materials for booklets") {
-        val materials = CatalogQueryService.availableMaterials(SampleCatalog.bookletsId, catalog, ComponentRole.Cover)
+        val materials = CatalogQueryService.availableMaterials(SampleCatalog.bookletsId, catalog, ComponentRole.FrontCover)
         val materialIds = materials.map(_.id).toSet
         assertTrue(
           materialIds.contains(SampleCatalog.coated300gsmId),
@@ -101,7 +101,7 @@ object CatalogQueryServiceSpec extends ZIOSpecDefault:
         )
       },
       test("returns empty for wrong role in single-component category") {
-        val materials = CatalogQueryService.availableMaterials(SampleCatalog.businessCardsId, catalog, ComponentRole.Cover)
+        val materials = CatalogQueryService.availableMaterials(SampleCatalog.businessCardsId, catalog, ComponentRole.FrontCover)
         assertTrue(materials.isEmpty)
       },
     ),
@@ -209,7 +209,7 @@ object CatalogQueryServiceSpec extends ZIOSpecDefault:
           catalog,
           ruleset,
           None,
-          ComponentRole.Cover,
+          ComponentRole.FrontCover,
         )
         val finishIds = finishes.map(_.id).toSet
         assertTrue(

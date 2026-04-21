@@ -3,6 +3,9 @@ package mpbuilder.domain.model
 enum SpecKind:
   case Size, Quantity, Orientation, Bleed, Pages, FoldType, BindingMethod, ManufacturingSpeed
 
+enum BoundEdge:
+  case LongEdge, ShortEdge, Width, Height
+
 final case class ProductCategory(
     id: CategoryId,
     name: LocalizedString,
@@ -11,6 +14,7 @@ final case class ProductCategory(
     allowedPrintingMethodIds: Set[PrintingMethodId],
     description: Option[LocalizedString] = None,
     presets: List[CategoryPreset] = List.empty,
+    boundEdge: Option[BoundEdge] = None,
 )
 
 object ProductCategory:
