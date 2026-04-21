@@ -608,6 +608,8 @@ object SamplePricelist:
       PricingRule.ScoringCountSurcharge(8, Money("2.30")),
 
       // --- Finish surcharges (type-level, CZK) ---
+      // Note: Scoring is absent here — per-crease pricing is handled by ScoringCountSurcharge
+      // above. FinishTypeSurcharge(Scoring) is used only as fallback when no ScoringParams present.
       PricingRule.FinishTypeSurcharge(FinishType.UVCoating, Money("1")),
       PricingRule.FinishTypeSurcharge(FinishType.AqueousCoating, Money("0.50")),
       PricingRule.FinishTypeSurcharge(FinishType.Varnish, Money("1.50")),

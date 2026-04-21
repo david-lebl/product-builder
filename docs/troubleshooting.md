@@ -168,3 +168,15 @@ areaTierRule match
 ```
 
 **Files:** `modules/domain/src/main/scala/mpbuilder/domain/pricing/PriceCalculator.scala`
+
+---
+
+### Scoring finish causes `MissingScoringPrice` pricing error in `pricelistCzkSheet`
+
+**Symptom:** Selecting the Scoring finish in the product builder shows a pricing error "No scoring price rule found for 1 crease(s)" even though the product and pricelist appear correct.
+
+**Cause:** `pricelistCzkSheet` (the CZK sheet-based pricelist used in the UI) was missing `ScoringCountSurcharge` rules. When a user selects the Scoring finish, the UI sets `ScoringParams(creaseCount=1)` as the default. `PriceCalculator.computeSingleFinishLine` then looks for a `ScoringCountSurcharge(1, …)` rule — and fails because the sheet pricelist only had a generic `FinishTypeSurcharge(Scoring)`, not the crease-specific rules.
+
+**Solution:** Add `ScoringCountSurcharge(1..N, …)` and `ScoringSetupFee(…)` to `pricelistCzkSheet` in `SamplePricelist.scala`. The generic `FinishTypeSurcharge(Scoring)` can remain as a fallback for Scoring finishes without `ScoringParams` (backward compat), but must NOT be the sole rule when crease-parameterised scoring is used.
+
+**Files:** `modules/domain/src/main/scala/mpbuilder/domain/sample/SamplePricelist.scala`

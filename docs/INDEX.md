@@ -73,6 +73,7 @@ Session-by-session work logs documenting what was done, decisions made, and issu
 | Document | Description |
 |----------|-------------|
 | [changelog/README.md](changelog/README.md) | Changelog format, template, and log entries index |
+| [changelog/2026-04-21-scoring-stepper-and-pricing-fix.md](changelog/2026-04-21-scoring-stepper-and-pricing-fix.md) | Scoring: replace radio buttons with stepper input; fix MissingScoringPrice error in pricelistCzkSheet |
 | [changelog/2026-04-20-scoring-creasing-feature.md](changelog/2026-04-20-scoring-creasing-feature.md) | Session log for Creasing/Scoring feature (ScoringParams, ScoringCountSurcharge, ScoringSetupFee, max-crease caps) |
 | [changelog/2026-04-20-banner-product-overhaul.md](changelog/2026-04-20-banner-product-overhaul.md) | Session log for Banner Product Overhaul (PVC 510g, area tiers, gum rope, max-dimension rule) |
 | [changelog/2026-04-16-remove-sbt-from-docs-and-pipeline.md](changelog/2026-04-16-remove-sbt-from-docs-and-pipeline.md) | Session log for removing sbt from root docs and CI pipeline |
