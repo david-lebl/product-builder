@@ -129,6 +129,28 @@ signal1.combineWith(signal2).map { case (a, b) => ... }
 
 ---
 
+### Missing binding/cover material prices cause CategoryPresetSpec pricing failure
+
+**Symptom:** `CategoryPresetSpec - every preset produces a priced configuration` fails with messages like `cat-calendars/preset-calendars-wall: pricing failed`.
+
+**Cause:** When binding materials (coil, wire-O) or transparent cover plastics are added to a category's component templates and presets, their pricing rules (`MaterialLinearPrice`, `MaterialFixedPrice`, `MaterialBasePrice`) must be present in **all** pricelists — `pricelist` (USD), `pricelistCzk`, and `pricelistCzkSheet`. The `CategoryPresetSpec` uses `pricelistCzkSheet` by default.
+
+**Solution:** Add the corresponding `MaterialLinearPrice` / `MaterialFixedPrice` / `MaterialBasePrice` entries to all three pricelists in `SamplePricelist.scala` whenever a new binding or cover material is added.
+
+**Files:** `modules/domain/src/main/scala/mpbuilder/domain/sample/SamplePricelist.scala`
+
+---
+
+### `sed` multi-line insertion corrupts Scala helper method order
+
+**Symptom:** After using `sed` to add a new helper function before an existing one, Scala compiler reports "Not found" for the existing function (e.g. `generate`) that appears correctly in the file visually.
+
+**Cause:** `sed` line-end substitution may merge the new function body with the next line if the pattern does not include a newline. The result is the new function's last line and the existing function's signature appear on the same line, removing the `def` keyword from scope.
+
+**Solution:** Use the `edit` tool (which does literal string replacement) instead of `sed` for inserting Scala definitions. Always verify the surrounding context with `view` after an edit.
+
+---
+
 *To add a new entry, use this template:*
 
 ```markdown

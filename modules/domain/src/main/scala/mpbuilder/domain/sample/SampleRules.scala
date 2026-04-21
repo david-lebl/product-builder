@@ -161,7 +161,7 @@ object SampleRules:
       cat.bookletsId,
       SpecPredicate.AllowedBindingMethods(Set(
         BindingMethod.SaddleStitch, BindingMethod.PerfectBinding,
-        BindingMethod.LoopBinding, BindingMethod.LoopBinding,
+        BindingMethod.LoopBinding,
       )),
       "Booklets only support saddle stitch, perfect binding, spiral or wire-o binding",
     ),
@@ -212,8 +212,8 @@ object SampleRules:
     // Calendars: allowed binding methods
     CompatibilityRule.SpecConstraint(
       cat.calendarsId,
-      SpecPredicate.AllowedBindingMethods(Set(BindingMethod.LoopBinding, BindingMethod.LoopBinding)),
-      "Calendars only support spiral or wire-o binding",
+      SpecPredicate.AllowedBindingMethods(Set(BindingMethod.LoopBinding)),
+      "Calendars only support loop binding (plastic coil or metal wire-O)",
     ),
     // Calendars: min pages 12
     CompatibilityRule.SpecConstraint(
@@ -252,7 +252,7 @@ object SampleRules:
     CompatibilityRule.TechnologyConstraint(
       ConfigurationPredicate.Or(
         ConfigurationPredicate.Not(ConfigurationPredicate.BindingMethodIs(
-          Set(BindingMethod.PerfectBinding, BindingMethod.LoopBinding, BindingMethod.LoopBinding),
+          Set(BindingMethod.PerfectBinding, BindingMethod.LoopBinding),
         )),
         ConfigurationPredicate.Spec(SpecPredicate.PagesDivisibleBy(2)),
       ),

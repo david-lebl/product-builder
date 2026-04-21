@@ -10,6 +10,7 @@ Core feature specifications — stable documents describing *what* the system do
 |----------|-------------|
 | [features.md](features.md) | Comprehensive feature overview of the entire system |
 | [pricing.md](pricing.md) | Pricing engine specification with 22 rule types and worked examples |
+| [binding-cover-specification.md](binding-cover-specification.md) | Binding & cover domain: component roles (FrontCover/BackCover/Binding), LoopBinding, MaterialAttribute, BoundEdge, linear pricing |
 | [visual-product-types.md](visual-product-types.md) | Visual editor product types (calendars, photo books, wall pictures) and formats |
 | [manufacturing-speed-pipeline.md](manufacturing-speed-pipeline.md) | Order completion time estimation — 8-stage pipeline specification |
 | [new-product-specification.md](new-product-specification.md) | Specification for adding new product types to the system |
@@ -73,6 +74,7 @@ Session-by-session work logs documenting what was done, decisions made, and issu
 | Document | Description |
 |----------|-------------|
 | [changelog/README.md](changelog/README.md) | Changelog format, template, and log entries index |
+| [changelog/2026-04-21-calendar-binding-domain-redesign.md](changelog/2026-04-21-calendar-binding-domain-redesign.md) | Calendar & Binding Domain Redesign (D1–D9): FrontCover/BackCover/Binding roles, LoopBinding, MaterialAttribute, BoundEdge, linear pricing |
 | [changelog/2026-04-21-scoring-stepper-and-pricing-fix.md](changelog/2026-04-21-scoring-stepper-and-pricing-fix.md) | Scoring: replace radio buttons with stepper input; fix MissingScoringPrice error in pricelistCzkSheet |
 | [changelog/2026-04-20-scoring-creasing-feature.md](changelog/2026-04-20-scoring-creasing-feature.md) | Session log for Creasing/Scoring feature (ScoringParams, ScoringCountSurcharge, ScoringSetupFee, max-crease caps) |
 | [changelog/2026-04-20-banner-product-overhaul.md](changelog/2026-04-20-banner-product-overhaul.md) | Session log for Banner Product Overhaul (PVC 510g, area tiers, gum rope, max-dimension rule) |
