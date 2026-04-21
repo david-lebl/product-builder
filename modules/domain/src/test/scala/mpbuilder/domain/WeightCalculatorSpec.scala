@@ -47,7 +47,7 @@ object WeightCalculatorSpec extends ZIOSpecDefault:
       printingMethod = SampleCatalog.digitalMethod,
       components = List(
         ProductComponent(
-          role = ComponentRole.Cover,
+          role = ComponentRole.FrontCover,
           material = coverMaterial,
           inkConfiguration = InkConfiguration.cmyk4_4,
           finishes = List.empty,
@@ -151,7 +151,7 @@ object WeightCalculatorSpec extends ZIOSpecDefault:
         )
         val result = WeightCalculator.calculate(config)
         val bd = result.toEither.toOption.get
-        val cover = bd.componentBreakdowns.find(_.role == ComponentRole.Cover).get
+        val cover = bd.componentBreakdowns.find(_.role == ComponentRole.FrontCover).get
         val body  = bd.componentBreakdowns.find(_.role == ComponentRole.Body).get
         val flatW = 0.296
         val h     = 0.210
@@ -190,7 +190,7 @@ object WeightCalculatorSpec extends ZIOSpecDefault:
         )
         val result = WeightCalculator.calculate(config)
         val bd = result.toEither.toOption.get
-        val cover = bd.componentBreakdowns.find(_.role == ComponentRole.Cover).get
+        val cover = bd.componentBreakdowns.find(_.role == ComponentRole.FrontCover).get
         val body  = bd.componentBreakdowns.find(_.role == ComponentRole.Body).get
         val normalW = 0.148
         val h       = 0.210

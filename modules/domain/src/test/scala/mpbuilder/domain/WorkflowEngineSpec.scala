@@ -47,7 +47,8 @@ object WorkflowEngineSpec extends ZIOSpecDefault:
       SampleCatalog.bookletsId,
       SampleCatalog.digitalId,
       List(
-        ComponentRequest(ComponentRole.Cover, SampleCatalog.coatedGlossy250gsmId, InkConfiguration.cmyk4_4, Nil),
+        ComponentRequest(ComponentRole.FrontCover, SampleCatalog.coatedGlossy250gsmId, InkConfiguration.cmyk4_4, Nil),
+        ComponentRequest(ComponentRole.BackCover, SampleCatalog.coatedGlossy250gsmId, InkConfiguration.cmyk4_4, Nil),
         ComponentRequest(ComponentRole.Body, SampleCatalog.coatedGlossy115gsmId, InkConfiguration.cmyk4_4, Nil),
       ),
       List(

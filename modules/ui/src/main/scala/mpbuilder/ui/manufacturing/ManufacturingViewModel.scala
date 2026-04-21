@@ -485,7 +485,7 @@ object ManufacturingViewModel:
       SampleCatalog.bookletsId,
       SampleCatalog.digitalId,
       List(
-        ComponentRequest(ComponentRole.Cover, SampleCatalog.coatedGlossy250gsmId, InkConfiguration.cmyk4_4,
+        ComponentRequest(ComponentRole.FrontCover, SampleCatalog.coatedGlossy250gsmId, InkConfiguration.cmyk4_4,
           List(FinishSelection(SampleCatalog.matteLaminationId))),
         ComponentRequest(ComponentRole.Body, SampleCatalog.coatedGlossy115gsmId, InkConfiguration.cmyk4_4, Nil),
       ),

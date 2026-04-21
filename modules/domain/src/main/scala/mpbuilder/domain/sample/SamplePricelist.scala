@@ -70,9 +70,26 @@ object SamplePricelist:
       // --- Binding method surcharges (per unit, USD) ---
       PricingRule.BindingMethodSurcharge(BindingMethod.SaddleStitch, Money("0.05")),
       PricingRule.BindingMethodSurcharge(BindingMethod.PerfectBinding, Money("0.12")),
-      PricingRule.BindingMethodSurcharge(BindingMethod.SpiralBinding, Money("0.20")),
-      PricingRule.BindingMethodSurcharge(BindingMethod.WireOBinding, Money("0.25")),
+      PricingRule.BindingMethodSurcharge(BindingMethod.LoopBinding, Money("0.20")),
       PricingRule.BindingMethodSurcharge(BindingMethod.CaseBinding, Money("0.60")),
+
+      // --- Binding method setup fees ---
+      PricingRule.BindingMethodSetupFee(BindingMethod.LoopBinding, Money("15.00")),
+      PricingRule.BindingMethodSetupFee(BindingMethod.CaseBinding, Money("30.00")),
+
+      // --- Binding material linear prices (per meter of bound edge) ---
+      PricingRule.MaterialLinearPrice(SampleCatalog.plasticCoilA4BlackId, Money("0.50")),
+      PricingRule.MaterialLinearPrice(SampleCatalog.plasticCoilA4WhiteId, Money("0.50")),
+      PricingRule.MaterialLinearPrice(SampleCatalog.plasticCoilA3BlackId, Money("0.60")),
+      PricingRule.MaterialLinearPrice(SampleCatalog.metalWireOA4SilverId, Money("0.80")),
+      PricingRule.MaterialLinearPrice(SampleCatalog.metalWireOA4BlackId, Money("0.80")),
+
+      // --- Binding material fixed prices ---
+      PricingRule.MaterialFixedPrice(SampleCatalog.caseBindingBoardBlackId, Money("1.50")),
+
+      // --- Front cover transparent plastic prices (per unit) ---
+      PricingRule.MaterialBasePrice(SampleCatalog.plasticClear200micId, Money("0.15")),
+      PricingRule.MaterialBasePrice(SampleCatalog.plasticClear300micId, Money("0.22")),
 
       // --- Printing process surcharge ---
       PricingRule.PrintingProcessSurcharge(PrintingProcessType.Letterpress, Money("0.20")),
@@ -269,8 +286,7 @@ object SamplePricelist:
       // --- Binding method surcharges (per unit, CZK) ---
       PricingRule.BindingMethodSurcharge(BindingMethod.SaddleStitch, Money("2")),
       PricingRule.BindingMethodSurcharge(BindingMethod.PerfectBinding, Money("5")),
-      PricingRule.BindingMethodSurcharge(BindingMethod.SpiralBinding, Money("8")),
-      PricingRule.BindingMethodSurcharge(BindingMethod.WireOBinding, Money("10")),
+      PricingRule.BindingMethodSurcharge(BindingMethod.LoopBinding, Money("8")),
       PricingRule.BindingMethodSurcharge(BindingMethod.CaseBinding, Money("25")),
 
       // --- Printing process surcharge (CZK) ---
@@ -327,8 +343,7 @@ object SamplePricelist:
       // --- Binding method setup fees (one-time, not discounted) ---
       PricingRule.BindingMethodSetupFee(BindingMethod.SaddleStitch, Money("80")),
       PricingRule.BindingMethodSetupFee(BindingMethod.PerfectBinding, Money("150")),
-      PricingRule.BindingMethodSetupFee(BindingMethod.SpiralBinding, Money("100")),
-      PricingRule.BindingMethodSetupFee(BindingMethod.WireOBinding, Money("100")),
+      PricingRule.BindingMethodSetupFee(BindingMethod.LoopBinding, Money("100")),
       PricingRule.BindingMethodSetupFee(BindingMethod.CaseBinding, Money("400")),
 
       // --- Manufacturing speed surcharges ---
@@ -630,8 +645,7 @@ object SamplePricelist:
       // --- Binding method surcharges (per unit, CZK) ---
       PricingRule.BindingMethodSurcharge(BindingMethod.SaddleStitch, Money("1")),
       PricingRule.BindingMethodSurcharge(BindingMethod.PerfectBinding, Money("5")),
-      PricingRule.BindingMethodSurcharge(BindingMethod.SpiralBinding, Money("15")),
-      PricingRule.BindingMethodSurcharge(BindingMethod.WireOBinding, Money("18")),
+      PricingRule.BindingMethodSurcharge(BindingMethod.LoopBinding, Money("15")),
       PricingRule.BindingMethodSurcharge(BindingMethod.CaseBinding, Money("25")),
 
       // --- Printing process surcharge (CZK) ---
@@ -684,8 +698,7 @@ object SamplePricelist:
       // --- Binding method setup fees (one-time, not discounted) ---
       PricingRule.BindingMethodSetupFee(BindingMethod.SaddleStitch, Money("50")),
       PricingRule.BindingMethodSetupFee(BindingMethod.PerfectBinding, Money("150")),
-      PricingRule.BindingMethodSetupFee(BindingMethod.SpiralBinding, Money("100")),
-      PricingRule.BindingMethodSetupFee(BindingMethod.WireOBinding, Money("100")),
+      PricingRule.BindingMethodSetupFee(BindingMethod.LoopBinding, Money("100")),
       PricingRule.BindingMethodSetupFee(BindingMethod.CaseBinding, Money("400")),
 
       // --- Manufacturing speed surcharges ---
@@ -766,6 +779,20 @@ object SamplePricelist:
       PricingRule.FinishSetupFee(SampleCatalog.heatPressId, Money("200")),
       PricingRule.FinishSetupFee(SampleCatalog.embroideryId, Money("500")),
       PricingRule.FinishTypeSetupFee(FinishType.Embroidery, Money("500")),
+
+      // --- Binding material linear prices (per meter of bound edge, CZK) ---
+      PricingRule.MaterialLinearPrice(SampleCatalog.plasticCoilA4BlackId, Money("12")),
+      PricingRule.MaterialLinearPrice(SampleCatalog.plasticCoilA4WhiteId, Money("12")),
+      PricingRule.MaterialLinearPrice(SampleCatalog.plasticCoilA3BlackId, Money("15")),
+      PricingRule.MaterialLinearPrice(SampleCatalog.metalWireOA4SilverId, Money("18")),
+      PricingRule.MaterialLinearPrice(SampleCatalog.metalWireOA4BlackId, Money("18")),
+
+      // --- Binding material fixed prices (per unit, CZK) ---
+      PricingRule.MaterialFixedPrice(SampleCatalog.caseBindingBoardBlackId, Money("35")),
+
+      // --- Front cover transparent plastic prices (per unit, CZK) ---
+      PricingRule.MaterialBasePrice(SampleCatalog.plasticClear200micId, Money("4")),
+      PricingRule.MaterialBasePrice(SampleCatalog.plasticClear300micId, Money("6")),
     ),
     currency = Currency.CZK,
     version = "1.0.0-czk-sheet",

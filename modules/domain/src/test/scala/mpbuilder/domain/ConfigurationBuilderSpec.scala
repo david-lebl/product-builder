@@ -92,7 +92,8 @@ object ConfigurationBuilderSpec extends ZIOSpecDefault:
           categoryId = SampleCatalog.bookletsId,
           printingMethodId = SampleCatalog.digitalId,
           components = List(
-            ComponentRequest(ComponentRole.Cover, SampleCatalog.coated300gsmId, InkConfiguration.cmyk4_4, List(FinishSelection(SampleCatalog.matteLaminationId))),
+            ComponentRequest(ComponentRole.FrontCover, SampleCatalog.coated300gsmId, InkConfiguration.cmyk4_4, List(FinishSelection(SampleCatalog.matteLaminationId))),
+            ComponentRequest(ComponentRole.BackCover, SampleCatalog.coated300gsmId, InkConfiguration.cmyk4_4, Nil),
             ComponentRequest(ComponentRole.Body, SampleCatalog.coated300gsmId, InkConfiguration.cmyk4_4, Nil),
           ),
           specs = List(
@@ -106,22 +107,22 @@ object ConfigurationBuilderSpec extends ZIOSpecDefault:
         val result = ConfigurationBuilder.build(request, catalog, ruleset, configId)
         assertTrue(
           result.toEither.isRight,
-          result.toEither.toOption.get.components.size == 2,
+          result.toEither.toOption.get.components.size == 3,
         )
       },
-      test("build a valid calendar configuration with cover and body") {
+      test("build a valid calendar configuration with body and binding") {
         val request = ConfigurationRequest(
           categoryId = SampleCatalog.calendarsId,
           printingMethodId = SampleCatalog.digitalId,
           components = List(
-            ComponentRequest(ComponentRole.Cover, SampleCatalog.coatedSilk250gsmId, InkConfiguration.cmyk4_4, List(FinishSelection(SampleCatalog.matteLaminationId))),
             ComponentRequest(ComponentRole.Body, SampleCatalog.coatedSilk250gsmId, InkConfiguration.cmyk4_4, Nil),
+            ComponentRequest(ComponentRole.Binding, SampleCatalog.metalWireOA4SilverId, InkConfiguration.noInk, Nil),
           ),
           specs = List(
             SpecValue.SizeSpec(Dimension(297, 210)),
             SpecValue.QuantitySpec(Quantity.unsafe(100)),
             SpecValue.PagesSpec(14),
-            SpecValue.BindingMethodSpec(BindingMethod.SpiralBinding),
+            SpecValue.BindingMethodSpec(BindingMethod.LoopBinding),
           ),
         )
 
@@ -129,7 +130,7 @@ object ConfigurationBuilderSpec extends ZIOSpecDefault:
         assertTrue(
           result.toEither.isRight,
           result.toEither.toOption.get.category.name(Language.En) == "Calendars",
-          result.toEither.toOption.get.components.find(_.role == ComponentRole.Cover).get.material.name(Language.En) == "Coated Silk 250gsm",
+          result.toEither.toOption.get.components.find(_.role == ComponentRole.Body).get.material.name(Language.En) == "Coated Silk 250gsm",
         )
       },
       test("build a valid configuration with Yupo synthetic material") {
@@ -156,7 +157,8 @@ object ConfigurationBuilderSpec extends ZIOSpecDefault:
           categoryId = SampleCatalog.bookletsId,
           printingMethodId = SampleCatalog.digitalId,
           components = List(
-            ComponentRequest(ComponentRole.Cover, SampleCatalog.coated300gsmId, InkConfiguration.cmyk4_4, List(FinishSelection(SampleCatalog.matteLaminationId))),
+            ComponentRequest(ComponentRole.FrontCover, SampleCatalog.coated300gsmId, InkConfiguration.cmyk4_4, List(FinishSelection(SampleCatalog.matteLaminationId))),
+            ComponentRequest(ComponentRole.BackCover, SampleCatalog.coated300gsmId, InkConfiguration.cmyk4_4, Nil),
             ComponentRequest(ComponentRole.Body, SampleCatalog.uncoatedBondId, InkConfiguration.cmyk4_4, Nil),
           ),
           specs = List(
@@ -171,23 +173,23 @@ object ConfigurationBuilderSpec extends ZIOSpecDefault:
         val config = result.toEither.toOption.get
         assertTrue(
           result.toEither.isRight,
-          config.components.find(_.role == ComponentRole.Cover).get.material.id == SampleCatalog.coated300gsmId,
+          config.components.find(_.role == ComponentRole.FrontCover).get.material.id == SampleCatalog.coated300gsmId,
           config.components.find(_.role == ComponentRole.Body).get.material.id == SampleCatalog.uncoatedBondId,
         )
       },
-      test("valid calendar: cover with gloss lam + body different material") {
+      test("valid calendar: body with binding material (metal wire-O)") {
         val request = ConfigurationRequest(
           categoryId = SampleCatalog.calendarsId,
           printingMethodId = SampleCatalog.digitalId,
           components = List(
-            ComponentRequest(ComponentRole.Cover, SampleCatalog.coatedSilk250gsmId, InkConfiguration.cmyk4_0, List(FinishSelection(SampleCatalog.glossLaminationId))),
             ComponentRequest(ComponentRole.Body, SampleCatalog.coated300gsmId, InkConfiguration.cmyk4_4, Nil),
+            ComponentRequest(ComponentRole.Binding, SampleCatalog.metalWireOA4SilverId, InkConfiguration.noInk, Nil),
           ),
           specs = List(
             SpecValue.SizeSpec(Dimension(297, 210)),
             SpecValue.QuantitySpec(Quantity.unsafe(100)),
             SpecValue.PagesSpec(14),
-            SpecValue.BindingMethodSpec(BindingMethod.SpiralBinding),
+            SpecValue.BindingMethodSpec(BindingMethod.LoopBinding),
           ),
         )
 
@@ -218,7 +220,8 @@ object ConfigurationBuilderSpec extends ZIOSpecDefault:
           categoryId = SampleCatalog.bookletsId,
           printingMethodId = SampleCatalog.digitalId,
           components = List(
-            ComponentRequest(ComponentRole.Cover, SampleCatalog.uncoatedBondId, InkConfiguration.cmyk4_4, Nil),
+            ComponentRequest(ComponentRole.FrontCover, SampleCatalog.uncoatedBondId, InkConfiguration.cmyk4_4, Nil),
+            ComponentRequest(ComponentRole.BackCover, SampleCatalog.coated300gsmId, InkConfiguration.cmyk4_4, Nil),
             ComponentRequest(ComponentRole.Body, SampleCatalog.coated300gsmId, InkConfiguration.cmyk4_4, Nil),
           ),
           specs = List(
@@ -240,7 +243,8 @@ object ConfigurationBuilderSpec extends ZIOSpecDefault:
           categoryId = SampleCatalog.bookletsId,
           printingMethodId = SampleCatalog.digitalId,
           components = List(
-            ComponentRequest(ComponentRole.Cover, SampleCatalog.coated300gsmId, InkConfiguration.cmyk4_4, Nil),
+            ComponentRequest(ComponentRole.FrontCover, SampleCatalog.coated300gsmId, InkConfiguration.cmyk4_4, Nil),
+            ComponentRequest(ComponentRole.BackCover, SampleCatalog.coated300gsmId, InkConfiguration.cmyk4_4, Nil),
             ComponentRequest(ComponentRole.Body, SampleCatalog.coated300gsmId, InkConfiguration.cmyk4_4, List(FinishSelection(SampleCatalog.matteLaminationId))),
           ),
           specs = List(
@@ -262,7 +266,8 @@ object ConfigurationBuilderSpec extends ZIOSpecDefault:
           categoryId = SampleCatalog.bookletsId,
           printingMethodId = SampleCatalog.digitalId,
           components = List(
-            ComponentRequest(ComponentRole.Cover, SampleCatalog.coated300gsmId, InkConfiguration.cmyk4_4, Nil),
+            ComponentRequest(ComponentRole.FrontCover, SampleCatalog.coated300gsmId, InkConfiguration.cmyk4_4, Nil),
+            ComponentRequest(ComponentRole.BackCover, SampleCatalog.coated300gsmId, InkConfiguration.cmyk4_4, Nil),
             ComponentRequest(ComponentRole.Body, SampleCatalog.coated300gsmId, InkConfiguration.cmyk4_4, Nil),
           ),
           specs = List(
@@ -275,7 +280,7 @@ object ConfigurationBuilderSpec extends ZIOSpecDefault:
 
         val result = ConfigurationBuilder.build(request, catalog, ruleset, configId)
         val config = result.toEither.toOption.get
-        val coverComp = config.components.find(_.role == ComponentRole.Cover).get
+        val coverComp = config.components.find(_.role == ComponentRole.FrontCover).get
         val bodyComp = config.components.find(_.role == ComponentRole.Body).get
         assertTrue(
           coverComp.sheetCount == 1,
@@ -595,7 +600,8 @@ object ConfigurationBuilderSpec extends ZIOSpecDefault:
           categoryId = SampleCatalog.bookletsId,
           printingMethodId = SampleCatalog.digitalId,
           components = List(
-            ComponentRequest(ComponentRole.Cover, SampleCatalog.coated300gsmId, InkConfiguration.cmyk4_4, Nil),
+            ComponentRequest(ComponentRole.FrontCover, SampleCatalog.coated300gsmId, InkConfiguration.cmyk4_4, Nil),
+            ComponentRequest(ComponentRole.BackCover, SampleCatalog.coated300gsmId, InkConfiguration.cmyk4_4, Nil),
             ComponentRequest(ComponentRole.Body, SampleCatalog.coated300gsmId, InkConfiguration.cmyk4_4, Nil),
           ),
           specs = List(
@@ -617,7 +623,8 @@ object ConfigurationBuilderSpec extends ZIOSpecDefault:
           categoryId = SampleCatalog.bookletsId,
           printingMethodId = SampleCatalog.digitalId,
           components = List(
-            ComponentRequest(ComponentRole.Cover, SampleCatalog.coated300gsmId, InkConfiguration.cmyk4_4, Nil),
+            ComponentRequest(ComponentRole.FrontCover, SampleCatalog.coated300gsmId, InkConfiguration.cmyk4_4, Nil),
+            ComponentRequest(ComponentRole.BackCover, SampleCatalog.coated300gsmId, InkConfiguration.cmyk4_4, Nil),
             ComponentRequest(ComponentRole.Body, SampleCatalog.coated300gsmId, InkConfiguration.cmyk4_4, Nil),
           ),
           specs = List(
@@ -664,7 +671,7 @@ object ConfigurationBuilderSpec extends ZIOSpecDefault:
           ),
           List(ProductComponent(ComponentRole.Main, SampleCatalog.vinyl, InkConfiguration.cmyk4_4, List(SelectedFinish(SampleCatalog.embossing)), 1)),
           ProductSpecifications.empty,
-          SampleCatalog.bannersId,
+          SampleCatalog.banners,
           SampleCatalog.uvInkjetMethod,
         )
         assertTrue(result.toEither.isLeft)
@@ -676,8 +683,8 @@ object ConfigurationBuilderSpec extends ZIOSpecDefault:
           categoryId = SampleCatalog.calendarsId,
           printingMethodId = SampleCatalog.digitalId,
           components = List(
-            ComponentRequest(ComponentRole.Cover, SampleCatalog.coatedSilk250gsmId, InkConfiguration.cmyk4_4, Nil),
             ComponentRequest(ComponentRole.Body, SampleCatalog.coatedSilk250gsmId, InkConfiguration.cmyk4_4, Nil),
+            ComponentRequest(ComponentRole.Binding, SampleCatalog.metalWireOA4SilverId, InkConfiguration.noInk, Nil),
           ),
           specs = List(
             SpecValue.SizeSpec(Dimension(297, 210)),
@@ -698,14 +705,14 @@ object ConfigurationBuilderSpec extends ZIOSpecDefault:
           categoryId = SampleCatalog.calendarsId,
           printingMethodId = SampleCatalog.digitalId,
           components = List(
-            ComponentRequest(ComponentRole.Cover, SampleCatalog.coatedSilk250gsmId, InkConfiguration.cmyk4_4, Nil),
             ComponentRequest(ComponentRole.Body, SampleCatalog.coatedSilk250gsmId, InkConfiguration.cmyk4_4, Nil),
+            ComponentRequest(ComponentRole.Binding, SampleCatalog.metalWireOA4SilverId, InkConfiguration.noInk, Nil),
           ),
           specs = List(
             SpecValue.SizeSpec(Dimension(297, 210)),
             SpecValue.QuantitySpec(Quantity.unsafe(100)),
             SpecValue.PagesSpec(8),
-            SpecValue.BindingMethodSpec(BindingMethod.SpiralBinding),
+            SpecValue.BindingMethodSpec(BindingMethod.LoopBinding),
           ),
         )
 
@@ -720,14 +727,14 @@ object ConfigurationBuilderSpec extends ZIOSpecDefault:
           categoryId = SampleCatalog.calendarsId,
           printingMethodId = SampleCatalog.digitalId,
           components = List(
-            ComponentRequest(ComponentRole.Cover, SampleCatalog.coatedSilk250gsmId, InkConfiguration.cmyk4_4, Nil),
             ComponentRequest(ComponentRole.Body, SampleCatalog.coatedSilk250gsmId, InkConfiguration.cmyk4_4, Nil),
+            ComponentRequest(ComponentRole.Binding, SampleCatalog.metalWireOA4SilverId, InkConfiguration.noInk, Nil),
           ),
           specs = List(
             SpecValue.SizeSpec(Dimension(297, 210)),
             SpecValue.QuantitySpec(Quantity.unsafe(100)),
             SpecValue.PagesSpec(30),
-            SpecValue.BindingMethodSpec(BindingMethod.SpiralBinding),
+            SpecValue.BindingMethodSpec(BindingMethod.LoopBinding),
           ),
         )
 
@@ -827,7 +834,8 @@ object ConfigurationBuilderSpec extends ZIOSpecDefault:
           categoryId = SampleCatalog.bookletsId,
           printingMethodId = SampleCatalog.digitalId,
           components = List(
-            ComponentRequest(ComponentRole.Cover, SampleCatalog.coated300gsmId, InkConfiguration.cmyk4_4, Nil),
+            ComponentRequest(ComponentRole.FrontCover, SampleCatalog.coated300gsmId, InkConfiguration.cmyk4_4, Nil),
+            ComponentRequest(ComponentRole.BackCover, SampleCatalog.coated300gsmId, InkConfiguration.cmyk4_4, Nil),
             ComponentRequest(ComponentRole.Body, SampleCatalog.coatedMatte115gsm.id, InkConfiguration.cmyk4_4, Nil),
           ),
           specs = List(
@@ -846,7 +854,8 @@ object ConfigurationBuilderSpec extends ZIOSpecDefault:
           categoryId = SampleCatalog.bookletsId,
           printingMethodId = SampleCatalog.digitalId,
           components = List(
-            ComponentRequest(ComponentRole.Cover, SampleCatalog.coated300gsmId, InkConfiguration.cmyk4_4, Nil),
+            ComponentRequest(ComponentRole.FrontCover, SampleCatalog.coated300gsmId, InkConfiguration.cmyk4_4, Nil),
+            ComponentRequest(ComponentRole.BackCover, SampleCatalog.coated300gsmId, InkConfiguration.cmyk4_4, Nil),
             ComponentRequest(ComponentRole.Body, SampleCatalog.coatedMatte115gsm.id, InkConfiguration.cmyk4_4, Nil),
           ),
           specs = List(
@@ -864,7 +873,8 @@ object ConfigurationBuilderSpec extends ZIOSpecDefault:
           categoryId = SampleCatalog.bookletsId,
           printingMethodId = SampleCatalog.digitalId,
           components = List(
-            ComponentRequest(ComponentRole.Cover, SampleCatalog.coated300gsmId, InkConfiguration.cmyk4_4, Nil),
+            ComponentRequest(ComponentRole.FrontCover, SampleCatalog.coated300gsmId, InkConfiguration.cmyk4_4, Nil),
+            ComponentRequest(ComponentRole.BackCover, SampleCatalog.coated300gsmId, InkConfiguration.cmyk4_4, Nil),
             ComponentRequest(ComponentRole.Body, SampleCatalog.coatedMatte115gsm.id, InkConfiguration.cmyk4_4, Nil),
           ),
           specs = List(
@@ -883,7 +893,8 @@ object ConfigurationBuilderSpec extends ZIOSpecDefault:
           categoryId = SampleCatalog.bookletsId,
           printingMethodId = SampleCatalog.digitalId,
           components = List(
-            ComponentRequest(ComponentRole.Cover, SampleCatalog.coated300gsmId, InkConfiguration.cmyk4_4, Nil),
+            ComponentRequest(ComponentRole.FrontCover, SampleCatalog.coated300gsmId, InkConfiguration.cmyk4_4, Nil),
+            ComponentRequest(ComponentRole.BackCover, SampleCatalog.coated300gsmId, InkConfiguration.cmyk4_4, Nil),
             ComponentRequest(ComponentRole.Body, SampleCatalog.coatedMatte115gsm.id, InkConfiguration.cmyk4_4, Nil),
           ),
           specs = List(
@@ -901,7 +912,8 @@ object ConfigurationBuilderSpec extends ZIOSpecDefault:
           categoryId = SampleCatalog.bookletsId,
           printingMethodId = SampleCatalog.digitalId,
           components = List(
-            ComponentRequest(ComponentRole.Cover, SampleCatalog.coated300gsmId, InkConfiguration.cmyk4_4, Nil),
+            ComponentRequest(ComponentRole.FrontCover, SampleCatalog.coated300gsmId, InkConfiguration.cmyk4_4, Nil),
+            ComponentRequest(ComponentRole.BackCover, SampleCatalog.coated300gsmId, InkConfiguration.cmyk4_4, Nil),
             ComponentRequest(ComponentRole.Body, SampleCatalog.coated300gsmId, InkConfiguration.cmyk4_4, Nil),
           ),
           specs = List(
@@ -920,7 +932,8 @@ object ConfigurationBuilderSpec extends ZIOSpecDefault:
           categoryId = SampleCatalog.bookletsId,
           printingMethodId = SampleCatalog.digitalId,
           components = List(
-            ComponentRequest(ComponentRole.Cover, SampleCatalog.coated300gsmId, InkConfiguration.cmyk4_4, Nil),
+            ComponentRequest(ComponentRole.FrontCover, SampleCatalog.coated300gsmId, InkConfiguration.cmyk4_4, Nil),
+            ComponentRequest(ComponentRole.BackCover, SampleCatalog.coated300gsmId, InkConfiguration.cmyk4_4, Nil),
             ComponentRequest(ComponentRole.Body, SampleCatalog.coated300gsmId, InkConfiguration.cmyk4_4, Nil),
           ),
           specs = List(
@@ -951,19 +964,20 @@ object ConfigurationBuilderSpec extends ZIOSpecDefault:
         val errors = result.toEither.left.toOption.get.toList
         assertTrue(errors.exists(_.isInstanceOf[ConfigurationError.TechnologyConstraintViolation]))
       },
-      test("booklet with spiral binding and divisible-by-2 pages succeeds") {
+      test("booklet with loop binding and divisible-by-2 pages succeeds") {
         val request = ConfigurationRequest(
           categoryId = SampleCatalog.bookletsId,
           printingMethodId = SampleCatalog.digitalId,
           components = List(
-            ComponentRequest(ComponentRole.Cover, SampleCatalog.coated300gsmId, InkConfiguration.cmyk4_4, Nil),
+            ComponentRequest(ComponentRole.FrontCover, SampleCatalog.coated300gsmId, InkConfiguration.cmyk4_4, Nil),
+            ComponentRequest(ComponentRole.BackCover, SampleCatalog.coated300gsmId, InkConfiguration.cmyk4_4, Nil),
             ComponentRequest(ComponentRole.Body, SampleCatalog.coatedMatte115gsm.id, InkConfiguration.cmyk4_4, Nil),
           ),
           specs = List(
             SpecValue.SizeSpec(Dimension(210, 148)),
             SpecValue.QuantitySpec(Quantity.unsafe(100)),
-            SpecValue.PagesSpec(30), // 30 is divisible by 2 (not 4), valid for spiral
-            SpecValue.BindingMethodSpec(BindingMethod.SpiralBinding),
+            SpecValue.PagesSpec(30), // 30 is divisible by 2 (not 4), valid for loop
+            SpecValue.BindingMethodSpec(BindingMethod.LoopBinding),
           ),
         )
         val result = ConfigurationBuilder.build(request, catalog, ruleset, configId)

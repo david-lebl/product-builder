@@ -13,8 +13,14 @@ object ProductConfiguration:
     def mainComponent: Option[ProductComponent] =
       config.components.find(_.role == ComponentRole.Main)
 
-    def coverComponent: Option[ProductComponent] =
-      config.components.find(_.role == ComponentRole.Cover)
+    def frontCoverComponent: Option[ProductComponent] =
+      config.components.find(_.role == ComponentRole.FrontCover)
+
+    def backCoverComponent: Option[ProductComponent] =
+      config.components.find(_.role == ComponentRole.BackCover)
 
     def bodyComponent: Option[ProductComponent] =
       config.components.find(_.role == ComponentRole.Body)
+
+    def bindingComponent: Option[ProductComponent] =
+      config.components.find(_.role == ComponentRole.Binding)

@@ -87,3 +87,13 @@ enum CompatibilityRule:
       maxCreases: Int,
       reason: String,
   )
+  // Binding material's physical spec constrains the product size on the bound edge
+  case BindingMaterialConstrainsSize(
+      reason: String,
+  )
+  // Enforces that a Binding component is present when a specific binding method is chosen
+  case ComponentRequired(
+      role: ComponentRole,
+      whenBindingMethod: BindingMethod,
+      reason: String,
+  )

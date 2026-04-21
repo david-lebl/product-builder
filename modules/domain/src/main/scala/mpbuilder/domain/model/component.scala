@@ -2,8 +2,10 @@ package mpbuilder.domain.model
 
 enum ComponentRole:
   case Main
-  case Cover
+  case FrontCover
+  case BackCover
   case Body
+  case Binding
   case Stand
 
 final case class ComponentTemplate(

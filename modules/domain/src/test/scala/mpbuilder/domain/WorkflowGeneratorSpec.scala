@@ -36,7 +36,7 @@ object WorkflowGeneratorSpec extends ZIOSpecDefault:
       ink: InkConfiguration,
       finishes: List[FinishSelection] = Nil,
   ): ComponentRequest =
-    ComponentRequest(ComponentRole.Cover, matId, ink, finishes)
+    ComponentRequest(ComponentRole.FrontCover, matId, ink, finishes)
 
   private def bodyComp(
       matId: MaterialId,
@@ -44,6 +44,13 @@ object WorkflowGeneratorSpec extends ZIOSpecDefault:
       finishes: List[FinishSelection] = Nil,
   ): ComponentRequest =
     ComponentRequest(ComponentRole.Body, matId, ink, finishes)
+
+  private def backCoverComp(
+      matId: MaterialId,
+      ink: InkConfiguration,
+      finishes: List[FinishSelection] = Nil,
+  ): ComponentRequest =
+    ComponentRequest(ComponentRole.BackCover, matId, ink, finishes)
 
   private def generate(config: ProductConfiguration): ManufacturingWorkflow =
     WorkflowGenerator.generate(
@@ -245,6 +252,7 @@ object WorkflowGeneratorSpec extends ZIOSpecDefault:
           SampleCatalog.digitalId,
           List(
             coverComp(SampleCatalog.coatedGlossy250gsmId, InkConfiguration.cmyk4_4),
+            backCoverComp(SampleCatalog.coatedGlossy250gsmId, InkConfiguration.cmyk4_4),
             bodyComp(SampleCatalog.coatedGlossy115gsmId, InkConfiguration.cmyk4_4),
           ),
           List(
@@ -257,7 +265,7 @@ object WorkflowGeneratorSpec extends ZIOSpecDefault:
         val wf = generate(config)
 
         val coverPrint = wf.steps.filter(s =>
-          s.componentRole.contains(ComponentRole.Cover) && s.stationType == StationType.DigitalPrinter
+          s.componentRole.contains(ComponentRole.FrontCover) && s.stationType == StationType.DigitalPrinter
         )
         val bodyPrint = wf.steps.filter(s =>
           s.componentRole.contains(ComponentRole.Body) && s.stationType == StationType.DigitalPrinter
@@ -274,6 +282,7 @@ object WorkflowGeneratorSpec extends ZIOSpecDefault:
           SampleCatalog.digitalId,
           List(
             coverComp(SampleCatalog.coatedGlossy250gsmId, InkConfiguration.cmyk4_4),
+            backCoverComp(SampleCatalog.coatedGlossy250gsmId, InkConfiguration.cmyk4_4),
             bodyComp(SampleCatalog.coatedGlossy115gsmId, InkConfiguration.cmyk4_4),
           ),
           List(
@@ -293,6 +302,7 @@ object WorkflowGeneratorSpec extends ZIOSpecDefault:
           SampleCatalog.digitalId,
           List(
             coverComp(SampleCatalog.coatedGlossy250gsmId, InkConfiguration.cmyk4_4),
+            backCoverComp(SampleCatalog.coatedGlossy250gsmId, InkConfiguration.cmyk4_4),
             bodyComp(SampleCatalog.coatedGlossy115gsmId, InkConfiguration.cmyk4_4),
           ),
           List(
@@ -381,6 +391,7 @@ object WorkflowGeneratorSpec extends ZIOSpecDefault:
           List(
             coverComp(SampleCatalog.coatedGlossy250gsmId, InkConfiguration.cmyk4_4,
               List(FinishSelection(SampleCatalog.matteLaminationId))),
+            backCoverComp(SampleCatalog.coatedGlossy250gsmId, InkConfiguration.cmyk4_4),
             bodyComp(SampleCatalog.coatedGlossy115gsmId, InkConfiguration.cmyk4_4),
           ),
           List(
@@ -401,6 +412,7 @@ object WorkflowGeneratorSpec extends ZIOSpecDefault:
           List(
             coverComp(SampleCatalog.coatedGlossy250gsmId, InkConfiguration.cmyk4_4,
               List(FinishSelection(SampleCatalog.matteLaminationId))),
+            backCoverComp(SampleCatalog.coatedGlossy250gsmId, InkConfiguration.cmyk4_4),
             bodyComp(SampleCatalog.coatedGlossy115gsmId, InkConfiguration.cmyk4_4),
           ),
           List(

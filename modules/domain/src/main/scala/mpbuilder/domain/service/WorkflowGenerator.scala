@@ -102,6 +102,11 @@ object WorkflowGenerator:
       prepressStepId: StepId,
   ): List[WorkflowStep] =
     val role = component.role
+
+    // Binding components are not printed — no workflow steps needed here;
+    // the binding step is generated separately in generateBindingStep.
+    if role == ComponentRole.Binding then return List.empty
+
     var steps = List.empty[WorkflowStep]
 
     // Printing step — depends on prepress
@@ -259,9 +264,19 @@ object WorkflowGenerator:
       lastComponentStepIds: Set[StepId],
   ): Option[WorkflowStep] =
     config.specifications.get(SpecKind.BindingMethod).map { _ =>
+      val bindingComp = config.components.find(_.role == ComponentRole.Binding)
+      val stationType = bindingComp match
+        case Some(bc) => bc.material.family match
+          case MaterialFamily.Plastic => StationType.Binder
+          case MaterialFamily.Metal   => StationType.Binder
+          case _                      => StationType.Binder
+        case None => StationType.Binder
+      val notes = bindingComp match
+        case Some(bc) => s"Binding assembly — ${bc.material.name(Language.En)} (${bc.material.family})"
+        case None     => "Binding assembly"
       WorkflowStep(
         id = gen.next(),
-        stationType = StationType.Binder,
+        stationType = stationType,
         componentRole = None,
         dependsOn = lastComponentStepIds,
         status = StepStatus.Waiting,
@@ -269,7 +284,7 @@ object WorkflowGenerator:
         assignedMachine = None,
         startedAt = None,
         completedAt = None,
-        notes = "Binding assembly",
+        notes = notes,
       )
     }
 

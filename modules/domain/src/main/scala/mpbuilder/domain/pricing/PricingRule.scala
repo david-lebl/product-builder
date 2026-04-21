@@ -56,3 +56,7 @@ enum PricingRule:
   case ScoringCountSurcharge(creaseCount: Int, surchargePerUnit: Money)
   // One-time flat setup fee for creasing/scoring (not discounted; takes precedence over FinishTypeSetupFee for Scoring)
   case ScoringSetupFee(setupCost: Money)
+  // Linear-meter pricing for binding materials (coils, wire) — price per meter of bound edge
+  case MaterialLinearPrice(materialId: MaterialId, pricePerMeter: Money)
+  // Fixed per-unit pricing for binding materials (case-binding boards, etc.)
+  case MaterialFixedPrice(materialId: MaterialId, pricePerUnit: Money)
