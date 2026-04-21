@@ -180,3 +180,29 @@ areaTierRule match
 **Solution:** Add `ScoringCountSurcharge(1..N, …)` and `ScoringSetupFee(…)` to `pricelistCzkSheet` in `SamplePricelist.scala`. The generic `FinishTypeSurcharge(Scoring)` can remain as a fallback for Scoring finishes without `ScoringParams` (backward compat), but must NOT be the sole rule when crease-parameterised scoring is used.
 
 **Files:** `modules/domain/src/main/scala/mpbuilder/domain/sample/SamplePricelist.scala`
+
+---
+
+## UI / Reactive State
+
+### Manufacturing UI shows nothing (blank page) after catalog changes
+
+**Symptom:** The entire Manufacturing tab is blank — no sidebar, no content, nothing rendered.
+
+**Cause:** `ManufacturingViewModel` is a Scala.js singleton object. Its initializer calls `generateSampleOrders()`, which calls `ConfigurationBuilder.build(...).toEither.toOption.get`. If the build fails (e.g. because a sample config references a material that is no longer in `allowedMaterialIds` for that category), `.get` on `None` throws `NoSuchElementException` and the object initialization crashes. In Scala.js, a crashed singleton makes all code that references it fail silently, leaving the tab blank.
+
+**Solution:** Keep the material IDs in `ManufacturingViewModel.generateSampleOrders()` in sync with `SampleCatalog`. When a category's `allowedMaterialIds` changes, update the corresponding `buildConfig` call in the VM. In this case, the Banners category was changed from `vinylId` to `pvc510gId`, so the banner sample order had to switch to `pvc510gId`.
+
+**Files:** `modules/ui/src/main/scala/mpbuilder/ui/manufacturing/ManufacturingViewModel.scala`
+
+---
+
+### Pricelist editor table is empty after adding new `PricingRule` variants
+
+**Symptom:** The Pricing Rules table in the Catalog Editor / Pricelist view shows no rows, even though rules exist in the pricelist.
+
+**Cause:** `PricelistEditorView.pricingRuleSummary` and `pricingRuleTypeName` are non-exhaustive `match` expressions over `PricingRule`. When the pricelist contains a rule variant that has no match arm, Laminar's reactive signal throws a `MatchError` inside `.map`, which stops signal propagation and leaves `children` empty.
+
+**Solution:** Whenever a new `PricingRule` variant is added, add a corresponding case to **both** `pricingRuleSummary` (returns a display string) **and** `pricingRuleTypeName` (returns the type name string) in `PricelistEditorView`. The Scala compiler emits a non-exhaustive match warning for these matches; treat those warnings as errors.
+
+**Files:** `modules/ui/src/main/scala/mpbuilder/ui/catalog/views/PricelistEditorView.scala`

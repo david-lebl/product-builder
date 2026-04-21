@@ -477,7 +477,7 @@ object ManufacturingViewModel:
     val banners = buildConfig(
       SampleCatalog.bannersId,
       SampleCatalog.uvInkjetId,
-      List(ComponentRequest(ComponentRole.Main, SampleCatalog.vinylId, InkConfiguration.cmyk4_0, Nil)),
+      List(ComponentRequest(ComponentRole.Main, SampleCatalog.pvc510gId, InkConfiguration.cmyk4_0, Nil)),
       List(SpecValue.SizeSpec(Dimension(1000, 500)), SpecValue.QuantitySpec(Quantity.unsafe(5))),
     )
 
