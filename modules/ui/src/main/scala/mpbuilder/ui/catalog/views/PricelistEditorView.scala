@@ -110,6 +110,11 @@ object PricelistEditorView:
     case r: PricingRule.BindingMethodSetupFee => s"BindingSetupFee: ${r.bindingMethod} = ${r.setupCost.value}"
     case r: PricingRule.MinimumOrderPrice => s"MinimumOrderPrice: ${r.minTotal.value}"
     case r: PricingRule.ManufacturingSpeedSurcharge => s"SpeedSurcharge: ${r.tier} × ${r.multiplier}"
+    case r: PricingRule.MaterialAreaTier => s"MaterialAreaTier: ${r.materialId.value} (${r.tiers.size} tiers)"
+    case r: PricingRule.GrommetSpacingAreaPrice => s"GrommetSpacingAreaPrice: ${r.finishId.value} (${r.tiers.size} tiers)"
+    case r: PricingRule.FinishLinearMeterPrice => s"FinishLinearMeterPrice: ${r.finishId.value} = ${r.pricePerMeter.value}/m"
+    case r: PricingRule.ScoringCountSurcharge => s"ScoringCountSurcharge: ${r.creaseCount} crease(s) = ${r.surchargePerUnit.value}/unit"
+    case _: PricingRule.ScoringSetupFee => s"ScoringSetupFee: (flat)"
 
   private def pricingRuleForm(existing: Option[PricingRule], index: Int): HtmlElement =
     val ruleTypeVar = Var(existing.map(pricingRuleTypeName).getOrElse("MaterialBasePrice"))
@@ -322,6 +327,8 @@ object PricelistEditorView:
     case _: PricingRule.MaterialAreaTier => "MaterialAreaTier"
     case _: PricingRule.GrommetSpacingAreaPrice => "GrommetSpacingAreaPrice"
     case _: PricingRule.FinishLinearMeterPrice => "FinishLinearMeterPrice"
+    case _: PricingRule.ScoringCountSurcharge => "ScoringCountSurcharge"
+    case _: PricingRule.ScoringSetupFee => "ScoringSetupFee"
 
   private def extractPricingMaterialId(rule: Option[PricingRule]): Option[String] = rule.collect {
     case r: PricingRule.MaterialBasePrice => r.materialId.value
