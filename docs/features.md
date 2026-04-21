@@ -40,6 +40,9 @@ Rules are **data, not code** — a sealed ADT (`CompatibilityRule`) with 12 vari
 | `FinishCategoryExclusive` | Only one finish per category allowed |
 | `FinishRequiresFinishType` | Finish depends on another finish type |
 | `FinishRequiresPrintingProcess` | Finish requires a specific printing process |
+| `ScoringMaxCreasesForCategory` | Maximum crease count for Scoring finish per category |
+| `ScoringMaxCreasesForMaterial` | Maximum crease count for Scoring finish per material |
+| `ScoringMaxCreasesForPrintingProcess` | Maximum crease count for Scoring finish per printing process |
 
 Predicates (`SpecPredicate`, `ConfigurationPredicate`) support boolean algebra (And/Or/Not) for composable, inspectable rule conditions.
 
@@ -67,14 +70,18 @@ Declarative pricing layer following the same rules-as-data pattern.
 - **`Money`** opaque type over `BigDecimal` (never `Double`) with `HALF_UP` rounding to 2 dp
 - **`Pricelist`** bundles pricing rules with currency and version string
 
-### Pricing Rules (17 variants)
+### Pricing Rules (19 variants)
 
 | Rule | Purpose |
 |------|---------|
 | `MaterialBasePrice` | Flat per-unit price |
 | `MaterialAreaPrice` | Price per m² (large format) |
+| `MaterialAreaTier` | Area-tiered price per m² (picks best matching tier) |
 | `MaterialSheetPrice` | Sheet-based pricing with nesting/imposition |
 | `FinishSurcharge` / `FinishTypeSurcharge` | Per-finish surcharge (ID overrides type) |
+| `ScoringCountSurcharge` | Per-unit surcharge for creasing, keyed on exact crease count (discountable) |
+| `GrommetSpacingAreaPrice` | Area-based grommet surcharge keyed by spacing |
+| `FinishLinearMeterPrice` | Linear-metre pricing for rope/accessory finishes |
 | `PrintingProcessSurcharge` | Process-specific surcharge |
 | `CategorySurcharge` | Category-specific surcharge |
 | `InkConfigurationFactor` | Multiplier on material cost by front/back color counts |
@@ -83,7 +90,8 @@ Declarative pricing layer following the same rules-as-data pattern.
 | `BindingMethodSurcharge` | Binding method surcharge |
 | `QuantityTier` / `SheetQuantityTier` | Volume discount tiers |
 | `FinishSetupFee` / `FinishTypeSetupFee` | One-time setup fees (ID overrides type) |
-| `FoldSetupFee` / `BindingSetupFee` | Setup fees for fold/binding |
+| `ScoringSetupFee` | One-time setup fee for Scoring finish (overrides `FinishTypeSetupFee` for Scoring) |
+| `FoldTypeSetupFee` / `BindingMethodSetupFee` | Setup fees for fold/binding |
 | `MinimumOrderPrice` | Floor price for orders |
 
 ### Calculation Flow
@@ -259,13 +267,13 @@ See [docs/analysis/ui-kit-review.md](analysis/ui-kit-review.md) for component de
 
 ## 8. Testing
 
-**341 passing tests** across 14 test suites:
+**350 passing tests** across 14 test suites:
 
 | Suite | Tests | Covers |
 |-------|-------|--------|
 | `ConfigurationBuilderSpec` | 34 | Valid configs, error accumulation, weight rules, finish dependencies |
 | `CatalogQueryServiceSpec` | 17 | Material/finish/spec filtering, progressive disclosure |
-| `PriceCalculatorSpec` | 14 | Breakdowns, area/sheet pricing, tier discounts, finish precedence |
+| `PriceCalculatorSpec` | 23 | Breakdowns, area/sheet pricing, tier discounts, finish precedence, scoring tiers |
 | `LocalizationSpec` | 17 | LocalizedString, Czech translations, error messages |
 | `BasketServiceSpec` | 17 | Add/remove/update items, quantity validation, totals |
 | `WorkflowGeneratorSpec` | 19 | Workflow structure, station mapping, DAG validity |
