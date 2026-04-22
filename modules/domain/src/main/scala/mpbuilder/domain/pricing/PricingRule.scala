@@ -1,6 +1,7 @@
 package mpbuilder.domain.pricing
 
 import mpbuilder.domain.model.*
+import mpbuilder.domain.manufacturing.PartnerId
 
 /** Area price tier for materials: if both [[MaterialAreaTier]] and [[MaterialAreaPrice]] exist for the same material,
   * [[MaterialAreaTier]] wins. The tier with the largest `minSqm` that is ≤ the component area is selected.
@@ -56,3 +57,5 @@ enum PricingRule:
   case ScoringCountSurcharge(creaseCount: Int, surchargePerUnit: Money)
   // One-time flat setup fee for creasing/scoring (not discounted; takes precedence over FinishTypeSetupFee for Scoring)
   case ScoringSetupFee(setupCost: Money)
+  // External partner markup — applied after tier/quantity multipliers and speed surcharge, before setup fees
+  case ExternalPartnerMarkup(partnerId: PartnerId, multiplier: BigDecimal)

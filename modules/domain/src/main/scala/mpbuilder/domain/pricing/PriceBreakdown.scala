@@ -27,6 +27,7 @@ final case class PriceBreakdown(
     subtotal: Money,
     quantityMultiplier: BigDecimal,
     speedSurcharge: Option[LineItem],
+    externalPartnerMarkup: Option[LineItem] = None,
     setupFees: List[LineItem],
     minimumApplied: Option[Money],
     total: Money,

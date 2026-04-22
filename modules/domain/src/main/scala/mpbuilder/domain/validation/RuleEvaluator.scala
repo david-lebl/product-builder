@@ -198,6 +198,11 @@ object RuleEvaluator:
           )
         else Validation.unit
 
+      case CompatibilityRule.RequiresExternalPartner(catId, predicate, _, _) =>
+        // This rule routes valid configurations to external partners — it is NOT a blocking rule.
+        // Return Validation.unit regardless; use collectExternalRules() to retrieve routing annotations.
+        Validation.unit
+
   private def evaluateSpecPredicate(
       predicate: SpecPredicate,
       specs: ProductSpecifications,
@@ -351,3 +356,20 @@ object RuleEvaluator:
       .foldLeft(Validation.unit: Validation[ConfigurationError, Unit])((acc, v) =>
         acc.zipRight(v),
       )
+
+  /** Collect all RequiresExternalPartner rules that match the given configuration.
+    * These are routing annotations — the configuration is VALID; execution routes to a partner.
+    */
+  def collectExternalRules(
+      rules: List[CompatibilityRule],
+      components: List[ProductComponent],
+      specifications: ProductSpecifications,
+      categoryId: CategoryId,
+      printingMethod: PrintingMethod,
+  ): List[CompatibilityRule.RequiresExternalPartner] =
+    rules.collect {
+      case r: CompatibilityRule.RequiresExternalPartner
+          if r.categoryId == categoryId &&
+            evaluateConfigurationPredicate(r.predicate, components, specifications, printingMethod) =>
+        r
+    }

@@ -1,6 +1,7 @@
 package mpbuilder.domain.rules
 
 import mpbuilder.domain.model.*
+import mpbuilder.domain.manufacturing.PartnerId
 
 enum CompatibilityRule:
   case MaterialFinishIncompatible(
@@ -86,4 +87,14 @@ enum CompatibilityRule:
       processType: PrintingProcessType,
       maxCreases: Int,
       reason: String,
+  )
+  /** Routes a configuration to an external partner instead of rejecting it.
+    * When this rule matches, the configuration is VALID — it is accepted and
+    * routed to one of the candidatePartners rather than raising a ConfigurationError.
+    */
+  case RequiresExternalPartner(
+      categoryId: CategoryId,
+      predicate: ConfigurationPredicate,
+      candidatePartners: Set[PartnerId],
+      reason: LocalizedString,
   )

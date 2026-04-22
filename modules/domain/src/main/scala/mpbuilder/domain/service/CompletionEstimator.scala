@@ -70,6 +70,47 @@ object CompletionEstimator:
       bufferMinutes = bufferMin,
     )
 
+  /** Estimate completion date for an order routed to an external manufacturing partner.
+    *
+    * Bypasses queue/speed math. The estimate accounts for:
+    * 1. In-house prepress duration.
+    * 2. Partner lead time (min for earliest, max for latest), in working days.
+    * 3. A fixed 1-business-day QC+packaging buffer.
+    */
+  def estimateExternal(
+      partner: ExternalPartner,
+      quantity: Int,
+      stationEstimates: List[StationTimeEstimate],
+      schedule: ShopSchedule,
+      orderTime: LocalDateTime,
+  ): CompletionEstimate =
+    val workingMinutesPerDay = Duration
+      .between(schedule.workingHours.openTime, schedule.workingHours.closeTime)
+      .toMinutes
+
+    val prepressMinutes = estimateProductionTime(List(StationType.Prepress), quantity, stationEstimates)
+    val leadTimeMinMinutes = partner.leadTimeBusinessDays._1.toLong * workingMinutesPerDay
+    val leadTimeMaxMinutes = partner.leadTimeBusinessDays._2.toLong * workingMinutesPerDay
+    val qcPackagingBuffer = workingMinutesPerDay  // 1 business day
+
+    val effectiveStart = if isWorkingDay(orderTime.toLocalDate, schedule.workingHours) then orderTime
+      else
+        val nextDay = nextWorkingDay(orderTime.toLocalDate, schedule.workingHours)
+        LocalDateTime.of(nextDay, schedule.workingHours.openTime)
+
+    val afterPrepress = advanceByWorkingMinutes(effectiveStart, prepressMinutes, schedule.workingHours)
+    val earliestWithBuffer = advanceByWorkingMinutes(afterPrepress, leadTimeMinMinutes + qcPackagingBuffer, schedule.workingHours)
+    val latestWithBuffer = advanceByWorkingMinutes(afterPrepress, leadTimeMaxMinutes + qcPackagingBuffer, schedule.workingHours)
+
+    CompletionEstimate(
+      earliestCompletion = roundToHalfHour(earliestWithBuffer),
+      latestCompletion = roundToHalfHour(latestWithBuffer),
+      productionMinutes = prepressMinutes,
+      queueWaitMinutes = leadTimeMinMinutes,
+      approvalDelayMinutes = 0L,
+      bufferMinutes = qcPackagingBuffer,
+    )
+
   /** Queue state for a single station, used for queue wait estimation. */
   final case class StationQueueState(
       queueDepth: Int,

@@ -2,6 +2,7 @@ package mpbuilder.domain.sample
 
 import mpbuilder.domain.model.*
 import mpbuilder.domain.rules.*
+import mpbuilder.domain.manufacturing.PartnerId
 
 object SampleRules:
 
@@ -124,11 +125,27 @@ object SampleRules:
       SpecPredicate.MinDimension(300, 200),
       "Banners must be at least 300x200mm",
     ),
-    // Banners: max size 1500x1500mm (in-house production limit)
-    CompatibilityRule.SpecConstraint(
-      cat.bannersId,
-      SpecPredicate.MaxDimension(1500, 1500),
-      "Banners up to 150×150 cm (in-house production)",
+    // Banners larger than 150×150 cm are routed to the large-format external partner
+    CompatibilityRule.RequiresExternalPartner(
+      categoryId = cat.bannersId,
+      predicate = ConfigurationPredicate.Not(
+        ConfigurationPredicate.Spec(SpecPredicate.MaxDimension(1500, 1500))
+      ),
+      candidatePartners = Set(PartnerId.unsafe("partner-large-format")),
+      reason = LocalizedString(
+        "Banners larger than 150×150 cm are produced by our large-format partner (2–3 weeks)",
+        "Bannery větší než 150×150 cm vyrábí náš partner pro velkoplošný tisk (2–3 týdny)",
+      ),
+    ),
+    // Spot varnish on flyers is applied by the specialist external partner
+    CompatibilityRule.RequiresExternalPartner(
+      categoryId = cat.flyersId,
+      predicate = ConfigurationPredicate.HasFinishId(cat.varnishId),
+      candidatePartners = Set(PartnerId.unsafe("partner-spot-varnish")),
+      reason = LocalizedString(
+        "Spot UV varnish is applied by our specialist partner (1–2 weeks)",
+        "Spotový UV lak aplikuje náš specializovaný partner (1–2 týdny)",
+      ),
     ),
     // Banners: only CMYK ink type (now a ConfigurationConstraint)
     CompatibilityRule.ConfigurationConstraint(

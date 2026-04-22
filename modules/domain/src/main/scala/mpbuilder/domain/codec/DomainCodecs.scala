@@ -4,6 +4,7 @@ import zio.json.*
 import mpbuilder.domain.model.*
 import mpbuilder.domain.pricing.*
 import mpbuilder.domain.rules.*
+import mpbuilder.domain.manufacturing.PartnerId
 
 /** JSON codecs for all domain types needed for catalog and pricelist persistence.
   *
@@ -33,6 +34,9 @@ object DomainCodecs:
 
   given JsonEncoder[ConfigurationId] = JsonEncoder[String].contramap(_.value)
   given JsonDecoder[ConfigurationId] = JsonDecoder[String].map(ConfigurationId.unsafe)
+
+  given JsonEncoder[PartnerId] = JsonEncoder[String].contramap(_.value)
+  given JsonDecoder[PartnerId] = JsonDecoder[String].map(PartnerId.unsafe)
 
   // ── Language & LocalizedString ───────────────────────────────────────────
 

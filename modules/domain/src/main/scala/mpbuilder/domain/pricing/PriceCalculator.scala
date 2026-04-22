@@ -2,6 +2,7 @@ package mpbuilder.domain.pricing
 
 import zio.prelude.*
 import mpbuilder.domain.model.*
+import mpbuilder.domain.manufacturing.PartnerId
 
 object PriceCalculator:
 
@@ -10,8 +11,9 @@ object PriceCalculator:
       config: ProductConfiguration,
       pricelist: Pricelist,
       lang: Language = Language.En,
+      activePartnerId: Option[PartnerId] = None,
   ): Validation[PricingError, PriceBreakdown] =
-    calculateWithContext(config, pricelist, PricingContext.default, lang)
+    calculateWithContext(config, pricelist, PricingContext.default, lang, activePartnerId)
 
   /** Calculate price with dynamic pricing context (queue utilisation, busy periods). */
   def calculateWithContext(
@@ -19,6 +21,7 @@ object PriceCalculator:
       pricelist: Pricelist,
       context: PricingContext,
       lang: Language = Language.En,
+      activePartnerId: Option[PartnerId] = None,
   ): Validation[PricingError, PriceBreakdown] =
     val rules = pricelist.rules
 
@@ -77,10 +80,14 @@ object PriceCalculator:
         val (speedSurcharge, afterSpeedSubtotal) =
           computeSpeedSurcharge(selectedSpeed, rules, context, discountedSubtotal, lang)
 
+        // External partner markup — applied after speed surcharge, before setup fees
+        val (externalMarkupLine, afterMarkupSubtotal) =
+          computeExternalPartnerMarkup(activePartnerId, rules, afterSpeedSubtotal, lang)
+
         val allSelectedFinishes = config.components.flatMap(_.finishes)
         val setupFees = collectSetupFees(allSelectedFinishes, foldType, bindingMethod, rules, lang)
         val totalSetupFees = setupFees.map(_.lineTotal).foldLeft(Money.zero)(_ + _)
-        val billable = (afterSpeedSubtotal + totalSetupFees).rounded
+        val billable = (afterMarkupSubtotal + totalSetupFees).rounded
 
         val minimumRule = rules.collectFirst { case r: PricingRule.MinimumOrderPrice => r }
         val (total, minimumApplied) = minimumRule match
@@ -98,6 +105,7 @@ object PriceCalculator:
           subtotal = subtotal,
           quantityMultiplier = multiplier,
           speedSurcharge = speedSurcharge,
+          externalPartnerMarkup = externalMarkupLine,
           setupFees = setupFees,
           minimumApplied = minimumApplied,
           total = total,
@@ -174,6 +182,34 @@ object PriceCalculator:
                 lineTotal = surchargeAmount,
               )
               (Some(lineItem), afterSpeed)
+
+  private def computeExternalPartnerMarkup(
+      activePartnerId: Option[PartnerId],
+      rules: List[PricingRule],
+      afterSpeedSubtotal: Money,
+      lang: Language,
+  ): (Option[LineItem], Money) =
+    activePartnerId match
+      case None => (None, afterSpeedSubtotal)
+      case Some(partnerId) =>
+        rules.collectFirst {
+          case r: PricingRule.ExternalPartnerMarkup if r.partnerId == partnerId => r
+        } match
+          case None => (None, afterSpeedSubtotal)
+          case Some(rule) =>
+            val markupFactor = rule.multiplier - BigDecimal(1)
+            val markupAmount = (afterSpeedSubtotal * markupFactor).rounded
+            val afterMarkup = (afterSpeedSubtotal * rule.multiplier).rounded
+            val label = lang match
+              case Language.En => s"External partner markup: +${(markupFactor * 100).setScale(0, BigDecimal.RoundingMode.HALF_UP)}%"
+              case Language.Cs => s"Příplatek externího partnera: +${(markupFactor * 100).setScale(0, BigDecimal.RoundingMode.HALF_UP)} %"
+            val lineItem = LineItem(
+              label = label,
+              unitPrice = markupAmount,
+              quantity = 1,
+              lineTotal = markupAmount,
+            )
+            (Some(lineItem), afterMarkup)
 
   private def calculateComponentBreakdown(
       comp: ProductComponent,

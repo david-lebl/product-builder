@@ -1,6 +1,7 @@
 package mpbuilder.domain.model
 
 import zio.prelude.*
+import mpbuilder.domain.manufacturing.PartnerId
 
 // --- Manufacturing IDs ---
 
@@ -62,6 +63,7 @@ enum StationType:
   case LargeFormatFinishing
   case QualityControl
   case Packaging
+  case ExternalPartner  // represents hand-off to an external manufacturing partner
 
 object StationType:
   extension (st: StationType) def displayName: String = st match
@@ -79,6 +81,7 @@ object StationType:
     case LargeFormatFinishing => "Large Format Finishing"
     case QualityControl      => "Quality Control"
     case Packaging           => "Packaging & Dispatch"
+    case ExternalPartner     => "External Partner"
 
   extension (st: StationType) def icon: String = st match
     case Prepress            => "📋"
@@ -95,6 +98,7 @@ object StationType:
     case LargeFormatFinishing => "🔧"
     case QualityControl      => "✅"
     case Packaging           => "📦"
+    case ExternalPartner     => "🏭"
 
 /** Status of an individual workflow step */
 enum StepStatus:
@@ -319,6 +323,8 @@ final case class WorkflowStep(
     completedAt: Option[Long],
     notes: String,
     isRework: Boolean = false,
+    assignedPartner: Option[PartnerId] = None,
+    estimatedCompletionOverride: Option[java.time.Instant] = None,
 )
 
 /** A manufacturing workflow for a single order item */

@@ -1,6 +1,9 @@
 package mpbuilder.domain.service
 
 import mpbuilder.domain.model.*
+import mpbuilder.domain.manufacturing.{ExternalPartner, PartnerId}
+import mpbuilder.domain.rules.CompatibilityRule
+import java.time.LocalDate
 
 /** Derives a manufacturing workflow from a product configuration.
   *
@@ -27,8 +30,18 @@ object WorkflowGenerator:
       priority: Priority = Priority.Normal,
       deadline: Option[Long] = None,
       createdAt: Long = System.currentTimeMillis(),
+      externalPartners: Map[PartnerId, ExternalPartner] = Map.empty,
+      matchingExternalRules: List[CompatibilityRule.RequiresExternalPartner] = Nil,
+      orderDate: LocalDate = LocalDate.now(),
   ): ManufacturingWorkflow =
     val gen = StepIdGen(workflowId.value)
+
+    // Determine if external routing applies: select first available partner from matching rules
+    val selectedPartner: Option[ExternalPartner] =
+      matchingExternalRules.view
+        .flatMap(rule => rule.candidatePartners.toList)
+        .flatMap(pid => externalPartners.get(pid))
+        .find(_.availability.isAvailableOn(orderDate))
 
     // 1. Prepress — always first, no dependencies
     val prepressStep = WorkflowStep(
@@ -44,44 +57,91 @@ object WorkflowGenerator:
       notes = s"Prepress for ${config.category.name(Language.En)}",
     )
 
-    // 2. Per-component steps (printing, finishing, cutting, folding)
-    val componentSteps = config.components.flatMap { comp =>
-      generateComponentSteps(gen, comp, config, prepressStep.id)
-    }
+    val allSteps = selectedPartner match
+      case Some(partner) =>
+        // External routing: replace in-house steps with a single ExternalPartner step
+        val externalStep = WorkflowStep(
+          id = gen.next(),
+          stationType = StationType.ExternalPartner,
+          componentRole = None,
+          dependsOn = Set(prepressStep.id),
+          status = StepStatus.Waiting,
+          assignedTo = None,
+          assignedMachine = None,
+          startedAt = None,
+          completedAt = None,
+          notes = s"External production — ${partner.name(Language.En)}\nContact: ${partner.contact}",
+          assignedPartner = Some(partner.id),
+        )
 
-    // 3. Cross-component steps (binding, QC, packaging)
-    val lastComponentSteps = findLastStepsPerComponent(componentSteps, config.components)
+        val qcStep = WorkflowStep(
+          id = gen.next(),
+          stationType = StationType.QualityControl,
+          componentRole = None,
+          dependsOn = Set(externalStep.id),
+          status = StepStatus.Waiting,
+          assignedTo = None,
+          assignedMachine = None,
+          startedAt = None,
+          completedAt = None,
+          notes = "Final quality inspection",
+        )
 
-    val bindingStep = generateBindingStep(gen, config, lastComponentSteps)
-    val afterBindingIds = bindingStep.map(s => Set(s.id)).getOrElse(lastComponentSteps)
+        val packagingStep = WorkflowStep(
+          id = gen.next(),
+          stationType = StationType.Packaging,
+          componentRole = None,
+          dependsOn = Set(qcStep.id),
+          status = StepStatus.Waiting,
+          assignedTo = None,
+          assignedMachine = None,
+          startedAt = None,
+          completedAt = None,
+          notes = "Package and prepare for dispatch",
+        )
 
-    val qcStep = WorkflowStep(
-      id = gen.next(),
-      stationType = StationType.QualityControl,
-      componentRole = None,
-      dependsOn = afterBindingIds,
-      status = StepStatus.Waiting,
-      assignedTo = None,
-      assignedMachine = None,
-      startedAt = None,
-      completedAt = None,
-      notes = "Final quality inspection",
-    )
+        List(prepressStep, externalStep, qcStep, packagingStep)
 
-    val packagingStep = WorkflowStep(
-      id = gen.next(),
-      stationType = StationType.Packaging,
-      componentRole = None,
-      dependsOn = Set(qcStep.id),
-      status = StepStatus.Waiting,
-      assignedTo = None,
-      assignedMachine = None,
-      startedAt = None,
-      completedAt = None,
-      notes = "Package and prepare for dispatch",
-    )
+      case None =>
+        // In-house routing: normal workflow generation
+        // 2. Per-component steps (printing, finishing, cutting, folding)
+        val componentSteps = config.components.flatMap { comp =>
+          generateComponentSteps(gen, comp, config, prepressStep.id)
+        }
 
-    val allSteps = List(prepressStep) ++ componentSteps ++ bindingStep.toList ++ List(qcStep, packagingStep)
+        // 3. Cross-component steps (binding, QC, packaging)
+        val lastComponentSteps = findLastStepsPerComponent(componentSteps, config.components)
+
+        val bindingStep = generateBindingStep(gen, config, lastComponentSteps)
+        val afterBindingIds = bindingStep.map(s => Set(s.id)).getOrElse(lastComponentSteps)
+
+        val qcStep = WorkflowStep(
+          id = gen.next(),
+          stationType = StationType.QualityControl,
+          componentRole = None,
+          dependsOn = afterBindingIds,
+          status = StepStatus.Waiting,
+          assignedTo = None,
+          assignedMachine = None,
+          startedAt = None,
+          completedAt = None,
+          notes = "Final quality inspection",
+        )
+
+        val packagingStep = WorkflowStep(
+          id = gen.next(),
+          stationType = StationType.Packaging,
+          componentRole = None,
+          dependsOn = Set(qcStep.id),
+          status = StepStatus.Waiting,
+          assignedTo = None,
+          assignedMachine = None,
+          startedAt = None,
+          completedAt = None,
+          notes = "Package and prepare for dispatch",
+        )
+
+        List(prepressStep) ++ componentSteps ++ bindingStep.toList ++ List(qcStep, packagingStep)
 
     ManufacturingWorkflow(
       id = workflowId,
