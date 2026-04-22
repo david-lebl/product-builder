@@ -30,6 +30,7 @@ Research documents, gap analyses, and architecture decisions — context for *wh
 | [analysis/ui-kit-review.md](analysis/ui-kit-review.md) | Review of ui-framework components and styling gap analysis |
 | [analysis/roll-up.md](analysis/roll-up.md) | Roll-up/retractable banner product specification (2 components, area-based pricing) |
 | [analysis/claude-skills-vs-claudemd.md](analysis/claude-skills-vs-claudemd.md) | Analysis of Claude Code skills vs CLAUDE.md — when to use each, decision matrix |
+| [analysis/ink-configuration-pricing.md](analysis/ink-configuration-pricing.md) | Analysis of current `InkConfigurationFactor` model, its structural problems, and a proposed additive per-press ink pricing model with new `InkConfigurationSheetPrice` + `InkConfigurationAreaPrice` rules |
 
 ## 📐 Plans & Roadmaps
 
