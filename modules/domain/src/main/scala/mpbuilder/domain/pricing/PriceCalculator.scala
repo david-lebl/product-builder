@@ -25,7 +25,7 @@ object PriceCalculator:
     extractQuantity(config.specifications).flatMap { quantity =>
       val componentBreakdownsV: Validation[PricingError, List[ComponentBreakdown]] =
         config.components
-          .map { comp => calculateComponentBreakdown(comp, config.specifications, rules, quantity, lang) }
+          .map { comp => calculateComponentBreakdown(comp, config.specifications, rules, quantity, lang, config.category) }
           .foldLeft(Validation.succeed(List.empty[ComponentBreakdown]): Validation[PricingError, List[ComponentBreakdown]]) {
             (accV, cbV) => accV.zipWith(cbV)(_ :+ _)
           }
@@ -181,6 +181,7 @@ object PriceCalculator:
       rules: List[PricingRule],
       quantity: Int,
       lang: Language,
+      category: ProductCategory,
   ): Validation[PricingError, ComponentBreakdown] =
     val effectiveQuantity = comp.sheetCount * quantity
 
@@ -331,9 +332,16 @@ object PriceCalculator:
                 linearRule match
                   case Some(lr) =>
                     // Linear price: pricePerMeter × bound-edge length in meters × quantity
+                    // Use category.boundEdge to select the correct edge dimension
                     specs.get(SpecKind.Size) match
                       case Some(SpecValue.SizeSpec(dim)) =>
-                        val edgeLengthM = BigDecimal(dim.heightMm) / BigDecimal(1000)
+                        val boundEdgeMm = category.boundEdge match
+                          case Some(BoundEdge.LongEdge)  => dim.widthMm max dim.heightMm
+                          case Some(BoundEdge.ShortEdge) => dim.widthMm min dim.heightMm
+                          case Some(BoundEdge.Width)     => dim.widthMm
+                          case Some(BoundEdge.Height)    => dim.heightMm
+                          case None                      => dim.heightMm // default fallback
+                        val edgeLengthM = BigDecimal(boundEdgeMm) / BigDecimal(1000)
                         val unitPrice = lr.pricePerMeter * edgeLengthM
                         val materialLineTotal = unitPrice * quantity
                         val materialLine = LineItem(

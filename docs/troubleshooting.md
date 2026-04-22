@@ -206,3 +206,36 @@ areaTierRule match
 **Solution:** Whenever a new `PricingRule` variant is added, add a corresponding case to **both** `pricingRuleSummary` (returns a display string) **and** `pricingRuleTypeName` (returns the type name string) in `PricelistEditorView`. The Scala compiler emits a non-exhaustive match warning for these matches; treat those warnings as errors.
 
 **Files:** `modules/ui/src/main/scala/mpbuilder/ui/catalog/views/PricelistEditorView.scala`
+
+---
+
+### `DeriveJsonCodec.gen[Material]` fails when `MaterialAttribute` has no codec
+
+**Symptom:** Compilation error: `No given instance of type zio.json.JsonEncoder[Set[mpbuilder.domain.model.MaterialAttribute]]` when deriving a codec for `Material`.
+
+**Cause:** `Material` has an `attributes: Set[MaterialAttribute]` field. `DeriveJsonCodec.gen` needs codecs for all field types. `MaterialAttribute` is a sealed trait, and `HexColor` (used inside `MaterialAttribute.Color`) is an opaque type — neither is automatically derived by the macro.
+
+**Solution:** In `DomainCodecs.scala`, add explicit codecs for `HexColor` and `MaterialAttribute` **before** the `given JsonCodec[Material]` line:
+```scala
+given JsonEncoder[HexColor] = JsonEncoder[String].contramap(_.value)
+given JsonDecoder[HexColor] = JsonDecoder[String].map(HexColor.unsafe)
+
+given JsonCodec[MaterialAttribute] = DeriveJsonCodec.gen[MaterialAttribute]
+
+given JsonCodec[Material] = DeriveJsonCodec.gen[Material]
+```
+
+**Files:** `modules/domain/src/main/scala/mpbuilder/domain/codec/DomainCodecs.scala`
+
+---
+
+### Calendar `CategoryPresetSpec` pricing fails after adding new component roles
+
+**Symptom:** `CategoryPresetSpec / every preset produces a priced configuration` fails with "pricing failed" for calendar presets when the `pricelistCzkSheet` pricelist is used.
+
+**Cause:** When a binding material (`Binding` component role) is added to calendar presets, the `PriceCalculator` tries to find `MaterialLinearPrice` or `MaterialFixedPrice` rules for those materials. If those rules are only added to some pricelists (e.g. `pricelist` USD and `pricelistCzk`) but not `pricelistCzkSheet`, the test that uses `pricelistCzkSheet` fails.
+
+**Solution:** Add `MaterialLinearPrice`, `MaterialFixedPrice`, and `MaterialBasePrice` rules for all binding/cover materials to **all three** pricelists in `SamplePricelist.scala`.
+
+**Files:** `modules/domain/src/main/scala/mpbuilder/domain/sample/SamplePricelist.scala`
+

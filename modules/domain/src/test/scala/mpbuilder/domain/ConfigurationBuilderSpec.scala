@@ -668,7 +668,7 @@ object ConfigurationBuilderSpec extends ZIOSpecDefault:
           ),
           List(ProductComponent(ComponentRole.Main, SampleCatalog.vinyl, InkConfiguration.cmyk4_4, List(SelectedFinish(SampleCatalog.embossing)), 1)),
           ProductSpecifications.empty,
-          SampleCatalog.businessCards,
+          SampleCatalog.banners,
           SampleCatalog.uvInkjetMethod,
         )
         assertTrue(result.toEither.isLeft)

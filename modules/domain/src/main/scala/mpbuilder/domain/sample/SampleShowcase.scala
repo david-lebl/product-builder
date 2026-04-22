@@ -263,12 +263,12 @@ object SampleShowcase:
     variations = List(
       ProductVariation(
         LocalizedString("Wall Calendar", "Nástěnný kalendář"),
-        LocalizedString("A4, clear front + glossy back 250gsm, metal wire-o silver, 28 pages", "A4, průhledná přední + lesklý záded 250g, kovová Wire-O stříbrná, 28 stran"),
+        LocalizedString("A4, clear front + glossy back 250gsm, metal wire-o silver, 28 pages", "A4, průhledná přední + lesklá záď 250g, kovová Wire-O stříbrná, 28 stran"),
         presetId = Some(PresetId.unsafe("preset-calendars-wall")),
       ),
       ProductVariation(
         LocalizedString("Desk Calendar", "Stolní kalendář"),
-        LocalizedString("A5, clear front + matte back 300gsm, metal wire-o silver, 28 pages", "A5, průhledná přední + matný záded 300g, kovová Wire-O stříbrná, 28 stran"),
+        LocalizedString("A5, clear front + matte back 300gsm, metal wire-o silver, 28 pages", "A5, průhledná přední + matná záď 300g, kovová Wire-O stříbrná, 28 stran"),
         presetId = Some(PresetId.unsafe("preset-calendars-desk")),
       ),
     ),

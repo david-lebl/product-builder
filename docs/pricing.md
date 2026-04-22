@@ -32,7 +32,7 @@ Pricelist(
 
 ### Pricing Rules
 
-There are 22 rule types, each a variant of the `PricingRule` sealed enum:
+There are 24 rule types, each a variant of the `PricingRule` sealed enum:
 
 | Rule | Purpose | Example |
 |------|---------|---------|
@@ -40,6 +40,8 @@ There are 22 rule types, each a variant of the `PricingRule` sealed enum:
 | `MaterialAreaPrice` | Flat price per square meter (for large-format) | Vinyl = $18.00/m² |
 | `MaterialAreaTier` | Area-tiered price per square meter — picks highest matching tier | PVC 510g: 600/500/450/400 CZK/m² |
 | `MaterialSheetPrice` | Price per physical press sheet | Coated 135gsm = 8 CZK/sheet |
+| `MaterialLinearPrice` | Price per linear meter of bound edge (for binding consumables) | Metal wire-o = $0.35/m |
+| `MaterialFixedPrice` | Flat per-unit price for a binding or accessory material | Case binding board = $1.20/unit |
 | `FinishSurcharge` | Per-unit surcharge for a specific finish (by ID) | Matte lamination = $0.03/unit |
 | `FinishTypeSurcharge` | Per-unit surcharge for a finish type | All lamination = $0.04/unit |
 | `GrommetSpacingAreaPrice` | Area-based grommet price keyed by grommet spacing | 40 CZK/m² at 500mm spacing |

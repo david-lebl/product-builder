@@ -331,11 +331,8 @@ object PriceCalculatorSpec extends ZIOSpecDefault:
         // BackCover ink config (4/0, multiplier 0.60): 11.00 × (0.60 - 1.0) = -4.40
         // BackCover gloss lam: 0.03 × 100 = 3.00
         // Body: coated300gsm (0.12) × 6 × 100 = 72.00  (loop 14 pages: (14-2)/2 = 6)
-        // Binding: metalWireOA4Silver, LinearPrice 0.35/m × (297/1000)m × 100 = 10.395 ≈ 10.40
+        // Binding: metalWireOA4Silver, LinearPrice 0.35/m × (210mm ShortEdge/1000m) × 100 = 7.35
         // Loop binding surcharge: 0.20 × 100 = 20.00
-        // subtotal = 11.00 + (-4.40) + 3.00 + 72.00 + 10.40 + 20.00 = 112.00
-        // tier 1-249: 1.0×
-        // total ≈ 112.00
         val config = ProductConfiguration(
           id = configId,
           category = SampleCatalog.calendars,
@@ -357,6 +354,8 @@ object PriceCalculatorSpec extends ZIOSpecDefault:
         val breakdown = result.toEither.toOption.get
         val coverBd = breakdown.componentBreakdowns.find(_.role == ComponentRole.BackCover).get
         val bodyBd = breakdown.componentBreakdowns.find(_.role == ComponentRole.Body).get
+        val bindingBd = breakdown.componentBreakdowns.find(_.role == ComponentRole.Binding).get
+        // Binding: 0.35/m × 0.210m = 0.0735 unit price, × 100 = 7.35
         // Loop binding surcharge: 0.20 × 100 = 20.00
         assertTrue(
           result.toEither.isRight,
@@ -364,6 +363,7 @@ object PriceCalculatorSpec extends ZIOSpecDefault:
           coverBd.materialLine.lineTotal == Money("11.00"),
           bodyBd.materialLine.unitPrice == Money("0.12"),
           bodyBd.materialLine.lineTotal == Money("72.00"),
+          bindingBd.materialLine.lineTotal == Money("7.35"),
           breakdown.bindingSurcharge.isDefined,
           breakdown.bindingSurcharge.get.lineTotal == Money("20.00"),
         )
