@@ -156,14 +156,14 @@ object SampleRules:
       ),
       "White ink requires transparent material or UV inkjet printing",
     ),
-    // Booklets: allowed binding methods (saddle stitch, perfect binding, spiral, wire-o)
+    // Booklets: allowed binding methods (saddle stitch, perfect binding, loop)
     CompatibilityRule.SpecConstraint(
       cat.bookletsId,
       SpecPredicate.AllowedBindingMethods(Set(
         BindingMethod.SaddleStitch, BindingMethod.PerfectBinding,
-        BindingMethod.SpiralBinding, BindingMethod.WireOBinding,
+        BindingMethod.LoopBinding,
       )),
-      "Booklets only support saddle stitch, perfect binding, spiral or wire-o binding",
+      "Booklets only support saddle stitch, perfect binding, or loop binding",
     ),
     // Booklets: min pages 8
     CompatibilityRule.SpecConstraint(
@@ -208,12 +208,11 @@ object SampleRules:
       ConfigurationPredicate.AllowedInkTypes(Set(InkType.CMYK)),
       "Roll-up banners only support CMYK ink type for the banner",
     ),
-    // --- Calendar rules ---
     // Calendars: allowed binding methods
     CompatibilityRule.SpecConstraint(
       cat.calendarsId,
-      SpecPredicate.AllowedBindingMethods(Set(BindingMethod.SpiralBinding, BindingMethod.WireOBinding)),
-      "Calendars only support spiral or wire-o binding",
+      SpecPredicate.AllowedBindingMethods(Set(BindingMethod.LoopBinding)),
+      "Calendars only support loop binding (plastic coil or wire-o)",
     ),
     // Calendars: min pages 12
     CompatibilityRule.SpecConstraint(
@@ -248,15 +247,15 @@ object SampleRules:
       ),
       "Saddle stitch binding requires page count divisible by 4",
     ),
-    // Perfect binding, spiral binding and wire-o binding require page count divisible by 2
+    // Perfect binding and loop binding require page count divisible by 2
     CompatibilityRule.TechnologyConstraint(
       ConfigurationPredicate.Or(
         ConfigurationPredicate.Not(ConfigurationPredicate.BindingMethodIs(
-          Set(BindingMethod.PerfectBinding, BindingMethod.SpiralBinding, BindingMethod.WireOBinding),
+          Set(BindingMethod.PerfectBinding, BindingMethod.LoopBinding),
         )),
         ConfigurationPredicate.Spec(SpecPredicate.PagesDivisibleBy(2)),
       ),
-      "Perfect binding, spiral and wire-o binding require page count divisible by 2",
+      "Perfect binding and loop binding require page count divisible by 2",
     ),
     // Saddle stitch on heavy paper (>=300gsm) is limited to 80 pages
     CompatibilityRule.TechnologyConstraint(

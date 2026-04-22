@@ -87,3 +87,11 @@ enum CompatibilityRule:
       maxCreases: Int,
       reason: String,
   )
+  case BindingMaterialConstrainsSize(
+      reason: String,
+  )
+  case ComponentRequired(
+      role: ComponentRole,
+      whenBindingMethod: BindingMethod,
+      reason: String,
+  )

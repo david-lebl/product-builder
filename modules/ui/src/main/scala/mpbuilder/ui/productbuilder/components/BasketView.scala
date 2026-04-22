@@ -276,4 +276,7 @@ object BasketView:
       case Some(RopeParams(length)) => lang match
         case Language.En => s" (${length}m)"
         case Language.Cs => s" (${length}m)"
+      case Some(ScoringParams(creases)) => lang match
+        case Language.En => s" ($creases crease${if creases > 1 then "s" else ""})"
+        case Language.Cs => s" ($creases linka${if creases > 1 then "y" else ""})"
     sf.name(lang) + paramsDesc

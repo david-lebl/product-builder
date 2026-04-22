@@ -3,7 +3,7 @@ package mpbuilder.domain.model
 import zio.prelude.*
 
 enum MaterialFamily:
-  case Paper, Vinyl, Cardboard, Fabric, Hardware
+  case Paper, Vinyl, Cardboard, Fabric, Hardware, Plastic, Metal
 
 enum MaterialProperty:
   case Recyclable, WaterResistant, Glossy, Matte, Textured, SmoothSurface, Transparent
@@ -18,11 +18,35 @@ object PaperWeight:
 
   extension (w: PaperWeight) def gsm: Int = w
 
+opaque type HexColor = String
+object HexColor:
+  private val hexPattern = "^#[0-9A-Fa-f]{6}$".r
+
+  def apply(hex: String): Validation[String, HexColor] =
+    if hexPattern.matches(hex) then Validation.succeed(hex)
+    else Validation.fail(s"HexColor must be in #RRGGBB format, got $hex")
+
+  def unsafe(hex: String): HexColor = hex
+
+  extension (h: HexColor) def value: String = h
+
+sealed trait MaterialAttribute
+object MaterialAttribute:
+  final case class MaxBoundEdgeLengthMm(value: Double) extends MaterialAttribute
+  final case class MaxBoundThicknessMm(value: Double)  extends MaterialAttribute
+  final case class Color(hex: HexColor)                extends MaterialAttribute
+  final case class CoilPitchMm(value: Double)          extends MaterialAttribute
+
 final case class Material(
     id: MaterialId,
     name: LocalizedString,
     family: MaterialFamily,
     weight: Option[PaperWeight],
     properties: Set[MaterialProperty],
+    attributes: Set[MaterialAttribute] = Set.empty,
     description: Option[LocalizedString] = None,
-)
+):
+  def isPrintable: Boolean =
+    family != MaterialFamily.Plastic &&
+    family != MaterialFamily.Metal &&
+    !properties.contains(MaterialProperty.Transparent)

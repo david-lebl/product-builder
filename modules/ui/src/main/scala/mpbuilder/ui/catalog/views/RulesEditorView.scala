@@ -89,7 +89,12 @@ object RulesEditorView:
     case r: CompatibilityRule.FinishRequiresFinishType => s"FinishRequiresFinishType: ${r.finishId.value} needs ${r.requiredFinishType}"
     case r: CompatibilityRule.FinishRequiresPrintingProcess => s"FinishRequiresPrintingProcess: ${r.finishType} needs ${r.requiredProcessTypes.mkString(",")}"
     case r: CompatibilityRule.ConfigurationConstraint => s"ConfigurationConstraint: ${r.categoryId.value}"
-    case r: CompatibilityRule.TechnologyConstraint => s"TechnologyConstraint"
+    case _: CompatibilityRule.TechnologyConstraint => s"TechnologyConstraint"
+    case r: CompatibilityRule.ScoringMaxCreasesForCategory => s"ScoringMaxCreasesForCategory: ${r.categoryId.value} max ${r.maxCreases}"
+    case r: CompatibilityRule.ScoringMaxCreasesForMaterial => s"ScoringMaxCreasesForMaterial: ${r.materialId.value} max ${r.maxCreases}"
+    case r: CompatibilityRule.ScoringMaxCreasesForPrintingProcess => s"ScoringMaxCreasesForPrintingProcess: ${r.processType} max ${r.maxCreases}"
+    case r: CompatibilityRule.BindingMaterialConstrainsSize => s"BindingMaterialConstrainsSize"
+    case r: CompatibilityRule.ComponentRequired => s"ComponentRequired: ${r.role} for ${r.whenBindingMethod}"
 
   /** Rule creation/editing form with a rule type selector. */
   private def ruleForm(existing: Option[CompatibilityRule], index: Int): HtmlElement =
@@ -324,6 +329,11 @@ object RulesEditorView:
     case _: CompatibilityRule.FinishRequiresPrintingProcess => "FinishRequiresPrintingProcess"
     case _: CompatibilityRule.ConfigurationConstraint => "ConfigurationConstraint"
     case _: CompatibilityRule.TechnologyConstraint => "TechnologyConstraint"
+    case _: CompatibilityRule.ScoringMaxCreasesForCategory => "ScoringMaxCreasesForCategory"
+    case _: CompatibilityRule.ScoringMaxCreasesForMaterial => "ScoringMaxCreasesForMaterial"
+    case _: CompatibilityRule.ScoringMaxCreasesForPrintingProcess => "ScoringMaxCreasesForPrintingProcess"
+    case _: CompatibilityRule.BindingMaterialConstrainsSize => "BindingMaterialConstrainsSize"
+    case _: CompatibilityRule.ComponentRequired => "ComponentRequired"
 
   private def extractMaterialId(rule: Option[CompatibilityRule]): Option[String] = rule.collect {
     case r: CompatibilityRule.MaterialFinishIncompatible => r.materialId.value
@@ -351,6 +361,11 @@ object RulesEditorView:
     case r: CompatibilityRule.FinishRequiresPrintingProcess => r.reason
     case r: CompatibilityRule.ConfigurationConstraint => r.reason
     case r: CompatibilityRule.TechnologyConstraint => r.reason
+    case r: CompatibilityRule.ScoringMaxCreasesForCategory => r.reason
+    case r: CompatibilityRule.ScoringMaxCreasesForMaterial => r.reason
+    case r: CompatibilityRule.ScoringMaxCreasesForPrintingProcess => r.reason
+    case r: CompatibilityRule.BindingMaterialConstrainsSize => r.reason
+    case r: CompatibilityRule.ComponentRequired => r.reason
   }
 
   private def extractFinishType(rule: Option[CompatibilityRule]): Option[FinishType] = rule.collect {

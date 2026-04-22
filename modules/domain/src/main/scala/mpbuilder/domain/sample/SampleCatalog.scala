@@ -954,6 +954,110 @@ object SampleCatalog:
     properties = Set(MaterialProperty.SmoothSurface, MaterialProperty.Transparent),
   )
 
+  // --- Binding Materials ---
+  val plasticCoilA4BlackId: MaterialId  = MaterialId.unsafe("mat-plastic-coil-a4-black")
+  val plasticCoilA4WhiteId: MaterialId  = MaterialId.unsafe("mat-plastic-coil-a4-white")
+  val metalWireOA4SilverId: MaterialId  = MaterialId.unsafe("mat-metal-wire-o-a4-silver")
+  val metalWireOA4BlackId: MaterialId   = MaterialId.unsafe("mat-metal-wire-o-a4-black")
+  val plasticCoilA3BlackId: MaterialId  = MaterialId.unsafe("mat-plastic-coil-a3-black")
+  val caseBindingBoardBlackId: MaterialId = MaterialId.unsafe("mat-case-binding-board-black-350gsm")
+
+  val plasticCoilA4Black: Material = Material(
+    id = plasticCoilA4BlackId,
+    name = LocalizedString("Plastic Coil A4 — Black", "Plastová spirála A4 — černá"),
+    family = MaterialFamily.Plastic,
+    weight = None,
+    properties = Set.empty,
+    attributes = Set(
+      MaterialAttribute.MaxBoundEdgeLengthMm(297),
+      MaterialAttribute.Color(HexColor.unsafe("#000000")),
+    ),
+    description = Some(LocalizedString("Black plastic O-coil for loop binding, fits A4 (max 297mm edge).", "Černá plastová O-spirála pro kroužkovou vazbu, vhodná pro A4 (max 297mm).")),
+  )
+
+  val plasticCoilA4White: Material = Material(
+    id = plasticCoilA4WhiteId,
+    name = LocalizedString("Plastic Coil A4 — White", "Plastová spirála A4 — bílá"),
+    family = MaterialFamily.Plastic,
+    weight = None,
+    properties = Set.empty,
+    attributes = Set(
+      MaterialAttribute.MaxBoundEdgeLengthMm(297),
+      MaterialAttribute.Color(HexColor.unsafe("#FFFFFF")),
+    ),
+    description = Some(LocalizedString("White plastic O-coil for loop binding, fits A4 (max 297mm edge).", "Bílá plastová O-spirála pro kroužkovou vazbu, vhodná pro A4 (max 297mm).")),
+  )
+
+  val metalWireOA4Silver: Material = Material(
+    id = metalWireOA4SilverId,
+    name = LocalizedString("Metal Wire-O A4 — Silver", "Kovová spirála Wire-O A4 — stříbrná"),
+    family = MaterialFamily.Metal,
+    weight = None,
+    properties = Set.empty,
+    attributes = Set(
+      MaterialAttribute.MaxBoundEdgeLengthMm(297),
+      MaterialAttribute.Color(HexColor.unsafe("#C0C0C0")),
+    ),
+    description = Some(LocalizedString("Silver metal double-loop wire for Wire-O binding, fits A4.", "Stříbrný kovový dvousmyčkový drát pro Wire-O vazbu, vhodný pro A4.")),
+  )
+
+  val metalWireOA4Black: Material = Material(
+    id = metalWireOA4BlackId,
+    name = LocalizedString("Metal Wire-O A4 — Black", "Kovová spirála Wire-O A4 — černá"),
+    family = MaterialFamily.Metal,
+    weight = None,
+    properties = Set.empty,
+    attributes = Set(
+      MaterialAttribute.MaxBoundEdgeLengthMm(297),
+      MaterialAttribute.Color(HexColor.unsafe("#000000")),
+    ),
+    description = Some(LocalizedString("Black metal double-loop wire for Wire-O binding, fits A4.", "Černý kovový dvousmyčkový drát pro Wire-O vazbu, vhodný pro A4.")),
+  )
+
+  val plasticCoilA3Black: Material = Material(
+    id = plasticCoilA3BlackId,
+    name = LocalizedString("Plastic Coil A3 — Black", "Plastová spirála A3 — černá"),
+    family = MaterialFamily.Plastic,
+    weight = None,
+    properties = Set.empty,
+    attributes = Set(
+      MaterialAttribute.MaxBoundEdgeLengthMm(420),
+      MaterialAttribute.Color(HexColor.unsafe("#000000")),
+    ),
+    description = Some(LocalizedString("Black plastic O-coil for loop binding, fits A3 (max 420mm edge).", "Černá plastová O-spirála pro kroužkovou vazbu, vhodná pro A3 (max 420mm).")),
+  )
+
+  val caseBindingBoardBlack: Material = Material(
+    id = caseBindingBoardBlackId,
+    name = LocalizedString("Case Binding Board — Black 350gsm", "Desky pro pevnou vazbu — černé 350g"),
+    family = MaterialFamily.Cardboard,
+    weight = Some(PaperWeight.unsafe(350)),
+    properties = Set(MaterialProperty.Matte, MaterialProperty.Recyclable),
+    description = Some(LocalizedString("Black 350gsm cardboard boards for hard case binding.", "Černé 350g kartonové desky pro pevnou vazbu.")),
+  )
+
+  // --- Transparent Front Cover Materials ---
+  val plasticClear200micId: MaterialId = MaterialId.unsafe("mat-plastic-clear-200mic")
+  val plasticClear300micId: MaterialId = MaterialId.unsafe("mat-plastic-clear-300mic")
+
+  val plasticClear200mic: Material = Material(
+    id = plasticClear200micId,
+    name = LocalizedString("Clear Plastic Cover 200mic", "Průhledná plastová obálka 200mic"),
+    family = MaterialFamily.Plastic,
+    weight = None,
+    properties = Set(MaterialProperty.Transparent, MaterialProperty.SmoothSurface),
+    description = Some(LocalizedString("Transparent plastic sheet for front cover, 200 microns.", "Průhledná plastová folie pro přední obálku, 200 mikronů.")),
+  )
+
+  val plasticClear300mic: Material = Material(
+    id = plasticClear300micId,
+    name = LocalizedString("Clear Plastic Cover 300mic", "Průhledná plastová obálka 300mic"),
+    family = MaterialFamily.Plastic,
+    weight = None,
+    properties = Set(MaterialProperty.Transparent, MaterialProperty.SmoothSurface),
+    description = Some(LocalizedString("Transparent plastic sheet for front cover, 300 microns.", "Průhledná plastová folie pro přední obálku, 300 mikronů.")),
+  )
+
   // --- Reusable Material ID Sets ---
   private val allCoatedGlossyIds: Set[MaterialId] = Set(
     coatedGlossy90gsmId, coatedGlossy115gsmId, coatedGlossy130gsmId,
@@ -1404,10 +1508,16 @@ object SampleCatalog:
     name = LocalizedString("Calendars", "Kalendáře"),
     components = List(
       ComponentTemplate(
-        ComponentRole.Cover,
-        allowedMaterialIds = Set(coated300gsmId, coatedSilk250gsmId) ++
-        mediumHeavyCoatedGlossyIds ++ mediumHeavyCoatedMatteIds,
-    allowedFinishIds = Set(matteLaminationId, glossLaminationId, uvCoatingId),
+        ComponentRole.FrontCover,
+        allowedMaterialIds = Set(plasticClear200micId, plasticClear300micId),
+        allowedFinishIds = Set.empty,
+        optional = true,
+      ),
+      ComponentTemplate(
+        ComponentRole.BackCover,
+        allowedMaterialIds = Set(coatedGlossy350gsmId, coatedMatte350gsmId, coated300gsmId, coatedSilk250gsmId) ++
+          mediumHeavyCoatedGlossyIds ++ mediumHeavyCoatedMatteIds,
+        allowedFinishIds = Set(matteLaminationId, glossLaminationId, uvCoatingId),
       ),
       ComponentTemplate(
         ComponentRole.Body,
@@ -1415,25 +1525,40 @@ object SampleCatalog:
           mediumHeavyCoatedGlossyIds ++ mediumHeavyCoatedMatteIds,
         allowedFinishIds = Set(perforationId),
       ),
+      ComponentTemplate(
+        ComponentRole.Binding,
+        allowedMaterialIds = Set(
+          plasticCoilA4BlackId, plasticCoilA4WhiteId,
+          metalWireOA4SilverId, metalWireOA4BlackId,
+          plasticCoilA3BlackId,
+        ),
+        allowedFinishIds = Set.empty,
+      ),
     ),
     requiredSpecKinds = Set(SpecKind.Size, SpecKind.Quantity, SpecKind.Pages, SpecKind.BindingMethod),
     allowedPrintingMethodIds = Set(digitalId),
+    boundEdge = Some(BoundEdge.ShortEdge),
     description = Some(LocalizedString(
-      "Wall and desk calendars with cover and monthly pages. Separate cover and body components allow different paper choices. Wire-o binding is most common.",
-      "Nástěnné a stolní kalendáře s obálkou a měsíčními stránkami. Samostatná obálka a vnitřní strany umožňují různé volby papíru. Kroužková vazba je nejběžnější.",
+      "Wall and desk calendars with separate front cover, back cover, body, and binding component. Choose transparent plastic front cover, cardboard back cover, and loop binding material. Wire-o and plastic coil binding available.",
+      "Nástěnné a stolní kalendáře se samostatnou přední obálkou, zadní obálkou, vnitřními stranami a vázacím komponentem. Průhledná plastová přední obálka, kartonová zadní obálka a kroužková vazba.",
     )),
     presets = List(
       CategoryPreset(
         id = PresetId.unsafe("preset-calendars-wall"),
         name = LocalizedString("Wall Calendar", "Nástěnný kalendář"),
         description = Some(LocalizedString(
-          "Glossy 250gsm cover + 170gsm body, 4+4 CMYK, A4, wire-o, 28 pages, 50 pcs",
-          "Lesklý 250g obálka + 170g tělo, 4+4 CMYK, A4, kroužková vazba, 28 stran, 50 ks",
+          "Clear 200mic front + glossy 250gsm back + 170gsm body, 4+4 CMYK, A4, loop binding (metal wire-o silver), 28 pages, 50 pcs",
+          "Průhledná 200mic přední + lesklý 250g zadní + 170g tělo, 4+4 CMYK, A4, kroužková vazba (kovová Wire-O stříbrná), 28 stran, 50 ks",
         )),
         printingMethodId = digitalId,
         componentPresets = List(
           ComponentPreset(
-            role = ComponentRole.Cover,
+            role = ComponentRole.FrontCover,
+            materialId = plasticClear200micId,
+            inkConfiguration = InkConfiguration.noInk,
+          ),
+          ComponentPreset(
+            role = ComponentRole.BackCover,
             materialId = coatedGlossy250gsmId,
             inkConfiguration = InkConfiguration.cmyk4_4,
           ),
@@ -1442,25 +1567,35 @@ object SampleCatalog:
             materialId = coatedGlossy170gsmId,
             inkConfiguration = InkConfiguration.cmyk4_4,
           ),
+          ComponentPreset(
+            role = ComponentRole.Binding,
+            materialId = metalWireOA4SilverId,
+            inkConfiguration = InkConfiguration.noInk,
+          ),
         ),
         specOverrides = List(
           SpecValue.SizeSpec(Dimension(210, 297)),
           SpecValue.QuantitySpec(Quantity.unsafe(50)),
           SpecValue.PagesSpec(28),
-          SpecValue.BindingMethodSpec(BindingMethod.WireOBinding),
+          SpecValue.BindingMethodSpec(BindingMethod.LoopBinding),
         ),
       ),
       CategoryPreset(
         id = PresetId.unsafe("preset-calendars-desk"),
         name = LocalizedString("Desk Calendar", "Stolní kalendář"),
         description = Some(LocalizedString(
-          "Matte 300gsm cover + 200gsm body, 4+4 CMYK, A5, wire-o, 28 pages, 50 pcs",
-          "Matný 300g obálka + 200g tělo, 4+4 CMYK, A5, kroužková vazba, 28 stran, 50 ks",
+          "Clear 200mic front + matte 300gsm back + 200gsm body, 4+4 CMYK, A5, loop binding (metal wire-o silver), 28 pages, 50 pcs",
+          "Průhledná 200mic přední + matný 300g zadní + 200g tělo, 4+4 CMYK, A5, kroužková vazba (kovová Wire-O stříbrná), 28 stran, 50 ks",
         )),
         printingMethodId = digitalId,
         componentPresets = List(
           ComponentPreset(
-            role = ComponentRole.Cover,
+            role = ComponentRole.FrontCover,
+            materialId = plasticClear200micId,
+            inkConfiguration = InkConfiguration.noInk,
+          ),
+          ComponentPreset(
+            role = ComponentRole.BackCover,
             materialId = coatedMatte300gsmId,
             inkConfiguration = InkConfiguration.cmyk4_4,
           ),
@@ -1469,12 +1604,17 @@ object SampleCatalog:
             materialId = coatedMatte200gsmId,
             inkConfiguration = InkConfiguration.cmyk4_4,
           ),
+          ComponentPreset(
+            role = ComponentRole.Binding,
+            materialId = metalWireOA4SilverId,
+            inkConfiguration = InkConfiguration.noInk,
+          ),
         ),
         specOverrides = List(
           SpecValue.SizeSpec(Dimension(148, 210)),
           SpecValue.QuantitySpec(Quantity.unsafe(50)),
           SpecValue.PagesSpec(28),
-          SpecValue.BindingMethodSpec(BindingMethod.WireOBinding),
+          SpecValue.BindingMethodSpec(BindingMethod.LoopBinding),
         ),
       ),
     ),
@@ -1489,6 +1629,11 @@ object SampleCatalog:
     cottonCanvasBagId, organicCottonBagId, recycledPetBagId, juteBagId, nonWovenPpBagId,
     tinplateBadgeId, acrylicBadgeId, woodenBadgeId,
     ceramicMugWhiteId, ceramicMugColoredId, magicMugId, stainlessTravelMugId, enamelMugId, glassMugId,
+    // Binding materials
+    plasticCoilA4BlackId, plasticCoilA4WhiteId, metalWireOA4SilverId, metalWireOA4BlackId,
+    plasticCoilA3BlackId, caseBindingBoardBlackId,
+    // Transparent front cover materials
+    plasticClear200micId, plasticClear300micId,
   ) ++ allCoatedGlossyIds ++ allCoatedMatteIds
 
   private val allFinishIds: Set[FinishId] = Set(
@@ -2076,6 +2221,16 @@ object SampleCatalog:
       stainlessTravelMugId   -> stainlessTravelMug,
       enamelMugId            -> enamelMug,
       glassMugId             -> glassMug,
+      // Binding materials
+      plasticCoilA4BlackId   -> plasticCoilA4Black,
+      plasticCoilA4WhiteId   -> plasticCoilA4White,
+      metalWireOA4SilverId   -> metalWireOA4Silver,
+      metalWireOA4BlackId    -> metalWireOA4Black,
+      plasticCoilA3BlackId   -> plasticCoilA3Black,
+      caseBindingBoardBlackId -> caseBindingBoardBlack,
+      // Transparent front cover materials
+      plasticClear200micId   -> plasticClear200mic,
+      plasticClear300micId   -> plasticClear300mic,
     ),
     finishes = Map(
       matteLaminationId  -> matteLamination,
