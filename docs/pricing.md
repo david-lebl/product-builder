@@ -32,14 +32,14 @@ Pricelist(
 
 ### Pricing Rules
 
-There are 22 rule types, each a variant of the `PricingRule` sealed enum:
+There are 23 rule types, each a variant of the `PricingRule` sealed enum:
 
 | Rule | Purpose | Example |
 |------|---------|---------|
-| `MaterialBasePrice` | Flat per-unit price for a material | Coated 300gsm = $0.12/unit |
-| `MaterialAreaPrice` | Flat price per square meter (for large-format) | Vinyl = $18.00/m² |
-| `MaterialAreaTier` | Area-tiered price per square meter — picks highest matching tier | PVC 510g: 600/500/450/400 CZK/m² |
-| `MaterialSheetPrice` | Price per physical press sheet | Coated 135gsm = 8 CZK/sheet |
+| `MaterialBasePrice` | Flat per-unit price for a material | Coated 300gsm = $0.08/unit |
+| `MaterialAreaPrice` | Flat price per square meter (for large-format) | Vinyl = $16.20/m² |
+| `MaterialAreaTier` | Area-tiered price per square meter — picks highest matching tier | PVC 510g: 555/455/405/355 CZK/m² |
+| `MaterialSheetPrice` | Price per physical press sheet | Coated 90gsm = 4 CZK/sheet |
 | `FinishSurcharge` | Per-unit surcharge for a specific finish (by ID) | Matte lamination = $0.03/unit |
 | `FinishTypeSurcharge` | Per-unit surcharge for a finish type | All lamination = $0.04/unit |
 | `GrommetSpacingAreaPrice` | Area-based grommet price keyed by grommet spacing | 40 CZK/m² at 500mm spacing |
@@ -52,7 +52,8 @@ There are 22 rule types, each a variant of the `PricingRule` sealed enum:
 | `BindingMethodSurcharge` | Per-unit surcharge for a binding method | Saddle stitch = $0.05/unit |
 | `QuantityTier` | Multiplier on subtotal based on product quantity | 1000+ units = 0.80× |
 | `SheetQuantityTier` | Multiplier on subtotal based on total physical sheets | 250+ sheets = 0.80× |
-| `InkConfigurationFactor` | Multiplier on material cost by ink color counts | 4/4 CMYK = 1.20× |
+| `InkConfigurationSheetPrice` | Additive per-sheet (or per-unit) ink cost keyed by printing method and front/back color counts | Offset 4/4 = 4 CZK/sheet |
+| `InkConfigurationAreaPrice` | Additive per-m² ink cost keyed by printing method and front/back color counts | UV Inkjet 4/4 = 45 CZK/m² |
 | `CuttingSurcharge` | Per-cut surcharge for sheet-priced materials | 8 CZK/cut |
 | `FinishSetupFee` | One-time setup fee for a specific finish (by ID) | Matte lam setup = 50 CZK |
 | `FinishTypeSetupFee` | One-time setup fee for a finish type | Any lamination setup = 50 CZK |
@@ -80,7 +81,10 @@ Given a valid `ProductConfiguration` and a `Pricelist`, the `PriceCalculator` pe
    - **`MaterialSheetPrice`**: compute the number of physical sheets needed and the total sheet cost. Fails with `NoSizeForSheetPricing` if no size spec is present.
    - **`MaterialBasePrice`** (fallback): flat per-unit price. Fails with `NoBasePriceForMaterial` if no rule exists.
 
-**3. Apply ink configuration factor.** If an `InkConfigurationFactor` matches the front/back color counts, it multiplies the material cost. A factor of 1.0 (identity) produces no line item.
+**3. Apply ink configuration pricing.** If an `InkConfigurationSheetPrice` or `InkConfigurationAreaPrice` rule matches the front/back color counts and printing method ID, an additive ink cost line is added:
+   - **`InkConfigurationSheetPrice`**: used for sheet-priced materials (`count = sheetsUsed`) and base-priced materials (`count = effectiveQuantity`). Line = `pricePerSheet × count`.
+   - **`InkConfigurationAreaPrice`**: used for area-priced materials. Line = `(pricePerSqM × areaSqM) × effectiveQuantity`.
+   - If no matching rule exists, no ink line is added (ink cost is assumed to be included elsewhere).
 
 **4. Compute finish surcharges.** For each finish on the configuration, four pricing mechanisms are tried in order:
    - **`ScoringCountSurcharge`** (highest priority for Scoring): if the finish has `ScoringParams(creaseCount)`, find the rule matching that exact `creaseCount`. Fails with `MissingScoringPrice(creaseCount)` if no matching rule exists — silent zero-pricing is never allowed for parameterized scoring.
@@ -124,15 +128,16 @@ Given a valid `ProductConfiguration` and a `Pricelist`, the `PriceCalculator` pe
 
 ### Worked Example: Business Cards
 
-Configuration: 500× Coated Art Paper 300gsm + Matte Lamination + Offset Printing (USD pricelist)
+Configuration: 500× Coated Art Paper 300gsm + Matte Lamination + Offset Printing 4/4 (USD pricelist)
 
 ```
-Material: Coated Art Paper 300gsm    $0.12 × 500 =  $60.00
+Material: Coated Art Paper 300gsm    $0.08 × 500 =  $40.00
+Ink: Offset 4/4                      $0.04 × 500 =  $20.00
 Finish: Matte Lamination             $0.03 × 500 =  $15.00
-                                              ─────────────
+                                             ─────────────
 Subtotal                                         =  $75.00
 Quantity tier (250–999)                          ×    0.90
-                                              ─────────────
+                                             ─────────────
 Total                                            =  $67.50
 ```
 
@@ -161,15 +166,16 @@ Configuration: 500× Coated Art Paper 300gsm + Scoring (2 creases) + Digital Pri
 
 ```
 Material: Coated Art Paper 300gsm    12.00 CZK × 500 = 6,000.00 CZK
+Ink: Digital 4/4                      3.00 CZK × 500 = 1,500.00 CZK
 Finish: Creasing (2 creases)          1.00 CZK × 500 =   500.00 CZK
                                                    ─────────────
-Subtotal                                           = 6,500.00 CZK
+Subtotal                                           = 8,000.00 CZK
 Quantity tier (500–999)                            ×      0.85
                                                    ─────────────
-Discounted subtotal                                = 5,525.00 CZK
+Discounted subtotal                                = 6,800.00 CZK
 Setup: Creasing (one-time)                         +    60.00 CZK
                                                    ─────────────
-Total                                              = 5,585.00 CZK
+Total                                              = 6,860.00 CZK
 ```
 
 Note: the `ScoringCountSurcharge(2, 1.00 CZK)` rule is an exact-match on crease count (not a per-crease unit price), so selecting 3 creases would use `ScoringCountSurcharge(3, 1.30 CZK)` and produce a different price point.
@@ -180,9 +186,11 @@ Configuration: 10× Adhesive Vinyl (1000×500mm) + UV Coating + UV Curable Inkje
 
 ```
 Area per unit: 1000mm × 500mm = 0.5 m²
-Material: Adhesive Vinyl       $18.00/m² × 0.5 = $9.00/unit
-Material line:                  $9.00 × 10 =  $90.00
+Material: Adhesive Vinyl       $16.20/m² × 0.5 =  $8.10/unit
+Ink: UV Inkjet 4/4              $1.80/m² × 0.5 =  $0.90/unit
 Finish: UV Coating              $0.04 × 10 =   $0.40
+Material line:                  $8.10 × 10 =  $81.00
+Ink line:                       $0.90 × 10 =   $9.00
                                         ─────────────
 Subtotal                                   =  $90.40
 Quantity tier (1–249)                      ×    1.00

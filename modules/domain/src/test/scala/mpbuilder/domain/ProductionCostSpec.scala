@@ -140,7 +140,6 @@ object ProductionCostSpec extends ZIOSpecDefault:
           rules = List(
             PricingRule.MaterialBasePrice(SampleCatalog.coated300gsmId, Money("0.01")),
             PricingRule.FinishSurcharge(SampleCatalog.matteLaminationId, Money("0.003")),
-            PricingRule.InkConfigurationFactor(4, 4, BigDecimal("1.00")),
             PricingRule.QuantityTier(1, None, BigDecimal("1.0")),
           ),
           currency = Currency.USD,
