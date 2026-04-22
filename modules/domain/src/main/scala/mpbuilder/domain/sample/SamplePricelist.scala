@@ -356,7 +356,7 @@ object SamplePricelist:
       ),
 
       // --- Minimum order price ---
-      PricingRule.MinimumOrderPrice(Money("500")),
+      PricingRule.MinimumOrderPrice(Money("200")),
 
       // --- Promotional material base prices (per unit, CZK) ---
       // T-Shirts
@@ -713,7 +713,7 @@ object SamplePricelist:
       ),
 
       // --- Minimum order price ---
-      PricingRule.MinimumOrderPrice(Money("500")),
+      PricingRule.MinimumOrderPrice(Money("200")),
 
       // --- Promotional material base prices (per unit, CZK — not sheet-fed) ---
       // T-Shirts
