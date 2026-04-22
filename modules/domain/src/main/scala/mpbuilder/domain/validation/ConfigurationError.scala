@@ -32,6 +32,8 @@ enum ConfigurationError:
   case MissingComponent(categoryId: CategoryId, role: ComponentRole)
   case InvalidFinishParameters(finishId: FinishId, reason: String)
   case ScoringCreaseLimitExceeded(maxCreases: Int, actualCreases: Int, reason: String)
+  case BindingMaterialSizeExceeded(reason: String)
+  case ComponentRequiredForBindingMethod(role: ComponentRole, bindingMethod: BindingMethod, reason: String)
 
   def message: String = message(Language.En)
 
@@ -120,3 +122,9 @@ enum ConfigurationError:
     case ScoringCreaseLimitExceeded(maxCreases, actualCreases, reason) => lang match
       case Language.En => s"Crease count $actualCreases exceeds the maximum of $maxCreases: $reason"
       case Language.Cs => s"Počet linek $actualCreases překračuje maximum $maxCreases: $reason"
+    case BindingMaterialSizeExceeded(reason) => lang match
+      case Language.En => s"Product size exceeds binding material maximum bound-edge length: $reason"
+      case Language.Cs => s"Velikost produktu překračuje maximální délku hranice vázacího materiálu: $reason"
+    case ComponentRequiredForBindingMethod(role, bindingMethod, reason) => lang match
+      case Language.En => s"A '$role' component is required when using $bindingMethod binding: $reason"
+      case Language.Cs => s"Komponent '$role' je vyžadován při použití vazby $bindingMethod: $reason"

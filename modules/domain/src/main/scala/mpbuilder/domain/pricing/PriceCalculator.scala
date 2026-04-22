@@ -25,7 +25,7 @@ object PriceCalculator:
     extractQuantity(config.specifications).flatMap { quantity =>
       val componentBreakdownsV: Validation[PricingError, List[ComponentBreakdown]] =
         config.components
-          .map { comp => calculateComponentBreakdown(comp, config.specifications, rules, quantity, lang) }
+          .map { comp => calculateComponentBreakdown(comp, config.specifications, rules, quantity, lang, config.category) }
           .foldLeft(Validation.succeed(List.empty[ComponentBreakdown]): Validation[PricingError, List[ComponentBreakdown]]) {
             (accV, cbV) => accV.zipWith(cbV)(_ :+ _)
           }
@@ -181,6 +181,7 @@ object PriceCalculator:
       rules: List[PricingRule],
       quantity: Int,
       lang: Language,
+      category: ProductCategory,
   ): Validation[PricingError, ComponentBreakdown] =
     val effectiveQuantity = comp.sheetCount * quantity
 
@@ -320,28 +321,92 @@ object PriceCalculator:
                     Validation.fail(PricingError.NoSizeForSheetPricing(comp.material.id, comp.role))
 
               case None =>
-                baseRule match
-                  case Some(bp) =>
-                    val materialLineTotal = bp.unitPrice * effectiveQuantity
-                    val materialLine = LineItem(
-                      label = s"Material: ${comp.material.name(lang)}",
-                      unitPrice = bp.unitPrice,
-                      quantity = effectiveQuantity,
-                      lineTotal = materialLineTotal,
-                    )
-                    val inkConfigLine = computeInkConfigLine(comp.inkConfiguration, rules, bp.unitPrice, materialLineTotal, effectiveQuantity)
-                    computeFinishLines(comp.finishes, rules, quantity, lang, specs.get(SpecKind.Size).collect { case SpecValue.SizeSpec(d) => d }).map { finishLines =>
-                      ComponentBreakdown(
-                        role = comp.role,
-                        materialLine = materialLine,
-                        cuttingLine = None,
-                        inkConfigLine = inkConfigLine,
-                        finishLines = finishLines,
-                        sheetsUsed = 0,
-                      )
-                    }
+                // Check for binding-specific pricing rules first (for Binding role components)
+                val linearRule = rules.collectFirst {
+                  case r: PricingRule.MaterialLinearPrice if r.materialId == comp.material.id => r
+                }
+                val fixedRule = rules.collectFirst {
+                  case r: PricingRule.MaterialFixedPrice if r.materialId == comp.material.id => r
+                }
+
+                linearRule match
+                  case Some(lr) =>
+                    // Linear price: pricePerMeter × bound-edge length in meters × quantity
+                    // Use category.boundEdge to select the correct edge dimension
+                    specs.get(SpecKind.Size) match
+                      case Some(SpecValue.SizeSpec(dim)) =>
+                        val boundEdgeMm = category.boundEdge match
+                          case Some(BoundEdge.LongEdge)  => dim.widthMm max dim.heightMm
+                          case Some(BoundEdge.ShortEdge) => dim.widthMm min dim.heightMm
+                          case Some(BoundEdge.Width)     => dim.widthMm
+                          case Some(BoundEdge.Height)    => dim.heightMm
+                          case None                      => dim.heightMm // default fallback
+                        val edgeLengthM = BigDecimal(boundEdgeMm) / BigDecimal(1000)
+                        val unitPrice = lr.pricePerMeter * edgeLengthM
+                        val materialLineTotal = unitPrice * quantity
+                        val materialLine = LineItem(
+                          label = s"Binding material: ${comp.material.name(lang)}",
+                          unitPrice = unitPrice,
+                          quantity = quantity,
+                          lineTotal = materialLineTotal,
+                        )
+                        computeFinishLines(comp.finishes, rules, quantity, lang, None).map { finishLines =>
+                          ComponentBreakdown(
+                            role = comp.role,
+                            materialLine = materialLine,
+                            cuttingLine = None,
+                            inkConfigLine = None,
+                            finishLines = finishLines,
+                            sheetsUsed = 0,
+                          )
+                        }
+                      case _ =>
+                        Validation.fail(PricingError.NoSizeForAreaPricing(comp.material.id, comp.role))
+
                   case None =>
-                    Validation.fail(PricingError.NoBasePriceForMaterial(comp.material.id, comp.role))
+                    fixedRule match
+                      case Some(fr) =>
+                        val materialLineTotal = fr.pricePerUnit * quantity
+                        val materialLine = LineItem(
+                          label = s"Binding material: ${comp.material.name(lang)}",
+                          unitPrice = fr.pricePerUnit,
+                          quantity = quantity,
+                          lineTotal = materialLineTotal,
+                        )
+                        computeFinishLines(comp.finishes, rules, quantity, lang, None).map { finishLines =>
+                          ComponentBreakdown(
+                            role = comp.role,
+                            materialLine = materialLine,
+                            cuttingLine = None,
+                            inkConfigLine = None,
+                            finishLines = finishLines,
+                            sheetsUsed = 0,
+                          )
+                        }
+
+                      case None =>
+                        baseRule match
+                          case Some(bp) =>
+                            val materialLineTotal = bp.unitPrice * effectiveQuantity
+                            val materialLine = LineItem(
+                              label = s"Material: ${comp.material.name(lang)}",
+                              unitPrice = bp.unitPrice,
+                              quantity = effectiveQuantity,
+                              lineTotal = materialLineTotal,
+                            )
+                            val inkConfigLine = computeInkConfigLine(comp.inkConfiguration, rules, bp.unitPrice, materialLineTotal, effectiveQuantity)
+                            computeFinishLines(comp.finishes, rules, quantity, lang, specs.get(SpecKind.Size).collect { case SpecValue.SizeSpec(d) => d }).map { finishLines =>
+                              ComponentBreakdown(
+                                role = comp.role,
+                                materialLine = materialLine,
+                                cuttingLine = None,
+                                inkConfigLine = inkConfigLine,
+                                finishLines = finishLines,
+                                sheetsUsed = 0,
+                              )
+                            }
+                          case None =>
+                            Validation.fail(PricingError.NoBasePriceForMaterial(comp.material.id, comp.role))
 
   private def extractQuantity(specs: ProductSpecifications): Validation[PricingError, Int] =
     specs.get(SpecKind.Quantity) match
@@ -484,8 +549,7 @@ object PriceCalculator:
   private def bindingMethodName(bm: BindingMethod, lang: Language): String = bm match
     case BindingMethod.SaddleStitch   => lang match { case Language.Cs => "Sešití na svorky"; case _ => "Saddle Stitch" }
     case BindingMethod.PerfectBinding => lang match { case Language.Cs => "Lepená vazba";      case _ => "Perfect Binding" }
-    case BindingMethod.SpiralBinding  => lang match { case Language.Cs => "Spirálová vazba";   case _ => "Spiral Binding" }
-    case BindingMethod.WireOBinding   => lang match { case Language.Cs => "Wire-O vazba";      case _ => "Wire-O Binding" }
+    case BindingMethod.LoopBinding    => lang match { case Language.Cs => "Kroužková vazba";   case _ => "Loop Binding" }
     case BindingMethod.CaseBinding    => lang match { case Language.Cs => "Pevná vazba";       case _ => "Case Binding" }
 
   private def computeFinishLines(

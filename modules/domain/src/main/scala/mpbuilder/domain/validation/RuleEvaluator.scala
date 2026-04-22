@@ -12,9 +12,10 @@ object RuleEvaluator:
       rule: CompatibilityRule,
       components: List[ProductComponent],
       specifications: ProductSpecifications,
-      categoryId: CategoryId,
+      category: ProductCategory,
       printingMethod: PrintingMethod,
   ): Validation[ConfigurationError, Unit] =
+    val categoryId = category.id
     rule match
       case CompatibilityRule.MaterialFinishIncompatible(matId, finId, reason) =>
         val violations = components.flatMap { comp =>
@@ -198,6 +199,40 @@ object RuleEvaluator:
           )
         else Validation.unit
 
+      case CompatibilityRule.BindingMaterialConstrainsSize(reason) =>
+        val bindingComp = components.find(_.role == ComponentRole.Binding)
+        bindingComp match
+          case None => Validation.unit
+          case Some(bc) =>
+            val maxLengthOpt = bc.material.attributes.collectFirst {
+              case MaterialAttribute.MaxBoundEdgeLengthMm(v) => v
+            }
+            maxLengthOpt match
+              case None => Validation.unit
+              case Some(maxLengthMm) =>
+                specifications.get(SpecKind.Size) match
+                  case Some(SpecValue.SizeSpec(dim)) =>
+                    val edgeLengthMm = category.boundEdge match
+                      case Some(BoundEdge.LongEdge)  => math.max(dim.widthMm, dim.heightMm)
+                      case Some(BoundEdge.ShortEdge) => math.min(dim.widthMm, dim.heightMm)
+                      case Some(BoundEdge.Width)     => dim.widthMm
+                      case Some(BoundEdge.Height)    => dim.heightMm
+                      case None                      => math.min(dim.widthMm, dim.heightMm)
+                    if edgeLengthMm > maxLengthMm then
+                      Validation.fail(ConfigurationError.BindingMaterialSizeExceeded(reason))
+                    else Validation.unit
+                  case _ => Validation.unit
+
+      case CompatibilityRule.ComponentRequired(role, whenBindingMethod, reason) =>
+        val bindingMethod = specifications.get(SpecKind.BindingMethod).collect {
+          case SpecValue.BindingMethodSpec(bm) => bm
+        }
+        bindingMethod match
+          case Some(bm) if bm == whenBindingMethod =>
+            if components.exists(_.role == role) then Validation.unit
+            else Validation.fail(ConfigurationError.ComponentRequiredForBindingMethod(role, bm, reason))
+          case _ => Validation.unit
+
   private def evaluateSpecPredicate(
       predicate: SpecPredicate,
       specs: ProductSpecifications,
@@ -343,11 +378,11 @@ object RuleEvaluator:
       rules: List[CompatibilityRule],
       components: List[ProductComponent],
       specifications: ProductSpecifications,
-      categoryId: CategoryId,
+      category: ProductCategory,
       printingMethod: PrintingMethod,
   ): Validation[ConfigurationError, Unit] =
     rules
-      .map(rule => evaluate(rule, components, specifications, categoryId, printingMethod))
+      .map(rule => evaluate(rule, components, specifications, category, printingMethod))
       .foldLeft(Validation.unit: Validation[ConfigurationError, Unit])((acc, v) =>
         acc.zipRight(v),
       )

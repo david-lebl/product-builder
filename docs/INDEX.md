@@ -73,6 +73,7 @@ Session-by-session work logs documenting what was done, decisions made, and issu
 | Document | Description |
 |----------|-------------|
 | [changelog/README.md](changelog/README.md) | Changelog format, template, and log entries index |
+| [changelog/2026-04-22-calendar-binding-domain-redesign.md](changelog/2026-04-22-calendar-binding-domain-redesign.md) | Calendar/binding domain redesign: LoopBinding, FrontCover/BackCover/Binding roles, MaterialLinearPrice/MaterialFixedPrice |
 | [changelog/2026-04-21-fix-manufacturing-ui-and-pricelist-table.md](changelog/2026-04-21-fix-manufacturing-ui-and-pricelist-table.md) | Fix Manufacturing UI blank page and Pricelist empty table (regressions from PR #133) |
 | [changelog/2026-04-21-scoring-stepper-and-pricing-fix.md](changelog/2026-04-21-scoring-stepper-and-pricing-fix.md) | Scoring: replace radio buttons with stepper input; fix MissingScoringPrice error in pricelistCzkSheet |
 | [changelog/2026-04-20-scoring-creasing-feature.md](changelog/2026-04-20-scoring-creasing-feature.md) | Session log for Creasing/Scoring feature (ScoringParams, ScoringCountSurcharge, ScoringSetupFee, max-crease caps) |

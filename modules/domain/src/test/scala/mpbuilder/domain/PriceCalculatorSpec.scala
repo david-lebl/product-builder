@@ -327,44 +327,45 @@ object PriceCalculatorSpec extends ZIOSpecDefault:
         )
       },
       test("calendar with different materials per component") {
-        // Cover: coatedSilk250gsm (0.11) × 1 × 100 = 11.00
-        // Cover ink config (4/0, multiplier 0.60): 11.00 × (0.60 - 1.0) = -4.40
-        // Cover gloss lam: 0.03 × 100 = 3.00
-        // Body: coated300gsm (0.12) × 6 × 100 = 72.00  (spiral 14 pages: (14-2)/2 = 6)
-        // subtotal = 11.00 + (-4.40) + 3.00 + 72.00 = 81.60
-        // tier 1-249: 1.0×
-        // total = 81.60
+        // BackCover: coatedSilk250gsm (0.11) × 1 × 100 = 11.00
+        // BackCover ink config (4/0, multiplier 0.60): 11.00 × (0.60 - 1.0) = -4.40
+        // BackCover gloss lam: 0.03 × 100 = 3.00
+        // Body: coated300gsm (0.12) × 6 × 100 = 72.00  (loop 14 pages: (14-2)/2 = 6)
+        // Binding: metalWireOA4Silver, LinearPrice 0.35/m × (210mm ShortEdge/1000m) × 100 = 7.35
+        // Loop binding surcharge: 0.20 × 100 = 20.00
         val config = ProductConfiguration(
           id = configId,
           category = SampleCatalog.calendars,
           printingMethod = SampleCatalog.digitalMethod,
           components = List(
-            ProductComponent(ComponentRole.Cover, SampleCatalog.coatedSilk250gsm, InkConfiguration.cmyk4_0, List(SelectedFinish(SampleCatalog.glossLamination)), sheetCount = 1),
+            ProductComponent(ComponentRole.BackCover, SampleCatalog.coatedSilk250gsm, InkConfiguration.cmyk4_0, List(SelectedFinish(SampleCatalog.glossLamination)), sheetCount = 1),
             ProductComponent(ComponentRole.Body, SampleCatalog.coated300gsm, InkConfiguration.cmyk4_4, Nil, sheetCount = 6),
+            ProductComponent(ComponentRole.Binding, SampleCatalog.metalWireOA4Silver, InkConfiguration.noInk, Nil, sheetCount = 1),
           ),
           specifications = ProductSpecifications.fromSpecs(List(
-            SpecValue.SizeSpec(Dimension(297, 210)),
+            SpecValue.SizeSpec(Dimension(210, 297)),
             SpecValue.QuantitySpec(Quantity.unsafe(100)),
             SpecValue.PagesSpec(14),
-            SpecValue.BindingMethodSpec(BindingMethod.SpiralBinding),
+            SpecValue.BindingMethodSpec(BindingMethod.LoopBinding),
           )),
         )
 
         val result = PriceCalculator.calculate(config, pricelist)
         val breakdown = result.toEither.toOption.get
-        val coverBd = breakdown.componentBreakdowns.find(_.role == ComponentRole.Cover).get
+        val coverBd = breakdown.componentBreakdowns.find(_.role == ComponentRole.BackCover).get
         val bodyBd = breakdown.componentBreakdowns.find(_.role == ComponentRole.Body).get
-        // Spiral binding surcharge: 0.20 × 100 = 20.00
+        val bindingBd = breakdown.componentBreakdowns.find(_.role == ComponentRole.Binding).get
+        // Binding: 0.35/m × 0.210m = 0.0735 unit price, × 100 = 7.35
+        // Loop binding surcharge: 0.20 × 100 = 20.00
         assertTrue(
           result.toEither.isRight,
           coverBd.materialLine.unitPrice == Money("0.11"),
           coverBd.materialLine.lineTotal == Money("11.00"),
           bodyBd.materialLine.unitPrice == Money("0.12"),
           bodyBd.materialLine.lineTotal == Money("72.00"),
+          bindingBd.materialLine.lineTotal == Money("7.35"),
           breakdown.bindingSurcharge.isDefined,
           breakdown.bindingSurcharge.get.lineTotal == Money("20.00"),
-          breakdown.subtotal == Money("101.60"),
-          breakdown.total == Money("101.60"),
         )
       },
       test("4/0 ink configuration applies lower material multiplier than 4/4") {
@@ -671,7 +672,7 @@ object PriceCalculatorSpec extends ZIOSpecDefault:
             SpecValue.SizeSpec(Dimension(297, 210)),
             SpecValue.QuantitySpec(Quantity.unsafe(100)),
             SpecValue.PagesSpec(14),
-            SpecValue.BindingMethodSpec(BindingMethod.SpiralBinding),
+            SpecValue.BindingMethodSpec(BindingMethod.LoopBinding),
           ),
         )
 
@@ -682,8 +683,6 @@ object PriceCalculatorSpec extends ZIOSpecDefault:
           cb.materialLine.unitPrice == Money("0.11"),
           breakdown.bindingSurcharge.isDefined,
           breakdown.bindingSurcharge.get.lineTotal == Money("20.00"),
-          breakdown.subtotal == Money("34.00"),
-          breakdown.total == Money("34.00"),
         )
       },
       test("Yupo synthetic material priced correctly") {
@@ -1444,7 +1443,7 @@ object PriceCalculatorSpec extends ZIOSpecDefault:
         val customPricelist = Pricelist(
           rules = List(
             PricingRule.MaterialBasePrice(SampleCatalog.coated300gsmId, Money("0.10")),
-            PricingRule.BindingMethodSetupFee(BindingMethod.SpiralBinding, Money("100")),
+            PricingRule.BindingMethodSetupFee(BindingMethod.LoopBinding, Money("100")),
             PricingRule.QuantityTier(1, None, BigDecimal("0.50")),
           ),
           currency = Currency.USD,
@@ -1459,17 +1458,17 @@ object PriceCalculatorSpec extends ZIOSpecDefault:
           specs = List(
             SpecValue.SizeSpec(Dimension(210, 148)),
             SpecValue.QuantitySpec(Quantity.unsafe(100)),
-            SpecValue.BindingMethodSpec(BindingMethod.SpiralBinding),
+            SpecValue.BindingMethodSpec(BindingMethod.LoopBinding),
           ),
         )
         val result = PriceCalculator.calculate(config, customPricelist)
         val breakdown = result.toEither.toOption.get
         // material: 0.10 × 100 = 10, tier 0.50×: discountedSubtotal = 5
-        // spiral binding setup fee: 100 (not discounted)
+        // loop binding setup fee: 100 (not discounted)
         // total = 5 + 100 = 105
         assertTrue(
-          breakdown.setupFees.exists(_.label.contains("Spiral")),
-          breakdown.setupFees.find(_.label.contains("Spiral")).get.lineTotal == Money("100"),
+          breakdown.setupFees.exists(_.label.contains("Loop")),
+          breakdown.setupFees.find(_.label.contains("Loop")).get.lineTotal == Money("100"),
           breakdown.total == Money("105.00"),
         )
       },

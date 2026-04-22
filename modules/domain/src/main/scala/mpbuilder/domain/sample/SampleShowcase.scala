@@ -252,23 +252,23 @@ object SampleShowcase:
       "Vlastní tištěné kalendáře",
     ),
     detailedDescription = LocalizedString(
-      "Wall and desk calendars with premium cover and interior pages. " +
-        "Multi-component construction lets you choose a heavier stock for the cover " +
-        "and lighter paper for the monthly pages. Wire-o binding standard.",
-      "Nástěnné a stolní kalendáře s prémiovým obalem a vnitřními stránkami. " +
-        "Vícekomponentová konstrukce umožňuje zvolit silnější papír na obálku " +
-        "a lehčí papír na měsíční stránky. Standardní drátěná vazba.",
+      "Wall and desk calendars with four separate components: optional transparent front cover, " +
+        "printed back cover, interior body pages, and a loop binding material. " +
+        "Choose plastic coil or metal wire-o in various colors.",
+      "Nástěnné a stolní kalendáře se čtyřmi samostatnými komponentami: volitelná průhledná přední obálka, " +
+        "potisknutá zadní obálka, vnitřní stránky a vázací materiál (kroužková vazba). " +
+        "Vyberte plastovou nebo kovovou spirálu v různých barvách.",
     ),
     imageUrl = "https://images.unsplash.com/photo-1598972692343-a17711455a22?w=600&h=400&fit=crop",
     variations = List(
       ProductVariation(
         LocalizedString("Wall Calendar", "Nástěnný kalendář"),
-        LocalizedString("A4 glossy, wire-o binding, 28 pages", "A4 lesklý, kroužková vazba, 28 stran"),
+        LocalizedString("A4, clear front + glossy back 250gsm, metal wire-o silver, 28 pages", "A4, průhledná přední + lesklá záď 250g, kovová Wire-O stříbrná, 28 stran"),
         presetId = Some(PresetId.unsafe("preset-calendars-wall")),
       ),
       ProductVariation(
         LocalizedString("Desk Calendar", "Stolní kalendář"),
-        LocalizedString("A5 matte, wire-o binding, 28 pages", "A5 matný, kroužková vazba, 28 stran"),
+        LocalizedString("A5, clear front + matte back 300gsm, metal wire-o silver, 28 pages", "A5, průhledná přední + matná záď 300g, kovová Wire-O stříbrná, 28 stran"),
         presetId = Some(PresetId.unsafe("preset-calendars-desk")),
       ),
     ),
