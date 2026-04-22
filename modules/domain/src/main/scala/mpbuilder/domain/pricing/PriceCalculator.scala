@@ -361,6 +361,7 @@ object PriceCalculator:
     val label = s"Ink configuration: ${inkConfig.notation}"
     basis match
       case InkPricingBasis.SheetOrUnit(count) =>
+        // unitPrice is taken directly from the rule (already Money precision); only lineTotal is rounded.
         rules.collectFirst {
           case r: PricingRule.InkConfigurationSheetPrice
               if r.printingMethodId == printingMethodId
@@ -376,6 +377,7 @@ object PriceCalculator:
           )
         }
       case InkPricingBasis.Area(sqM, qty) =>
+        // unitPrice is rounded first (pricePerSqM × area can have arbitrary precision), then lineTotal is rounded.
         rules.collectFirst {
           case r: PricingRule.InkConfigurationAreaPrice
               if r.printingMethodId == printingMethodId

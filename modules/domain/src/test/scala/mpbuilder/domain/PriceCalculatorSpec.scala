@@ -367,7 +367,7 @@ object PriceCalculatorSpec extends ZIOSpecDefault:
           breakdown.total == Money("104.00"),
         )
       },
-      test("4/0 ink configuration applies lower material multiplier than 4/4") {
+      test("4/0 ink configuration produces lower-cost ink line than 4/4") {
         val config = makeConfig(
           category = SampleCatalog.businessCards,
           material = SampleCatalog.coated300gsm,
@@ -390,7 +390,7 @@ object PriceCalculatorSpec extends ZIOSpecDefault:
           breakdown.total == Money("45.00"),
         )
       },
-      test("4/4 ink configuration produces no ink config line") {
+      test("4/4 ink configuration produces an additive ink line item") {
         val config = makeConfig(
           category = SampleCatalog.businessCards,
           material = SampleCatalog.coated300gsm,

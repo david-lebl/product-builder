@@ -131,7 +131,7 @@ object PricelistEditorView:
     val frontColorVar = Var(extractFrontColor(existing).map(_.toString).getOrElse("4"))
     val backColorVar = Var(extractBackColor(existing).map(_.toString).getOrElse("4"))
     val foldTypeVar = Var(extractFoldType(existing).getOrElse(FoldType.Half))
-    val printingMethodIdVar = Var(extractPrintingMethodId(existing).getOrElse("pm-offset"))
+    val printingMethodIdVar = Var(extractPrintingMethodId(existing).getOrElse(""))
     val bindingMethodVar = Var(extractBindingMethod(existing).getOrElse(BindingMethod.SaddleStitch))
     val sheetHeightVar = Var(extractSheetHeight(existing).map(_.toString).getOrElse("1000"))
     val sheetWidthVar = Var(extractSheetWidth(existing).map(_.toString).getOrElse("700"))
