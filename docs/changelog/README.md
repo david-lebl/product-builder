@@ -46,6 +46,8 @@ Brief description of what was accomplished in this session.
 
 | Date | Title | PR | Type |
 |------|-------|----|------|
+| 2026-04-22 | [Additive Ink Configuration Pricing](2026-04-22-ink-configuration-additive-pricing.md) | #135 | feature |
+| 2026-04-22 | [Ink Configuration Pricing Analysis](2026-04-22-ink-configuration-pricing-analysis.md) | — | analysis |
 | 2026-04-21 | [Fix Manufacturing UI crash and Pricelist empty table](2026-04-21-fix-manufacturing-ui-and-pricelist-table.md) | #134 | bugfix |
 | 2026-04-21 | [Scoring: stepper input and pricing fix](2026-04-21-scoring-stepper-and-pricing-fix.md) | — | bugfix |
 | 2026-04-20 | [Creasing/Scoring feature](2026-04-20-scoring-creasing-feature.md) | — | feature |

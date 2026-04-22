@@ -84,10 +84,10 @@ object CustomerPricelistResolverSpec extends ZIOSpecDefault:
         val result = PriceCalculator.calculate(standardConfig, resolved)
         val breakdown = result.toEither.toOption.get
         val cb = firstBreakdown(breakdown)
-        // Base: material $0.12, finish $0.03
-        // After 10%: material $0.108, finish $0.027
+        // Base: material $0.08, finish $0.03
+        // After 10%: material $0.072, finish $0.027
         assertTrue(
-          cb.materialLine.unitPrice == Money("0.108"),
+          cb.materialLine.unitPrice == Money("0.072"),
           cb.finishLines.head.unitPrice == Money("0.027"),
         )
       },
@@ -97,9 +97,9 @@ object CustomerPricelistResolverSpec extends ZIOSpecDefault:
         val result = PriceCalculator.calculate(areaConfig, resolved)
         val breakdown = result.toEither.toOption.get
         val cb = firstBreakdown(breakdown)
-        // Base vinyl: $18.00/sqm, after 20%: $14.40/sqm
-        // Area: 1.0 * 0.5 = 0.5 sqm → unit price = $14.40 * 0.5 = $7.20
-        assertTrue(cb.materialLine.unitPrice == Money("7.20"))
+        // Base vinyl: $16.20/sqm, after 20%: $12.96/sqm
+        // Area: 1.0 * 0.5 = 0.5 sqm → unit price = $12.96 * 0.5 = $6.48
+        assertTrue(cb.materialLine.unitPrice == Money("6.48"))
       },
     ),
     suite("material-specific discount")(
@@ -114,10 +114,10 @@ object CustomerPricelistResolverSpec extends ZIOSpecDefault:
         val result = PriceCalculator.calculate(standardConfig, resolved)
         val breakdown = result.toEither.toOption.get
         val cb = firstBreakdown(breakdown)
-        // Material: 25% off $0.12 = $0.09 (not 10% global)
+        // Material: 25% off $0.08 = $0.06 (not 10% global)
         // Finish: 10% off $0.03 = $0.027 (global applies to finish)
         assertTrue(
-          cb.materialLine.unitPrice == Money("0.09"),
+          cb.materialLine.unitPrice == Money("0.06"),
           cb.finishLines.head.unitPrice == Money("0.027"),
         )
       },
@@ -131,9 +131,9 @@ object CustomerPricelistResolverSpec extends ZIOSpecDefault:
         val result = PriceCalculator.calculate(areaConfig, resolved)
         val breakdown = result.toEither.toOption.get
         val cb = firstBreakdown(breakdown)
-        // Base vinyl: $18.00/sqm, after 15%: $15.30/sqm
-        // Area: 0.5 sqm → unit price = $15.30 * 0.5 = $7.65
-        assertTrue(cb.materialLine.unitPrice == Money("7.65"))
+        // Base vinyl: $16.20/sqm, after 15%: $13.77/sqm
+        // Area: 0.5 sqm → unit price = $13.77 * 0.5 = $6.885
+        assertTrue(cb.materialLine.unitPrice == Money("6.885"))
       },
     ),
     suite("fixed material price")(
@@ -177,7 +177,7 @@ object CustomerPricelistResolverSpec extends ZIOSpecDefault:
         val breakdown = result.toEither.toOption.get
         val cb = firstBreakdown(breakdown)
         // CZK fixed price ignored for USD pricelist → falls through to global 10%
-        assertTrue(cb.materialLine.unitPrice == Money("0.108"))
+        assertTrue(cb.materialLine.unitPrice == Money("0.072"))
       },
       test("fixed price on area-priced material") {
         val pricing = CustomerPricing(
@@ -204,8 +204,8 @@ object CustomerPricelistResolverSpec extends ZIOSpecDefault:
         val result = PriceCalculator.calculate(standardConfig, resolved)
         val breakdown = result.toEither.toOption.get
         val cb = firstBreakdown(breakdown)
-        // 15% off $0.12 = $0.102
-        assertTrue(cb.materialLine.unitPrice == Money("0.102"))
+        // 15% off $0.08 = $0.068
+        assertTrue(cb.materialLine.unitPrice == Money("0.068"))
       },
       test("category discount not applied when different category") {
         val pricing = CustomerPricing(
@@ -218,7 +218,7 @@ object CustomerPricelistResolverSpec extends ZIOSpecDefault:
         val result = PriceCalculator.calculate(standardConfig, resolved)
         val breakdown = result.toEither.toOption.get
         val cb = firstBreakdown(breakdown)
-        assertTrue(cb.materialLine.unitPrice == Money("0.12"))
+        assertTrue(cb.materialLine.unitPrice == Money("0.08"))
       },
       test("material discount overrides category discount") {
         val pricing = CustomerPricing(
@@ -233,8 +233,8 @@ object CustomerPricelistResolverSpec extends ZIOSpecDefault:
         val result = PriceCalculator.calculate(standardConfig, resolved)
         val breakdown = result.toEither.toOption.get
         val cb = firstBreakdown(breakdown)
-        // Material 20% overrides category 10% → $0.12 * 0.80 = $0.096
-        assertTrue(cb.materialLine.unitPrice == Money("0.096"))
+        // Material 20% overrides category 10% → $0.08 * 0.80 = $0.064
+        assertTrue(cb.materialLine.unitPrice == Money("0.064"))
       },
       test("category discount overrides global discount") {
         val pricing = CustomerPricing(
@@ -247,10 +247,10 @@ object CustomerPricelistResolverSpec extends ZIOSpecDefault:
         val result = PriceCalculator.calculate(standardConfig, resolved)
         val breakdown = result.toEither.toOption.get
         val cb = firstBreakdown(breakdown)
-        // Category 15% overrides global 5% → $0.12 * 0.85 = $0.102
+        // Category 15% overrides global 5% → $0.08 * 0.85 = $0.068
         // But finish should use global 5% (no finish-specific discount)
         assertTrue(
-          cb.materialLine.unitPrice == Money("0.102"),
+          cb.materialLine.unitPrice == Money("0.068"),
           cb.finishLines.head.unitPrice == Money("0.0285"),
         )
       },
@@ -268,7 +268,7 @@ object CustomerPricelistResolverSpec extends ZIOSpecDefault:
         val cb = firstBreakdown(breakdown)
         // Material unchanged, finish 20% off $0.03 = $0.024
         assertTrue(
-          cb.materialLine.unitPrice == Money("0.12"),
+          cb.materialLine.unitPrice == Money("0.08"),
           cb.finishLines.head.unitPrice == Money("0.024"),
         )
       },
@@ -283,10 +283,10 @@ object CustomerPricelistResolverSpec extends ZIOSpecDefault:
         val result = PriceCalculator.calculate(standardConfig, resolved)
         val breakdown = result.toEither.toOption.get
         val cb = firstBreakdown(breakdown)
-        // Material: 10% global → $0.108
+        // Material: 10% global → $0.072
         // Matte lamination: 30% specific → $0.03 * 0.70 = $0.021 (not 10% = $0.027)
         assertTrue(
-          cb.materialLine.unitPrice == Money("0.108"),
+          cb.materialLine.unitPrice == Money("0.072"),
           cb.finishLines.head.unitPrice == Money("0.021"),
         )
       },
@@ -339,7 +339,7 @@ object CustomerPricelistResolverSpec extends ZIOSpecDefault:
         val breakdown = result.toEither.toOption.get
         // With base minimum order, the total would be raised to the floor.
         // With override of $0.01, the actual calculated price is used
-        // since $0.12 (1 × $0.12) > $0.01
+        // since $0.12 (1 × $0.08 material + $0.04 ink) > $0.01
         assertTrue(breakdown.minimumApplied.isEmpty)
       },
     ),
@@ -389,8 +389,8 @@ object CustomerPricelistResolverSpec extends ZIOSpecDefault:
         val breakdown = result.toEither.toOption.get
         val cb = firstBreakdown(breakdown)
         assertTrue(
-          // Material: 15% specific (not 5% global) → $0.12 * 0.85 = $0.102
-          cb.materialLine.unitPrice == Money("0.102"),
+          // Material: 15% specific (not 5% global) → $0.08 * 0.85 = $0.068
+          cb.materialLine.unitPrice == Money("0.068"),
           // Finish: 25% specific (not 5% global) → $0.03 * 0.75 = $0.0225
           cb.finishLines.head.unitPrice == Money("0.0225"),
           // Custom tier: 500 → 0.75 (not base 0.90)

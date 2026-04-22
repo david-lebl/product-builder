@@ -9,7 +9,7 @@ Core feature specifications — stable documents describing *what* the system do
 | Document | Description |
 |----------|-------------|
 | [features.md](features.md) | Comprehensive feature overview of the entire system |
-| [pricing.md](pricing.md) | Pricing engine specification with 22 rule types and worked examples |
+| [pricing.md](pricing.md) | Pricing engine specification with 23 rule types and worked examples |
 | [visual-product-types.md](visual-product-types.md) | Visual editor product types (calendars, photo books, wall pictures) and formats |
 | [manufacturing-speed-pipeline.md](manufacturing-speed-pipeline.md) | Order completion time estimation — 8-stage pipeline specification |
 | [new-product-specification.md](new-product-specification.md) | Specification for adding new product types to the system |
@@ -30,6 +30,7 @@ Research documents, gap analyses, and architecture decisions — context for *wh
 | [analysis/ui-kit-review.md](analysis/ui-kit-review.md) | Review of ui-framework components and styling gap analysis |
 | [analysis/roll-up.md](analysis/roll-up.md) | Roll-up/retractable banner product specification (2 components, area-based pricing) |
 | [analysis/claude-skills-vs-claudemd.md](analysis/claude-skills-vs-claudemd.md) | Analysis of Claude Code skills vs CLAUDE.md — when to use each, decision matrix |
+| [analysis/ink-configuration-pricing.md](analysis/ink-configuration-pricing.md) | Analysis of the old `InkConfigurationFactor` model, its structural problems, and the implemented additive `InkConfigurationSheetPrice` + `InkConfigurationAreaPrice` rules |
 
 ## 📐 Plans & Roadmaps
 
@@ -73,6 +74,7 @@ Session-by-session work logs documenting what was done, decisions made, and issu
 | Document | Description |
 |----------|-------------|
 | [changelog/README.md](changelog/README.md) | Changelog format, template, and log entries index |
+| [changelog/2026-04-22-ink-configuration-pricing-analysis.md](changelog/2026-04-22-ink-configuration-pricing-analysis.md) | Analysis document for ink configuration pricing — additive per-press model proposal |
 | [changelog/2026-04-21-fix-manufacturing-ui-and-pricelist-table.md](changelog/2026-04-21-fix-manufacturing-ui-and-pricelist-table.md) | Fix Manufacturing UI blank page and Pricelist empty table (regressions from PR #133) |
 | [changelog/2026-04-21-scoring-stepper-and-pricing-fix.md](changelog/2026-04-21-scoring-stepper-and-pricing-fix.md) | Scoring: replace radio buttons with stepper input; fix MissingScoringPrice error in pricelistCzkSheet |
 | [changelog/2026-04-20-scoring-creasing-feature.md](changelog/2026-04-20-scoring-creasing-feature.md) | Session log for Creasing/Scoring feature (ScoringParams, ScoringCountSurcharge, ScoringSetupFee, max-crease caps) |

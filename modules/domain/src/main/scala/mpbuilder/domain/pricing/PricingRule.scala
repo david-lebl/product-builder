@@ -27,7 +27,20 @@ enum PricingRule:
   case CategorySurcharge(categoryId: CategoryId, surchargePerUnit: Money)
   case QuantityTier(minQuantity: Int, maxQuantity: Option[Int], multiplier: BigDecimal)
   case SheetQuantityTier(minSheets: Int, maxSheets: Option[Int], multiplier: BigDecimal)
-  case InkConfigurationFactor(frontColorCount: Int, backColorCount: Int, materialMultiplier: BigDecimal)
+  /** Flat ink cost per printed press sheet (or per unit for base-priced materials), keyed by printing method. */
+  case InkConfigurationSheetPrice(
+      printingMethodId: PrintingMethodId,
+      frontColorCount: Int,
+      backColorCount: Int,
+      pricePerSheet: Money,
+  )
+  /** Flat ink cost per square metre for large-format area-priced materials, keyed by printing method. */
+  case InkConfigurationAreaPrice(
+      printingMethodId: PrintingMethodId,
+      frontColorCount: Int,
+      backColorCount: Int,
+      pricePerSqM: Money,
+  )
   case CuttingSurcharge(costPerCut: Money)
   // One-time machine setup cost; added after the volume-discount multiplier
   case FinishTypeSetupFee(finishType: FinishType, setupCost: Money)
