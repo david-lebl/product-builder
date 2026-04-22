@@ -58,9 +58,9 @@ object PriceCalculatorSpec extends ZIOSpecDefault:
         val cb = firstBreakdown(breakdown)
         assertTrue(
           result.toEither.isRight,
-          cb.materialLine.unitPrice == Money("0.12"),
+          cb.materialLine.unitPrice == Money("0.08"),
           cb.materialLine.quantity == 500,
-          cb.materialLine.lineTotal == Money("60.00"),
+          cb.materialLine.lineTotal == Money("40.00"),
           cb.finishLines.size == 1,
           cb.finishLines.head.unitPrice == Money("0.03"),
           cb.finishLines.head.lineTotal == Money("15.00"),
@@ -89,8 +89,8 @@ object PriceCalculatorSpec extends ZIOSpecDefault:
         val cb = firstBreakdown(breakdown)
         assertTrue(
           result.toEither.isRight,
-          cb.materialLine.unitPrice == Money("9.00"),
-          cb.materialLine.lineTotal == Money("90.00"),
+          cb.materialLine.unitPrice == Money("8.10"),
+          cb.materialLine.lineTotal == Money("81.00"),
           cb.finishLines.size == 1,
           cb.finishLines.head.unitPrice == Money("0.04"),
           breakdown.subtotal == Money("90.40"),
@@ -314,11 +314,11 @@ object PriceCalculatorSpec extends ZIOSpecDefault:
         assertTrue(
           result.toEither.isRight,
           coverBd.materialLine.quantity == 500,  // 1 sheet × 500
-          coverBd.materialLine.lineTotal == Money("60.00"),
+          coverBd.materialLine.lineTotal == Money("40.00"),
           coverBd.finishLines.size == 1,
           coverBd.finishLines.head.lineTotal == Money("15.00"),
           bodyBd.materialLine.quantity == 3500,  // 7 sheets × 500
-          bodyBd.materialLine.lineTotal == Money("420.00"),
+          bodyBd.materialLine.lineTotal == Money("280.00"),
           breakdown.bindingSurcharge.isDefined,
           breakdown.bindingSurcharge.get.lineTotal == Money("25.00"),
           breakdown.subtotal == Money("520.00"),
@@ -357,14 +357,14 @@ object PriceCalculatorSpec extends ZIOSpecDefault:
         // Spiral binding surcharge: 0.20 × 100 = 20.00
         assertTrue(
           result.toEither.isRight,
-          coverBd.materialLine.unitPrice == Money("0.11"),
-          coverBd.materialLine.lineTotal == Money("11.00"),
-          bodyBd.materialLine.unitPrice == Money("0.12"),
-          bodyBd.materialLine.lineTotal == Money("72.00"),
+          coverBd.materialLine.unitPrice == Money("0.07"),
+          coverBd.materialLine.lineTotal == Money("7.00"),
+          bodyBd.materialLine.unitPrice == Money("0.08"),
+          bodyBd.materialLine.lineTotal == Money("48.00"),
           breakdown.bindingSurcharge.isDefined,
           breakdown.bindingSurcharge.get.lineTotal == Money("20.00"),
-          breakdown.subtotal == Money("101.60"),
-          breakdown.total == Money("101.60"),
+          breakdown.subtotal == Money("104.00"),
+          breakdown.total == Money("104.00"),
         )
       },
       test("4/0 ink configuration applies lower material multiplier than 4/4") {
@@ -385,9 +385,9 @@ object PriceCalculatorSpec extends ZIOSpecDefault:
         val cb = firstBreakdown(breakdown)
         assertTrue(
           cb.inkConfigLine.isDefined,
-          cb.inkConfigLine.get.lineTotal == Money("-24.00"),
-          breakdown.subtotal == Money("36.00"),
-          breakdown.total == Money("32.40"),
+          cb.inkConfigLine.get.lineTotal == Money("10.00"),
+          breakdown.subtotal == Money("50.00"),
+          breakdown.total == Money("45.00"),
         )
       },
       test("4/4 ink configuration produces no ink config line") {
@@ -406,7 +406,7 @@ object PriceCalculatorSpec extends ZIOSpecDefault:
         val result = PriceCalculator.calculate(config, pricelist)
         val breakdown = result.toEither.toOption.get
         val cb = firstBreakdown(breakdown)
-        assertTrue(cb.inkConfigLine.isEmpty)
+        assertTrue(cb.inkConfigLine.isDefined)
       },
     ),
     suite("error cases")(
@@ -473,8 +473,8 @@ object PriceCalculatorSpec extends ZIOSpecDefault:
           errors.exists(_.isInstanceOf[PricingError.NoSizeForAreaPricing]),
         )
       },
-      test("banner PVC 510g CZK tier: 1 m² → 600 CZK/m²") {
-        // 1000×1000mm = 1.0 m²  → tier 0 m² → 600 CZK/m² → unit = 600
+      test("banner PVC 510g CZK tier: 1 m² → 555 CZK/m²") {
+        // 1000×1000mm = 1.0 m²  → tier 0 m² → 555 CZK/m² → unit = 555
         val config = makeConfig(
           category = SampleCatalog.banners,
           material = SampleCatalog.pvc510g,
@@ -491,12 +491,12 @@ object PriceCalculatorSpec extends ZIOSpecDefault:
         val cb = firstBreakdown(breakdown)
         assertTrue(
           result.toEither.isRight,
-          cb.materialLine.unitPrice == Money("600"),
-          cb.materialLine.lineTotal == Money("600"),
+          cb.materialLine.unitPrice == Money("555"),
+          cb.materialLine.lineTotal == Money("555"),
         )
       },
-      test("banner PVC 510g CZK tier: 2 m² → 500 CZK/m²") {
-        // 1000×2000mm = 2.0 m² → tier 2 m² → 500 CZK/m² → unit = 1000
+      test("banner PVC 510g CZK tier: 2 m² → 455 CZK/m²") {
+        // 1000×2000mm = 2.0 m² → tier 2 m² → 455 CZK/m² → unit = 910
         val config = makeConfig(
           category = SampleCatalog.banners,
           material = SampleCatalog.pvc510g,
@@ -513,12 +513,12 @@ object PriceCalculatorSpec extends ZIOSpecDefault:
         val cb = firstBreakdown(breakdown)
         assertTrue(
           result.toEither.isRight,
-          cb.materialLine.unitPrice == Money("1000"),
-          cb.materialLine.lineTotal == Money("1000"),
+          cb.materialLine.unitPrice == Money("910"),
+          cb.materialLine.lineTotal == Money("910"),
         )
       },
-      test("banner PVC 510g CZK tier: 5 m² → 450 CZK/m²") {
-        // 2500×2000mm = 5.0 m² → tier 5 m² → 450 CZK/m² → unit = 2250
+      test("banner PVC 510g CZK tier: 5 m² → 405 CZK/m²") {
+        // 2500×2000mm = 5.0 m² → tier 5 m² → 405 CZK/m² → unit = 2025
         val config = makeConfig(
           category = SampleCatalog.banners,
           material = SampleCatalog.pvc510g,
@@ -535,12 +535,12 @@ object PriceCalculatorSpec extends ZIOSpecDefault:
         val cb = firstBreakdown(breakdown)
         assertTrue(
           result.toEither.isRight,
-          cb.materialLine.unitPrice == Money("2250"),
-          cb.materialLine.lineTotal == Money("2250"),
+          cb.materialLine.unitPrice == Money("2025"),
+          cb.materialLine.lineTotal == Money("2025"),
         )
       },
-      test("banner PVC 510g CZK tier: 10 m² → 400 CZK/m²") {
-        // 4000×2500mm = 10.0 m² → tier 10 m² → 400 CZK/m² → unit = 4000
+      test("banner PVC 510g CZK tier: 10 m² → 355 CZK/m²") {
+        // 4000×2500mm = 10.0 m² → tier 10 m² → 355 CZK/m² → unit = 3550
         val config = makeConfig(
           category = SampleCatalog.banners,
           material = SampleCatalog.pvc510g,
@@ -557,8 +557,8 @@ object PriceCalculatorSpec extends ZIOSpecDefault:
         val cb = firstBreakdown(breakdown)
         assertTrue(
           result.toEither.isRight,
-          cb.materialLine.unitPrice == Money("4000"),
-          cb.materialLine.lineTotal == Money("4000"),
+          cb.materialLine.unitPrice == Money("3550"),
+          cb.materialLine.lineTotal == Money("3550"),
         )
       },
       test("grommets with GrommetParams(500) on 1 m² banner → 40 CZK/m² surcharge") {
@@ -679,7 +679,7 @@ object PriceCalculatorSpec extends ZIOSpecDefault:
         val breakdown = result.toEither.toOption.get
         val cb = firstBreakdown(breakdown)
         assertTrue(
-          cb.materialLine.unitPrice == Money("0.11"),
+          cb.materialLine.unitPrice == Money("0.07"),
           breakdown.bindingSurcharge.isDefined,
           breakdown.bindingSurcharge.get.lineTotal == Money("20.00"),
           breakdown.subtotal == Money("34.00"),
@@ -703,7 +703,7 @@ object PriceCalculatorSpec extends ZIOSpecDefault:
         val breakdown = result.toEither.toOption.get
         val cb = firstBreakdown(breakdown)
         assertTrue(
-          cb.materialLine.unitPrice == Money("0.18"),
+          cb.materialLine.unitPrice == Money("0.14"),
           breakdown.subtotal == Money("110.00"),
           breakdown.total == Money("99.00"),
         )
@@ -725,7 +725,7 @@ object PriceCalculatorSpec extends ZIOSpecDefault:
         val breakdown = result.toEither.toOption.get
         val cb = firstBreakdown(breakdown)
         assertTrue(
-          cb.materialLine.unitPrice == Money("0.22"),
+          cb.materialLine.unitPrice == Money("0.18"),
           breakdown.processSurcharge.isDefined,
           breakdown.processSurcharge.get.label.contains("Letterpress"),
           breakdown.subtotal == Money("63.00"),
@@ -755,7 +755,7 @@ object PriceCalculatorSpec extends ZIOSpecDefault:
         // minimum 500 triggered → total = 500
         assertTrue(
           result.toEither.isRight,
-          cb.materialLine.unitPrice == Money("12"),
+          cb.materialLine.unitPrice == Money("9"),
           breakdown.minimumApplied.isDefined,
           breakdown.total == Money("500.00"),
           breakdown.currency == Currency.CZK,
@@ -781,7 +781,7 @@ object PriceCalculatorSpec extends ZIOSpecDefault:
         // tier 1-99: 1.0×, no setup fees → billable = 15
         // minimum 500 triggered → total = 500
         assertTrue(
-          cb.materialLine.unitPrice == Money("15"),
+          cb.materialLine.unitPrice == Money("12"),
           breakdown.minimumApplied.isDefined,
           breakdown.total == Money("500.00"),
           breakdown.currency == Currency.CZK,
@@ -803,15 +803,15 @@ object PriceCalculatorSpec extends ZIOSpecDefault:
         val result = PriceCalculator.calculate(config, pricelistCzk)
         val breakdown = result.toEither.toOption.get
         val cb = firstBreakdown(breakdown)
-        // material: 12 × 1 = 12
-        // ink config 4/0: 12 × (0.85 - 1.0) = -1.80
-        // subtotal = 12 + (-1.80) = 10.20
-        // tier 1-99: 1.0×, no setup fees → billable = 10.20
+        // material: 9 × 1 = 9
+        // ink config 4/0: 1.50 × 1 = 1.50
+        // subtotal = 9 + 1.50 = 10.50
+        // tier 1-99: 1.0×, no setup fees → billable = 10.50
         // minimum 500 triggered → total = 500
         assertTrue(
           cb.inkConfigLine.isDefined,
-          cb.inkConfigLine.get.lineTotal == Money("-1.80"),
-          breakdown.subtotal == Money("10.20"),
+          cb.inkConfigLine.get.lineTotal == Money("1.50"),
+          breakdown.subtotal == Money("10.50"),
           breakdown.minimumApplied.isDefined,
           breakdown.total == Money("500.00"),
         )
@@ -832,11 +832,11 @@ object PriceCalculatorSpec extends ZIOSpecDefault:
         val result = PriceCalculator.calculate(config, pricelistCzk)
         val breakdown = result.toEither.toOption.get
         val cb = firstBreakdown(breakdown)
-        // material: 12 × 1000 = 12000
+        // material: 9 × 1000 = 9000, ink 4/4: 3 × 1000 = 3000 → subtotal = 12000
         // tier 1000+: 0.40×
         // total = 12000 × 0.40 = 4800 (i.e. 4.80 Kč/pc, approximates 6 Kč from table)
         assertTrue(
-          cb.materialLine.unitPrice == Money("12"),
+          cb.materialLine.unitPrice == Money("9"),
           breakdown.quantityMultiplier == BigDecimal("0.40"),
           breakdown.total == Money("4800.00"),
           breakdown.currency == Currency.CZK,
@@ -873,8 +873,8 @@ object PriceCalculatorSpec extends ZIOSpecDefault:
         val glossyCb = firstBreakdown(glossyBreakdown)
         val matteCb = firstBreakdown(matteBreakdown)
         assertTrue(
-          glossyCb.materialLine.unitPrice == Money("13"),
-          matteCb.materialLine.unitPrice == Money("13"),
+          glossyCb.materialLine.unitPrice == Money("10"),
+          matteCb.materialLine.unitPrice == Money("10"),
           glossyBreakdown.total == matteBreakdown.total,
         )
       },
@@ -903,9 +903,9 @@ object PriceCalculatorSpec extends ZIOSpecDefault:
         val cb = firstBreakdown(breakdown)
         assertTrue(
           result.toEither.isRight,
-          cb.materialLine.unitPrice == Money("8"),
+          cb.materialLine.unitPrice == Money("4"),
           cb.materialLine.quantity == 100,
-          cb.materialLine.lineTotal == Money("800"),
+          cb.materialLine.lineTotal == Money("400"),
           cb.cuttingLine.isEmpty,
         )
       },
@@ -915,7 +915,7 @@ object PriceCalculatorSpec extends ZIOSpecDefault:
         // Normal: cols=floor(322/218)=1, rows=floor(452/305)=1 → 1
         // Rotated: cols=floor(322/305)=1, rows=floor(452/218)=2 → 2
         // So 2 pieces/sheet, sheetsUsed = ceil(100/2) = 50
-        // Material: 8 CZK/sheet × 50 = 400
+        // Material: 4 CZK/sheet × 50 = 200
         // Cuts: 1 cut × 0.10 = 0.10 CZK/sheet × 50 = 5.00
         val config = makeConfig(
           category = SampleCatalog.flyers,
@@ -934,9 +934,9 @@ object PriceCalculatorSpec extends ZIOSpecDefault:
         val cb = firstBreakdown(breakdown)
         assertTrue(
           result.toEither.isRight,
-          cb.materialLine.unitPrice == Money("8"),
+          cb.materialLine.unitPrice == Money("4"),
           cb.materialLine.quantity == 50,
-          cb.materialLine.lineTotal == Money("400"),
+          cb.materialLine.lineTotal == Money("200"),
           cb.cuttingLine.isDefined,
           cb.cuttingLine.get.unitPrice == Money("0.10"),
           cb.cuttingLine.get.quantity == 50,
@@ -950,7 +950,7 @@ object PriceCalculatorSpec extends ZIOSpecDefault:
         // Normal: cols=floor(322/98)=3, rows=floor(452/63)=7 → 21
         // Rotated: cols=floor(322/63)=5, rows=floor(452/98)=4 → 20
         // So 21 pieces/sheet, sheetsUsed = ceil(100/21) = 5
-        // Material: 18 CZK/sheet × 5 = 90
+        // Material: 14 CZK/sheet × 5 = 70
         val config = makeConfig(
           category = SampleCatalog.businessCards,
           material = SampleCatalog.coated300gsm,
@@ -968,9 +968,9 @@ object PriceCalculatorSpec extends ZIOSpecDefault:
         val cb = firstBreakdown(breakdown)
         assertTrue(
           result.toEither.isRight,
-          cb.materialLine.unitPrice == Money("18"),
+          cb.materialLine.unitPrice == Money("14"),
           cb.materialLine.quantity == 5,
-          cb.materialLine.lineTotal == Money("90"),
+          cb.materialLine.lineTotal == Money("70"),
           cb.cuttingLine.isDefined,
         )
       },
@@ -980,7 +980,7 @@ object PriceCalculatorSpec extends ZIOSpecDefault:
         // Normal: cols=floor(322/48)=6, rows=floor(452/38)=11 → 66
         // Rotated: cols=floor(322/38)=8, rows=floor(452/48)=9 → 72
         // 72 pieces/sheet, sheetsUsed = ceil(100/72) = 2
-        // Material: 18 CZK/sheet × 2 = 36
+        // Material: 14 CZK/sheet × 2 = 28
         val config = makeConfig(
           category = SampleCatalog.businessCards,
           material = SampleCatalog.coated300gsm,
@@ -998,9 +998,9 @@ object PriceCalculatorSpec extends ZIOSpecDefault:
         val cb = firstBreakdown(breakdown)
         assertTrue(
           result.toEither.isRight,
-          cb.materialLine.unitPrice == Money("18"),
+          cb.materialLine.unitPrice == Money("14"),
           cb.materialLine.quantity == 2,
-          cb.materialLine.lineTotal == Money("36"),
+          cb.materialLine.lineTotal == Money("28"),
         )
       },
       test("missing SizeSpec returns NoSizeForSheetPricing error") {
@@ -1095,10 +1095,10 @@ object PriceCalculatorSpec extends ZIOSpecDefault:
           cb.materialLine.unitPrice == Money("8"),
         )
       },
-      test("sheet pricing + ink config factor interaction") {
+      test("sheet pricing + ink config price interaction") {
         // A4 on SRA3: 2 pieces/sheet, sheetsUsed = 50
-        // Material: 8 × 50 = 400, perPiecePrice = 4
-        // ink config 4/0 factor = 0.85 → adjustment = 4 × (0.85 - 1.0) = -0.60
+        // Material: 4 × 50 = 200
+        // ink config 4/0 offset per sheet = 2 → adjustment = 2 × 50 = 100 (inkConfigLine.unitPrice = 2)
         val config = makeConfig(
           category = SampleCatalog.flyers,
           material = SampleCatalog.coatedGlossy90gsm,
@@ -1116,9 +1116,9 @@ object PriceCalculatorSpec extends ZIOSpecDefault:
         val cb = firstBreakdown(breakdown)
         assertTrue(
           result.toEither.isRight,
-          cb.materialLine.unitPrice == Money("8"),
+          cb.materialLine.unitPrice == Money("4"),
           cb.inkConfigLine.isDefined,
-          cb.inkConfigLine.get.unitPrice == Money("-0.60"),
+          cb.inkConfigLine.get.unitPrice == Money("2"),
         )
       },
       test("rotated orientation yields more pieces") {
@@ -1127,7 +1127,7 @@ object PriceCalculatorSpec extends ZIOSpecDefault:
         // Normal: cols=floor(322/158)=2, rows=floor(452/108)=4 → 8
         // Rotated: cols=floor(322/108)=2, rows=floor(452/158)=2 → 4
         // Normal wins with 8 pieces, sheetsUsed = ceil(100/8) = 13
-        // Material: 8 CZK/sheet × 13 = 104
+        // Material: 4 CZK/sheet × 13 = 52
         val config = makeConfig(
           category = SampleCatalog.flyers,
           material = SampleCatalog.coatedGlossy90gsm,
@@ -1145,7 +1145,7 @@ object PriceCalculatorSpec extends ZIOSpecDefault:
         val cb = firstBreakdown(breakdown)
         assertTrue(
           result.toEither.isRight,
-          cb.materialLine.unitPrice == Money("8"),
+          cb.materialLine.unitPrice == Money("4"),
           cb.materialLine.quantity == 13,
           cb.cuttingLine.isDefined,
           cb.cuttingLine.get.quantity == 13,

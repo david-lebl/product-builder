@@ -8,23 +8,23 @@ object SamplePricelist:
   val pricelist: Pricelist = Pricelist(
     rules = List(
       // --- Material base prices (per unit, for paper/cardboard) ---
-      PricingRule.MaterialBasePrice(SampleCatalog.coated300gsmId, Money("0.12")),
-      PricingRule.MaterialBasePrice(SampleCatalog.uncoatedBondId, Money("0.06")),
-      PricingRule.MaterialBasePrice(SampleCatalog.kraftId, Money("0.10")),
-      PricingRule.MaterialBasePrice(SampleCatalog.corrugatedId, Money("0.25")),
-      PricingRule.MaterialBasePrice(SampleCatalog.coatedSilk250gsmId, Money("0.11")),
-      PricingRule.MaterialBasePrice(SampleCatalog.yupoId, Money("0.18")),
-      PricingRule.MaterialBasePrice(SampleCatalog.adhesiveStockId, Money("0.14")),
-      PricingRule.MaterialBasePrice(SampleCatalog.cottonId, Money("0.22")),
+      PricingRule.MaterialBasePrice(SampleCatalog.coated300gsmId, Money("0.08")),
+      PricingRule.MaterialBasePrice(SampleCatalog.uncoatedBondId, Money("0.02")),
+      PricingRule.MaterialBasePrice(SampleCatalog.kraftId, Money("0.06")),
+      PricingRule.MaterialBasePrice(SampleCatalog.corrugatedId, Money("0.21")),
+      PricingRule.MaterialBasePrice(SampleCatalog.coatedSilk250gsmId, Money("0.07")),
+      PricingRule.MaterialBasePrice(SampleCatalog.yupoId, Money("0.14")),
+      PricingRule.MaterialBasePrice(SampleCatalog.adhesiveStockId, Money("0.10")),
+      PricingRule.MaterialBasePrice(SampleCatalog.cottonId, Money("0.18")),
 
       // --- Material area price (for vinyl — per sqm) ---
-      PricingRule.MaterialAreaPrice(SampleCatalog.vinylId, Money("18.00")),
-      PricingRule.MaterialAreaPrice(SampleCatalog.clearVinylId, Money("22.00")),
-      PricingRule.MaterialAreaPrice(SampleCatalog.pvc510gId, Money("18.00")),
+      PricingRule.MaterialAreaPrice(SampleCatalog.vinylId, Money("16.20")),
+      PricingRule.MaterialAreaPrice(SampleCatalog.clearVinylId, Money("20.20")),
+      PricingRule.MaterialAreaPrice(SampleCatalog.pvc510gId, Money("16.20")),
 
       // --- Roll-Up material prices ---
       // Banner film: area price (per sqm), stand: base price (per unit)
-      PricingRule.MaterialAreaPrice(SampleCatalog.rollUpBannerFilmId, Money("12.00")),
+      PricingRule.MaterialAreaPrice(SampleCatalog.rollUpBannerFilmId, Money("10.20")),
       PricingRule.MaterialBasePrice(SampleCatalog.rollUpStandEconomyId, Money("25.00")),
       PricingRule.MaterialBasePrice(SampleCatalog.rollUpStandPremiumId, Money("55.00")),
 
@@ -77,12 +77,31 @@ object SamplePricelist:
       // --- Printing process surcharge ---
       PricingRule.PrintingProcessSurcharge(PrintingProcessType.Letterpress, Money("0.20")),
 
-      // --- Ink configuration factors ---
-      PricingRule.InkConfigurationFactor(4, 4, BigDecimal("1.00")),
-      PricingRule.InkConfigurationFactor(4, 0, BigDecimal("0.60")),
-      PricingRule.InkConfigurationFactor(4, 1, BigDecimal("0.75")),
-      PricingRule.InkConfigurationFactor(1, 0, BigDecimal("0.40")),
-      PricingRule.InkConfigurationFactor(1, 1, BigDecimal("0.55")),
+      // --- Ink configuration: per-unit cost keyed by printing method (USD) ---
+      // Offset printing
+      PricingRule.InkConfigurationSheetPrice(SampleCatalog.offsetId, 4, 4, Money("0.04")),
+      PricingRule.InkConfigurationSheetPrice(SampleCatalog.offsetId, 4, 0, Money("0.02")),
+      PricingRule.InkConfigurationSheetPrice(SampleCatalog.offsetId, 4, 1, Money("0.03")),
+      PricingRule.InkConfigurationSheetPrice(SampleCatalog.offsetId, 1, 0, Money("0.005")),
+      PricingRule.InkConfigurationSheetPrice(SampleCatalog.offsetId, 1, 1, Money("0.008")),
+      // Digital printing
+      PricingRule.InkConfigurationSheetPrice(SampleCatalog.digitalId, 4, 4, Money("0.04")),
+      PricingRule.InkConfigurationSheetPrice(SampleCatalog.digitalId, 4, 0, Money("0.02")),
+      PricingRule.InkConfigurationSheetPrice(SampleCatalog.digitalId, 4, 1, Money("0.03")),
+      PricingRule.InkConfigurationSheetPrice(SampleCatalog.digitalId, 1, 0, Money("0.005")),
+      PricingRule.InkConfigurationSheetPrice(SampleCatalog.digitalId, 1, 1, Money("0.008")),
+      // Letterpress
+      PricingRule.InkConfigurationSheetPrice(SampleCatalog.letterpressId, 4, 4, Money("0.04")),
+      PricingRule.InkConfigurationSheetPrice(SampleCatalog.letterpressId, 4, 0, Money("0.02")),
+      PricingRule.InkConfigurationSheetPrice(SampleCatalog.letterpressId, 4, 1, Money("0.03")),
+      PricingRule.InkConfigurationSheetPrice(SampleCatalog.letterpressId, 1, 0, Money("0.005")),
+      PricingRule.InkConfigurationSheetPrice(SampleCatalog.letterpressId, 1, 1, Money("0.008")),
+      // UV inkjet (large format): per sqm
+      PricingRule.InkConfigurationAreaPrice(SampleCatalog.uvInkjetId, 4, 4, Money("1.80")),
+      PricingRule.InkConfigurationAreaPrice(SampleCatalog.uvInkjetId, 4, 0, Money("0.90")),
+      PricingRule.InkConfigurationAreaPrice(SampleCatalog.uvInkjetId, 4, 1, Money("1.20")),
+      PricingRule.InkConfigurationAreaPrice(SampleCatalog.uvInkjetId, 1, 0, Money("0.25")),
+      PricingRule.InkConfigurationAreaPrice(SampleCatalog.uvInkjetId, 1, 1, Money("0.40")),
 
       // --- Quantity tiers ---
       PricingRule.QuantityTier(1, Some(249), BigDecimal("1.0")),
@@ -172,53 +191,53 @@ object SamplePricelist:
   val pricelistCzk: Pricelist = Pricelist(
     rules = List(
       // --- Coated Art Paper Glossy base prices (CZK per unit) ---
-      PricingRule.MaterialBasePrice(SampleCatalog.coatedGlossy90gsmId, Money("12")),
-      PricingRule.MaterialBasePrice(SampleCatalog.coatedGlossy115gsmId, Money("12")),
-      PricingRule.MaterialBasePrice(SampleCatalog.coatedGlossy130gsmId, Money("12")),
-      PricingRule.MaterialBasePrice(SampleCatalog.coatedGlossy150gsmId, Money("13")),
-      PricingRule.MaterialBasePrice(SampleCatalog.coatedGlossy170gsmId, Money("13")),
-      PricingRule.MaterialBasePrice(SampleCatalog.coatedGlossy200gsmId, Money("14")),
-      PricingRule.MaterialBasePrice(SampleCatalog.coatedGlossy250gsmId, Money("14")),
-      PricingRule.MaterialBasePrice(SampleCatalog.coated300gsmId, Money("15")),
-      PricingRule.MaterialBasePrice(SampleCatalog.coatedGlossy350gsmId, Money("15")),
+      PricingRule.MaterialBasePrice(SampleCatalog.coatedGlossy90gsmId, Money("9")),
+      PricingRule.MaterialBasePrice(SampleCatalog.coatedGlossy115gsmId, Money("9")),
+      PricingRule.MaterialBasePrice(SampleCatalog.coatedGlossy130gsmId, Money("9")),
+      PricingRule.MaterialBasePrice(SampleCatalog.coatedGlossy150gsmId, Money("10")),
+      PricingRule.MaterialBasePrice(SampleCatalog.coatedGlossy170gsmId, Money("10")),
+      PricingRule.MaterialBasePrice(SampleCatalog.coatedGlossy200gsmId, Money("11")),
+      PricingRule.MaterialBasePrice(SampleCatalog.coatedGlossy250gsmId, Money("11")),
+      PricingRule.MaterialBasePrice(SampleCatalog.coated300gsmId, Money("12")),
+      PricingRule.MaterialBasePrice(SampleCatalog.coatedGlossy350gsmId, Money("12")),
 
       // --- Coated Art Paper Matte base prices (CZK per unit) ---
-      PricingRule.MaterialBasePrice(SampleCatalog.coatedMatte90gsmId, Money("12")),
-      PricingRule.MaterialBasePrice(SampleCatalog.coatedMatte115gsmId, Money("12")),
-      PricingRule.MaterialBasePrice(SampleCatalog.coatedMatte130gsmId, Money("12")),
-      PricingRule.MaterialBasePrice(SampleCatalog.coatedMatte150gsmId, Money("13")),
-      PricingRule.MaterialBasePrice(SampleCatalog.coatedMatte170gsmId, Money("13")),
-      PricingRule.MaterialBasePrice(SampleCatalog.coatedMatte200gsmId, Money("14")),
-      PricingRule.MaterialBasePrice(SampleCatalog.coatedMatte250gsmId, Money("14")),
-      PricingRule.MaterialBasePrice(SampleCatalog.coatedMatte300gsmId, Money("15")),
-      PricingRule.MaterialBasePrice(SampleCatalog.coatedMatte350gsmId, Money("15")),
+      PricingRule.MaterialBasePrice(SampleCatalog.coatedMatte90gsmId, Money("9")),
+      PricingRule.MaterialBasePrice(SampleCatalog.coatedMatte115gsmId, Money("9")),
+      PricingRule.MaterialBasePrice(SampleCatalog.coatedMatte130gsmId, Money("9")),
+      PricingRule.MaterialBasePrice(SampleCatalog.coatedMatte150gsmId, Money("10")),
+      PricingRule.MaterialBasePrice(SampleCatalog.coatedMatte170gsmId, Money("10")),
+      PricingRule.MaterialBasePrice(SampleCatalog.coatedMatte200gsmId, Money("11")),
+      PricingRule.MaterialBasePrice(SampleCatalog.coatedMatte250gsmId, Money("11")),
+      PricingRule.MaterialBasePrice(SampleCatalog.coatedMatte300gsmId, Money("12")),
+      PricingRule.MaterialBasePrice(SampleCatalog.coatedMatte350gsmId, Money("12")),
 
       // --- Other material base prices (CZK per unit, estimated) ---
-      PricingRule.MaterialBasePrice(SampleCatalog.uncoatedBondId, Money("8")),
-      PricingRule.MaterialBasePrice(SampleCatalog.kraftId, Money("10")),
-      PricingRule.MaterialBasePrice(SampleCatalog.corrugatedId, Money("6")),
-      PricingRule.MaterialBasePrice(SampleCatalog.coatedSilk250gsmId, Money("14")),
-      PricingRule.MaterialBasePrice(SampleCatalog.yupoId, Money("16")),
-      PricingRule.MaterialBasePrice(SampleCatalog.adhesiveStockId, Money("10")),
-      PricingRule.MaterialBasePrice(SampleCatalog.cottonId, Money("18")),
+      PricingRule.MaterialBasePrice(SampleCatalog.uncoatedBondId, Money("5")),
+      PricingRule.MaterialBasePrice(SampleCatalog.kraftId, Money("7")),
+      PricingRule.MaterialBasePrice(SampleCatalog.corrugatedId, Money("3")),
+      PricingRule.MaterialBasePrice(SampleCatalog.coatedSilk250gsmId, Money("11")),
+      PricingRule.MaterialBasePrice(SampleCatalog.yupoId, Money("13")),
+      PricingRule.MaterialBasePrice(SampleCatalog.adhesiveStockId, Money("7")),
+      PricingRule.MaterialBasePrice(SampleCatalog.cottonId, Money("15")),
 
       // --- Material area price (for vinyl — CZK per sqm) ---
-      PricingRule.MaterialAreaPrice(SampleCatalog.vinylId, Money("420")),
-      PricingRule.MaterialAreaPrice(SampleCatalog.clearVinylId, Money("520")),
+      PricingRule.MaterialAreaPrice(SampleCatalog.vinylId, Money("375")),
+      PricingRule.MaterialAreaPrice(SampleCatalog.clearVinylId, Money("475")),
 
       // --- PVC Banner 510g: area-tiered price (CZK per sqm) ---
       PricingRule.MaterialAreaTier(
         SampleCatalog.pvc510gId,
         List(
-          AreaTier(BigDecimal("0"),  Money("600")),
-          AreaTier(BigDecimal("2"),  Money("500")),
-          AreaTier(BigDecimal("5"),  Money("450")),
-          AreaTier(BigDecimal("10"), Money("400")),
+          AreaTier(BigDecimal("0"),  Money("555")),
+          AreaTier(BigDecimal("2"),  Money("455")),
+          AreaTier(BigDecimal("5"),  Money("405")),
+          AreaTier(BigDecimal("10"), Money("355")),
         ),
       ),
 
       // --- Roll-Up material prices (CZK) ---
-      PricingRule.MaterialAreaPrice(SampleCatalog.rollUpBannerFilmId, Money("280")),
+      PricingRule.MaterialAreaPrice(SampleCatalog.rollUpBannerFilmId, Money("235")),
       PricingRule.MaterialBasePrice(SampleCatalog.rollUpStandEconomyId, Money("590")),
       PricingRule.MaterialBasePrice(SampleCatalog.rollUpStandPremiumId, Money("1290")),
 
@@ -276,17 +295,31 @@ object SamplePricelist:
       // --- Printing process surcharge (CZK) ---
       PricingRule.PrintingProcessSurcharge(PrintingProcessType.Letterpress, Money("5")),
 
-      // --- Ink configuration factors ---
-      // 4/4 CMYK both sides: full price
-      PricingRule.InkConfigurationFactor(4, 4, BigDecimal("1.00")),
-      // 4/0 CMYK front only: ~85% of 4/4 price (estimated from Czech market data)
-      PricingRule.InkConfigurationFactor(4, 0, BigDecimal("0.85")),
-      // 4/1 CMYK front + mono back
-      PricingRule.InkConfigurationFactor(4, 1, BigDecimal("0.90")),
-      // 1/0 Mono front only
-      PricingRule.InkConfigurationFactor(1, 0, BigDecimal("0.55")),
-      // 1/1 Mono both sides
-      PricingRule.InkConfigurationFactor(1, 1, BigDecimal("0.65")),
+      // --- Ink configuration: per-unit cost keyed by printing method (CZK) ---
+      // Offset printing
+      PricingRule.InkConfigurationSheetPrice(SampleCatalog.offsetId, 4, 4, Money("3")),
+      PricingRule.InkConfigurationSheetPrice(SampleCatalog.offsetId, 4, 0, Money("1.50")),
+      PricingRule.InkConfigurationSheetPrice(SampleCatalog.offsetId, 4, 1, Money("1.80")),
+      PricingRule.InkConfigurationSheetPrice(SampleCatalog.offsetId, 1, 0, Money("0.45")),
+      PricingRule.InkConfigurationSheetPrice(SampleCatalog.offsetId, 1, 1, Money("0.75")),
+      // Digital printing
+      PricingRule.InkConfigurationSheetPrice(SampleCatalog.digitalId, 4, 4, Money("3")),
+      PricingRule.InkConfigurationSheetPrice(SampleCatalog.digitalId, 4, 0, Money("1.50")),
+      PricingRule.InkConfigurationSheetPrice(SampleCatalog.digitalId, 4, 1, Money("1.80")),
+      PricingRule.InkConfigurationSheetPrice(SampleCatalog.digitalId, 1, 0, Money("0.45")),
+      PricingRule.InkConfigurationSheetPrice(SampleCatalog.digitalId, 1, 1, Money("0.75")),
+      // Letterpress
+      PricingRule.InkConfigurationSheetPrice(SampleCatalog.letterpressId, 4, 4, Money("3")),
+      PricingRule.InkConfigurationSheetPrice(SampleCatalog.letterpressId, 4, 0, Money("1.50")),
+      PricingRule.InkConfigurationSheetPrice(SampleCatalog.letterpressId, 4, 1, Money("1.80")),
+      PricingRule.InkConfigurationSheetPrice(SampleCatalog.letterpressId, 1, 0, Money("0.45")),
+      PricingRule.InkConfigurationSheetPrice(SampleCatalog.letterpressId, 1, 1, Money("0.75")),
+      // UV inkjet (large format): per sqm
+      PricingRule.InkConfigurationAreaPrice(SampleCatalog.uvInkjetId, 4, 4, Money("45")),
+      PricingRule.InkConfigurationAreaPrice(SampleCatalog.uvInkjetId, 4, 0, Money("22")),
+      PricingRule.InkConfigurationAreaPrice(SampleCatalog.uvInkjetId, 4, 1, Money("30")),
+      PricingRule.InkConfigurationAreaPrice(SampleCatalog.uvInkjetId, 1, 0, Money("6")),
+      PricingRule.InkConfigurationAreaPrice(SampleCatalog.uvInkjetId, 1, 1, Money("10")),
 
       // --- Quantity tiers (CZK market, steeper volume discounts) ---
       PricingRule.QuantityTier(1, Some(99), BigDecimal("1.0")),
@@ -424,154 +457,154 @@ object SamplePricelist:
   val pricelistCzkSheet: Pricelist = Pricelist(
     rules = List(
       // --- Material sheet prices (CZK per SRA3 sheet 320×450mm) ---
-      // Light papers (90-130gsm): ~8-10 CZK/sheet
+      // Light papers (90-130gsm): ~4-6 CZK/sheet
       PricingRule.MaterialSheetPrice(
         materialId = SampleCatalog.coatedGlossy90gsmId,
-        pricePerSheet = Money("8"), sheetWidthMm = 320, sheetHeightMm = 450,
+        pricePerSheet = Money("4"), sheetWidthMm = 320, sheetHeightMm = 450,
         bleedMm = 3, gutterMm = 2,
       ),
       PricingRule.MaterialSheetPrice(
         materialId = SampleCatalog.coatedGlossy115gsmId,
-        pricePerSheet = Money("9"), sheetWidthMm = 320, sheetHeightMm = 450,
+        pricePerSheet = Money("5"), sheetWidthMm = 320, sheetHeightMm = 450,
         bleedMm = 3, gutterMm = 2,
       ),
       PricingRule.MaterialSheetPrice(
         materialId = SampleCatalog.coatedGlossy130gsmId,
-        pricePerSheet = Money("10"), sheetWidthMm = 320, sheetHeightMm = 450,
+        pricePerSheet = Money("6"), sheetWidthMm = 320, sheetHeightMm = 450,
         bleedMm = 3, gutterMm = 2,
       ),
       PricingRule.MaterialSheetPrice(
         materialId = SampleCatalog.coatedMatte90gsmId,
-        pricePerSheet = Money("8"), sheetWidthMm = 320, sheetHeightMm = 450,
+        pricePerSheet = Money("4"), sheetWidthMm = 320, sheetHeightMm = 450,
         bleedMm = 3, gutterMm = 2,
       ),
       PricingRule.MaterialSheetPrice(
         materialId = SampleCatalog.coatedMatte115gsmId,
-        pricePerSheet = Money("9"), sheetWidthMm = 320, sheetHeightMm = 450,
+        pricePerSheet = Money("5"), sheetWidthMm = 320, sheetHeightMm = 450,
         bleedMm = 3, gutterMm = 2,
       ),
       PricingRule.MaterialSheetPrice(
         materialId = SampleCatalog.coatedMatte130gsmId,
-        pricePerSheet = Money("10"), sheetWidthMm = 320, sheetHeightMm = 450,
+        pricePerSheet = Money("6"), sheetWidthMm = 320, sheetHeightMm = 450,
         bleedMm = 3, gutterMm = 2,
       ),
 
-      // Medium papers (150-200gsm): ~12-14 CZK/sheet
+      // Medium papers (150-200gsm): ~8-10 CZK/sheet
       PricingRule.MaterialSheetPrice(
         materialId = SampleCatalog.coatedGlossy150gsmId,
-        pricePerSheet = Money("12"), sheetWidthMm = 320, sheetHeightMm = 450,
+        pricePerSheet = Money("8"), sheetWidthMm = 320, sheetHeightMm = 450,
         bleedMm = 3, gutterMm = 2,
       ),
       PricingRule.MaterialSheetPrice(
         materialId = SampleCatalog.coatedGlossy170gsmId,
-        pricePerSheet = Money("12"), sheetWidthMm = 320, sheetHeightMm = 450,
+        pricePerSheet = Money("8"), sheetWidthMm = 320, sheetHeightMm = 450,
         bleedMm = 3, gutterMm = 2,
       ),
       PricingRule.MaterialSheetPrice(
         materialId = SampleCatalog.coatedGlossy200gsmId,
-        pricePerSheet = Money("14"), sheetWidthMm = 320, sheetHeightMm = 450,
+        pricePerSheet = Money("10"), sheetWidthMm = 320, sheetHeightMm = 450,
         bleedMm = 3, gutterMm = 2,
       ),
       PricingRule.MaterialSheetPrice(
         materialId = SampleCatalog.coatedMatte150gsmId,
-        pricePerSheet = Money("12"), sheetWidthMm = 320, sheetHeightMm = 450,
+        pricePerSheet = Money("8"), sheetWidthMm = 320, sheetHeightMm = 450,
         bleedMm = 3, gutterMm = 2,
       ),
       PricingRule.MaterialSheetPrice(
         materialId = SampleCatalog.coatedMatte170gsmId,
-        pricePerSheet = Money("12"), sheetWidthMm = 320, sheetHeightMm = 450,
+        pricePerSheet = Money("8"), sheetWidthMm = 320, sheetHeightMm = 450,
         bleedMm = 3, gutterMm = 2,
       ),
       PricingRule.MaterialSheetPrice(
         materialId = SampleCatalog.coatedMatte200gsmId,
-        pricePerSheet = Money("14"), sheetWidthMm = 320, sheetHeightMm = 450,
+        pricePerSheet = Money("10"), sheetWidthMm = 320, sheetHeightMm = 450,
         bleedMm = 3, gutterMm = 2,
       ),
       PricingRule.MaterialSheetPrice(
         materialId = SampleCatalog.yupoId,
-        pricePerSheet = Money("14"), sheetWidthMm = 320, sheetHeightMm = 450,
+        pricePerSheet = Money("10"), sheetWidthMm = 320, sheetHeightMm = 450,
         bleedMm = 3, gutterMm = 2,
       ),
       PricingRule.MaterialSheetPrice(
         materialId = SampleCatalog.adhesiveStockId,
-        pricePerSheet = Money("12"), sheetWidthMm = 320, sheetHeightMm = 450,
+        pricePerSheet = Money("8"), sheetWidthMm = 320, sheetHeightMm = 450,
         bleedMm = 3, gutterMm = 2,
       ),
       PricingRule.MaterialSheetPrice(
         materialId = SampleCatalog.uncoatedBondId,
-        pricePerSheet = Money("8"), sheetWidthMm = 320, sheetHeightMm = 450,
+        pricePerSheet = Money("4"), sheetWidthMm = 320, sheetHeightMm = 450,
         bleedMm = 3, gutterMm = 2,
       ),
 
-      // Heavy papers (250-350gsm): ~16-20 CZK/sheet
+      // Heavy papers (250-350gsm): ~12-16 CZK/sheet
       PricingRule.MaterialSheetPrice(
         materialId = SampleCatalog.coatedGlossy250gsmId,
-        pricePerSheet = Money("16"), sheetWidthMm = 320, sheetHeightMm = 450,
+        pricePerSheet = Money("12"), sheetWidthMm = 320, sheetHeightMm = 450,
         bleedMm = 3, gutterMm = 2,
       ),
       PricingRule.MaterialSheetPrice(
         materialId = SampleCatalog.coatedGlossy350gsmId,
-        pricePerSheet = Money("20"), sheetWidthMm = 320, sheetHeightMm = 450,
+        pricePerSheet = Money("16"), sheetWidthMm = 320, sheetHeightMm = 450,
         bleedMm = 3, gutterMm = 2,
       ),
       PricingRule.MaterialSheetPrice(
         materialId = SampleCatalog.coated300gsmId,
-        pricePerSheet = Money("18"), sheetWidthMm = 320, sheetHeightMm = 450,
+        pricePerSheet = Money("14"), sheetWidthMm = 320, sheetHeightMm = 450,
         bleedMm = 3, gutterMm = 2,
       ),
       PricingRule.MaterialSheetPrice(
         materialId = SampleCatalog.coatedMatte250gsmId,
-        pricePerSheet = Money("16"), sheetWidthMm = 320, sheetHeightMm = 450,
+        pricePerSheet = Money("12"), sheetWidthMm = 320, sheetHeightMm = 450,
         bleedMm = 3, gutterMm = 2,
       ),
       PricingRule.MaterialSheetPrice(
         materialId = SampleCatalog.coatedMatte300gsmId,
-        pricePerSheet = Money("18"), sheetWidthMm = 320, sheetHeightMm = 450,
+        pricePerSheet = Money("14"), sheetWidthMm = 320, sheetHeightMm = 450,
         bleedMm = 3, gutterMm = 2,
       ),
       PricingRule.MaterialSheetPrice(
         materialId = SampleCatalog.coatedMatte350gsmId,
-        pricePerSheet = Money("20"), sheetWidthMm = 320, sheetHeightMm = 450,
+        pricePerSheet = Money("16"), sheetWidthMm = 320, sheetHeightMm = 450,
         bleedMm = 3, gutterMm = 2,
       ),
       PricingRule.MaterialSheetPrice(
         materialId = SampleCatalog.coatedSilk250gsmId,
-        pricePerSheet = Money("16"), sheetWidthMm = 320, sheetHeightMm = 450,
+        pricePerSheet = Money("12"), sheetWidthMm = 320, sheetHeightMm = 450,
         bleedMm = 3, gutterMm = 2,
       ),
       PricingRule.MaterialSheetPrice(
         materialId = SampleCatalog.kraftId,
-        pricePerSheet = Money("16"), sheetWidthMm = 320, sheetHeightMm = 450,
+        pricePerSheet = Money("12"), sheetWidthMm = 320, sheetHeightMm = 450,
         bleedMm = 3, gutterMm = 2,
       ),
       PricingRule.MaterialSheetPrice(
         materialId = SampleCatalog.cottonId,
-        pricePerSheet = Money("20"), sheetWidthMm = 320, sheetHeightMm = 450,
+        pricePerSheet = Money("16"), sheetWidthMm = 320, sheetHeightMm = 450,
         bleedMm = 3, gutterMm = 2,
       ),
 
       // --- Material area price (for vinyl — CZK per sqm) ---
-      PricingRule.MaterialAreaPrice(SampleCatalog.vinylId, Money("420")),
-      PricingRule.MaterialAreaPrice(SampleCatalog.clearVinylId, Money("520")),
+      PricingRule.MaterialAreaPrice(SampleCatalog.vinylId, Money("375")),
+      PricingRule.MaterialAreaPrice(SampleCatalog.clearVinylId, Money("475")),
 
       // --- PVC Banner 510g: area-tiered price (CZK per sqm) ---
       PricingRule.MaterialAreaTier(
         SampleCatalog.pvc510gId,
         List(
-          AreaTier(BigDecimal("0"),  Money("600")),
-          AreaTier(BigDecimal("2"),  Money("500")),
-          AreaTier(BigDecimal("5"),  Money("450")),
-          AreaTier(BigDecimal("10"), Money("400")),
+          AreaTier(BigDecimal("0"),  Money("555")),
+          AreaTier(BigDecimal("2"),  Money("455")),
+          AreaTier(BigDecimal("5"),  Money("405")),
+          AreaTier(BigDecimal("10"), Money("355")),
         ),
       ),
 
       // --- Roll-Up material prices (CZK) ---
-      PricingRule.MaterialAreaPrice(SampleCatalog.rollUpBannerFilmId, Money("280")),
+      PricingRule.MaterialAreaPrice(SampleCatalog.rollUpBannerFilmId, Money("235")),
       PricingRule.MaterialBasePrice(SampleCatalog.rollUpStandEconomyId, Money("590")),
       PricingRule.MaterialBasePrice(SampleCatalog.rollUpStandPremiumId, Money("1290")),
 
       // --- Material base price (for corrugated — not sheet-fed) ---
-      PricingRule.MaterialBasePrice(SampleCatalog.corrugatedId, Money("6")),
+      PricingRule.MaterialBasePrice(SampleCatalog.corrugatedId, Money("2")),
 
       // --- Cutting surcharge ---
       PricingRule.CuttingSurcharge(costPerCut = Money("0.10")),
@@ -637,12 +670,31 @@ object SamplePricelist:
       // --- Printing process surcharge (CZK) ---
       PricingRule.PrintingProcessSurcharge(PrintingProcessType.Letterpress, Money("5")),
 
-      // --- Ink configuration factors ---
-      PricingRule.InkConfigurationFactor(4, 4, BigDecimal("1.00")),
-      PricingRule.InkConfigurationFactor(4, 0, BigDecimal("0.85")),
-      PricingRule.InkConfigurationFactor(4, 1, BigDecimal("0.90")),
-      PricingRule.InkConfigurationFactor(1, 0, BigDecimal("0.55")),
-      PricingRule.InkConfigurationFactor(1, 1, BigDecimal("0.65")),
+      // --- Ink configuration: per-sheet cost keyed by printing method (CZK sheet pricelist) ---
+      // Offset printing (per SRA3 sheet)
+      PricingRule.InkConfigurationSheetPrice(SampleCatalog.offsetId, 4, 4, Money("4")),
+      PricingRule.InkConfigurationSheetPrice(SampleCatalog.offsetId, 4, 0, Money("2")),
+      PricingRule.InkConfigurationSheetPrice(SampleCatalog.offsetId, 4, 1, Money("2.50")),
+      PricingRule.InkConfigurationSheetPrice(SampleCatalog.offsetId, 1, 0, Money("0.60")),
+      PricingRule.InkConfigurationSheetPrice(SampleCatalog.offsetId, 1, 1, Money("1")),
+      // Digital printing (per SRA3 sheet)
+      PricingRule.InkConfigurationSheetPrice(SampleCatalog.digitalId, 4, 4, Money("4")),
+      PricingRule.InkConfigurationSheetPrice(SampleCatalog.digitalId, 4, 0, Money("2")),
+      PricingRule.InkConfigurationSheetPrice(SampleCatalog.digitalId, 4, 1, Money("2.50")),
+      PricingRule.InkConfigurationSheetPrice(SampleCatalog.digitalId, 1, 0, Money("0.60")),
+      PricingRule.InkConfigurationSheetPrice(SampleCatalog.digitalId, 1, 1, Money("1")),
+      // Letterpress (per SRA3 sheet)
+      PricingRule.InkConfigurationSheetPrice(SampleCatalog.letterpressId, 4, 4, Money("4")),
+      PricingRule.InkConfigurationSheetPrice(SampleCatalog.letterpressId, 4, 0, Money("2")),
+      PricingRule.InkConfigurationSheetPrice(SampleCatalog.letterpressId, 4, 1, Money("2.50")),
+      PricingRule.InkConfigurationSheetPrice(SampleCatalog.letterpressId, 1, 0, Money("0.60")),
+      PricingRule.InkConfigurationSheetPrice(SampleCatalog.letterpressId, 1, 1, Money("1")),
+      // UV inkjet (large format): per sqm
+      PricingRule.InkConfigurationAreaPrice(SampleCatalog.uvInkjetId, 4, 4, Money("45")),
+      PricingRule.InkConfigurationAreaPrice(SampleCatalog.uvInkjetId, 4, 0, Money("22")),
+      PricingRule.InkConfigurationAreaPrice(SampleCatalog.uvInkjetId, 4, 1, Money("30")),
+      PricingRule.InkConfigurationAreaPrice(SampleCatalog.uvInkjetId, 1, 0, Money("6")),
+      PricingRule.InkConfigurationAreaPrice(SampleCatalog.uvInkjetId, 1, 1, Money("10")),
 
       // --- Sheet quantity tiers (discount based on total physical sheets) ---
       PricingRule.SheetQuantityTier(1, Some(49), BigDecimal("1.0")),

@@ -25,7 +25,7 @@ object PriceCalculator:
     extractQuantity(config.specifications).flatMap { quantity =>
       val componentBreakdownsV: Validation[PricingError, List[ComponentBreakdown]] =
         config.components
-          .map { comp => calculateComponentBreakdown(comp, config.specifications, rules, quantity, lang) }
+          .map { comp => calculateComponentBreakdown(comp, config.specifications, rules, quantity, lang, config.printingMethod.id) }
           .foldLeft(Validation.succeed(List.empty[ComponentBreakdown]): Validation[PricingError, List[ComponentBreakdown]]) {
             (accV, cbV) => accV.zipWith(cbV)(_ :+ _)
           }
@@ -181,6 +181,7 @@ object PriceCalculator:
       rules: List[PricingRule],
       quantity: Int,
       lang: Language,
+      printingMethodId: PrintingMethodId,
   ): Validation[PricingError, ComponentBreakdown] =
     val effectiveQuantity = comp.sheetCount * quantity
 
@@ -219,7 +220,7 @@ object PriceCalculator:
                   quantity = effectiveQuantity,
                   lineTotal = materialLineTotal,
                 )
-                val inkConfigLine = computeInkConfigLine(comp.inkConfiguration, rules, unitPrice, materialLineTotal, effectiveQuantity)
+                val inkConfigLine = computeInkConfigLine(comp.inkConfiguration, rules, printingMethodId, InkPricingBasis.Area(areaSqM, effectiveQuantity))
                 computeFinishLines(comp.finishes, rules, quantity, lang, Some(dim)).map { finishLines =>
                   ComponentBreakdown(
                     role = comp.role,
@@ -247,7 +248,7 @@ object PriceCalculator:
                   quantity = effectiveQuantity,
                   lineTotal = materialLineTotal,
                 )
-                val inkConfigLine = computeInkConfigLine(comp.inkConfiguration, rules, unitPrice, materialLineTotal, effectiveQuantity)
+                val inkConfigLine = computeInkConfigLine(comp.inkConfiguration, rules, printingMethodId, InkPricingBasis.Area(areaSqM, effectiveQuantity))
                 computeFinishLines(comp.finishes, rules, quantity, lang, Some(dim)).map { finishLines =>
                   ComponentBreakdown(
                     role = comp.role,
@@ -287,8 +288,7 @@ object PriceCalculator:
                       lineTotal = materialLineTotal,
                     )
 
-                    val perPiecePrice = materialLineTotal / effectiveQuantity
-                    val inkConfigLine = computeInkConfigLine(comp.inkConfiguration, rules, perPiecePrice, materialLineTotal, effectiveQuantity)
+                    val inkConfigLine = computeInkConfigLine(comp.inkConfiguration, rules, printingMethodId, InkPricingBasis.SheetOrUnit(sheetsUsed))
 
                     val cuttingRule = rules.collectFirst { case r: PricingRule.CuttingSurcharge => r }
                     val numCuts = pps - 1
@@ -329,7 +329,7 @@ object PriceCalculator:
                       quantity = effectiveQuantity,
                       lineTotal = materialLineTotal,
                     )
-                    val inkConfigLine = computeInkConfigLine(comp.inkConfiguration, rules, bp.unitPrice, materialLineTotal, effectiveQuantity)
+                    val inkConfigLine = computeInkConfigLine(comp.inkConfiguration, rules, printingMethodId, InkPricingBasis.SheetOrUnit(effectiveQuantity))
                     computeFinishLines(comp.finishes, rules, quantity, lang, specs.get(SpecKind.Size).collect { case SpecValue.SizeSpec(d) => d }).map { finishLines =>
                       ComponentBreakdown(
                         role = comp.role,
@@ -348,30 +348,49 @@ object PriceCalculator:
       case Some(SpecValue.QuantitySpec(q)) => Validation.succeed(q.value)
       case _                              => Validation.fail(PricingError.NoQuantityInSpecifications)
 
+  private enum InkPricingBasis:
+    case SheetOrUnit(count: Int)
+    case Area(sqM: BigDecimal, quantity: Int)
+
   private def computeInkConfigLine(
       inkConfig: InkConfiguration,
       rules: List[PricingRule],
-      materialUnitPrice: Money,
-      materialLineTotal: Money,
-      effectiveQuantity: Int,
+      printingMethodId: PrintingMethodId,
+      basis: InkPricingBasis,
   ): Option[LineItem] =
-    rules.collectFirst {
-      case r: PricingRule.InkConfigurationFactor
-          if r.frontColorCount == inkConfig.front.colorCount && r.backColorCount == inkConfig.back.colorCount =>
-        r.materialMultiplier
-    }.flatMap { multiplier =>
-      if multiplier == BigDecimal(1) then scala.None
-      else
-        val adjustmentFactor = multiplier - BigDecimal(1)
-        val unitAdjustment = materialUnitPrice * adjustmentFactor
-        val lineTotal = materialLineTotal * adjustmentFactor
-        Some(LineItem(
-          label = s"Ink configuration: ${inkConfig.notation}",
-          unitPrice = unitAdjustment,
-          quantity = effectiveQuantity,
-          lineTotal = lineTotal,
-        ))
-    }
+    val label = s"Ink configuration: ${inkConfig.notation}"
+    basis match
+      case InkPricingBasis.SheetOrUnit(count) =>
+        rules.collectFirst {
+          case r: PricingRule.InkConfigurationSheetPrice
+              if r.printingMethodId == printingMethodId
+                && r.frontColorCount == inkConfig.front.colorCount
+                && r.backColorCount == inkConfig.back.colorCount =>
+            r.pricePerSheet
+        }.map { pricePerSheet =>
+          LineItem(
+            label = label,
+            unitPrice = pricePerSheet,
+            quantity = count,
+            lineTotal = (pricePerSheet * count).rounded,
+          )
+        }
+      case InkPricingBasis.Area(sqM, qty) =>
+        rules.collectFirst {
+          case r: PricingRule.InkConfigurationAreaPrice
+              if r.printingMethodId == printingMethodId
+                && r.frontColorCount == inkConfig.front.colorCount
+                && r.backColorCount == inkConfig.back.colorCount =>
+            r.pricePerSqM
+        }.map { pricePerSqM =>
+          val unitPrice = (pricePerSqM * sqM).rounded
+          LineItem(
+            label = label,
+            unitPrice = unitPrice,
+            quantity = qty,
+            lineTotal = (unitPrice * qty).rounded,
+          )
+        }
 
   private def collectSetupFees(
       finishes: List[SelectedFinish],
