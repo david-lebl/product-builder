@@ -30,6 +30,7 @@ Research documents, gap analyses, and architecture decisions — context for *wh
 | [analysis/ui-kit-review.md](analysis/ui-kit-review.md) | Review of ui-framework components and styling gap analysis |
 | [analysis/roll-up.md](analysis/roll-up.md) | Roll-up/retractable banner product specification (2 components, area-based pricing) |
 | [analysis/claude-skills-vs-claudemd.md](analysis/claude-skills-vs-claudemd.md) | Analysis of Claude Code skills vs CLAUDE.md — when to use each, decision matrix |
+| [analysis/external-manufacturing-analysis.md](analysis/external-manufacturing-analysis.md) | External manufacturing partner routing — domain model, rules, workflow hook, and UI spec |
 
 ## 📐 Plans & Roadmaps
 
