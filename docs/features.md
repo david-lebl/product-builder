@@ -84,7 +84,8 @@ Declarative pricing layer following the same rules-as-data pattern.
 | `FinishLinearMeterPrice` | Linear-metre pricing for rope/accessory finishes |
 | `PrintingProcessSurcharge` | Process-specific surcharge |
 | `CategorySurcharge` | Category-specific surcharge |
-| `InkConfigurationFactor` | Multiplier on material cost by front/back color counts |
+| `InkConfigurationSheetPrice` | Additive per-sheet (or per-unit) ink cost keyed by printing method and front/back color counts |
+| `InkConfigurationAreaPrice` | Additive per-m² ink cost keyed by printing method and front/back color counts |
 | `CuttingSurcharge` | Per-cut surcharge |
 | `FoldTypeSurcharge` | Fold type surcharge |
 | `BindingMethodSurcharge` | Binding method surcharge |

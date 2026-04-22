@@ -9,7 +9,7 @@ Core feature specifications — stable documents describing *what* the system do
 | Document | Description |
 |----------|-------------|
 | [features.md](features.md) | Comprehensive feature overview of the entire system |
-| [pricing.md](pricing.md) | Pricing engine specification with 22 rule types and worked examples |
+| [pricing.md](pricing.md) | Pricing engine specification with 23 rule types and worked examples |
 | [visual-product-types.md](visual-product-types.md) | Visual editor product types (calendars, photo books, wall pictures) and formats |
 | [manufacturing-speed-pipeline.md](manufacturing-speed-pipeline.md) | Order completion time estimation — 8-stage pipeline specification |
 | [new-product-specification.md](new-product-specification.md) | Specification for adding new product types to the system |
@@ -30,7 +30,7 @@ Research documents, gap analyses, and architecture decisions — context for *wh
 | [analysis/ui-kit-review.md](analysis/ui-kit-review.md) | Review of ui-framework components and styling gap analysis |
 | [analysis/roll-up.md](analysis/roll-up.md) | Roll-up/retractable banner product specification (2 components, area-based pricing) |
 | [analysis/claude-skills-vs-claudemd.md](analysis/claude-skills-vs-claudemd.md) | Analysis of Claude Code skills vs CLAUDE.md — when to use each, decision matrix |
-| [analysis/ink-configuration-pricing.md](analysis/ink-configuration-pricing.md) | Analysis of current `InkConfigurationFactor` model, its structural problems, and a proposed additive per-press ink pricing model with new `InkConfigurationSheetPrice` + `InkConfigurationAreaPrice` rules |
+| [analysis/ink-configuration-pricing.md](analysis/ink-configuration-pricing.md) | Analysis of the old `InkConfigurationFactor` model, its structural problems, and the implemented additive `InkConfigurationSheetPrice` + `InkConfigurationAreaPrice` rules |
 
 ## 📐 Plans & Roadmaps
 
