@@ -74,6 +74,7 @@ Session-by-session work logs documenting what was done, decisions made, and issu
 | Document | Description |
 |----------|-------------|
 | [changelog/README.md](changelog/README.md) | Changelog format, template, and log entries index |
+| [changelog/2026-04-23-external-manufacturing-implementation.md](changelog/2026-04-23-external-manufacturing-implementation.md) | External manufacturing routing implementation — tests, fixes, UI compile errors |
 | [changelog/2026-04-22-external-manufacturing-analysis.md](changelog/2026-04-22-external-manufacturing-analysis.md) | External manufacturing partner routing specification (analysis session) |
 | [changelog/2026-04-21-fix-manufacturing-ui-and-pricelist-table.md](changelog/2026-04-21-fix-manufacturing-ui-and-pricelist-table.md) | Fix Manufacturing UI blank page and Pricelist empty table (regressions from PR #133) |
 | [changelog/2026-04-21-scoring-stepper-and-pricing-fix.md](changelog/2026-04-21-scoring-stepper-and-pricing-fix.md) | Scoring: replace radio buttons with stepper input; fix MissingScoringPrice error in pricelistCzkSheet |

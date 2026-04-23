@@ -206,3 +206,22 @@ areaTierRule match
 **Solution:** Whenever a new `PricingRule` variant is added, add a corresponding case to **both** `pricingRuleSummary` (returns a display string) **and** `pricingRuleTypeName` (returns the type name string) in `PricelistEditorView`. The Scala compiler emits a non-exhaustive match warning for these matches; treat those warnings as errors.
 
 **Files:** `modules/ui/src/main/scala/mpbuilder/ui/catalog/views/PricelistEditorView.scala`
+
+---
+
+### Scala 3 `export` does not re-export default parameter values
+
+**Symptom:** Compile error "missing argument for parameter X" on a method that is called via an `export`ed re-export — even though the original method definition has a default value for that parameter.
+
+**Cause:** Scala 3's `export` keyword re-exports method signatures but **strips default parameter values**. Callers of the re-exported method see all parameters as required.
+
+**Example:** `FormComponents` in the `ui` module re-exports `textField` from `uikit`:
+```scala
+// In mpbuilder.ui.catalog.FormComponents:
+export mpbuilder.uikit.form.FormComponents.{textField, enumSelectRequired, ...}
+```
+The original `textField` has `placeholder: String = ""` but callers via the re-exported version must pass `placeholder` explicitly.
+
+**Solution:** Pass all previously-defaulted arguments explicitly at every call site that goes through the re-export. Do not rely on default values in exported methods.
+
+**Files:** `modules/ui/src/main/scala/mpbuilder/ui/catalog/views/RulesEditorView.scala`, `modules/ui/src/main/scala/mpbuilder/ui/catalog/FormComponents.scala`
