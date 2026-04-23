@@ -416,4 +416,101 @@ object WorkflowGeneratorSpec extends ZIOSpecDefault:
         assertTrue(wf.steps.forall(_.dependsOn.subsetOf(allIds)))
       },
     ),
+    suite("external partner routing")(
+      test("oversized banner routes to ExternalPartner step; LargeFormatPrinter absent") {
+        val config = buildConfig(
+          SampleCatalog.bannersId,
+          SampleCatalog.uvInkjetId,
+          List(mainComp(SampleCatalog.pvc510gId, InkConfiguration.cmyk4_0)),
+          List(
+            SpecValue.SizeSpec(Dimension(2000, 1000)),
+            SpecValue.QuantitySpec(Quantity.unsafe(1)),
+          ),
+        )
+        val externalRules = mpbuilder.domain.validation.RuleEvaluator.collectExternalRules(
+          SampleRules.ruleset.rules,
+          config.components,
+          config.specifications,
+          config.category.id,
+          config.printingMethod,
+        )
+        val wf = WorkflowGenerator.generate(
+          config,
+          orderId = OrderId.unsafe("order-ext-1"),
+          orderItemIndex = 0,
+          workflowId = WorkflowId.unsafe("wf-ext-1"),
+          externalPartners = SamplePartners.allPartners,
+          matchingExternalRules = externalRules,
+        )
+        val stationTypes = wf.steps.map(_.stationType).toSet
+        assertTrue(
+          stationTypes.contains(StationType.ExternalPartner),
+          !stationTypes.contains(StationType.LargeFormatPrinter),
+          !stationTypes.contains(StationType.LargeFormatFinishing),
+          stationTypes.contains(StationType.Prepress),
+          stationTypes.contains(StationType.QualityControl),
+          stationTypes.contains(StationType.Packaging),
+        )
+      },
+      test("ExternalPartner step has assignedPartner set and depends on Prepress") {
+        val config = buildConfig(
+          SampleCatalog.bannersId,
+          SampleCatalog.uvInkjetId,
+          List(mainComp(SampleCatalog.pvc510gId, InkConfiguration.cmyk4_0)),
+          List(
+            SpecValue.SizeSpec(Dimension(2000, 1000)),
+            SpecValue.QuantitySpec(Quantity.unsafe(1)),
+          ),
+        )
+        val externalRules = mpbuilder.domain.validation.RuleEvaluator.collectExternalRules(
+          SampleRules.ruleset.rules,
+          config.components,
+          config.specifications,
+          config.category.id,
+          config.printingMethod,
+        )
+        val wf = WorkflowGenerator.generate(
+          config,
+          orderId = OrderId.unsafe("order-ext-2"),
+          orderItemIndex = 0,
+          workflowId = WorkflowId.unsafe("wf-ext-2"),
+          externalPartners = SamplePartners.allPartners,
+          matchingExternalRules = externalRules,
+        )
+        val prepressId = wf.steps.find(_.stationType == StationType.Prepress).get.id
+        val extStep    = wf.steps.find(_.stationType == StationType.ExternalPartner).get
+        assertTrue(
+          extStep.assignedPartner == Some(SamplePartners.largePrintPartnerId),
+          extStep.dependsOn.contains(prepressId),
+          extStep.status == StepStatus.Waiting,
+        )
+      },
+      test("in-house banner (≤1500×1500 mm) does NOT get ExternalPartner step") {
+        val config = buildConfig(
+          SampleCatalog.bannersId,
+          SampleCatalog.uvInkjetId,
+          List(mainComp(SampleCatalog.pvc510gId, InkConfiguration.cmyk4_0)),
+          List(
+            SpecValue.SizeSpec(Dimension(1000, 500)),
+            SpecValue.QuantitySpec(Quantity.unsafe(1)),
+          ),
+        )
+        val externalRules = mpbuilder.domain.validation.RuleEvaluator.collectExternalRules(
+          SampleRules.ruleset.rules,
+          config.components,
+          config.specifications,
+          config.category.id,
+          config.printingMethod,
+        )
+        val wf = WorkflowGenerator.generate(
+          config,
+          orderId = OrderId.unsafe("order-ext-3"),
+          orderItemIndex = 0,
+          workflowId = WorkflowId.unsafe("wf-ext-3"),
+          externalPartners = SamplePartners.allPartners,
+          matchingExternalRules = externalRules,
+        )
+        assertTrue(!wf.steps.exists(_.stationType == StationType.ExternalPartner))
+      },
+    ),
   )

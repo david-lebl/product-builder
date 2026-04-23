@@ -5,6 +5,7 @@ import zio.prelude.*
 import mpbuilder.domain.model.*
 import mpbuilder.domain.pricing.*
 import mpbuilder.domain.manufacturing.*
+import mpbuilder.domain.rules.*
 import mpbuilder.domain.sample.*
 import mpbuilder.domain.service.*
 import mpbuilder.domain.service.CompletionEstimator.*
@@ -111,6 +112,7 @@ object ExpressManufacturingSpec extends ZIOSpecDefault:
     utilisationCalculatorSuite,
     queueScorerSuite,
     analyticsTierMetricsSuite,
+    tierRestrictionExternalSuite,
   )
 
   // ═══════════════════════════════════════════════════════════════════
@@ -686,5 +688,86 @@ object ExpressManufacturingSpec extends ZIOSpecDefault:
     test("computeTierMetrics empty orders returns empty list") {
       val result = AnalyticsService.computeTierMetrics(List.empty)
       assertTrue(result.isEmpty)
+    },
+  )
+
+  // ═══════════════════════════════════════════════════════════════════
+  // (f) TierRestrictionValidator — external partner tier restriction
+  // ═══════════════════════════════════════════════════════════════════
+
+  private val tierRestrictionExternalSuite = suite("TierRestrictionValidator external partner")(
+    test("Express is blocked when a RequiresExternalPartner rule matches") {
+      val externalRule: CompatibilityRule.RequiresExternalPartner = CompatibilityRule.RequiresExternalPartner(
+        categoryId = SampleCatalog.bannersId,
+        predicate = ConfigurationPredicate.Spec(SpecPredicate.MinDimension(1, 1)),
+        candidatePartners = Set(SamplePartners.largePrintPartnerId),
+        reason = LocalizedString("test", "test"),
+      )
+      val violations = TierRestrictionValidator.validate(
+        tier = ManufacturingSpeed.Express,
+        restrictions = Nil,
+        categoryId = SampleCatalog.bannersId,
+        quantity = 1,
+        bindingMethod = None,
+        finishTypes = Set.empty,
+        materialIds = Set.empty,
+        matchingExternalRules = List(externalRule),
+      )
+      assertTrue(
+        violations.nonEmpty,
+        violations.head.tier == ManufacturingSpeed.Express,
+        violations.head.message(Language.En).contains("external production"),
+      )
+    },
+    test("Economy is blocked when a RequiresExternalPartner rule matches") {
+      val externalRule: CompatibilityRule.RequiresExternalPartner = CompatibilityRule.RequiresExternalPartner(
+        categoryId = SampleCatalog.bannersId,
+        predicate = ConfigurationPredicate.Spec(SpecPredicate.MinDimension(1, 1)),
+        candidatePartners = Set(SamplePartners.largePrintPartnerId),
+        reason = LocalizedString("test", "test"),
+      )
+      val violations = TierRestrictionValidator.validate(
+        tier = ManufacturingSpeed.Economy,
+        restrictions = Nil,
+        categoryId = SampleCatalog.bannersId,
+        quantity = 1,
+        bindingMethod = None,
+        finishTypes = Set.empty,
+        materialIds = Set.empty,
+        matchingExternalRules = List(externalRule),
+      )
+      assertTrue(violations.nonEmpty)
+    },
+    test("Standard is allowed even when a RequiresExternalPartner rule matches") {
+      val externalRule: CompatibilityRule.RequiresExternalPartner = CompatibilityRule.RequiresExternalPartner(
+        categoryId = SampleCatalog.bannersId,
+        predicate = ConfigurationPredicate.Spec(SpecPredicate.MinDimension(1, 1)),
+        candidatePartners = Set(SamplePartners.largePrintPartnerId),
+        reason = LocalizedString("test", "test"),
+      )
+      val violations = TierRestrictionValidator.validate(
+        tier = ManufacturingSpeed.Standard,
+        restrictions = Nil,
+        categoryId = SampleCatalog.bannersId,
+        quantity = 1,
+        bindingMethod = None,
+        finishTypes = Set.empty,
+        materialIds = Set.empty,
+        matchingExternalRules = List(externalRule),
+      )
+      assertTrue(violations.isEmpty)
+    },
+    test("no external rules → no external tier violation (normal rules still apply)") {
+      val violations = TierRestrictionValidator.validate(
+        tier = ManufacturingSpeed.Express,
+        restrictions = Nil,
+        categoryId = SampleCatalog.bannersId,
+        quantity = 1,
+        bindingMethod = None,
+        finishTypes = Set.empty,
+        materialIds = Set.empty,
+        matchingExternalRules = Nil,
+      )
+      assertTrue(violations.isEmpty)
     },
   )

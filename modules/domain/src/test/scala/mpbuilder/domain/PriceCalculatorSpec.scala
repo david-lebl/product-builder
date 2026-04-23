@@ -2043,4 +2043,62 @@ object PriceCalculatorSpec extends ZIOSpecDefault:
         )
       },
     ),
+    suite("external partner markup")(
+      test("ExternalPartnerMarkup applied after quantity multiplier, before setup fees") {
+        // Material: 0.10/pc × 100 = 10.00 subtotal
+        // Quantity tier 1.0×  → discountedSubtotal = 10.00
+        // External markup 1.15× → afterMarkup = 11.50
+        // Setup fee (flat) = 5.00
+        // Total = 11.50 + 5.00 = 16.50
+        val partnerId = mpbuilder.domain.manufacturing.PartnerId.unsafe("partner-test")
+        val customPricelist = Pricelist(
+          rules = List(
+            PricingRule.MaterialBasePrice(SampleCatalog.coated300gsmId, Money("0.10")),
+            PricingRule.QuantityTier(1, None, BigDecimal("1.0")),
+            PricingRule.ExternalPartnerMarkup(partnerId, BigDecimal("1.15")),
+            PricingRule.FinishTypeSetupFee(FinishType.Lamination, Money("5.00")),
+          ),
+          currency = Currency.USD,
+          version = "test",
+        )
+        val config = makeConfig(
+          category = SampleCatalog.businessCards,
+          material = SampleCatalog.coated300gsm,
+          printingMethod = SampleCatalog.offsetMethod,
+          inkConfig = InkConfiguration.cmyk4_4,
+          finishes = List(SelectedFinish(SampleCatalog.matteLamination)),
+          specs = List(
+            SpecValue.SizeSpec(Dimension(90, 55)),
+            SpecValue.QuantitySpec(Quantity.unsafe(100)),
+          ),
+        )
+        val result = PriceCalculator.calculate(config, customPricelist, activePartnerId = Some(partnerId))
+        val breakdown = result.toEither.toOption.get
+        assertTrue(
+          result.toEither.isRight,
+          breakdown.externalPartnerMarkup.isDefined,
+          breakdown.externalPartnerMarkup.get.lineTotal == Money("1.50"),  // 15% of 10.00
+          // Setup fee is flat and not marked up: total = 11.50 + 5.00 = 16.50
+          breakdown.total == Money("16.50"),
+        )
+      },
+      test("no ExternalPartnerMarkup line when activePartnerId is None") {
+        val result = PriceCalculator.calculate(
+          makeConfig(
+            category = SampleCatalog.businessCards,
+            material = SampleCatalog.coated300gsm,
+            printingMethod = SampleCatalog.offsetMethod,
+            inkConfig = InkConfiguration.cmyk4_4,
+            finishes = Nil,
+            specs = List(
+              SpecValue.SizeSpec(Dimension(90, 55)),
+              SpecValue.QuantitySpec(Quantity.unsafe(100)),
+            ),
+          ),
+          SamplePricelist.pricelist,
+        )
+        val breakdown = result.toEither.toOption.get
+        assertTrue(breakdown.externalPartnerMarkup.isEmpty)
+      },
+    ),
   )

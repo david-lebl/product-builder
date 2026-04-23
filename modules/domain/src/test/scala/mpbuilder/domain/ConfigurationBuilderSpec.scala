@@ -1184,7 +1184,7 @@ object ConfigurationBuilderSpec extends ZIOSpecDefault:
             e.asInstanceOf[ConfigurationError.ConfigurationConstraintViolation].reason.contains("Gum rope requires grommets")),
         )
       },
-      test("banner 200×100 cm (2000×1000 mm) exceeds max dimension and is rejected") {
+      test("banner 200×100 cm (2000×1000 mm) exceeds in-house max dimension but is accepted (routed to external partner)") {
         val request = ConfigurationRequest(
           categoryId = SampleCatalog.bannersId,
           printingMethodId = SampleCatalog.uvInkjetId,
@@ -1195,10 +1195,7 @@ object ConfigurationBuilderSpec extends ZIOSpecDefault:
           ),
         )
         val result = ConfigurationBuilder.build(request, catalog, ruleset, configId)
-        val errors = result.toEither.left.toOption.get.toList
-        assertTrue(
-          errors.exists(_.isInstanceOf[ConfigurationError.SpecConstraintViolation]),
-        )
+        assertTrue(result.isSuccess)
       },
     ),
     suite("white ink (transparent material) validation")(

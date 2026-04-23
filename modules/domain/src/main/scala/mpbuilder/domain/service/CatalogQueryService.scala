@@ -73,6 +73,7 @@ object CatalogQueryService:
             case CompatibilityRule.ScoringMaxCreasesForCategory(_, _, _)      => true
             case CompatibilityRule.ScoringMaxCreasesForMaterial(_, _, _)      => true
             case CompatibilityRule.ScoringMaxCreasesForPrintingProcess(_, _, _) => true
+            case CompatibilityRule.RequiresExternalPartner(_, _, _, _)        => true
           }
         }
 

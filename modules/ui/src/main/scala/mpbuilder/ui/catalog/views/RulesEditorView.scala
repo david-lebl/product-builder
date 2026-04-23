@@ -90,6 +90,10 @@ object RulesEditorView:
     case r: CompatibilityRule.FinishRequiresPrintingProcess => s"FinishRequiresPrintingProcess: ${r.finishType} needs ${r.requiredProcessTypes.mkString(",")}"
     case r: CompatibilityRule.ConfigurationConstraint => s"ConfigurationConstraint: ${r.categoryId.value}"
     case r: CompatibilityRule.TechnologyConstraint => s"TechnologyConstraint"
+    case r: CompatibilityRule.ScoringMaxCreasesForCategory => s"ScoringMaxCreasesForCategory: ${r.categoryId.value}"
+    case r: CompatibilityRule.ScoringMaxCreasesForMaterial => s"ScoringMaxCreasesForMaterial: ${r.materialId.value}"
+    case r: CompatibilityRule.ScoringMaxCreasesForPrintingProcess => s"ScoringMaxCreasesForPrintingProcess: ${r.processType}"
+    case r: CompatibilityRule.RequiresExternalPartner => s"RequiresExternalPartner: ${r.categoryId.value} → ${r.candidatePartners.map(_.value).mkString(", ")}"
 
   /** Rule creation/editing form with a rule type selector. */
   private def ruleForm(existing: Option[CompatibilityRule], index: Int): HtmlElement =
@@ -151,63 +155,63 @@ object RulesEditorView:
       // Material ID field (for rules that need it)
       child <-- ruleTypeVar.signal.map { rt =>
         if Set("MaterialFinishIncompatible", "MaterialRequiresFinish").contains(rt) then
-          FormComponents.textField("Material ID", materialIdVar.signal, materialIdVar.writer)
+          FormComponents.textField("Material ID", materialIdVar.signal, materialIdVar.writer, "")
         else emptyNode
       },
 
       // Finish ID field
       child <-- ruleTypeVar.signal.map { rt =>
         if Set("MaterialFinishIncompatible", "FinishRequiresMaterialProperty", "FinishMutuallyExclusive", "FinishRequiresFinishType").contains(rt) then
-          FormComponents.textField("Finish ID", finishIdVar.signal, finishIdVar.writer)
+          FormComponents.textField("Finish ID", finishIdVar.signal, finishIdVar.writer, "")
         else emptyNode
       },
 
       // Second Finish ID field (for mutual exclusion)
       child <-- ruleTypeVar.signal.map { rt =>
         if Set("FinishMutuallyExclusive").contains(rt) then
-          FormComponents.textField("Finish ID B", finishIdBVar.signal, finishIdBVar.writer)
+          FormComponents.textField("Finish ID B", finishIdBVar.signal, finishIdBVar.writer, "")
         else emptyNode
       },
 
       // Required finish IDs (comma-separated)
       child <-- ruleTypeVar.signal.map { rt =>
         if rt == "MaterialRequiresFinish" then
-          FormComponents.textField("Required Finish IDs (comma-separated)", requiredFinishIdsVar.signal, requiredFinishIdsVar.writer)
+          FormComponents.textField("Required Finish IDs (comma-separated)", requiredFinishIdsVar.signal, requiredFinishIdsVar.writer, "")
         else emptyNode
       },
 
       // Category ID field
       child <-- ruleTypeVar.signal.map { rt =>
         if Set("SpecConstraint", "ConfigurationConstraint").contains(rt) then
-          FormComponents.textField("Category ID", categoryIdVar.signal, categoryIdVar.writer)
+          FormComponents.textField("Category ID", categoryIdVar.signal, categoryIdVar.writer, "")
         else emptyNode
       },
 
       // Finish type field
       child <-- ruleTypeVar.signal.map { rt =>
         if Set("MaterialPropertyFinishTypeIncompatible", "MaterialFamilyFinishTypeIncompatible", "MaterialWeightFinishType", "FinishTypeMutuallyExclusive", "FinishRequiresFinishType", "FinishRequiresPrintingProcess").contains(rt) then
-          FormComponents.enumSelectRequired[FinishType]("Finish Type", FinishType.values, finishTypeVar.signal, finishTypeVar.writer)
+          FormComponents.enumSelectRequired[FinishType]("Finish Type", FinishType.values, finishTypeVar.signal, finishTypeVar.writer, _.toString)
         else emptyNode
       },
 
       // Second finish type (for FinishTypeMutuallyExclusive)
       child <-- ruleTypeVar.signal.map { rt =>
         if rt == "FinishTypeMutuallyExclusive" then
-          FormComponents.enumSelectRequired[FinishType]("Finish Type B", FinishType.values, finishTypeBVar.signal, finishTypeBVar.writer)
+          FormComponents.enumSelectRequired[FinishType]("Finish Type B", FinishType.values, finishTypeBVar.signal, finishTypeBVar.writer, _.toString)
         else emptyNode
       },
 
       // Material property field
       child <-- ruleTypeVar.signal.map { rt =>
         if Set("FinishRequiresMaterialProperty", "MaterialPropertyFinishTypeIncompatible").contains(rt) then
-          FormComponents.enumSelectRequired[MaterialProperty]("Material Property", MaterialProperty.values, materialPropertyVar.signal, materialPropertyVar.writer)
+          FormComponents.enumSelectRequired[MaterialProperty]("Material Property", MaterialProperty.values, materialPropertyVar.signal, materialPropertyVar.writer, _.toString)
         else emptyNode
       },
 
       // Material family field
       child <-- ruleTypeVar.signal.map { rt =>
         if rt == "MaterialFamilyFinishTypeIncompatible" then
-          FormComponents.enumSelectRequired[MaterialFamily]("Material Family", MaterialFamily.values, materialFamilyVar.signal, materialFamilyVar.writer)
+          FormComponents.enumSelectRequired[MaterialFamily]("Material Family", MaterialFamily.values, materialFamilyVar.signal, materialFamilyVar.writer, _.toString)
         else emptyNode
       },
 
@@ -221,7 +225,7 @@ object RulesEditorView:
       // Finish category (for FinishCategoryExclusive)
       child <-- ruleTypeVar.signal.map { rt =>
         if rt == "FinishCategoryExclusive" then
-          FormComponents.enumSelectRequired[FinishCategory]("Finish Category", FinishCategory.values, finishCategoryVar.signal, finishCategoryVar.writer)
+          FormComponents.enumSelectRequired[FinishCategory]("Finish Category", FinishCategory.values, finishCategoryVar.signal, finishCategoryVar.writer, _.toString)
         else emptyNode
       },
 
@@ -324,6 +328,10 @@ object RulesEditorView:
     case _: CompatibilityRule.FinishRequiresPrintingProcess => "FinishRequiresPrintingProcess"
     case _: CompatibilityRule.ConfigurationConstraint => "ConfigurationConstraint"
     case _: CompatibilityRule.TechnologyConstraint => "TechnologyConstraint"
+    case _: CompatibilityRule.ScoringMaxCreasesForCategory => "ScoringMaxCreasesForCategory"
+    case _: CompatibilityRule.ScoringMaxCreasesForMaterial => "ScoringMaxCreasesForMaterial"
+    case _: CompatibilityRule.ScoringMaxCreasesForPrintingProcess => "ScoringMaxCreasesForPrintingProcess"
+    case _: CompatibilityRule.RequiresExternalPartner => "RequiresExternalPartner"
 
   private def extractMaterialId(rule: Option[CompatibilityRule]): Option[String] = rule.collect {
     case r: CompatibilityRule.MaterialFinishIncompatible => r.materialId.value
@@ -351,6 +359,10 @@ object RulesEditorView:
     case r: CompatibilityRule.FinishRequiresPrintingProcess => r.reason
     case r: CompatibilityRule.ConfigurationConstraint => r.reason
     case r: CompatibilityRule.TechnologyConstraint => r.reason
+    case _: CompatibilityRule.ScoringMaxCreasesForCategory => ""
+    case _: CompatibilityRule.ScoringMaxCreasesForMaterial => ""
+    case _: CompatibilityRule.ScoringMaxCreasesForPrintingProcess => ""
+    case r: CompatibilityRule.RequiresExternalPartner => r.reason(Language.En)
   }
 
   private def extractFinishType(rule: Option[CompatibilityRule]): Option[FinishType] = rule.collect {
