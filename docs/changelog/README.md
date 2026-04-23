@@ -46,6 +46,7 @@ Brief description of what was accomplished in this session.
 
 | Date | Title | PR | Type |
 |------|-------|----|------|
+| 2026-04-22 | [Update minimum order price to 200 CZK](2026-04-22-update-minimum-order-price-200-czk.md) | — | bugfix |
 | 2026-04-22 | [Additive Ink Configuration Pricing](2026-04-22-ink-configuration-additive-pricing.md) | #135 | feature |
 | 2026-04-22 | [Ink Configuration Pricing Analysis](2026-04-22-ink-configuration-pricing-analysis.md) | — | analysis |
 | 2026-04-21 | [Fix Manufacturing UI crash and Pricelist empty table](2026-04-21-fix-manufacturing-ui-and-pricelist-table.md) | #134 | bugfix |

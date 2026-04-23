@@ -752,12 +752,12 @@ object PriceCalculatorSpec extends ZIOSpecDefault:
         val cb = firstBreakdown(breakdown)
         // material: 12 × 1 = 12
         // tier 1-99: 1.0×, no setup fees → billable = 12
-        // minimum 500 triggered → total = 500
+        // minimum 200 triggered → total = 200
         assertTrue(
           result.toEither.isRight,
           cb.materialLine.unitPrice == Money("9"),
           breakdown.minimumApplied.isDefined,
-          breakdown.total == Money("500.00"),
+          breakdown.total == Money("200.00"),
           breakdown.currency == Currency.CZK,
         )
       },
@@ -779,11 +779,11 @@ object PriceCalculatorSpec extends ZIOSpecDefault:
         val cb = firstBreakdown(breakdown)
         // material: 15 × 1 = 15
         // tier 1-99: 1.0×, no setup fees → billable = 15
-        // minimum 500 triggered → total = 500
+        // minimum 200 triggered → total = 200
         assertTrue(
           cb.materialLine.unitPrice == Money("12"),
           breakdown.minimumApplied.isDefined,
-          breakdown.total == Money("500.00"),
+          breakdown.total == Money("200.00"),
           breakdown.currency == Currency.CZK,
         )
       },
@@ -807,13 +807,13 @@ object PriceCalculatorSpec extends ZIOSpecDefault:
         // ink config 4/0: 1.50 × 1 = 1.50
         // subtotal = 9 + 1.50 = 10.50
         // tier 1-99: 1.0×, no setup fees → billable = 10.50
-        // minimum 500 triggered → total = 500
+        // minimum 200 triggered → total = 200
         assertTrue(
           cb.inkConfigLine.isDefined,
           cb.inkConfigLine.get.lineTotal == Money("1.50"),
           breakdown.subtotal == Money("10.50"),
           breakdown.minimumApplied.isDefined,
-          breakdown.total == Money("500.00"),
+          breakdown.total == Money("200.00"),
         )
       },
       test("flyer with coated glossy 130gsm 4/4 at 1000 pcs applies quantity tier") {
