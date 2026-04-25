@@ -221,7 +221,7 @@ object PriceCalculator:
                   lineTotal = materialLineTotal,
                 )
                 val inkConfigLine = computeInkConfigLine(comp.inkConfiguration, rules, printingMethodId, InkPricingBasis.Area(areaSqM, effectiveQuantity))
-                computeFinishLines(comp.finishes, rules, quantity, lang, Some(dim)).map { finishLines =>
+                computeFinishLines(comp.finishes, rules, quantity, FinishPricingBasis.PerArea(areaSqM, effectiveQuantity), lang, Some(dim)).map { finishLines =>
                   ComponentBreakdown(
                     role = comp.role,
                     materialLine = materialLine,
@@ -249,7 +249,7 @@ object PriceCalculator:
                   lineTotal = materialLineTotal,
                 )
                 val inkConfigLine = computeInkConfigLine(comp.inkConfiguration, rules, printingMethodId, InkPricingBasis.Area(areaSqM, effectiveQuantity))
-                computeFinishLines(comp.finishes, rules, quantity, lang, Some(dim)).map { finishLines =>
+                computeFinishLines(comp.finishes, rules, quantity, FinishPricingBasis.PerArea(areaSqM, effectiveQuantity), lang, Some(dim)).map { finishLines =>
                   ComponentBreakdown(
                     role = comp.role,
                     materialLine = materialLine,
@@ -305,7 +305,7 @@ object PriceCalculator:
                         }
                       else None
 
-                    val finishLines = computeFinishLines(comp.finishes, rules, quantity, lang, specs.get(SpecKind.Size).collect { case SpecValue.SizeSpec(d) => d })
+                    val finishLines = computeFinishLines(comp.finishes, rules, quantity, FinishPricingBasis.PerSheet(sheetsUsed), lang, specs.get(SpecKind.Size).collect { case SpecValue.SizeSpec(d) => d })
                     finishLines.map { fl =>
                       ComponentBreakdown(
                         role = comp.role,
@@ -330,7 +330,7 @@ object PriceCalculator:
                       lineTotal = materialLineTotal,
                     )
                     val inkConfigLine = computeInkConfigLine(comp.inkConfiguration, rules, printingMethodId, InkPricingBasis.SheetOrUnit(effectiveQuantity))
-                    computeFinishLines(comp.finishes, rules, quantity, lang, specs.get(SpecKind.Size).collect { case SpecValue.SizeSpec(d) => d }).map { finishLines =>
+                    computeFinishLines(comp.finishes, rules, quantity, FinishPricingBasis.PerItem(quantity), lang, specs.get(SpecKind.Size).collect { case SpecValue.SizeSpec(d) => d }).map { finishLines =>
                       ComponentBreakdown(
                         role = comp.role,
                         materialLine = materialLine,
@@ -351,6 +351,11 @@ object PriceCalculator:
   private enum InkPricingBasis:
     case SheetOrUnit(count: Int)
     case Area(sqM: BigDecimal, quantity: Int)
+
+  private enum FinishPricingBasis:
+    case PerItem(quantity: Int)
+    case PerSheet(sheetsUsed: Int)
+    case PerArea(areaSqM: BigDecimal, quantity: Int)
 
   private def computeInkConfigLine(
       inkConfig: InkConfiguration,
@@ -513,11 +518,12 @@ object PriceCalculator:
       finishes: List[SelectedFinish],
       rules: List[PricingRule],
       quantity: Int,
+      basis: FinishPricingBasis,
       lang: Language,
       dimOpt: Option[Dimension] = None,
   ): Validation[PricingError, List[LineItem]] =
     finishes
-      .map(finish => computeSingleFinishLine(finish, rules, quantity, lang, dimOpt))
+      .map(finish => computeSingleFinishLine(finish, rules, quantity, basis, lang, dimOpt))
       .foldLeft(Validation.succeed(List.empty[LineItem]): Validation[PricingError, List[LineItem]]) {
         (accV, itemV) => accV.zipWith(itemV)(_ ++ _)
       }
@@ -526,6 +532,7 @@ object PriceCalculator:
       finish: SelectedFinish,
       rules: List[PricingRule],
       quantity: Int,
+      basis: FinishPricingBasis,
       lang: Language,
       dimOpt: Option[Dimension],
   ): Validation[PricingError, List[LineItem]] =
@@ -611,12 +618,14 @@ object PriceCalculator:
               case Some(FinishParameters.LaminationParams(FinishSide.Both)) => BigDecimal(2)
               case _                                                         => BigDecimal(1)
             val effectiveSurcharge = surcharge * sideFactor
-            LineItem(
-              label = s"Finish: ${finish.name(lang)}",
-              unitPrice = effectiveSurcharge,
-              quantity = quantity,
-              lineTotal = effectiveSurcharge * quantity,
-            )
+            basis match
+              case FinishPricingBasis.PerItem(qty) =>
+                LineItem(s"Finish: ${finish.name(lang)}", effectiveSurcharge, qty, effectiveSurcharge * qty)
+              case FinishPricingBasis.PerSheet(sheets) =>
+                LineItem(s"Finish: ${finish.name(lang)}", effectiveSurcharge, sheets, effectiveSurcharge * sheets)
+              case FinishPricingBasis.PerArea(areaSqM, qty) =>
+                val unitPrice = (effectiveSurcharge * areaSqM).rounded
+                LineItem(s"Finish: ${finish.name(lang)}", unitPrice, qty, (unitPrice * qty).rounded)
           }
         }
 

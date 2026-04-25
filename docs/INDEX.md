@@ -74,6 +74,7 @@ Session-by-session work logs documenting what was done, decisions made, and issu
 | Document | Description |
 |----------|-------------|
 | [changelog/README.md](changelog/README.md) | Changelog format, template, and log entries index |
+| [changelog/2026-04-25-fix-lamination-pricing-per-sheet-area.md](changelog/2026-04-25-fix-lamination-pricing-per-sheet-area.md) | Fix finish surcharges: sheet-priced → per press sheet; area-priced → per m² |
 | [changelog/2026-04-22-update-minimum-order-price-200-czk.md](changelog/2026-04-22-update-minimum-order-price-200-czk.md) | Update minimum order price from 500 CZK to 200 CZK in sample pricelists |
 | [changelog/2026-04-22-ink-configuration-pricing-analysis.md](changelog/2026-04-22-ink-configuration-pricing-analysis.md) | Analysis document for ink configuration pricing — additive per-press model proposal |
 | [changelog/2026-04-21-fix-manufacturing-ui-and-pricelist-table.md](changelog/2026-04-21-fix-manufacturing-ui-and-pricelist-table.md) | Fix Manufacturing UI blank page and Pricelist empty table (regressions from PR #133) |
