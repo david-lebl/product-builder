@@ -90,7 +90,10 @@ Given a valid `ProductConfiguration` and a `Pricelist`, the `PriceCalculator` pe
    - **`ScoringCountSurcharge`** (highest priority for Scoring): if the finish has `ScoringParams(creaseCount)`, find the rule matching that exact `creaseCount`. Fails with `MissingScoringPrice(creaseCount)` if no matching rule exists — silent zero-pricing is never allowed for parameterized scoring.
    - **`GrommetSpacingAreaPrice`**: if the finish has `GrommetParams`, find the tier with the highest `spacingMm ≤ selected spacing` and compute `pricePerSqMeter × area_m²`. The line item label shows the approximate grommet count (`2·(w+h)/spacing + 4 corners`).
    - **`FinishLinearMeterPrice`**: if the finish has `RopeParams`, compute `pricePerMeter × lengthMeters`.
-   - **`FinishSurcharge` / `FinishTypeSurcharge`** (fallback): ID-level surcharge takes precedence over type-level surcharge. A plain Scoring finish with no `ScoringParams` is also priced here for backward compatibility.
+   - **`FinishSurcharge` / `FinishTypeSurcharge`** (fallback): ID-level surcharge takes precedence over type-level surcharge. A plain Scoring finish with no `ScoringParams` is also priced here for backward compatibility. The surcharge amount is interpreted relative to the material's pricing basis:
+     - **Base-priced materials**: `surcharge × quantity` (per finished item)
+     - **Sheet-priced materials**: `surcharge × sheetsUsed` (per press sheet)
+     - **Area-priced materials**: `(surcharge × areaSqM) × effectiveQuantity` (per m², scaled by size)
    - If none of the above apply, the finish is free (gracefully skipped).
 
 **5. Find process surcharge.** If a `PrintingProcessSurcharge` matches the configuration's printing process type, add it.
@@ -184,18 +187,22 @@ Note: the `ScoringCountSurcharge(2, 1.00 CZK)` rule is an exact-match on crease 
 
 Configuration: 10× Adhesive Vinyl (1000×500mm) + UV Coating + UV Curable Inkjet
 
+Finish surcharges for area-priced materials are multiplied by the item's area (m²), giving a
+per-banner cost that scales with size rather than being a flat per-item fee.
+
 ```
 Area per unit: 1000mm × 500mm = 0.5 m²
 Material: Adhesive Vinyl       $16.20/m² × 0.5 =  $8.10/unit
 Ink: UV Inkjet 4/4              $1.80/m² × 0.5 =  $0.90/unit
-Finish: UV Coating              $0.04 × 10 =   $0.40
+Finish: UV Coating (area)       $0.04/m² × 0.5 =  $0.02/unit
 Material line:                  $8.10 × 10 =  $81.00
 Ink line:                       $0.90 × 10 =   $9.00
+Finish line:                    $0.02 × 10 =   $0.20
                                         ─────────────
-Subtotal                                   =  $90.40
+Subtotal                                   =  $90.20
 Quantity tier (1–249)                      ×    1.00
                                         ─────────────
-Total                                     =  $90.40
+Total                                     =  $90.20
 ```
 
 ## Output: PriceBreakdown

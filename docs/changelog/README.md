@@ -46,6 +46,7 @@ Brief description of what was accomplished in this session.
 
 | Date | Title | PR | Type |
 |------|-------|----|------|
+| 2026-04-25 | [Fix Lamination Pricing: Per Sheet and Per Area](2026-04-25-fix-lamination-pricing-per-sheet-area.md) | — | bugfix |
 | 2026-04-22 | [Update minimum order price to 200 CZK](2026-04-22-update-minimum-order-price-200-czk.md) | — | bugfix |
 | 2026-04-22 | [Additive Ink Configuration Pricing](2026-04-22-ink-configuration-additive-pricing.md) | #135 | feature |
 | 2026-04-22 | [Ink Configuration Pricing Analysis](2026-04-22-ink-configuration-pricing-analysis.md) | — | analysis |

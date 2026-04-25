@@ -72,6 +72,7 @@ object PriceCalculatorSpec extends ZIOSpecDefault:
       },
       test("banner with area-based calculation") {
         // 10× PVC 510g 1000×500mm + UV coating + UV inkjet (USD pricelist, flat area price)
+        // finish is area-based: 0.04/m² × 0.5 m² = 0.02 per banner
         val config = makeConfig(
           category = SampleCatalog.banners,
           material = SampleCatalog.pvc510g,
@@ -92,10 +93,10 @@ object PriceCalculatorSpec extends ZIOSpecDefault:
           cb.materialLine.unitPrice == Money("8.10"),
           cb.materialLine.lineTotal == Money("81.00"),
           cb.finishLines.size == 1,
-          cb.finishLines.head.unitPrice == Money("0.04"),
-          breakdown.subtotal == Money("90.40"),
+          cb.finishLines.head.unitPrice == Money("0.02"),
+          breakdown.subtotal == Money("90.20"),
           breakdown.quantityMultiplier == BigDecimal("1.0"),
-          breakdown.total == Money("90.40"),
+          breakdown.total == Money("90.20"),
         )
       },
       test("quantity tier discount correctly applied") {
