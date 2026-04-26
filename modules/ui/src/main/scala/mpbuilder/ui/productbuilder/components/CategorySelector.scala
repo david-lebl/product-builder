@@ -44,7 +44,7 @@ object CategorySelector:
 
       val showcaseOptions = withShowcase
         .flatMap(c => SampleShowcase.forCategory(c.id).map(sp => (sp, c)))
-        .sortBy { case (sp, _) => (groupOrder.indexOf(sp.group), sp.categoryId.value) }
+        .sortBy { case (sp, _) => (groupOrder.indexOf(sp.group), sp.sortOrder) }
         .map { case (sp, c) =>
           ComboBoxOption(
             value   = c.id.value,
