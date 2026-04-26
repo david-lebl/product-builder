@@ -24,7 +24,7 @@ Per-side ink setup modelling (`InkSetup` = ink type + color count):
 
 ### Compatibility Rules Engine
 
-Rules are **data, not code** — a sealed ADT (`CompatibilityRule`) with 12 variants interpreted by a rule engine:
+Rules are **data, not code** — a sealed ADT (`CompatibilityRule`) with 17 variants interpreted by a rule engine:
 
 | Rule | Purpose |
 |------|---------|
@@ -32,7 +32,9 @@ Rules are **data, not code** — a sealed ADT (`CompatibilityRule`) with 12 vari
 | `MaterialRequiresFinish` | Material requires a specific finish type |
 | `FinishRequiresMaterialProperty` | Finish requires material to have a property |
 | `FinishMutuallyExclusive` | Certain finishes cannot be combined |
-| `SpecConstraint` | Enforce spec-level constraints (size ranges, page counts) |
+| `SpecConstraint` | Category-scoped spec constraints (size ranges, quantity limits) |
+| `ConfigurationConstraint` | Category-scoped constraint on the full configuration (ink types, finish combinations) |
+| `TechnologyConstraint` | Global constraint applying to all categories (binding method limits, weight-based page caps) |
 | `MaterialPropertyFinishTypeIncompatible` | Material property conflicts with finish type |
 | `MaterialFamilyFinishTypeIncompatible` | Material family conflicts with finish type |
 | `MaterialWeightFinishType` | Finish type requires minimum material weight |
