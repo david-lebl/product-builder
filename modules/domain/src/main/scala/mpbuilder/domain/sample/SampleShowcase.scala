@@ -159,7 +159,7 @@ object SampleShowcase:
     popularFinishes = List("Matte Lamination", "UV Coating", "Scoring"),
     turnaroundDays = Some("3-5"),
     sortOrder = 3,
-    icon = "📋",
+    icon = "🧧",
   )
 
   val postcards: ShowcaseProduct = ShowcaseProduct(
@@ -197,7 +197,7 @@ object SampleShowcase:
     popularFinishes = List("Gloss Lamination", "Soft-Touch Coating"),
     turnaroundDays = Some("2-4"),
     sortOrder = 4,
-    icon = "📮",
+    icon = "💌",
   )
 
   // ─── Bound Products ───────────────────────────────────────────────────
@@ -246,7 +246,7 @@ object SampleShowcase:
     popularFinishes = List("Matte Lamination", "UV Coating"),
     turnaroundDays = Some("5-7"),
     sortOrder = 10,
-    icon = "📚",
+    icon = "📕",
   )
 
   val calendars: ShowcaseProduct = ShowcaseProduct(
@@ -328,7 +328,7 @@ object SampleShowcase:
     popularFinishes = List("Grommets", "UV Coating"),
     turnaroundDays = Some("3-5"),
     sortOrder = 20,
-    icon = "🏳️",
+    icon = "🚩",
   )
 
   val rollUps: ShowcaseProduct = ShowcaseProduct(
@@ -367,7 +367,7 @@ object SampleShowcase:
     popularFinishes = List("Overlamination"),
     turnaroundDays = Some("3-5"),
     sortOrder = 21,
-    icon = "🪧",
+    icon = "📜",
   )
 
   // ─── Specialty Products ───────────────────────────────────────────────
@@ -609,7 +609,7 @@ object SampleShowcase:
     popularFinishes = List("Mylar Overlay", "Safety Pin", "Magnet Back"),
     turnaroundDays = Some("3-5"),
     sortOrder = 42,
-    icon = "📌",
+    icon = "🏅",
   )
 
   val cups: ShowcaseProduct = ShowcaseProduct(
@@ -665,7 +665,7 @@ object SampleShowcase:
     popularFinishes = List("Sublimation Wrap-Around", "UV Direct Print", "Gift Box"),
     turnaroundDays = Some("5-7"),
     sortOrder = 43,
-    icon = "☕",
+    icon = "☕️",
   )
 
   // ─── All products ─────────────────────────────────────────────────────

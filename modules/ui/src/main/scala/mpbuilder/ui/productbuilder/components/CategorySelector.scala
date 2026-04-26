@@ -12,8 +12,8 @@ object CategorySelector:
   private val groupOrder: List[CatalogGroup] =
     List(
       CatalogGroup.Sheet,
-      CatalogGroup.LargeFormat,
       CatalogGroup.Bound,
+      CatalogGroup.LargeFormat,
       CatalogGroup.Specialty,
       CatalogGroup.Promotional,
     )
@@ -21,9 +21,9 @@ object CategorySelector:
   private def groupName(group: CatalogGroup, lang: Language): String =
     (group, lang) match
       case (CatalogGroup.Sheet,       Language.En) => "Sheet Products"
-      case (CatalogGroup.Sheet,       Language.Cs) => "Plošné produkty"
+      case (CatalogGroup.Sheet,       Language.Cs) => "Tiskoviny"
       case (CatalogGroup.LargeFormat, Language.En) => "Large Format"
-      case (CatalogGroup.LargeFormat, Language.Cs) => "Velký formát"
+      case (CatalogGroup.LargeFormat, Language.Cs) => "Velkoformát"
       case (CatalogGroup.Bound,       Language.En) => "Bound Products"
       case (CatalogGroup.Bound,       Language.Cs) => "Vázané produkty"
       case (CatalogGroup.Specialty,   Language.En) => "Specialty"
@@ -44,7 +44,7 @@ object CategorySelector:
 
       val showcaseOptions = withShowcase
         .flatMap(c => SampleShowcase.forCategory(c.id).map(sp => (sp, c)))
-        .sortBy { case (sp, _) => (groupOrder.indexOf(sp.group), sp.sortOrder) }
+        .sortBy { case (sp, _) => (groupOrder.indexOf(sp.group), sp.categoryId.value) }
         .map { case (sp, c) =>
           ComboBoxOption(
             value   = c.id.value,
