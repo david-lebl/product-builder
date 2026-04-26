@@ -631,7 +631,7 @@ object ConfigurationBuilderSpec extends ZIOSpecDefault:
         val result = ConfigurationBuilder.build(request, catalog, ruleset, configId)
         val errors = result.toEither.left.toOption.get.toList
         assertTrue(
-          errors.exists(_.isInstanceOf[ConfigurationError.SpecConstraintViolation]),
+          errors.exists(_.isInstanceOf[ConfigurationError.TechnologyConstraintViolation]),
         )
       },
     ),
@@ -896,7 +896,7 @@ object ConfigurationBuilderSpec extends ZIOSpecDefault:
         val result = ConfigurationBuilder.build(request, catalog, ruleset, configId)
         assertTrue(result.toEither.isRight)
       },
-      test("saddle stitch on heavy paper (>=300gsm) with >80 pages is rejected") {
+      test("saddle stitch on heavy paper (>=250gsm) with >52 pages is rejected") {
         val request = ConfigurationRequest(
           categoryId = SampleCatalog.bookletsId,
           printingMethodId = SampleCatalog.digitalId,
@@ -907,7 +907,7 @@ object ConfigurationBuilderSpec extends ZIOSpecDefault:
           specs = List(
             SpecValue.SizeSpec(Dimension(210, 148)),
             SpecValue.QuantitySpec(Quantity.unsafe(200)),
-            SpecValue.PagesSpec(84), // 84 pages, divisible by 4 but >80 with heavy stock
+            SpecValue.PagesSpec(84), // 84 pages, divisible by 4 but >52 with heavy stock
             SpecValue.BindingMethodSpec(BindingMethod.SaddleStitch),
           ),
         )
@@ -915,7 +915,7 @@ object ConfigurationBuilderSpec extends ZIOSpecDefault:
         val errors = result.toEither.left.toOption.get.toList
         assertTrue(errors.exists(_.isInstanceOf[ConfigurationError.TechnologyConstraintViolation]))
       },
-      test("saddle stitch on heavy paper with <=80 pages succeeds") {
+      test("saddle stitch on heavy paper (300gsm) with <=52 pages succeeds") {
         val request = ConfigurationRequest(
           categoryId = SampleCatalog.bookletsId,
           printingMethodId = SampleCatalog.digitalId,
@@ -926,7 +926,7 @@ object ConfigurationBuilderSpec extends ZIOSpecDefault:
           specs = List(
             SpecValue.SizeSpec(Dimension(210, 148)),
             SpecValue.QuantitySpec(Quantity.unsafe(200)),
-            SpecValue.PagesSpec(80), // exactly 80 pages, divisible by 4, at the limit
+            SpecValue.PagesSpec(52), // exactly 52 pages, divisible by 4, at the limit
             SpecValue.BindingMethodSpec(BindingMethod.SaddleStitch),
           ),
         )
@@ -950,6 +950,98 @@ object ConfigurationBuilderSpec extends ZIOSpecDefault:
         val result = ConfigurationBuilder.build(request, catalog, ruleset, configId)
         val errors = result.toEither.left.toOption.get.toList
         assertTrue(errors.exists(_.isInstanceOf[ConfigurationError.TechnologyConstraintViolation]))
+      },
+      test("saddle stitch on normal paper (170gsm) with 80 pages succeeds") {
+        val request = ConfigurationRequest(
+          categoryId = SampleCatalog.bookletsId,
+          printingMethodId = SampleCatalog.digitalId,
+          components = List(
+            ComponentRequest(ComponentRole.Cover, SampleCatalog.coatedGlossy170gsmId, InkConfiguration.cmyk4_4, Nil),
+            ComponentRequest(ComponentRole.Body, SampleCatalog.coatedGlossy170gsmId, InkConfiguration.cmyk4_4, Nil),
+          ),
+          specs = List(
+            SpecValue.SizeSpec(Dimension(210, 148)),
+            SpecValue.QuantitySpec(Quantity.unsafe(100)),
+            SpecValue.PagesSpec(80), // exactly at the 170gsm limit
+            SpecValue.BindingMethodSpec(BindingMethod.SaddleStitch),
+          ),
+        )
+        val result = ConfigurationBuilder.build(request, catalog, ruleset, configId)
+        assertTrue(result.toEither.isRight)
+      },
+      test("saddle stitch on normal paper (170gsm) with 84 pages is rejected") {
+        val request = ConfigurationRequest(
+          categoryId = SampleCatalog.bookletsId,
+          printingMethodId = SampleCatalog.digitalId,
+          components = List(
+            ComponentRequest(ComponentRole.Cover, SampleCatalog.coatedGlossy170gsmId, InkConfiguration.cmyk4_4, Nil),
+            ComponentRequest(ComponentRole.Body, SampleCatalog.coatedGlossy170gsmId, InkConfiguration.cmyk4_4, Nil),
+          ),
+          specs = List(
+            SpecValue.SizeSpec(Dimension(210, 148)),
+            SpecValue.QuantitySpec(Quantity.unsafe(100)),
+            SpecValue.PagesSpec(84), // 84 > 80 for >=170gsm
+            SpecValue.BindingMethodSpec(BindingMethod.SaddleStitch),
+          ),
+        )
+        val result = ConfigurationBuilder.build(request, catalog, ruleset, configId)
+        val errors = result.toEither.left.toOption.get.toList
+        assertTrue(errors.exists(_.isInstanceOf[ConfigurationError.TechnologyConstraintViolation]))
+      },
+      test("saddle stitch on heavy paper (250gsm) with 52 pages succeeds") {
+        val request = ConfigurationRequest(
+          categoryId = SampleCatalog.bookletsId,
+          printingMethodId = SampleCatalog.digitalId,
+          components = List(
+            ComponentRequest(ComponentRole.Cover, SampleCatalog.coatedSilk250gsmId, InkConfiguration.cmyk4_4, Nil),
+            ComponentRequest(ComponentRole.Body, SampleCatalog.coatedSilk250gsmId, InkConfiguration.cmyk4_4, Nil),
+          ),
+          specs = List(
+            SpecValue.SizeSpec(Dimension(210, 148)),
+            SpecValue.QuantitySpec(Quantity.unsafe(100)),
+            SpecValue.PagesSpec(52), // exactly at the 250gsm limit
+            SpecValue.BindingMethodSpec(BindingMethod.SaddleStitch),
+          ),
+        )
+        val result = ConfigurationBuilder.build(request, catalog, ruleset, configId)
+        assertTrue(result.toEither.isRight)
+      },
+      test("saddle stitch on heavy paper (250gsm) with 56 pages is rejected") {
+        val request = ConfigurationRequest(
+          categoryId = SampleCatalog.bookletsId,
+          printingMethodId = SampleCatalog.digitalId,
+          components = List(
+            ComponentRequest(ComponentRole.Cover, SampleCatalog.coatedSilk250gsmId, InkConfiguration.cmyk4_4, Nil),
+            ComponentRequest(ComponentRole.Body, SampleCatalog.coatedSilk250gsmId, InkConfiguration.cmyk4_4, Nil),
+          ),
+          specs = List(
+            SpecValue.SizeSpec(Dimension(210, 148)),
+            SpecValue.QuantitySpec(Quantity.unsafe(100)),
+            SpecValue.PagesSpec(56), // 56 > 52 for >=250gsm
+            SpecValue.BindingMethodSpec(BindingMethod.SaddleStitch),
+          ),
+        )
+        val result = ConfigurationBuilder.build(request, catalog, ruleset, configId)
+        val errors = result.toEither.left.toOption.get.toList
+        assertTrue(errors.exists(_.isInstanceOf[ConfigurationError.TechnologyConstraintViolation]))
+      },
+      test("saddle stitch on light paper (130gsm) with 96 pages succeeds") {
+        val request = ConfigurationRequest(
+          categoryId = SampleCatalog.bookletsId,
+          printingMethodId = SampleCatalog.digitalId,
+          components = List(
+            ComponentRequest(ComponentRole.Cover, SampleCatalog.coatedGlossy130gsmId, InkConfiguration.cmyk4_4, Nil),
+            ComponentRequest(ComponentRole.Body, SampleCatalog.coatedGlossy130gsmId, InkConfiguration.cmyk4_4, Nil),
+          ),
+          specs = List(
+            SpecValue.SizeSpec(Dimension(210, 148)),
+            SpecValue.QuantitySpec(Quantity.unsafe(100)),
+            SpecValue.PagesSpec(96), // at the general saddle stitch limit for light paper
+            SpecValue.BindingMethodSpec(BindingMethod.SaddleStitch),
+          ),
+        )
+        val result = ConfigurationBuilder.build(request, catalog, ruleset, configId)
+        assertTrue(result.toEither.isRight)
       },
       test("booklet with spiral binding and divisible-by-2 pages succeeds") {
         val request = ConfigurationRequest(
