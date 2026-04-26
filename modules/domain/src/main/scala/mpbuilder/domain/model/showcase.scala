@@ -51,4 +51,5 @@ final case class ShowcaseProduct(
     popularFinishes: List[String] = List.empty,
     turnaroundDays: Option[String] = None,
     sortOrder: Int = 0,
+    icon: String = "",
 )
