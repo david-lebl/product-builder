@@ -293,6 +293,36 @@ object SampleRules:
       ),
       "Saddle stitch binding on heavy paper (>=250gsm) is limited to 52 pages",
     ),
+    // Perfect binding: max 400 pages (glue spine structural limit)
+    CompatibilityRule.TechnologyConstraint(
+      ConfigurationPredicate.Not(
+        ConfigurationPredicate.And(
+          ConfigurationPredicate.BindingMethodIs(Set(BindingMethod.PerfectBinding)),
+          ConfigurationPredicate.Not(ConfigurationPredicate.Spec(SpecPredicate.MaxPages(400))),
+        ),
+      ),
+      "Perfect binding is limited to 400 pages",
+    ),
+    // Spiral binding: max 300 pages (coil diameter limit)
+    CompatibilityRule.TechnologyConstraint(
+      ConfigurationPredicate.Not(
+        ConfigurationPredicate.And(
+          ConfigurationPredicate.BindingMethodIs(Set(BindingMethod.SpiralBinding)),
+          ConfigurationPredicate.Not(ConfigurationPredicate.Spec(SpecPredicate.MaxPages(300))),
+        ),
+      ),
+      "Spiral binding is limited to 300 pages",
+    ),
+    // Wire-O binding: max 160 pages (twin-loop wire size limit)
+    CompatibilityRule.TechnologyConstraint(
+      ConfigurationPredicate.Not(
+        ConfigurationPredicate.And(
+          ConfigurationPredicate.BindingMethodIs(Set(BindingMethod.WireOBinding)),
+          ConfigurationPredicate.Not(ConfigurationPredicate.Spec(SpecPredicate.MaxPages(160))),
+        ),
+      ),
+      "Wire-O binding is limited to 160 pages",
+    ),
 
     // --- Promotional product rules ---
 

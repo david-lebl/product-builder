@@ -1061,6 +1061,117 @@ object ConfigurationBuilderSpec extends ZIOSpecDefault:
         val result = ConfigurationBuilder.build(request, catalog, ruleset, configId)
         assertTrue(result.toEither.isRight)
       },
+      test("perfect binding with 400 pages succeeds") {
+        val request = ConfigurationRequest(
+          categoryId = SampleCatalog.bookletsId,
+          printingMethodId = SampleCatalog.digitalId,
+          components = List(
+            ComponentRequest(ComponentRole.Cover, SampleCatalog.coated300gsmId, InkConfiguration.cmyk4_4, Nil),
+            ComponentRequest(ComponentRole.Body, SampleCatalog.coatedMatte115gsm.id, InkConfiguration.cmyk4_4, Nil),
+          ),
+          specs = List(
+            SpecValue.SizeSpec(Dimension(210, 148)),
+            SpecValue.QuantitySpec(Quantity.unsafe(100)),
+            SpecValue.PagesSpec(400), // at the perfect binding limit
+            SpecValue.BindingMethodSpec(BindingMethod.PerfectBinding),
+          ),
+        )
+        val result = ConfigurationBuilder.build(request, catalog, ruleset, configId)
+        assertTrue(result.toEither.isRight)
+      },
+      test("perfect binding with 402 pages is rejected") {
+        val request = ConfigurationRequest(
+          categoryId = SampleCatalog.bookletsId,
+          printingMethodId = SampleCatalog.digitalId,
+          components = List(
+            ComponentRequest(ComponentRole.Cover, SampleCatalog.coated300gsmId, InkConfiguration.cmyk4_4, Nil),
+            ComponentRequest(ComponentRole.Body, SampleCatalog.coatedMatte115gsm.id, InkConfiguration.cmyk4_4, Nil),
+          ),
+          specs = List(
+            SpecValue.SizeSpec(Dimension(210, 148)),
+            SpecValue.QuantitySpec(Quantity.unsafe(100)),
+            SpecValue.PagesSpec(402), // 402 > 400
+            SpecValue.BindingMethodSpec(BindingMethod.PerfectBinding),
+          ),
+        )
+        val result = ConfigurationBuilder.build(request, catalog, ruleset, configId)
+        val errors = result.toEither.left.toOption.get.toList
+        assertTrue(errors.exists(_.isInstanceOf[ConfigurationError.TechnologyConstraintViolation]))
+      },
+      test("spiral binding with 300 pages succeeds") {
+        val request = ConfigurationRequest(
+          categoryId = SampleCatalog.bookletsId,
+          printingMethodId = SampleCatalog.digitalId,
+          components = List(
+            ComponentRequest(ComponentRole.Cover, SampleCatalog.coated300gsmId, InkConfiguration.cmyk4_4, Nil),
+            ComponentRequest(ComponentRole.Body, SampleCatalog.coatedMatte115gsm.id, InkConfiguration.cmyk4_4, Nil),
+          ),
+          specs = List(
+            SpecValue.SizeSpec(Dimension(210, 148)),
+            SpecValue.QuantitySpec(Quantity.unsafe(100)),
+            SpecValue.PagesSpec(300), // at the spiral binding limit
+            SpecValue.BindingMethodSpec(BindingMethod.SpiralBinding),
+          ),
+        )
+        val result = ConfigurationBuilder.build(request, catalog, ruleset, configId)
+        assertTrue(result.toEither.isRight)
+      },
+      test("spiral binding with 302 pages is rejected") {
+        val request = ConfigurationRequest(
+          categoryId = SampleCatalog.bookletsId,
+          printingMethodId = SampleCatalog.digitalId,
+          components = List(
+            ComponentRequest(ComponentRole.Cover, SampleCatalog.coated300gsmId, InkConfiguration.cmyk4_4, Nil),
+            ComponentRequest(ComponentRole.Body, SampleCatalog.coatedMatte115gsm.id, InkConfiguration.cmyk4_4, Nil),
+          ),
+          specs = List(
+            SpecValue.SizeSpec(Dimension(210, 148)),
+            SpecValue.QuantitySpec(Quantity.unsafe(100)),
+            SpecValue.PagesSpec(302), // 302 > 300
+            SpecValue.BindingMethodSpec(BindingMethod.SpiralBinding),
+          ),
+        )
+        val result = ConfigurationBuilder.build(request, catalog, ruleset, configId)
+        val errors = result.toEither.left.toOption.get.toList
+        assertTrue(errors.exists(_.isInstanceOf[ConfigurationError.TechnologyConstraintViolation]))
+      },
+      test("wire-o binding with 160 pages succeeds") {
+        val request = ConfigurationRequest(
+          categoryId = SampleCatalog.bookletsId,
+          printingMethodId = SampleCatalog.digitalId,
+          components = List(
+            ComponentRequest(ComponentRole.Cover, SampleCatalog.coated300gsmId, InkConfiguration.cmyk4_4, Nil),
+            ComponentRequest(ComponentRole.Body, SampleCatalog.coatedMatte115gsm.id, InkConfiguration.cmyk4_4, Nil),
+          ),
+          specs = List(
+            SpecValue.SizeSpec(Dimension(210, 148)),
+            SpecValue.QuantitySpec(Quantity.unsafe(100)),
+            SpecValue.PagesSpec(160), // at the wire-o binding limit
+            SpecValue.BindingMethodSpec(BindingMethod.WireOBinding),
+          ),
+        )
+        val result = ConfigurationBuilder.build(request, catalog, ruleset, configId)
+        assertTrue(result.toEither.isRight)
+      },
+      test("wire-o binding with 162 pages is rejected") {
+        val request = ConfigurationRequest(
+          categoryId = SampleCatalog.bookletsId,
+          printingMethodId = SampleCatalog.digitalId,
+          components = List(
+            ComponentRequest(ComponentRole.Cover, SampleCatalog.coated300gsmId, InkConfiguration.cmyk4_4, Nil),
+            ComponentRequest(ComponentRole.Body, SampleCatalog.coatedMatte115gsm.id, InkConfiguration.cmyk4_4, Nil),
+          ),
+          specs = List(
+            SpecValue.SizeSpec(Dimension(210, 148)),
+            SpecValue.QuantitySpec(Quantity.unsafe(100)),
+            SpecValue.PagesSpec(162), // 162 > 160
+            SpecValue.BindingMethodSpec(BindingMethod.WireOBinding),
+          ),
+        )
+        val result = ConfigurationBuilder.build(request, catalog, ruleset, configId)
+        val errors = result.toEither.left.toOption.get.toList
+        assertTrue(errors.exists(_.isInstanceOf[ConfigurationError.TechnologyConstraintViolation]))
+      },
     ),
     suite("finish parameters")(
       test("round corners with valid params (4 corners, 5mm radius) succeeds") {
