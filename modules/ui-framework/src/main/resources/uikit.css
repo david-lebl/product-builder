@@ -214,3 +214,132 @@
     background: #f8fafc;
     border: 1px solid #e2e8f0;
 }
+
+/* --- ComboBoxField --- */
+.combobox {
+    position: relative;
+    width: 100%;
+}
+
+.combobox__trigger {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    border: 1px solid #d1d5db;
+    border-radius: 6px;
+    background: #fff;
+    padding: 6px 10px;
+    cursor: text;
+    transition: border-color 0.15s, box-shadow 0.15s;
+    min-height: 36px;
+}
+
+.combobox__trigger:focus-within {
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.15);
+}
+
+.combobox--disabled .combobox__trigger {
+    background: #f3f4f6;
+    cursor: not-allowed;
+}
+
+.combobox__trigger-icon {
+    flex-shrink: 0;
+    font-size: 1.05em;
+    line-height: 1;
+}
+
+.combobox__trigger-input {
+    flex: 1;
+    border: none;
+    outline: none;
+    background: transparent;
+    font-size: inherit;
+    min-width: 0;
+    padding: 0;
+    color: inherit;
+}
+
+.combobox--disabled .combobox__trigger-input {
+    cursor: not-allowed;
+}
+
+.combobox__arrow {
+    flex-shrink: 0;
+    color: #6b7280;
+    font-size: 0.8em;
+    cursor: pointer;
+    user-select: none;
+    padding: 0 2px;
+}
+
+.combobox__dropdown {
+    position: absolute;
+    top: calc(100% + 4px);
+    left: 0;
+    right: 0;
+    z-index: 200;
+    background: #fff;
+    border: 1px solid #d1d5db;
+    border-radius: 8px;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+    max-height: 280px;
+    overflow-y: auto;
+}
+
+.combobox__group-header {
+    padding: 8px 12px 3px;
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    color: #6b7280;
+    letter-spacing: 0.06em;
+    border-top: 1px solid #f1f5f9;
+}
+
+.combobox__group-header:first-child {
+    border-top: none;
+}
+
+.combobox__option {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    color: #1e293b;
+    transition: background 0.1s;
+}
+
+.combobox__option:hover {
+    background: #f0f7ff;
+}
+
+.combobox__option--selected {
+    background: #eff6ff;
+    font-weight: 600;
+}
+
+.combobox__option--selected:hover {
+    background: #dbeafe;
+}
+
+.combobox__option-icon {
+    font-size: 1.1em;
+    flex-shrink: 0;
+    line-height: 1;
+}
+
+.combobox__option-label {
+    flex: 1;
+}
+
+.combobox__empty {
+    padding: 14px 12px;
+    text-align: center;
+    color: #9ca3af;
+    font-size: 0.88rem;
+    font-style: italic;
+}
