@@ -484,6 +484,14 @@ object SampleRules:
       "Eco bag print area must not exceed 300×300mm",
     ),
 
+    // --- Cutting mutual exclusion ---
+    // Kiss cut and die cut cannot be selected together
+    CompatibilityRule.FinishMutuallyExclusive(
+      cat.kissCutId,
+      cat.dieCutId,
+      "Kiss cut and die cut cannot be applied together — choose one cutting method",
+    ),
+
     // --- Scoring / creasing max-crease caps ---
     // Brochures: max 4 creases (folded print; scoring for heavy stock clean folds)
     CompatibilityRule.ScoringMaxCreasesForCategory(
