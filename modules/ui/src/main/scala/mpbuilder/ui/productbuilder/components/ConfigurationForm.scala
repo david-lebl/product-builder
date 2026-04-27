@@ -276,6 +276,12 @@ object ConfigurationForm:
           ),
         ),
       ),
+
+      // Email order escape hatch — always visible for customers who didn't find all options
+      div(
+        cls := "form-section",
+        EmailOrderForm(),
+      ),
     )
 
   private def componentSection(role: ComponentRole): Element =

@@ -28,4 +28,21 @@ object ValidationMessages:
             None
         },
       ),
+
+      // Show email order escape hatch when there are validation errors
+      child.maybe <-- ProductBuilderViewModel.state.combineWith(lang).map { case (state, l) =>
+        if state.validationErrors.nonEmpty then
+          Some(div(
+            cls := "email-order-validation-hint",
+            p(
+              cls := "email-order-validation-msg",
+              l match
+                case Language.En => "Having trouble? You can still request a quote via email."
+                case Language.Cs => "Máte problémy? Stále můžete požádat o nabídku e-mailem."
+            ),
+            EmailOrderForm(),
+          ))
+        else
+          None
+      },
     )
