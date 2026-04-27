@@ -8,7 +8,9 @@ import org.scalajs.dom
 
 object EmailOrderForm:
 
-  /** Contact email address that order requests are sent to. */
+  /** Contact email address that order requests are sent to.
+    * Replace with the actual production email before deploying.
+    */
   private val ContactEmail = "orders@example.com"
 
   def apply(): Element =
@@ -193,7 +195,7 @@ object EmailOrderForm:
         lines += s"$label: ${q.value}"
       case SpecValue.SizeSpec(d) =>
         val label = lang match { case Language.En => "Size"; case Language.Cs => "Rozměr" }
-        lines += s"$label: ${d.widthMm.toInt} × ${d.heightMm.toInt} mm"
+        lines += f"$label: ${d.widthMm}%.1f × ${d.heightMm}%.1f mm"
       case SpecValue.PagesSpec(n) =>
         val label = lang match { case Language.En => "Pages"; case Language.Cs => "Počet stran" }
         lines += s"$label: $n"

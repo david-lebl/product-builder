@@ -154,6 +154,17 @@ See [docs/visual-product-types.md](visual-product-types.md) for all supported ty
 - "Add to Basket" from configuration form with quantity selector
 - Reactive basket panel with item list, quantity management, total calculation
 
+### Order via Email
+
+An escape hatch for customers who cannot complete a standard order flow:
+
+- **"Order via Email" collapsible form** — appears in two places in the Product Builder UI:
+  1. In the **Validation Status card**, contextually, when there are active validation errors ("Having trouble? Request a quote via email instead.")
+  2. At the **bottom of the configuration form**, always visible as a general escape hatch for customers who didn't find all required options.
+- **Fields**: customer name, email address, notes/message. Notes are pre-filled with the current (possibly partial) configuration summary (category, printing method, quantity, size, material, estimated price).
+- **Delivery**: clicking "Open Email Client" generates a `mailto:` URL with pre-populated subject (`Product Order Request — [category]`) and body, opening the user's default email client. No backend required.
+- **Fully bilingual** (EN/CS).
+
 ### Checkout & Orders
 
 - `Order` model with customer info, delivery details, basket items

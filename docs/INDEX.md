@@ -74,6 +74,7 @@ Session-by-session work logs documenting what was done, decisions made, and issu
 | Document | Description |
 |----------|-------------|
 | [changelog/README.md](changelog/README.md) | Changelog format, template, and log entries index |
+| [changelog/2026-04-27-email-order-feature.md](changelog/2026-04-27-email-order-feature.md) | Add "Order via Email" escape hatch to Product Builder UI |
 | [changelog/2026-04-26-binding-page-constraints-refactor.md](changelog/2026-04-26-binding-page-constraints-refactor.md) | Refactor booklet page rules into TechnologyConstraints; add weight-based saddle stitch tiers and binding method max-page limits |
 | [changelog/2026-04-25-fix-lamination-pricing-per-sheet-area.md](changelog/2026-04-25-fix-lamination-pricing-per-sheet-area.md) | Fix finish surcharges: sheet-priced → per press sheet; area-priced → per m² |
 | [changelog/2026-04-22-update-minimum-order-price-200-czk.md](changelog/2026-04-22-update-minimum-order-price-200-czk.md) | Update minimum order price from 500 CZK to 200 CZK in sample pricelists |
