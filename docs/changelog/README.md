@@ -46,6 +46,7 @@ Brief description of what was accomplished in this session.
 
 | Date | Title | PR | Type |
 |------|-------|----|------|
+| 2026-04-28 | [Print Method Pricing Gaps & New Sticker Methods](2026-04-28-print-method-pricing-gaps.md) | copilot/check-prices-for-print-methods | feature |
 | 2026-04-28 | [Email Order Option](2026-04-28-email-order-option.md) | copilot/add-email-order-option-ui | feature |
 | 2026-04-26 | [Binding Page Constraints Refactor](2026-04-26-binding-page-constraints-refactor.md) | — | refactoring |
 | 2026-04-25 | [Fix Lamination Pricing: Per Sheet and Per Area](2026-04-25-fix-lamination-pricing-per-sheet-area.md) | — | bugfix |
