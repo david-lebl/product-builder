@@ -484,6 +484,40 @@ object SampleRules:
       "Eco bag print area must not exceed 300×300mm",
     ),
 
+    // --- Sticker material / print-method compatibility ---
+    // Vinyl sticker materials require a large-format inkjet process
+    CompatibilityRule.ConfigurationConstraint(
+      cat.stickersId,
+      ConfigurationPredicate.Or(
+        ConfigurationPredicate.Not(ConfigurationPredicate.HasMaterialFamily(MaterialFamily.Vinyl)),
+        ConfigurationPredicate.Or(
+          ConfigurationPredicate.HasPrintingProcess(PrintingProcessType.UVCurableInkjet),
+          ConfigurationPredicate.Or(
+            ConfigurationPredicate.HasPrintingProcess(PrintingProcessType.SolventInkjet),
+            ConfigurationPredicate.HasPrintingProcess(PrintingProcessType.LatexInkjet),
+          ),
+        ),
+      ),
+      "Vinyl sticker materials require a large-format inkjet print method (UV, solvent, or wide-gamut). " +
+        "Paper-based materials (adhesive stock, Yupo) must be used with digital or offset printing.",
+    ),
+    // Large-format inkjet processes require a vinyl sticker substrate
+    CompatibilityRule.ConfigurationConstraint(
+      cat.stickersId,
+      ConfigurationPredicate.Or(
+        ConfigurationPredicate.Not(ConfigurationPredicate.Or(
+          ConfigurationPredicate.HasPrintingProcess(PrintingProcessType.UVCurableInkjet),
+          ConfigurationPredicate.Or(
+            ConfigurationPredicate.HasPrintingProcess(PrintingProcessType.SolventInkjet),
+            ConfigurationPredicate.HasPrintingProcess(PrintingProcessType.LatexInkjet),
+          ),
+        )),
+        ConfigurationPredicate.HasMaterialFamily(MaterialFamily.Vinyl),
+      ),
+      "Large-format inkjet printing (UV, solvent, or wide-gamut) requires a vinyl sticker substrate. " +
+        "Use a vinyl material (adhesive vinyl or clear vinyl) with this print method.",
+    ),
+
     // --- Cutting mutual exclusion ---
     // Kiss cut and die cut cannot be selected together
     CompatibilityRule.FinishMutuallyExclusive(
