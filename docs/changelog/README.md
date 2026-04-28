@@ -46,6 +46,7 @@ Brief description of what was accomplished in this session.
 
 | Date | Title | PR | Type |
 |------|-------|----|------|
+| 2026-04-28 | [Email Order Option](2026-04-28-email-order-option.md) | copilot/add-email-order-option-ui | feature |
 | 2026-04-26 | [Binding Page Constraints Refactor](2026-04-26-binding-page-constraints-refactor.md) | — | refactoring |
 | 2026-04-25 | [Fix Lamination Pricing: Per Sheet and Per Area](2026-04-25-fix-lamination-pricing-per-sheet-area.md) | — | bugfix |
 | 2026-04-22 | [Update minimum order price to 200 CZK](2026-04-22-update-minimum-order-price-200-czk.md) | — | bugfix |

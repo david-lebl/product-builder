@@ -564,3 +564,164 @@
     color: #e65100;
     font-style: italic;
 }
+
+/* ─── Email Order Modal ───────────────────────────────── */
+
+.email-modal-backdrop {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.55);
+    z-index: 400;
+}
+
+.email-modal-backdrop--visible {
+    display: block;
+}
+
+.email-modal-dialog {
+    display: none;
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: min(560px, calc(100vw - 32px));
+    max-height: calc(100vh - 64px);
+    overflow-y: auto;
+    background: #fff;
+    border-radius: var(--border-radius-lg, 12px);
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.25);
+    z-index: 401;
+    flex-direction: column;
+}
+
+.email-modal-dialog--open {
+    display: flex;
+}
+
+.email-modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 18px 20px 14px;
+    border-bottom: 1px solid var(--color-border);
+    flex-shrink: 0;
+}
+
+.email-modal-title {
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: var(--color-primary);
+    margin: 0;
+}
+
+.email-modal-close {
+    background: var(--color-border);
+    color: #444;
+    border: none;
+    border-radius: 50%;
+    width: 30px;
+    height: 30px;
+    min-width: unset;
+    padding: 0;
+    font-size: 1.2rem;
+    line-height: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    flex-shrink: 0;
+    transition: background 0.2s, color 0.2s;
+}
+
+.email-modal-close:hover:not(:disabled) {
+    background: var(--color-error);
+    color: #fff;
+    transform: none;
+    box-shadow: none;
+}
+
+.email-modal-body {
+    padding: 20px;
+    flex: 1;
+    overflow-y: auto;
+}
+
+.email-modal-textarea {
+    width: 100%;
+    min-height: 200px;
+    resize: vertical;
+    font-family: var(--font-sans);
+    font-size: 0.85rem;
+    line-height: 1.5;
+    padding: 8px 10px;
+    border: 1.5px solid var(--color-border);
+    border-radius: 6px;
+    color: var(--color-text);
+    transition: border-color 0.2s;
+    height: auto;
+}
+
+.email-modal-textarea:focus {
+    outline: none;
+    border-color: var(--color-primary);
+}
+
+.email-modal-footer {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 10px;
+    padding: 14px 20px 18px;
+    border-top: 1px solid var(--color-border);
+    flex-shrink: 0;
+}
+
+.email-modal-send-btn {
+    background: var(--color-primary-gradient);
+    color: #fff;
+    border: none;
+    border-radius: 6px;
+    padding: 9px 18px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: opacity 0.2s, transform 0.1s;
+}
+
+.email-modal-send-btn:hover:not(:disabled) {
+    opacity: 0.9;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.35);
+}
+
+/* ─── Email Order Hint (in Validation panel) ──────────── */
+
+.email-order-hint {
+    margin-top: 14px;
+    padding-top: 12px;
+    border-top: 1px dashed var(--color-border);
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.email-order-btn {
+    background: transparent;
+    border: 1.5px solid var(--color-primary);
+    color: var(--color-primary);
+    border-radius: 6px;
+    padding: 7px 16px;
+    font-size: 0.88rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.18s, color 0.18s;
+    align-self: flex-start;
+}
+
+.email-order-btn:hover:not(:disabled) {
+    background: var(--color-primary);
+    color: #fff;
+    transform: none;
+    box-shadow: none;
+}

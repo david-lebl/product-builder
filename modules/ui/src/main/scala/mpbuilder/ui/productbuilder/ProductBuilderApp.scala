@@ -94,6 +94,9 @@ object ProductBuilderApp:
         cls <-- AppRouter.basketOpen.signal.map(o => if o then "basket-overlay visible" else "basket-overlay"),
         onClick --> { _ => AppRouter.basketOpen.set(false) },
       ),
+
+      // Email order modal — global singleton rendered once at app level
+      EmailOrderModal(),
     )
 
   private def formatMoney(money: Money, currency: Currency): String =

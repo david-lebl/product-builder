@@ -145,6 +145,38 @@ signal1.combineWith(signal2).map { case (a, b) => ... }
 
 ---
 
+### Wrong `FoldType` / `BindingMethod` / `ManufacturingSpeed` enum variant names
+
+**Symptom:** Compilation error `value X is not a member of object mpbuilder.domain.model.FoldType` (or `BindingMethod` / `ManufacturingSpeed`).
+
+**Cause:** The actual enum cases differ from commonly assumed names.
+
+**Correct values:**
+- `FoldType`: `Half, Tri, Gate, Accordion, ZFold, RollFold, FrenchFold, CrossFold`
+- `BindingMethod`: `SaddleStitch, PerfectBinding, SpiralBinding, WireOBinding, CaseBinding`
+- `ManufacturingSpeed`: `Express, Standard, Economy`
+
+**Files:** `modules/domain/src/main/scala/mpbuilder/domain/model/specification.scala`, `modules/domain/src/main/scala/mpbuilder/domain/model/manufacturing.scala`
+
+---
+
+### `dom.window.encodeURIComponent` not available in Scala.js
+
+**Symptom:** Compilation error `value encodeURIComponent is not a member of org.scalajs.dom.Window`.
+
+**Cause:** `org.scalajs.dom.Window` does not directly expose the global `encodeURIComponent` function.
+
+**Solution:** Use `scala.scalajs.js.URIUtils.encodeURIComponent(str)` instead. Keep `import org.scalajs.dom` for other `dom.window` usage (e.g. `dom.window.location.href`).
+
+```scala
+import scala.scalajs.js.URIUtils
+val encoded = URIUtils.encodeURIComponent(str)
+```
+
+**Files:** `modules/ui/src/main/scala/mpbuilder/ui/productbuilder/components/EmailOrderModal.scala`
+
+---
+
 ### `PriceCalculator` match structure produces unreachable case for sheet/base pricing
 
 **Symptom:** After adding a new priority-based match at the top of `calculateComponentBreakdown` (e.g. `areaTierRule match`), sheet-priced and base-priced materials silently fall through to `NoSizeForAreaPricing` / `NoBasePriceForMaterial` errors instead of computing correctly.
