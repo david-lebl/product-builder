@@ -102,6 +102,36 @@ object SamplePricelist:
       PricingRule.InkConfigurationAreaPrice(SampleCatalog.uvInkjetId, 4, 1, Money("1.20")),
       PricingRule.InkConfigurationAreaPrice(SampleCatalog.uvInkjetId, 1, 0, Money("0.25")),
       PricingRule.InkConfigurationAreaPrice(SampleCatalog.uvInkjetId, 1, 1, Money("0.40")),
+      // Screen printing (per unit)
+      PricingRule.InkConfigurationSheetPrice(SampleCatalog.screenPrintId, 4, 4, Money("0.06")),
+      PricingRule.InkConfigurationSheetPrice(SampleCatalog.screenPrintId, 4, 0, Money("0.04")),
+      PricingRule.InkConfigurationSheetPrice(SampleCatalog.screenPrintId, 4, 1, Money("0.05")),
+      PricingRule.InkConfigurationSheetPrice(SampleCatalog.screenPrintId, 1, 0, Money("0.01")),
+      PricingRule.InkConfigurationSheetPrice(SampleCatalog.screenPrintId, 1, 1, Money("0.015")),
+      // DTG (direct-to-garment, per unit)
+      PricingRule.InkConfigurationSheetPrice(SampleCatalog.dtgId, 4, 4, Money("0.04")),
+      PricingRule.InkConfigurationSheetPrice(SampleCatalog.dtgId, 4, 0, Money("0.02")),
+      PricingRule.InkConfigurationSheetPrice(SampleCatalog.dtgId, 4, 1, Money("0.03")),
+      PricingRule.InkConfigurationSheetPrice(SampleCatalog.dtgId, 1, 0, Money("0.005")),
+      PricingRule.InkConfigurationSheetPrice(SampleCatalog.dtgId, 1, 1, Money("0.008")),
+      // Dye sublimation (per unit)
+      PricingRule.InkConfigurationSheetPrice(SampleCatalog.sublimationId, 4, 4, Money("0.04")),
+      PricingRule.InkConfigurationSheetPrice(SampleCatalog.sublimationId, 4, 0, Money("0.02")),
+      PricingRule.InkConfigurationSheetPrice(SampleCatalog.sublimationId, 4, 1, Money("0.03")),
+      PricingRule.InkConfigurationSheetPrice(SampleCatalog.sublimationId, 1, 0, Money("0.005")),
+      PricingRule.InkConfigurationSheetPrice(SampleCatalog.sublimationId, 1, 1, Money("0.008")),
+      // Solvent inkjet (sticker/vinyl, per sqm)
+      PricingRule.InkConfigurationAreaPrice(SampleCatalog.solventInkjetId, 4, 4, Money("24.00")),
+      PricingRule.InkConfigurationAreaPrice(SampleCatalog.solventInkjetId, 4, 0, Money("13.00")),
+      PricingRule.InkConfigurationAreaPrice(SampleCatalog.solventInkjetId, 4, 1, Money("17.00")),
+      PricingRule.InkConfigurationAreaPrice(SampleCatalog.solventInkjetId, 1, 0, Money("3.50")),
+      PricingRule.InkConfigurationAreaPrice(SampleCatalog.solventInkjetId, 1, 1, Money("6.00")),
+      // Epson 8-color (sticker/label, per sqm)
+      PricingRule.InkConfigurationAreaPrice(SampleCatalog.epson8ColorId, 4, 4, Money("34.00")),
+      PricingRule.InkConfigurationAreaPrice(SampleCatalog.epson8ColorId, 4, 0, Money("18.00")),
+      PricingRule.InkConfigurationAreaPrice(SampleCatalog.epson8ColorId, 4, 1, Money("24.00")),
+      PricingRule.InkConfigurationAreaPrice(SampleCatalog.epson8ColorId, 1, 0, Money("5.00")),
+      PricingRule.InkConfigurationAreaPrice(SampleCatalog.epson8ColorId, 1, 1, Money("8.00")),
 
       // --- Quantity tiers ---
       PricingRule.QuantityTier(1, Some(249), BigDecimal("1.0")),
@@ -314,12 +344,42 @@ object SamplePricelist:
       PricingRule.InkConfigurationSheetPrice(SampleCatalog.letterpressId, 4, 1, Money("1.80")),
       PricingRule.InkConfigurationSheetPrice(SampleCatalog.letterpressId, 1, 0, Money("0.45")),
       PricingRule.InkConfigurationSheetPrice(SampleCatalog.letterpressId, 1, 1, Money("0.75")),
-      // UV inkjet (large format): per sqm
-      PricingRule.InkConfigurationAreaPrice(SampleCatalog.uvInkjetId, 4, 4, Money("45")),
-      PricingRule.InkConfigurationAreaPrice(SampleCatalog.uvInkjetId, 4, 0, Money("22")),
-      PricingRule.InkConfigurationAreaPrice(SampleCatalog.uvInkjetId, 4, 1, Money("30")),
-      PricingRule.InkConfigurationAreaPrice(SampleCatalog.uvInkjetId, 1, 0, Money("6")),
-      PricingRule.InkConfigurationAreaPrice(SampleCatalog.uvInkjetId, 1, 1, Money("10")),
+      // Screen printing (per unit; process surcharge already adds 4 CZK for ScreenPrint process)
+      PricingRule.InkConfigurationSheetPrice(SampleCatalog.screenPrintId, 4, 4, Money("4")),
+      PricingRule.InkConfigurationSheetPrice(SampleCatalog.screenPrintId, 4, 0, Money("2")),
+      PricingRule.InkConfigurationSheetPrice(SampleCatalog.screenPrintId, 4, 1, Money("3")),
+      PricingRule.InkConfigurationSheetPrice(SampleCatalog.screenPrintId, 1, 0, Money("0.60")),
+      PricingRule.InkConfigurationSheetPrice(SampleCatalog.screenPrintId, 1, 1, Money("1")),
+      // DTG (direct-to-garment, per unit)
+      PricingRule.InkConfigurationSheetPrice(SampleCatalog.dtgId, 4, 4, Money("3")),
+      PricingRule.InkConfigurationSheetPrice(SampleCatalog.dtgId, 4, 0, Money("1.50")),
+      PricingRule.InkConfigurationSheetPrice(SampleCatalog.dtgId, 4, 1, Money("1.80")),
+      PricingRule.InkConfigurationSheetPrice(SampleCatalog.dtgId, 1, 0, Money("0.45")),
+      PricingRule.InkConfigurationSheetPrice(SampleCatalog.dtgId, 1, 1, Money("0.75")),
+      // Dye sublimation (per unit)
+      PricingRule.InkConfigurationSheetPrice(SampleCatalog.sublimationId, 4, 4, Money("3")),
+      PricingRule.InkConfigurationSheetPrice(SampleCatalog.sublimationId, 4, 0, Money("1.50")),
+      PricingRule.InkConfigurationSheetPrice(SampleCatalog.sublimationId, 4, 1, Money("1.80")),
+      PricingRule.InkConfigurationSheetPrice(SampleCatalog.sublimationId, 1, 0, Money("0.45")),
+      PricingRule.InkConfigurationSheetPrice(SampleCatalog.sublimationId, 1, 1, Money("0.75")),
+      // UV inkjet (large format / sticker printing): per sqm
+      PricingRule.InkConfigurationAreaPrice(SampleCatalog.uvInkjetId, 4, 4, Money("720")),
+      PricingRule.InkConfigurationAreaPrice(SampleCatalog.uvInkjetId, 4, 0, Money("360")),
+      PricingRule.InkConfigurationAreaPrice(SampleCatalog.uvInkjetId, 4, 1, Money("480")),
+      PricingRule.InkConfigurationAreaPrice(SampleCatalog.uvInkjetId, 1, 0, Money("100")),
+      PricingRule.InkConfigurationAreaPrice(SampleCatalog.uvInkjetId, 1, 1, Money("160")),
+      // Solvent inkjet (outdoor sticker / vinyl printing): per sqm
+      PricingRule.InkConfigurationAreaPrice(SampleCatalog.solventInkjetId, 4, 4, Money("600")),
+      PricingRule.InkConfigurationAreaPrice(SampleCatalog.solventInkjetId, 4, 0, Money("300")),
+      PricingRule.InkConfigurationAreaPrice(SampleCatalog.solventInkjetId, 4, 1, Money("400")),
+      PricingRule.InkConfigurationAreaPrice(SampleCatalog.solventInkjetId, 1, 0, Money("80")),
+      PricingRule.InkConfigurationAreaPrice(SampleCatalog.solventInkjetId, 1, 1, Money("140")),
+      // Epson 8-color (premium sticker / label printing): per sqm
+      PricingRule.InkConfigurationAreaPrice(SampleCatalog.epson8ColorId, 4, 4, Money("840")),
+      PricingRule.InkConfigurationAreaPrice(SampleCatalog.epson8ColorId, 4, 0, Money("420")),
+      PricingRule.InkConfigurationAreaPrice(SampleCatalog.epson8ColorId, 4, 1, Money("560")),
+      PricingRule.InkConfigurationAreaPrice(SampleCatalog.epson8ColorId, 1, 0, Money("110")),
+      PricingRule.InkConfigurationAreaPrice(SampleCatalog.epson8ColorId, 1, 1, Money("190")),
 
       // --- Quantity tiers (CZK market, steeper volume discounts) ---
       PricingRule.QuantityTier(1, Some(99), BigDecimal("1.0")),
