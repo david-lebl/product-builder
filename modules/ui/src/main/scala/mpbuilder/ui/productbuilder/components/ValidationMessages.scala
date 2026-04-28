@@ -28,4 +28,17 @@ object ValidationMessages:
             None
         },
       ),
+
+      // Email order option — always shown so customers can request via email if needed
+      div(
+        cls := "email-order-hint",
+        p(
+          cls := "info-note",
+          child.text <-- lang.map {
+            case Language.En => "Can't complete your configuration? You can still request a quote via email."
+            case Language.Cs => "Nemůžete dokončit konfiguraci? Stále můžete odeslat poptávku e-mailem."
+          },
+        ),
+        EmailOrderModal.triggerButton(),
+      ),
     )
