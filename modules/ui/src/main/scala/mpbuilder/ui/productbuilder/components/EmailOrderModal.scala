@@ -147,8 +147,8 @@ object EmailOrderModal:
           p(
             cls := "info-note",
             child.text <-- lang.map {
-              case Language.En => "Clicking 'Open Email Client' will open your default email application with the details pre-filled."
-              case Language.Cs => "Kliknutím na 'Otevřít e-mailový klient' se otevře váš výchozí e-mailový program s předvyplněnými údaji."
+              case Language.En => "Clicking 'Open Email Client' will open your default email application with the details pre-filled. Please add the shop's email address as the recipient."
+              case Language.Cs => "Kliknutím na 'Otevřít e-mailový klient' se otevře váš výchozí e-mailový program s předvyplněnými údaji. Jako příjemce zadejte prosím e-mailovou adresu obchodu."
             },
           ),
         ),
@@ -180,10 +180,10 @@ object EmailOrderModal:
               val subject = state.language match
                 case Language.En =>
                   val cat = categoryName(state, Language.En)
-                  s"Product Order Inquiry${if cat.nonEmpty then s" – $cat" else ""}"
+                  s"Product Order Inquiry${if cat.nonEmpty then s" - $cat" else ""}"
                 case Language.Cs =>
                   val cat = categoryName(state, Language.Cs)
-                  s"Poptávka objednávky${if cat.nonEmpty then s" – $cat" else ""}"
+                  s"Poptavka objednavky${if cat.nonEmpty then s" - $cat" else ""}"
 
               // Build the full message body including name/email signature
               val signature = buildSignature(name, email, lang)
@@ -273,7 +273,7 @@ object EmailOrderModal:
           case Language.En => role match
             case ComponentRole.Main  => "Main"
             case ComponentRole.Cover => "Cover"
-            case ComponentRole.Body  => "Body/Inner"
+            case ComponentRole.Body  => "Body"
             case ComponentRole.Stand => "Stand"
           case Language.Cs => role match
             case ComponentRole.Main  => "Hlavní"

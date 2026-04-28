@@ -14,6 +14,7 @@ Core feature specifications — stable documents describing *what* the system do
 | [manufacturing-speed-pipeline.md](manufacturing-speed-pipeline.md) | Order completion time estimation — 8-stage pipeline specification |
 | [new-product-specification.md](new-product-specification.md) | Specification for adding new product types to the system |
 | [help-information.md](help-information.md) | Contextual help system specification (field-level `?` and `i` buttons) |
+| [email-order-option.md](email-order-option.md) | Email order option — pre-filled modal popup for requesting orders via email |
 
 ## 🔬 Analysis & Research
 
@@ -74,6 +75,7 @@ Session-by-session work logs documenting what was done, decisions made, and issu
 | Document | Description |
 |----------|-------------|
 | [changelog/README.md](changelog/README.md) | Changelog format, template, and log entries index |
+| [changelog/2026-04-28-email-order-option.md](changelog/2026-04-28-email-order-option.md) | Add "Order via Email" button and pre-filled modal popup to the product builder UI |
 | [changelog/2026-04-26-binding-page-constraints-refactor.md](changelog/2026-04-26-binding-page-constraints-refactor.md) | Refactor booklet page rules into TechnologyConstraints; add weight-based saddle stitch tiers and binding method max-page limits |
 | [changelog/2026-04-25-fix-lamination-pricing-per-sheet-area.md](changelog/2026-04-25-fix-lamination-pricing-per-sheet-area.md) | Fix finish surcharges: sheet-priced → per press sheet; area-priced → per m² |
 | [changelog/2026-04-22-update-minimum-order-price-200-czk.md](changelog/2026-04-22-update-minimum-order-price-200-czk.md) | Update minimum order price from 500 CZK to 200 CZK in sample pricelists |
