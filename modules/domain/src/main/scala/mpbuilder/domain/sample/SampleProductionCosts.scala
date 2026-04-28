@@ -32,6 +32,8 @@ object SampleProductionCosts:
       ProductionCostRule.ProcessCost(PrintingProcessType.Digital, Money("0.02")),
       ProductionCostRule.ProcessCost(PrintingProcessType.UVCurableInkjet, Money("0.03")),
       ProductionCostRule.ProcessCost(PrintingProcessType.Letterpress, Money("0.08")),
+      ProductionCostRule.ProcessCost(PrintingProcessType.SolventInkjet, Money("0.04")),
+      ProductionCostRule.ProcessCost(PrintingProcessType.LatexInkjet, Money("0.05")),
 
       // --- Finish costs (per unit) ---
       ProductionCostRule.FinishCost(SampleCatalog.matteLaminationId, Money("0.01")),
@@ -62,6 +64,8 @@ object SampleProductionCosts:
       ProductionCostRule.ProcessCost(PrintingProcessType.Offset, Money("0.25")),
       ProductionCostRule.ProcessCost(PrintingProcessType.Digital, Money("0.50")),
       ProductionCostRule.ProcessCost(PrintingProcessType.UVCurableInkjet, Money("0.70")),
+      ProductionCostRule.ProcessCost(PrintingProcessType.SolventInkjet, Money("0.60")),
+      ProductionCostRule.ProcessCost(PrintingProcessType.LatexInkjet, Money("0.80")),
 
       ProductionCostRule.FinishCost(SampleCatalog.matteLaminationId, Money("0.25")),
       ProductionCostRule.FinishCost(SampleCatalog.glossLaminationId, Money("0.25")),
