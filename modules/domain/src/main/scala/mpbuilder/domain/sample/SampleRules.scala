@@ -498,7 +498,7 @@ object SampleRules:
           ),
         ),
       ),
-      "Vinyl sticker materials require a large-format inkjet print method (UV, solvent, or wide-gamut). " +
+      "Vinyl sticker materials require a large-format inkjet print method (UV, solvent, or extended gamut). " +
         "Paper-based materials (adhesive stock, Yupo) must be used with digital or offset printing.",
     ),
     // Large-format inkjet processes require a vinyl sticker substrate
@@ -514,7 +514,7 @@ object SampleRules:
         )),
         ConfigurationPredicate.HasMaterialFamily(MaterialFamily.Vinyl),
       ),
-      "Large-format inkjet printing (UV, solvent, or wide-gamut) requires a vinyl sticker substrate. " +
+      "Large-format inkjet printing (UV, solvent, or extended gamut) requires a vinyl sticker substrate. " +
         "Use a vinyl material (adhesive vinyl or clear vinyl) with this print method.",
     ),
 

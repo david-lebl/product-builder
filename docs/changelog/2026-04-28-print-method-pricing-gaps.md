@@ -67,8 +67,64 @@ Only 4+0 prices were explicitly specified by the user. All other ink configurati
 
 No build or test failures. All 181 tests pass after changes.
 
+---
+
+## 2026-04-28 (follow-up) — Sticker Material/Print-Method Constraints & Bug Tests
+
+### Summary
+
+Added `ConfigurationConstraint` rules to `SampleRules` to prevent the silent ink-cost pricing bug for sticker configurations, and added 14 new tests (6 pricing + 8 validation) to document and guard against the issue.
+
+### Root Cause: Silent Ink Cost Bug
+
+`PriceCalculator` determines how to look up an ink configuration price based on the material pricing strategy:
+
+- **Base-priced material** (`MaterialBasePrice`) → `InkPricingBasis.SheetOrUnit` → looks for `InkConfigurationSheetPrice`
+- **Area-priced material** (`MaterialAreaPrice`/`MaterialAreaTier`) → `InkPricingBasis.Area` → looks for `InkConfigurationAreaPrice`
+
+Large-format methods (UV inkjet, solvent, Epson 8-color) **only** have `InkConfigurationAreaPrice` rules. Digital/offset **only** have `InkConfigurationSheetPrice` rules. If these are mixed:
+
+- **adhesiveStock (base) + UV inkjet** → looks for `InkConfigurationSheetPrice(uvInkjetId, ...)` → not found → `inkConfigLine = None` → ink cost = 0
+- **vinyl (area) + digital** → looks for `InkConfigurationAreaPrice(digitalId, ...)` → not found → `inkConfigLine = None` → ink cost = 0
+
+The bug is silent (no error returned) — the total is simply understated.
+
+### Fix: ConfigurationConstraints for Stickers
+
+Two constraints added to `SampleRules.scala`:
+
+1. **Vinyl family → large-format inkjet required**: If the component material is `MaterialFamily.Vinyl`, the printing method must use `UVCurableInkjet`, `SolventInkjet`, or `LatexInkjet` process type.
+2. **Large-format inkjet → vinyl required**: If the printing method uses one of those large-format process types, the component material must be `MaterialFamily.Vinyl`.
+
+Together, these ensure only compatible combinations can be built:
+- `vinyl + digital` → rejected (constraint 1)
+- `adhesiveStock + UV inkjet` → rejected (constraint 2)
+- `vinyl + UV inkjet` → allowed ✓
+- `adhesiveStock + digital` → allowed ✓
+
+### Additional Changes
+
+**`modules/domain/src/main/scala/mpbuilder/domain/sample/SampleRules.scala`**
+- Added `ConfigurationConstraint` (vinyl → large-format inkjet) for `stickersId`
+- Added `ConfigurationConstraint` (large-format inkjet → vinyl) for `stickersId`
+
+**`modules/domain/src/test/scala/mpbuilder/domain/PriceCalculatorSpec.scala`**
+- Added suite `"sticker large-format print methods"` with 6 tests:
+  - 3 correct area-pricing tests (clearVinyl+UV, vinyl+solvent, clearVinyl+Epson)
+  - 1 correct base-pricing test (adhesiveStock+digital)
+  - 2 BUG-documenting tests showing silent zero-ink (adhesiveStock+UV, vinyl+digital)
+
+**`modules/domain/src/test/scala/mpbuilder/domain/ConfigurationBuilderSpec.scala`**
+- Added suite `"sticker material / print-method compatibility"` with 8 tests (4 valid, 4 rejected)
+- Updated existing misleading test "CMYK + white underlay on clear vinyl with digital printing is rejected (non-UV inkjet)": the assertion was `isRight` but is now correctly `isLeft` + `ConfigurationConstraintViolation` because clear vinyl (Vinyl family) requires large-format inkjet under the new rules.
+
+### Issues Encountered
+
+- **One existing test had a contradictory name/assertion**: The test was named "…rejected (non-UV inkjet)" but asserted `isRight`. It was testing that the white-ink `TechnologyConstraint` was satisfied for transparent clear vinyl + digital — which was true. However, the new `ConfigurationConstraint` now correctly rejects vinyl + digital regardless of ink type. The test was updated to reflect the new (correct) behavior with an explanatory comment.
+
 ## Follow-up Items
 
 - [ ] Verify whether banners should keep the updated UV inkjet price (360 CZK/m²) or get a separate printing method for large-format banner UV printing at a lower rate
 - [ ] Consider adding `solventInkjetId` to the banners category (solvent is a common outdoor large-format method)
 - [ ] Add screen-print, DTG, and sublimation per-unit USD prices — current values are rough estimates
+- [ ] Consider whether the `PriceCalculator` itself should return a `PricingError` when the ink-pricing basis and method type are incompatible, rather than silently returning `None`
