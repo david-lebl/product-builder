@@ -46,7 +46,7 @@ Rules are **data, not code** — a sealed ADT (`CompatibilityRule`) with 17 vari
 | `ScoringMaxCreasesForMaterial` | Maximum crease count for Scoring finish per material |
 | `ScoringMaxCreasesForPrintingProcess` | Maximum crease count for Scoring finish per printing process |
 
-Predicates (`SpecPredicate`, `ConfigurationPredicate`) support boolean algebra (And/Or/Not) for composable, inspectable rule conditions.
+Predicates (`SpecPredicate`, `ConfigurationPredicate`) support boolean algebra (And/Or/Not) for composable, inspectable rule conditions. `ConfigurationPredicate` variants include: `HasMaterialProperty`, `HasMaterialFamily`, `HasPrintingProcess`, `HasInkType`, `AllowedInkTypes`, `MaxColorCountPerSide`, `IsSingleSided` (all components single-sided), `HasFinishId`, `BindingMethodIs`, `HasMinWeight`, and `Spec` (wraps a `SpecPredicate`).
 
 ### Validation Pipeline
 

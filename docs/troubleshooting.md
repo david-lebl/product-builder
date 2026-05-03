@@ -80,6 +80,31 @@ sudo apt-get install -y temurin-17-jdk   # or use SDKMAN / jabba
 
 ---
 
+### Sticker ink cost is silently zero for certain material/method combinations
+
+**Symptom:** A sticker configuration calculates correctly for material cost but produces no ink line and an understated total price. No error is returned — the calculation simply omits the ink component.
+
+**Cause:** `PriceCalculator` selects the ink-pricing strategy based on the material pricing rule:
+- **Base-priced material** (`MaterialBasePrice`) → `InkPricingBasis.SheetOrUnit` → looks for `InkConfigurationSheetPrice`
+- **Area-priced material** (`MaterialAreaPrice` / `MaterialAreaTier`) → `InkPricingBasis.Area` → looks for `InkConfigurationAreaPrice`
+
+Large-format inkjet methods (UV inkjet, solvent inkjet, Epson 8-color) only have `InkConfigurationAreaPrice` rules. Digital and offset only have `InkConfigurationSheetPrice` rules. When a base-priced paper material (adhesiveStock, Yupo) is combined with a large-format inkjet method, or when an area-priced vinyl material is combined with digital/offset, the ink rule is not found and `inkConfigLine` is `None` (ink cost = 0, silently).
+
+**Solution:** `SampleRules` now contains two `ConfigurationConstraint` rules for the stickers category that prevent these mismatched combinations at validation time:
+1. Vinyl-family materials require a large-format inkjet process (UV / solvent / extended gamut).
+2. Large-format inkjet processes require a vinyl-family material.
+
+If validation is bypassed and `PriceCalculator` is called directly, the bug still exists — the ink line will be absent. See also the BUG-documenting tests in `PriceCalculatorSpec.scala` (`"BUG: adhesiveStock sticker + UV inkjet…"` and `"BUG: vinyl sticker + digital…"`).
+
+A more robust fix would be for `PriceCalculator` to return a `PricingError` when the ink-pricing basis and the print method's available rules are incompatible (e.g. no `InkConfigurationAreaPrice` found for an area-priced material), rather than silently returning `None`. This is tracked as a follow-up item.
+
+**Files:**
+- `modules/domain/src/main/scala/mpbuilder/domain/sample/SampleRules.scala` (fix)
+- `modules/domain/src/test/scala/mpbuilder/domain/PriceCalculatorSpec.scala` (bug documentation tests)
+- `modules/domain/src/test/scala/mpbuilder/domain/ConfigurationBuilderSpec.scala` (constraint tests)
+
+---
+
 ## UI & Scala.js
 
 ### Laminar `combineWith` tuple flattening issues
@@ -238,3 +263,4 @@ areaTierRule match
 **Solution:** Whenever a new `PricingRule` variant is added, add a corresponding case to **both** `pricingRuleSummary` (returns a display string) **and** `pricingRuleTypeName` (returns the type name string) in `PricelistEditorView`. The Scala compiler emits a non-exhaustive match warning for these matches; treat those warnings as errors.
 
 **Files:** `modules/ui/src/main/scala/mpbuilder/ui/catalog/views/PricelistEditorView.scala`
+

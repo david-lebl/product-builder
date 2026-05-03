@@ -126,6 +126,10 @@ object SampleCatalog:
   val uvInkjetId: PrintingMethodId     = PrintingMethodId.unsafe("pm-uv-inkjet")
   val letterpressId: PrintingMethodId  = PrintingMethodId.unsafe("pm-letterpress")
 
+  // --- Large-Format Printing Method IDs ---
+  val solventInkjetId: PrintingMethodId  = PrintingMethodId.unsafe("pm-solvent-inkjet")
+  val epson8ColorId: PrintingMethodId    = PrintingMethodId.unsafe("pm-epson-8color")
+
   // --- Promotional Printing Method IDs ---
   val screenPrintId: PrintingMethodId    = PrintingMethodId.unsafe("pm-screen-print")
   val dtgId: PrintingMethodId            = PrintingMethodId.unsafe("pm-dtg")
@@ -474,6 +478,28 @@ object SampleCatalog:
     processType = PrintingProcessType.Digital,
     maxColorCount = None,
     description = Some(LocalizedString("All-over prints on polyester and coated surfaces", "Celoplošný tisk na polyester a povrchově upravené materiály")),
+  )
+
+  val solventInkjetMethod: PrintingMethod = PrintingMethod(
+    id = solventInkjetId,
+    name = LocalizedString("Solvent Inkjet", "Solventový inkoustový tisk"),
+    processType = PrintingProcessType.SolventInkjet,
+    maxColorCount = None,
+    description = Some(LocalizedString(
+      "Wide-format printing with solvent-based inks on self-adhesive vinyl. Excellent outdoor durability and weather resistance. Ideal for outdoor stickers, vehicle wraps, and signage.",
+      "Velkoformátový tisk se solventovými inkousty na samolepicím vinylu. Vynikající odolnost pro venkovní použití a povětrnostní vlivy. Ideální pro venkovní samolepky, polepy vozidel a značení.",
+    )),
+  )
+
+  val epson8ColorMethod: PrintingMethod = PrintingMethod(
+    id = epson8ColorId,
+    name = LocalizedString("Epson 8-Color (Extended Gamut)", "Epson 8 barev (rozšířená barevná škála)"),
+    processType = PrintingProcessType.LatexInkjet,
+    maxColorCount = Some(8),
+    description = Some(LocalizedString(
+      "Premium 8-channel wide-gamut inkjet printing for stickers and labels. Extended color gamut with dedicated light-cyan, light-magenta, and additional ink channels. Delivers exceptional photo quality and color accuracy on vinyl substrates.",
+      "Prémiový 8-kanálový inkoustový tisk s rozšířenou barevnou škálou pro samolepky a štítky. Dedikované kanály pro světle azurovou, světle purpurovou a další inkousty zajišťují výjimečnou foto-kvalitu a přesnost barev na vinylových materiálech.",
+    )),
   )
 
   // --- Finishes ---
@@ -1565,11 +1591,11 @@ object SampleCatalog:
     name = LocalizedString("Stickers & Labels", "Samolepky a štítky"),
     components = List(ComponentTemplate(
       ComponentRole.Main,
-      allowedMaterialIds = Set(adhesiveStockId, yupoId, clearVinylId),
+      allowedMaterialIds = Set(adhesiveStockId, yupoId, vinylId, clearVinylId),
       allowedFinishIds = Set(kissCutId, dieCutId, roundCornersId, uvCoatingId),
     )),
     requiredSpecKinds = Set(SpecKind.Size, SpecKind.Quantity),
-    allowedPrintingMethodIds = Set(digitalId, uvInkjetId),
+    allowedPrintingMethodIds = Set(digitalId, uvInkjetId, solventInkjetId, epson8ColorId),
     description = Some(LocalizedString(
       "Custom stickers and product labels on adhesive, synthetic, or clear vinyl stock. Kiss-cut for peel-off sheets or die-cut for individual shapes.",
       "Zakázkové samolepky a produktové štítky na samolepicím, syntetickém nebo průhledném vinylovém materiálu. Výsek bez podkladu pro odlepovací archy nebo výsek pro jednotlivé tvary.",
@@ -1620,6 +1646,42 @@ object SampleCatalog:
           "Průhledný vinyl, 4+0 CMYK, UV inkjet, 50×50 mm, 250 ks",
         )),
         printingMethodId = uvInkjetId,
+        componentPresets = List(ComponentPreset(
+          role = ComponentRole.Main,
+          materialId = clearVinylId,
+          inkConfiguration = InkConfiguration.cmyk4_0,
+        )),
+        specOverrides = List(
+          SpecValue.SizeSpec(Dimension(50, 50)),
+          SpecValue.QuantitySpec(Quantity.unsafe(250)),
+        ),
+      ),
+      CategoryPreset(
+        id = PresetId.unsafe("preset-stickers-solvent"),
+        name = LocalizedString("Outdoor Vinyl (Solvent)", "Venkovní vinyl (solvent)"),
+        description = Some(LocalizedString(
+          "Adhesive vinyl, 4+0 CMYK, solvent inkjet, 100×100 mm, 250 pcs",
+          "Samolepicí vinyl, 4+0 CMYK, solventový tisk, 100×100 mm, 250 ks",
+        )),
+        printingMethodId = solventInkjetId,
+        componentPresets = List(ComponentPreset(
+          role = ComponentRole.Main,
+          materialId = vinylId,
+          inkConfiguration = InkConfiguration.cmyk4_0,
+        )),
+        specOverrides = List(
+          SpecValue.SizeSpec(Dimension(100, 100)),
+          SpecValue.QuantitySpec(Quantity.unsafe(250)),
+        ),
+      ),
+      CategoryPreset(
+        id = PresetId.unsafe("preset-stickers-epson8color"),
+        name = LocalizedString("Premium 8-Color (Epson)", "Prémiový 8-barevný (Epson)"),
+        description = Some(LocalizedString(
+          "Clear vinyl, 4+0 CMYK, Epson 8-color, 50×50 mm, 250 pcs",
+          "Průhledný vinyl, 4+0 CMYK, Epson 8 barev, 50×50 mm, 250 ks",
+        )),
+        printingMethodId = epson8ColorId,
         componentPresets = List(ComponentPreset(
           role = ComponentRole.Main,
           materialId = clearVinylId,
@@ -2114,6 +2176,9 @@ object SampleCatalog:
       digitalId     -> digitalMethod,
       uvInkjetId    -> uvInkjetMethod,
       letterpressId -> letterpressMethod,
+      // Large-format / sticker printing
+      solventInkjetId -> solventInkjetMethod,
+      epson8ColorId   -> epson8ColorMethod,
       // Promotional
       screenPrintId  -> screenPrintMethod,
       dtgId          -> dtgMethod,

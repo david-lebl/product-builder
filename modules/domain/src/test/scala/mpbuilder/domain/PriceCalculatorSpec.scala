@@ -2044,4 +2044,356 @@ object PriceCalculatorSpec extends ZIOSpecDefault:
         )
       },
     ),
+    suite("sticker large-format print methods")(
+      test("clear vinyl + UV inkjet CZK 4+0 → area pricing includes ink line") {
+        // 100×100mm clearVinyl sticker, 100 pcs, UV inkjet, CZK pricelist
+        // area = 0.01 m²
+        // material: 475 CZK/m² × 0.01 = 4.75 per sticker; total = 475.00
+        // ink 4+0: (360 × 0.01).rounded = 3.60 per sticker; total = 360.00
+        // subtotal = 835.00; tier 100-499 → 0.55×
+        // total = (835.00 × 0.55).rounded = 459.25
+        val config = makeConfig(
+          category = SampleCatalog.stickers,
+          material = SampleCatalog.clearVinyl,
+          printingMethod = SampleCatalog.uvInkjetMethod,
+          inkConfig = InkConfiguration.cmyk4_0,
+          finishes = Nil,
+          specs = List(
+            SpecValue.SizeSpec(Dimension(100, 100)),
+            SpecValue.QuantitySpec(Quantity.unsafe(100)),
+          ),
+        )
+        val result = PriceCalculator.calculate(config, pricelistCzk)
+        val breakdown = result.toEither.toOption.get
+        val cb = firstBreakdown(breakdown)
+        assertTrue(
+          result.toEither.isRight,
+          cb.inkConfigLine.isDefined,
+          cb.inkConfigLine.get.unitPrice == Money("3.60"),
+          cb.inkConfigLine.get.lineTotal == Money("360.00"),
+          cb.materialLine.lineTotal == Money("475.00"),
+          breakdown.subtotal == Money("835.00"),
+          breakdown.quantityMultiplier == BigDecimal("0.55"),
+          breakdown.total == Money("459.25"),
+          breakdown.currency == Currency.CZK,
+        )
+      },
+      test("adhesive vinyl + solvent inkjet CZK 4+0 → area pricing includes ink line") {
+        // 100×100mm vinyl sticker, 100 pcs, solvent inkjet, CZK pricelist
+        // area = 0.01 m²
+        // material: 375 CZK/m² × 0.01 = 3.75; total = 375.00
+        // ink 4+0: (300 × 0.01).rounded = 3.00; total = 300.00
+        // subtotal = 675.00; tier 100-499 → 0.55×
+        // total = (675.00 × 0.55).rounded = 371.25
+        val config = makeConfig(
+          category = SampleCatalog.stickers,
+          material = SampleCatalog.vinyl,
+          printingMethod = SampleCatalog.solventInkjetMethod,
+          inkConfig = InkConfiguration.cmyk4_0,
+          finishes = Nil,
+          specs = List(
+            SpecValue.SizeSpec(Dimension(100, 100)),
+            SpecValue.QuantitySpec(Quantity.unsafe(100)),
+          ),
+        )
+        val result = PriceCalculator.calculate(config, pricelistCzk)
+        val breakdown = result.toEither.toOption.get
+        val cb = firstBreakdown(breakdown)
+        assertTrue(
+          result.toEither.isRight,
+          cb.inkConfigLine.isDefined,
+          cb.inkConfigLine.get.unitPrice == Money("3.00"),
+          cb.inkConfigLine.get.lineTotal == Money("300.00"),
+          cb.materialLine.lineTotal == Money("375.00"),
+          breakdown.subtotal == Money("675.00"),
+          breakdown.total == Money("371.25"),
+        )
+      },
+      test("clear vinyl + Epson 8-color CZK 4+0 → area pricing includes ink line") {
+        // 100×100mm clearVinyl sticker, 100 pcs, Epson 8-color, CZK pricelist
+        // area = 0.01 m²
+        // material: 475 CZK/m² × 0.01 = 4.75; total = 475.00
+        // ink 4+0: (420 × 0.01).rounded = 4.20; total = 420.00
+        // subtotal = 895.00; tier 100-499 → 0.55×
+        // total = (895.00 × 0.55).rounded = 492.25
+        val config = makeConfig(
+          category = SampleCatalog.stickers,
+          material = SampleCatalog.clearVinyl,
+          printingMethod = SampleCatalog.epson8ColorMethod,
+          inkConfig = InkConfiguration.cmyk4_0,
+          finishes = Nil,
+          specs = List(
+            SpecValue.SizeSpec(Dimension(100, 100)),
+            SpecValue.QuantitySpec(Quantity.unsafe(100)),
+          ),
+        )
+        val result = PriceCalculator.calculate(config, pricelistCzk)
+        val breakdown = result.toEither.toOption.get
+        val cb = firstBreakdown(breakdown)
+        assertTrue(
+          result.toEither.isRight,
+          cb.inkConfigLine.isDefined,
+          cb.inkConfigLine.get.unitPrice == Money("4.20"),
+          cb.inkConfigLine.get.lineTotal == Money("420.00"),
+          cb.materialLine.lineTotal == Money("475.00"),
+          breakdown.subtotal == Money("895.00"),
+          breakdown.total == Money("492.25"),
+        )
+      },
+      test("adhesiveStock sticker + digital CZK 4+0 → base pricing includes ink line") {
+        // 100×100mm adhesiveStock sticker, 100 pcs, digital, CZK pricelist
+        // material: 7 CZK/unit; total = 700.00
+        // ink 4+0: 1.50 CZK/unit; total = 150.00
+        // subtotal = 850.00; tier 100-499 → 0.55×
+        // total = (850.00 × 0.55).rounded = 467.50
+        val config = makeConfig(
+          category = SampleCatalog.stickers,
+          material = SampleCatalog.adhesiveStock,
+          printingMethod = SampleCatalog.digitalMethod,
+          inkConfig = InkConfiguration.cmyk4_0,
+          finishes = Nil,
+          specs = List(
+            SpecValue.SizeSpec(Dimension(100, 100)),
+            SpecValue.QuantitySpec(Quantity.unsafe(100)),
+          ),
+        )
+        val result = PriceCalculator.calculate(config, pricelistCzk)
+        val breakdown = result.toEither.toOption.get
+        val cb = firstBreakdown(breakdown)
+        assertTrue(
+          result.toEither.isRight,
+          cb.inkConfigLine.isDefined,
+          cb.inkConfigLine.get.unitPrice == Money("1.50"),
+          cb.inkConfigLine.get.lineTotal == Money("150.00"),
+          cb.materialLine.lineTotal == Money("700.00"),
+          breakdown.subtotal == Money("850.00"),
+          breakdown.total == Money("467.50"),
+        )
+      },
+      test("adhesiveStock sticker + UV inkjet → ink config line present (per-unit UV flatbed price applies)") {
+        // Now that InkConfigurationSheetPrice rules exist for uvInkjetId, the calculator picks
+        // the per-unit price (SheetOrUnit basis) for base-priced materials.
+        // Note: this combination (paper substrate + UV inkjet) is still rejected by
+        // ConfigurationValidator / SampleRules — the test bypasses validation to confirm
+        // the calculator no longer silently drops the ink cost.
+        val config = makeConfig(
+          category = SampleCatalog.stickers,
+          material = SampleCatalog.adhesiveStock,
+          printingMethod = SampleCatalog.uvInkjetMethod,
+          inkConfig = InkConfiguration.cmyk4_0,
+          finishes = Nil,
+          specs = List(
+            SpecValue.SizeSpec(Dimension(100, 100)),
+            SpecValue.QuantitySpec(Quantity.unsafe(100)),
+          ),
+        )
+        val result = PriceCalculator.calculate(config, pricelistCzk)
+        val breakdown = result.toEither.toOption.get
+        val cb = firstBreakdown(breakdown)
+        // Material: 100 × 7 CZK = 700 CZK; ink 4/0 UV per unit: 100 × 20 CZK = 2000 CZK
+        // subtotal = 2700; tier 100–499 = ×0.55; total = 1485 CZK
+        assertTrue(
+          cb.inkConfigLine.isDefined,
+          cb.inkConfigLine.get.lineTotal == Money("2000.00"),
+          breakdown.subtotal == Money("2700.00"),
+          breakdown.total == Money("1485.00"),
+        )
+      },
+      test("BUG: vinyl sticker + digital → ink config line absent (sheet rule not matched for area-priced material)") {
+        // Mirror bug: area-priced vinyl material + digital printing method that only has
+        // InkConfigurationSheetPrice rules. The calculator uses InkPricingBasis.Area for
+        // area-priced materials, which only matches InkConfigurationAreaPrice rules.
+        // Digital has no InkConfigurationAreaPrice rule → ink cost is silently zero.
+        //
+        // The ConfigurationValidator (SampleRules) prevents this combination from being built.
+        val config = makeConfig(
+          category = SampleCatalog.stickers,
+          material = SampleCatalog.vinyl,
+          printingMethod = SampleCatalog.digitalMethod,
+          inkConfig = InkConfiguration.cmyk4_0,
+          finishes = Nil,
+          specs = List(
+            SpecValue.SizeSpec(Dimension(100, 100)),
+            SpecValue.QuantitySpec(Quantity.unsafe(100)),
+          ),
+        )
+        val result = PriceCalculator.calculate(config, pricelistCzk)
+        val breakdown = result.toEither.toOption.get
+        val cb = firstBreakdown(breakdown)
+        // Ink config line is absent — the 1.50 CZK/unit digital ink cost is silently lost.
+        assertTrue(
+          cb.inkConfigLine.isEmpty,
+          cb.materialLine.lineTotal == Money("375.00"),
+        )
+      },
+    ),
+    suite("pricelistCzkSheet area pricing for large-format inkjet")(
+      // These tests verify that the UI-facing CZK sheet pricelist (pricelistCzkSheet) correctly
+      // prices vinyl sticker products with all large-format inkjet methods.
+      test("clear vinyl sticker + UV inkjet (CzkSheet) 4+0 → correct area price in breakdown") {
+        // 100×100mm clearVinyl sticker, 10 pcs, UV inkjet, CZK sheet pricelist
+        // area = 0.01 m²
+        // material: 475 CZK/m² × 0.01 = 4.75 per sticker; total = 47.50
+        // ink 4+0: (360 × 0.01).rounded = 3.60 per sticker; total = 36.00
+        // subtotal = 83.50; no quantity tier (< 50 pcs)
+        // minimum 200 CZK applies; minimumApplied = Some(83.50)
+        val config = makeConfig(
+          category = SampleCatalog.stickers,
+          material = SampleCatalog.clearVinyl,
+          printingMethod = SampleCatalog.uvInkjetMethod,
+          inkConfig = InkConfiguration.cmyk4_0,
+          finishes = Nil,
+          specs = List(
+            SpecValue.SizeSpec(Dimension(100, 100)),
+            SpecValue.QuantitySpec(Quantity.unsafe(10)),
+          ),
+        )
+        val result = PriceCalculator.calculate(config, SamplePricelist.pricelistCzkSheet)
+        val breakdown = result.toEither.toOption.get
+        val cb = firstBreakdown(breakdown)
+        assertTrue(
+          result.toEither.isRight,
+          cb.inkConfigLine.isDefined,
+          cb.inkConfigLine.get.unitPrice == Money("3.60"),
+          cb.inkConfigLine.get.lineTotal == Money("36.00"),
+          cb.materialLine.lineTotal == Money("47.50"),
+          breakdown.subtotal == Money("83.50"),
+          breakdown.minimumApplied.isDefined,
+          breakdown.total == Money("200.00"),
+        )
+      },
+      test("adhesive vinyl sticker + solvent inkjet (CzkSheet) 4+0 → correct area price in breakdown") {
+        // 100×100mm vinyl sticker, 100 pcs, solvent inkjet, CZK sheet pricelist
+        // area = 0.01 m²
+        // material: 375 CZK/m² × 0.01 = 3.75; total = 375.00
+        // ink 4+0: (300 × 0.01).rounded = 3.00; total = 300.00
+        // subtotal = 675.00; tier 50-249 sheets... but area-based so no sheet tier → quantity tier fallback
+        // No QuantityTier in pricelistCzkSheet (only SheetQuantityTier); so multiplier = 1.0
+        // total = 675.00
+        val config = makeConfig(
+          category = SampleCatalog.stickers,
+          material = SampleCatalog.vinyl,
+          printingMethod = SampleCatalog.solventInkjetMethod,
+          inkConfig = InkConfiguration.cmyk4_0,
+          finishes = Nil,
+          specs = List(
+            SpecValue.SizeSpec(Dimension(100, 100)),
+            SpecValue.QuantitySpec(Quantity.unsafe(100)),
+          ),
+        )
+        val result = PriceCalculator.calculate(config, SamplePricelist.pricelistCzkSheet)
+        val breakdown = result.toEither.toOption.get
+        val cb = firstBreakdown(breakdown)
+        assertTrue(
+          result.toEither.isRight,
+          cb.inkConfigLine.isDefined,
+          cb.inkConfigLine.get.unitPrice == Money("3.00"),
+          cb.inkConfigLine.get.lineTotal == Money("300.00"),
+          cb.materialLine.lineTotal == Money("375.00"),
+          breakdown.subtotal == Money("675.00"),
+        )
+      },
+      test("clear vinyl sticker + Epson 8-color (CzkSheet) 4+0 → correct area price in breakdown") {
+        // 100×100mm clearVinyl sticker, 100 pcs, Epson 8-color, CZK sheet pricelist
+        // area = 0.01 m²
+        // material: 475 CZK/m² × 0.01 = 4.75; total = 475.00
+        // ink 4+0: (420 × 0.01).rounded = 4.20; total = 420.00
+        // subtotal = 895.00; no sheet tier (area-based); total = 895.00
+        val config = makeConfig(
+          category = SampleCatalog.stickers,
+          material = SampleCatalog.clearVinyl,
+          printingMethod = SampleCatalog.epson8ColorMethod,
+          inkConfig = InkConfiguration.cmyk4_0,
+          finishes = Nil,
+          specs = List(
+            SpecValue.SizeSpec(Dimension(100, 100)),
+            SpecValue.QuantitySpec(Quantity.unsafe(100)),
+          ),
+        )
+        val result = PriceCalculator.calculate(config, SamplePricelist.pricelistCzkSheet)
+        val breakdown = result.toEither.toOption.get
+        val cb = firstBreakdown(breakdown)
+        assertTrue(
+          result.toEither.isRight,
+          cb.inkConfigLine.isDefined,
+          cb.inkConfigLine.get.unitPrice == Money("4.20"),
+          cb.inkConfigLine.get.lineTotal == Money("420.00"),
+          cb.materialLine.lineTotal == Money("475.00"),
+          breakdown.subtotal == Money("895.00"),
+        )
+      },
+    ),
+    suite("pricelistCzkSheet promotional ink configuration pricing")(
+      // These tests verify that t-shirts, mugs, and bags have ink configuration line items in
+      // the price breakdown when using DTG, dye sublimation, or UV inkjet (per-unit flatbed).
+      test("cotton t-shirt + DTG 4/0 \u2192 ink config line present in breakdown (CzkSheet)") {
+        // DTG: 3 CZK/unit for 4/0; 100 units
+        val config = makeConfig(
+          category = SampleCatalog.tshirts,
+          material = SampleCatalog.cottonTshirt150,
+          printingMethod = SampleCatalog.dtgMethod,
+          inkConfig = InkConfiguration.cmyk4_0,
+          finishes = Nil,
+          specs = List(
+            SpecValue.SizeSpec(Dimension(250, 350)),
+            SpecValue.QuantitySpec(Quantity.unsafe(100)),
+          ),
+        )
+        val result = PriceCalculator.calculate(config, SamplePricelist.pricelistCzkSheet)
+        val breakdown = result.toEither.toOption.get
+        val cb = firstBreakdown(breakdown)
+        assertTrue(
+          result.toEither.isRight,
+          cb.inkConfigLine.isDefined,
+          cb.inkConfigLine.get.unitPrice == Money("3"),
+          cb.inkConfigLine.get.lineTotal == Money("300.00"),
+        )
+      },
+      test("polyester t-shirt + sublimation 4/0 \u2192 ink config line present in breakdown (CzkSheet)") {
+        // Dye sublimation: 2.50 CZK/unit for 4/0; 50 units
+        val config = makeConfig(
+          category = SampleCatalog.tshirts,
+          material = SampleCatalog.polyesterTshirt,
+          printingMethod = SampleCatalog.sublimationMethod,
+          inkConfig = InkConfiguration.cmyk4_0,
+          finishes = Nil,
+          specs = List(
+            SpecValue.SizeSpec(Dimension(250, 350)),
+            SpecValue.QuantitySpec(Quantity.unsafe(50)),
+          ),
+        )
+        val result = PriceCalculator.calculate(config, SamplePricelist.pricelistCzkSheet)
+        val breakdown = result.toEither.toOption.get
+        val cb = firstBreakdown(breakdown)
+        assertTrue(
+          result.toEither.isRight,
+          cb.inkConfigLine.isDefined,
+          cb.inkConfigLine.get.unitPrice == Money("2.50"),
+          cb.inkConfigLine.get.lineTotal == Money("125.00"),
+        )
+      },
+      test("ceramic mug + UV inkjet 4/0 \u2192 ink config line present in breakdown (CzkSheet)") {
+        // UV flatbed on mug: 20 CZK/unit for 4/0; 50 units
+        val config = makeConfig(
+          category = SampleCatalog.cups,
+          material = SampleCatalog.ceramicMugWhite,
+          printingMethod = SampleCatalog.uvInkjetMethod,
+          inkConfig = InkConfiguration.cmyk4_0,
+          finishes = Nil,
+          specs = List(
+            SpecValue.SizeSpec(Dimension(200, 85)),
+            SpecValue.QuantitySpec(Quantity.unsafe(50)),
+          ),
+        )
+        val result = PriceCalculator.calculate(config, SamplePricelist.pricelistCzkSheet)
+        val breakdown = result.toEither.toOption.get
+        val cb = firstBreakdown(breakdown)
+        assertTrue(
+          result.toEither.isRight,
+          cb.inkConfigLine.isDefined,
+          cb.inkConfigLine.get.unitPrice == Money("20"),
+          cb.inkConfigLine.get.lineTotal == Money("1000.00"),
+        )
+      },
+    ),
   )
