@@ -46,6 +46,7 @@ Brief description of what was accomplished in this session.
 
 | Date | Title | PR | Type |
 |------|-------|----|------|
+| 2026-05-03 | [Promotional Ink Config Pricing Fix (DTG, Sublimation, UV Flatbed Mug)](2026-05-03-dtg-sublimation-uv-mug-pricing-fix.md) | copilot/check-prices-for-print-methods | bugfix |
 | 2026-05-03 | [Ink Config Single-Sided Constraint & Sticker Pricing Fix](2026-05-03-ink-config-single-sided-constraint.md) | copilot/check-prices-for-print-methods | bugfix |
 | 2026-04-28 | [Print Method Pricing Gaps & New Sticker Methods](2026-04-28-print-method-pricing-gaps.md) | copilot/check-prices-for-print-methods | feature |
 | 2026-04-28 | [Email Order Option](2026-04-28-email-order-option.md) | copilot/add-email-order-option-ui | feature |
