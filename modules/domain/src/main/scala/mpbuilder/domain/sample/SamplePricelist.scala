@@ -96,12 +96,18 @@ object SamplePricelist:
       PricingRule.InkConfigurationSheetPrice(SampleCatalog.letterpressId, 4, 1, Money("0.03")),
       PricingRule.InkConfigurationSheetPrice(SampleCatalog.letterpressId, 1, 0, Money("0.005")),
       PricingRule.InkConfigurationSheetPrice(SampleCatalog.letterpressId, 1, 1, Money("0.008")),
-      // UV inkjet (large format): per sqm
+      // UV inkjet (large format / sticker printing): per sqm
       PricingRule.InkConfigurationAreaPrice(SampleCatalog.uvInkjetId, 4, 4, Money("1.80")),
       PricingRule.InkConfigurationAreaPrice(SampleCatalog.uvInkjetId, 4, 0, Money("0.90")),
       PricingRule.InkConfigurationAreaPrice(SampleCatalog.uvInkjetId, 4, 1, Money("1.20")),
       PricingRule.InkConfigurationAreaPrice(SampleCatalog.uvInkjetId, 1, 0, Money("0.25")),
       PricingRule.InkConfigurationAreaPrice(SampleCatalog.uvInkjetId, 1, 1, Money("0.40")),
+      // UV inkjet direct (per unit — for UV flatbed on mugs and other base-priced items)
+      PricingRule.InkConfigurationSheetPrice(SampleCatalog.uvInkjetId, 4, 4, Money("1.30")),
+      PricingRule.InkConfigurationSheetPrice(SampleCatalog.uvInkjetId, 4, 0, Money("0.75")),
+      PricingRule.InkConfigurationSheetPrice(SampleCatalog.uvInkjetId, 4, 1, Money("1.00")),
+      PricingRule.InkConfigurationSheetPrice(SampleCatalog.uvInkjetId, 1, 0, Money("0.22")),
+      PricingRule.InkConfigurationSheetPrice(SampleCatalog.uvInkjetId, 1, 1, Money("0.38")),
       // Screen printing (per unit)
       PricingRule.InkConfigurationSheetPrice(SampleCatalog.screenPrintId, 4, 4, Money("0.06")),
       PricingRule.InkConfigurationSheetPrice(SampleCatalog.screenPrintId, 4, 0, Money("0.04")),
@@ -368,8 +374,12 @@ object SamplePricelist:
       PricingRule.InkConfigurationAreaPrice(SampleCatalog.uvInkjetId, 4, 1, Money("480")),
       PricingRule.InkConfigurationAreaPrice(SampleCatalog.uvInkjetId, 1, 0, Money("100")),
       PricingRule.InkConfigurationAreaPrice(SampleCatalog.uvInkjetId, 1, 1, Money("160")),
-      // Solvent inkjet (outdoor sticker / vinyl printing): per sqm
-      PricingRule.InkConfigurationAreaPrice(SampleCatalog.solventInkjetId, 4, 4, Money("600")),
+      // UV inkjet direct (per unit — for UV flatbed on mugs and other base-priced items)
+      PricingRule.InkConfigurationSheetPrice(SampleCatalog.uvInkjetId, 4, 4, Money("35")),
+      PricingRule.InkConfigurationSheetPrice(SampleCatalog.uvInkjetId, 4, 0, Money("20")),
+      PricingRule.InkConfigurationSheetPrice(SampleCatalog.uvInkjetId, 4, 1, Money("27")),
+      PricingRule.InkConfigurationSheetPrice(SampleCatalog.uvInkjetId, 1, 0, Money("6")),
+      PricingRule.InkConfigurationSheetPrice(SampleCatalog.uvInkjetId, 1, 1, Money("10")),
       PricingRule.InkConfigurationAreaPrice(SampleCatalog.solventInkjetId, 4, 0, Money("300")),
       PricingRule.InkConfigurationAreaPrice(SampleCatalog.solventInkjetId, 4, 1, Money("400")),
       PricingRule.InkConfigurationAreaPrice(SampleCatalog.solventInkjetId, 1, 0, Money("80")),
@@ -755,6 +765,12 @@ object SamplePricelist:
       PricingRule.InkConfigurationAreaPrice(SampleCatalog.uvInkjetId, 4, 1, Money("480")),
       PricingRule.InkConfigurationAreaPrice(SampleCatalog.uvInkjetId, 1, 0, Money("100")),
       PricingRule.InkConfigurationAreaPrice(SampleCatalog.uvInkjetId, 1, 1, Money("160")),
+      // UV inkjet direct (per unit — for UV flatbed on mugs and other base-priced items)
+      PricingRule.InkConfigurationSheetPrice(SampleCatalog.uvInkjetId, 4, 4, Money("35")),
+      PricingRule.InkConfigurationSheetPrice(SampleCatalog.uvInkjetId, 4, 0, Money("20")),
+      PricingRule.InkConfigurationSheetPrice(SampleCatalog.uvInkjetId, 4, 1, Money("27")),
+      PricingRule.InkConfigurationSheetPrice(SampleCatalog.uvInkjetId, 1, 0, Money("6")),
+      PricingRule.InkConfigurationSheetPrice(SampleCatalog.uvInkjetId, 1, 1, Money("10")),
       // Solvent inkjet (large format): per sqm
       PricingRule.InkConfigurationAreaPrice(SampleCatalog.solventInkjetId, 4, 4, Money("600")),
       PricingRule.InkConfigurationAreaPrice(SampleCatalog.solventInkjetId, 4, 0, Money("300")),
@@ -885,6 +901,26 @@ object SamplePricelist:
 
       // --- Promotional printing process surcharges (CZK — sheet pricelist) ---
       PricingRule.PrintingProcessSurcharge(PrintingProcessType.ScreenPrint, Money("4")),
+
+      // --- Promotional ink configuration: per-unit cost keyed by printing method (CZK) ---
+      // Screen printing (per unit — for t-shirts, mugs, bags; process surcharge adds 4 CZK separately)
+      PricingRule.InkConfigurationSheetPrice(SampleCatalog.screenPrintId, 4, 4, Money("4")),
+      PricingRule.InkConfigurationSheetPrice(SampleCatalog.screenPrintId, 4, 0, Money("2")),
+      PricingRule.InkConfigurationSheetPrice(SampleCatalog.screenPrintId, 4, 1, Money("3")),
+      PricingRule.InkConfigurationSheetPrice(SampleCatalog.screenPrintId, 1, 0, Money("0.60")),
+      PricingRule.InkConfigurationSheetPrice(SampleCatalog.screenPrintId, 1, 1, Money("1")),
+      // DTG (direct-to-garment, per unit — for t-shirts and cotton bags)
+      PricingRule.InkConfigurationSheetPrice(SampleCatalog.dtgId, 4, 4, Money("6")),
+      PricingRule.InkConfigurationSheetPrice(SampleCatalog.dtgId, 4, 0, Money("3")),
+      PricingRule.InkConfigurationSheetPrice(SampleCatalog.dtgId, 4, 1, Money("4")),
+      PricingRule.InkConfigurationSheetPrice(SampleCatalog.dtgId, 1, 0, Money("1")),
+      PricingRule.InkConfigurationSheetPrice(SampleCatalog.dtgId, 1, 1, Money("1.80")),
+      // Dye sublimation (per unit — for polyester t-shirts and ceramic/coated mugs)
+      PricingRule.InkConfigurationSheetPrice(SampleCatalog.sublimationId, 4, 4, Money("5")),
+      PricingRule.InkConfigurationSheetPrice(SampleCatalog.sublimationId, 4, 0, Money("2.50")),
+      PricingRule.InkConfigurationSheetPrice(SampleCatalog.sublimationId, 4, 1, Money("3.50")),
+      PricingRule.InkConfigurationSheetPrice(SampleCatalog.sublimationId, 1, 0, Money("0.80")),
+      PricingRule.InkConfigurationSheetPrice(SampleCatalog.sublimationId, 1, 1, Money("1.50")),
 
       // --- Promotional finish setup fees (one-time, CZK — sheet pricelist) ---
       PricingRule.FinishSetupFee(SampleCatalog.heatPressId, Money("200")),
