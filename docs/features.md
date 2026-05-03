@@ -11,7 +11,7 @@ The core of the system is a domain-driven product configurator for the printing 
 ### Catalog & Categories
 
 - **11 product categories**: Business Cards, Postcards, Flyers, Brochures, Booklets, Calendars, Banners, Packaging, Stickers & Labels, Roll-Up Banners, Free Configuration
-- **13 materials**: papers (coated, uncoated, recycled, premium), cardboard, vinyl, synthetic, adhesive stock — each with family, weight, and properties
+- **13 materials**: papers (coated, uncoated, recycled, premium), cardboard, vinyl, synthetic, adhesive stock — each with family, weight, properties, and optional `sheetDimension` (maximum printable sheet size for the material)
 - **16 finishes**: lamination, UV coating, soft-touch, embossing, foil stamping, die-cut, scoring, perforation, round corners, grommets, and more
 - **4 printing methods**: Digital, Offset, Letterpress, UV Inkjet — each with process type and max color count
 - **Multi-component products**: categories define component templates (e.g. booklet cover + body, roll-up banner + optional stand)
@@ -46,7 +46,7 @@ Rules are **data, not code** — a sealed ADT (`CompatibilityRule`) with 17 vari
 | `ScoringMaxCreasesForMaterial` | Maximum crease count for Scoring finish per material |
 | `ScoringMaxCreasesForPrintingProcess` | Maximum crease count for Scoring finish per printing process |
 
-Predicates (`SpecPredicate`, `ConfigurationPredicate`) support boolean algebra (And/Or/Not) for composable, inspectable rule conditions. `ConfigurationPredicate` variants include: `HasMaterialProperty`, `HasMaterialFamily`, `HasPrintingProcess`, `HasInkType`, `AllowedInkTypes`, `MaxColorCountPerSide`, `IsSingleSided` (all components single-sided), `HasFinishId`, `BindingMethodIs`, `HasMinWeight`, and `Spec` (wraps a `SpecPredicate`).
+Predicates (`SpecPredicate`, `ConfigurationPredicate`) support boolean algebra (And/Or/Not) for composable, inspectable rule conditions. `ConfigurationPredicate` variants include: `HasMaterialProperty`, `HasMaterialFamily`, `HasPrintingProcess`, `HasInkType`, `AllowedInkTypes`, `MaxColorCountPerSide`, `IsSingleSided` (all components single-sided), `SizeWithinMaterialSheet` (product size fits within each component material's sheet dimension), `HasFinishId`, `BindingMethodIs`, `HasMinWeight`, and `Spec` (wraps a `SpecPredicate`).
 
 ### Validation Pipeline
 
