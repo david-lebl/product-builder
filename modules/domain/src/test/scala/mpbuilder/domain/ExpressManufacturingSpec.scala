@@ -125,8 +125,8 @@ object ExpressManufacturingSpec extends ZIOSpecDefault:
       assertTrue(
         result.toEither.isRight,
         bd.speedSurcharge.isEmpty,
-        // 500 × $0.12 = $60, tier 250-999 → 0.90 → $54
-        bd.total == Money("54.00"),
+        // 500 × $0.12 = $60, tier 250-999 → 0.90 → $54; + $15 offset setup fee
+        bd.total == Money("69.00"),
       )
     },
     test("Express tier with base multiplier 1.35 adds +35% surcharge line item") {
@@ -140,8 +140,8 @@ object ExpressManufacturingSpec extends ZIOSpecDefault:
         bd.speedSurcharge.get.label.contains("+35%"),
         // discountedSubtotal = $54.00, surcharge = 54 * 0.35 = $18.90
         bd.speedSurcharge.get.lineTotal == Money("18.90"),
-        // total = 54.00 * 1.35 = $72.90
-        bd.total == Money("72.90"),
+        // total = 54.00 * 1.35 = $72.90; + $15 offset setup fee = $87.90
+        bd.total == Money("87.90"),
       )
     },
     test("Standard tier with multiplier 1.0 produces no surcharge line item") {
@@ -152,7 +152,7 @@ object ExpressManufacturingSpec extends ZIOSpecDefault:
       assertTrue(
         result.toEither.isRight,
         bd.speedSurcharge.isEmpty,
-        bd.total == Money("54.00"),
+        bd.total == Money("69.00"),
       )
     },
     test("Economy tier with multiplier 0.85 produces a −15% discount line item") {
@@ -164,8 +164,8 @@ object ExpressManufacturingSpec extends ZIOSpecDefault:
         result.toEither.isRight,
         bd.speedSurcharge.isDefined,
         bd.speedSurcharge.get.label.contains("-15%"),
-        // discountedSubtotal = $54.00 * 0.85 = $45.90
-        bd.total == Money("45.90"),
+        // discountedSubtotal = $54.00 * 0.85 = $45.90; + $15 offset setup fee = $60.90
+        bd.total == Money("60.90"),
       )
     },
     test("Express at 70% utilisation adds queue threshold adjustment") {
@@ -183,8 +183,8 @@ object ExpressManufacturingSpec extends ZIOSpecDefault:
       assertTrue(
         bd.speedSurcharge.isDefined,
         bd.speedSurcharge.get.label.contains("+60%"),
-        // 54.00 * 1.60 = $86.40
-        bd.total == Money("86.40"),
+        // 54.00 * 1.60 = $86.40; + $15 offset setup fee = $101.40
+        bd.total == Money("101.40"),
       )
     },
     test("Express surcharge is capped at expressSurchargeCap") {
@@ -201,8 +201,8 @@ object ExpressManufacturingSpec extends ZIOSpecDefault:
       assertTrue(
         bd.speedSurcharge.isDefined,
         bd.speedSurcharge.get.label.contains("+100%"),
-        // 54.00 * 2.00 = $108.00
-        bd.total == Money("108.00"),
+        // 54.00 * 2.00 = $108.00; + $15 offset setup fee = $123.00
+        bd.total == Money("123.00"),
       )
     },
     test("Economy price is fixed regardless of queue utilisation") {
@@ -218,7 +218,8 @@ object ExpressManufacturingSpec extends ZIOSpecDefault:
       // Economy always uses base multiplier 0.85, no dynamic adjustments
       assertTrue(
         bd.speedSurcharge.isDefined,
-        bd.total == Money("45.90"),
+        // 54.00 * 0.85 = $45.90; + $15 offset setup fee = $60.90
+        bd.total == Money("60.90"),
       )
     },
     test("Speed surcharge is applied after quantity discount but before setup fees") {

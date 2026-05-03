@@ -120,16 +120,16 @@ object ProductionCostSpec extends ZIOSpecDefault:
     ),
     suite("analyze — margin analysis")(
       test("healthy margin with base pricing") {
-        // Selling price for standardConfig ≈ $67.50 (from PriceCalculator)
+        // Selling price for standardConfig = $82.50 (from PriceCalculator, includes $15 offset setup fee)
         // Production cost ≈ $40.25
-        // Margin ≈ $27.25
+        // Margin ≈ $42.25
         val result = ProductionCostCalculator.analyze(standardConfig, pricelist, costSheet)
         val analysis = result.toEither.toOption.get
         assertTrue(
           result.toEither.isRight,
           analysis.productionCost == Money("40.25"),
-          analysis.sellingPrice == Money("67.50"),
-          analysis.margin == Money("27.25"),
+          analysis.sellingPrice == Money("82.50"),
+          analysis.margin == Money("42.25"),
           !analysis.isBelowCost,
           analysis.warnings.isEmpty,
         )
@@ -156,8 +156,8 @@ object ProductionCostSpec extends ZIOSpecDefault:
         )
       },
       test("low margin warning when margin is below threshold") {
-        // Use a threshold of 80% — the standard config has ~67% margin which is below 80%
-        val highThreshold = Percentage.unsafe(BigDecimal("80"))
+        // Use a threshold of 120% — the standard config has ~105% margin (42.25/40.25) which is below 120%
+        val highThreshold = Percentage.unsafe(BigDecimal("120"))
         val result = ProductionCostCalculator.analyze(
           standardConfig,
           pricelist,
@@ -168,7 +168,7 @@ object ProductionCostSpec extends ZIOSpecDefault:
         assertTrue(
           !analysis.isBelowCost,
           analysis.warnings.exists {
-            case CostWarning.LowMargin(_, threshold) => threshold.value == BigDecimal("80")
+            case CostWarning.LowMargin(_, threshold) => threshold.value == BigDecimal("120")
             case _                                    => false
           },
         )
@@ -188,7 +188,8 @@ object ProductionCostSpec extends ZIOSpecDefault:
         )
       },
       test("area-based configuration margin analysis") {
-        // Banner selling price: 10× vinyl 0.5sqm @ $18.00/sqm = $90.00 (no finishes, no tier discount)
+        // Banner selling price: 10× vinyl 0.5sqm @ $16.20/sqm + ink @ $1.80/sqm = $90.00 subtotal
+        // + UV inkjet setup fee $10.00 = $100.00
         // Production cost: 10× vinyl 0.5sqm @ $8.00/sqm = $40.00 + 10× UV inkjet @ $0.03 = $0.30
         // Direct = $40.30, with 1.15 overhead = $46.35
         val result = ProductionCostCalculator.analyze(areaConfig, pricelist, costSheet)
@@ -196,7 +197,7 @@ object ProductionCostSpec extends ZIOSpecDefault:
         assertTrue(
           result.toEither.isRight,
           analysis.productionCost == Money("46.35"),
-          analysis.sellingPrice == Money("90.00"),
+          analysis.sellingPrice == Money("100.00"),
           !analysis.isBelowCost,
           analysis.warnings.isEmpty,
         )

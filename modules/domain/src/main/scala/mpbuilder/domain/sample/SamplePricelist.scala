@@ -77,6 +77,17 @@ object SamplePricelist:
       // --- Printing process surcharge ---
       PricingRule.PrintingProcessSurcharge(PrintingProcessType.Letterpress, Money("0.20")),
 
+      // --- Printing method setup fees (one-time, not discounted) ---
+      PricingRule.PrintingMethodSetupFee(SampleCatalog.offsetId, Money("15.00")),
+      PricingRule.PrintingMethodSetupFee(SampleCatalog.digitalId, Money("10.00")),
+      PricingRule.PrintingMethodSetupFee(SampleCatalog.uvInkjetId, Money("10.00")),
+      PricingRule.PrintingMethodSetupFee(SampleCatalog.letterpressId, Money("25.00")),
+      PricingRule.PrintingMethodSetupFee(SampleCatalog.solventInkjetId, Money("20.00")),
+      PricingRule.PrintingMethodSetupFee(SampleCatalog.epson8ColorId, Money("20.00")),
+      PricingRule.PrintingMethodSetupFee(SampleCatalog.screenPrintId, Money("20.00")),
+      PricingRule.PrintingMethodSetupFee(SampleCatalog.dtgId, Money("10.00")),
+      PricingRule.PrintingMethodSetupFee(SampleCatalog.sublimationId, Money("10.00")),
+
       // --- Ink configuration: per-unit cost keyed by printing method (USD) ---
       // Offset printing
       PricingRule.InkConfigurationSheetPrice(SampleCatalog.offsetId, 4, 4, Money("0.04")),
@@ -330,6 +341,17 @@ object SamplePricelist:
 
       // --- Printing process surcharge (CZK) ---
       PricingRule.PrintingProcessSurcharge(PrintingProcessType.Letterpress, Money("5")),
+
+      // --- Printing method setup fees (one-time, not discounted, CZK) ---
+      PricingRule.PrintingMethodSetupFee(SampleCatalog.offsetId, Money("350")),
+      PricingRule.PrintingMethodSetupFee(SampleCatalog.digitalId, Money("200")),
+      PricingRule.PrintingMethodSetupFee(SampleCatalog.uvInkjetId, Money("200")),
+      PricingRule.PrintingMethodSetupFee(SampleCatalog.letterpressId, Money("600")),
+      PricingRule.PrintingMethodSetupFee(SampleCatalog.solventInkjetId, Money("400")),
+      PricingRule.PrintingMethodSetupFee(SampleCatalog.epson8ColorId, Money("400")),
+      PricingRule.PrintingMethodSetupFee(SampleCatalog.screenPrintId, Money("400")),
+      PricingRule.PrintingMethodSetupFee(SampleCatalog.dtgId, Money("200")),
+      PricingRule.PrintingMethodSetupFee(SampleCatalog.sublimationId, Money("200")),
 
       // --- Ink configuration: per-unit cost keyed by printing method (CZK) ---
       // Offset printing
@@ -739,6 +761,17 @@ object SamplePricelist:
 
       // --- Printing process surcharge (CZK) ---
       PricingRule.PrintingProcessSurcharge(PrintingProcessType.Letterpress, Money("5")),
+
+      // --- Printing method setup fees (one-time, not discounted, CZK sheet pricelist) ---
+      PricingRule.PrintingMethodSetupFee(SampleCatalog.offsetId, Money("350")),
+      PricingRule.PrintingMethodSetupFee(SampleCatalog.digitalId, Money("200")),
+      PricingRule.PrintingMethodSetupFee(SampleCatalog.uvInkjetId, Money("200")),
+      PricingRule.PrintingMethodSetupFee(SampleCatalog.letterpressId, Money("600")),
+      PricingRule.PrintingMethodSetupFee(SampleCatalog.solventInkjetId, Money("400")),
+      PricingRule.PrintingMethodSetupFee(SampleCatalog.epson8ColorId, Money("400")),
+      PricingRule.PrintingMethodSetupFee(SampleCatalog.screenPrintId, Money("400")),
+      PricingRule.PrintingMethodSetupFee(SampleCatalog.dtgId, Money("200")),
+      PricingRule.PrintingMethodSetupFee(SampleCatalog.sublimationId, Money("200")),
 
       // --- Ink configuration: per-sheet cost keyed by printing method (CZK sheet pricelist) ---
       // Offset printing (per SRA3 sheet)

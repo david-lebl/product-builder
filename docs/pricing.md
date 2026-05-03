@@ -32,7 +32,7 @@ Pricelist(
 
 ### Pricing Rules
 
-There are 23 rule types, each a variant of the `PricingRule` sealed enum:
+There are 24 rule types, each a variant of the `PricingRule` sealed enum:
 
 | Rule | Purpose | Example |
 |------|---------|---------|
@@ -59,6 +59,7 @@ There are 23 rule types, each a variant of the `PricingRule` sealed enum:
 | `FinishTypeSetupFee` | One-time setup fee for a finish type | Any lamination setup = 50 CZK |
 | `FoldTypeSetupFee` | One-time setup fee for a fold type | Tri-fold setup = 80 CZK |
 | `BindingMethodSetupFee` | One-time setup fee for a binding method | Saddle stitch setup = 150 CZK |
+| `PrintingMethodSetupFee` | One-time setup fee for a printing method | Offset setup = 350 CZK |
 | `MinimumOrderPrice` | Price floor applied after all other calculations | Minimum 500 CZK |
 
 **Per-unit surcharges** (material, finish, fold, binding, process, category) are included in the subtotal and are subject to the quantity tier discount.
@@ -111,11 +112,12 @@ Given a valid `ProductConfiguration` and a `Pricelist`, the `PriceCalculator` pe
    - **Product quantity tier (fallback):** If no sheet tier applies, the best matching `QuantityTier` is used based on product quantity.
    - In both cases, the "best" tier is the one with the highest `minQuantity`/`minSheets` that is still ≤ the actual quantity/sheet count.
 
-**11. Collect setup fees.** One-time fees are gathered for each unique finish, fold type, and binding method in the configuration:
+**11. Collect setup fees.** One-time fees are gathered for each unique finish, fold type, binding method, and printing method in the configuration:
    - For finishes: `FinishSetupFee` (by ID) takes precedence over `FinishTypeSetupFee` (by type). If the same finish ID appears on multiple components (e.g., lamination on Cover and Body), the fee is charged only once.
    - For the Scoring finish specifically: `ScoringSetupFee` fires once if any Scoring finish is present, and suppresses `FinishTypeSetupFee(Scoring)` — the dedicated rule takes precedence.
    - For fold type: `FoldTypeSetupFee` matches the configuration's fold type spec.
    - For binding method: `BindingMethodSetupFee` matches the configuration's binding method spec.
+   - For printing method: `PrintingMethodSetupFee` matches the configuration's printing method ID (one per order, regardless of component count).
    - Setup fees are added to the discounted subtotal — they are **not** reduced by the quantity multiplier.
 
 **12. Apply minimum order price.** If a `MinimumOrderPrice` rule exists and `discountedSubtotal + setupFees < minimum`, the total is raised to the minimum. `minimumApplied` is set to the pre-floor amount so the UI can display the indicator.
@@ -141,7 +143,10 @@ Finish: Matte Lamination             $0.03 × 500 =  $15.00
 Subtotal                                         =  $75.00
 Quantity tier (250–999)                          ×    0.90
                                              ─────────────
-Total                                            =  $67.50
+Discounted subtotal                              =  $67.50
+Setup: Offset printing (one-time)                +  $15.00
+                                             ─────────────
+Total                                            =  $82.50
 ```
 
 ### Worked Example: Tri-fold Brochure with Setup Fee

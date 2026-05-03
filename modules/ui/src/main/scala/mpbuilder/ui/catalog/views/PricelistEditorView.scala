@@ -116,6 +116,7 @@ object PricelistEditorView:
     case r: PricingRule.FinishLinearMeterPrice => s"FinishLinearMeterPrice: ${r.finishId.value} = ${r.pricePerMeter.value}/m"
     case r: PricingRule.ScoringCountSurcharge => s"ScoringCountSurcharge: ${r.creaseCount} crease(s) = ${r.surchargePerUnit.value}/unit"
     case _: PricingRule.ScoringSetupFee => s"ScoringSetupFee: (flat)"
+    case r: PricingRule.PrintingMethodSetupFee => s"PrintingMethodSetupFee: ${r.printingMethodId.value} = ${r.setupCost.value}"
 
   private def pricingRuleForm(existing: Option[PricingRule], index: Int): HtmlElement =
     val ruleTypeVar = Var(existing.map(pricingRuleTypeName).getOrElse("MaterialBasePrice"))
@@ -146,6 +147,7 @@ object PricelistEditorView:
       "QuantityTier", "SheetQuantityTier", "InkConfigurationSheetPrice", "InkConfigurationAreaPrice",
       "CuttingSurcharge", "FinishTypeSetupFee", "FinishSetupFee", "FoldTypeSurcharge",
       "BindingMethodSurcharge", "FoldTypeSetupFee", "BindingMethodSetupFee", "MinimumOrderPrice",
+      "PrintingMethodSetupFee",
     )
 
     div(
@@ -215,6 +217,10 @@ object PricelistEditorView:
               FormComponents.numberField("Front Color Count", frontColorVar.signal, frontColorVar.writer),
               FormComponents.numberField("Back Color Count", backColorVar.signal, backColorVar.writer),
             )
+          else emptyNode,
+
+          if rt == "PrintingMethodSetupFee" then
+            FormComponents.textField("Printing Method ID", printingMethodIdVar.signal, printingMethodIdVar.writer)
           else emptyNode,
 
           if Set("FoldTypeSurcharge", "FoldTypeSetupFee").contains(rt) then
@@ -312,6 +318,7 @@ object PricelistEditorView:
       case "FoldTypeSetupFee" => money.map(m => PricingRule.FoldTypeSetupFee(foldType, m))
       case "BindingMethodSetupFee" => money.map(m => PricingRule.BindingMethodSetupFee(bindingMethod, m))
       case "MinimumOrderPrice" => money.map(m => PricingRule.MinimumOrderPrice(m))
+      case "PrintingMethodSetupFee" => money.filter(_ => printingMethodId.nonEmpty).map(m => PricingRule.PrintingMethodSetupFee(PrintingMethodId.unsafe(printingMethodId), m))
       case _ => None
 
   // Extractors for populating form from existing rules
@@ -341,6 +348,7 @@ object PricelistEditorView:
     case _: PricingRule.FinishLinearMeterPrice => "FinishLinearMeterPrice"
     case _: PricingRule.ScoringCountSurcharge => "ScoringCountSurcharge"
     case _: PricingRule.ScoringSetupFee => "ScoringSetupFee"
+    case _: PricingRule.PrintingMethodSetupFee => "PrintingMethodSetupFee"
 
   private def extractPricingMaterialId(rule: Option[PricingRule]): Option[String] = rule.collect {
     case r: PricingRule.MaterialBasePrice => r.materialId.value
@@ -369,11 +377,13 @@ object PricelistEditorView:
     case r: PricingRule.FoldTypeSetupFee => r.setupCost.value
     case r: PricingRule.BindingMethodSetupFee => r.setupCost.value
     case r: PricingRule.MinimumOrderPrice => r.minTotal.value
+    case r: PricingRule.PrintingMethodSetupFee => r.setupCost.value
   }
 
   private def extractPrintingMethodId(rule: Option[PricingRule]): Option[String] = rule.collect {
     case r: PricingRule.InkConfigurationSheetPrice => r.printingMethodId.value
     case r: PricingRule.InkConfigurationAreaPrice => r.printingMethodId.value
+    case r: PricingRule.PrintingMethodSetupFee => r.printingMethodId.value
   }
 
   private def extractPricingFinishType(rule: Option[PricingRule]): Option[FinishType] = rule.collect {

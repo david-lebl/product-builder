@@ -66,7 +66,7 @@ object PriceCalculatorSpec extends ZIOSpecDefault:
           cb.finishLines.head.lineTotal == Money("15.00"),
           breakdown.subtotal == Money("75.00"),
           breakdown.quantityMultiplier == BigDecimal("0.90"),
-          breakdown.total == Money("67.50"),
+          breakdown.total == Money("82.50"),
           breakdown.currency == Currency.USD,
         )
       },
@@ -96,7 +96,7 @@ object PriceCalculatorSpec extends ZIOSpecDefault:
           cb.finishLines.head.unitPrice == Money("0.02"),
           breakdown.subtotal == Money("90.20"),
           breakdown.quantityMultiplier == BigDecimal("1.0"),
-          breakdown.total == Money("90.20"),
+          breakdown.total == Money("100.20"),
         )
       },
       test("quantity tier discount correctly applied") {
@@ -117,7 +117,7 @@ object PriceCalculatorSpec extends ZIOSpecDefault:
         assertTrue(
           breakdown.subtotal == Money("120.00"),
           breakdown.quantityMultiplier == BigDecimal("0.80"),
-          breakdown.total == Money("96.00"),
+          breakdown.total == Money("111.00"),
         )
       },
       test("multiple finish surcharges accumulated") {
@@ -139,7 +139,7 @@ object PriceCalculatorSpec extends ZIOSpecDefault:
         assertTrue(
           cb.finishLines.size == 2,
           breakdown.subtotal == Money("175.00"),
-          breakdown.total == Money("157.50"),
+          breakdown.total == Money("172.50"),
         )
       },
       test("letterpress process surcharge applied") {
@@ -162,7 +162,7 @@ object PriceCalculatorSpec extends ZIOSpecDefault:
           breakdown.processSurcharge.get.unitPrice == Money("0.20"),
           breakdown.processSurcharge.get.lineTotal == Money("100.00"),
           breakdown.subtotal == Money("160.00"),
-          breakdown.total == Money("144.00"),
+          breakdown.total == Money("169.00"),
         )
       },
       test("ID-level finish surcharge takes precedence over type-level") {
@@ -324,7 +324,7 @@ object PriceCalculatorSpec extends ZIOSpecDefault:
           breakdown.bindingSurcharge.get.lineTotal == Money("25.00"),
           breakdown.subtotal == Money("520.00"),
           breakdown.quantityMultiplier == BigDecimal("0.90"),
-          breakdown.total == Money("468.00"),
+          breakdown.total == Money("483.00"),
         )
       },
       test("calendar with different materials per component") {
@@ -365,7 +365,7 @@ object PriceCalculatorSpec extends ZIOSpecDefault:
           breakdown.bindingSurcharge.isDefined,
           breakdown.bindingSurcharge.get.lineTotal == Money("20.00"),
           breakdown.subtotal == Money("104.00"),
-          breakdown.total == Money("104.00"),
+          breakdown.total == Money("114.00"),
         )
       },
       test("4/0 ink configuration produces lower-cost ink line than 4/4") {
@@ -388,7 +388,7 @@ object PriceCalculatorSpec extends ZIOSpecDefault:
           cb.inkConfigLine.isDefined,
           cb.inkConfigLine.get.lineTotal == Money("10.00"),
           breakdown.subtotal == Money("50.00"),
-          breakdown.total == Money("45.00"),
+          breakdown.total == Money("60.00"),
         )
       },
       test("4/4 ink configuration produces an additive ink line item") {
@@ -684,7 +684,7 @@ object PriceCalculatorSpec extends ZIOSpecDefault:
           breakdown.bindingSurcharge.isDefined,
           breakdown.bindingSurcharge.get.lineTotal == Money("20.00"),
           breakdown.subtotal == Money("34.00"),
-          breakdown.total == Money("34.00"),
+          breakdown.total == Money("44.00"),
         )
       },
       test("Yupo synthetic material priced correctly") {
@@ -706,7 +706,7 @@ object PriceCalculatorSpec extends ZIOSpecDefault:
         assertTrue(
           cb.materialLine.unitPrice == Money("0.14"),
           breakdown.subtotal == Money("110.00"),
-          breakdown.total == Money("99.00"),
+          breakdown.total == Money("109.00"),
         )
       },
       test("Cotton paper with letterpress process surcharge") {
@@ -730,7 +730,7 @@ object PriceCalculatorSpec extends ZIOSpecDefault:
           breakdown.processSurcharge.isDefined,
           breakdown.processSurcharge.get.label.contains("Letterpress"),
           breakdown.subtotal == Money("63.00"),
-          breakdown.total == Money("63.00"),
+          breakdown.total == Money("88.00"),
         )
       },
     ),
@@ -757,8 +757,8 @@ object PriceCalculatorSpec extends ZIOSpecDefault:
         assertTrue(
           result.toEither.isRight,
           cb.materialLine.unitPrice == Money("9"),
-          breakdown.minimumApplied.isDefined,
-          breakdown.total == Money("200.00"),
+          breakdown.minimumApplied.isEmpty,
+          breakdown.total == Money("362.00"),
           breakdown.currency == Currency.CZK,
         )
       },
@@ -783,8 +783,8 @@ object PriceCalculatorSpec extends ZIOSpecDefault:
         // minimum 200 triggered → total = 200
         assertTrue(
           cb.materialLine.unitPrice == Money("12"),
-          breakdown.minimumApplied.isDefined,
-          breakdown.total == Money("200.00"),
+          breakdown.minimumApplied.isEmpty,
+          breakdown.total == Money("365.00"),
           breakdown.currency == Currency.CZK,
         )
       },
@@ -813,8 +813,8 @@ object PriceCalculatorSpec extends ZIOSpecDefault:
           cb.inkConfigLine.isDefined,
           cb.inkConfigLine.get.lineTotal == Money("1.50"),
           breakdown.subtotal == Money("10.50"),
-          breakdown.minimumApplied.isDefined,
-          breakdown.total == Money("200.00"),
+          breakdown.minimumApplied.isEmpty,
+          breakdown.total == Money("360.50"),
         )
       },
       test("flyer with coated glossy 130gsm 4/4 at 1000 pcs applies quantity tier") {
@@ -839,7 +839,7 @@ object PriceCalculatorSpec extends ZIOSpecDefault:
         assertTrue(
           cb.materialLine.unitPrice == Money("9"),
           breakdown.quantityMultiplier == BigDecimal("0.40"),
-          breakdown.total == Money("4800.00"),
+          breakdown.total == Money("5150.00"),
           breakdown.currency == Currency.CZK,
         )
       },
@@ -1734,7 +1734,16 @@ object PriceCalculatorSpec extends ZIOSpecDefault:
         )
       },
       test("setupFees empty and minimumApplied is None with old-style pricelist") {
-        // USD pricelist has no setup fee or minimum rules → backward compat
+        // A pricelist without any setup fee or minimum rules → backward compat (no crash, empty fees)
+        val oldStylePricelist = Pricelist(
+          rules = List(
+            PricingRule.MaterialBasePrice(SampleCatalog.coated300gsmId, Money("0.08")),
+            PricingRule.FinishSurcharge(SampleCatalog.matteLaminationId, Money("0.03")),
+            PricingRule.QuantityTier(1, None, BigDecimal("1.0")),
+          ),
+          currency = Currency.USD,
+          version = "test-old-style",
+        )
         val config = makeConfig(
           category = SampleCatalog.businessCards,
           material = SampleCatalog.coated300gsm,
@@ -1746,7 +1755,7 @@ object PriceCalculatorSpec extends ZIOSpecDefault:
             SpecValue.QuantitySpec(Quantity.unsafe(500)),
           ),
         )
-        val result = PriceCalculator.calculate(config, pricelist)
+        val result = PriceCalculator.calculate(config, oldStylePricelist)
         val breakdown = result.toEither.toOption.get
         assertTrue(
           result.toEither.isRight,
@@ -2074,7 +2083,7 @@ object PriceCalculatorSpec extends ZIOSpecDefault:
           cb.materialLine.lineTotal == Money("475.00"),
           breakdown.subtotal == Money("835.00"),
           breakdown.quantityMultiplier == BigDecimal("0.55"),
-          breakdown.total == Money("459.25"),
+          breakdown.total == Money("659.25"),
           breakdown.currency == Currency.CZK,
         )
       },
@@ -2106,7 +2115,7 @@ object PriceCalculatorSpec extends ZIOSpecDefault:
           cb.inkConfigLine.get.lineTotal == Money("300.00"),
           cb.materialLine.lineTotal == Money("375.00"),
           breakdown.subtotal == Money("675.00"),
-          breakdown.total == Money("371.25"),
+          breakdown.total == Money("771.25"),
         )
       },
       test("clear vinyl + Epson 8-color CZK 4+0 → area pricing includes ink line") {
@@ -2115,7 +2124,8 @@ object PriceCalculatorSpec extends ZIOSpecDefault:
         // material: 475 CZK/m² × 0.01 = 4.75; total = 475.00
         // ink 4+0: (420 × 0.01).rounded = 4.20; total = 420.00
         // subtotal = 895.00; tier 100-499 → 0.55×
-        // total = (895.00 × 0.55).rounded = 492.25
+        // discountedSubtotal = (895.00 × 0.55).rounded = 492.25
+        // + Epson 8-color setup fee 400 CZK = 892.25
         val config = makeConfig(
           category = SampleCatalog.stickers,
           material = SampleCatalog.clearVinyl,
@@ -2137,7 +2147,7 @@ object PriceCalculatorSpec extends ZIOSpecDefault:
           cb.inkConfigLine.get.lineTotal == Money("420.00"),
           cb.materialLine.lineTotal == Money("475.00"),
           breakdown.subtotal == Money("895.00"),
-          breakdown.total == Money("492.25"),
+          breakdown.total == Money("892.25"),
         )
       },
       test("adhesiveStock sticker + digital CZK 4+0 → base pricing includes ink line") {
@@ -2145,7 +2155,8 @@ object PriceCalculatorSpec extends ZIOSpecDefault:
         // material: 7 CZK/unit; total = 700.00
         // ink 4+0: 1.50 CZK/unit; total = 150.00
         // subtotal = 850.00; tier 100-499 → 0.55×
-        // total = (850.00 × 0.55).rounded = 467.50
+        // discountedSubtotal = (850.00 × 0.55).rounded = 467.50
+        // + digital setup fee 200 CZK = 667.50
         val config = makeConfig(
           category = SampleCatalog.stickers,
           material = SampleCatalog.adhesiveStock,
@@ -2167,7 +2178,7 @@ object PriceCalculatorSpec extends ZIOSpecDefault:
           cb.inkConfigLine.get.lineTotal == Money("150.00"),
           cb.materialLine.lineTotal == Money("700.00"),
           breakdown.subtotal == Money("850.00"),
-          breakdown.total == Money("467.50"),
+          breakdown.total == Money("667.50"),
         )
       },
       test("adhesiveStock sticker + UV inkjet → ink config line present (per-unit UV flatbed price applies)") {
@@ -2191,12 +2202,13 @@ object PriceCalculatorSpec extends ZIOSpecDefault:
         val breakdown = result.toEither.toOption.get
         val cb = firstBreakdown(breakdown)
         // Material: 100 × 7 CZK = 700 CZK; ink 4/0 UV per unit: 100 × 20 CZK = 2000 CZK
-        // subtotal = 2700; tier 100–499 = ×0.55; total = 1485 CZK
+        // subtotal = 2700; tier 100–499 = ×0.55; discountedSubtotal = 1485
+        // + UV inkjet setup fee 200 CZK = 1685 CZK
         assertTrue(
           cb.inkConfigLine.isDefined,
           cb.inkConfigLine.get.lineTotal == Money("2000.00"),
           breakdown.subtotal == Money("2700.00"),
-          breakdown.total == Money("1485.00"),
+          breakdown.total == Money("1685.00"),
         )
       },
       test("BUG: vinyl sticker + digital → ink config line absent (sheet rule not matched for area-priced material)") {
@@ -2235,8 +2247,8 @@ object PriceCalculatorSpec extends ZIOSpecDefault:
         // area = 0.01 m²
         // material: 475 CZK/m² × 0.01 = 4.75 per sticker; total = 47.50
         // ink 4+0: (360 × 0.01).rounded = 3.60 per sticker; total = 36.00
-        // subtotal = 83.50; no quantity tier (< 50 pcs)
-        // minimum 200 CZK applies; minimumApplied = Some(83.50)
+        // subtotal = 83.50; no sheet quantity tier (area-based); multiplier = 1.0
+        // + UV inkjet setup fee 200 CZK = 283.50 → above minimum 200 → no minimum applied
         val config = makeConfig(
           category = SampleCatalog.stickers,
           material = SampleCatalog.clearVinyl,
@@ -2258,8 +2270,8 @@ object PriceCalculatorSpec extends ZIOSpecDefault:
           cb.inkConfigLine.get.lineTotal == Money("36.00"),
           cb.materialLine.lineTotal == Money("47.50"),
           breakdown.subtotal == Money("83.50"),
-          breakdown.minimumApplied.isDefined,
-          breakdown.total == Money("200.00"),
+          breakdown.minimumApplied.isEmpty,
+          breakdown.total == Money("283.50"),
         )
       },
       test("adhesive vinyl sticker + solvent inkjet (CzkSheet) 4+0 → correct area price in breakdown") {

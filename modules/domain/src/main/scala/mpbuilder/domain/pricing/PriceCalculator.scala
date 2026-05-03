@@ -78,7 +78,7 @@ object PriceCalculator:
           computeSpeedSurcharge(selectedSpeed, rules, context, discountedSubtotal, lang)
 
         val allSelectedFinishes = config.components.flatMap(_.finishes)
-        val setupFees = collectSetupFees(allSelectedFinishes, foldType, bindingMethod, rules, lang)
+        val setupFees = collectSetupFees(allSelectedFinishes, foldType, bindingMethod, config.printingMethod, rules, lang)
         val totalSetupFees = setupFees.map(_.lineTotal).foldLeft(Money.zero)(_ + _)
         val billable = (afterSpeedSubtotal + totalSetupFees).rounded
 
@@ -403,6 +403,7 @@ object PriceCalculator:
       finishes: List[SelectedFinish],
       foldType: Option[FoldType],
       bindingMethod: Option[BindingMethod],
+      printingMethod: PrintingMethod,
       rules: List[PricingRule],
       lang: Language,
   ): List[LineItem] =
@@ -457,7 +458,11 @@ object PriceCalculator:
       }.map { cost => LineItem(s"Setup: ${bindingMethodName(bm, lang)}", cost, 1, cost) }
     }.toList
 
-    idItems ++ scoringSetupItem.toList ++ typeItems ++ foldFeeItem ++ bindingFeeItem
+    val printingMethodFeeItem = rules.collectFirst {
+      case r: PricingRule.PrintingMethodSetupFee if r.printingMethodId == printingMethod.id => r.setupCost
+    }.map { cost => LineItem(s"Setup: ${printingMethod.name(lang)}", cost, 1, cost) }.toList
+
+    idItems ++ scoringSetupItem.toList ++ typeItems ++ foldFeeItem ++ bindingFeeItem ++ printingMethodFeeItem
 
   private def findFoldSurcharge(
       foldType: Option[FoldType],
