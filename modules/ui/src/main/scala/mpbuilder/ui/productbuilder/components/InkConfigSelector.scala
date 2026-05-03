@@ -21,8 +21,7 @@ object InkConfigSelector:
       case Some(m) if m.processType == PrintingProcessType.UVCurableInkjet =>
         // UV inkjet: single-sided only; white underlay supported
         allPresets.filter { case (_, ic) => ic.isSingleSided }
-      case Some(m) if m.processType == PrintingProcessType.SolventInkjet ||
-                      m.processType == PrintingProcessType.LatexInkjet =>
+      case Some(m) if m.processType.isLargeFormatInkjet =>
         // Solvent / extended-gamut inkjet: single-sided, no white-ink underlay
         allPresets.filter { case (_, ic) => ic.isSingleSided && ic.back.inkType != InkType.White }
       case _ =>

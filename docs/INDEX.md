@@ -75,6 +75,7 @@ Session-by-session work logs documenting what was done, decisions made, and issu
 | Document | Description |
 |----------|-------------|
 | [changelog/README.md](changelog/README.md) | Changelog format, template, and log entries index |
+| [changelog/2026-05-03-ink-config-single-sided-constraint.md](changelog/2026-05-03-ink-config-single-sided-constraint.md) | IsSingleSided predicate, large-format inkjet single-sided constraint, pricelistCzkSheet solvent/Epson pricing fix, UI ink config selector filtering |
 | [changelog/2026-04-28-print-method-pricing-gaps.md](changelog/2026-04-28-print-method-pricing-gaps.md) | Print method pricing gap analysis, new solvent/Epson 8-color methods, sticker category update; sticker material/method constraints and silent ink-cost bug fix |
 | [changelog/2026-04-28-email-order-option.md](changelog/2026-04-28-email-order-option.md) | Add "Order via Email" button and pre-filled modal popup to the product builder UI |
 | [changelog/2026-04-26-binding-page-constraints-refactor.md](changelog/2026-04-26-binding-page-constraints-refactor.md) | Refactor booklet page rules into TechnologyConstraints; add weight-based saddle stitch tiers and binding method max-page limits |

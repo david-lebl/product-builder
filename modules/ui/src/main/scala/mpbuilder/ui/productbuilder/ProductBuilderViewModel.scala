@@ -298,24 +298,19 @@ object ProductBuilderViewModel:
     stateVar.update { state =>
       val base = state.copy(selectedPrintingMethodId = Some(methodId), selectedPresetId = None)
       methodOpt match
-        case Some(method) =>
-          val isLargeFormat = method.processType == PrintingProcessType.UVCurableInkjet ||
-            method.processType == PrintingProcessType.SolventInkjet ||
-            method.processType == PrintingProcessType.LatexInkjet
+        case Some(method) if method.processType.isLargeFormatInkjet =>
           val supportsWhiteInk = method.processType == PrintingProcessType.UVCurableInkjet
-          if isLargeFormat then
-            val sanitised = base.componentStates.map { case (role, cs) =>
-              val newInk = cs.selectedInkConfig.map { ic =>
-                if ic.isDoubleSided then InkConfiguration.cmyk4_0
-                else if ic.front.inkType == InkType.White || ic.back.inkType == InkType.White then
-                  if supportsWhiteInk then ic else InkConfiguration.cmyk4_0
-                else ic
-              }
-              role -> cs.copy(selectedInkConfig = newInk)
+          val sanitised = base.componentStates.map { case (role, cs) =>
+            val newInk = cs.selectedInkConfig.map { ic =>
+              if ic.isDoubleSided then InkConfiguration.cmyk4_0
+              else if ic.front.inkType == InkType.White || ic.back.inkType == InkType.White then
+                if supportsWhiteInk then ic else InkConfiguration.cmyk4_0
+              else ic
             }
-            base.copy(componentStates = sanitised)
-          else base
-        case None => base
+            role -> cs.copy(selectedInkConfig = newInk)
+          }
+          base.copy(componentStates = sanitised)
+        case _ => base
     }
     autoRecalculate()
 

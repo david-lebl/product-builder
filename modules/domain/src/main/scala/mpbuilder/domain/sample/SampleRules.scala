@@ -7,6 +7,17 @@ object SampleRules:
 
   private val cat = SampleCatalog
 
+  /** Matches any configuration that uses a large-format inkjet printing process
+    * (UV curable, solvent, or extended-gamut latex). */
+  private val isLargeFormatInkjet: ConfigurationPredicate =
+    ConfigurationPredicate.Or(
+      ConfigurationPredicate.HasPrintingProcess(PrintingProcessType.UVCurableInkjet),
+      ConfigurationPredicate.Or(
+        ConfigurationPredicate.HasPrintingProcess(PrintingProcessType.SolventInkjet),
+        ConfigurationPredicate.HasPrintingProcess(PrintingProcessType.LatexInkjet),
+      ),
+    )
+
   val rules: List[CompatibilityRule] = List(
     // --- Property-level rules (replace material-specific UV coating rules) ---
     // Textured materials can't have UV coating (uneven application)
@@ -161,13 +172,7 @@ object SampleRules:
     // are not physically possible on these machines.
     CompatibilityRule.TechnologyConstraint(
       ConfigurationPredicate.Or(
-        ConfigurationPredicate.Not(ConfigurationPredicate.Or(
-          ConfigurationPredicate.HasPrintingProcess(PrintingProcessType.UVCurableInkjet),
-          ConfigurationPredicate.Or(
-            ConfigurationPredicate.HasPrintingProcess(PrintingProcessType.SolventInkjet),
-            ConfigurationPredicate.HasPrintingProcess(PrintingProcessType.LatexInkjet),
-          ),
-        )),
+        ConfigurationPredicate.Not(isLargeFormatInkjet),
         ConfigurationPredicate.IsSingleSided,
       ),
       "Large-format inkjet printing (UV, solvent, extended gamut) only supports single-sided ink configurations (front side only)",
@@ -506,13 +511,7 @@ object SampleRules:
       cat.stickersId,
       ConfigurationPredicate.Or(
         ConfigurationPredicate.Not(ConfigurationPredicate.HasMaterialFamily(MaterialFamily.Vinyl)),
-        ConfigurationPredicate.Or(
-          ConfigurationPredicate.HasPrintingProcess(PrintingProcessType.UVCurableInkjet),
-          ConfigurationPredicate.Or(
-            ConfigurationPredicate.HasPrintingProcess(PrintingProcessType.SolventInkjet),
-            ConfigurationPredicate.HasPrintingProcess(PrintingProcessType.LatexInkjet),
-          ),
-        ),
+        isLargeFormatInkjet,
       ),
       "Vinyl sticker materials require a large-format inkjet print method (UV, solvent, or extended gamut). " +
         "Paper-based materials (adhesive stock, Yupo) must be used with digital or offset printing.",
@@ -521,13 +520,7 @@ object SampleRules:
     CompatibilityRule.ConfigurationConstraint(
       cat.stickersId,
       ConfigurationPredicate.Or(
-        ConfigurationPredicate.Not(ConfigurationPredicate.Or(
-          ConfigurationPredicate.HasPrintingProcess(PrintingProcessType.UVCurableInkjet),
-          ConfigurationPredicate.Or(
-            ConfigurationPredicate.HasPrintingProcess(PrintingProcessType.SolventInkjet),
-            ConfigurationPredicate.HasPrintingProcess(PrintingProcessType.LatexInkjet),
-          ),
-        )),
+        ConfigurationPredicate.Not(isLargeFormatInkjet),
         ConfigurationPredicate.HasMaterialFamily(MaterialFamily.Vinyl),
       ),
       "Large-format inkjet printing (UV, solvent, or extended gamut) requires a vinyl sticker substrate. " +
