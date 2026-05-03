@@ -28,6 +28,10 @@ enum ConfigurationPredicate:
   case HasFinishId(finishId: FinishId)
   /** True when every component's ink configuration is single-sided (back side is None or White). */
   case IsSingleSided
+  /** True when the product size spec fits within every component material's sheet dimension.
+    * Materials that do not define a sheet dimension are treated as unrestricted and always pass.
+    * Both the width and the height of the size spec must be ≤ the corresponding sheet dimension values.
+    */
   case SizeWithinMaterialSheet
   case And(left: ConfigurationPredicate, right: ConfigurationPredicate)
   case Or(left: ConfigurationPredicate, right: ConfigurationPredicate)
