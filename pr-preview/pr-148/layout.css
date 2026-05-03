@@ -1,0 +1,126 @@
+/* ─── Sticky Top Bar ─────────────────────────────────── */
+
+.top-bar-wrapper {
+    position: sticky;
+    top: 0;
+    z-index: var(--z-topbar);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.12);
+}
+
+.top-bar {
+    background: var(--color-primary-gradient);
+    color: white;
+    display: flex;
+    align-items: center;
+    padding: 0 max(20px, calc((100% - 1200px) / 2));
+    height: var(--top-bar-height);
+    gap: 16px;
+}
+
+.top-bar-logo {
+    font-size: 1.25rem;
+    font-weight: 700;
+    white-space: nowrap;
+    letter-spacing: -0.3px;
+}
+
+.top-bar-spacer {
+    flex: 1;
+}
+
+.top-bar-user {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.85rem;
+    opacity: 0.9;
+    white-space: nowrap;
+}
+
+.top-bar-user-icon {
+    font-size: 1.1rem;
+}
+
+.top-bar .nav-basket-btn {
+    background: rgba(255,255,255,0.15);
+    border: 1px solid rgba(255,255,255,0.3);
+    border-radius: 6px;
+    padding: 5px 12px;
+    margin: 0;
+    color: white;
+    font-size: 0.9rem;
+}
+
+.top-bar .nav-basket-btn:hover:not(:disabled) {
+    background: rgba(255,255,255,0.25);
+    transform: none;
+    box-shadow: none;
+}
+
+.main-content {
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    gap: 20px;
+    padding: 20px;
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+@media (max-width: 968px) {
+    .main-content {
+        grid-template-columns: 1fr;
+    }
+}
+
+.card {
+    background: white;
+    border-radius: 10px;
+    padding: 20px;
+    box-shadow: var(--shadow-card);
+}
+
+.card h2 {
+    font-size: 1.25rem;
+    margin-bottom: 16px;
+    color: var(--color-primary);
+    border-bottom: 2px solid var(--color-primary);
+    padding-bottom: 8px;
+}
+/* App Navigation Styles */
+.app-navigation {
+    background: white;
+    padding: 0 max(20px, calc((100% - 1200px) / 2));
+    display: flex;
+    gap: 0;
+    border-bottom: 2px solid var(--color-border);
+}
+
+.app-navigation .nav-link {
+    padding: 10px 20px;
+    background: transparent;
+    color: #555;
+    border: none;
+    border-bottom: 3px solid transparent;
+    border-radius: 0;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-weight: 500;
+    margin-bottom: -2px;
+}
+
+.app-navigation .nav-link:hover {
+    background: #f5f7ff;
+    color: var(--color-primary);
+}
+
+.app-navigation .nav-link:hover:not(:disabled) {
+    transform: none;
+    box-shadow: none;
+}
+
+.app-navigation .nav-link.active {
+    background: transparent;
+    color: var(--color-primary);
+    border-bottom-color: var(--color-primary);
+    font-weight: 600;
+}
