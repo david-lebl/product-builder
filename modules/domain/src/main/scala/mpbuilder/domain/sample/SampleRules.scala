@@ -156,6 +156,22 @@ object SampleRules:
       ),
       "White ink requires transparent material or UV inkjet printing",
     ),
+    // Large-format inkjet methods (UV, solvent, extended gamut) are inherently single-sided:
+    // these printers output one face at a time, so double-sided ink configs (4/4, 4/1, 1/1)
+    // are not physically possible on these machines.
+    CompatibilityRule.TechnologyConstraint(
+      ConfigurationPredicate.Or(
+        ConfigurationPredicate.Not(ConfigurationPredicate.Or(
+          ConfigurationPredicate.HasPrintingProcess(PrintingProcessType.UVCurableInkjet),
+          ConfigurationPredicate.Or(
+            ConfigurationPredicate.HasPrintingProcess(PrintingProcessType.SolventInkjet),
+            ConfigurationPredicate.HasPrintingProcess(PrintingProcessType.LatexInkjet),
+          ),
+        )),
+        ConfigurationPredicate.IsSingleSided,
+      ),
+      "Large-format inkjet printing (UV, solvent, extended gamut) only supports single-sided ink configurations (front side only)",
+    ),
     // Booklets: allowed binding methods (saddle stitch, perfect binding, spiral, wire-o)
     CompatibilityRule.SpecConstraint(
       cat.bookletsId,

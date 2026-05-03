@@ -61,7 +61,7 @@ object ConfigurationBuilderSpec extends ZIOSpecDefault:
         val request = ConfigurationRequest(
           categoryId = SampleCatalog.bannersId,
           printingMethodId = SampleCatalog.uvInkjetId,
-          components = List(mainComponent(SampleCatalog.pvc510gId, InkConfiguration.cmyk4_4, List(FinishSelection(SampleCatalog.uvCoatingId)))),
+          components = List(mainComponent(SampleCatalog.pvc510gId, InkConfiguration.cmyk4_0, List(FinishSelection(SampleCatalog.uvCoatingId)))),
           specs = List(
             SpecValue.SizeSpec(Dimension(1000, 500)),
             SpecValue.QuantitySpec(Quantity.unsafe(10)),
@@ -1303,7 +1303,7 @@ object ConfigurationBuilderSpec extends ZIOSpecDefault:
           printingMethodId = SampleCatalog.uvInkjetId,
           components = List(mainComponent(
             SampleCatalog.pvc510gId,
-            InkConfiguration.cmyk4_4,
+            InkConfiguration.cmyk4_0,
             List(FinishSelection(SampleCatalog.grommetsId, Some(FinishParameters.GrommetParams(500)))),
           )),
           specs = List(
@@ -1320,7 +1320,7 @@ object ConfigurationBuilderSpec extends ZIOSpecDefault:
           printingMethodId = SampleCatalog.uvInkjetId,
           components = List(mainComponent(
             SampleCatalog.pvc510gId,
-            InkConfiguration.cmyk4_4,
+            InkConfiguration.cmyk4_0,
             List(FinishSelection(SampleCatalog.grommetsId, Some(FinishParameters.GrommetParams(0)))),
           )),
           specs = List(
@@ -1694,6 +1694,125 @@ object ConfigurationBuilderSpec extends ZIOSpecDefault:
         assertTrue(
           errors.exists(_.isInstanceOf[ConfigurationError.ConfigurationConstraintViolation]),
         )
+      },
+    ),
+    suite("large-format inkjet single-sided constraint")(
+      test("UV inkjet + 4/0 single-sided → valid") {
+        val request = ConfigurationRequest(
+          categoryId = SampleCatalog.stickersId,
+          printingMethodId = SampleCatalog.uvInkjetId,
+          components = List(mainComponent(SampleCatalog.vinylId, InkConfiguration.cmyk4_0)),
+          specs = List(
+            SpecValue.SizeSpec(Dimension(100, 100)),
+            SpecValue.QuantitySpec(Quantity.unsafe(10)),
+          ),
+        )
+        val result = ConfigurationBuilder.build(request, catalog, ruleset, configId)
+        assertTrue(result.toEither.isRight)
+      },
+      test("UV inkjet + 1/0 single-sided → valid") {
+        val request = ConfigurationRequest(
+          categoryId = SampleCatalog.stickersId,
+          printingMethodId = SampleCatalog.uvInkjetId,
+          components = List(mainComponent(SampleCatalog.vinylId, InkConfiguration.mono1_0)),
+          specs = List(
+            SpecValue.SizeSpec(Dimension(100, 100)),
+            SpecValue.QuantitySpec(Quantity.unsafe(10)),
+          ),
+        )
+        val result = ConfigurationBuilder.build(request, catalog, ruleset, configId)
+        assertTrue(result.toEither.isRight)
+      },
+      test("solvent inkjet + 4/0 single-sided → valid") {
+        val request = ConfigurationRequest(
+          categoryId = SampleCatalog.stickersId,
+          printingMethodId = SampleCatalog.solventInkjetId,
+          components = List(mainComponent(SampleCatalog.vinylId, InkConfiguration.cmyk4_0)),
+          specs = List(
+            SpecValue.SizeSpec(Dimension(100, 100)),
+            SpecValue.QuantitySpec(Quantity.unsafe(10)),
+          ),
+        )
+        val result = ConfigurationBuilder.build(request, catalog, ruleset, configId)
+        assertTrue(result.toEither.isRight)
+      },
+      test("UV inkjet + 4/4 double-sided → rejected (large-format is single-sided only)") {
+        val request = ConfigurationRequest(
+          categoryId = SampleCatalog.bannersId,
+          printingMethodId = SampleCatalog.uvInkjetId,
+          components = List(mainComponent(SampleCatalog.pvc510gId, InkConfiguration.cmyk4_4)),
+          specs = List(
+            SpecValue.SizeSpec(Dimension(1000, 500)),
+            SpecValue.QuantitySpec(Quantity.unsafe(5)),
+          ),
+        )
+        val result = ConfigurationBuilder.build(request, catalog, ruleset, configId)
+        val errors = result.toEither.left.toOption.get.toList
+        assertTrue(
+          errors.exists(_.isInstanceOf[ConfigurationError.TechnologyConstraintViolation]),
+        )
+      },
+      test("solvent inkjet + 4/4 double-sided → rejected (large-format is single-sided only)") {
+        val request = ConfigurationRequest(
+          categoryId = SampleCatalog.stickersId,
+          printingMethodId = SampleCatalog.solventInkjetId,
+          components = List(mainComponent(SampleCatalog.vinylId, InkConfiguration.cmyk4_4)),
+          specs = List(
+            SpecValue.SizeSpec(Dimension(100, 100)),
+            SpecValue.QuantitySpec(Quantity.unsafe(10)),
+          ),
+        )
+        val result = ConfigurationBuilder.build(request, catalog, ruleset, configId)
+        val errors = result.toEither.left.toOption.get.toList
+        assertTrue(
+          errors.exists(_.isInstanceOf[ConfigurationError.TechnologyConstraintViolation]),
+        )
+      },
+      test("Epson 8-color + 4/1 double-sided → rejected (large-format is single-sided only)") {
+        val request = ConfigurationRequest(
+          categoryId = SampleCatalog.stickersId,
+          printingMethodId = SampleCatalog.epson8ColorId,
+          components = List(mainComponent(SampleCatalog.vinylId, InkConfiguration.cmyk4_1)),
+          specs = List(
+            SpecValue.SizeSpec(Dimension(100, 100)),
+            SpecValue.QuantitySpec(Quantity.unsafe(10)),
+          ),
+        )
+        val result = ConfigurationBuilder.build(request, catalog, ruleset, configId)
+        val errors = result.toEither.left.toOption.get.toList
+        assertTrue(
+          errors.exists(_.isInstanceOf[ConfigurationError.TechnologyConstraintViolation]),
+        )
+      },
+      test("UV inkjet + 1/1 double-sided grayscale → rejected (large-format is single-sided only)") {
+        val request = ConfigurationRequest(
+          categoryId = SampleCatalog.stickersId,
+          printingMethodId = SampleCatalog.uvInkjetId,
+          components = List(mainComponent(SampleCatalog.vinylId, InkConfiguration.mono1_1)),
+          specs = List(
+            SpecValue.SizeSpec(Dimension(100, 100)),
+            SpecValue.QuantitySpec(Quantity.unsafe(10)),
+          ),
+        )
+        val result = ConfigurationBuilder.build(request, catalog, ruleset, configId)
+        val errors = result.toEither.left.toOption.get.toList
+        assertTrue(
+          errors.exists(_.isInstanceOf[ConfigurationError.TechnologyConstraintViolation]),
+        )
+      },
+      test("digital + 4/4 double-sided → valid (sheet-fed methods support both sides)") {
+        val request = ConfigurationRequest(
+          categoryId = SampleCatalog.flyersId,
+          printingMethodId = SampleCatalog.digitalId,
+          components = List(mainComponent(SampleCatalog.coatedGlossy90gsmId, InkConfiguration.cmyk4_4)),
+          specs = List(
+            SpecValue.SizeSpec(Dimension(210, 297)),
+            SpecValue.QuantitySpec(Quantity.unsafe(100)),
+            SpecValue.OrientationSpec(Orientation.Portrait),
+          ),
+        )
+        val result = ConfigurationBuilder.build(request, catalog, ruleset, configId)
+        assertTrue(result.toEither.isRight)
       },
     ),
   )

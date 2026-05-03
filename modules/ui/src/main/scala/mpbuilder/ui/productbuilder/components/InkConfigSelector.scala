@@ -6,7 +6,7 @@ import mpbuilder.uikit.feedback.HelpInfo
 import mpbuilder.domain.model.*
 
 object InkConfigSelector:
-  private val presets: List[(String, InkConfiguration)] = List(
+  private val allPresets: List[(String, InkConfiguration)] = List(
     "4/4"   -> InkConfiguration.cmyk4_4,
     "4/0"   -> InkConfiguration.cmyk4_0,
     "4/1"   -> InkConfiguration.cmyk4_1,
@@ -14,6 +14,20 @@ object InkConfigSelector:
     "1/1"   -> InkConfiguration.mono1_1,
     "4/0+W" -> InkConfiguration.cmyk4_0_white,
   )
+
+  /** Returns the subset of ink configuration presets available for a given printing method. */
+  private def presetsForMethod(method: Option[PrintingMethod]): List[(String, InkConfiguration)] =
+    method match
+      case Some(m) if m.processType == PrintingProcessType.UVCurableInkjet =>
+        // UV inkjet: single-sided only; white underlay supported
+        allPresets.filter { case (_, ic) => ic.isSingleSided }
+      case Some(m) if m.processType == PrintingProcessType.SolventInkjet ||
+                      m.processType == PrintingProcessType.LatexInkjet =>
+        // Solvent / extended-gamut inkjet: single-sided, no white-ink underlay
+        allPresets.filter { case (_, ic) => ic.isSingleSided && ic.back.inkType != InkType.White }
+      case _ =>
+        // Sheet-fed methods (digital, offset, letterpress, screen print, etc.): all configs
+        allPresets
 
   private def presetLabels(key: String, l: Language): String = (key, l) match
     case ("4/4",   Language.En) => "4/4 CMYK both sides"
@@ -32,9 +46,10 @@ object InkConfigSelector:
 
   def apply(role: ComponentRole): Element =
     val lang = ProductBuilderViewModel.currentLanguage
+    val selectedMethod = ProductBuilderViewModel.selectedPrintingMethod
 
     val selectedValue = ProductBuilderViewModel.selectedInkConfig(role).map { configOpt =>
-      configOpt.flatMap(c => presets.find(_._2 == c).map(_._1)).getOrElse("")
+      configOpt.flatMap(c => allPresets.find(_._2 == c).map(_._1)).getOrElse("")
     }
 
     div(
@@ -53,7 +68,8 @@ object InkConfigSelector:
       div(
         cls := "form-group__control",
         select(
-          children <-- lang.combineWith(selectedValue).map { case (l, sel) =>
+          children <-- lang.combineWith(selectedValue).combineWith(selectedMethod).map { case (l, sel, method) =>
+            val presets = presetsForMethod(method)
             val ph = l match
               case Language.En => "-- Select ink configuration --"
               case Language.Cs => "-- Vyberte konfiguraci inkoustu --"
@@ -63,7 +79,7 @@ object InkConfigSelector:
             }
           },
           onChange.mapToValue --> Observer[String] { value =>
-            presets.find(_._1 == value).foreach { case (_, config) =>
+            allPresets.find(_._1 == value).foreach { case (_, config) =>
               ProductBuilderViewModel.selectInkConfig(role, config)
             }
           },

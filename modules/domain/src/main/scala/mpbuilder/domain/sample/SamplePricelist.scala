@@ -749,12 +749,24 @@ object SamplePricelist:
       PricingRule.InkConfigurationSheetPrice(SampleCatalog.letterpressId, 4, 1, Money("2.50")),
       PricingRule.InkConfigurationSheetPrice(SampleCatalog.letterpressId, 1, 0, Money("0.60")),
       PricingRule.InkConfigurationSheetPrice(SampleCatalog.letterpressId, 1, 1, Money("1")),
-      // UV inkjet (large format): per sqm
-      PricingRule.InkConfigurationAreaPrice(SampleCatalog.uvInkjetId, 4, 4, Money("45")),
-      PricingRule.InkConfigurationAreaPrice(SampleCatalog.uvInkjetId, 4, 0, Money("22")),
-      PricingRule.InkConfigurationAreaPrice(SampleCatalog.uvInkjetId, 4, 1, Money("30")),
-      PricingRule.InkConfigurationAreaPrice(SampleCatalog.uvInkjetId, 1, 0, Money("6")),
-      PricingRule.InkConfigurationAreaPrice(SampleCatalog.uvInkjetId, 1, 1, Money("10")),
+      // UV inkjet (large format): per sqm — same rates as pricelistCzk
+      PricingRule.InkConfigurationAreaPrice(SampleCatalog.uvInkjetId, 4, 4, Money("720")),
+      PricingRule.InkConfigurationAreaPrice(SampleCatalog.uvInkjetId, 4, 0, Money("360")),
+      PricingRule.InkConfigurationAreaPrice(SampleCatalog.uvInkjetId, 4, 1, Money("480")),
+      PricingRule.InkConfigurationAreaPrice(SampleCatalog.uvInkjetId, 1, 0, Money("100")),
+      PricingRule.InkConfigurationAreaPrice(SampleCatalog.uvInkjetId, 1, 1, Money("160")),
+      // Solvent inkjet (large format): per sqm
+      PricingRule.InkConfigurationAreaPrice(SampleCatalog.solventInkjetId, 4, 4, Money("600")),
+      PricingRule.InkConfigurationAreaPrice(SampleCatalog.solventInkjetId, 4, 0, Money("300")),
+      PricingRule.InkConfigurationAreaPrice(SampleCatalog.solventInkjetId, 4, 1, Money("400")),
+      PricingRule.InkConfigurationAreaPrice(SampleCatalog.solventInkjetId, 1, 0, Money("80")),
+      PricingRule.InkConfigurationAreaPrice(SampleCatalog.solventInkjetId, 1, 1, Money("140")),
+      // Epson 8-color extended-gamut (large format): per sqm
+      PricingRule.InkConfigurationAreaPrice(SampleCatalog.epson8ColorId, 4, 4, Money("840")),
+      PricingRule.InkConfigurationAreaPrice(SampleCatalog.epson8ColorId, 4, 0, Money("420")),
+      PricingRule.InkConfigurationAreaPrice(SampleCatalog.epson8ColorId, 4, 1, Money("560")),
+      PricingRule.InkConfigurationAreaPrice(SampleCatalog.epson8ColorId, 1, 0, Money("110")),
+      PricingRule.InkConfigurationAreaPrice(SampleCatalog.epson8ColorId, 1, 1, Money("190")),
 
       // --- Sheet quantity tiers (discount based on total physical sheets) ---
       PricingRule.SheetQuantityTier(1, Some(49), BigDecimal("1.0")),

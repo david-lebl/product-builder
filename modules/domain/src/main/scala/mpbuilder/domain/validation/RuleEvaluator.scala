@@ -326,6 +326,8 @@ object RuleEvaluator:
         }
       case ConfigurationPredicate.HasFinishId(finishId) =>
         components.exists(_.finishes.exists(_.id == finishId))
+      case ConfigurationPredicate.IsSingleSided =>
+        components.forall(_.inkConfiguration.isSingleSided)
       case ConfigurationPredicate.BindingMethodIs(methods) =>
         specifications.get(SpecKind.BindingMethod) match
           case Some(SpecValue.BindingMethodSpec(method)) => methods.contains(method)

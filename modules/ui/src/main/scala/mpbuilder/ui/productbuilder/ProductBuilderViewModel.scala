@@ -289,11 +289,34 @@ object ProductBuilderViewModel:
     )
     autoRecalculate()
 
-  // Update printing method
-  def selectPrintingMethod(methodId: PrintingMethodId): Unit = 
-    stateVar.update(state =>
-      state.copy(selectedPrintingMethodId = Some(methodId), selectedPresetId = None)
-    )
+  // Update printing method — also sanitises ink configs if the new method is a large-format
+  // inkjet (UV, solvent, extended gamut), which only supports single-sided printing:
+  //   • double-sided configs (4/4, 4/1, 1/1) → reset to 4/0
+  //   • white-ink config (4/0+W) → allowed only for UV inkjet; reset to 4/0 for others
+  def selectPrintingMethod(methodId: PrintingMethodId): Unit =
+    val methodOpt = catalog.printingMethods.get(methodId)
+    stateVar.update { state =>
+      val base = state.copy(selectedPrintingMethodId = Some(methodId), selectedPresetId = None)
+      methodOpt match
+        case Some(method) =>
+          val isLargeFormat = method.processType == PrintingProcessType.UVCurableInkjet ||
+            method.processType == PrintingProcessType.SolventInkjet ||
+            method.processType == PrintingProcessType.LatexInkjet
+          val supportsWhiteInk = method.processType == PrintingProcessType.UVCurableInkjet
+          if isLargeFormat then
+            val sanitised = base.componentStates.map { case (role, cs) =>
+              val newInk = cs.selectedInkConfig.map { ic =>
+                if ic.isDoubleSided then InkConfiguration.cmyk4_0
+                else if ic.front.inkType == InkType.White || ic.back.inkType == InkType.White then
+                  if supportsWhiteInk then ic else InkConfiguration.cmyk4_0
+                else ic
+              }
+              role -> cs.copy(selectedInkConfig = newInk)
+            }
+            base.copy(componentStates = sanitised)
+          else base
+        case None => base
+    }
     autoRecalculate()
 
   // Update specifications
@@ -536,6 +559,10 @@ object ProductBuilderViewModel:
         case None =>
           List.empty
     }
+
+  // Get the currently selected printing method (resolved from catalog)
+  def selectedPrintingMethod: Signal[Option[PrintingMethod]] =
+    state.map(s => s.selectedPrintingMethodId.flatMap(catalog.printingMethods.get))
 
   // Per-component signals
   def selectedInkConfig(role: ComponentRole): Signal[Option[InkConfiguration]] =
