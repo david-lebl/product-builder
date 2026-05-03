@@ -328,6 +328,15 @@ object RuleEvaluator:
         components.exists(_.finishes.exists(_.id == finishId))
       case ConfigurationPredicate.IsSingleSided =>
         components.forall(_.inkConfiguration.isSingleSided)
+      case ConfigurationPredicate.SizeWithinMaterialSheet =>
+        specifications.get(SpecKind.Size) match
+          case Some(SpecValue.SizeSpec(dim)) =>
+            components.forall { comp =>
+              comp.material.sheetDimension match
+                case Some(sheet) => dim.widthMm <= sheet.widthMm && dim.heightMm <= sheet.heightMm
+                case None        => true
+            }
+          case _ => true
       case ConfigurationPredicate.BindingMethodIs(methods) =>
         specifications.get(SpecKind.BindingMethod) match
           case Some(SpecValue.BindingMethodSpec(method)) => methods.contains(method)

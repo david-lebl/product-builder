@@ -177,6 +177,16 @@ object SampleRules:
       ),
       "Large-format inkjet printing (UV, solvent, extended gamut) only supports single-sided ink configurations (front side only)",
     ),
+    // Digital (sheet-fed) printing is limited by the material sheet size.
+    // All paper materials define an A3 sheet dimension (297×420mm), so this constraint
+    // prevents ordering a digital print larger than the loaded sheet.
+    CompatibilityRule.TechnologyConstraint(
+      ConfigurationPredicate.Or(
+        ConfigurationPredicate.Not(ConfigurationPredicate.HasPrintingProcess(PrintingProcessType.Digital)),
+        ConfigurationPredicate.SizeWithinMaterialSheet,
+      ),
+      "Digital printing is limited by the material sheet size (max A3: 297×420mm)",
+    ),
     // Booklets: allowed binding methods (saddle stitch, perfect binding, spiral, wire-o)
     CompatibilityRule.SpecConstraint(
       cat.bookletsId,

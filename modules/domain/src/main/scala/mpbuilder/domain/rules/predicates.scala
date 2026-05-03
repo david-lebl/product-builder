@@ -28,6 +28,7 @@ enum ConfigurationPredicate:
   case HasFinishId(finishId: FinishId)
   /** True when every component's ink configuration is single-sided (back side is None or White). */
   case IsSingleSided
+  case SizeWithinMaterialSheet
   case And(left: ConfigurationPredicate, right: ConfigurationPredicate)
   case Or(left: ConfigurationPredicate, right: ConfigurationPredicate)
   case Not(inner: ConfigurationPredicate)

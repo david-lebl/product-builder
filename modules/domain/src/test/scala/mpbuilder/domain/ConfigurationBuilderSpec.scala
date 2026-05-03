@@ -1815,4 +1815,92 @@ object ConfigurationBuilderSpec extends ZIOSpecDefault:
         assertTrue(result.toEither.isRight)
       },
     ),
+    suite("digital print sheet size limit (max A3: 297×420 mm)")(
+      test("digital print at exactly A3 (297×420 mm) is valid") {
+        val request = ConfigurationRequest(
+          categoryId = SampleCatalog.flyersId,
+          printingMethodId = SampleCatalog.digitalId,
+          components = List(mainComponent(SampleCatalog.coatedGlossy150gsmId, InkConfiguration.cmyk4_0)),
+          specs = List(
+            SpecValue.SizeSpec(Dimension(297, 420)),
+            SpecValue.QuantitySpec(Quantity.unsafe(50)),
+            SpecValue.OrientationSpec(Orientation.Portrait),
+          ),
+        )
+        val result = ConfigurationBuilder.build(request, catalog, ruleset, configId)
+        assertTrue(result.toEither.isRight)
+      },
+      test("digital print smaller than A3 is valid") {
+        val request = ConfigurationRequest(
+          categoryId = SampleCatalog.flyersId,
+          printingMethodId = SampleCatalog.digitalId,
+          components = List(mainComponent(SampleCatalog.coatedGlossy150gsmId, InkConfiguration.cmyk4_0)),
+          specs = List(
+            SpecValue.SizeSpec(Dimension(210, 297)),
+            SpecValue.QuantitySpec(Quantity.unsafe(50)),
+            SpecValue.OrientationSpec(Orientation.Portrait),
+          ),
+        )
+        val result = ConfigurationBuilder.build(request, catalog, ruleset, configId)
+        assertTrue(result.toEither.isRight)
+      },
+      test("digital print exceeding A3 width is rejected") {
+        val request = ConfigurationRequest(
+          categoryId = SampleCatalog.flyersId,
+          printingMethodId = SampleCatalog.digitalId,
+          components = List(mainComponent(SampleCatalog.coatedGlossy150gsmId, InkConfiguration.cmyk4_0)),
+          specs = List(
+            SpecValue.SizeSpec(Dimension(420, 297)), // 420mm wide exceeds A3 width (297mm)
+            SpecValue.QuantitySpec(Quantity.unsafe(50)),
+            SpecValue.OrientationSpec(Orientation.Landscape),
+          ),
+        )
+        val result = ConfigurationBuilder.build(request, catalog, ruleset, configId)
+        val errors = result.toEither.left.toOption.get.toList
+        assertTrue(errors.exists(_.isInstanceOf[ConfigurationError.TechnologyConstraintViolation]))
+      },
+      test("digital print exceeding A3 height is rejected") {
+        val request = ConfigurationRequest(
+          categoryId = SampleCatalog.flyersId,
+          printingMethodId = SampleCatalog.digitalId,
+          components = List(mainComponent(SampleCatalog.coatedGlossy150gsmId, InkConfiguration.cmyk4_0)),
+          specs = List(
+            SpecValue.SizeSpec(Dimension(200, 500)), // 500mm height exceeds A3 height (420mm)
+            SpecValue.QuantitySpec(Quantity.unsafe(50)),
+            SpecValue.OrientationSpec(Orientation.Portrait),
+          ),
+        )
+        val result = ConfigurationBuilder.build(request, catalog, ruleset, configId)
+        val errors = result.toEither.left.toOption.get.toList
+        assertTrue(errors.exists(_.isInstanceOf[ConfigurationError.TechnologyConstraintViolation]))
+      },
+      test("offset print larger than A3 is not restricted by digital sheet limit") {
+        val request = ConfigurationRequest(
+          categoryId = SampleCatalog.postcardsId,
+          printingMethodId = SampleCatalog.offsetId,
+          components = List(mainComponent(SampleCatalog.coated300gsmId, InkConfiguration.cmyk4_4)),
+          specs = List(
+            SpecValue.SizeSpec(Dimension(297, 420)), // A3, within postcard constraint
+            SpecValue.QuantitySpec(Quantity.unsafe(500)),
+          ),
+        )
+        val result = ConfigurationBuilder.build(request, catalog, ruleset, configId)
+        assertTrue(result.toEither.isRight)
+      },
+      test("digital print on material without sheet dimension is unrestricted by sheet size") {
+        // Kraft paper has no sheetDimension (packaging use-case, printed on larger-format presses),
+        // so digital printing on kraft is not restricted by the A3 sheet size constraint.
+        val request = ConfigurationRequest(
+          categoryId = SampleCatalog.packagingId,
+          printingMethodId = SampleCatalog.digitalId,
+          components = List(mainComponent(SampleCatalog.kraftId, InkConfiguration.cmyk4_0)),
+          specs = List(
+            SpecValue.SizeSpec(Dimension(300, 200)), // 300mm > 297mm (A3 width) but kraft has no sheet limit
+            SpecValue.QuantitySpec(Quantity.unsafe(50)),
+          ),
+        )
+        val result = ConfigurationBuilder.build(request, catalog, ruleset, configId)
+        assertTrue(result.toEither.isRight)
+      },
+    ),
   )
