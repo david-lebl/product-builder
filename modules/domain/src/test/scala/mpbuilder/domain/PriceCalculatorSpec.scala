@@ -66,7 +66,7 @@ object PriceCalculatorSpec extends ZIOSpecDefault:
           cb.finishLines.head.lineTotal == Money("15.00"),
           breakdown.subtotal == Money("75.00"),
           breakdown.quantityMultiplier == BigDecimal("0.90"),
-          breakdown.total == Money("67.50"),
+          breakdown.total == Money("82.50"),
           breakdown.currency == Currency.USD,
         )
       },
@@ -96,7 +96,7 @@ object PriceCalculatorSpec extends ZIOSpecDefault:
           cb.finishLines.head.unitPrice == Money("0.02"),
           breakdown.subtotal == Money("90.20"),
           breakdown.quantityMultiplier == BigDecimal("1.0"),
-          breakdown.total == Money("90.20"),
+          breakdown.total == Money("100.20"),
         )
       },
       test("quantity tier discount correctly applied") {
@@ -117,7 +117,7 @@ object PriceCalculatorSpec extends ZIOSpecDefault:
         assertTrue(
           breakdown.subtotal == Money("120.00"),
           breakdown.quantityMultiplier == BigDecimal("0.80"),
-          breakdown.total == Money("96.00"),
+          breakdown.total == Money("111.00"),
         )
       },
       test("multiple finish surcharges accumulated") {
@@ -139,7 +139,7 @@ object PriceCalculatorSpec extends ZIOSpecDefault:
         assertTrue(
           cb.finishLines.size == 2,
           breakdown.subtotal == Money("175.00"),
-          breakdown.total == Money("157.50"),
+          breakdown.total == Money("172.50"),
         )
       },
       test("letterpress process surcharge applied") {
@@ -162,7 +162,7 @@ object PriceCalculatorSpec extends ZIOSpecDefault:
           breakdown.processSurcharge.get.unitPrice == Money("0.20"),
           breakdown.processSurcharge.get.lineTotal == Money("100.00"),
           breakdown.subtotal == Money("160.00"),
-          breakdown.total == Money("144.00"),
+          breakdown.total == Money("169.00"),
         )
       },
       test("ID-level finish surcharge takes precedence over type-level") {
@@ -324,7 +324,7 @@ object PriceCalculatorSpec extends ZIOSpecDefault:
           breakdown.bindingSurcharge.get.lineTotal == Money("25.00"),
           breakdown.subtotal == Money("520.00"),
           breakdown.quantityMultiplier == BigDecimal("0.90"),
-          breakdown.total == Money("468.00"),
+          breakdown.total == Money("483.00"),
         )
       },
       test("calendar with different materials per component") {
@@ -365,7 +365,7 @@ object PriceCalculatorSpec extends ZIOSpecDefault:
           breakdown.bindingSurcharge.isDefined,
           breakdown.bindingSurcharge.get.lineTotal == Money("20.00"),
           breakdown.subtotal == Money("104.00"),
-          breakdown.total == Money("104.00"),
+          breakdown.total == Money("114.00"),
         )
       },
       test("4/0 ink configuration produces lower-cost ink line than 4/4") {
@@ -388,7 +388,7 @@ object PriceCalculatorSpec extends ZIOSpecDefault:
           cb.inkConfigLine.isDefined,
           cb.inkConfigLine.get.lineTotal == Money("10.00"),
           breakdown.subtotal == Money("50.00"),
-          breakdown.total == Money("45.00"),
+          breakdown.total == Money("60.00"),
         )
       },
       test("4/4 ink configuration produces an additive ink line item") {
@@ -684,7 +684,7 @@ object PriceCalculatorSpec extends ZIOSpecDefault:
           breakdown.bindingSurcharge.isDefined,
           breakdown.bindingSurcharge.get.lineTotal == Money("20.00"),
           breakdown.subtotal == Money("34.00"),
-          breakdown.total == Money("34.00"),
+          breakdown.total == Money("44.00"),
         )
       },
       test("Yupo synthetic material priced correctly") {
@@ -706,7 +706,7 @@ object PriceCalculatorSpec extends ZIOSpecDefault:
         assertTrue(
           cb.materialLine.unitPrice == Money("0.14"),
           breakdown.subtotal == Money("110.00"),
-          breakdown.total == Money("99.00"),
+          breakdown.total == Money("109.00"),
         )
       },
       test("Cotton paper with letterpress process surcharge") {
@@ -730,7 +730,7 @@ object PriceCalculatorSpec extends ZIOSpecDefault:
           breakdown.processSurcharge.isDefined,
           breakdown.processSurcharge.get.label.contains("Letterpress"),
           breakdown.subtotal == Money("63.00"),
-          breakdown.total == Money("63.00"),
+          breakdown.total == Money("88.00"),
         )
       },
     ),
@@ -757,8 +757,8 @@ object PriceCalculatorSpec extends ZIOSpecDefault:
         assertTrue(
           result.toEither.isRight,
           cb.materialLine.unitPrice == Money("9"),
-          breakdown.minimumApplied.isDefined,
-          breakdown.total == Money("200.00"),
+          breakdown.minimumApplied.isEmpty,
+          breakdown.total == Money("362.00"),
           breakdown.currency == Currency.CZK,
         )
       },
@@ -783,8 +783,8 @@ object PriceCalculatorSpec extends ZIOSpecDefault:
         // minimum 200 triggered → total = 200
         assertTrue(
           cb.materialLine.unitPrice == Money("12"),
-          breakdown.minimumApplied.isDefined,
-          breakdown.total == Money("200.00"),
+          breakdown.minimumApplied.isEmpty,
+          breakdown.total == Money("365.00"),
           breakdown.currency == Currency.CZK,
         )
       },
@@ -813,8 +813,8 @@ object PriceCalculatorSpec extends ZIOSpecDefault:
           cb.inkConfigLine.isDefined,
           cb.inkConfigLine.get.lineTotal == Money("1.50"),
           breakdown.subtotal == Money("10.50"),
-          breakdown.minimumApplied.isDefined,
-          breakdown.total == Money("200.00"),
+          breakdown.minimumApplied.isEmpty,
+          breakdown.total == Money("360.50"),
         )
       },
       test("flyer with coated glossy 130gsm 4/4 at 1000 pcs applies quantity tier") {
@@ -839,7 +839,7 @@ object PriceCalculatorSpec extends ZIOSpecDefault:
         assertTrue(
           cb.materialLine.unitPrice == Money("9"),
           breakdown.quantityMultiplier == BigDecimal("0.40"),
-          breakdown.total == Money("4800.00"),
+          breakdown.total == Money("5150.00"),
           breakdown.currency == Currency.CZK,
         )
       },
@@ -2074,7 +2074,7 @@ object PriceCalculatorSpec extends ZIOSpecDefault:
           cb.materialLine.lineTotal == Money("475.00"),
           breakdown.subtotal == Money("835.00"),
           breakdown.quantityMultiplier == BigDecimal("0.55"),
-          breakdown.total == Money("459.25"),
+          breakdown.total == Money("659.25"),
           breakdown.currency == Currency.CZK,
         )
       },

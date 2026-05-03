@@ -69,3 +69,5 @@ enum PricingRule:
   case ScoringCountSurcharge(creaseCount: Int, surchargePerUnit: Money)
   // One-time flat setup fee for creasing/scoring (not discounted; takes precedence over FinishTypeSetupFee for Scoring)
   case ScoringSetupFee(setupCost: Money)
+  // One-time machine/plate setup cost per printing method; added after the volume-discount multiplier
+  case PrintingMethodSetupFee(printingMethodId: PrintingMethodId, setupCost: Money)
