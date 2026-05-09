@@ -15,6 +15,7 @@ Core feature specifications — stable documents describing *what* the system do
 | [new-product-specification.md](new-product-specification.md) | Specification for adding new product types to the system |
 | [help-information.md](help-information.md) | Contextual help system specification (field-level `?` and `i` buttons) |
 | [email-order-option.md](email-order-option.md) | Email order option — pre-filled modal popup for requesting orders via email |
+| [binding-color-and-cover-options.md](binding-color-and-cover-options.md) | Binding color (spiral/wire-O ring color and case binding desk color) and spiral/wire front/back cover options |
 
 ## 🔬 Analysis & Research
 
@@ -75,6 +76,7 @@ Session-by-session work logs documenting what was done, decisions made, and issu
 | Document | Description |
 |----------|-------------|
 | [changelog/README.md](changelog/README.md) | Changelog format, template, and log entries index |
+| [changelog/2026-05-09-binding-color-and-cover-options.md](changelog/2026-05-09-binding-color-and-cover-options.md) | Add binding color (ring/desk) and spiral/wire front+back cover options |
 | [changelog/2026-05-03-printing-method-setup-fee.md](changelog/2026-05-03-printing-method-setup-fee.md) | Add PrintingMethodSetupFee pricing rule; update all three sample pricelists and affected tests |
 | [changelog/2026-05-03-dtg-sublimation-uv-mug-pricing-fix.md](changelog/2026-05-03-dtg-sublimation-uv-mug-pricing-fix.md) | Fix missing ink config prices for DTG, sublimation, and UV flatbed on mugs in pricelistCzkSheet |
 | [changelog/2026-05-03-ink-config-single-sided-constraint.md](changelog/2026-05-03-ink-config-single-sided-constraint.md) | IsSingleSided predicate, large-format inkjet single-sided constraint, pricelistCzkSheet solvent/Epson pricing fix, UI ink config selector filtering |

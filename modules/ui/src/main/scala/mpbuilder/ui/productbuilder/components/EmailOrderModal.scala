@@ -409,6 +409,7 @@ object EmailOrderModal:
         lang match
           case Language.En => s"Back cover: $v"
           case Language.Cs => s"Zadní obálka: $v"
+      // BleedSpec is an internal pre-press setting not shown to customers in order summaries
       case _: SpecValue.BleedSpec => ""
 
   private def formatMoney(money: Money, currency: Currency): String =

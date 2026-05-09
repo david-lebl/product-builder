@@ -618,6 +618,20 @@ object ProductBuilderViewModel:
     catalog.materials.values.filter(_.family == MaterialFamily.BindingMaterial).toList
       .sortBy(_.name(Language.En))
 
+  /** Returns binding color materials relevant for the currently selected binding method:
+   *  - Spiral / Wire-O → spiral ring colors (ids prefixed "mat-binding-")
+   *  - Case Binding    → desk cover colors (ids prefixed "mat-desk-")
+   *  - Otherwise       → all binding materials (fallback)
+   */
+  def availableBindingColorMaterials: Signal[List[Material]] =
+    selectedBindingMethod.map { methodOpt =>
+      val all = availableBindingMaterials
+      methodOpt match
+        case Some(BindingMethod.CaseBinding)                                    => all.filter(_.id.value.startsWith("mat-desk-"))
+        case Some(BindingMethod.SpiralBinding) | Some(BindingMethod.WireOBinding) => all.filterNot(_.id.value.startsWith("mat-desk-"))
+        case _                                                                  => all
+    }
+
   def selectedManufacturingSpeed: Signal[Option[ManufacturingSpeed]] =
     state.map { s =>
       s.specifications.collectFirst {

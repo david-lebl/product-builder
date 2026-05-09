@@ -355,13 +355,13 @@ object SpecificationForm:
           div(
             cls := "form-group__control",
             select(
-              children <-- lang.combineWith(ProductBuilderViewModel.selectedBindingColor).map { case (l, selOpt) =>
+              children <-- lang.combineWith(ProductBuilderViewModel.selectedBindingColor, ProductBuilderViewModel.availableBindingColorMaterials).map { case (l, selOpt, colorMats) =>
                 val sel = selOpt.map(_.value).getOrElse("")
                 val ph = l match
                   case Language.En => "-- Select color --"
                   case Language.Cs => "-- Vyberte barvu --"
                 val placeholderOpt = List(option(ph, value := "", com.raquo.laminar.api.L.selected := sel.isEmpty))
-                val colorOptions = ProductBuilderViewModel.availableBindingMaterials.map { mat =>
+                val colorOptions = colorMats.map { mat =>
                   option(mat.name(l), value := mat.id.value, com.raquo.laminar.api.L.selected := (mat.id.value == sel))
                 }
                 placeholderOpt ++ colorOptions
