@@ -6,7 +6,7 @@ enum MaterialFamily:
   case Paper, Vinyl, Cardboard, Fabric, Hardware
 
 enum MaterialProperty:
-  case Recyclable, WaterResistant, Glossy, Matte, Textured, SmoothSurface, Transparent
+  case Recyclable, WaterResistant, Glossy, Matte, Textured, SmoothSurface, Transparent, BindingColorOption
 
 opaque type PaperWeight = Int
 object PaperWeight:
@@ -25,4 +25,5 @@ final case class Material(
     weight: Option[PaperWeight],
     properties: Set[MaterialProperty],
     description: Option[LocalizedString] = None,
+    color: Option[LocalizedString] = None,
 )

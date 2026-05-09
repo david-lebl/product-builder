@@ -16,6 +16,9 @@ object SampleCatalog:
   val cottonId: MaterialId          = MaterialId.unsafe("mat-cotton-300gsm")
   val clearVinylId: MaterialId      = MaterialId.unsafe("mat-clear-vinyl")
   val pvc510gId: MaterialId         = MaterialId.unsafe("mat-pvc-510g")
+  val bindingColorRedId: MaterialId   = MaterialId.unsafe("mat-binding-color-red")
+  val bindingColorBlackId: MaterialId = MaterialId.unsafe("mat-binding-color-black")
+  val bindingColorWhiteId: MaterialId = MaterialId.unsafe("mat-binding-color-white")
 
   // --- Coated Art Paper Glossy IDs ---
   val coatedGlossy90gsmId: MaterialId  = MaterialId.unsafe("mat-coated-glossy-90gsm")
@@ -253,6 +256,45 @@ object SampleCatalog:
     description = Some(LocalizedString(
       "Transparent self-adhesive vinyl for window graphics, clear labels, and overlay applications where see-through effect is desired.",
       "Průhledný samolepicí vinyl pro okenní grafiku, průhledné štítky a překryvné aplikace, kde je žádoucí průhledný efekt.",
+    )),
+  )
+
+  val bindingColorRed: Material = Material(
+    id = bindingColorRedId,
+    name = LocalizedString("Binding Color — Red", "Barva vazby — červená"),
+    family = MaterialFamily.Hardware,
+    weight = None,
+    properties = Set(MaterialProperty.BindingColorOption, MaterialProperty.SmoothSurface),
+    color = Some(LocalizedString("Red", "Červená")),
+    description = Some(LocalizedString(
+      "Color stock for spiral / wire binding coils and case-binding covers.",
+      "Barevný materiál pro spirálovou / Wire-O vazbu a desky tuhé vazby.",
+    )),
+  )
+
+  val bindingColorBlack: Material = Material(
+    id = bindingColorBlackId,
+    name = LocalizedString("Binding Color — Black", "Barva vazby — černá"),
+    family = MaterialFamily.Hardware,
+    weight = None,
+    properties = Set(MaterialProperty.BindingColorOption, MaterialProperty.SmoothSurface),
+    color = Some(LocalizedString("Black", "Černá")),
+    description = Some(LocalizedString(
+      "Color stock for spiral / wire binding coils and case-binding covers.",
+      "Barevný materiál pro spirálovou / Wire-O vazbu a desky tuhé vazby.",
+    )),
+  )
+
+  val bindingColorWhite: Material = Material(
+    id = bindingColorWhiteId,
+    name = LocalizedString("Binding Color — White", "Barva vazby — bílá"),
+    family = MaterialFamily.Hardware,
+    weight = None,
+    properties = Set(MaterialProperty.BindingColorOption, MaterialProperty.SmoothSurface),
+    color = Some(LocalizedString("White", "Bílá")),
+    description = Some(LocalizedString(
+      "Color stock for spiral / wire binding coils and case-binding covers.",
+      "Barevný materiál pro spirálovou / Wire-O vazbu a desky tuhé vazby.",
     )),
   )
 
@@ -1509,7 +1551,7 @@ object SampleCatalog:
   private val allMaterialIds: Set[MaterialId] = Set(
     coated300gsmId, uncoatedBondId, kraftId, vinylId, corrugatedId,
     coatedSilk250gsmId, yupoId, adhesiveStockId, cottonId, clearVinylId,
-    pvc510gId,
+    pvc510gId, bindingColorRedId, bindingColorBlackId, bindingColorWhiteId,
     // Promotional materials
     cottonTshirt150Id, cottonTshirt180Id, polyesterTshirtId, cottonPolyBlendId, organicCottonTshirtId,
     cottonCanvasBagId, organicCottonBagId, recycledPetBagId, juteBagId, nonWovenPpBagId,
@@ -2095,6 +2137,9 @@ object SampleCatalog:
       cottonId            -> cotton,
       clearVinylId        -> clearVinyl,
       pvc510gId           -> pvc510g,
+      bindingColorRedId   -> bindingColorRed,
+      bindingColorBlackId -> bindingColorBlack,
+      bindingColorWhiteId -> bindingColorWhite,
       // Coated Art Paper Glossy
       coatedGlossy90gsmId  -> coatedGlossy90gsm,
       coatedGlossy115gsmId -> coatedGlossy115gsm,

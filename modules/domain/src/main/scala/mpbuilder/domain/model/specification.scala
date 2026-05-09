@@ -52,6 +52,9 @@ enum FoldType:
 enum BindingMethod:
   case SaddleStitch, PerfectBinding, SpiralBinding, WireOBinding, CaseBinding
 
+enum BindingCoverType:
+  case Transparent, Carton
+
 enum SpecValue:
   case SizeSpec(dimension: Dimension)
   case QuantitySpec(quantity: Quantity)
@@ -60,6 +63,9 @@ enum SpecValue:
   case PagesSpec(count: Int)
   case FoldTypeSpec(foldType: FoldType)
   case BindingMethodSpec(method: BindingMethod)
+  case BindingColorSpec(materialId: MaterialId)
+  case FrontCoverTypeSpec(coverType: BindingCoverType)
+  case BackCoverTypeSpec(coverType: BindingCoverType)
   case ManufacturingSpeedSpec(speed: mpbuilder.domain.model.ManufacturingSpeed)
 
 object SpecValue:
@@ -71,6 +77,9 @@ object SpecValue:
     case _: SpecValue.PagesSpec               => SpecKind.Pages
     case _: SpecValue.FoldTypeSpec            => SpecKind.FoldType
     case _: SpecValue.BindingMethodSpec       => SpecKind.BindingMethod
+    case _: SpecValue.BindingColorSpec        => SpecKind.BindingColor
+    case _: SpecValue.FrontCoverTypeSpec      => SpecKind.FrontCoverType
+    case _: SpecValue.BackCoverTypeSpec       => SpecKind.BackCoverType
     case _: SpecValue.ManufacturingSpeedSpec  => SpecKind.ManufacturingSpeed
 
 final case class ProductSpecifications(specs: Map[SpecKind, SpecValue]):
