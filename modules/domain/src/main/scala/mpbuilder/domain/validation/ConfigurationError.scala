@@ -28,6 +28,7 @@ enum ConfigurationError:
   case ConfigurationConstraintViolation(categoryId: CategoryId, reason: String)
   case TechnologyConstraintViolation(reason: String)
   case InkConfigExceedsMethodColorLimit(printingMethodId: PrintingMethodId, inkConfig: InkConfiguration, maxAllowed: Int, role: ComponentRole)
+  case ProductSizeExceedsSheetMaterial(productSize: Dimension, maxSheetSize: Dimension, materialId: MaterialId, role: ComponentRole)
   case InvalidComponentRoles(categoryId: CategoryId, expectedRoles: Set[ComponentRole], actualRoles: Set[ComponentRole])
   case MissingComponent(categoryId: CategoryId, role: ComponentRole)
   case InvalidFinishParameters(finishId: FinishId, reason: String)
@@ -108,6 +109,11 @@ enum ConfigurationError:
     case InkConfigExceedsMethodColorLimit(pmId, inkConfig, maxAllowed, role) => lang match
       case Language.En => s"Ink configuration '${inkConfig.notation}' in component '$role' exceeds printing method '${pmId.value}' maximum of $maxAllowed colors per side"
       case Language.Cs => s"Konfigurace inkoustu '${inkConfig.notation}' v komponentu '$role' překračuje maximum $maxAllowed barev na stranu pro tiskovou metodu '${pmId.value}'"
+    case ProductSizeExceedsSheetMaterial(productSize, maxSheetSize, materialId, role) => lang match
+      case Language.En =>
+        s"Product size ${productSize.widthMm}×${productSize.heightMm}mm exceeds selected sheet material '${materialId.value}' limit ${maxSheetSize.widthMm}×${maxSheetSize.heightMm}mm for component '$role'"
+      case Language.Cs =>
+        s"Velikost produktu ${productSize.widthMm}×${productSize.heightMm}mm překračuje limit vybraného archového materiálu '${materialId.value}' ${maxSheetSize.widthMm}×${maxSheetSize.heightMm}mm pro komponent '$role'"
     case InvalidComponentRoles(catId, expectedRoles, actualRoles) => lang match
       case Language.En => s"Category '${catId.value}' expects components ${expectedRoles.mkString(", ")} but got ${actualRoles.mkString(", ")}"
       case Language.Cs => s"Kategorie '${catId.value}' očekává komponenty ${expectedRoles.mkString(", ")} ale obdržela ${actualRoles.mkString(", ")}"

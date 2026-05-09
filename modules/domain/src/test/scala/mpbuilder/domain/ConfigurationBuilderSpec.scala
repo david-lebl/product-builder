@@ -654,6 +654,53 @@ object ConfigurationBuilderSpec extends ZIOSpecDefault:
         )
       },
     ),
+    suite("sheet material size validation")(
+      test("sheet-printed paper product larger than A3 is rejected") {
+        val request = ConfigurationRequest(
+          categoryId = SampleCatalog.freeId,
+          printingMethodId = SampleCatalog.digitalId,
+          components = List(mainComponent(SampleCatalog.coated300gsmId, InkConfiguration.cmyk4_4)),
+          specs = List(
+            SpecValue.SizeSpec(Dimension(430, 300)),
+            SpecValue.QuantitySpec(Quantity.unsafe(100)),
+          ),
+        )
+
+        val result = ConfigurationBuilder.build(request, catalog, ruleset, configId)
+        val errors = result.toEither.left.toOption.get.toList
+        assertTrue(
+          errors.exists(_.isInstanceOf[ConfigurationError.ProductSizeExceedsSheetMaterial]),
+        )
+      },
+      test("sheet-printed paper product at A3 size is allowed") {
+        val request = ConfigurationRequest(
+          categoryId = SampleCatalog.freeId,
+          printingMethodId = SampleCatalog.digitalId,
+          components = List(mainComponent(SampleCatalog.coated300gsmId, InkConfiguration.cmyk4_4)),
+          specs = List(
+            SpecValue.SizeSpec(Dimension(420, 297)),
+            SpecValue.QuantitySpec(Quantity.unsafe(100)),
+          ),
+        )
+
+        val result = ConfigurationBuilder.build(request, catalog, ruleset, configId)
+        assertTrue(result.toEither.isRight)
+      },
+      test("large-format workflow is not constrained by A3 sheet limit") {
+        val request = ConfigurationRequest(
+          categoryId = SampleCatalog.freeId,
+          printingMethodId = SampleCatalog.uvInkjetId,
+          components = List(mainComponent(SampleCatalog.pvc510gId, InkConfiguration.cmyk4_0)),
+          specs = List(
+            SpecValue.SizeSpec(Dimension(1000, 500)),
+            SpecValue.QuantitySpec(Quantity.unsafe(10)),
+          ),
+        )
+
+        val result = ConfigurationBuilder.build(request, catalog, ruleset, configId)
+        assertTrue(result.toEither.isRight)
+      },
+    ),
     suite("material family rules")(
       test("vinyl with embossing is rejected (family rule)") {
         val result = RuleEvaluator.evaluate(

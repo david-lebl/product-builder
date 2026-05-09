@@ -6,6 +6,7 @@ import mpbuilder.domain.model.ProductCategory.*
 import mpbuilder.domain.rules.*
 
 object ConfigurationValidator:
+  private val defaultSheetMaxSize = Dimension(420, 297) // A3
 
   def validate(
       category: ProductCategory,
@@ -82,15 +83,56 @@ object ConfigurationValidator:
       else Validation.fail(ConfigurationError.MissingRequiredSpec(category.id, kind))
     }
 
+    val sheetSizeChecks = validateSheetMaterialSizeLimits(specifications, components, printingMethod)
+
     val printingMethodCheck =
       if category.allowedPrintingMethodIds.isEmpty || category.allowedPrintingMethodIds.contains(printingMethod.id) then
         Validation.unit
       else Validation.fail(ConfigurationError.InvalidCategoryPrintingMethod(category.id, printingMethod.id))
 
-    val allChecks = roleCheck :: componentChecks ::: specChecks ::: List(printingMethodCheck)
+    val allChecks = roleCheck :: componentChecks ::: specChecks ::: sheetSizeChecks ::: List(printingMethodCheck)
     allChecks.foldLeft(Validation.unit: Validation[ConfigurationError, Unit])((acc, v) =>
       acc.zipRight(v),
     )
+
+  private def validateSheetMaterialSizeLimits(
+      specifications: ProductSpecifications,
+      components: List[ProductComponent],
+      printingMethod: PrintingMethod,
+  ): List[Validation[ConfigurationError, Unit]] =
+    if !isSheetPrintingProcess(printingMethod.processType) then Nil
+    else
+      specifications.get(SpecKind.Size) match
+        case Some(SpecValue.SizeSpec(productSize)) =>
+          components.flatMap { comp =>
+            materialSheetLimit(comp.material).map { maxSheetSize =>
+              if fitsOnSheet(productSize, maxSheetSize) then Validation.unit
+              else
+                Validation.fail(
+                  ConfigurationError.ProductSizeExceedsSheetMaterial(
+                    productSize,
+                    maxSheetSize,
+                    comp.material.id,
+                    comp.role,
+                  ),
+                )
+            }
+          }
+        case _ => Nil
+
+  private def isSheetPrintingProcess(processType: PrintingProcessType): Boolean =
+    processType == PrintingProcessType.Offset ||
+      processType == PrintingProcessType.Digital ||
+      processType == PrintingProcessType.Letterpress
+
+  private def materialSheetLimit(material: Material): Option[Dimension] =
+    material.family match
+      case MaterialFamily.Paper | MaterialFamily.Cardboard => Some(defaultSheetMaxSize)
+      case _                                               => None
+
+  private def fitsOnSheet(productSize: Dimension, sheetSize: Dimension): Boolean =
+    (productSize.widthMm <= sheetSize.widthMm && productSize.heightMm <= sheetSize.heightMm) ||
+      (productSize.widthMm <= sheetSize.heightMm && productSize.heightMm <= sheetSize.widthMm)
 
   private def validateFinishParams(
       finish: Finish,
