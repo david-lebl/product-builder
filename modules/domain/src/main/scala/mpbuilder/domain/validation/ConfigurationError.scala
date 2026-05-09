@@ -32,6 +32,7 @@ enum ConfigurationError:
   case MissingComponent(categoryId: CategoryId, role: ComponentRole)
   case InvalidFinishParameters(finishId: FinishId, reason: String)
   case ScoringCreaseLimitExceeded(maxCreases: Int, actualCreases: Int, reason: String)
+  case ProductExceedsMaterialSheetSize(materialId: MaterialId, productSize: Dimension, maxSheetSize: Dimension)
 
   def message: String = message(Language.En)
 
@@ -120,3 +121,6 @@ enum ConfigurationError:
     case ScoringCreaseLimitExceeded(maxCreases, actualCreases, reason) => lang match
       case Language.En => s"Crease count $actualCreases exceeds the maximum of $maxCreases: $reason"
       case Language.Cs => s"Počet linek $actualCreases překračuje maximum $maxCreases: $reason"
+    case ProductExceedsMaterialSheetSize(matId, productSize, maxSheet) => lang match
+      case Language.En => s"Product size ${productSize.widthMm}×${productSize.heightMm}mm exceeds the maximum sheet size ${maxSheet.widthMm}×${maxSheet.heightMm}mm of material '${matId.value}'"
+      case Language.Cs => s"Rozměr produktu ${productSize.widthMm}×${productSize.heightMm}mm překračuje maximální velikost archu ${maxSheet.widthMm}×${maxSheet.heightMm}mm materiálu '${matId.value}'"
