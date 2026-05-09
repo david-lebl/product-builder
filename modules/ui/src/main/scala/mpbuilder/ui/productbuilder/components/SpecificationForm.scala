@@ -321,6 +321,120 @@ object SpecificationForm:
                   BindingMethod.values.find(_.toString == value).foreach { bm =>
                     ProductBuilderViewModel.removeSpecification(classOf[SpecValue.BindingMethodSpec])
                     ProductBuilderViewModel.addSpecification(SpecValue.BindingMethodSpec(bm))
+                    // clear color / cover when binding method changes
+                    ProductBuilderViewModel.removeSpecification(classOf[SpecValue.BindingColorSpec])
+                    ProductBuilderViewModel.removeSpecification(classOf[SpecValue.SpiralFrontCoverSpec])
+                    ProductBuilderViewModel.removeSpecification(classOf[SpecValue.SpiralBackCoverSpec])
+                  }
+              },
+            ),
+          ),
+        ),
+      ),
+
+      // Binding Color (for Spiral, Wire-O, and Case Binding)
+      div(
+        Visibility.when(
+          ProductBuilderViewModel.selectedBindingMethod.map(_.exists(bm =>
+            bm == BindingMethod.SpiralBinding || bm == BindingMethod.WireOBinding || bm == BindingMethod.CaseBinding
+          ))
+        ),
+        div(
+          cls := "form-group form-group--horizontal",
+          div(
+            cls := "label-with-help",
+            label(child.text <-- lang.map {
+              case Language.En => "Binding Color:"
+              case Language.Cs => "Barva vazby:"
+            }),
+            HelpInfo(lang.map {
+              case Language.En => "Choose the color of the spiral / wire-O ring or the hardcover desk for case binding."
+              case Language.Cs => "Vyberte barvu kroužku / wire-O nebo pevné desky pro tuhou vazbu."
+            }),
+          ),
+          div(
+            cls := "form-group__control",
+            select(
+              children <-- lang.combineWith(ProductBuilderViewModel.selectedBindingColor).map { case (l, selOpt) =>
+                val sel = selOpt.map(_.value).getOrElse("")
+                val ph = l match
+                  case Language.En => "-- Select color --"
+                  case Language.Cs => "-- Vyberte barvu --"
+                val placeholderOpt = List(option(ph, value := "", com.raquo.laminar.api.L.selected := sel.isEmpty))
+                val colorOptions = ProductBuilderViewModel.availableBindingMaterials.map { mat =>
+                  option(mat.name(l), value := mat.id.value, com.raquo.laminar.api.L.selected := (mat.id.value == sel))
+                }
+                placeholderOpt ++ colorOptions
+              },
+              onChange.mapToValue --> Observer[String] { value =>
+                if value.nonEmpty then
+                  ProductBuilderViewModel.replaceSpecification(
+                    SpecValue.BindingColorSpec(MaterialId.unsafe(value))
+                  )
+              },
+            ),
+          ),
+        ),
+      ),
+
+      // Front and Back Cover (for Spiral and Wire-O Binding)
+      div(
+        Visibility.when(
+          ProductBuilderViewModel.selectedBindingMethod.map(_.exists(bm =>
+            bm == BindingMethod.SpiralBinding || bm == BindingMethod.WireOBinding
+          ))
+        ),
+        div(
+          cls := "form-group form-group--horizontal",
+          label(child.text <-- lang.map {
+            case Language.En => "Front Cover:"
+            case Language.Cs => "Přední obálka:"
+          }),
+          div(
+            cls := "form-group__control",
+            select(
+              children <-- lang.combineWith(ProductBuilderViewModel.selectedSpiralFrontCover).map { case (l, selOpt) =>
+                val sel = selOpt.map(_.toString).getOrElse("")
+                val ph = l match
+                  case Language.En => "-- Select front cover --"
+                  case Language.Cs => "-- Vyberte přední obálku --"
+                val placeholderOpt = List(option(ph, value := "", com.raquo.laminar.api.L.selected := sel.isEmpty))
+                placeholderOpt ++ SpiralCoverType.values.toList.map { ct =>
+                  option(spiralCoverLabel(ct, l), value := ct.toString, com.raquo.laminar.api.L.selected := (ct.toString == sel))
+                }
+              },
+              onChange.mapToValue --> Observer[String] { value =>
+                if value.nonEmpty then
+                  SpiralCoverType.values.find(_.toString == value).foreach { ct =>
+                    ProductBuilderViewModel.replaceSpecification(SpecValue.SpiralFrontCoverSpec(ct))
+                  }
+              },
+            ),
+          ),
+        ),
+        div(
+          cls := "form-group form-group--horizontal",
+          label(child.text <-- lang.map {
+            case Language.En => "Back Cover:"
+            case Language.Cs => "Zadní obálka:"
+          }),
+          div(
+            cls := "form-group__control",
+            select(
+              children <-- lang.combineWith(ProductBuilderViewModel.selectedSpiralBackCover).map { case (l, selOpt) =>
+                val sel = selOpt.map(_.toString).getOrElse("")
+                val ph = l match
+                  case Language.En => "-- Select back cover --"
+                  case Language.Cs => "-- Vyberte zadní obálku --"
+                val placeholderOpt = List(option(ph, value := "", com.raquo.laminar.api.L.selected := sel.isEmpty))
+                placeholderOpt ++ SpiralCoverType.values.toList.map { ct =>
+                  option(spiralCoverLabel(ct, l), value := ct.toString, com.raquo.laminar.api.L.selected := (ct.toString == sel))
+                }
+              },
+              onChange.mapToValue --> Observer[String] { value =>
+                if value.nonEmpty then
+                  SpiralCoverType.values.find(_.toString == value).foreach { ct =>
+                    ProductBuilderViewModel.replaceSpecification(SpecValue.SpiralBackCoverSpec(ct))
                   }
               },
             ),
@@ -430,6 +544,10 @@ object SpecificationForm:
     case BindingMethod.SpiralBinding   => lang match { case Language.En => "Spiral Binding";   case Language.Cs => "Kroužková vazba" }
     case BindingMethod.WireOBinding    => lang match { case Language.En => "Wire-O Binding";   case Language.Cs => "Wire-O vazba" }
     case BindingMethod.CaseBinding     => lang match { case Language.En => "Case Binding";     case Language.Cs => "V8 – tuhá vazba" }
+
+  private def spiralCoverLabel(ct: SpiralCoverType, lang: Language): String = ct match
+    case SpiralCoverType.Transparent => lang match { case Language.En => "Transparent"; case Language.Cs => "Průhledná" }
+    case SpiralCoverType.Carton      => lang match { case Language.En => "Carton";      case Language.Cs => "Karton" }
 
   private def speedTierCard(
     speed: ManufacturingSpeed,

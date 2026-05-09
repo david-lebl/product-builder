@@ -52,6 +52,9 @@ enum FoldType:
 enum BindingMethod:
   case SaddleStitch, PerfectBinding, SpiralBinding, WireOBinding, CaseBinding
 
+enum SpiralCoverType:
+  case Transparent, Carton
+
 enum SpecValue:
   case SizeSpec(dimension: Dimension)
   case QuantitySpec(quantity: Quantity)
@@ -61,6 +64,9 @@ enum SpecValue:
   case FoldTypeSpec(foldType: FoldType)
   case BindingMethodSpec(method: BindingMethod)
   case ManufacturingSpeedSpec(speed: mpbuilder.domain.model.ManufacturingSpeed)
+  case BindingColorSpec(materialId: MaterialId)
+  case SpiralFrontCoverSpec(coverType: SpiralCoverType)
+  case SpiralBackCoverSpec(coverType: SpiralCoverType)
 
 object SpecValue:
   def specKind(sv: SpecValue): SpecKind = sv match
@@ -72,6 +78,9 @@ object SpecValue:
     case _: SpecValue.FoldTypeSpec            => SpecKind.FoldType
     case _: SpecValue.BindingMethodSpec       => SpecKind.BindingMethod
     case _: SpecValue.ManufacturingSpeedSpec  => SpecKind.ManufacturingSpeed
+    case _: SpecValue.BindingColorSpec        => SpecKind.BindingColor
+    case _: SpecValue.SpiralFrontCoverSpec    => SpecKind.SpiralFrontCover
+    case _: SpecValue.SpiralBackCoverSpec     => SpecKind.SpiralBackCover
 
 final case class ProductSpecifications(specs: Map[SpecKind, SpecValue]):
   def get(kind: SpecKind): Option[SpecValue] = specs.get(kind)
