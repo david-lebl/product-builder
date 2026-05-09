@@ -52,7 +52,7 @@ Predicates (`SpecPredicate`, `ConfigurationPredicate`) support boolean algebra (
 
 Two-layer validation using ZIO Prelude `Validation` (error accumulation, not short-circuit):
 
-1. **Structural validation** — category/material/finish selections are valid, required specs present
+1. **Structural validation** — category/material/finish selections are valid, required specs present, and sheet-fed paper/cardboard configurations cannot exceed sheet material size limits (A3 in the current sample setup)
 2. **Rule evaluation** — all compatibility rules checked against the configuration
 
 All errors are collected at once, providing comprehensive feedback.

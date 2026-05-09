@@ -46,6 +46,7 @@ Brief description of what was accomplished in this session.
 
 | Date | Title | PR | Type |
 |------|-------|----|------|
+| 2026-05-09 | [Sheet Material Size Validation](2026-05-09-sheet-material-size-validation.md) | copilot/add-validation-product-size | bugfix |
 | 2026-05-03 | [Printing Method Setup Fee](2026-05-03-printing-method-setup-fee.md) | copilot/add-setup-fee-for-print-methods | feature |
 | 2026-05-03 | [Promotional Ink Config Pricing Fix (DTG, Sublimation, UV Flatbed Mug)](2026-05-03-dtg-sublimation-uv-mug-pricing-fix.md) | copilot/check-prices-for-print-methods | bugfix |
 | 2026-05-03 | [Ink Config Single-Sided Constraint & Sticker Pricing Fix](2026-05-03-ink-config-single-sided-constraint.md) | copilot/check-prices-for-print-methods | bugfix |

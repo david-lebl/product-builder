@@ -44,6 +44,22 @@ Note: Use the `-mill.sh` suffix for Linux (not `.exe`).
 
 ---
 
+### Use repository `./mill` wrapper when `mill` is missing from PATH
+
+**Symptom:** Running `mill ...` fails with `mill: command not found`, even though the repository supports Mill builds.
+
+**Cause:** The shell environment does not have a global `mill` binary installed.
+
+**Solution:** Run Mill via the repository wrapper script:
+```bash
+./mill --no-server __.compile
+./mill --no-server __.test
+```
+
+**Files:** `mill`, `build.mill`
+
+---
+
 ### Mill SSL issues in Copilot Agent environment
 
 **Symptom:** `javax.net.ssl.SSLHandshakeException: PKIX path building failed` when Mill (via Coursier) tries to download `mill-runner-daemon` or other JARs from Maven Central. The native Mill binary downloads fine, but dependency resolution fails.
@@ -263,4 +279,3 @@ areaTierRule match
 **Solution:** Whenever a new `PricingRule` variant is added, add a corresponding case to **both** `pricingRuleSummary` (returns a display string) **and** `pricingRuleTypeName` (returns the type name string) in `PricelistEditorView`. The Scala compiler emits a non-exhaustive match warning for these matches; treat those warnings as errors.
 
 **Files:** `modules/ui/src/main/scala/mpbuilder/ui/catalog/views/PricelistEditorView.scala`
-

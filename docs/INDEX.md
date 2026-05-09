@@ -75,6 +75,7 @@ Session-by-session work logs documenting what was done, decisions made, and issu
 | Document | Description |
 |----------|-------------|
 | [changelog/README.md](changelog/README.md) | Changelog format, template, and log entries index |
+| [changelog/2026-05-09-sheet-material-size-validation.md](changelog/2026-05-09-sheet-material-size-validation.md) | Add structural validation that sheet-fed paper/cardboard product sizes cannot exceed A3 sheet limits |
 | [changelog/2026-05-03-printing-method-setup-fee.md](changelog/2026-05-03-printing-method-setup-fee.md) | Add PrintingMethodSetupFee pricing rule; update all three sample pricelists and affected tests |
 | [changelog/2026-05-03-dtg-sublimation-uv-mug-pricing-fix.md](changelog/2026-05-03-dtg-sublimation-uv-mug-pricing-fix.md) | Fix missing ink config prices for DTG, sublimation, and UV flatbed on mugs in pricelistCzkSheet |
 | [changelog/2026-05-03-ink-config-single-sided-constraint.md](changelog/2026-05-03-ink-config-single-sided-constraint.md) | IsSingleSided predicate, large-format inkjet single-sided constraint, pricelistCzkSheet solvent/Epson pricing fix, UI ink config selector filtering |
