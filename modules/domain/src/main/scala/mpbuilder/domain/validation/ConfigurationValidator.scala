@@ -90,7 +90,7 @@ object ConfigurationValidator:
         Validation.unit
       else Validation.fail(ConfigurationError.InvalidCategoryPrintingMethod(category.id, printingMethod.id))
 
-    val allChecks = roleCheck :: componentChecks ::: specChecks ::: sheetSizeChecks ::: List(printingMethodCheck)
+    val allChecks = List(roleCheck) ::: componentChecks ::: specChecks ::: sheetSizeChecks ::: List(printingMethodCheck)
     allChecks.foldLeft(Validation.unit: Validation[ConfigurationError, Unit])((acc, v) =>
       acc.zipRight(v),
     )
@@ -121,9 +121,11 @@ object ConfigurationValidator:
         case _ => Nil
 
   private def isSheetPrintingProcess(processType: PrintingProcessType): Boolean =
-    processType == PrintingProcessType.Offset ||
-      processType == PrintingProcessType.Digital ||
-      processType == PrintingProcessType.Letterpress
+    Set(
+      PrintingProcessType.Offset,
+      PrintingProcessType.Digital,
+      PrintingProcessType.Letterpress,
+    ).contains(processType)
 
   private def materialSheetLimit(material: Material): Option[Dimension] =
     material.family match
