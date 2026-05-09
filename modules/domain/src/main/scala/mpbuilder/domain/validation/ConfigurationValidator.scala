@@ -87,7 +87,20 @@ object ConfigurationValidator:
         Validation.unit
       else Validation.fail(ConfigurationError.InvalidCategoryPrintingMethod(category.id, printingMethod.id))
 
-    val allChecks = roleCheck :: componentChecks ::: specChecks ::: List(printingMethodCheck)
+    val sheetSizeChecks = specifications.get(SpecKind.Size) match
+      case Some(SpecValue.SizeSpec(productDim)) =>
+        components.flatMap { comp =>
+          comp.material.maxSheetSize match
+            case Some(maxSheet) =>
+              val fitsNatural = productDim.widthMm <= maxSheet.widthMm && productDim.heightMm <= maxSheet.heightMm
+              val fitsRotated = productDim.widthMm <= maxSheet.heightMm && productDim.heightMm <= maxSheet.widthMm
+              if fitsNatural || fitsRotated then Nil
+              else List(Validation.fail(ConfigurationError.ProductExceedsMaterialSheetSize(comp.material.id, productDim, maxSheet)))
+            case None => Nil
+        }
+      case _ => Nil
+
+    val allChecks = roleCheck :: componentChecks ::: specChecks ::: List(printingMethodCheck) ::: sheetSizeChecks
     allChecks.foldLeft(Validation.unit: Validation[ConfigurationError, Unit])((acc, v) =>
       acc.zipRight(v),
     )
