@@ -8,7 +8,7 @@ Core feature specifications — stable documents describing *what* the system do
 
 | Document | Description |
 |----------|-------------|
-| [features.md](features.md) | Comprehensive feature overview of the entire system |
+| [features.md](features.md) | Comprehensive feature overview of the entire system (including binding color and spiral/wire cover options) |
 | [pricing.md](pricing.md) | Pricing engine specification with 24 rule types and worked examples |
 | [visual-product-types.md](visual-product-types.md) | Visual editor product types (calendars, photo books, wall pictures) and formats |
 | [manufacturing-speed-pipeline.md](manufacturing-speed-pipeline.md) | Order completion time estimation — 8-stage pipeline specification |
@@ -75,6 +75,7 @@ Session-by-session work logs documenting what was done, decisions made, and issu
 | Document | Description |
 |----------|-------------|
 | [changelog/README.md](changelog/README.md) | Changelog format, template, and log entries index |
+| [changelog/2026-05-09-binding-color-and-cover-options.md](changelog/2026-05-09-binding-color-and-cover-options.md) | Add configurable binding color stock selection and spiral/wire front/back cover options |
 | [changelog/2026-05-03-printing-method-setup-fee.md](changelog/2026-05-03-printing-method-setup-fee.md) | Add PrintingMethodSetupFee pricing rule; update all three sample pricelists and affected tests |
 | [changelog/2026-05-03-dtg-sublimation-uv-mug-pricing-fix.md](changelog/2026-05-03-dtg-sublimation-uv-mug-pricing-fix.md) | Fix missing ink config prices for DTG, sublimation, and UV flatbed on mugs in pricelistCzkSheet |
 | [changelog/2026-05-03-ink-config-single-sided-constraint.md](changelog/2026-05-03-ink-config-single-sided-constraint.md) | IsSingleSided predicate, large-format inkjet single-sided constraint, pricelistCzkSheet solvent/Epson pricing fix, UI ink config selector filtering |

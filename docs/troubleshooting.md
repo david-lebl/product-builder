@@ -107,6 +107,21 @@ A more robust fix would be for `PriceCalculator` to return a `PricingError` when
 
 ## UI & Scala.js
 
+### Catalog UI compile errors after `FormComponents` signature tightening
+
+**Symptom:** `ui.compile` fails with errors like `missing argument for parameter placeholder of method textField` or missing `display` function for `enumSelectRequired` / `enumCheckboxSet`.
+
+**Cause:** Catalog views still call `FormComponents` helpers using older signatures that omitted explicit placeholder/display arguments.
+
+**Solution:** Update each affected form call to pass:
+- `textField(..., placeholder = "...")`
+- `enumSelectRequired(..., display = _.toString)` (or a domain-specific label function)
+- `enumCheckboxSet(..., display = _.toString)` (or a domain-specific label function)
+
+**Files:** `modules/ui/src/main/scala/mpbuilder/ui/catalog/views/*.scala`, `modules/ui/src/main/scala/mpbuilder/ui/catalog/FormComponents.scala`
+
+---
+
 ### Laminar `combineWith` tuple flattening issues
 
 **Symptom:** Compilation errors or runtime issues when combining multiple signals with `combineWith`.
@@ -263,4 +278,3 @@ areaTierRule match
 **Solution:** Whenever a new `PricingRule` variant is added, add a corresponding case to **both** `pricingRuleSummary` (returns a display string) **and** `pricingRuleTypeName` (returns the type name string) in `PricelistEditorView`. The Scala compiler emits a non-exhaustive match warning for these matches; treat those warnings as errors.
 
 **Files:** `modules/ui/src/main/scala/mpbuilder/ui/catalog/views/PricelistEditorView.scala`
-
