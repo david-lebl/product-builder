@@ -377,6 +377,29 @@ object EmailOrderModal:
         lang match
           case Language.En => s"Binding: $v"
           case Language.Cs => s"Vazba: $v"
+      case SpecValue.BindingColorSpec(materialId) =>
+        val materialLabel = ProductBuilderViewModel.catalog.materials.get(materialId)
+          .flatMap(_.color)
+          .map(_(lang))
+          .orElse(ProductBuilderViewModel.catalog.materials.get(materialId).map(_.name(lang)))
+          .getOrElse(materialId.value)
+        lang match
+          case Language.En => s"Binding / cover color: $materialLabel"
+          case Language.Cs => s"Barva vazby / desek: $materialLabel"
+      case SpecValue.FrontCoverTypeSpec(coverType) =>
+        val v = coverType match
+          case BindingCoverType.Transparent => lang match { case Language.En => "Transparent"; case Language.Cs => "Transparentní" }
+          case BindingCoverType.Carton      => lang match { case Language.En => "Carton";      case Language.Cs => "Karton" }
+        lang match
+          case Language.En => s"Front cover: $v"
+          case Language.Cs => s"Přední krycí list: $v"
+      case SpecValue.BackCoverTypeSpec(coverType) =>
+        val v = coverType match
+          case BindingCoverType.Transparent => lang match { case Language.En => "Transparent"; case Language.Cs => "Transparentní" }
+          case BindingCoverType.Carton      => lang match { case Language.En => "Carton";      case Language.Cs => "Karton" }
+        lang match
+          case Language.En => s"Back cover: $v"
+          case Language.Cs => s"Zadní krycí list: $v"
       case SpecValue.PagesSpec(count) =>
         lang match
           case Language.En => s"Pages: $count"

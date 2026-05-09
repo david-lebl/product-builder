@@ -29,6 +29,7 @@ object MaterialEditorView:
         ColumnDef("Name", m => span(m.name.value), Some(_.name.value)),
         ColumnDef("Family", m => span(m.family.toString), Some(_.family.toString), Some("100px")),
         ColumnDef("Weight", m => span(m.weight.map(w => s"${w.gsm}gsm").getOrElse("—")), width = Some("80px")),
+        ColumnDef("Color", m => span(m.color.map(_(Language.En)).getOrElse("—")), width = Some("120px")),
         ColumnDef("Properties", m => span(cls := "entity-tags", m.properties.map(_.toString).mkString(", "))),
         ColumnDef("", m => div(
           cls := "entity-actions",
@@ -80,6 +81,8 @@ object MaterialEditorView:
     val familyVar = Var(existing.map(_.family).getOrElse(MaterialFamily.Paper))
     val weightVar = Var(existing.flatMap(_.weight).map(_.gsm.toString).getOrElse(""))
     val propsVar = Var(existing.map(_.properties).getOrElse(Set.empty[MaterialProperty]))
+    val colorEnVar = Var(existing.flatMap(_.color).map(_(Language.En)).getOrElse(""))
+    val colorCsVar = Var(existing.flatMap(_.color).map(_(Language.Cs)).getOrElse(""))
 
     div(
       cls := "catalog-detail-panel",
@@ -102,6 +105,8 @@ object MaterialEditorView:
         ),
 
         FormComponents.numberField("Weight (gsm)", weightVar.signal, weightVar.writer),
+        FormComponents.textField("Color (EN)", colorEnVar.signal, colorEnVar.writer, "e.g. Red"),
+        FormComponents.textField("Color (CS)", colorCsVar.signal, colorCsVar.writer, "např. Červená"),
 
         FormComponents.enumCheckboxSet[MaterialProperty](
           "Properties", MaterialProperty.values, propsVar.signal, propsVar.writer,
@@ -119,6 +124,9 @@ object MaterialEditorView:
               family = familyVar.now(),
               weight = weightVar.now().toIntOption.map(PaperWeight.unsafe),
               properties = propsVar.now(),
+              color = Option.when(colorEnVar.now().trim.nonEmpty || colorCsVar.now().trim.nonEmpty)(
+                LocalizedString(colorEnVar.now().trim, colorCsVar.now().trim)
+              ),
             )
             if existing.isDefined then CatalogEditorViewModel.updateMaterial(mat)
             else CatalogEditorViewModel.addMaterial(mat)
