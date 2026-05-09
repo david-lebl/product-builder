@@ -97,11 +97,11 @@ object MaterialEditorView:
 
       div(cls := "detail-panel-section",
         FormComponents.textField("ID", idVar.signal, idVar.writer, "e.g. coated-300gsm"),
-        FormComponents.textField("Name (EN)", nameEnVar.signal, nameEnVar.writer),
-        FormComponents.textField("Name (CS)", nameCsVar.signal, nameCsVar.writer),
+        FormComponents.textField("Name (EN)", nameEnVar.signal, nameEnVar.writer, ""),
+        FormComponents.textField("Name (CS)", nameCsVar.signal, nameCsVar.writer, ""),
 
         FormComponents.enumSelectRequired[MaterialFamily](
-          "Family", MaterialFamily.values, familyVar.signal, familyVar.writer,
+          "Family", MaterialFamily.values, familyVar.signal, familyVar.writer, _.toString,
         ),
 
         FormComponents.numberField("Weight (gsm)", weightVar.signal, weightVar.writer),
@@ -109,7 +109,7 @@ object MaterialEditorView:
         FormComponents.textField("Color (CS)", colorCsVar.signal, colorCsVar.writer, "např. Červená"),
 
         FormComponents.enumCheckboxSet[MaterialProperty](
-          "Properties", MaterialProperty.values, propsVar.signal, propsVar.writer,
+          "Properties", MaterialProperty.values, propsVar.signal, propsVar.writer, _.toString,
         ),
       ),
 
