@@ -87,6 +87,23 @@ object ProductBuilderViewModel:
   // Get current language
   def currentLanguage: Signal[Language] = state.map(_.language)
 
+  // Set a customer for internal (manufacturing) order pricing without going through the customer login flow.
+  // This simulates a logged-in state so that customer-specific prices and discounts are applied.
+  // Calling with None resets to standard (logged-out) pricing.
+  def setInternalOrderCustomer(customer: Option[Customer]): Unit =
+    customer match
+      case Some(c) =>
+        val session = LoginSession(
+          sessionId = SessionId.unsafe("internal-employee-session"),
+          customerId = c.id,
+          createdAt = System.currentTimeMillis(),
+          expiresAt = System.currentTimeMillis() + 86400000L,
+        )
+        stateVar.update(_.copy(loginState = LoginState.LoggedIn(c, session)))
+      case None =>
+        stateVar.update(_.copy(loginState = LoginState.LoggedOut))
+    autoRecalculate()
+
   // Initialize language on app startup (does not persist - language is already from localStorage or browser detection)
   def initializeLanguage(lang: Language): Unit =
     stateVar.update(_.copy(language = lang))

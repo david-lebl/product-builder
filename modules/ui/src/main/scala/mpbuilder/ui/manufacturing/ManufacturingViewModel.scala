@@ -6,7 +6,7 @@ import mpbuilder.domain.model.ManufacturingWorkflow.*
 import mpbuilder.domain.model.ManufacturingOrder.*
 import mpbuilder.domain.service.*
 import mpbuilder.domain.sample.*
-import mpbuilder.domain.pricing.{Money, Currency}
+import mpbuilder.domain.pricing.{Money, Currency, PriceBreakdown}
 import mpbuilder.domain.manufacturing.{ShopSchedule, WorkingHours, StationTimeEstimate}
 import mpbuilder.domain.pricing.BusyPeriodMultiplier
 import java.time.{DayOfWeek, LocalDate, LocalTime}
@@ -135,6 +135,52 @@ object ManufacturingViewModel:
     }
 
   // --- Actions ---
+
+  /** Create a new manufacturing order on behalf of a customer (internal/employee use).
+    *
+    * The order is placed directly into the approval queue with `Placed` status so it
+    * goes through the normal approval workflow before production starts.
+    */
+  def createInternalOrder(
+      customerName: String,
+      customerId: Option[CustomerId],
+      config: ProductConfiguration,
+      priceBreakdown: PriceBreakdown,
+      quantity: Int,
+      notes: String,
+  ): Unit =
+    val now = System.currentTimeMillis()
+    val orderId = s"INT-$now"
+    val basketItem = BasketItem(config, quantity, priceBreakdown)
+    val basket = Basket(BasketId.unsafe(s"basket-$orderId"), List(basketItem))
+    // Split customerName into first/last for contact info (best-effort)
+    val nameParts = customerName.trim.split(" ", 2)
+    val firstName = nameParts.headOption.getOrElse("")
+    val lastName = if nameParts.length > 1 then nameParts(1) else ""
+    val contact = ContactInfo(firstName, lastName, "", "", None, None, None)
+    val checkoutInfo = CheckoutInfo(
+      contactInfo = contact,
+      note = if notes.nonEmpty then notes else "",
+      deliveryOption = Some(DeliveryOption.PickupAtShop("main")),
+      paymentMethod = Some(PaymentMethod.InvoiceOnAccount),
+    )
+    val order = Order(
+      OrderId.unsafe(orderId),
+      basket,
+      checkoutInfo,
+      priceBreakdown.total,
+      priceBreakdown.currency,
+      customerId,
+    )
+    val mo = ManufacturingOrder(
+      order = order,
+      workflows = Nil,
+      approvalStatus = ApprovalStatus.Placed,
+      approvalNotes = "",
+      createdAt = now,
+      deadline = None,
+    )
+    manufacturingOrders.update(mo :: _)
 
   def selectOrder(orderId: String): Unit =
     selectedOrderId.set(Some(orderId))

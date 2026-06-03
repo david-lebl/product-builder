@@ -30,6 +30,7 @@ object ManufacturingApp:
         cls := "app-sidebar-content",
         child <-- ManufacturingViewModel.currentRoute.signal.map {
           case ManufacturingRoute.Dashboard     => DashboardView()
+          case ManufacturingRoute.NewOrder      => NewOrderView()
           case ManufacturingRoute.StationQueue  => StationQueueView()
           case ManufacturingRoute.OrderApproval => OrderApprovalView()
           case ManufacturingRoute.OrderProgress => OrderProgressView()

@@ -5,6 +5,7 @@ import mpbuilder.domain.model.*
 /** Route definitions for the manufacturing UI. */
 enum ManufacturingRoute(val label: String, val icon: String, val isAvailable: Boolean = true):
   case Dashboard      extends ManufacturingRoute("Dashboard", "📊")
+  case NewOrder       extends ManufacturingRoute("New Order", "➕")
   case StationQueue   extends ManufacturingRoute("Station Queue", "🏭")
   case OrderApproval  extends ManufacturingRoute("Order Approval", "📋")
   case OrderProgress  extends ManufacturingRoute("Order Progress", "📦")
