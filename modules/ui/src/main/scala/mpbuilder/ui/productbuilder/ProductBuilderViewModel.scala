@@ -11,6 +11,7 @@ import mpbuilder.domain.sample.*
 import zio.prelude.Validation
 import com.raquo.laminar.api.L.*
 import org.scalajs.dom
+import scala.scalajs.js
 import java.time.LocalDateTime
 
 /** Current state of the agency login flow */
@@ -97,8 +98,9 @@ object ProductBuilderViewModel:
     customer match
       case Some(c) =>
         val now = System.currentTimeMillis()
+        val rand = (js.Math.random() * 1000000000).toInt
         val session = LoginSession(
-          sessionId = SessionId.unsafe(s"internal-employee-session-${c.id.value}-$now"),
+          sessionId = SessionId.unsafe(s"internal-employee-session-$now-$rand"),
           customerId = c.id,
           createdAt = now,
           expiresAt = now + InternalSessionDurationMs,
