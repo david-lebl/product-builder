@@ -153,11 +153,7 @@ object ManufacturingViewModel:
     val orderId = s"INT-$now"
     val basketItem = BasketItem(config, quantity, priceBreakdown)
     val basket = Basket(BasketId.unsafe(s"basket-$orderId"), List(basketItem))
-    // Split customerName into first/last for contact info (best-effort)
-    val nameParts = customerName.trim.split(" ", 2)
-    val firstName = nameParts.headOption.getOrElse("")
-    val lastName = if nameParts.length > 1 then nameParts(1) else ""
-    val contact = ContactInfo(firstName, lastName, "", "", None, None, None)
+    val contact = ContactInfo(customerName, "", "", "", None, None, None)
     val checkoutInfo = CheckoutInfo(
       contactInfo = contact,
       note = if notes.nonEmpty then notes else "",

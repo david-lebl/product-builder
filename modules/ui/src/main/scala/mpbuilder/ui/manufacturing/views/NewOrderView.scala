@@ -19,6 +19,10 @@ import mpbuilder.uikit.fields.CheckboxField
   */
 object NewOrderView:
 
+  private def customerDisplayName(c: Customer): String =
+    c.companyInfo.map(_.companyName)
+      .getOrElse(s"${c.contactInfo.firstName} ${c.contactInfo.lastName}".trim)
+
   def apply(): HtmlElement =
     val selectedCustomer: Var[Option[Customer]] = Var(None)
     val orderNotes: Var[String] = Var("")
@@ -48,11 +52,9 @@ object NewOrderView:
                 cls := "form-control",
                 option(value := "", "— Select a customer (optional) —"),
                 SampleCustomers.all.map { c =>
-                  val displayName = c.companyInfo.map(_.companyName)
-                    .getOrElse(s"${c.contactInfo.firstName} ${c.contactInfo.lastName}")
                   option(
                     value := c.id.value,
-                    s"$displayName (${c.tier.displayName(Language.En)})",
+                    s"${customerDisplayName(c)} (${c.tier.displayName(Language.En)})",
                   )
                 },
                 onChange.mapToValue --> { value =>
@@ -204,10 +206,7 @@ object NewOrderView:
                   (state.configuration, state.priceBreakdown) match
                     case (Some(config), Some(breakdown)) =>
                       val customerName = customer
-                        .map { c =>
-                          c.companyInfo.map(_.companyName)
-                            .getOrElse(s"${c.contactInfo.firstName} ${c.contactInfo.lastName}")
-                        }
+                        .map(customerDisplayName)
                         .getOrElse("Internal Order")
                       val qty = state.specifications.collectFirst {
                         case SpecValue.QuantitySpec(q) => q.value

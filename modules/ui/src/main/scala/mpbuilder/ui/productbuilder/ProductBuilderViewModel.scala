@@ -59,6 +59,9 @@ case class BuilderState(
 
 object ProductBuilderViewModel:
 
+  /** Duration of a synthetic internal-employee session (24 hours in milliseconds). */
+  private val InternalSessionDurationMs: Long = 24L * 60 * 60 * 1000
+
   val catalog: ProductCatalog = SampleCatalog.catalog
   val ruleset = SampleRules.ruleset
   val pricelist = SamplePricelist.pricelistCzkSheet
@@ -93,11 +96,12 @@ object ProductBuilderViewModel:
   def setInternalOrderCustomer(customer: Option[Customer]): Unit =
     customer match
       case Some(c) =>
+        val now = System.currentTimeMillis()
         val session = LoginSession(
-          sessionId = SessionId.unsafe("internal-employee-session"),
+          sessionId = SessionId.unsafe(s"internal-employee-session-${c.id.value}-$now"),
           customerId = c.id,
-          createdAt = System.currentTimeMillis(),
-          expiresAt = System.currentTimeMillis() + 86400000L,
+          createdAt = now,
+          expiresAt = now + InternalSessionDurationMs,
         )
         stateVar.update(_.copy(loginState = LoginState.LoggedIn(c, session)))
       case None =>
