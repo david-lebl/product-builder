@@ -2,9 +2,6 @@ package mpbuilder.catalog
 
 import mpbuilder.kernel.*
 
-enum SpecKind:
-  case Size, Quantity, Orientation, Bleed, Pages, FoldType, BindingMethod, ManufacturingSpeed
-
 final case class ProductCategory(
     id: CategoryId,
     name: LocalizedString,
