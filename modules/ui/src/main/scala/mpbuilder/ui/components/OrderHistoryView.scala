@@ -1,5 +1,7 @@
 package mpbuilder.ui.components
 
+import mpbuilder.customer.*
+
 import mpbuilder.kernel.*
 
 import com.raquo.laminar.api.L.*

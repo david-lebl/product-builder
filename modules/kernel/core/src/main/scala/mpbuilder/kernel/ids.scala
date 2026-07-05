@@ -92,6 +92,16 @@ object DiscountCodeId:
 
   extension (id: DiscountCodeId) def value: String = id
 
+opaque type EmployeeId = String
+object EmployeeId:
+  def apply(value: String): Validation[String, EmployeeId] =
+    if value.nonEmpty then Validation.succeed(value)
+    else Validation.fail("EmployeeId must not be empty")
+
+  def unsafe(value: String): EmployeeId = value
+
+  extension (id: EmployeeId) def value: String = id
+
 opaque type ArtworkId = String
 object ArtworkId:
   def apply(value: String): Validation[String, ArtworkId] =

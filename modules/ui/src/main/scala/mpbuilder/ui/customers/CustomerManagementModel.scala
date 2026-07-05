@@ -1,5 +1,7 @@
 package mpbuilder.ui.customers
 
+import mpbuilder.customer.*
+
 import mpbuilder.kernel.*
 
 import mpbuilder.domain.model.*

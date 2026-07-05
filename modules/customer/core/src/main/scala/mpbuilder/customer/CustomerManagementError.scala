@@ -1,8 +1,7 @@
-package mpbuilder.domain.service
+package mpbuilder.customer
 
 import mpbuilder.kernel.*
 
-import mpbuilder.domain.model.*
 
 /** Error ADT for customer management operations. */
 enum CustomerManagementError:

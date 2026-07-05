@@ -1,5 +1,7 @@
 package mpbuilder.domain
 
+import mpbuilder.customer.*
+
 import mpbuilder.catalog.*
 
 import mpbuilder.kernel.*

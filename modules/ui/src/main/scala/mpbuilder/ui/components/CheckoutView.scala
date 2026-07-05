@@ -1,5 +1,7 @@
 package mpbuilder.ui.components
 
+import mpbuilder.customer.*
+
 import mpbuilder.catalog.*
 
 import mpbuilder.kernel.*

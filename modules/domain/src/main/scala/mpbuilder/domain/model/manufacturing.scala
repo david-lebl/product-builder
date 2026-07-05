@@ -28,16 +28,6 @@ object StepId:
 
   extension (id: StepId) def value: String = id
 
-opaque type EmployeeId = String
-object EmployeeId:
-  def apply(value: String): Validation[String, EmployeeId] =
-    if value.nonEmpty then Validation.succeed(value)
-    else Validation.fail("EmployeeId must not be empty")
-
-  def unsafe(value: String): EmployeeId = value
-
-  extension (id: EmployeeId) def value: String = id
-
 opaque type MachineId = String
 object MachineId:
   def apply(value: String): Validation[String, MachineId] =
