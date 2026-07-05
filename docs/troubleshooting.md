@@ -2,9 +2,39 @@
 
 > Known issues, common problems from agent sessions, and their solutions. This document is a living knowledge base — agents and developers should add entries when encountering and resolving issues.
 
+> **Note (2026-07):** Entries older than the bounded-context module split reference pre-refactor paths like `modules/domain/src/main/scala/mpbuilder/domain/...`. The equivalent code now lives in per-context modules, e.g. `modules/pricing/core/src/main/scala/mpbuilder/pricing/`. See [changelog/2026-07-05-bounded-context-modules.md](changelog/2026-07-05-bounded-context-modules.md).
+
 ---
 
 ## Build & Compilation
+
+### Bogus "ambiguous reference" errors after moving types between Mill modules
+
+**Symptom:** After `git mv`-ing Scala files to a new module and renaming their package, compilation reports thousands of errors like "Reference to X is ambiguous. It is both imported by import A._ and subsequently by import B._" for types that exist in only one of the two packages.
+
+**Cause:** Stale Zinc incremental-compilation state in `out/` referencing the old package layout.
+
+**Solution:** `./mill clean` and recompile. Only trust the error list after a clean build when files have moved between modules.
+
+---
+
+### Mechanical import sweeps: dedupe on the wildcard form, not the package prefix
+
+**Symptom:** During a package-split migration, a scripted pass that adds `import mpbuilder.<ctx>.*` to files referencing moved types silently skips files, leaving "Not found: type X" errors.
+
+**Cause:** Guarding the insertion with `grep -q 'import mpbuilder.<ctx>'` also matches selective imports (`import mpbuilder.<ctx>.SomeType`) added by an earlier rewrite, so files that additionally used other moved types via same-package access never get the wildcard. Also beware: a cleanup regex like `/^import mpbuilder\.<ctx>\.[^*]/` deletes enum-member imports (`import mpbuilder.<ctx>.SomeEnum.*`) — the `[^*]` matches the first character of the type name, not the suffix.
+
+**Solution:** Key the dedupe check on the exact wildcard form (`import mpbuilder\.<ctx>\.\*`), normalize selective imports to the wildcard, and never delete `import <pkg>.<Type>.*` lines mechanically. Let the compiler find stragglers after each pass.
+
+---
+
+### `private[domain]` breaks when the enclosing package is dissolved
+
+**Symptom:** "no enclosing class or object is named 'domain'" after moving a file out of `mpbuilder.domain.*`.
+
+**Solution:** Change the qualifier to the new context package (e.g. `private[manufacturing]`) and move any test that exercises those members into the same package/module in the same step (e.g. `QueueScorerSpec` lives in `modules/manufacturing/core/src/test`).
+
+---
 
 ### Mill StackOverflow on `DeriveJsonCodec.gen[PricingRule]`
 
