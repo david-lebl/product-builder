@@ -7,7 +7,7 @@ import zio.prelude.*
 import mpbuilder.manufacturing.*
 import mpbuilder.catalog.*
 import mpbuilder.manufacturing.*
-import mpbuilder.domain.sample.*
+import mpbuilder.samples.*
 
 object ConfigurationBuilderSpec extends ZIOSpecDefault:
 

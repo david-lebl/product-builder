@@ -7,7 +7,7 @@ import zio.json.*
 import mpbuilder.manufacturing.*
 import mpbuilder.pricing.*
 import mpbuilder.catalog.*
-import mpbuilder.domain.sample.*
+import mpbuilder.samples.*
 import mpbuilder.pricing.PricingCodecs.given
 
 object CatalogCodecSpec extends ZIOSpecDefault:

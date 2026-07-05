@@ -8,7 +8,7 @@ import mpbuilder.kernel.*
 
 import zio.test.*
 import mpbuilder.manufacturing.*
-import mpbuilder.domain.sample.{SampleDiscountCodes, SampleCustomers, SampleCatalog}
+import mpbuilder.samples.{SampleDiscountCodes, SampleCustomers, SampleCatalog}
 
 object DiscountCodeServiceSpec extends ZIOSpecDefault:
 

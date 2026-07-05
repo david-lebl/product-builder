@@ -8,7 +8,7 @@ import mpbuilder.manufacturing.*
 import mpbuilder.catalog.*
 import mpbuilder.pricing.*
 import mpbuilder.manufacturing.*
-import mpbuilder.domain.sample.*
+import mpbuilder.samples.*
 
 object LocalizationSpec extends ZIOSpecDefault:
 

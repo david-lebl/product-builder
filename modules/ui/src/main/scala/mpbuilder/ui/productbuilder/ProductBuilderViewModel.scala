@@ -11,7 +11,7 @@ import mpbuilder.catalog.*
 import mpbuilder.pricing.*
 import mpbuilder.manufacturing.{StationUtilisation, StationTimeEstimate}
 import mpbuilder.catalog.{WeightBreakdown, WeightCalculator}
-import mpbuilder.domain.sample.*
+import mpbuilder.samples.*
 import zio.prelude.Validation
 import com.raquo.laminar.api.L.*
 import org.scalajs.dom

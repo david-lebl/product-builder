@@ -5,7 +5,7 @@ import mpbuilder.kernel.*
 import mpbuilder.manufacturing.*
 import mpbuilder.pricing.*
 import mpbuilder.catalog.*
-import mpbuilder.domain.sample.*
+import mpbuilder.samples.*
 
 /** Which section of the catalog editor is currently active. */
 enum CatalogSection:

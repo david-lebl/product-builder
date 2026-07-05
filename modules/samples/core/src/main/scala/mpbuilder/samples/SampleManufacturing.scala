@@ -1,4 +1,4 @@
-package mpbuilder.domain.sample
+package mpbuilder.samples
 
 import mpbuilder.manufacturing.StationType
 import mpbuilder.manufacturing.*

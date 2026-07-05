@@ -9,7 +9,7 @@ import mpbuilder.ui.productbuilder.ProductBuilderViewModel
 import mpbuilder.uikit.feedback.HelpInfo
 import mpbuilder.manufacturing.*
 import mpbuilder.uikit.util.Visibility
-import mpbuilder.domain.sample.SampleCatalog
+import mpbuilder.samples.SampleCatalog
 
 object FinishSelector:
   def apply(role: ComponentRole): Element =

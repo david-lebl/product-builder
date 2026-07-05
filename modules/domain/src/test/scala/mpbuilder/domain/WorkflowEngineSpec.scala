@@ -6,7 +6,7 @@ import mpbuilder.kernel.*
 
 import zio.test.*
 import mpbuilder.manufacturing.*
-import mpbuilder.domain.sample.*
+import mpbuilder.samples.*
 import com.softwaremill.quicklens.*
 
 object WorkflowEngineSpec extends ZIOSpecDefault:

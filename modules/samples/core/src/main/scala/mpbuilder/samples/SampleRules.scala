@@ -1,4 +1,4 @@
-package mpbuilder.domain.sample
+package mpbuilder.samples
 
 import mpbuilder.manufacturing.*
 import mpbuilder.catalog.*

@@ -8,7 +8,7 @@ import zio.test.*
 import zio.prelude.*
 import mpbuilder.manufacturing.*
 import mpbuilder.pricing.*
-import mpbuilder.domain.sample.*
+import mpbuilder.samples.*
 
 object PriceCalculatorSpec extends ZIOSpecDefault:
 

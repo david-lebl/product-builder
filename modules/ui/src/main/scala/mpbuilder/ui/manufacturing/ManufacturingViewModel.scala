@@ -13,7 +13,7 @@ import mpbuilder.manufacturing.*
 import mpbuilder.manufacturing.ManufacturingWorkflow.*
 import mpbuilder.manufacturing.ManufacturingOrder.*
 import mpbuilder.manufacturing.*
-import mpbuilder.domain.sample.*
+import mpbuilder.samples.*
 import mpbuilder.manufacturing.{ShopSchedule, WorkingHours, StationTimeEstimate}
 import mpbuilder.pricing.BusyPeriodMultiplier
 import java.time.{DayOfWeek, LocalDate, LocalTime}

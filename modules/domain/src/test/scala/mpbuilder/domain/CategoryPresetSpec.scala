@@ -5,7 +5,7 @@ import mpbuilder.kernel.*
 import zio.test.*
 import zio.test.Assertion.*
 import mpbuilder.manufacturing.*
-import mpbuilder.domain.sample.*
+import mpbuilder.samples.*
 import mpbuilder.manufacturing.*
 import mpbuilder.pricing.*
 import mpbuilder.catalog.*

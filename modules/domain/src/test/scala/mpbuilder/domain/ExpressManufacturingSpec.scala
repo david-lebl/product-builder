@@ -11,7 +11,7 @@ import zio.prelude.*
 import mpbuilder.manufacturing.*
 import mpbuilder.pricing.*
 import mpbuilder.manufacturing.*
-import mpbuilder.domain.sample.*
+import mpbuilder.samples.*
 import mpbuilder.manufacturing.*
 import mpbuilder.manufacturing.CompletionEstimator.*
 import mpbuilder.manufacturing.ManufacturingWorkflow.*

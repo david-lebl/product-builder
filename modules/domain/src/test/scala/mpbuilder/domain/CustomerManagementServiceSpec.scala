@@ -8,7 +8,7 @@ import zio.test.*
 import mpbuilder.manufacturing.*
 import mpbuilder.pricing.CustomerPricing
 import mpbuilder.manufacturing.*
-import mpbuilder.domain.sample.SampleCustomers
+import mpbuilder.samples.SampleCustomers
 
 object CustomerManagementServiceSpec extends ZIOSpecDefault:
 
