@@ -1,5 +1,7 @@
 package mpbuilder.ui.components
 
+import mpbuilder.ordering.*
+
 import mpbuilder.customer.*
 
 import mpbuilder.catalog.*
@@ -10,8 +12,8 @@ import com.raquo.laminar.api.L.*
 import mpbuilder.ui.productbuilder.{ProductBuilderViewModel, BuilderState, LoginState}
 import mpbuilder.ui.{AppRouter, AppRoute}
 import mpbuilder.domain.model.*
-import mpbuilder.domain.model.CheckoutStep.*
-import mpbuilder.domain.service.{BasketService, DiscountService}
+import mpbuilder.ordering.{BasketService, DiscountService}
+import mpbuilder.ordering.CheckoutStep.*
 import mpbuilder.uikit.fields.{TextField, CheckboxField, TextAreaField}
 import mpbuilder.uikit.util.Visibility
 
@@ -964,7 +966,7 @@ object CheckoutView:
       case None                                 => None
 
   /** Maps a courier `DeliveryOption` to its configured `CourierService`, if any. */
-  private def courierServiceFor(opt: DeliveryOption): Option[mpbuilder.domain.model.CourierService] =
+  private def courierServiceFor(opt: DeliveryOption): Option[mpbuilder.ordering.CourierService] =
     val svcId = opt match
       case DeliveryOption.CourierExpress => "courier-express"
       case DeliveryOption.CourierEconomy => "courier-economy"

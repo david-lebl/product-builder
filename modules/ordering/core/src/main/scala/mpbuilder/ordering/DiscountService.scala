@@ -1,4 +1,4 @@
-package mpbuilder.domain.service
+package mpbuilder.ordering
 
 /**
  * Predefined discount codes mapped to their percentage (integer, 5–50).

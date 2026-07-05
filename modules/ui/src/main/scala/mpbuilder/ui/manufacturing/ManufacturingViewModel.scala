@@ -1,5 +1,7 @@
 package mpbuilder.ui.manufacturing
 
+import mpbuilder.ordering.*
+
 import mpbuilder.customer.*
 
 import mpbuilder.catalog.*

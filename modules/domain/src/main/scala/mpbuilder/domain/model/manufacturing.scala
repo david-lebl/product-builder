@@ -1,5 +1,7 @@
 package mpbuilder.domain.model
 
+import mpbuilder.ordering.*
+
 import mpbuilder.catalog.*
 
 import mpbuilder.kernel.*

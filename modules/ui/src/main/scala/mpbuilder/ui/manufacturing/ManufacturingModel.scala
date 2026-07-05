@@ -1,5 +1,7 @@
 package mpbuilder.ui.manufacturing
 
+import mpbuilder.ordering.*
+
 import mpbuilder.domain.model.*
 
 /** Route definitions for the manufacturing UI. */

@@ -1,5 +1,7 @@
 package mpbuilder.ui.productbuilder
 
+import mpbuilder.ordering.*
+
 import mpbuilder.kernel.*
 
 import com.raquo.laminar.api.L.*

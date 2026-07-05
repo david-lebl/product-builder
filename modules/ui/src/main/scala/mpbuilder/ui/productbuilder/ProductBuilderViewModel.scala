@@ -1,11 +1,12 @@
 package mpbuilder.ui.productbuilder
 
+import mpbuilder.ordering.*
+
 import mpbuilder.customer.*
 
 import mpbuilder.kernel.*
 
 import mpbuilder.domain.model.*
-import mpbuilder.domain.model.CheckoutStep.*
 import mpbuilder.domain.service.*
 import mpbuilder.catalog.*
 import mpbuilder.pricing.*

@@ -1,10 +1,9 @@
-package mpbuilder.domain.service
+package mpbuilder.ordering
 
 import mpbuilder.catalog.*
 
 import mpbuilder.kernel.*
 
-import mpbuilder.domain.model.*
 import mpbuilder.pricing.PricingError
 
 enum BasketError:

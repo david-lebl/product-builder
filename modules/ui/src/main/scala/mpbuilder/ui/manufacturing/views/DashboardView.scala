@@ -1,5 +1,7 @@
 package mpbuilder.ui.manufacturing.views
 
+import mpbuilder.ordering.*
+
 import mpbuilder.customer.*
 
 import com.raquo.laminar.api.L.*

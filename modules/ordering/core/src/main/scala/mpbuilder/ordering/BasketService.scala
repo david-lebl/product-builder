@@ -1,11 +1,10 @@
-package mpbuilder.domain.service
+package mpbuilder.ordering
 
 import mpbuilder.catalog.*
 
 import mpbuilder.kernel.*
 
 import zio.prelude.*
-import mpbuilder.domain.model.*
 import mpbuilder.pricing.*
 
 final case class BasketCalculation(

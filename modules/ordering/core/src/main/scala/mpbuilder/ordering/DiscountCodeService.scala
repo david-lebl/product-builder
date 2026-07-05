@@ -1,10 +1,9 @@
-package mpbuilder.domain.service
+package mpbuilder.ordering
 
 import mpbuilder.customer.*
 
 import mpbuilder.kernel.*
 
-import mpbuilder.domain.model.*
 import zio.prelude.*
 import com.softwaremill.quicklens.*
 

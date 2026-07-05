@@ -1,5 +1,7 @@
 package mpbuilder.domain
 
+import mpbuilder.ordering.*
+
 import mpbuilder.kernel.*
 
 import zio.test.*

@@ -93,6 +93,11 @@ object customer extends ContextModule {
   def contextDeps = Seq(kernel, pricing)
 }
 
+object ordering extends ContextModule {
+  def contextName = "ordering"
+  def contextDeps = Seq(kernel, catalog, pricing, customer)
+}
+
 // ---------------------------------------------------------------------------
 // Domain — cross-compiled for JVM and JS (shared pure sources)
 // (transitional: being dissolved into bounded-context modules above)
@@ -107,7 +112,7 @@ object domain extends Module {
     def sources = Task.Sources(domainDir / "src" / "main" / "scala")
     def resources = Task.Sources(domainDir / "src" / "main" / "resources")
     def mvnDeps = coreMvnDeps
-    def moduleDeps = Seq(kernel.core.jvm, catalog.core.jvm, pricing.core.jvm, customer.core.jvm)
+    def moduleDeps = Seq(kernel.core.jvm, catalog.core.jvm, pricing.core.jvm, customer.core.jvm, ordering.core.jvm)
 
     object test extends ScalaTests {
       def sources = Task.Sources(domainDir / "src" / "test" / "scala")
@@ -128,7 +133,7 @@ object domain extends Module {
     def sources = Task.Sources(domainDir / "src" / "main" / "scala")
     def resources = Task.Sources(domainDir / "src" / "main" / "resources")
     def mvnDeps = coreMvnDeps
-    def moduleDeps = Seq(kernel.core.js, catalog.core.js, pricing.core.js, customer.core.js)
+    def moduleDeps = Seq(kernel.core.js, catalog.core.js, pricing.core.js, customer.core.js, ordering.core.js)
   }
 }
 
