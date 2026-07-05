@@ -5,9 +5,9 @@ import mpbuilder.customer.*
 import mpbuilder.kernel.*
 
 import zio.test.*
-import mpbuilder.domain.model.*
+import mpbuilder.manufacturing.*
 import mpbuilder.pricing.CustomerPricing
-import mpbuilder.domain.service.*
+import mpbuilder.manufacturing.*
 import mpbuilder.domain.sample.SampleCustomers
 
 object CustomerManagementServiceSpec extends ZIOSpecDefault:

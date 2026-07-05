@@ -1,10 +1,9 @@
-package mpbuilder.domain.service
+package mpbuilder.manufacturing
 
 import mpbuilder.catalog.*
 
 import mpbuilder.kernel.*
 
-import mpbuilder.domain.model.*
 
 /** Advisory queue score for ordering Ready workflow steps.
   *
@@ -75,7 +74,7 @@ object QueueScorer:
     * - Within 72 hours → 20
     * - More than 72 hours → 5
     */
-  private[domain] def calculateDeadlineUrgency(deadline: Option[Long], now: Long): Int =
+  private[manufacturing] def calculateDeadlineUrgency(deadline: Option[Long], now: Long): Int =
     deadline match
       case None => 0
       case Some(dl) =>
@@ -89,7 +88,7 @@ object QueueScorer:
         else 5                               // comfortable
 
   /** Priority boost: Rush=30, Normal=0, Low=-10. */
-  private[domain] def calculatePriorityBoost(priority: Priority): Int =
+  private[manufacturing] def calculatePriorityBoost(priority: Priority): Int =
     priority match
       case Priority.Rush   => 30
       case Priority.Normal => 0
@@ -98,13 +97,13 @@ object QueueScorer:
   /** Completeness boost: 0–20 based on % of workflow steps completed.
     * An almost-done workflow gets higher priority to clear it out.
     */
-  private[domain] def calculateCompletenessBoost(workflow: ManufacturingWorkflow): Int =
+  private[manufacturing] def calculateCompletenessBoost(workflow: ManufacturingWorkflow): Int =
     import ManufacturingWorkflow.*
     val ratio = workflow.completionRatio
     (ratio * 20).toInt
 
   /** Batch affinity: 0–15 based on material match with current machine setup. */
-  private[domain] def calculateBatchAffinity(
+  private[manufacturing] def calculateBatchAffinity(
       currentMaterialId: Option[MaterialId],
       stepMaterialId: Option[MaterialId],
   ): Int =
@@ -113,7 +112,7 @@ object QueueScorer:
       case _ => 0
 
   /** Age in minutes since workflow creation (for FIFO tiebreaker). */
-  private[domain] def calculateAgeMinutes(createdAt: Long, now: Long): Long =
+  private[manufacturing] def calculateAgeMinutes(createdAt: Long, now: Long): Long =
     val millis = now - createdAt
     if millis < 0 then 0 else millis / (1000 * 60)
 
@@ -122,7 +121,7 @@ object QueueScorer:
     * Express: +50 priority boost (overwhelming priority, always ahead of Standard/Economy).
     * Economy: +10 batch affinity (encourages batching Economy orders together).
     */
-  private[domain] def applySpeedAdjustments(
+  private[manufacturing] def applySpeedAdjustments(
       score: QueueScore,
       speed: Option[ManufacturingSpeed],
   ): QueueScore =

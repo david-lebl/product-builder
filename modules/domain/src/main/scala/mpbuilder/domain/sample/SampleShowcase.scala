@@ -4,7 +4,7 @@ import mpbuilder.catalog.*
 
 import mpbuilder.kernel.*
 
-import mpbuilder.domain.model.*
+import mpbuilder.manufacturing.*
 
 /** Sample showcase products for the customer-facing product catalog.
   *

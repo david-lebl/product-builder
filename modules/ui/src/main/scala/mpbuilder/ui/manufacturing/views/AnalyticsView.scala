@@ -1,11 +1,11 @@
 package mpbuilder.ui.manufacturing.views
 
 import com.raquo.laminar.api.L.*
-import mpbuilder.domain.model.*
-import mpbuilder.domain.model.ManufacturingOrder.*
-import mpbuilder.domain.model.StationType.*
-import mpbuilder.domain.service.AnalyticsService
-import mpbuilder.domain.service.AnalyticsService.*
+import mpbuilder.manufacturing.*
+import mpbuilder.manufacturing.ManufacturingOrder.*
+import mpbuilder.manufacturing.StationType.*
+import mpbuilder.manufacturing.AnalyticsService
+import mpbuilder.manufacturing.AnalyticsService.*
 import mpbuilder.ui.manufacturing.*
 
 /** Analytics View — performance metrics and shop analytics. */

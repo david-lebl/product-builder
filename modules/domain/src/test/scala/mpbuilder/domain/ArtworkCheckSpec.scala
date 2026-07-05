@@ -1,8 +1,8 @@
 package mpbuilder.domain
 
 import zio.test.*
-import mpbuilder.domain.model.*
-import mpbuilder.domain.model.ArtworkCheck.*
+import mpbuilder.manufacturing.*
+import mpbuilder.manufacturing.ArtworkCheck.*
 
 object ArtworkCheckSpec extends ZIOSpecDefault:
 

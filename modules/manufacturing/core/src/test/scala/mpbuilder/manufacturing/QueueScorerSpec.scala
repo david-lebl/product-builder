@@ -1,10 +1,9 @@
-package mpbuilder.domain
+package mpbuilder.manufacturing
 
 import mpbuilder.kernel.*
 
 import zio.test.*
-import mpbuilder.domain.model.*
-import mpbuilder.domain.service.*
+
 
 object QueueScorerSpec extends ZIOSpecDefault:
 

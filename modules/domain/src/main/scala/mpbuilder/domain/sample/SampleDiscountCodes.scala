@@ -6,7 +6,7 @@ import mpbuilder.customer.*
 
 import mpbuilder.kernel.*
 
-import mpbuilder.domain.model.*
+import mpbuilder.manufacturing.*
 
 object SampleDiscountCodes:
 

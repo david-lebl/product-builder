@@ -9,12 +9,12 @@ import mpbuilder.catalog.*
 import mpbuilder.kernel.*
 
 import com.raquo.laminar.api.L.*
-import mpbuilder.domain.model.*
-import mpbuilder.domain.model.ManufacturingWorkflow.*
-import mpbuilder.domain.model.ManufacturingOrder.*
-import mpbuilder.domain.service.*
+import mpbuilder.manufacturing.*
+import mpbuilder.manufacturing.ManufacturingWorkflow.*
+import mpbuilder.manufacturing.ManufacturingOrder.*
+import mpbuilder.manufacturing.*
 import mpbuilder.domain.sample.*
-import mpbuilder.domain.manufacturing.{ShopSchedule, WorkingHours, StationTimeEstimate}
+import mpbuilder.manufacturing.{ShopSchedule, WorkingHours, StationTimeEstimate}
 import mpbuilder.pricing.BusyPeriodMultiplier
 import java.time.{DayOfWeek, LocalDate, LocalTime}
 

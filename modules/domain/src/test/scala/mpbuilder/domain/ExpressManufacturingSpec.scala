@@ -8,14 +8,14 @@ import mpbuilder.kernel.*
 
 import zio.test.*
 import zio.prelude.*
-import mpbuilder.domain.model.*
+import mpbuilder.manufacturing.*
 import mpbuilder.pricing.*
-import mpbuilder.domain.manufacturing.*
+import mpbuilder.manufacturing.*
 import mpbuilder.domain.sample.*
-import mpbuilder.domain.service.*
-import mpbuilder.domain.service.CompletionEstimator.*
-import mpbuilder.domain.model.ManufacturingWorkflow.*
-import mpbuilder.domain.model.ManufacturingOrder.*
+import mpbuilder.manufacturing.*
+import mpbuilder.manufacturing.CompletionEstimator.*
+import mpbuilder.manufacturing.ManufacturingWorkflow.*
+import mpbuilder.manufacturing.ManufacturingOrder.*
 import java.time.*
 
 object ExpressManufacturingSpec extends ZIOSpecDefault:

@@ -1,9 +1,9 @@
 package mpbuilder.ui.manufacturing.views
 
 import com.raquo.laminar.api.L.*
-import mpbuilder.domain.model.*
+import mpbuilder.manufacturing.*
 import mpbuilder.domain.sample.{SampleManufacturing, SampleTierRestrictions}
-import mpbuilder.domain.manufacturing.{ShopSchedule, WorkingHours}
+import mpbuilder.manufacturing.{ShopSchedule, WorkingHours}
 import mpbuilder.ui.manufacturing.*
 import java.time.DayOfWeek
 import java.time.format.DateTimeFormatter

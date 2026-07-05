@@ -3,8 +3,7 @@ package mpbuilder.domain
 import mpbuilder.kernel.*
 
 import zio.test.*
-import mpbuilder.domain.model.*
-import mpbuilder.domain.service.*
+import mpbuilder.manufacturing.*
 
 object EmployeeManagementServiceSpec extends ZIOSpecDefault:
 

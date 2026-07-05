@@ -6,11 +6,10 @@ import mpbuilder.customer.*
 
 import mpbuilder.kernel.*
 
-import mpbuilder.domain.model.*
-import mpbuilder.domain.service.*
+import mpbuilder.manufacturing.*
 import mpbuilder.catalog.*
 import mpbuilder.pricing.*
-import mpbuilder.domain.manufacturing.{StationUtilisation, StationTimeEstimate}
+import mpbuilder.manufacturing.{StationUtilisation, StationTimeEstimate}
 import mpbuilder.catalog.{WeightBreakdown, WeightCalculator}
 import mpbuilder.domain.sample.*
 import zio.prelude.Validation

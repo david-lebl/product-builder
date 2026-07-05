@@ -1,4 +1,4 @@
-package mpbuilder.domain.service
+package mpbuilder.manufacturing
 
 import mpbuilder.pricing.BusyPeriodMultiplier
 import java.time.{LocalDateTime, DayOfWeek, Month}

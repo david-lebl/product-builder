@@ -1,8 +1,7 @@
-package mpbuilder.domain.service
+package mpbuilder.manufacturing
 
 import mpbuilder.kernel.*
 
-import mpbuilder.domain.model.*
 
 /** Error ADT for employee and machine management operations. */
 enum ManagementError:

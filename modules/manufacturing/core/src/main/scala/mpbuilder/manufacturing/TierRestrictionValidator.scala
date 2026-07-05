@@ -1,11 +1,9 @@
-package mpbuilder.domain.service
+package mpbuilder.manufacturing
 
 import mpbuilder.catalog.*
 
 import mpbuilder.kernel.*
 
-import mpbuilder.domain.model.*
-import mpbuilder.domain.manufacturing.TierRestriction
 
 object TierRestrictionValidator:
   final case class TierViolation(

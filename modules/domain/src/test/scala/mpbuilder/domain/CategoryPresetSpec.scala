@@ -4,9 +4,9 @@ import mpbuilder.kernel.*
 
 import zio.test.*
 import zio.test.Assertion.*
-import mpbuilder.domain.model.*
+import mpbuilder.manufacturing.*
 import mpbuilder.domain.sample.*
-import mpbuilder.domain.service.*
+import mpbuilder.manufacturing.*
 import mpbuilder.pricing.*
 import mpbuilder.catalog.*
 

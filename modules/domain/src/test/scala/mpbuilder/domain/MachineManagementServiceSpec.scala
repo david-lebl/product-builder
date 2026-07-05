@@ -1,8 +1,7 @@
 package mpbuilder.domain
 
 import zio.test.*
-import mpbuilder.domain.model.*
-import mpbuilder.domain.service.*
+import mpbuilder.manufacturing.*
 
 object MachineManagementServiceSpec extends ZIOSpecDefault:
 

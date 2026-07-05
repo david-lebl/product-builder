@@ -11,7 +11,7 @@ import mpbuilder.kernel.*
 import com.raquo.laminar.api.L.*
 import mpbuilder.ui.productbuilder.{ProductBuilderViewModel, BuilderState, LoginState}
 import mpbuilder.ui.{AppRouter, AppRoute}
-import mpbuilder.domain.model.*
+import mpbuilder.manufacturing.*
 import mpbuilder.ordering.{BasketService, DiscountService}
 import mpbuilder.ordering.CheckoutStep.*
 import mpbuilder.uikit.fields.{TextField, CheckboxField, TextAreaField}

@@ -4,10 +4,10 @@ import mpbuilder.kernel.*
 
 import zio.test.*
 import zio.prelude.*
-import mpbuilder.domain.model.*
+import mpbuilder.manufacturing.*
 import mpbuilder.catalog.*
 import mpbuilder.pricing.*
-import mpbuilder.domain.service.*
+import mpbuilder.manufacturing.*
 import mpbuilder.domain.sample.*
 
 object LocalizationSpec extends ZIOSpecDefault:

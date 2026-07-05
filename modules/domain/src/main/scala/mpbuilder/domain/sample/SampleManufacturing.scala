@@ -1,7 +1,7 @@
 package mpbuilder.domain.sample
 
-import mpbuilder.domain.model.StationType
-import mpbuilder.domain.manufacturing.*
+import mpbuilder.manufacturing.StationType
+import mpbuilder.manufacturing.*
 import java.time.*
 
 /** Sample manufacturing configuration data for station time estimates and shop schedule. */

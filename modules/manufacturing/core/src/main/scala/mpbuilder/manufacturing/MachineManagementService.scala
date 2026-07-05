@@ -1,6 +1,5 @@
-package mpbuilder.domain.service
+package mpbuilder.manufacturing
 
-import mpbuilder.domain.model.*
 import zio.prelude.*
 
 /** Pure service for managing machines — CRUD operations with validation. */

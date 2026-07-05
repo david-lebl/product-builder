@@ -1,4 +1,4 @@
-package mpbuilder.domain.manufacturing
+package mpbuilder.manufacturing
 
 import java.time.{DayOfWeek, LocalDate, LocalTime, ZoneId}
 

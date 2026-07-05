@@ -4,7 +4,7 @@ import mpbuilder.kernel.*
 
 import com.raquo.laminar.api.L.*
 import zio.json.*
-import mpbuilder.domain.model.*
+import mpbuilder.manufacturing.*
 import mpbuilder.pricing.*
 import mpbuilder.catalog.*
 import mpbuilder.domain.sample.*

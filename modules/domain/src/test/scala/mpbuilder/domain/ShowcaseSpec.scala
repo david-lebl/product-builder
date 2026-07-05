@@ -5,7 +5,7 @@ import mpbuilder.catalog.*
 import mpbuilder.kernel.*
 
 import zio.test.*
-import mpbuilder.domain.model.*
+import mpbuilder.manufacturing.*
 import mpbuilder.domain.sample.{SampleCatalog, SampleShowcase}
 
 object ShowcaseSpec extends ZIOSpecDefault:

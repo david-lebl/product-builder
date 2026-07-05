@@ -4,7 +4,7 @@ import mpbuilder.catalog.*
 
 import mpbuilder.kernel.*
 
-import mpbuilder.domain.model.*
+import mpbuilder.manufacturing.*
 import mpbuilder.pricing.*
 
 object SamplePricelist:

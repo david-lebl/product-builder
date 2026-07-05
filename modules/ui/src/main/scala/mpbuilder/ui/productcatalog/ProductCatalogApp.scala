@@ -10,7 +10,7 @@ import mpbuilder.kernel.*
 
 import com.raquo.laminar.api.L.*
 import com.raquo.laminar.codecs.StringAsIsCodec
-import mpbuilder.domain.model.*
+import mpbuilder.manufacturing.*
 import mpbuilder.pricing.PriceBreakdown
 import mpbuilder.domain.sample.{SampleCatalog, SamplePricelist, SampleRules, SampleShowcase}
 import mpbuilder.pricing.PresetPriceService

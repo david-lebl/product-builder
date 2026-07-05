@@ -5,8 +5,8 @@ import mpbuilder.ordering.*
 import mpbuilder.kernel.*
 
 import zio.test.*
-import mpbuilder.domain.model.*
-import mpbuilder.domain.model.FulfilmentChecklist.*
+import mpbuilder.manufacturing.*
+import mpbuilder.manufacturing.FulfilmentChecklist.*
 
 object FulfilmentChecklistSpec extends ZIOSpecDefault:
 

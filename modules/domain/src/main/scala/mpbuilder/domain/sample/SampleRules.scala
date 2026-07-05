@@ -1,6 +1,6 @@
 package mpbuilder.domain.sample
 
-import mpbuilder.domain.model.*
+import mpbuilder.manufacturing.*
 import mpbuilder.catalog.*
 
 object SampleRules:

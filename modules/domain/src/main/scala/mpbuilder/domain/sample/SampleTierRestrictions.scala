@@ -4,8 +4,8 @@ import mpbuilder.catalog.*
 
 import mpbuilder.kernel.*
 
-import mpbuilder.domain.model.*
-import mpbuilder.domain.manufacturing.TierRestriction
+import mpbuilder.manufacturing.*
+import mpbuilder.manufacturing.TierRestriction
 
 /** Sample tier restrictions for Express manufacturing. */
 object SampleTierRestrictions:

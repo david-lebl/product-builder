@@ -9,7 +9,7 @@ import mpbuilder.catalog.*
 import mpbuilder.kernel.*
 
 import com.raquo.laminar.api.L.*
-import mpbuilder.domain.model.*
+import mpbuilder.manufacturing.*
 import mpbuilder.pricing.*
 import mpbuilder.ui.customers.*
 import mpbuilder.uikit.containers.*

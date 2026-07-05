@@ -1,10 +1,7 @@
-package mpbuilder.domain.service
+package mpbuilder.manufacturing
 
 import mpbuilder.kernel.*
 
-import mpbuilder.domain.model.*
-import mpbuilder.domain.model.ManufacturingWorkflow.*
-import mpbuilder.domain.model.ManufacturingOrder.*
 
 /** Pure analytics calculations from manufacturing data. */
 object AnalyticsService:

@@ -8,7 +8,7 @@ import com.raquo.laminar.api.L.*
 import mpbuilder.ui.productbuilder.ProductBuilderViewModel
 import mpbuilder.uikit.feedback.HelpInfo
 import mpbuilder.uikit.fields.{ComboBoxField, ComboBoxOption}
-import mpbuilder.domain.model.*
+import mpbuilder.manufacturing.*
 import mpbuilder.domain.sample.SampleShowcase
 
 object CategorySelector:

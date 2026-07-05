@@ -1,9 +1,7 @@
-package mpbuilder.domain.service
+package mpbuilder.manufacturing
 
 import mpbuilder.catalog.*
 
-import mpbuilder.domain.model.*
-import mpbuilder.domain.manufacturing.StationUtilisation
 import mpbuilder.pricing.*
 
 /** Pure calculation service for queue utilisation and dynamic pricing multipliers.

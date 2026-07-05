@@ -5,8 +5,7 @@ import mpbuilder.ordering.*
 import mpbuilder.kernel.*
 
 import zio.test.*
-import mpbuilder.domain.model.*
-import mpbuilder.domain.service.*
+import mpbuilder.manufacturing.*
 
 object AnalyticsServiceSpec extends ZIOSpecDefault:
 

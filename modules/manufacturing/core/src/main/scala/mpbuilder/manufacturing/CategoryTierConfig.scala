@@ -1,4 +1,4 @@
-package mpbuilder.domain.manufacturing
+package mpbuilder.manufacturing
 
 import mpbuilder.kernel.*
 

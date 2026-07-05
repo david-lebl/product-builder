@@ -5,9 +5,9 @@ import mpbuilder.ordering.*
 import mpbuilder.customer.*
 
 import com.raquo.laminar.api.L.*
-import mpbuilder.domain.model.*
-import mpbuilder.domain.model.StationType.*
-import mpbuilder.domain.model.ManufacturingOrder.*
+import mpbuilder.manufacturing.*
+import mpbuilder.manufacturing.StationType.*
+import mpbuilder.manufacturing.ManufacturingOrder.*
 import mpbuilder.ui.manufacturing.*
 
 /** Dashboard view — landing page showing shop-wide status at a glance. */

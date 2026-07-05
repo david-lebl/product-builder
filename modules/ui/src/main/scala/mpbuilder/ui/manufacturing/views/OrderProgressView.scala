@@ -7,10 +7,10 @@ import mpbuilder.customer.*
 import mpbuilder.kernel.*
 
 import com.raquo.laminar.api.L.*
-import mpbuilder.domain.model.*
-import mpbuilder.domain.model.ManufacturingOrder.*
-import mpbuilder.domain.model.ManufacturingWorkflow.*
-import mpbuilder.domain.model.FulfilmentChecklist.*
+import mpbuilder.manufacturing.*
+import mpbuilder.manufacturing.ManufacturingOrder.*
+import mpbuilder.manufacturing.ManufacturingWorkflow.*
+import mpbuilder.manufacturing.FulfilmentChecklist.*
 import mpbuilder.ui.manufacturing.*
 import mpbuilder.uikit.containers.*
 

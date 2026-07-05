@@ -8,7 +8,7 @@ import mpbuilder.kernel.*
 
 import com.raquo.laminar.api.L.*
 import mpbuilder.ui.productbuilder.{ProductBuilderViewModel, LoginState}
-import mpbuilder.domain.model.*
+import mpbuilder.manufacturing.*
 
 /** Compact login widget displayed in the product builder header area.
   *

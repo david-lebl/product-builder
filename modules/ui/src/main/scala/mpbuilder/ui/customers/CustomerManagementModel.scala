@@ -6,7 +6,7 @@ import mpbuilder.customer.*
 
 import mpbuilder.kernel.*
 
-import mpbuilder.domain.model.*
+import mpbuilder.manufacturing.*
 
 /** Which section of the customer management UI is currently active. */
 enum CustomerSection:
