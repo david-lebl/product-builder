@@ -1,10 +1,9 @@
-package mpbuilder.domain.pricing
+package mpbuilder.pricing
 
 import mpbuilder.catalog.*
 
 import mpbuilder.kernel.*
 
-import mpbuilder.domain.model.*
 
 enum PricingError:
   case NoBasePriceForMaterial(materialId: MaterialId, role: ComponentRole)

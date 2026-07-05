@@ -1,10 +1,9 @@
-package mpbuilder.domain.pricing
+package mpbuilder.pricing
 
 import mpbuilder.catalog.*
 
 import mpbuilder.kernel.*
 
-import mpbuilder.domain.model.*
 
 /** Generates a customer-specific `Pricelist` by overlaying `CustomerPricing`
   * discounts on top of a base `Pricelist`.

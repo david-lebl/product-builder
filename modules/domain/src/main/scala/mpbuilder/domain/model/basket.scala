@@ -4,7 +4,7 @@ import mpbuilder.catalog.*
 
 import mpbuilder.kernel.*
 
-import mpbuilder.domain.pricing.PriceBreakdown
+import mpbuilder.pricing.PriceBreakdown
 
 final case class BasketItem(
     configuration: ProductConfiguration,

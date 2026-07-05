@@ -4,7 +4,7 @@ import mpbuilder.kernel.*
 
 import com.raquo.laminar.api.L.*
 import mpbuilder.domain.model.*
-import mpbuilder.domain.pricing.*
+import mpbuilder.pricing.*
 import mpbuilder.domain.service.*
 import mpbuilder.domain.sample.*
 

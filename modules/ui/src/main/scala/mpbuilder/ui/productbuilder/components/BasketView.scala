@@ -7,7 +7,7 @@ import mpbuilder.kernel.*
 import com.raquo.laminar.api.L.*
 import mpbuilder.ui.productbuilder.{ProductBuilderViewModel, ArtworkMode, LoginState}
 import mpbuilder.ui.{AppRouter, AppRoute}
-import mpbuilder.domain.pricing.{PriceCalculator, CustomerPricelistResolver}
+import mpbuilder.pricing.{PriceCalculator, CustomerPricelistResolver}
 import mpbuilder.catalog.ComponentRole
 
 object BasketView:

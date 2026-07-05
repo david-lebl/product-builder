@@ -3,7 +3,7 @@ package mpbuilder.ui.catalog
 import mpbuilder.kernel.*
 
 import mpbuilder.domain.model.*
-import mpbuilder.domain.pricing.*
+import mpbuilder.pricing.*
 import mpbuilder.catalog.*
 import mpbuilder.domain.sample.*
 

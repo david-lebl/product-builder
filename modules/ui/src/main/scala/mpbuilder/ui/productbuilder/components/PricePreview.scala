@@ -6,7 +6,7 @@ import mpbuilder.kernel.*
 
 import com.raquo.laminar.api.L.*
 import mpbuilder.ui.productbuilder.ProductBuilderViewModel
-import mpbuilder.domain.pricing.{ComponentBreakdown, PriceBreakdown}
+import mpbuilder.pricing.{ComponentBreakdown, PriceBreakdown}
 import mpbuilder.catalog.ComponentRole
 
 object PricePreview:

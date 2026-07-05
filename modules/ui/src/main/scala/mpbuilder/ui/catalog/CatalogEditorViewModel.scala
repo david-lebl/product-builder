@@ -5,11 +5,11 @@ import mpbuilder.kernel.*
 import com.raquo.laminar.api.L.*
 import zio.json.*
 import mpbuilder.domain.model.*
-import mpbuilder.domain.pricing.*
+import mpbuilder.pricing.*
 import mpbuilder.catalog.*
 import mpbuilder.domain.sample.*
-import mpbuilder.domain.codec.DomainCodecs
-import mpbuilder.domain.codec.DomainCodecs.given
+import mpbuilder.pricing.PricingCodecs
+import mpbuilder.pricing.PricingCodecs.given
 
 /** Reactive state management for the catalog editor.
   *
@@ -259,11 +259,11 @@ object CatalogEditorViewModel:
 
   def exportJson(): String =
     val s = stateVar.now()
-    val export_ = DomainCodecs.CatalogExport(s.catalog, s.ruleset, s.pricelists)
+    val export_ = CatalogExport(s.catalog, s.ruleset, s.pricelists)
     export_.toJsonPretty
 
   def importJson(json: String): Unit =
-    json.fromJson[DomainCodecs.CatalogExport] match
+    json.fromJson[CatalogExport] match
       case Right(export_) =>
         stateVar.update(_.copy(
           catalog = export_.catalog,

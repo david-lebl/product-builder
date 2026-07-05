@@ -6,7 +6,7 @@ import mpbuilder.kernel.*
 
 import com.raquo.laminar.api.L.*
 import mpbuilder.domain.model.*
-import mpbuilder.domain.pricing.*
+import mpbuilder.pricing.*
 import mpbuilder.ui.customers.*
 import mpbuilder.uikit.containers.*
 import mpbuilder.uikit.form.FormComponents

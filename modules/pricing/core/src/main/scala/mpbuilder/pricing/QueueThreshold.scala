@@ -1,4 +1,4 @@
-package mpbuilder.domain.pricing
+package mpbuilder.pricing
 
 /** Queue utilisation threshold that triggers an additional pricing multiplier.
   *

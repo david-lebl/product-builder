@@ -1,9 +1,8 @@
-package mpbuilder.domain.service
+package mpbuilder.pricing
 
 import mpbuilder.kernel.*
 
-import mpbuilder.domain.model.*
-import mpbuilder.domain.pricing.*
+
 import mpbuilder.catalog.*
 import zio.prelude.Validation
 

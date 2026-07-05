@@ -1,6 +1,6 @@
 package mpbuilder.domain.service
 
-import mpbuilder.domain.pricing.BusyPeriodMultiplier
+import mpbuilder.pricing.BusyPeriodMultiplier
 import java.time.{LocalDateTime, DayOfWeek, Month}
 
 object BusyPeriodFilter:

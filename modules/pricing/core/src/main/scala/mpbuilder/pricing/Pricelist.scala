@@ -1,4 +1,4 @@
-package mpbuilder.domain.pricing
+package mpbuilder.pricing
 
 import mpbuilder.kernel.*
 

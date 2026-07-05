@@ -5,7 +5,7 @@ import mpbuilder.catalog.*
 import mpbuilder.kernel.*
 
 import mpbuilder.domain.model.*
-import mpbuilder.domain.pricing.PricingError
+import mpbuilder.pricing.PricingError
 
 enum BasketError:
   case InvalidQuantity(quantity: Int)

@@ -1,4 +1,4 @@
-package mpbuilder.domain.pricing
+package mpbuilder.pricing
 
 import java.time.{DayOfWeek, Month, LocalTime}
 

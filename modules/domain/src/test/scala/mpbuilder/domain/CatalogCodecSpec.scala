@@ -5,10 +5,10 @@ import mpbuilder.kernel.*
 import zio.test.*
 import zio.json.*
 import mpbuilder.domain.model.*
-import mpbuilder.domain.pricing.*
+import mpbuilder.pricing.*
 import mpbuilder.catalog.*
 import mpbuilder.domain.sample.*
-import mpbuilder.domain.codec.DomainCodecs.given
+import mpbuilder.pricing.PricingCodecs.given
 
 object CatalogCodecSpec extends ZIOSpecDefault:
 
@@ -261,7 +261,7 @@ object CatalogCodecSpec extends ZIOSpecDefault:
         assertTrue(decoded.map(_.printingMethods.size) == Right(catalog.printingMethods.size))
       },
       test("CatalogExport round-trips the full sample data") {
-        import mpbuilder.domain.codec.DomainCodecs.CatalogExport
+        import mpbuilder.pricing.CatalogExport
         val export_ = CatalogExport(
           catalog = catalog,
           ruleset = ruleset,

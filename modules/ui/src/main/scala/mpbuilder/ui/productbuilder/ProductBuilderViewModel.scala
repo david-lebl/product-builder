@@ -6,7 +6,7 @@ import mpbuilder.domain.model.*
 import mpbuilder.domain.model.CheckoutStep.*
 import mpbuilder.domain.service.*
 import mpbuilder.catalog.*
-import mpbuilder.domain.pricing.*
+import mpbuilder.pricing.*
 import mpbuilder.domain.manufacturing.{StationUtilisation, StationTimeEstimate}
 import mpbuilder.catalog.{WeightBreakdown, WeightCalculator}
 import mpbuilder.domain.sample.*

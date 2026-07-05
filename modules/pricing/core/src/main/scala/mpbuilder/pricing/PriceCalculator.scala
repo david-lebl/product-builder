@@ -1,11 +1,10 @@
-package mpbuilder.domain.pricing
+package mpbuilder.pricing
 
 import mpbuilder.catalog.*
 
 import mpbuilder.kernel.*
 
 import zio.prelude.*
-import mpbuilder.domain.model.*
 
 object PriceCalculator:
 

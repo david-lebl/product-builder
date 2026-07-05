@@ -1,10 +1,9 @@
-package mpbuilder.domain.pricing
+package mpbuilder.pricing
 
 import mpbuilder.catalog.*
 
 import mpbuilder.kernel.*
 
-import mpbuilder.domain.model.*
 
 /** Area price tier for materials: if both [[MaterialAreaTier]] and [[MaterialAreaPrice]] exist for the same material,
   * [[MaterialAreaTier]] wins. The tier with the largest `minSqm` that is ≤ the component area is selected.

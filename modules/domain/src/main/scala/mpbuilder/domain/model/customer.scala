@@ -2,7 +2,7 @@ package mpbuilder.domain.model
 
 import mpbuilder.kernel.*
 
-import mpbuilder.domain.pricing.CustomerPricing
+import mpbuilder.pricing.CustomerPricing
 
 /** Status of a customer account */
 enum CustomerStatus:

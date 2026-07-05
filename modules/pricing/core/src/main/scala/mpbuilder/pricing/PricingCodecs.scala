@@ -1,20 +1,17 @@
-package mpbuilder.domain.codec
+package mpbuilder.pricing
 
 import zio.json.*
-import mpbuilder.catalog.*
-import mpbuilder.domain.pricing.*
 
-/** JSON codecs for all domain types needed for catalog and pricelist persistence.
+/** JSON codecs for pricing types (pricelists, pricing rules, catalog export).
   *
-  * Usage:
+  * Re-exports the catalog codecs (which in turn re-export the kernel codecs),
+  * so a single
   * {{{
-  * import mpbuilder.domain.codec.DomainCodecs.given
-  *
-  * val json = catalog.toJson
-  * val catalog = json.fromJson[ProductCatalog]
+  * import mpbuilder.pricing.PricingCodecs.given
   * }}}
+  * brings everything needed for catalog and pricelist persistence.
   */
-object DomainCodecs:
+object PricingCodecs:
 
   // ── Kernel & catalog codecs (re-exported) ────────────────────────────────
 
@@ -32,12 +29,5 @@ object DomainCodecs:
   given JsonCodec[Pricelist] = DeriveJsonCodec.gen[Pricelist]
 
   // ── Combined export type ─────────────────────────────────────────────────
-
-  /** A complete catalog export with catalog, rules, and pricelist(s). */
-  final case class CatalogExport(
-    catalog: ProductCatalog,
-    ruleset: CompatibilityRuleset,
-    pricelists: List[Pricelist],
-  )
 
   given JsonCodec[CatalogExport] = DeriveJsonCodec.gen[CatalogExport]

@@ -1,8 +1,7 @@
-package mpbuilder.domain.pricing
+package mpbuilder.pricing
 
 import mpbuilder.catalog.*
 
-import mpbuilder.domain.model.*
 import mpbuilder.kernel.*
 
 /** Customer-specific pricing overlay on top of a base Pricelist.
