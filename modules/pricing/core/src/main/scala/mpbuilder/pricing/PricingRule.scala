@@ -74,3 +74,10 @@ enum PricingRule:
   case ScoringSetupFee(setupCost: Money)
   // One-time machine/plate setup cost per printing method; added after the volume-discount multiplier
   case PrintingMethodSetupFee(printingMethodId: PrintingMethodId, setupCost: Money)
+
+
+final case class Pricelist(
+    rules: List[PricingRule],
+    currency: Currency,
+    version: String,
+)
