@@ -21,6 +21,7 @@ final case class ProductComponent(
     sheetCount: Int,
 )
 
+// TODO - rewrite by Finishing instead of finishType + params
 final case class FinishSelection(
     finishId: FinishId,
     params: Option[FinishParameters] = None,
