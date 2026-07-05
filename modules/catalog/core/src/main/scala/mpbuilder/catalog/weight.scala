@@ -1,6 +1,35 @@
 package mpbuilder.catalog
 
+import mpbuilder.kernel.*
 import zio.prelude.*
+
+enum WeightError:
+  case NoSizeInSpecifications
+  case NoQuantityInSpecifications
+  case NoWeightForMaterial(materialId: MaterialId, role: ComponentRole)
+
+  def message: String = this match
+    case NoSizeInSpecifications            => "Size specification is required for weight calculation"
+    case NoQuantityInSpecifications        => "Quantity specification is required for weight calculation"
+    case NoWeightForMaterial(id, role)     => s"Material ${id.value} (${role}) has no weight defined"
+
+final case class ComponentWeightBreakdown(
+    role: ComponentRole,
+    materialName: String,
+    gsmWeight: Int,
+    sheetsPerItem: Int,
+    sheetAreaM2: Double,
+    weightPerItemG: Double,
+    totalWeightG: Double,
+)
+
+final case class WeightBreakdown(
+    componentBreakdowns: List[ComponentWeightBreakdown],
+    weightPerItemG: Double,
+    quantity: Int,
+    totalWeightG: Double,
+    totalWeightKg: Double,
+)
 
 object WeightCalculator:
 

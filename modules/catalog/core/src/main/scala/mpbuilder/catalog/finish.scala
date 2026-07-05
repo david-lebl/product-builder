@@ -49,5 +49,11 @@ object FinishParameters:
   final case class RopeParams(lengthMeters: BigDecimal) extends FinishParameters
   final case class ScoringParams(creaseCount: Int) extends FinishParameters
 
+// TODO - rewrite by Finishing instead of finishType + params
+final case class FinishSelection(
+    finishId: FinishId,
+    params: Option[FinishParameters] = None,
+)
+
 final case class SelectedFinish(finish: Finish, params: Option[FinishParameters] = None):
   export finish.{id, name, finishType, side}
