@@ -1,8 +1,7 @@
-package mpbuilder.domain.rules
+package mpbuilder.catalog
 
 import mpbuilder.kernel.*
 
-import mpbuilder.domain.model.*
 
 enum SpecPredicate:
   case MinDimension(minWidthMm: Double, minHeightMm: Double)

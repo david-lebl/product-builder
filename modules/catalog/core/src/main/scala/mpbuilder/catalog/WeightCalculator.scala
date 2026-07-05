@@ -1,7 +1,6 @@
-package mpbuilder.domain.weight
+package mpbuilder.catalog
 
 import zio.prelude.*
-import mpbuilder.domain.model.*
 
 object WeightCalculator:
 

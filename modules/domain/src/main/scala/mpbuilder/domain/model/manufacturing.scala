@@ -1,5 +1,7 @@
 package mpbuilder.domain.model
 
+import mpbuilder.catalog.*
+
 import mpbuilder.kernel.*
 
 import zio.prelude.*
@@ -130,25 +132,10 @@ object Priority:
     case Normal => 1
     case Low    => 0
 
-/** Customer-facing manufacturing speed tier */
-enum ManufacturingSpeed:
-  case Express, Standard, Economy
-
-object ManufacturingSpeed:
-  extension (s: ManufacturingSpeed) def toPriority: Priority = s match
-    case Express  => Priority.Rush
-    case Standard => Priority.Normal
-    case Economy  => Priority.Low
-
-  extension (s: ManufacturingSpeed) def displayName(lang: Language): String = s match
-    case Express  => lang match { case Language.En => "Express"; case Language.Cs => "Expres" }
-    case Standard => lang match { case Language.En => "Standard"; case Language.Cs => "Standardní" }
-    case Economy  => lang match { case Language.En => "Economy"; case Language.Cs => "Ekonomická" }
-
-  extension (s: ManufacturingSpeed) def icon: String = s match
-    case Express  => "⚡"
-    case Standard => "●"
-    case Economy  => "🐢"
+extension (s: ManufacturingSpeed) def toPriority: Priority = s match
+  case ManufacturingSpeed.Express  => Priority.Rush
+  case ManufacturingSpeed.Standard => Priority.Normal
+  case ManufacturingSpeed.Economy  => Priority.Low
 
 /** Status of an order in the approval queue */
 enum ApprovalStatus:

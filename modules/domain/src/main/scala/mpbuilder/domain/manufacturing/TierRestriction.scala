@@ -1,5 +1,7 @@
 package mpbuilder.domain.manufacturing
 
+import mpbuilder.catalog.*
+
 import mpbuilder.kernel.*
 
 import mpbuilder.domain.model.*

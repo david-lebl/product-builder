@@ -1,9 +1,8 @@
-package mpbuilder.domain.validation
+package mpbuilder.catalog
 
 import mpbuilder.kernel.*
 
-import mpbuilder.domain.model.*
-import mpbuilder.domain.rules.SpecPredicate
+import mpbuilder.catalog.SpecPredicate
 
 enum ConfigurationError:
   case CategoryNotFound(categoryId: CategoryId)

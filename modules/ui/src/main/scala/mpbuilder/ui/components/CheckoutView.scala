@@ -1,5 +1,7 @@
 package mpbuilder.ui.components
 
+import mpbuilder.catalog.*
+
 import mpbuilder.kernel.*
 
 import com.raquo.laminar.api.L.*
@@ -8,7 +10,6 @@ import mpbuilder.ui.{AppRouter, AppRoute}
 import mpbuilder.domain.model.*
 import mpbuilder.domain.model.CheckoutStep.*
 import mpbuilder.domain.service.{BasketService, DiscountService}
-import mpbuilder.domain.weight.WeightCalculator
 import mpbuilder.uikit.fields.{TextField, CheckboxField, TextAreaField}
 import mpbuilder.uikit.util.Visibility
 

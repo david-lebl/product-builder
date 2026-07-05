@@ -4,7 +4,7 @@ import mpbuilder.kernel.*
 
 import mpbuilder.domain.model.*
 import mpbuilder.domain.pricing.*
-import mpbuilder.domain.rules.*
+import mpbuilder.catalog.*
 import zio.prelude.Validation
 
 /** Computes a starting price for a [[CategoryPreset]] by building a

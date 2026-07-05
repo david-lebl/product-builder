@@ -5,7 +5,7 @@ import mpbuilder.kernel.*
 import zio.test.*
 import zio.prelude.*
 import mpbuilder.domain.model.*
-import mpbuilder.domain.validation.*
+import mpbuilder.catalog.*
 import mpbuilder.domain.pricing.*
 import mpbuilder.domain.service.*
 import mpbuilder.domain.sample.*

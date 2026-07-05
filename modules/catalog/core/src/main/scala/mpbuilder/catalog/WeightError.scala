@@ -1,8 +1,7 @@
-package mpbuilder.domain.weight
+package mpbuilder.catalog
 
 import mpbuilder.kernel.*
 
-import mpbuilder.domain.model.*
 
 enum WeightError:
   case NoSizeInSpecifications

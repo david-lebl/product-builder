@@ -5,10 +5,10 @@ import mpbuilder.kernel.*
 import mpbuilder.domain.model.*
 import mpbuilder.domain.model.CheckoutStep.*
 import mpbuilder.domain.service.*
-import mpbuilder.domain.validation.*
+import mpbuilder.catalog.*
 import mpbuilder.domain.pricing.*
 import mpbuilder.domain.manufacturing.{StationUtilisation, StationTimeEstimate}
-import mpbuilder.domain.weight.{WeightBreakdown, WeightCalculator}
+import mpbuilder.catalog.{WeightBreakdown, WeightCalculator}
 import mpbuilder.domain.sample.*
 import zio.prelude.Validation
 import com.raquo.laminar.api.L.*

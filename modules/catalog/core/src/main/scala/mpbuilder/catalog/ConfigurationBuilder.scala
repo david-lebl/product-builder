@@ -1,11 +1,8 @@
-package mpbuilder.domain.service
+package mpbuilder.catalog
 
 import mpbuilder.kernel.*
 
 import zio.prelude.*
-import mpbuilder.domain.model.*
-import mpbuilder.domain.rules.*
-import mpbuilder.domain.validation.*
 
 final case class ConfigurationRequest(
     categoryId: CategoryId,

@@ -8,7 +8,7 @@ import mpbuilder.domain.model.*
 import mpbuilder.domain.sample.*
 import mpbuilder.domain.service.*
 import mpbuilder.domain.pricing.*
-import mpbuilder.domain.validation.*
+import mpbuilder.catalog.*
 
 object CategoryPresetSpec extends ZIOSpecDefault:
 

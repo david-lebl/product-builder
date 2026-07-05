@@ -1,11 +1,9 @@
-package mpbuilder.domain.service
+package mpbuilder.catalog
 
 import mpbuilder.kernel.*
 
-import mpbuilder.domain.model.*
-import mpbuilder.domain.model.FinishType.finishCategory
-import mpbuilder.domain.model.ProductCategory.*
-import mpbuilder.domain.rules.*
+import mpbuilder.catalog.FinishType.finishCategory
+import mpbuilder.catalog.ProductCategory.*
 
 object CatalogQueryService:
 

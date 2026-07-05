@@ -1,5 +1,7 @@
 package mpbuilder.domain.service
 
+import mpbuilder.catalog.*
+
 import mpbuilder.domain.model.*
 import mpbuilder.domain.manufacturing.StationUtilisation
 import mpbuilder.domain.pricing.*

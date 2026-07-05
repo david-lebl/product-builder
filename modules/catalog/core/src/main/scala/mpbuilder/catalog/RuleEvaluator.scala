@@ -1,12 +1,10 @@
-package mpbuilder.domain.validation
+package mpbuilder.catalog
 
 import mpbuilder.kernel.*
 
 import zio.NonEmptyChunk
 import zio.prelude.*
-import mpbuilder.domain.model.*
-import mpbuilder.domain.model.FinishType.finishCategory
-import mpbuilder.domain.rules.*
+import mpbuilder.catalog.FinishType.finishCategory
 
 object RuleEvaluator:
 

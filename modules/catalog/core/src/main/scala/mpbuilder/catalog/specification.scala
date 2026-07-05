@@ -1,4 +1,4 @@
-package mpbuilder.domain.model
+package mpbuilder.catalog
 
 import zio.prelude.*
 
@@ -60,7 +60,7 @@ enum SpecValue:
   case PagesSpec(count: Int)
   case FoldTypeSpec(foldType: FoldType)
   case BindingMethodSpec(method: BindingMethod)
-  case ManufacturingSpeedSpec(speed: mpbuilder.domain.model.ManufacturingSpeed)
+  case ManufacturingSpeedSpec(speed: mpbuilder.catalog.ManufacturingSpeed)
 
 object SpecValue:
   def specKind(sv: SpecValue): SpecKind = sv match

@@ -4,7 +4,7 @@ import mpbuilder.kernel.*
 
 import mpbuilder.domain.model.*
 import mpbuilder.domain.pricing.*
-import mpbuilder.domain.rules.*
+import mpbuilder.catalog.*
 import mpbuilder.domain.sample.*
 
 /** Which section of the catalog editor is currently active. */

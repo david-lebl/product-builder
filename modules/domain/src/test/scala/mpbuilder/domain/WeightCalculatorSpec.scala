@@ -5,7 +5,7 @@ import mpbuilder.kernel.*
 import zio.test.*
 import zio.prelude.*
 import mpbuilder.domain.model.*
-import mpbuilder.domain.weight.*
+import mpbuilder.catalog.*
 import mpbuilder.domain.sample.*
 
 object WeightCalculatorSpec extends ZIOSpecDefault:

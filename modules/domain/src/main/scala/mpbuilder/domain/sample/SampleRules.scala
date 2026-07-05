@@ -1,7 +1,7 @@
 package mpbuilder.domain.sample
 
 import mpbuilder.domain.model.*
-import mpbuilder.domain.rules.*
+import mpbuilder.catalog.*
 
 object SampleRules:
 
