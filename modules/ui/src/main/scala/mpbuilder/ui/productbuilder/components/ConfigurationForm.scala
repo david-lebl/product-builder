@@ -1,5 +1,7 @@
 package mpbuilder.ui.productbuilder.components
 
+import mpbuilder.kernel.*
+
 import com.raquo.laminar.api.L.*
 import mpbuilder.ui.productbuilder.{ProductBuilderViewModel, ArtworkMode}
 import mpbuilder.ui.{AppRouter, AppRoute}

@@ -1,9 +1,10 @@
 package mpbuilder.ui.visualeditor.components
 
+import mpbuilder.kernel.*
+
 import com.raquo.laminar.api.L.*
 import mpbuilder.ui.visualeditor.*
 import mpbuilder.ui.productbuilder.ProductBuilderViewModel
-import mpbuilder.domain.model.Language
 
 /** Clipart gallery panel with predefined SVG cliparts, categories, and search */
 object ClipartGalleryPanel {

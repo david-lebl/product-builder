@@ -1,6 +1,7 @@
 package mpbuilder.domain.model
 
-import mpbuilder.domain.pricing.{Money, Currency}
+import mpbuilder.kernel.*
+
 
 /** How the customer is interacting with the shop */
 enum CustomerType:

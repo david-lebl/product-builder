@@ -1,5 +1,7 @@
 package mpbuilder.domain.service
 
+import mpbuilder.kernel.*
+
 import zio.prelude.*
 import mpbuilder.domain.model.*
 import mpbuilder.domain.rules.*

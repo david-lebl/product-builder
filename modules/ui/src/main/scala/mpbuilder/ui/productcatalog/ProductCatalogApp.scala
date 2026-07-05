@@ -1,9 +1,11 @@
 package mpbuilder.ui.productcatalog
 
+import mpbuilder.kernel.*
+
 import com.raquo.laminar.api.L.*
 import com.raquo.laminar.codecs.StringAsIsCodec
 import mpbuilder.domain.model.*
-import mpbuilder.domain.pricing.{Currency, Money, PriceBreakdown}
+import mpbuilder.domain.pricing.PriceBreakdown
 import mpbuilder.domain.sample.{SampleCatalog, SamplePricelist, SampleRules, SampleShowcase}
 import mpbuilder.domain.service.PresetPriceService
 import mpbuilder.ui.{AppRouter, AppRoute}

@@ -1,5 +1,7 @@
 package mpbuilder.ui.catalog
 
+import mpbuilder.kernel.*
+
 import mpbuilder.domain.model.*
 import mpbuilder.domain.pricing.*
 import mpbuilder.domain.rules.*

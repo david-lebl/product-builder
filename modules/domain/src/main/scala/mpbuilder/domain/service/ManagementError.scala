@@ -1,5 +1,7 @@
 package mpbuilder.domain.service
 
+import mpbuilder.kernel.*
+
 import mpbuilder.domain.model.*
 
 /** Error ADT for employee and machine management operations. */

@@ -1,5 +1,7 @@
 package mpbuilder.domain.validation
 
+import mpbuilder.kernel.*
+
 import zio.NonEmptyChunk
 import zio.prelude.*
 import mpbuilder.domain.model.*

@@ -1,5 +1,7 @@
 package mpbuilder.domain.model
 
+import mpbuilder.kernel.*
+
 import zio.prelude.*
 
 opaque type SessionId = String

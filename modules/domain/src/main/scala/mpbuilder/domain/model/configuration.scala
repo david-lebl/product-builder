@@ -1,5 +1,7 @@
 package mpbuilder.domain.model
 
+import mpbuilder.kernel.*
+
 final case class ProductConfiguration(
     id: ConfigurationId,
     category: ProductCategory,

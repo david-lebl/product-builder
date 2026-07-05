@@ -1,5 +1,7 @@
 package mpbuilder.domain.manufacturing
 
+import mpbuilder.kernel.*
+
 import mpbuilder.domain.model.*
 
 /** Per-category constraints on manufacturing speed tier availability. */

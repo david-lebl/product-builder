@@ -1,5 +1,7 @@
 package mpbuilder.ui.customers
 
+import mpbuilder.kernel.*
+
 import mpbuilder.domain.model.*
 
 /** Which section of the customer management UI is currently active. */

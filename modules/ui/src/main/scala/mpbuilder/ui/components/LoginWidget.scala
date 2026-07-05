@@ -1,5 +1,7 @@
 package mpbuilder.ui.components
 
+import mpbuilder.kernel.*
+
 import com.raquo.laminar.api.L.*
 import mpbuilder.ui.productbuilder.{ProductBuilderViewModel, LoginState}
 import mpbuilder.domain.model.*

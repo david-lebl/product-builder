@@ -1,7 +1,8 @@
 package mpbuilder.domain.service
 
+import mpbuilder.kernel.*
+
 import mpbuilder.domain.model.*
-import mpbuilder.domain.pricing.Money
 
 /** Error ADT for discount code operations. */
 enum DiscountCodeError:

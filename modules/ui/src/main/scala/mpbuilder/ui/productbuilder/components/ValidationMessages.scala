@@ -1,8 +1,9 @@
 package mpbuilder.ui.productbuilder.components
 
+import mpbuilder.kernel.*
+
 import com.raquo.laminar.api.L.*
 import mpbuilder.ui.productbuilder.ProductBuilderViewModel
-import mpbuilder.domain.model.Language
 import mpbuilder.uikit.feedback.ValidationDisplay
 
 object ValidationMessages:

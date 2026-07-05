@@ -18,7 +18,7 @@ val commonScalacOptions = Seq(
 val rootDir = moduleDir
 val domainDir = rootDir / "modules" / "domain"
 
-val domainMvnDeps = Seq(
+val coreMvnDeps = Seq(
   mvn"dev.zio::zio::2.1.16",
   mvn"dev.zio::zio-prelude::1.0.0-RC39",
   mvn"dev.zio::zio-json::0.7.3",
@@ -26,7 +26,61 @@ val domainMvnDeps = Seq(
 )
 
 // ---------------------------------------------------------------------------
+// Bounded-context modules — each cross-compiled for JVM and JS from a shared
+// pure source tree at modules/<context>/core (future infra/adapters will live
+// in modules/<context>/infra as JVM-only siblings).
+// ---------------------------------------------------------------------------
+
+trait ContextModule extends Module { ctx =>
+  def contextName: String
+  def contextDeps: Seq[ContextModule] = Seq.empty
+
+  /** Extra context deps for tests only (e.g. samples fixtures). */
+  def testContextDeps: Seq[ContextModule] = Seq.empty
+
+  def coreDir = rootDir / "modules" / contextName / "core"
+
+  object core extends Module {
+
+    trait SharedSources extends ScalaModule {
+      def scalaVersion = scala3Version
+      def scalacOptions = commonScalacOptions
+      def sources = Task.Sources(ctx.coreDir / "src" / "main" / "scala")
+      def resources = Task.Sources(ctx.coreDir / "src" / "main" / "resources")
+      def mvnDeps = coreMvnDeps
+    }
+
+    /** JVM target */
+    object jvm extends SharedSources {
+      def moduleDeps = ctx.contextDeps.map(_.core.jvm)
+
+      object test extends ScalaTests {
+        def sources = Task.Sources(ctx.coreDir / "src" / "test" / "scala")
+        def resources = Task.Sources(ctx.coreDir / "src" / "test" / "resources")
+        def moduleDeps = super.moduleDeps ++ ctx.testContextDeps.map(_.core.jvm)
+        def mvnDeps = Seq(
+          mvn"dev.zio::zio-test::2.1.16",
+          mvn"dev.zio::zio-test-sbt::2.1.16"
+        )
+        def testFramework = "zio.test.sbt.ZTestFramework"
+      }
+    }
+
+    /** Scala.js target */
+    object js extends SharedSources with ScalaJSModule {
+      def scalaJSVersion = build.scalaJsVersion
+      def moduleDeps = ctx.contextDeps.map(_.core.js)
+    }
+  }
+}
+
+object kernel extends ContextModule {
+  def contextName = "kernel"
+}
+
+// ---------------------------------------------------------------------------
 // Domain — cross-compiled for JVM and JS (shared pure sources)
+// (transitional: being dissolved into bounded-context modules above)
 // ---------------------------------------------------------------------------
 
 object domain extends Module {
@@ -37,7 +91,8 @@ object domain extends Module {
     def scalacOptions = commonScalacOptions
     def sources = Task.Sources(domainDir / "src" / "main" / "scala")
     def resources = Task.Sources(domainDir / "src" / "main" / "resources")
-    def mvnDeps = domainMvnDeps
+    def mvnDeps = coreMvnDeps
+    def moduleDeps = Seq(kernel.core.jvm)
 
     object test extends ScalaTests {
       def sources = Task.Sources(domainDir / "src" / "test" / "scala")
@@ -57,7 +112,8 @@ object domain extends Module {
     def scalacOptions = commonScalacOptions
     def sources = Task.Sources(domainDir / "src" / "main" / "scala")
     def resources = Task.Sources(domainDir / "src" / "main" / "resources")
-    def mvnDeps = domainMvnDeps
+    def mvnDeps = coreMvnDeps
+    def moduleDeps = Seq(kernel.core.js)
   }
 }
 

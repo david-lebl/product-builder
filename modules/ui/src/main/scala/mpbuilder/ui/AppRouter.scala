@@ -1,5 +1,7 @@
 package mpbuilder.ui
 
+import mpbuilder.kernel.*
+
 import com.raquo.laminar.api.L.*
 import mpbuilder.ui.visualeditor.VisualEditorApp
 import mpbuilder.ui.productbuilder.{ProductBuilderApp, ProductBuilderViewModel, BuilderState, LoginState, ArtworkMode}
@@ -8,7 +10,6 @@ import mpbuilder.ui.manufacturing.ManufacturingApp
 import mpbuilder.ui.catalog.CatalogEditorApp
 import mpbuilder.ui.customers.CustomerManagementApp
 import mpbuilder.ui.productcatalog.ProductCatalogApp
-import mpbuilder.domain.model.{CategoryId, Language}
 
 sealed trait AppRoute
 object AppRoute {

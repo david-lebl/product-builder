@@ -1,5 +1,7 @@
 package mpbuilder.domain.validation
 
+import mpbuilder.kernel.*
+
 import mpbuilder.domain.model.*
 import mpbuilder.domain.rules.SpecPredicate
 

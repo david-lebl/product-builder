@@ -1,5 +1,7 @@
 package mpbuilder.domain
 
+import mpbuilder.kernel.*
+
 import zio.test.*
 import zio.json.*
 import mpbuilder.domain.model.*

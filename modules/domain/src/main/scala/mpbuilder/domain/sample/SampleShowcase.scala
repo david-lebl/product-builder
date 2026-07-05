@@ -1,5 +1,7 @@
 package mpbuilder.domain.sample
 
+import mpbuilder.kernel.*
+
 import mpbuilder.domain.model.*
 
 /** Sample showcase products for the customer-facing product catalog.

@@ -1,5 +1,7 @@
 package mpbuilder.domain.pricing
 
+import mpbuilder.kernel.*
+
 import zio.prelude.*
 import mpbuilder.domain.model.*
 

@@ -1,5 +1,7 @@
 package mpbuilder.ui.catalog.views
 
+import mpbuilder.kernel.*
+
 import com.raquo.laminar.api.L.*
 import mpbuilder.domain.model.*
 import mpbuilder.domain.rules.*

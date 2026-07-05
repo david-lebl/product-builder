@@ -1,5 +1,7 @@
 package mpbuilder.domain.rules
 
+import mpbuilder.kernel.*
+
 import mpbuilder.domain.model.*
 
 enum SpecPredicate:

@@ -1,5 +1,7 @@
 package mpbuilder.domain.service
 
+import mpbuilder.kernel.*
+
 import mpbuilder.domain.model.*
 
 /** Advisory queue score for ordering Ready workflow steps.

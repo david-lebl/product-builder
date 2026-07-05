@@ -1,11 +1,12 @@
 package mpbuilder.ui.manufacturing.views
 
+import mpbuilder.kernel.*
+
 import com.raquo.laminar.api.L.*
 import mpbuilder.domain.model.*
 import mpbuilder.domain.model.ManufacturingOrder.*
 import mpbuilder.domain.model.ManufacturingWorkflow.*
 import mpbuilder.domain.model.FulfilmentChecklist.*
-import mpbuilder.domain.pricing.Money
 import mpbuilder.ui.manufacturing.*
 import mpbuilder.uikit.containers.*
 

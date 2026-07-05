@@ -1,5 +1,7 @@
 package mpbuilder.domain.model
 
+import mpbuilder.kernel.*
+
 enum ComponentRole:
   case Main
   case Cover

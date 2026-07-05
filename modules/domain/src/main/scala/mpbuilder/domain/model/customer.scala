@@ -1,5 +1,7 @@
 package mpbuilder.domain.model
 
+import mpbuilder.kernel.*
+
 import mpbuilder.domain.pricing.CustomerPricing
 
 /** Status of a customer account */

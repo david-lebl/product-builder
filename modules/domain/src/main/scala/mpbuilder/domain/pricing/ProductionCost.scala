@@ -1,5 +1,7 @@
 package mpbuilder.domain.pricing
 
+import mpbuilder.kernel.*
+
 import mpbuilder.domain.model.*
 
 /** Production cost rules define the floor price below which we should not sell.

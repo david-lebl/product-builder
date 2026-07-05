@@ -1,4 +1,4 @@
-package mpbuilder.domain.model
+package mpbuilder.kernel
 
 import zio.prelude.*
 

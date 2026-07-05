@@ -1,4 +1,4 @@
-package mpbuilder.domain.pricing
+package mpbuilder.kernel
 
 opaque type Money = BigDecimal
 object Money:

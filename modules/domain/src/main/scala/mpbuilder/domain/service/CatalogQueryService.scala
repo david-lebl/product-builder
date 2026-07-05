@@ -1,5 +1,7 @@
 package mpbuilder.domain.service
 
+import mpbuilder.kernel.*
+
 import mpbuilder.domain.model.*
 import mpbuilder.domain.model.FinishType.finishCategory
 import mpbuilder.domain.model.ProductCategory.*

@@ -1,4 +1,4 @@
-package mpbuilder.domain.model
+package mpbuilder.kernel
 
 enum Language:
   case En, Cs
