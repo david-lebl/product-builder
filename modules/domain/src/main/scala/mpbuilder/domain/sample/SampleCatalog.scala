@@ -95,6 +95,20 @@ object SampleCatalog:
   val rollUpStandEconomyId: MaterialId  = MaterialId.unsafe("mat-rollup-stand-economy")
   val rollUpStandPremiumId: MaterialId  = MaterialId.unsafe("mat-rollup-stand-premium")
 
+  // --- Binding Color Material IDs (Spiral / Wire-O) ---
+  val bindingBlackId: MaterialId  = MaterialId.unsafe("mat-binding-black")
+  val bindingSilverId: MaterialId = MaterialId.unsafe("mat-binding-silver")
+  val bindingRedId: MaterialId    = MaterialId.unsafe("mat-binding-red")
+  val bindingBlueId: MaterialId   = MaterialId.unsafe("mat-binding-blue")
+  val bindingWhiteId: MaterialId  = MaterialId.unsafe("mat-binding-white")
+  val bindingGoldId: MaterialId   = MaterialId.unsafe("mat-binding-gold")
+
+  // --- Desk Cover Material IDs (Case Binding) ---
+  val deskBlackId: MaterialId  = MaterialId.unsafe("mat-desk-black")
+  val deskBordeauxId: MaterialId = MaterialId.unsafe("mat-desk-bordeaux")
+  val deskNavyId: MaterialId   = MaterialId.unsafe("mat-desk-navy")
+  val deskBrownId: MaterialId  = MaterialId.unsafe("mat-desk-brown")
+
   // --- Promotional Material IDs ---
   // T-Shirts
   val cottonTshirt150Id: MaterialId       = MaterialId.unsafe("mat-cotton-tshirt-150")
@@ -822,6 +836,98 @@ object SampleCatalog:
       "Professional-grade retractable banner stand. Wide base with adjustable feet for stability, tensioned top rail for a flat banner surface. Built for frequent use at trade shows and permanent displays. Lasts 100+ setups with interchangeable cassettes.",
       "Profesionální zatažitelný bannerový stojan. Široká základna s nastavitelnými nožkami pro stabilitu, napínací horní lišta pro rovný povrch banneru. Vyroben pro časté použití na veletrzích a permanentní displeje. Vydrží 100+ rozložení s vyměnitelnými kazetami.",
     )),
+  )
+
+  // --- Binding Color Materials (Spiral / Wire-O) ---
+  val bindingBlack: Material = Material(
+    id = bindingBlackId,
+    name = LocalizedString("Binding – Black", "Kroužek – Černý"),
+    family = MaterialFamily.BindingMaterial,
+    weight = None,
+    properties = Set.empty,
+    description = Some(LocalizedString("Black spiral / wire-O binding element.", "Černý kroužkový / wire-O element vazby.")),
+  )
+
+  val bindingSilver: Material = Material(
+    id = bindingSilverId,
+    name = LocalizedString("Binding – Silver", "Kroužek – Stříbrný"),
+    family = MaterialFamily.BindingMaterial,
+    weight = None,
+    properties = Set.empty,
+    description = Some(LocalizedString("Silver spiral / wire-O binding element.", "Stříbrný kroužkový / wire-O element vazby.")),
+  )
+
+  val bindingRed: Material = Material(
+    id = bindingRedId,
+    name = LocalizedString("Binding – Red", "Kroužek – Červený"),
+    family = MaterialFamily.BindingMaterial,
+    weight = None,
+    properties = Set.empty,
+    description = Some(LocalizedString("Red spiral / wire-O binding element.", "Červený kroužkový / wire-O element vazby.")),
+  )
+
+  val bindingBlue: Material = Material(
+    id = bindingBlueId,
+    name = LocalizedString("Binding – Blue", "Kroužek – Modrý"),
+    family = MaterialFamily.BindingMaterial,
+    weight = None,
+    properties = Set.empty,
+    description = Some(LocalizedString("Blue spiral / wire-O binding element.", "Modrý kroužkový / wire-O element vazby.")),
+  )
+
+  val bindingWhite: Material = Material(
+    id = bindingWhiteId,
+    name = LocalizedString("Binding – White", "Kroužek – Bílý"),
+    family = MaterialFamily.BindingMaterial,
+    weight = None,
+    properties = Set.empty,
+    description = Some(LocalizedString("White spiral / wire-O binding element.", "Bílý kroužkový / wire-O element vazby.")),
+  )
+
+  val bindingGold: Material = Material(
+    id = bindingGoldId,
+    name = LocalizedString("Binding – Gold", "Kroužek – Zlatý"),
+    family = MaterialFamily.BindingMaterial,
+    weight = None,
+    properties = Set.empty,
+    description = Some(LocalizedString("Gold spiral / wire-O binding element.", "Zlatý kroužkový / wire-O element vazby.")),
+  )
+
+  // --- Desk Cover Materials (Case Binding) ---
+  val deskBlack: Material = Material(
+    id = deskBlackId,
+    name = LocalizedString("Desk Cover – Black", "Deska – Černá"),
+    family = MaterialFamily.BindingMaterial,
+    weight = None,
+    properties = Set.empty,
+    description = Some(LocalizedString("Black hardcover desk for case binding.", "Černá pevná deska pro V8 – tuhou vazbu.")),
+  )
+
+  val deskBordeaux: Material = Material(
+    id = deskBordeauxId,
+    name = LocalizedString("Desk Cover – Bordeaux", "Deska – Bordó"),
+    family = MaterialFamily.BindingMaterial,
+    weight = None,
+    properties = Set.empty,
+    description = Some(LocalizedString("Bordeaux hardcover desk for case binding.", "Bordó pevná deska pro V8 – tuhou vazbu.")),
+  )
+
+  val deskNavy: Material = Material(
+    id = deskNavyId,
+    name = LocalizedString("Desk Cover – Navy", "Deska – Námořnická modrá"),
+    family = MaterialFamily.BindingMaterial,
+    weight = None,
+    properties = Set.empty,
+    description = Some(LocalizedString("Navy hardcover desk for case binding.", "Námořnická modrá pevná deska pro V8 – tuhou vazbu.")),
+  )
+
+  val deskBrown: Material = Material(
+    id = deskBrownId,
+    name = LocalizedString("Desk Cover – Brown", "Deska – Hnědá"),
+    family = MaterialFamily.BindingMaterial,
+    weight = None,
+    properties = Set.empty,
+    description = Some(LocalizedString("Brown hardcover desk for case binding.", "Hnědá pevná deska pro V8 – tuhou vazbu.")),
   )
 
   // --- Promotional Materials: T-Shirts ---
@@ -2118,6 +2224,18 @@ object SampleCatalog:
       rollUpBannerFilmId    -> rollUpBannerFilm,
       rollUpStandEconomyId  -> rollUpStandEconomy,
       rollUpStandPremiumId  -> rollUpStandPremium,
+      // Binding Color Materials
+      bindingBlackId   -> bindingBlack,
+      bindingSilverId  -> bindingSilver,
+      bindingRedId     -> bindingRed,
+      bindingBlueId    -> bindingBlue,
+      bindingWhiteId   -> bindingWhite,
+      bindingGoldId    -> bindingGold,
+      // Desk Cover Materials
+      deskBlackId    -> deskBlack,
+      deskBordeauxId -> deskBordeaux,
+      deskNavyId     -> deskNavy,
+      deskBrownId    -> deskBrown,
       // Promotional Materials
       cottonTshirt150Id      -> cottonTshirt150,
       cottonTshirt180Id      -> cottonTshirt180,

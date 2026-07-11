@@ -389,6 +389,28 @@ object EmailOrderModal:
         lang match
           case Language.En => s"Manufacturing speed: $v"
           case Language.Cs => s"Rychlost výroby: $v"
+      case SpecValue.BindingColorSpec(materialId) =>
+        val name = ProductBuilderViewModel.catalog.materials.get(materialId)
+          .map(_.name(lang)).getOrElse(materialId.value)
+        lang match
+          case Language.En => s"Binding color: $name"
+          case Language.Cs => s"Barva vazby: $name"
+      case SpecValue.SpiralFrontCoverSpec(coverType) =>
+        val v = coverType match
+          case SpiralCoverType.Transparent => lang match { case Language.En => "Transparent"; case Language.Cs => "Průhledná" }
+          case SpiralCoverType.Carton      => lang match { case Language.En => "Carton";      case Language.Cs => "Karton" }
+        lang match
+          case Language.En => s"Front cover: $v"
+          case Language.Cs => s"Přední obálka: $v"
+      case SpecValue.SpiralBackCoverSpec(coverType) =>
+        val v = coverType match
+          case SpiralCoverType.Transparent => lang match { case Language.En => "Transparent"; case Language.Cs => "Průhledná" }
+          case SpiralCoverType.Carton      => lang match { case Language.En => "Carton";      case Language.Cs => "Karton" }
+        lang match
+          case Language.En => s"Back cover: $v"
+          case Language.Cs => s"Zadní obálka: $v"
+      // BleedSpec is an internal pre-press setting not shown to customers in order summaries
+      case _: SpecValue.BleedSpec => ""
 
   private def formatMoney(money: Money, currency: Currency): String =
     currency match
