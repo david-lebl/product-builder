@@ -54,6 +54,45 @@ object SpecificationForm:
     val requiredSpecs = ProductBuilderViewModel.requiredSpecKinds
 
     val lang = ProductBuilderViewModel.currentLanguage
+    val bindingColorMaterials = ProductBuilderViewModel.availableBindingColorMaterials
+
+    def ensureBindingDependentSpecs(bindingMethod: BindingMethod): Unit =
+      val requiresBindingColor =
+        bindingMethod == BindingMethod.SpiralBinding ||
+          bindingMethod == BindingMethod.WireOBinding ||
+          bindingMethod == BindingMethod.CaseBinding
+      val requiresCoverTypes =
+        bindingMethod == BindingMethod.SpiralBinding ||
+          bindingMethod == BindingMethod.WireOBinding
+
+      if requiresBindingColor then
+        val hasBindingColor = ProductBuilderViewModel.stateVar.now().specifications.exists {
+          case _: SpecValue.BindingColorSpec => true
+          case _                             => false
+        }
+        if !hasBindingColor then
+          bindingColorMaterials.headOption.foreach { defaultMaterial =>
+            ProductBuilderViewModel.replaceSpecification(SpecValue.BindingColorSpec(defaultMaterial.id))
+          }
+      else
+        ProductBuilderViewModel.removeSpecification(classOf[SpecValue.BindingColorSpec])
+
+      if requiresCoverTypes then
+        val hasFrontCover = ProductBuilderViewModel.stateVar.now().specifications.exists {
+          case _: SpecValue.FrontCoverTypeSpec => true
+          case _                               => false
+        }
+        val hasBackCover = ProductBuilderViewModel.stateVar.now().specifications.exists {
+          case _: SpecValue.BackCoverTypeSpec => true
+          case _                              => false
+        }
+        if !hasFrontCover then
+          ProductBuilderViewModel.replaceSpecification(SpecValue.FrontCoverTypeSpec(BindingCoverType.Transparent))
+        if !hasBackCover then
+          ProductBuilderViewModel.replaceSpecification(SpecValue.BackCoverTypeSpec(BindingCoverType.Transparent))
+      else
+        ProductBuilderViewModel.removeSpecification(classOf[SpecValue.FrontCoverTypeSpec])
+        ProductBuilderViewModel.removeSpecification(classOf[SpecValue.BackCoverTypeSpec])
 
     div(
       cls := "form-group",
@@ -70,6 +109,8 @@ object SpecificationForm:
           case None =>
             sizePairVar.set(("", ""))
             sizePresetVar.set("")
+
+        specs.collectFirst { case SpecValue.BindingMethodSpec(method) => method }.foreach(ensureBindingDependentSpecs)
       },
 
       // Quantity
@@ -321,7 +362,106 @@ object SpecificationForm:
                   BindingMethod.values.find(_.toString == value).foreach { bm =>
                     ProductBuilderViewModel.removeSpecification(classOf[SpecValue.BindingMethodSpec])
                     ProductBuilderViewModel.addSpecification(SpecValue.BindingMethodSpec(bm))
+                    ensureBindingDependentSpecs(bm)
                   }
+              },
+            ),
+          ),
+        ),
+      ),
+
+      // Binding color (for Spiral / Wire-O / Case Binding)
+      div(
+        Visibility.when(ProductBuilderViewModel.selectedBindingMethod.map {
+          case Some(BindingMethod.SpiralBinding | BindingMethod.WireOBinding | BindingMethod.CaseBinding) => true
+          case _ => false
+        }),
+        div(
+          cls := "form-group form-group--horizontal",
+          label(child.text <-- lang.map {
+            case Language.En => "Binding / cover color:"
+            case Language.Cs => "Barva vazby / desek:"
+          }),
+          div(
+            cls := "form-group__control",
+            select(
+              children <-- lang.combineWith(ProductBuilderViewModel.selectedBindingColorMaterialId).map { (l: Language, selectedId: Option[MaterialId]) =>
+                val selected = selectedId.map(_.value).getOrElse("")
+                val placeholder = l match
+                  case Language.En => "-- Select color --"
+                  case Language.Cs => "-- Vyberte barvu --"
+                val placeholderOpt = List(option(placeholder, value := "", com.raquo.laminar.api.L.selected := selected.isEmpty))
+                placeholderOpt ++ bindingColorMaterials.map { material =>
+                  val label =
+                    material.color.map(_(l)).filter(_.nonEmpty).getOrElse(material.name(l))
+                  option(label, value := material.id.value, com.raquo.laminar.api.L.selected := (selected == material.id.value))
+                }
+              },
+              onChange.mapToValue --> Observer[String] { value =>
+                if value.nonEmpty then
+                  bindingColorMaterials.find(_.id.value == value).foreach { material =>
+                    ProductBuilderViewModel.replaceSpecification(SpecValue.BindingColorSpec(material.id))
+                  }
+              },
+            ),
+          ),
+        ),
+      ),
+
+      // Front/Back cover choices (spiral + wire-o)
+      div(
+        Visibility.when(ProductBuilderViewModel.selectedBindingMethod.map {
+          case Some(BindingMethod.SpiralBinding | BindingMethod.WireOBinding) => true
+          case _ => false
+        }),
+        div(
+          cls := "form-group form-group--horizontal",
+          label(child.text <-- lang.map {
+            case Language.En => "Front cover:"
+            case Language.Cs => "Přední krycí list:"
+          }),
+          div(
+            cls := "form-group__control",
+            select(
+              children <-- lang.combineWith(ProductBuilderViewModel.selectedFrontCoverType).map { (l: Language, selected: Option[BindingCoverType]) =>
+                BindingCoverType.values.toList.map { coverType =>
+                  option(
+                    bindingCoverTypeLabel(coverType, l),
+                    value := coverType.toString,
+                    com.raquo.laminar.api.L.selected := selected.contains(coverType),
+                  )
+                }
+              },
+              onChange.mapToValue --> Observer[String] { value =>
+                BindingCoverType.values.find(_.toString == value).foreach { coverType =>
+                  ProductBuilderViewModel.replaceSpecification(SpecValue.FrontCoverTypeSpec(coverType))
+                }
+              },
+            ),
+          ),
+        ),
+        div(
+          cls := "form-group form-group--horizontal",
+          label(child.text <-- lang.map {
+            case Language.En => "Back cover:"
+            case Language.Cs => "Zadní krycí list:"
+          }),
+          div(
+            cls := "form-group__control",
+            select(
+              children <-- lang.combineWith(ProductBuilderViewModel.selectedBackCoverType).map { (l: Language, selected: Option[BindingCoverType]) =>
+                BindingCoverType.values.toList.map { coverType =>
+                  option(
+                    bindingCoverTypeLabel(coverType, l),
+                    value := coverType.toString,
+                    com.raquo.laminar.api.L.selected := selected.contains(coverType),
+                  )
+                }
+              },
+              onChange.mapToValue --> Observer[String] { value =>
+                BindingCoverType.values.find(_.toString == value).foreach { coverType =>
+                  ProductBuilderViewModel.replaceSpecification(SpecValue.BackCoverTypeSpec(coverType))
+                }
               },
             ),
           ),
@@ -430,6 +570,14 @@ object SpecificationForm:
     case BindingMethod.SpiralBinding   => lang match { case Language.En => "Spiral Binding";   case Language.Cs => "Kroužková vazba" }
     case BindingMethod.WireOBinding    => lang match { case Language.En => "Wire-O Binding";   case Language.Cs => "Wire-O vazba" }
     case BindingMethod.CaseBinding     => lang match { case Language.En => "Case Binding";     case Language.Cs => "V8 – tuhá vazba" }
+
+  private def bindingCoverTypeLabel(coverType: BindingCoverType, lang: Language): String = coverType match
+    case BindingCoverType.Transparent => lang match
+      case Language.En => "Transparent"
+      case Language.Cs => "Transparentní"
+    case BindingCoverType.Carton => lang match
+      case Language.En => "Carton"
+      case Language.Cs => "Karton"
 
   private def speedTierCard(
     speed: ManufacturingSpeed,

@@ -593,6 +593,30 @@ object ProductBuilderViewModel:
       }
     }
 
+  def selectedBindingColorMaterialId: Signal[Option[MaterialId]] =
+    state.map { s =>
+      s.specifications.collectFirst {
+        case SpecValue.BindingColorSpec(materialId) => materialId
+      }
+    }
+
+  def selectedFrontCoverType: Signal[Option[BindingCoverType]] =
+    state.map { s =>
+      s.specifications.collectFirst {
+        case SpecValue.FrontCoverTypeSpec(coverType) => coverType
+      }
+    }
+
+  def selectedBackCoverType: Signal[Option[BindingCoverType]] =
+    state.map { s =>
+      s.specifications.collectFirst {
+        case SpecValue.BackCoverTypeSpec(coverType) => coverType
+      }
+    }
+
+  def availableBindingColorMaterials: List[Material] =
+    CatalogQueryService.availableBindingColorMaterials(catalog)
+
   def selectedManufacturingSpeed: Signal[Option[ManufacturingSpeed]] =
     state.map { s =>
       s.specifications.collectFirst {

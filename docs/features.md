@@ -11,7 +11,7 @@ The core of the system is a domain-driven product configurator for the printing 
 ### Catalog & Categories
 
 - **11 product categories**: Business Cards, Postcards, Flyers, Brochures, Booklets, Calendars, Banners, Packaging, Stickers & Labels, Roll-Up Banners, Free Configuration
-- **13 materials**: papers (coated, uncoated, recycled, premium), cardboard, vinyl, synthetic, adhesive stock — each with family, weight, and properties
+- **Configurable materials**: papers (coated, uncoated, recycled, premium), cardboard, vinyl, synthetic, adhesive stock, and binding color stocks — each with family, weight, properties, and optional color metadata
 - **16 finishes**: lamination, UV coating, soft-touch, embossing, foil stamping, die-cut, scoring, perforation, round corners, grommets, and more
 - **4 printing methods**: Digital, Offset, Letterpress, UV Inkjet — each with process type and max color count
 - **Multi-component products**: categories define component templates (e.g. booklet cover + body, roll-up banner + optional stand)
@@ -21,6 +21,12 @@ The core of the system is a domain-driven product configurator for the printing 
 Per-side ink setup modelling (`InkSetup` = ink type + color count):
 - Presets: `4/4` (CMYK both sides), `4/0` (front only), `4/1`, `1/0`, `1/1`
 - Structural validation checks against `PrintingMethod.maxColorCount`
+
+### Binding Options
+
+- `BindingMethod` supports saddle stitch, perfect, spiral, wire-o, and case binding.
+- `BindingColorSpec` allows selecting a catalog material flagged as a binding-color option (e.g., red/black/white wire or case-cover color).
+- For spiral and wire-o bindings, front and back cover sheets are configured independently via `FrontCoverTypeSpec` / `BackCoverTypeSpec` with values `Transparent` or `Carton`.
 
 ### Compatibility Rules Engine
 

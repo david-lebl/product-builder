@@ -84,6 +84,11 @@ object CatalogQueryService:
       case None           => Set.empty
       case Some(category) => category.requiredSpecKinds
 
+  def availableBindingColorMaterials(catalog: ProductCatalog): List[Material] =
+    catalog.materials.values.toList
+      .filter(_.properties.contains(MaterialProperty.BindingColorOption))
+      .sortBy(_.id.value)
+
   def availablePrintingMethods(
       categoryId: CategoryId,
       catalog: ProductCatalog,
