@@ -1815,4 +1815,116 @@ object ConfigurationBuilderSpec extends ZIOSpecDefault:
         assertTrue(result.toEither.isRight)
       },
     ),
+    suite("material sheet size validation")(
+      test("product size within A3 sheet limit is accepted") {
+        val request = ConfigurationRequest(
+          categoryId = SampleCatalog.flyersId,
+          printingMethodId = SampleCatalog.digitalId,
+          components = List(mainComponent(SampleCatalog.coatedGlossy130gsmId, InkConfiguration.cmyk4_0)),
+          specs = List(
+            SpecValue.SizeSpec(Dimension(297, 210)), // A4 — fits in A3
+            SpecValue.QuantitySpec(Quantity.unsafe(500)),
+            SpecValue.OrientationSpec(Orientation.Portrait),
+          ),
+        )
+        val result = ConfigurationBuilder.build(request, catalog, ruleset, configId)
+        assertTrue(result.toEither.isRight)
+      },
+      test("product size exactly at A3 sheet limit is accepted") {
+        val request = ConfigurationRequest(
+          categoryId = SampleCatalog.flyersId,
+          printingMethodId = SampleCatalog.digitalId,
+          components = List(mainComponent(SampleCatalog.coatedGlossy130gsmId, InkConfiguration.cmyk4_0)),
+          specs = List(
+            SpecValue.SizeSpec(Dimension(420, 297)), // Exactly A3
+            SpecValue.QuantitySpec(Quantity.unsafe(500)),
+            SpecValue.OrientationSpec(Orientation.Portrait),
+          ),
+        )
+        val result = ConfigurationBuilder.build(request, catalog, ruleset, configId)
+        assertTrue(result.toEither.isRight)
+      },
+      test("product size in rotated orientation within A3 sheet limit is accepted") {
+        val request = ConfigurationRequest(
+          categoryId = SampleCatalog.flyersId,
+          printingMethodId = SampleCatalog.digitalId,
+          components = List(mainComponent(SampleCatalog.coatedGlossy130gsmId, InkConfiguration.cmyk4_0)),
+          specs = List(
+            SpecValue.SizeSpec(Dimension(297, 420)), // A3 landscape — fits when sheet is rotated
+            SpecValue.QuantitySpec(Quantity.unsafe(500)),
+            SpecValue.OrientationSpec(Orientation.Portrait),
+          ),
+        )
+        val result = ConfigurationBuilder.build(request, catalog, ruleset, configId)
+        assertTrue(result.toEither.isRight)
+      },
+      test("product size exceeding A3 sheet limit is rejected") {
+        val request = ConfigurationRequest(
+          categoryId = SampleCatalog.flyersId,
+          printingMethodId = SampleCatalog.digitalId,
+          components = List(mainComponent(SampleCatalog.coatedGlossy130gsmId, InkConfiguration.cmyk4_0)),
+          specs = List(
+            SpecValue.SizeSpec(Dimension(500, 350)), // Larger than A3 in both orientations
+            SpecValue.QuantitySpec(Quantity.unsafe(500)),
+            SpecValue.OrientationSpec(Orientation.Portrait),
+          ),
+        )
+        val result = ConfigurationBuilder.build(request, catalog, ruleset, configId)
+        val errors = result.toEither.left.toOption.get.toList
+        assertTrue(
+          errors.exists(_.isInstanceOf[ConfigurationError.ProductExceedsMaterialSheetSize]),
+        )
+      },
+      test("product slightly wider than A3 is rejected even if height fits") {
+        val request = ConfigurationRequest(
+          categoryId = SampleCatalog.flyersId,
+          printingMethodId = SampleCatalog.digitalId,
+          components = List(mainComponent(SampleCatalog.coatedGlossy130gsmId, InkConfiguration.cmyk4_0)),
+          specs = List(
+            SpecValue.SizeSpec(Dimension(421, 297)), // 1mm wider than A3
+            SpecValue.QuantitySpec(Quantity.unsafe(500)),
+            SpecValue.OrientationSpec(Orientation.Portrait),
+          ),
+        )
+        val result = ConfigurationBuilder.build(request, catalog, ruleset, configId)
+        val errors = result.toEither.left.toOption.get.toList
+        assertTrue(
+          errors.exists(_.isInstanceOf[ConfigurationError.ProductExceedsMaterialSheetSize]),
+        )
+      },
+      test("vinyl material (no sheet size limit) accepts large size") {
+        val request = ConfigurationRequest(
+          categoryId = SampleCatalog.bannersId,
+          printingMethodId = SampleCatalog.uvInkjetId,
+          components = List(mainComponent(SampleCatalog.pvc510gId, InkConfiguration.cmyk4_0)),
+          specs = List(
+            SpecValue.SizeSpec(Dimension(1000, 500)), // Large format — no sheet limit
+            SpecValue.QuantitySpec(Quantity.unsafe(5)),
+          ),
+        )
+        val result = ConfigurationBuilder.build(request, catalog, ruleset, configId)
+        assertTrue(result.toEither.isRight)
+      },
+      test("error message contains material ID and dimensions") {
+        val request = ConfigurationRequest(
+          categoryId = SampleCatalog.flyersId,
+          printingMethodId = SampleCatalog.digitalId,
+          components = List(mainComponent(SampleCatalog.coatedGlossy130gsmId, InkConfiguration.cmyk4_0)),
+          specs = List(
+            SpecValue.SizeSpec(Dimension(500, 400)),
+            SpecValue.QuantitySpec(Quantity.unsafe(100)),
+            SpecValue.OrientationSpec(Orientation.Portrait),
+          ),
+        )
+        val result = ConfigurationBuilder.build(request, catalog, ruleset, configId)
+        val errors = result.toEither.left.toOption.get.toList
+        val sheetSizeError = errors.collectFirst { case e: ConfigurationError.ProductExceedsMaterialSheetSize => e }
+        assertTrue(
+          sheetSizeError.isDefined,
+          sheetSizeError.get.message(Language.En).contains("500.0×400.0mm"),
+          sheetSizeError.get.message(Language.En).contains("420.0×297.0mm"),
+          sheetSizeError.get.message(Language.Cs).contains("500.0×400.0mm"),
+        )
+      },
+    ),
   )

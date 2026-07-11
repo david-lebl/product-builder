@@ -136,6 +136,8 @@ object SampleCatalog:
   val sublimationId: PrintingMethodId    = PrintingMethodId.unsafe("pm-sublimation")
 
   // --- Materials ---
+  private val a3SheetSize: Option[Dimension] = Some(Dimension(420, 297))
+
   val coated300gsm: Material = Material(
     id = coated300gsmId,
     name = LocalizedString("Coated Art Paper 300gsm", "Křídový papír 300g"),
@@ -146,6 +148,7 @@ object SampleCatalog:
       "Premium coated art paper with a smooth, glossy surface. Ideal for business cards and high-quality print materials where vibrant colors and sharp detail are important.",
       "Prémiový křídový papír s hladkým lesklým povrchem. Ideální pro vizitky a kvalitní tiskové materiály, kde záleží na sytých barvách a ostrých detailech.",
     )),
+    maxSheetSize = a3SheetSize,
   )
 
   val uncoatedBond: Material = Material(
@@ -158,6 +161,7 @@ object SampleCatalog:
       "Natural, uncoated paper with a soft matte feel. Easy to write on, making it perfect for letterheads, forms, and materials that require a handwritten note.",
       "Přírodní nenatíraný papír s jemným matným povrchem. Snadno se na něj píše, ideální pro hlavičkové papíry, formuláře a materiály vyžadující ruční poznámky.",
     )),
+    maxSheetSize = a3SheetSize,
   )
 
   val kraft: Material = Material(
@@ -170,6 +174,7 @@ object SampleCatalog:
       "Eco-friendly brown kraft paper with a distinctive natural texture. Popular for organic brands, eco packaging, and rustic design aesthetics.",
       "Ekologický hnědý kraftový papír s výraznou přírodní texturou. Oblíbený pro bio značky, eko balení a rustikální designový styl.",
     )),
+    maxSheetSize = a3SheetSize,
   )
 
   val vinyl: Material = Material(
@@ -206,6 +211,7 @@ object SampleCatalog:
       "Sturdy corrugated cardboard for packaging and displays. Lightweight yet strong, with excellent structural rigidity for boxes and protective packaging.",
       "Pevná vlnitá lepenka pro balení a displeje. Lehká, ale pevná, s vynikající strukturální tuhostí pro krabice a ochranné obaly.",
     )),
+    maxSheetSize = a3SheetSize,
   )
 
   val coatedSilk250gsm: Material = Material(
@@ -218,6 +224,7 @@ object SampleCatalog:
       "Semi-matte coated paper with a silky smooth finish. Reduces glare while maintaining excellent color reproduction. Great for brochures and catalogs.",
       "Polopololesklý křídový papír s hedvábně hladkým povrchem. Snižuje odlesky při zachování vynikající reprodukce barev. Skvělý pro brožury a katalogy.",
     )),
+    maxSheetSize = a3SheetSize,
   )
 
   val yupo: Material = Material(
@@ -230,6 +237,7 @@ object SampleCatalog:
       "Waterproof synthetic paper that won't tear, wrinkle, or yellow. Perfect for outdoor menus, maps, tags, and applications requiring extreme durability.",
       "Voděodolný syntetický papír, který se netrhá, nekrčí ani nežloutne. Ideální pro venkovní jídelníčky, mapy, štítky a aplikace vyžadující extrémní odolnost.",
     )),
+    maxSheetSize = a3SheetSize,
   )
 
   val adhesiveStock: Material = Material(
@@ -242,6 +250,7 @@ object SampleCatalog:
       "Self-adhesive label stock with a glossy face. Suitable for product labels, stickers, and decals with a peel-and-stick backing.",
       "Samolepicí materiál s lesklým povrchem. Vhodný pro produktové štítky, samolepky a obtisky s odlepovacím podkladem.",
     )),
+    maxSheetSize = a3SheetSize,
   )
 
   val clearVinyl: Material = Material(
@@ -266,6 +275,7 @@ object SampleCatalog:
       "Luxurious cotton paper with a distinctive textured feel. Made from cotton fibers for a premium tactile experience. Perfect for high-end business cards and invitations.",
       "Luxusní bavlněný papír s výrazným hmatovým dojmem. Vyrobený z bavlněných vláken pro prémiový hmatový zážitek. Ideální pro luxusní vizitky a pozvánky.",
     )),
+    maxSheetSize = a3SheetSize,
   )
 
   // --- Coated Art Paper Glossy ---
@@ -277,6 +287,7 @@ object SampleCatalog:
     family = MaterialFamily.Paper,
     weight = Some(PaperWeight.unsafe(90)),
     properties = glossyCoatedProps,
+    maxSheetSize = a3SheetSize,
   )
 
   val coatedGlossy115gsm: Material = Material(
@@ -285,6 +296,7 @@ object SampleCatalog:
     family = MaterialFamily.Paper,
     weight = Some(PaperWeight.unsafe(115)),
     properties = glossyCoatedProps,
+    maxSheetSize = a3SheetSize,
   )
 
   val coatedGlossy130gsm: Material = Material(
@@ -293,6 +305,7 @@ object SampleCatalog:
     family = MaterialFamily.Paper,
     weight = Some(PaperWeight.unsafe(130)),
     properties = glossyCoatedProps,
+    maxSheetSize = a3SheetSize,
   )
 
   val coatedGlossy150gsm: Material = Material(
@@ -301,6 +314,7 @@ object SampleCatalog:
     family = MaterialFamily.Paper,
     weight = Some(PaperWeight.unsafe(150)),
     properties = glossyCoatedProps,
+    maxSheetSize = a3SheetSize,
   )
 
   val coatedGlossy170gsm: Material = Material(
@@ -309,6 +323,7 @@ object SampleCatalog:
     family = MaterialFamily.Paper,
     weight = Some(PaperWeight.unsafe(170)),
     properties = glossyCoatedProps,
+    maxSheetSize = a3SheetSize,
   )
 
   val coatedGlossy200gsm: Material = Material(
@@ -317,6 +332,7 @@ object SampleCatalog:
     family = MaterialFamily.Paper,
     weight = Some(PaperWeight.unsafe(200)),
     properties = glossyCoatedProps,
+    maxSheetSize = a3SheetSize,
   )
 
   val coatedGlossy250gsm: Material = Material(
@@ -325,6 +341,7 @@ object SampleCatalog:
     family = MaterialFamily.Paper,
     weight = Some(PaperWeight.unsafe(250)),
     properties = glossyCoatedProps,
+    maxSheetSize = a3SheetSize,
   )
 
   val coatedGlossy350gsm: Material = Material(
@@ -333,6 +350,7 @@ object SampleCatalog:
     family = MaterialFamily.Paper,
     weight = Some(PaperWeight.unsafe(350)),
     properties = glossyCoatedProps,
+    maxSheetSize = a3SheetSize,
   )
 
   // --- Coated Art Paper Matte ---
@@ -344,6 +362,7 @@ object SampleCatalog:
     family = MaterialFamily.Paper,
     weight = Some(PaperWeight.unsafe(90)),
     properties = matteCoatedProps,
+    maxSheetSize = a3SheetSize,
   )
 
   val coatedMatte115gsm: Material = Material(
@@ -352,6 +371,7 @@ object SampleCatalog:
     family = MaterialFamily.Paper,
     weight = Some(PaperWeight.unsafe(115)),
     properties = matteCoatedProps,
+    maxSheetSize = a3SheetSize,
   )
 
   val coatedMatte130gsm: Material = Material(
@@ -360,6 +380,7 @@ object SampleCatalog:
     family = MaterialFamily.Paper,
     weight = Some(PaperWeight.unsafe(130)),
     properties = matteCoatedProps,
+    maxSheetSize = a3SheetSize,
   )
 
   val coatedMatte150gsm: Material = Material(
@@ -368,6 +389,7 @@ object SampleCatalog:
     family = MaterialFamily.Paper,
     weight = Some(PaperWeight.unsafe(150)),
     properties = matteCoatedProps,
+    maxSheetSize = a3SheetSize,
   )
 
   val coatedMatte170gsm: Material = Material(
@@ -376,6 +398,7 @@ object SampleCatalog:
     family = MaterialFamily.Paper,
     weight = Some(PaperWeight.unsafe(170)),
     properties = matteCoatedProps,
+    maxSheetSize = a3SheetSize,
   )
 
   val coatedMatte200gsm: Material = Material(
@@ -384,6 +407,7 @@ object SampleCatalog:
     family = MaterialFamily.Paper,
     weight = Some(PaperWeight.unsafe(200)),
     properties = matteCoatedProps,
+    maxSheetSize = a3SheetSize,
   )
 
   val coatedMatte250gsm: Material = Material(
@@ -392,6 +416,7 @@ object SampleCatalog:
     family = MaterialFamily.Paper,
     weight = Some(PaperWeight.unsafe(250)),
     properties = matteCoatedProps,
+    maxSheetSize = a3SheetSize,
   )
 
   val coatedMatte300gsm: Material = Material(
@@ -400,6 +425,7 @@ object SampleCatalog:
     family = MaterialFamily.Paper,
     weight = Some(PaperWeight.unsafe(300)),
     properties = matteCoatedProps,
+    maxSheetSize = a3SheetSize,
   )
 
   val coatedMatte350gsm: Material = Material(
@@ -408,6 +434,7 @@ object SampleCatalog:
     family = MaterialFamily.Paper,
     weight = Some(PaperWeight.unsafe(350)),
     properties = matteCoatedProps,
+    maxSheetSize = a3SheetSize,
   )
 
   // --- Printing Methods ---

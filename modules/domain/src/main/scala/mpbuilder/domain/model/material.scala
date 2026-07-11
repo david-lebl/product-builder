@@ -25,4 +25,5 @@ final case class Material(
     weight: Option[PaperWeight],
     properties: Set[MaterialProperty],
     description: Option[LocalizedString] = None,
+    maxSheetSize: Option[Dimension] = None,
 )
