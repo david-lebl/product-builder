@@ -1,8 +1,10 @@
 package mpbuilder.ui.productbuilder.components
 
+import mpbuilder.kernel.*
+
 import com.raquo.laminar.api.L.*
 import mpbuilder.ui.productbuilder.ProductBuilderViewModel
-import mpbuilder.domain.model.*
+import mpbuilder.manufacturing.*
 
 /** Preset selector — renders card tiles when a category has more than one preset,
   * or nothing when only one (auto-applied) preset exists.

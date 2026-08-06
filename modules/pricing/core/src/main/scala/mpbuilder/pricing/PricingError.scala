@@ -1,0 +1,35 @@
+package mpbuilder.pricing
+
+import mpbuilder.catalog.*
+
+import mpbuilder.kernel.*
+
+
+enum PricingError:
+  case NoBasePriceForMaterial(materialId: MaterialId, role: ComponentRole)
+  case NoQuantityInSpecifications
+  case NoSizeForAreaPricing(materialId: MaterialId, role: ComponentRole)
+  case NoSizeForSheetPricing(materialId: MaterialId, role: ComponentRole)
+  case MissingScoringPrice(creaseCount: Int)
+
+  def message: String = message(Language.En)
+
+  def message(lang: Language): String = this match
+    case NoBasePriceForMaterial(materialId, role) => lang match
+      case Language.En => s"No base price found for material '${materialId.value}' in component '$role'"
+      case Language.Cs => s"Nebyla nalezena základní cena pro materiál '${materialId.value}' v komponentu '$role'"
+    case NoQuantityInSpecifications => lang match
+      case Language.En => "Quantity specification is required for pricing"
+      case Language.Cs => "Pro výpočet ceny je vyžadována specifikace množství"
+    case NoSizeForAreaPricing(materialId, role) => lang match
+      case Language.En => s"Area-based pricing requires size specification for material '${materialId.value}' in component '$role'"
+      case Language.Cs => s"Plošná kalkulace vyžaduje specifikaci rozměrů pro materiál '${materialId.value}' v komponentu '$role'"
+    case NoSizeForSheetPricing(materialId, role) => lang match
+      case Language.En => s"Sheet-based pricing requires size specification for material '${materialId.value}' in component '$role'"
+      case Language.Cs => s"Archová kalkulace vyžaduje specifikaci rozměrů pro materiál '${materialId.value}' v komponentu '$role'"
+    case MissingScoringPrice(creaseCount) => lang match
+      case Language.En => s"No scoring price rule found for $creaseCount crease(s)"
+      case Language.Cs => creaseCount match
+        case 1           => "Nebyla nalezena cenová pravidla pro bigování s 1 linkou"
+        case n if n <= 4 => s"Nebyla nalezena cenová pravidla pro bigování s $n linkami"
+        case n           => s"Nebyla nalezena cenová pravidla pro bigování s $n linkami"

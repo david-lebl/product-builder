@@ -1,9 +1,11 @@
 package mpbuilder.ui.catalog
 
-import mpbuilder.domain.model.*
-import mpbuilder.domain.pricing.*
-import mpbuilder.domain.rules.*
-import mpbuilder.domain.sample.*
+import mpbuilder.kernel.*
+
+import mpbuilder.manufacturing.*
+import mpbuilder.pricing.*
+import mpbuilder.catalog.*
+import mpbuilder.samples.*
 
 /** Which section of the catalog editor is currently active. */
 enum CatalogSection:

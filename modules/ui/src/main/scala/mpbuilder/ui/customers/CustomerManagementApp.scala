@@ -1,5 +1,7 @@
 package mpbuilder.ui.customers
 
+import mpbuilder.customer.*
+
 import com.raquo.laminar.api.L.*
 import mpbuilder.ui.customers.views.*
 import mpbuilder.uikit.containers.{SideNav, SideNavItem}

@@ -1,14 +1,21 @@
 package mpbuilder.ui.manufacturing
 
+import mpbuilder.ordering.*
+
+import mpbuilder.customer.*
+
+import mpbuilder.catalog.*
+
+import mpbuilder.kernel.*
+
 import com.raquo.laminar.api.L.*
-import mpbuilder.domain.model.*
-import mpbuilder.domain.model.ManufacturingWorkflow.*
-import mpbuilder.domain.model.ManufacturingOrder.*
-import mpbuilder.domain.service.*
-import mpbuilder.domain.sample.*
-import mpbuilder.domain.pricing.{Money, Currency}
-import mpbuilder.domain.manufacturing.{ShopSchedule, WorkingHours, StationTimeEstimate}
-import mpbuilder.domain.pricing.BusyPeriodMultiplier
+import mpbuilder.manufacturing.*
+import mpbuilder.manufacturing.ManufacturingWorkflow.*
+import mpbuilder.manufacturing.ManufacturingOrder.*
+import mpbuilder.manufacturing.*
+import mpbuilder.samples.*
+import mpbuilder.manufacturing.{ShopSchedule, WorkingHours, StationTimeEstimate}
+import mpbuilder.pricing.BusyPeriodMultiplier
 import java.time.{DayOfWeek, LocalDate, LocalTime}
 
 /** Reactive state management for the manufacturing UI. */
@@ -413,7 +420,7 @@ object ManufacturingViewModel:
     ): ManufacturingOrder =
       val pricelist = SamplePricelist.pricelistCzkSheet
       val basketItems = items.map { case (config, qty) =>
-        val priceResult = mpbuilder.domain.pricing.PriceCalculator.calculate(config, pricelist)
+        val priceResult = mpbuilder.pricing.PriceCalculator.calculate(config, pricelist)
         val breakdown = priceResult.toEither.toOption.get
         BasketItem(config, qty, breakdown)
       }

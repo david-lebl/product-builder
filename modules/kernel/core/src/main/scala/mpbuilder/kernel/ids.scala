@@ -1,0 +1,115 @@
+package mpbuilder.kernel
+
+import zio.prelude.*
+
+opaque type CategoryId = String
+object CategoryId:
+  def apply(value: String): Validation[String, CategoryId] =
+    if value.nonEmpty then Validation.succeed(value)
+    else Validation.fail("CategoryId must not be empty")
+
+  def unsafe(value: String): CategoryId = value
+
+  extension (id: CategoryId) def value: String = id
+
+opaque type MaterialId = String
+object MaterialId:
+  def apply(value: String): Validation[String, MaterialId] =
+    if value.nonEmpty then Validation.succeed(value)
+    else Validation.fail("MaterialId must not be empty")
+
+  def unsafe(value: String): MaterialId = value
+
+  extension (id: MaterialId) def value: String = id
+
+opaque type FinishId = String
+object FinishId:
+  def apply(value: String): Validation[String, FinishId] =
+    if value.nonEmpty then Validation.succeed(value)
+    else Validation.fail("FinishId must not be empty")
+
+  def unsafe(value: String): FinishId = value
+
+  extension (id: FinishId) def value: String = id
+
+opaque type PrintingMethodId = String
+object PrintingMethodId:
+  def apply(value: String): Validation[String, PrintingMethodId] =
+    if value.nonEmpty then Validation.succeed(value)
+    else Validation.fail("PrintingMethodId must not be empty")
+
+  def unsafe(value: String): PrintingMethodId = value
+
+  extension (id: PrintingMethodId) def value: String = id
+
+opaque type ConfigurationId = String
+object ConfigurationId:
+  def apply(value: String): Validation[String, ConfigurationId] =
+    if value.nonEmpty then Validation.succeed(value)
+    else Validation.fail("ConfigurationId must not be empty")
+
+  def unsafe(value: String): ConfigurationId = value
+
+  extension (id: ConfigurationId) def value: String = id
+
+opaque type BasketId = String
+object BasketId:
+  def apply(value: String): Validation[String, BasketId] =
+    if value.nonEmpty then Validation.succeed(value)
+    else Validation.fail("BasketId must not be empty")
+
+  def unsafe(value: String): BasketId = value
+
+  extension (id: BasketId) def value: String = id
+
+opaque type OrderId = String
+object OrderId:
+  def apply(value: String): Validation[String, OrderId] =
+    if value.nonEmpty then Validation.succeed(value)
+    else Validation.fail("OrderId must not be empty")
+
+  def unsafe(value: String): OrderId = value
+
+  extension (id: OrderId) def value: String = id
+
+opaque type CustomerId = String
+object CustomerId:
+  def apply(value: String): Validation[String, CustomerId] =
+    if value.nonEmpty then Validation.succeed(value)
+    else Validation.fail("CustomerId must not be empty")
+
+  def unsafe(value: String): CustomerId = value
+
+  extension (id: CustomerId) def value: String = id
+
+opaque type DiscountCodeId = String
+object DiscountCodeId:
+  def apply(value: String): Validation[String, DiscountCodeId] =
+    if value.nonEmpty then Validation.succeed(value)
+    else Validation.fail("DiscountCodeId must not be empty")
+
+  def unsafe(value: String): DiscountCodeId = value
+
+  extension (id: DiscountCodeId) def value: String = id
+
+opaque type EmployeeId = String
+object EmployeeId:
+  def apply(value: String): Validation[String, EmployeeId] =
+    if value.nonEmpty then Validation.succeed(value)
+    else Validation.fail("EmployeeId must not be empty")
+
+  def unsafe(value: String): EmployeeId = value
+
+  extension (id: EmployeeId) def value: String = id
+
+opaque type ArtworkId = String
+object ArtworkId:
+  def apply(value: String): Validation[String, ArtworkId] =
+    if value.nonEmpty then Validation.succeed(value)
+    else Validation.fail("ArtworkId must not be empty")
+
+  def unsafe(value: String): ArtworkId = value
+
+  def generate(): ArtworkId = s"artwork-${System.currentTimeMillis()}-${scala.util.Random.nextInt(10000)}"
+
+  extension (id: ArtworkId) def value: String = id

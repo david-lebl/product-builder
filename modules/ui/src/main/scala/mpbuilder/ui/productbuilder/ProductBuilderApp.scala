@@ -1,10 +1,12 @@
 package mpbuilder.ui.productbuilder
 
+import mpbuilder.ordering.*
+
+import mpbuilder.kernel.*
+
 import com.raquo.laminar.api.L.*
 import mpbuilder.ui.productbuilder.components.*
 import mpbuilder.ui.{AppRouter, AppRoute}
-import mpbuilder.domain.model.Language
-import mpbuilder.domain.pricing.{Money, Currency}
 
 object ProductBuilderApp:
   def apply(): Element =

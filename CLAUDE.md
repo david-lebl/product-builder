@@ -4,20 +4,22 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Build & Test Commands
 
-This project uses **Mill** as the build tool. sbt is also available in the project but not covered here.
+This project uses **Mill** as the build tool (the legacy sbt build was removed).
 
 ### Mill
 
 ```bash
 # Compile
-mill domain.jvm.compile      # Domain (JVM target)
-mill domain.js.compile       # Domain (Scala.js target)
+mill __.compile              # Everything
+mill pricing.core.jvm.compile   # One context (JVM target)
+mill pricing.core.js.compile    # One context (Scala.js target)
 mill ui.compile              # UI (Scala.js)
 mill ui-framework.compile    # UI framework only
 
 # Test
-mill domain.jvm.test                                # All domain tests
-mill 'domain.jvm.test.testOnly *PriceCalculatorSpec' # Single suite (pattern)
+mill __.test                                            # All tests
+mill pricing.core.jvm.test                              # One context's tests
+mill 'pricing.core.jvm.test.testOnly *PriceCalculatorSpec' # Single suite (pattern)
 
 # JS build
 mill ui.fastLinkJS           # Dev build → out/ui/fastLinkJS.dest/main.js
@@ -26,12 +28,26 @@ mill ui.fullLinkJS           # Production build → out/ui/fullLinkJS.dest/main.
 
 ## Architecture Overview
 
-**Scala 3.3.3** monorepo with 4 modules:
+**Scala 3.3.3** monorepo organized by bounded context (diamond architecture). Each context is a cross-compiled (JVM + JS) Mill module defined via the `ContextModule` trait in `build.mill`, with pure sources in one **flat package** `mpbuilder.<context>` at `modules/<context>/core/src`. Future persistence/IO adapters will live in JVM-only `modules/<context>/infra` siblings (package `mpbuilder.<context>.adapter`).
 
-- **`domain/`** — Cross-compiled (JVM + JS). Pure functional core: no ZIO effects, only `Validation[E, A]` from ZIO Prelude. Contains pricing engine, compatibility rules, manufacturing workflow, and all services.
-- **`ui/`** — Scala.js + Laminar SPA. Depends on `domainJS` and `uiFramework`.
+Context dependency DAG (compiler-enforced via `moduleDeps`, no cycles):
+
+```
+kernel ← catalog ← pricing ← { customer ← ordering, manufacturing } ← samples ← ui
+```
+
+- **`kernel/`** — Shared kernel: cross-context IDs (`CategoryId`, `OrderId`, `EmployeeId`, …), `Language`/`LocalizedString`, `Money`/`Currency`/`Price`, `Percentage`, `KernelCodecs`.
+- **`catalog/`** — Product catalog & configuration: categories, components, materials, finishes, printing methods, specifications, presets, showcase, compatibility rules + validation, weight calculation, `CatalogQueryService`, `ConfigurationBuilder`, `CatalogCodecs`.
+- **`pricing/`** — Pricelists, `PricingRule`, `PriceCalculator`, `PriceBreakdown`, customer pricing overlay + resolver, production cost, busy-period/queue types, `PresetPriceService`, `CatalogExport`, `PricingCodecs`.
+- **`customer/`** — Customer & identity: `Customer`, `CustomerType`, `ContactInfo`, `Address`, OTP login, management services.
+- **`ordering/`** — Basket, checkout, `Order`, discount codes, `BasketService`, `DiscountService`, `DiscountCodeService`.
+- **`manufacturing/`** — Workflow aggregate (`ManufacturingOrder` wraps `Order`), stations, schedule/capacity, workflow engine/generator, queue scoring, utilisation, employee/machine management, analytics.
+- **`samples/`** — All `Sample*` seed data (runtime module; also the test-fixture dependency via `testContextDeps`).
+- **`ui/`** — Scala.js + Laminar SPA. Depends on the context `.core.js` targets and `ui-framework`.
 - **`ui-framework/`** — Reusable Laminar components with no domain dependency (`mpbuilder.uikit` package).
 - **`ui-showcase/`** — Demo for `ui-framework` components.
+
+All context modules are pure functional: no ZIO effects, only `Validation[E, A]` from ZIO Prelude. JSON codecs live next to their types (`KernelCodecs` ⊂ `CatalogCodecs` ⊂ `PricingCodecs` via `export … given` re-exports — import the highest one you need).
 
 ### Domain Layer Principles
 
@@ -41,7 +57,7 @@ mill ui.fullLinkJS           # Production build → out/ui/fullLinkJS.dest/main.
 
 **Opaque types with smart constructors** — Every ID (`CategoryId`, `MaterialId`, etc.) and value object uses Scala 3 opaque types. Smart constructors return `Validation`. Use `.unsafe(...)` only in tests/sample data.
 
-**Pure domain, no effects** — The domain module must remain effect-free so it cross-compiles to Scala.js. ZIO effects only appear in infrastructure layers (not yet implemented).
+**Pure core, no effects** — Context `core` modules must remain effect-free so they cross-compile to Scala.js. ZIO effects only appear in future `infra` adapter modules (not yet implemented).
 
 ### Pricing Calculation Flow
 
@@ -63,13 +79,15 @@ When using `combineWith` on multiple signals/streams, tuples are flattened via `
 
 | Area | Path |
 |---|---|
-| Pricing rules/engine | `modules/domain/src/main/scala/mpbuilder/domain/pricing/` |
-| Compatibility rules | `modules/domain/src/main/scala/mpbuilder/domain/rules/` |
-| Domain services | `modules/domain/src/main/scala/mpbuilder/domain/service/` |
-| Sample data | `modules/domain/src/main/scala/mpbuilder/domain/sample/` |
-| Manufacturing domain | `modules/domain/src/main/scala/mpbuilder/domain/manufacturing/` |
+| Shared kernel (IDs, i18n, Money) | `modules/kernel/core/src/main/scala/mpbuilder/kernel/` |
+| Catalog, rules, validation, weight | `modules/catalog/core/src/main/scala/mpbuilder/catalog/` |
+| Pricing rules/engine | `modules/pricing/core/src/main/scala/mpbuilder/pricing/` |
+| Customer & login | `modules/customer/core/src/main/scala/mpbuilder/customer/` |
+| Basket, order, discounts | `modules/ordering/core/src/main/scala/mpbuilder/ordering/` |
+| Manufacturing workflow & services | `modules/manufacturing/core/src/main/scala/mpbuilder/manufacturing/` |
+| Sample data | `modules/samples/core/src/main/scala/mpbuilder/samples/` |
 | Manufacturing UI | `modules/ui/src/main/scala/mpbuilder/ui/manufacturing/` |
-| Pricing tests | `modules/domain/src/test/scala/mpbuilder/domain/PriceCalculatorSpec.scala` |
+| Pricing tests | `modules/pricing/core/src/test/scala/mpbuilder/pricing/PriceCalculatorSpec.scala` |
 | UI kit components | `modules/ui-framework/src/main/scala/mpbuilder/uikit/` |
 
 ### UI Framework Components (`mpbuilder.uikit`)

@@ -1,8 +1,10 @@
 package mpbuilder.ui.manufacturing.views
 
+import mpbuilder.kernel.*
+
 import com.raquo.laminar.api.L.*
-import mpbuilder.domain.model.*
-import mpbuilder.domain.model.MachineStatus.*
+import mpbuilder.manufacturing.*
+import mpbuilder.manufacturing.MachineStatus.*
 import mpbuilder.ui.manufacturing.*
 import mpbuilder.uikit.containers.*
 

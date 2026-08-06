@@ -1,10 +1,15 @@
 package mpbuilder.ui.productbuilder.components
 
+import mpbuilder.customer.*
+
+import mpbuilder.catalog.*
+
+import mpbuilder.kernel.*
+
 import com.raquo.laminar.api.L.*
 import mpbuilder.ui.productbuilder.ProductBuilderViewModel
-import mpbuilder.domain.pricing.{Money, Currency, ComponentBreakdown, PriceBreakdown}
-import mpbuilder.domain.model.{Language, ComponentRole}
-import mpbuilder.domain.weight.WeightBreakdown
+import mpbuilder.pricing.{ComponentBreakdown, PriceBreakdown}
+import mpbuilder.catalog.ComponentRole
 
 object PricePreview:
   def apply(): Element =

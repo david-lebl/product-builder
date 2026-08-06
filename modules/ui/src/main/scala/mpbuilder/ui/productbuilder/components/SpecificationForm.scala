@@ -1,11 +1,15 @@
 package mpbuilder.ui.productbuilder.components
 
+import mpbuilder.catalog.*
+
+import mpbuilder.kernel.*
+
 import com.raquo.laminar.api.L.*
 import mpbuilder.ui.productbuilder.ProductBuilderViewModel
 import mpbuilder.uikit.feedback.HelpInfo
-import mpbuilder.domain.model.*
-import mpbuilder.domain.sample.SampleCatalog
-import mpbuilder.domain.service.{CompletionEstimator, TierRestrictionValidator}
+import mpbuilder.manufacturing.*
+import mpbuilder.samples.SampleCatalog
+import mpbuilder.manufacturing.{CompletionEstimator, TierRestrictionValidator}
 import mpbuilder.uikit.util.Visibility
 
 object SpecificationForm:

@@ -1,13 +1,17 @@
 package mpbuilder.ui.productbuilder
 
-import mpbuilder.domain.model.*
-import mpbuilder.domain.model.CheckoutStep.*
-import mpbuilder.domain.service.*
-import mpbuilder.domain.validation.*
-import mpbuilder.domain.pricing.*
-import mpbuilder.domain.manufacturing.{StationUtilisation, StationTimeEstimate}
-import mpbuilder.domain.weight.{WeightBreakdown, WeightCalculator}
-import mpbuilder.domain.sample.*
+import mpbuilder.ordering.*
+
+import mpbuilder.customer.*
+
+import mpbuilder.kernel.*
+
+import mpbuilder.manufacturing.*
+import mpbuilder.catalog.*
+import mpbuilder.pricing.*
+import mpbuilder.manufacturing.{StationUtilisation, StationTimeEstimate}
+import mpbuilder.catalog.{WeightBreakdown, WeightCalculator}
+import mpbuilder.samples.*
 import zio.prelude.Validation
 import com.raquo.laminar.api.L.*
 import org.scalajs.dom

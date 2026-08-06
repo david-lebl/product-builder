@@ -1,12 +1,17 @@
 package mpbuilder.ui.components
 
+import mpbuilder.ordering.*
+
+import mpbuilder.customer.*
+
+import mpbuilder.kernel.*
+
 import com.raquo.laminar.api.L.*
 import mpbuilder.ui.productbuilder.{ProductBuilderViewModel, LoginState}
 import mpbuilder.ui.{AppRouter, AppRoute}
 import mpbuilder.ui.manufacturing.ManufacturingViewModel
-import mpbuilder.domain.model.*
-import mpbuilder.domain.model.ManufacturingOrder.*
-import mpbuilder.domain.pricing.{Money, Currency}
+import mpbuilder.manufacturing.*
+import mpbuilder.manufacturing.ManufacturingOrder.*
 
 /** Customer-facing order status, mapped from internal manufacturing statuses. */
 enum OrderHistoryStatus:

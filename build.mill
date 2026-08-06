@@ -16,9 +16,8 @@ val commonScalacOptions = Seq(
 )
 
 val rootDir = moduleDir
-val domainDir = rootDir / "modules" / "domain"
 
-val domainMvnDeps = Seq(
+val coreMvnDeps = Seq(
   mvn"dev.zio::zio::2.1.16",
   mvn"dev.zio::zio-prelude::1.0.0-RC39",
   mvn"dev.zio::zio-json::0.7.3",
@@ -26,39 +25,91 @@ val domainMvnDeps = Seq(
 )
 
 // ---------------------------------------------------------------------------
-// Domain — cross-compiled for JVM and JS (shared pure sources)
+// Bounded-context modules — each cross-compiled for JVM and JS from a shared
+// pure source tree at modules/<context>/core (future infra/adapters will live
+// in modules/<context>/infra as JVM-only siblings).
 // ---------------------------------------------------------------------------
 
-object domain extends Module {
+trait ContextModule extends Module { ctx =>
+  def contextName: String
+  def contextDeps: Seq[ContextModule] = Seq.empty
 
-  /** Domain JVM target */
-  object jvm extends ScalaModule {
-    def scalaVersion = scala3Version
-    def scalacOptions = commonScalacOptions
-    def sources = Task.Sources(domainDir / "src" / "main" / "scala")
-    def resources = Task.Sources(domainDir / "src" / "main" / "resources")
-    def mvnDeps = domainMvnDeps
+  /** Extra context deps for tests only (e.g. samples fixtures). */
+  def testContextDeps: Seq[ContextModule] = Seq.empty
 
-    object test extends ScalaTests {
-      def sources = Task.Sources(domainDir / "src" / "test" / "scala")
-      def resources = Task.Sources(domainDir / "src" / "test" / "resources")
-      def mvnDeps = Seq(
-        mvn"dev.zio::zio-test::2.1.16",
-        mvn"dev.zio::zio-test-sbt::2.1.16"
-      )
-      def testFramework = "zio.test.sbt.ZTestFramework"
+  def coreDir = rootDir / "modules" / contextName / "core"
+
+  object core extends Module {
+
+    trait SharedSources extends ScalaModule {
+      def scalaVersion = scala3Version
+      def scalacOptions = commonScalacOptions
+      def sources = Task.Sources(ctx.coreDir / "src" / "main" / "scala")
+      def resources = Task.Sources(ctx.coreDir / "src" / "main" / "resources")
+      def mvnDeps = coreMvnDeps
+    }
+
+    /** JVM target */
+    object jvm extends SharedSources {
+      def moduleDeps = ctx.contextDeps.map(_.core.jvm)
+
+      object test extends ScalaTests {
+        def sources = Task.Sources(ctx.coreDir / "src" / "test" / "scala")
+        def resources = Task.Sources(ctx.coreDir / "src" / "test" / "resources")
+        def moduleDeps = super.moduleDeps ++ ctx.testContextDeps.map(_.core.jvm)
+        def mvnDeps = Seq(
+          mvn"dev.zio::zio-test::2.1.16",
+          mvn"dev.zio::zio-test-sbt::2.1.16"
+        )
+        def testFramework = "zio.test.sbt.ZTestFramework"
+      }
+    }
+
+    /** Scala.js target */
+    object js extends SharedSources with ScalaJSModule {
+      def scalaJSVersion = build.scalaJsVersion
+      def moduleDeps = ctx.contextDeps.map(_.core.js)
     }
   }
+}
 
-  /** Domain Scala.js target */
-  object js extends ScalaJSModule {
-    def scalaVersion = scala3Version
-    def scalaJSVersion = build.scalaJsVersion
-    def scalacOptions = commonScalacOptions
-    def sources = Task.Sources(domainDir / "src" / "main" / "scala")
-    def resources = Task.Sources(domainDir / "src" / "main" / "resources")
-    def mvnDeps = domainMvnDeps
-  }
+object kernel extends ContextModule {
+  def contextName = "kernel"
+}
+
+object catalog extends ContextModule {
+  def contextName = "catalog"
+  def contextDeps = Seq(kernel)
+  override def testContextDeps = Seq(samples)
+}
+
+object pricing extends ContextModule {
+  def contextName = "pricing"
+  def contextDeps = Seq(kernel, catalog)
+  override def testContextDeps = Seq(samples)
+}
+
+object customer extends ContextModule {
+  def contextName = "customer"
+  def contextDeps = Seq(kernel, pricing)
+  override def testContextDeps = Seq(samples)
+}
+
+object ordering extends ContextModule {
+  def contextName = "ordering"
+  def contextDeps = Seq(kernel, catalog, pricing, customer)
+  override def testContextDeps = Seq(samples)
+}
+
+object manufacturing extends ContextModule {
+  def contextName = "manufacturing"
+  def contextDeps = Seq(kernel, catalog, pricing, ordering)
+  override def testContextDeps = Seq(samples)
+}
+
+object samples extends ContextModule {
+  def contextName = "samples"
+  def contextDeps = Seq(kernel, catalog, pricing, customer, ordering, manufacturing)
 }
 
 // ---------------------------------------------------------------------------
@@ -104,7 +155,15 @@ object ui extends ScalaJSModule {
   def sources = Task.Sources(rootDir / "modules" / "ui" / "src" / "main" / "scala")
   def resources = Task.Sources(rootDir / "modules" / "ui" / "src" / "main" / "resources")
   def scalaJSUseMainModuleInitializer = true
-  def moduleDeps = Seq(domain.js, `ui-framework`)
+  def moduleDeps = Seq(
+    catalog.core.js,
+    pricing.core.js,
+    customer.core.js,
+    ordering.core.js,
+    manufacturing.core.js,
+    samples.core.js,
+    `ui-framework`,
+  )
   def mvnDeps = Seq(
     mvn"com.raquo::laminar::${laminarVersion}"
   )

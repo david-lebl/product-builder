@@ -1,11 +1,15 @@
 package mpbuilder.ui.productbuilder.components
 
+import mpbuilder.catalog.*
+
+import mpbuilder.kernel.*
+
 import com.raquo.laminar.api.L.*
 import mpbuilder.ui.productbuilder.ProductBuilderViewModel
 import mpbuilder.uikit.feedback.HelpInfo
 import mpbuilder.uikit.fields.{ComboBoxField, ComboBoxOption}
-import mpbuilder.domain.model.*
-import mpbuilder.domain.sample.SampleShowcase
+import mpbuilder.manufacturing.*
+import mpbuilder.samples.SampleShowcase
 
 object CategorySelector:
 

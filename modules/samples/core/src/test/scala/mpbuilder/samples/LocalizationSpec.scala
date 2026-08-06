@@ -1,0 +1,242 @@
+package mpbuilder.samples
+
+import mpbuilder.kernel.*
+
+import zio.test.*
+import zio.prelude.*
+import mpbuilder.manufacturing.*
+import mpbuilder.catalog.*
+import mpbuilder.pricing.*
+import mpbuilder.manufacturing.*
+
+object LocalizationSpec extends ZIOSpecDefault:
+
+  private val catalog = SampleCatalog.catalog
+  private val ruleset = SampleRules.ruleset
+  private val pricelist = SamplePricelist.pricelist
+  private val configId = ConfigurationId.unsafe("test-i18n-1")
+
+  def spec = suite("Localization")(
+    suite("LocalizedString")(
+      test("returns English text for Language.En") {
+        val ls = LocalizedString("Hello", "Ahoj")
+        assertTrue(ls(Language.En) == "Hello")
+      },
+      test("returns Czech text for Language.Cs") {
+        val ls = LocalizedString("Hello", "Ahoj")
+        assertTrue(ls(Language.Cs) == "Ahoj")
+      },
+      test("value returns English by default") {
+        val ls = LocalizedString("Hello", "Ahoj")
+        assertTrue(ls.value == "Hello")
+      },
+      test("falls back to English when language not available") {
+        val ls = LocalizedString("Hello")
+        assertTrue(ls(Language.Cs) == "Hello")
+      },
+    ),
+    suite("SampleCatalog Czech translations")(
+      test("materials have Czech names") {
+        assertTrue(
+          SampleCatalog.coated300gsm.name(Language.Cs) == "Křídový papír 300g",
+          SampleCatalog.uncoatedBond.name(Language.Cs) == "Nenatíraný papír 120g",
+          SampleCatalog.kraft.name(Language.Cs) == "Kraftový papír 250g",
+          SampleCatalog.vinyl.name(Language.Cs) == "Samolepicí vinyl",
+          SampleCatalog.corrugated.name(Language.Cs) == "Vlnitá lepenka",
+        )
+      },
+      test("materials have English names") {
+        assertTrue(
+          SampleCatalog.coated300gsm.name(Language.En) == "Coated Art Paper 300gsm",
+          SampleCatalog.vinyl.name(Language.En) == "Adhesive Vinyl",
+        )
+      },
+      test("categories have Czech names") {
+        assertTrue(
+          SampleCatalog.businessCards.name(Language.Cs) == "Vizitky",
+          SampleCatalog.flyers.name(Language.Cs) == "Letáky",
+          SampleCatalog.banners.name(Language.Cs) == "Bannery",
+          SampleCatalog.packaging.name(Language.Cs) == "Krabice a obaly",
+        )
+      },
+      test("finishes have Czech names") {
+        assertTrue(
+          SampleCatalog.matteLamination.name(Language.Cs) == "Matná laminace",
+          SampleCatalog.glossLamination.name(Language.Cs) == "Lesklá laminace",
+          SampleCatalog.uvCoating.name(Language.Cs) == "UV lak",
+          SampleCatalog.embossing.name(Language.Cs) == "Slepotisk",
+          SampleCatalog.dieCut.name(Language.Cs) == "Výsek",
+        )
+      },
+      test("printing methods have Czech names") {
+        assertTrue(
+          SampleCatalog.offsetMethod.name(Language.Cs) == "Ofsetový tisk",
+          SampleCatalog.digitalMethod.name(Language.Cs) == "Digitální tisk",
+          SampleCatalog.letterpressMethod.name(Language.Cs) == "Knihtisk",
+        )
+      },
+    ),
+    suite("Description fields")(
+      test("materials have bilingual descriptions") {
+        val desc = SampleCatalog.coated300gsm.description
+        assertTrue(
+          desc.isDefined,
+          desc.get(Language.En).contains("coated art paper"),
+          desc.get(Language.Cs).contains("křídový papír"),
+        )
+      },
+      test("roll-up economy and premium have distinct descriptions") {
+        val econ = SampleCatalog.rollUpStandEconomy.description
+        val prem = SampleCatalog.rollUpStandPremium.description
+        assertTrue(
+          econ.isDefined,
+          prem.isDefined,
+          econ.get(Language.En).contains("Budget-friendly"),
+          prem.get(Language.En).contains("Professional-grade"),
+          econ.get(Language.En) != prem.get(Language.En),
+        )
+      },
+      test("finishes have bilingual descriptions") {
+        val matteDesc = SampleCatalog.matteLamination.description
+        val glossDesc = SampleCatalog.glossLamination.description
+        assertTrue(
+          matteDesc.isDefined,
+          glossDesc.isDefined,
+          matteDesc.get(Language.En).contains("matte film"),
+          glossDesc.get(Language.En).contains("Shiny protective film"),
+          matteDesc.get(Language.Cs).nonEmpty,
+          glossDesc.get(Language.Cs).nonEmpty,
+        )
+      },
+      test("printing methods have bilingual descriptions") {
+        val offset = SampleCatalog.offsetMethod.description
+        val digital = SampleCatalog.digitalMethod.description
+        assertTrue(
+          offset.isDefined,
+          digital.isDefined,
+          offset.get(Language.En).contains("plates"),
+          digital.get(Language.En).contains("toner or inkjet"),
+        )
+      },
+      test("categories have bilingual descriptions") {
+        val bc = SampleCatalog.businessCards.description
+        val banners = SampleCatalog.banners.description
+        assertTrue(
+          bc.isDefined,
+          banners.isDefined,
+          bc.get(Language.En).contains("business cards"),
+          banners.get(Language.En).contains("PVC banners"),
+          bc.get(Language.Cs).nonEmpty,
+          banners.get(Language.Cs).nonEmpty,
+        )
+      },
+      test("description is optional with None default") {
+        val mat = Material(
+          id = MaterialId.unsafe("test-mat"),
+          name = LocalizedString("Test"),
+          family = MaterialFamily.Paper,
+          weight = None,
+          properties = Set.empty,
+        )
+        assertTrue(mat.description.isEmpty)
+      },
+    ),
+    suite("ConfigurationError Czech messages")(
+      test("CategoryNotFound message in Czech") {
+        val err = ConfigurationError.CategoryNotFound(CategoryId.unsafe("cat-test"))
+        assertTrue(
+          err.message(Language.Cs).contains("nebyla nalezena"),
+          err.message(Language.En).contains("not found in catalog"),
+        )
+      },
+      test("InvalidCategoryMaterial message in Czech") {
+        val err = ConfigurationError.InvalidCategoryMaterial(
+          CategoryId.unsafe("cat-test"),
+          MaterialId.unsafe("mat-test"),
+          ComponentRole.Main,
+        )
+        assertTrue(
+          err.message(Language.Cs).contains("není povolen"),
+          err.message(Language.En).contains("is not allowed"),
+        )
+      },
+      test("backward-compatible parameterless message returns English") {
+        val err = ConfigurationError.MaterialNotFound(MaterialId.unsafe("mat-test"))
+        assertTrue(err.message == err.message(Language.En))
+      },
+    ),
+    suite("PricingError Czech messages")(
+      test("NoBasePriceForMaterial in Czech") {
+        val err = PricingError.NoBasePriceForMaterial(MaterialId.unsafe("mat-test"), ComponentRole.Main)
+        assertTrue(
+          err.message(Language.Cs).contains("Nebyla nalezena základní cena"),
+          err.message(Language.En).contains("No base price found"),
+        )
+      },
+      test("NoQuantityInSpecifications in Czech") {
+        val err = PricingError.NoQuantityInSpecifications
+        assertTrue(
+          err.message(Language.Cs).contains("vyžadována specifikace množství"),
+          err.message(Language.En).contains("Quantity specification is required"),
+        )
+      },
+      test("backward-compatible parameterless message returns English") {
+        val err = PricingError.NoQuantityInSpecifications
+        assertTrue(err.message == err.message(Language.En))
+      },
+    ),
+    suite("PriceCalculator with language")(
+      test("price breakdown labels use Czech when specified") {
+        val config = ProductConfiguration(
+          id = configId,
+          category = SampleCatalog.businessCards,
+          printingMethod = SampleCatalog.offsetMethod,
+          components = List(ProductComponent(
+            role = ComponentRole.Main,
+            material = SampleCatalog.coated300gsm,
+            inkConfiguration = InkConfiguration.cmyk4_4,
+            finishes = List(SelectedFinish(SampleCatalog.matteLamination)),
+            sheetCount = 1,
+          )),
+          specifications = ProductSpecifications.fromSpecs(List(
+            SpecValue.SizeSpec(Dimension(90, 55)),
+            SpecValue.QuantitySpec(Quantity.unsafe(500)),
+          )),
+        )
+
+        val result = PriceCalculator.calculate(config, pricelist, Language.Cs)
+        val breakdown = result.toEither.toOption.get
+        val cb = breakdown.componentBreakdowns.head
+        assertTrue(
+          cb.materialLine.label.contains("Křídový papír 300g"),
+          cb.finishLines.head.label.contains("Matná laminace"),
+        )
+      },
+      test("price breakdown labels use English by default") {
+        val config = ProductConfiguration(
+          id = configId,
+          category = SampleCatalog.businessCards,
+          printingMethod = SampleCatalog.offsetMethod,
+          components = List(ProductComponent(
+            role = ComponentRole.Main,
+            material = SampleCatalog.coated300gsm,
+            inkConfiguration = InkConfiguration.cmyk4_4,
+            finishes = List(SelectedFinish(SampleCatalog.matteLamination)),
+            sheetCount = 1,
+          )),
+          specifications = ProductSpecifications.fromSpecs(List(
+            SpecValue.SizeSpec(Dimension(90, 55)),
+            SpecValue.QuantitySpec(Quantity.unsafe(500)),
+          )),
+        )
+
+        val result = PriceCalculator.calculate(config, pricelist)
+        val breakdown = result.toEither.toOption.get
+        val cb = breakdown.componentBreakdowns.head
+        assertTrue(
+          cb.materialLine.label.contains("Coated Art Paper 300gsm"),
+          cb.finishLines.head.label.contains("Matte Lamination"),
+        )
+      },
+    ),
+  )

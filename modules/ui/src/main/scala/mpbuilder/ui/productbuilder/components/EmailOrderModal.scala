@@ -1,9 +1,14 @@
 package mpbuilder.ui.productbuilder.components
 
+import mpbuilder.ordering.*
+
+import mpbuilder.catalog.*
+
+import mpbuilder.kernel.*
+
 import com.raquo.laminar.api.L.*
 import mpbuilder.ui.productbuilder.{ProductBuilderViewModel, BuilderState, LoginState}
-import mpbuilder.domain.model.*
-import mpbuilder.domain.pricing.{Money, Currency}
+import mpbuilder.manufacturing.*
 import org.scalajs.dom
 import scala.scalajs.js.URIUtils
 

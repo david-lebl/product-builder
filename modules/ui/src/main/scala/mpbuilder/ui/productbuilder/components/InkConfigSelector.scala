@@ -1,9 +1,13 @@
 package mpbuilder.ui.productbuilder.components
 
+import mpbuilder.catalog.*
+
+import mpbuilder.kernel.*
+
 import com.raquo.laminar.api.L.*
 import mpbuilder.ui.productbuilder.ProductBuilderViewModel
 import mpbuilder.uikit.feedback.HelpInfo
-import mpbuilder.domain.model.*
+import mpbuilder.manufacturing.*
 
 object InkConfigSelector:
   private val allPresets: List[(String, InkConfiguration)] = List(

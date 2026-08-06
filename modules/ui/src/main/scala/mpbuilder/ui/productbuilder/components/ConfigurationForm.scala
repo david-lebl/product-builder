@@ -1,10 +1,16 @@
 package mpbuilder.ui.productbuilder.components
 
+import mpbuilder.ordering.*
+
+import mpbuilder.catalog.*
+
+import mpbuilder.kernel.*
+
 import com.raquo.laminar.api.L.*
 import mpbuilder.ui.productbuilder.{ProductBuilderViewModel, ArtworkMode}
 import mpbuilder.ui.{AppRouter, AppRoute}
 import mpbuilder.ui.visualeditor.EditorBridge
-import mpbuilder.domain.model.*
+import mpbuilder.manufacturing.*
 import mpbuilder.uikit.fields.CheckboxField
 import mpbuilder.uikit.util.Visibility
 
