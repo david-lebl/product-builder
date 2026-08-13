@@ -2,6 +2,34 @@
 <project version="4">
   <component name="ScalaCompilerConfiguration">
     <option name="separateProdTestSources" value="true" />
-    <profile name="sbt 1" modules="material-builder,material-builder.main,material-builder.test" />
+    <profile name="sbt 1" modules="material-builder,material-builder-root,material-builder-root.main,material-builder-root.material-builder-domain.domainJS,material-builder-root.material-builder-domain.domainJVM,material-builder-root.material-builder-ui,material-builder-root.material-builder-ui-calculator,material-builder-root.material-builder-ui-framework,material-builder-root.material-builder-ui-productbuilder,material-builder-root.material-builder-ui-showcase,material-builder-root.test,material-builder.main,material-builder.test" />
+    <profile name="sbt 2" modules="material-builder-root.material-builder-domain.domainJS.main,material-builder-root.material-builder-domain.domainJS.test">
+      <option name="deprecationWarnings" value="true" />
+      <option name="featureWarnings" value="true" />
+      <parameters>
+        <parameter value="-scalajs" />
+        <parameter value="-encoding" />
+        <parameter value="utf-8" />
+        <parameter value="-Xmax-inlines:64" />
+      </parameters>
+    </profile>
+    <profile name="sbt 3" modules="material-builder-root.material-builder-domain.domainJVM.main,material-builder-root.material-builder-domain.domainJVM.test">
+      <option name="deprecationWarnings" value="true" />
+      <option name="featureWarnings" value="true" />
+      <parameters>
+        <parameter value="-encoding" />
+        <parameter value="utf-8" />
+        <parameter value="-Xmax-inlines:64" />
+      </parameters>
+    </profile>
+    <profile name="sbt 4" modules="material-builder-root.material-builder-ui-calculator.main,material-builder-root.material-builder-ui-calculator.test,material-builder-root.material-builder-ui-framework.main,material-builder-root.material-builder-ui-framework.test,material-builder-root.material-builder-ui-productbuilder.main,material-builder-root.material-builder-ui-productbuilder.test,material-builder-root.material-builder-ui-showcase.main,material-builder-root.material-builder-ui-showcase.test,material-builder-root.material-builder-ui.main,material-builder-root.material-builder-ui.test">
+      <option name="deprecationWarnings" value="true" />
+      <option name="featureWarnings" value="true" />
+      <parameters>
+        <parameter value="-scalajs" />
+        <parameter value="-encoding" />
+        <parameter value="utf-8" />
+      </parameters>
+    </profile>
   </component>
 </project>

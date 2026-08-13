@@ -351,16 +351,8 @@ object SpecificationForm:
           div(
             cls := "speed-tier-cards speed-tier-cards--horizontal",
             {
-              def formatCompletion(est: Option[CompletionEstimator.CompletionEstimate], l: Language): Option[String] =
-                est.map { e =>
-                  e.formatEarliest(ProductBuilderViewModel.currentLocalDateTime, l)
-                }
-
               // Express: completion estimate + disabled signal from utilisation + tier violations
-              val expressEstimate = ProductBuilderViewModel.completionEstimate(ManufacturingSpeed.Express)
-              val expressCompletion = expressEstimate.combineWith(lang).map { (est: Option[CompletionEstimator.CompletionEstimate], l: Language) =>
-                formatCompletion(est, l)
-              }
+              val expressCompletion = ProductBuilderViewModel.completionText(ManufacturingSpeed.Express)
               val expressViolations = ProductBuilderViewModel.tierViolations(ManufacturingSpeed.Express)
               val expressUtilDisabled = ProductBuilderViewModel.expressAvailable.map(!_)
               val expressViolDisabled = expressViolations.map(_.nonEmpty)
@@ -371,16 +363,6 @@ object SpecificationForm:
                   case Language.Cs => "Expres nedostupný — vysoká poptávka"
                 )
                 else viols.headOption.map(_.message(l))
-              }
-
-              val stdEstimate = ProductBuilderViewModel.completionEstimate(ManufacturingSpeed.Standard)
-              val stdCompletion = stdEstimate.combineWith(lang).map { (est: Option[CompletionEstimator.CompletionEstimate], l: Language) =>
-                formatCompletion(est, l)
-              }
-
-              val ecoEstimate = ProductBuilderViewModel.completionEstimate(ManufacturingSpeed.Economy)
-              val ecoCompletion = ecoEstimate.combineWith(lang).map { (est: Option[CompletionEstimator.CompletionEstimate], l: Language) =>
-                formatCompletion(est, l)
               }
 
               List(
@@ -398,16 +380,32 @@ object SpecificationForm:
                   icon = "●",
                   selected = ProductBuilderViewModel.selectedManufacturingSpeed,
                   lang = lang,
-                  completionSignal = stdCompletion,
+                  completionSignal = ProductBuilderViewModel.completionText(ManufacturingSpeed.Standard),
                 ),
                 speedTierCard(
                   speed = ManufacturingSpeed.Economy,
                   icon = "🐢",
                   selected = ProductBuilderViewModel.selectedManufacturingSpeed,
                   lang = lang,
-                  completionSignal = ecoCompletion,
+                  completionSignal = ProductBuilderViewModel.completionText(ManufacturingSpeed.Economy),
                 ),
               )
+            },
+          ),
+
+          // Disclaimer — shown only when no tier can offer a concrete date, i.e.
+          // the host has no production queue to derive one from. Without it the
+          // indicative ranges below would read as a promise.
+          div(
+            cls := "speed-tier-disclaimer",
+            Visibility.when(
+              ProductBuilderViewModel.completionText(ManufacturingSpeed.Standard).map(_.isEmpty)
+            ),
+            child.text <-- lang.map {
+              case Language.En =>
+                "Lead times are indicative only — the final production date is confirmed by e-mail once we accept your order."
+              case Language.Cs =>
+                "Uvedené termíny jsou pouze orientační — konečný termín výroby potvrdíme e-mailem po přijetí objednávky."
             },
           ),
         ),
@@ -445,10 +443,12 @@ object SpecificationForm:
       case ManufacturingSpeed.Express  => ("Express", "Expres")
       case ManufacturingSpeed.Standard => ("Standard", "Standardní")
       case ManufacturingSpeed.Economy  => ("Economy", "Ekonomická")
-    val (priceEn, priceCs) = speed match
-      case ManufacturingSpeed.Express  => ("+35%", "+35 %")
-      case ManufacturingSpeed.Standard => ("base price", "základní cena")
-      case ManufacturingSpeed.Economy  => ("−15%", "−15 %")
+    // Derived from the active pricelist's ManufacturingSpeedSurcharge rules, so a
+    // shop that configures different multipliers gets truthful labels.
+    val surcharge = ProductBuilderViewModel.speedSurchargeLabel(speed)
+    val (priceEn, priceCs) = surcharge match
+      case Some(pct) => (pct, pct.replace("%", " %"))
+      case None      => ("base price", "základní cena")
     val (timeEn, timeCs) = speed match
       case ManufacturingSpeed.Express  => ("Same day / next business day", "Tentýž den / příští pracovní den")
       case ManufacturingSpeed.Standard => ("2–5 business days", "2–5 pracovních dnů")

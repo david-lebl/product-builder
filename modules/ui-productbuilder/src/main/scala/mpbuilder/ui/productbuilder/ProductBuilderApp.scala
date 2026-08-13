@@ -2,7 +2,6 @@ package mpbuilder.ui.productbuilder
 
 import com.raquo.laminar.api.L.*
 import mpbuilder.ui.productbuilder.components.*
-import mpbuilder.ui.{AppRouter, AppRoute}
 import mpbuilder.domain.model.Language
 import mpbuilder.domain.pricing.{Money, Currency}
 
@@ -10,6 +9,7 @@ object ProductBuilderApp:
   def apply(): Element =
     val lang = ProductBuilderViewModel.currentLanguage
     val priceOpen = Var(false)
+    val basketOpen = BuilderEnvironment.get.basketOpen
 
     div(
       // Main content grid
@@ -77,13 +77,13 @@ object ProductBuilderApp:
 
       // Basket drawer — slides in from the right
       div(
-        cls <-- AppRouter.basketOpen.signal.map(o => if o then "basket-drawer open" else "basket-drawer"),
+        cls <-- basketOpen.signal.map(o => if o then "basket-drawer open" else "basket-drawer"),
         div(
           cls := "basket-drawer-close-row",
           button(
             cls := "basket-drawer-close",
             "×",
-            onClick --> { _ => AppRouter.basketOpen.set(false) },
+            onClick --> { _ => basketOpen.set(false) },
           ),
         ),
         BasketView(),
@@ -91,8 +91,8 @@ object ProductBuilderApp:
 
       // Backdrop overlay — closes basket drawer when clicked
       div(
-        cls <-- AppRouter.basketOpen.signal.map(o => if o then "basket-overlay visible" else "basket-overlay"),
-        onClick --> { _ => AppRouter.basketOpen.set(false) },
+        cls <-- basketOpen.signal.map(o => if o then "basket-overlay visible" else "basket-overlay"),
+        onClick --> { _ => basketOpen.set(false) },
       ),
 
       // Email order modal — global singleton rendered once at app level

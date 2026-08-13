@@ -94,6 +94,42 @@ object `ui-showcase` extends ScalaJSModule {
 }
 
 // ---------------------------------------------------------------------------
+// UI Product Builder — the shared product configurator (form, pricing, basket,
+// e-mail order). Consumed by both the full SPA (`ui`) and the standalone
+// embeddable calculator (`ui-calculator`).
+// ---------------------------------------------------------------------------
+
+object `ui-productbuilder` extends ScalaJSModule {
+  def scalaVersion = scala3Version
+  def scalaJSVersion = build.scalaJsVersion
+  def scalacOptions = commonScalacOptions
+  def sources = Task.Sources(rootDir / "modules" / "ui-productbuilder" / "src" / "main" / "scala")
+  def resources = Task.Sources(rootDir / "modules" / "ui-productbuilder" / "src" / "main" / "resources")
+  def moduleDeps = Seq(domain.js, `ui-framework`)
+  def mvnDeps = Seq(
+    mvn"com.raquo::laminar::${laminarVersion}"
+  )
+}
+
+// ---------------------------------------------------------------------------
+// UI Calculator — standalone embeddable price calculator (Scala.js library:
+// no main initializer, exports a global `MPCalculator` object)
+// ---------------------------------------------------------------------------
+
+object `ui-calculator` extends ScalaJSModule {
+  def scalaVersion = scala3Version
+  def scalaJSVersion = build.scalaJsVersion
+  def scalacOptions = commonScalacOptions
+  def sources = Task.Sources(rootDir / "modules" / "ui-calculator" / "src" / "main" / "scala")
+  def resources = Task.Sources(rootDir / "modules" / "ui-calculator" / "src" / "main" / "resources")
+  def scalaJSUseMainModuleInitializer = false
+  def moduleDeps = Seq(domain.js, `ui-framework`, `ui-productbuilder`)
+  def mvnDeps = Seq(
+    mvn"com.raquo::laminar::${laminarVersion}"
+  )
+}
+
+// ---------------------------------------------------------------------------
 // UI — main Scala.js web application
 // ---------------------------------------------------------------------------
 
@@ -104,7 +140,7 @@ object ui extends ScalaJSModule {
   def sources = Task.Sources(rootDir / "modules" / "ui" / "src" / "main" / "scala")
   def resources = Task.Sources(rootDir / "modules" / "ui" / "src" / "main" / "resources")
   def scalaJSUseMainModuleInitializer = true
-  def moduleDeps = Seq(domain.js, `ui-framework`)
+  def moduleDeps = Seq(domain.js, `ui-framework`, `ui-productbuilder`)
   def mvnDeps = Seq(
     mvn"com.raquo::laminar::${laminarVersion}"
   )

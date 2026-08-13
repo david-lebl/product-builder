@@ -132,7 +132,7 @@ signal1.combineWith(signal2).map { case (a, b) => ... }
 
 **Solution:** Return `Option[Element]` from optional helper methods and render with `.getOrElse(emptyNode)` (or adjust the helper return type to a compatible node/modifier abstraction).
 
-**Files:** `modules/ui/src/main/scala/mpbuilder/ui/productbuilder/components/PricePreview.scala`
+**Files:** `modules/ui-productbuilder/src/main/scala/mpbuilder/ui/productbuilder/components/PricePreview.scala`
 
 ---
 
@@ -198,7 +198,7 @@ import scala.scalajs.js.URIUtils
 val encoded = URIUtils.encodeURIComponent(str)
 ```
 
-**Files:** `modules/ui/src/main/scala/mpbuilder/ui/productbuilder/components/EmailOrderModal.scala`
+**Files:** `modules/ui-productbuilder/src/main/scala/mpbuilder/ui/productbuilder/components/EmailOrderModal.scala`
 
 ---
 
@@ -264,3 +264,39 @@ areaTierRule match
 
 **Files:** `modules/ui/src/main/scala/mpbuilder/ui/catalog/views/PricelistEditorView.scala`
 
+
+---
+
+### Widget controls lose their padding when the scoped reset is appended last
+
+**Symptom:** In the standalone calculator, buttons and inputs render flat and unstyled — no padding, no borders — while the same components look correct in the SPA.
+
+**Cause:** `calculator.css` is a concatenation of several stylesheets. The widget replaces the SPA's global `reset.css` with a `.mp-calculator`-scoped equivalent, because `* { margin: 0; padding: 0 }` and `body { … }` would restyle the host page. But `.mp-calculator *` has specificity (0,1,0), while the base control styles in `utilities.css` (`button { padding: 8px 20px }`, `select, input { padding: 7px 10px }`) are bare element selectors at (0,0,1). Concatenating the scoped reset *after* them means it wins on both specificity and source order, and every control in the widget loses its padding.
+
+**Solution:** Keep the scoped reset in the same position the SPA gives `reset.css` — **before** the component stylesheets. `build-css.sh` prepends `css/reset-scoped.css` and appends only `css/shell.css`. Do not reorder them.
+
+**Files:** `modules/ui-calculator/build-css.sh`, `modules/ui-calculator/css/reset-scoped.css`
+
+---
+
+### `MatchError` from `EmailOrderModal.formatSpec` on a full configuration
+
+**Symptom:** Building the order e-mail for a basket throws a `MatchError`, or a Laminar signal silently stops updating.
+
+**Cause:** `formatSpec` matches on `SpecValue`. The single-configuration path only ever fed it the specs the form had produced, so a missing `BleedSpec` arm went unnoticed. The basket path iterates `ProductConfiguration.specifications.specs.values`, which contains every spec the configuration carries — including `BleedSpec`.
+
+**Solution:** Keep `formatSpec` exhaustive over `SpecValue`. The compiler emits a non-exhaustive match warning for it; treat that warning as an error, as with `PricelistEditorView`'s `PricingRule` matches.
+
+**Files:** `modules/ui-productbuilder/src/main/scala/mpbuilder/ui/productbuilder/components/EmailOrderModal.scala`
+
+---
+
+### Product builder renders with SPA behaviour (or crashes) in a new host app
+
+**Symptom:** A new app embedding `ProductBuilderApp` shows concrete completion dates, an artwork section, or a "Proceed to Checkout" button that goes nowhere.
+
+**Cause:** `mpbuilder.ui.productbuilder` reads its host-specific behaviour from the `BuilderEnvironment` singleton. If the host never calls `BuilderEnvironment.init(...)`, the defaults apply (no queue data, no artwork, a no-op basket action) — and if it installs the wrong environment, it gets the other app's behaviour.
+
+**Solution:** Call `BuilderEnvironment.init(...)` once, before the first render. The SPA does this in `Main.main` with `FullAppEnvironment.environment`; the calculator does it in `CalculatorWidget.mount` with `CalculatorEnvironment.environment(config)`.
+
+**Files:** `modules/ui-productbuilder/src/main/scala/mpbuilder/ui/productbuilder/BuilderEnvironment.scala`, `modules/ui/src/main/scala/mpbuilder/ui/Main.scala`, `modules/ui-calculator/src/main/scala/mpbuilder/calculator/CalculatorWidget.scala`

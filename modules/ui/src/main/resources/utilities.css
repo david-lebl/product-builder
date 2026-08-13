@@ -610,6 +610,17 @@ button:disabled {
     margin-top: 0.25rem;
 }
 
+/* Shown when the host has no production queue to derive a real date from, so
+   the lead times above are ranges rather than commitments. */
+.speed-tier-disclaimer {
+    font-size: 0.78rem;
+    line-height: 1.45;
+    color: var(--color-text-muted, #6b7280);
+    margin-top: 0.75rem;
+    padding-left: 0.75rem;
+    border-left: 3px solid var(--color-border, #d1d5db);
+}
+
 /* ─── Manufacturing Settings ─────────────────────────────────────────── */
 
 .manufacturing-settings {

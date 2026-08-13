@@ -471,8 +471,8 @@ The Product Builder UI is **data-driven** — it reads the `ProductCatalog` and 
 If the product has multiple components (e.g., Cover + Body), the `ConfigurationForm` automatically generates separate material/finish sections per component role. The component role labels are defined in `ConfigurationForm.scala` and `PricePreview.scala`.
 
 **Action needed if new ComponentRole added**: Update the `componentRoleLabel` match in:
-- `modules/ui/src/main/scala/mpbuilder/ui/productbuilder/components/ConfigurationForm.scala`
-- `modules/ui/src/main/scala/mpbuilder/ui/productbuilder/components/PricePreview.scala`
+- `modules/ui-productbuilder/src/main/scala/mpbuilder/ui/productbuilder/components/ConfigurationForm.scala`
+- `modules/ui-productbuilder/src/main/scala/mpbuilder/ui/productbuilder/components/PricePreview.scala`
 
 ### 7.3 Specification Form
 

@@ -1,9 +1,7 @@
 package mpbuilder.ui.productbuilder.components
 
 import com.raquo.laminar.api.L.*
-import mpbuilder.ui.productbuilder.{ProductBuilderViewModel, ArtworkMode}
-import mpbuilder.ui.{AppRouter, AppRoute}
-import mpbuilder.ui.visualeditor.EditorBridge
+import mpbuilder.ui.productbuilder.{ProductBuilderViewModel, BuilderEnvironment}
 import mpbuilder.domain.model.*
 import mpbuilder.uikit.fields.CheckboxField
 import mpbuilder.uikit.util.Visibility
@@ -121,129 +119,20 @@ object ConfigurationForm:
         SpecificationForm.manufacturingSpeedSection(),
       ),
 
-      // Artwork section — visible when a valid configuration exists
-      div(
-        cls := "form-section artwork-section",
-        Visibility.when(ProductBuilderViewModel.state.map(_.configuration.isDefined)),
-        h3(child.text <-- lang.map {
-          case Language.En => "6. Provide Artwork"
-          case Language.Cs => "6. Poskytnutí dat"
-        }),
-        div(
-          cls := "artwork-options",
-
-          // Upload Artwork option
+      // Artwork section — only when the host provides an artwork integration,
+      // and only once a valid configuration exists
+      BuilderEnvironment.get.artwork match
+        case Some(artwork) =>
           div(
-            cls := "artwork-option",
-            label(
-              cls := "artwork-option-label",
-              input(
-                typ := "radio",
-                nameAttr := "artworkMode",
-                value := "upload",
-                checked <-- ProductBuilderViewModel.state.map(_.artworkMode match
-                  case ArtworkMode.UploadArtwork(_) => true
-                  case _                            => false
-                ),
-                onChange --> { _ =>
-                  ProductBuilderViewModel.setArtworkMode(ArtworkMode.UploadArtwork())
-                },
-              ),
-              child.text <-- lang.map {
-                case Language.En => " Upload Artwork"
-                case Language.Cs => " Nahrát soubor"
-              },
-            ),
-            div(
-              cls := "upload-file-area",
-              Visibility.when(ProductBuilderViewModel.state.map(_.artworkMode match
-                case ArtworkMode.UploadArtwork(_) => true
-                case _                            => false
-              )),
-              input(
-                typ := "file",
-                cls := "artwork-file-input",
-                accept := ".pdf,.ai,.eps,.png,.jpg,.jpeg,.tiff,.psd",
-                inContext { el =>
-                  ProductBuilderViewModel.state.map(_.artworkMode).changes --> { mode =>
-                    mode match
-                      case ArtworkMode.UploadArtwork(None) | ArtworkMode.UploadArtwork(Some("")) => el.ref.value = ""
-                      case _                               =>
-                  }
-                },
-                onChange --> { e =>
-                  val fileInput = e.target.asInstanceOf[org.scalajs.dom.html.Input]
-                  val fileName =
-                    if fileInput.files.length > 0 then Some(fileInput.files(0).name)
-                    else None
-                  ProductBuilderViewModel.setUploadedFileName(fileName)
-                },
-              ),
-              child <-- ProductBuilderViewModel.state.combineWith(lang).map { case (state, l) =>
-                state.artworkMode match
-                  case ArtworkMode.UploadArtwork(Some(fileName)) =>
-                    span(cls := "uploaded-file-name", s"📎 $fileName")
-                  case ArtworkMode.UploadArtwork(None) =>
-                    span(cls := "upload-hint", l match
-                      case Language.En => "Accepted formats: PDF, AI, EPS, PNG, JPG, TIFF, PSD"
-                      case Language.Cs => "Povolené formáty: PDF, AI, EPS, PNG, JPG, TIFF, PSD"
-                    )
-                  case _: ArtworkMode.DesignInEditor => emptyNode
-              },
-            ),
-          ),
-
-          // Design in Visual Editor option
-          div(
-            cls := "artwork-option",
-            label(
-              cls := "artwork-option-label",
-              input(
-                typ := "radio",
-                nameAttr := "artworkMode",
-                value := "design",
-                checked <-- ProductBuilderViewModel.state.map(_.artworkMode match
-                  case _: ArtworkMode.DesignInEditor => true
-                  case _                             => false
-                ),
-                onChange --> { _ =>
-                  ProductBuilderViewModel.setArtworkMode(ArtworkMode.DesignInEditor())
-                },
-              ),
-              child.text <-- lang.map {
-                case Language.En => " Design in Visual Editor"
-                case Language.Cs => " Navrhnout ve vizuálním editoru"
-              },
-            ),
-            div(
-              cls := "open-editor-area",
-              Visibility.when(ProductBuilderViewModel.state.map(_.artworkMode match
-                case _: ArtworkMode.DesignInEditor => true
-                case _                             => false
-              )),
-              button(
-                cls := "open-editor-btn",
-                child.text <-- lang.map {
-                  case Language.En => "Open Visual Editor →"
-                  case Language.Cs => "Otevřít vizuální editor →"
-                },
-                onClick --> { _ =>
-                  val state = ProductBuilderViewModel.stateVar.now()
-                  state.configuration match
-                    case Some(config) =>
-                      val artworkId = state.artworkMode match
-                        case ArtworkMode.DesignInEditor(Some(existing)) => existing
-                        case _ => ArtworkId.generate()
-                      ProductBuilderViewModel.setEditorArtworkId(artworkId)
-                      EditorBridge.openEditorForProduct(config, artworkId)
-                    case None =>
-                      AppRouter.navigateTo(AppRoute.VisualEditor())
-                },
-              ),
-            ),
-          ),
-        ),
-      ),
+            cls := "form-section artwork-section",
+            Visibility.when(ProductBuilderViewModel.state.map(_.configuration.isDefined)),
+            h3(child.text <-- lang.map {
+              case Language.En => "6. Provide Artwork"
+              case Language.Cs => "6. Poskytnutí dat"
+            }),
+            artwork.render(),
+          )
+        case None => emptyNode,
 
       // Add to Basket Button
       div(

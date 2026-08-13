@@ -15,6 +15,7 @@ Core feature specifications — stable documents describing *what* the system do
 | [new-product-specification.md](new-product-specification.md) | Specification for adding new product types to the system |
 | [help-information.md](help-information.md) | Contextual help system specification (field-level `?` and `i` buttons) |
 | [email-order-option.md](email-order-option.md) | Email order option — pre-filled modal popup for requesting orders via email |
+| [standalone-calculator.md](standalone-calculator.md) | Embeddable price calculator widget — scope, e-mail ordering, indicative (non-promised) lead times, and the two embedding modes |
 
 ## 🔬 Analysis & Research
 

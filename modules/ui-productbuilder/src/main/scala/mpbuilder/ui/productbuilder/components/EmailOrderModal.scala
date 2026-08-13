@@ -1,7 +1,7 @@
 package mpbuilder.ui.productbuilder.components
 
 import com.raquo.laminar.api.L.*
-import mpbuilder.ui.productbuilder.{ProductBuilderViewModel, BuilderState, LoginState}
+import mpbuilder.ui.productbuilder.{ProductBuilderViewModel, BuilderEnvironment, BuilderState, LoginState}
 import mpbuilder.domain.model.*
 import mpbuilder.domain.pricing.{Money, Currency}
 import org.scalajs.dom
@@ -9,27 +9,46 @@ import scala.scalajs.js.URIUtils
 
 object EmailOrderModal:
 
+  /** What the message describes: the configuration currently being built, or the
+    * whole basket (the standalone calculator's replacement for checkout).
+    */
+  private enum Mode:
+    case SingleConfiguration
+    case Basket
+
   private val isOpen: Var[Boolean]  = Var(false)
+  private val modeVar: Var[Mode]    = Var(Mode.SingleConfiguration)
   private val nameVar: Var[String]  = Var("")
   private val emailVar: Var[String] = Var("")
+  private val phoneVar: Var[String] = Var("")
   private val textVar: Var[String]  = Var("")
 
   /** Open the modal and pre-fill fields from current builder state. */
   def open(): Unit =
     val state = ProductBuilderViewModel.stateVar.now()
-    val lang  = state.language
+    prefillContact(state)
+    modeVar.set(Mode.SingleConfiguration)
+    textVar.set(buildEmailText(state, state.language))
+    isOpen.set(true)
 
+  /** Open the modal describing every item in the basket. */
+  def openForBasket(): Unit =
+    val state = ProductBuilderViewModel.stateVar.now()
+    prefillContact(state)
+    modeVar.set(Mode.Basket)
+    textVar.set(buildBasketEmailText(state, state.language))
+    isOpen.set(true)
+
+  private def prefillContact(state: BuilderState): Unit =
     // Pre-fill name / email from logged-in customer
     state.loginState match
       case LoginState.LoggedIn(customer, _) =>
         val fullName = s"${customer.contactInfo.firstName} ${customer.contactInfo.lastName}".trim
         nameVar.set(fullName)
         emailVar.set(customer.contactInfo.email)
+        phoneVar.set(customer.contactInfo.phone)
       case _ =>
         ()
-
-    textVar.set(buildEmailText(state, lang))
-    isOpen.set(true)
 
   def close(): Unit = isOpen.set(false)
 
@@ -70,9 +89,12 @@ object EmailOrderModal:
           cls := "email-modal-header",
           h3(
             cls := "email-modal-title",
-            child.text <-- lang.map {
-              case Language.En => "Request Order via Email"
-              case Language.Cs => "Poptávka objednávky e-mailem"
+            child.text <-- lang.combineWith(modeVar.signal).map { (l: Language, m: Mode) =>
+              (l, m) match
+                case (Language.En, Mode.Basket)              => "Send Order by E-mail"
+                case (Language.Cs, Mode.Basket)              => "Odeslat objednávku e-mailem"
+                case (Language.En, Mode.SingleConfiguration) => "Request Order via Email"
+                case (Language.Cs, Mode.SingleConfiguration) => "Poptávka objednávky e-mailem"
             },
           ),
           button(
@@ -127,12 +149,35 @@ object EmailOrderModal:
             ),
           ),
 
-          // Message text area
+          // Phone field
           div(
             cls := "form-group",
             label(child.text <-- lang.map {
-              case Language.En => "Message (pre-filled with your configuration)"
-              case Language.Cs => "Zpráva (předvyplněná konfigurací)"
+              case Language.En => "Your phone"
+              case Language.Cs => "Váš telefon"
+            }),
+            input(
+              typ := "tel",
+              controlled(
+                value <-- phoneVar.signal,
+                onInput.mapToValue --> phoneVar,
+              ),
+              placeholder <-- lang.map {
+                case Language.En => "optional"
+                case Language.Cs => "nepovinné"
+              },
+            ),
+          ),
+
+          // Message text area
+          div(
+            cls := "form-group",
+            label(child.text <-- lang.combineWith(modeVar.signal).map { (l: Language, m: Mode) =>
+              (l, m) match
+                case (Language.En, Mode.Basket)              => "Message (pre-filled with your basket)"
+                case (Language.Cs, Mode.Basket)              => "Zpráva (předvyplněná košíkem)"
+                case (Language.En, Mode.SingleConfiguration) => "Message (pre-filled with your configuration)"
+                case (Language.Cs, Mode.SingleConfiguration) => "Zpráva (předvyplněná konfigurací)"
             }),
             textArea(
               cls := "email-modal-textarea",
@@ -143,12 +188,25 @@ object EmailOrderModal:
             ),
           ),
 
-          // Info note
+          // Info note — the recipient line differs depending on whether the host
+          // configured an order address for us.
           p(
             cls := "info-note",
-            child.text <-- lang.map {
-              case Language.En => "Clicking 'Open Email Client' will open your default email application with the details pre-filled. Please add the shop's email address as the recipient."
-              case Language.Cs => "Kliknutím na 'Otevřít e-mailový klient' se otevře váš výchozí e-mailový program s předvyplněnými údaji. Jako příjemce zadejte prosím e-mailovou adresu obchodu."
+            child.text <-- lang.map { l =>
+              val hasRecipient = BuilderEnvironment.get.orderEmail.nonEmpty
+              l match
+                case Language.En =>
+                  val opener = "Clicking 'Open Email Client' will open your default email application with the details pre-filled."
+                  val recipient =
+                    if hasRecipient then s" It will be addressed to ${BuilderEnvironment.get.orderEmail}."
+                    else " Please add the shop's email address as the recipient."
+                  s"$opener$recipient This is a price request, not a binding order — we will confirm the price and the production date in our reply."
+                case Language.Cs =>
+                  val opener = "Kliknutím na 'Otevřít e-mailový klient' se otevře váš výchozí e-mailový program s předvyplněnými údaji."
+                  val recipient =
+                    if hasRecipient then s" Zpráva bude adresována na ${BuilderEnvironment.get.orderEmail}."
+                    else " Jako příjemce zadejte prosím e-mailovou adresu obchodu."
+                  s"$opener$recipient Jde o cenovou poptávku, nikoli závaznou objednávku — cenu i termín výroby potvrdíme v odpovědi."
             },
           ),
         ),
@@ -173,23 +231,28 @@ object EmailOrderModal:
             onClick --> { _ =>
               val name  = nameVar.now()
               val email = emailVar.now()
+              val phone = phoneVar.now()
               val text  = textVar.now()
-              val lang  = ProductBuilderViewModel.stateVar.now().language
 
               val state = ProductBuilderViewModel.stateVar.now()
-              val subject = state.language match
-                case Language.En =>
+              val lang  = state.language
+              val subject = (lang, modeVar.now()) match
+                case (Language.En, Mode.Basket) =>
+                  s"Order Request (${state.basket.items.size} items)"
+                case (Language.Cs, Mode.Basket) =>
+                  s"Objednavka (${state.basket.items.size} polozek)"
+                case (Language.En, Mode.SingleConfiguration) =>
                   val cat = categoryName(state, Language.En)
                   s"Product Order Inquiry${if cat.nonEmpty then s" - $cat" else ""}"
-                case Language.Cs =>
+                case (Language.Cs, Mode.SingleConfiguration) =>
                   val cat = categoryName(state, Language.Cs)
                   s"Poptavka objednavky${if cat.nonEmpty then s" - $cat" else ""}"
 
-              // Build the full message body including name/email signature
-              val signature = buildSignature(name, email, lang)
+              // Build the full message body including name/email/phone signature
+              val signature = buildSignature(name, email, phone, lang)
               val body      = s"$text\n$signature"
 
-              val mailtoUri = buildMailtoUri(subject, body)
+              val mailtoUri = buildMailtoUri(BuilderEnvironment.get.orderEmail, subject, body)
               dom.window.location.href = mailtoUri
             },
           ),
@@ -205,12 +268,13 @@ object EmailOrderModal:
       .map(_.name(lang))
       .getOrElse("")
 
-  private def buildSignature(name: String, email: String, lang: Language): String =
+  private def buildSignature(name: String, email: String, phone: String, lang: Language): String =
     val nameLine  = if name.nonEmpty then s"\n$name" else ""
     val emailLine = if email.nonEmpty then s"\n$email" else ""
+    val phoneLine = if phone.nonEmpty then s"\n$phone" else ""
     lang match
-      case Language.En => s"\n---\nThank you$nameLine$emailLine"
-      case Language.Cs => s"\n---\nDěkuji$nameLine$emailLine"
+      case Language.En => s"\n---\nThank you$nameLine$emailLine$phoneLine"
+      case Language.Cs => s"\n---\nDěkuji$nameLine$emailLine$phoneLine"
 
   private def buildEmailText(state: BuilderState, lang: Language): String =
     val sb = new StringBuilder
@@ -289,9 +353,7 @@ object EmailOrderModal:
             case Language.Cs => "(nevybráno)"
           )
 
-        val inkDesc = cs.selectedInkConfig.map { ink =>
-          s"${ink.front}+${ink.back}"
-        }.getOrElse(lang match
+        val inkDesc = cs.selectedInkConfig.map(_.notation).getOrElse(lang match
           case Language.En => "(not selected)"
           case Language.Cs => "(nevybráno)"
         )
@@ -337,6 +399,90 @@ object EmailOrderModal:
 
     sb.toString()
 
+  /** Message body describing the whole basket — the standalone calculator's
+    * replacement for the checkout wizard.
+    */
+  private def buildBasketEmailText(state: BuilderState, lang: Language): String =
+    val sb = new StringBuilder
+    val items = state.basket.items
+
+    lang match
+      case Language.En => sb.append("Hello,\n\nI would like to order the following:\n\n")
+      case Language.Cs => sb.append("Dobrý den,\n\nrád/ráda bych objednal/a následující:\n\n")
+
+    items.zipWithIndex.foreach { case (item, idx) =>
+      val config = item.configuration
+      val lineTotal = item.priceBreakdown.total * item.quantity
+      lang match
+        case Language.En =>
+          sb.append(s"${idx + 1}) ${config.category.name(lang)} — ${item.quantity}× — ${formatMoney(lineTotal, item.priceBreakdown.currency)}\n")
+        case Language.Cs =>
+          sb.append(s"${idx + 1}) ${config.category.name(lang)} — ${item.quantity}× — ${formatMoney(lineTotal, item.priceBreakdown.currency)}\n")
+      sb.append(describeConfiguration(config, lang))
+      BuilderEnvironment.get.artwork
+        .flatMap(_.emailSummary(config.id, lang))
+        .foreach(s => sb.append(s"   $s\n"))
+      sb.append("\n")
+    }
+
+    // Grand total
+    val calc = mpbuilder.domain.service.BasketService.calculateTotal(state.basket)
+    if items.nonEmpty then
+      lang match
+        case Language.En => sb.append(s"Total: ${formatMoney(calc.total, calc.currency)}\n\n")
+        case Language.Cs => sb.append(s"Celkem: ${formatMoney(calc.total, calc.currency)}\n\n")
+
+    lang match
+      case Language.En =>
+        sb.append("Prices and lead times above come from the online calculator and are indicative.\n")
+        sb.append("Please confirm the price and the production date, and let me know how to send the artwork.")
+      case Language.Cs =>
+        sb.append("Ceny a termíny výše pocházejí z online kalkulačky a jsou orientační.\n")
+        sb.append("Prosím o potvrzení ceny a termínu výroby a o informaci, kam zaslat tisková data.")
+
+    sb.toString()
+
+  /** Indented one-configuration summary used inside the basket message. */
+  private def describeConfiguration(config: ProductConfiguration, lang: Language): String =
+    val sb = new StringBuilder
+
+    lang match
+      case Language.En => sb.append(s"   Printing method: ${config.printingMethod.name(lang)}\n")
+      case Language.Cs => sb.append(s"   Tisková metoda: ${config.printingMethod.name(lang)}\n")
+
+    config.specifications.specs.values.toList
+      .map(formatSpec(_, lang))
+      .filter(_.nonEmpty)
+      .sorted
+      .foreach(line => sb.append(s"   $line\n"))
+
+    config.components.sortBy(_.role.ordinal).foreach { component =>
+      val finishes = component.finishes.map(_.name(lang))
+      val finishDesc =
+        if finishes.nonEmpty then
+          lang match
+            case Language.En => s", Finishes: ${finishes.mkString(", ")}"
+            case Language.Cs => s", Úpravy: ${finishes.mkString(", ")}"
+        else ""
+      val ink = component.inkConfiguration.notation
+      sb.append(s"   ${componentRoleLabel(component.role, lang)}: ${component.material.name(lang)}, $ink$finishDesc\n")
+    }
+
+    sb.toString()
+
+  private def componentRoleLabel(role: ComponentRole, lang: Language): String =
+    lang match
+      case Language.En => role match
+        case ComponentRole.Main  => "Main"
+        case ComponentRole.Cover => "Cover"
+        case ComponentRole.Body  => "Body"
+        case ComponentRole.Stand => "Stand"
+      case Language.Cs => role match
+        case ComponentRole.Main  => "Hlavní"
+        case ComponentRole.Cover => "Obálka"
+        case ComponentRole.Body  => "Vnitřní část"
+        case ComponentRole.Stand => "Stojánek"
+
   private def formatSpec(spec: SpecValue, lang: Language): String =
     spec match
       case SpecValue.QuantitySpec(qty) =>
@@ -381,6 +527,10 @@ object EmailOrderModal:
         lang match
           case Language.En => s"Pages: $count"
           case Language.Cs => s"Počet stran: $count"
+      case SpecValue.BleedSpec(bleedMm) =>
+        lang match
+          case Language.En => s"Bleed: $bleedMm mm"
+          case Language.Cs => s"Spadávka: $bleedMm mm"
       case SpecValue.ManufacturingSpeedSpec(speed) =>
         val v = speed match
           case ManufacturingSpeed.Standard => lang match { case Language.En => "Standard"; case Language.Cs => "Standardní" }
@@ -397,7 +547,8 @@ object EmailOrderModal:
       case Currency.EUR => f"€${money.value}%.2f"
       case Currency.GBP => f"£${money.value}%.2f"
 
-  private def buildMailtoUri(subject: String, body: String): String =
+  private def buildMailtoUri(recipient: String, subject: String, body: String): String =
     val encodedSubject = URIUtils.encodeURIComponent(subject)
     val encodedBody    = URIUtils.encodeURIComponent(body)
-    s"mailto:?subject=$encodedSubject&body=$encodedBody"
+    val to             = if recipient.nonEmpty then URIUtils.encodeURIComponent(recipient) else ""
+    s"mailto:$to?subject=$encodedSubject&body=$encodedBody"
