@@ -134,7 +134,7 @@ object ConfigurationForm:
           )
         case None => emptyNode,
 
-      // Add to Basket Button
+      // Add to Basket / order this one item straight away
       div(
         cls := "form-section",
         div(
@@ -150,22 +150,41 @@ object ConfigurationForm:
             cls := "basket-quantity-input",
             idAttr := "basket-qty-input",
           ),
-          button(
-            cls := "add-to-basket-btn",
-            disabled <-- ProductBuilderViewModel.state.map(_.configuration.isEmpty),
-            child.text <-- lang.map {
-              case Language.En => "Add to Basket"
-              case Language.Cs => "Přidat do košíku"
-            },
-            onClick --> { _ =>
-              val qtyInput = org.scalajs.dom.document.getElementById("basket-qty-input").asInstanceOf[org.scalajs.dom.html.Input]
-              val qty = qtyInput.value.toIntOption.getOrElse(1)
-              ProductBuilderViewModel.addToBasket(qty)
-            },
+          div(
+            cls := "add-to-basket-actions",
+            button(
+              cls := "add-to-basket-btn",
+              disabled <-- ProductBuilderViewModel.state.map(_.configuration.isEmpty),
+              child.text <-- lang.map {
+                case Language.En => "Add to Basket"
+                case Language.Cs => "Přidat do košíku"
+              },
+              onClick --> { _ => ProductBuilderViewModel.addToBasket(quantityToAdd()) },
+            ),
+            // Skips the basket entirely: order just this configuration by e-mail.
+            // Deliberately *not* disabled on an invalid configuration — the point
+            // of ordering by e-mail is to cover what the configurator cannot, and
+            // the message carries any validation issues along with it.
+            button(
+              cls := "order-single-btn",
+              child.text <-- lang.map {
+                case Language.En => "✉ Order this by e-mail"
+                case Language.Cs => "✉ Objednat e-mailem"
+              },
+              onClick --> { _ => EmailOrderModal.open(quantityToAdd()) },
+            ),
           ),
         ),
       ),
     )
+
+  /** The "Quantity to add" field, defaulting to 1 when empty or unparseable. */
+  private def quantityToAdd(): Int =
+    Option(org.scalajs.dom.document.getElementById("basket-qty-input"))
+      .map(_.asInstanceOf[org.scalajs.dom.html.Input].value)
+      .flatMap(_.toIntOption)
+      .filter(_ > 0)
+      .getOrElse(1)
 
   private def componentSection(role: ComponentRole): Element =
     div(

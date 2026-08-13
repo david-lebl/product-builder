@@ -11,6 +11,7 @@ An "✉ Order via Email" button is shown in the **Validation Status** panel of t
 | Location | Always Shown | Condition |
 |----------|-------------|-----------|
 | Validation Status panel (below validation result) | ✅ | Always — shown for both valid and invalid configurations so customers can also use it as a "confirm via email" shortcut |
+| Next to **Add to Basket** in the configuration form ("✉ Order this by e-mail") | ✅ | Always, and deliberately **not** disabled when *Add to Basket* is — the point of ordering by e-mail is to cover what the configurator cannot, and the message carries any validation issues with it. Skips the basket: orders just the configuration on screen, at the quantity in the adjacent *Quantity to add* field. |
 
 ## Modal Dialog
 
@@ -31,8 +32,11 @@ The modal has two modes, sharing the same fields and send action.
 
 | Mode | Opened by | Message describes |
 |------|-----------|-------------------|
-| Single configuration | `open()` — the ✉ Order via Email button in the Validation Status panel | the configuration currently being built |
+| Single configuration | `open(copies)` — the ✉ Order via Email button in the Validation Status panel (`copies = 1`), or ✉ Order this by e-mail next to *Add to Basket* (`copies` = the *Quantity to add* field) | the configuration currently being built |
 | Basket | `openForBasket()` — the basket's primary button in the standalone calculator | every basket item plus the grand total |
+
+When `copies > 1` the price line shows the unit price and the line total —
+`Calculated Price: 290.00 Kč each × 3 = 870.00 Kč` — rather than dropping the count.
 
 Basket mode is the standalone calculator's replacement for the checkout wizard; see
 [standalone-calculator.md](standalone-calculator.md). The full SPA's basket still leads to

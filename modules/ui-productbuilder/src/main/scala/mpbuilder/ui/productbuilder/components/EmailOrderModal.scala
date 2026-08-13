@@ -23,12 +23,17 @@ object EmailOrderModal:
   private val phoneVar: Var[String] = Var("")
   private val textVar: Var[String]  = Var("")
 
-  /** Open the modal and pre-fill fields from current builder state. */
-  def open(): Unit =
+  /** Open the modal describing the configuration currently being built.
+    *
+    * @param copies how many of this configured product to order. The form's
+    *               "order straight away" button passes the quantity next to it;
+    *               the Validation Status shortcut leaves it at 1.
+    */
+  def open(copies: Int = 1): Unit =
     val state = ProductBuilderViewModel.stateVar.now()
     prefillContact(state)
     modeVar.set(Mode.SingleConfiguration)
-    textVar.set(buildEmailText(state, state.language))
+    textVar.set(buildEmailText(state, state.language, copies))
     isOpen.set(true)
 
   /** Open the modal describing every item in the basket. */
@@ -276,7 +281,7 @@ object EmailOrderModal:
       case Language.En => s"\n---\nThank you$nameLine$emailLine$phoneLine"
       case Language.Cs => s"\n---\nDěkuji$nameLine$emailLine$phoneLine"
 
-  private def buildEmailText(state: BuilderState, lang: Language): String =
+  private def buildEmailText(state: BuilderState, lang: Language, copies: Int = 1): String =
     val sb = new StringBuilder
 
     // Greeting line
@@ -373,12 +378,19 @@ object EmailOrderModal:
       }
       sb.append("\n")
 
-    // Price
+    // Price. When more than one of this configuration is being ordered, show the
+    // unit price and the line total rather than silently dropping the count.
     state.priceBreakdown.foreach { bd =>
       val priceStr = formatMoney(bd.total, bd.currency)
-      lang match
-        case Language.En => sb.append(s"Calculated Price: $priceStr\n\n")
-        case Language.Cs => sb.append(s"Vypočtená cena: $priceStr\n\n")
+      if copies > 1 then
+        val lineTotal = formatMoney(bd.total * copies, bd.currency)
+        lang match
+          case Language.En => sb.append(s"Calculated Price: $priceStr each × $copies = $lineTotal\n\n")
+          case Language.Cs => sb.append(s"Vypočtená cena: $priceStr za kus × $copies = $lineTotal\n\n")
+      else
+        lang match
+          case Language.En => sb.append(s"Calculated Price: $priceStr\n\n")
+          case Language.Cs => sb.append(s"Vypočtená cena: $priceStr\n\n")
     }
 
     // Validation issues (if any)

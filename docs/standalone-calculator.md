@@ -76,8 +76,15 @@ and production date and to say where artwork should be sent.
 There is no artwork step. The widget has no visual editor, and a `mailto:` link cannot carry a
 file, so artwork is arranged in the shop's reply rather than pretended at in the form.
 
-The single-configuration **✉ Order via Email** button in the Validation Status panel is retained
-in both apps, for asking about one configuration without using the basket.
+Two shortcuts skip the basket entirely and order just the configuration on screen:
+
+- **✉ Order this by e-mail**, next to *Add to Basket* in the configuration form. Uses the
+  quantity from the adjacent *Quantity to add* field, so the message shows the unit price and
+  the line total.
+- **✉ Order via Email** in the Validation Status panel, for asking about a single configuration.
+
+Both are present in the full SPA as well, and neither is disabled when the configuration is
+invalid — that is the case they exist for. See [email-order-option.md](email-order-option.md).
 
 **Known limitation:** some mail clients truncate long `mailto:` URLs (Outlook at roughly 2000
 characters), so a large multi-item basket may arrive clipped. A POST endpoint is the planned

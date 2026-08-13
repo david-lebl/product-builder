@@ -2094,13 +2094,52 @@ button:disabled {
     margin-bottom: 5px;
 }
 
+/* Add to Basket sits next to a shortcut that skips the basket and orders this
+   one configuration by e-mail. On narrow viewports they stack. */
+.add-to-basket-actions {
+    display: flex;
+    gap: 10px;
+    align-items: stretch;
+}
+
 .add-to-basket-btn {
     width: 100%;
     background: var(--color-success);
+    flex: 1 1 auto;
 }
 
 .add-to-basket-btn:hover:not(:disabled) {
     background: #388e3c;
+}
+
+.order-single-btn {
+    flex: 0 0 auto;
+    background: transparent;
+    border: 1.5px solid var(--color-primary);
+    color: var(--color-primary);
+    border-radius: 6px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    white-space: nowrap;
+    cursor: pointer;
+    transition: background 0.18s, color 0.18s;
+}
+
+.order-single-btn:hover:not(:disabled) {
+    background: var(--color-primary);
+    color: #fff;
+    transform: none;
+    box-shadow: none;
+}
+
+@media (max-width: 640px) {
+    .add-to-basket-actions {
+        flex-direction: column;
+    }
+
+    .order-single-btn {
+        width: 100%;
+    }
 }
 
 .close-msg-btn {
