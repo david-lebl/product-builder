@@ -113,6 +113,11 @@ This mode shares the host page's CSS cascade. The widget ships a reset scoped to
 restyle the surrounding page — but its own class names (`.card`, `.form-section`,
 `.price-section`) are generic and may collide with a host site's styles.
 
+The scoped reset uses `:where()` so it keeps zero specificity. Scoping a reset the obvious way
+(`.mp-calculator *`) would raise it to (0,1,0) and silently out-rank the bare `button` and
+`input` rules it is meant to sit underneath — see `css/reset-scoped.css` and the corresponding
+entry in [troubleshooting.md](troubleshooting.md).
+
 ### B. Iframe
 
 ```html

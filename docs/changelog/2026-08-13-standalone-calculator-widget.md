@@ -107,10 +107,15 @@ Consumers rewired: `ProductBuilderApp`, `ConfigurationForm`, `BasketView`,
 
 ## Issues Encountered
 
-- **Scoped reset ordering.** Putting the `.mp-calculator`-scoped reset at the *end* of the
-  bundled stylesheet stripped padding from every control in the widget, because
-  `.mp-calculator *` (0,1,0) beats the bare `button`/`input` rules in `utilities.css` (0,0,1).
-  Fixed by prepending it, mirroring `reset.css`'s position in the SPA. Added to
+- **Scoped reset specificity.** Replacing the SPA's global `reset.css` with a
+  `.mp-calculator`-scoped equivalent stripped the padding off every input and generic button in
+  the widget: `.mp-calculator *` is (0,1,0) and out-ranks the bare `button` / `select, input`
+  rules in `utilities.css` (0,0,1). Moving the file earlier in the concatenation did *not* help —
+  specificity beats source order — which cost an extra round trip; the first attempt shipped and
+  had to be corrected. Fixed with `:where(.mp-calculator *)`, which contributes zero specificity
+  and so behaves like the `*` selector it replaces. Verified by comparing
+  `getComputedStyle().padding` across all controls in both apps rather than by screenshot —
+  inputs have a fixed `height: 36px`, so a zero-padding input still *looks* about right. Added to
   `docs/troubleshooting.md`.
 - **`formatSpec` non-exhaustive.** The basket renderer feeds it every spec from a
   `ProductConfiguration`, including `BleedSpec`, which the existing match did not handle — a

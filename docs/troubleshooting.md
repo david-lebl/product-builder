@@ -267,15 +267,26 @@ areaTierRule match
 
 ---
 
-### Widget controls lose their padding when the scoped reset is appended last
+### Widget controls lose their padding — scoping a reset raises its specificity
 
-**Symptom:** In the standalone calculator, buttons and inputs render flat and unstyled — no padding, no borders — while the same components look correct in the SPA.
+**Symptom:** In the standalone calculator, inputs have no padding (text sits flush against the left edge) and buttons like *Add to Basket* and *Validate price* collapse to a thin bar. The same components look correct in the SPA. Confusingly, some controls are fine — anything styled through its own class, e.g. `.email-order-btn`.
 
-**Cause:** `calculator.css` is a concatenation of several stylesheets. The widget replaces the SPA's global `reset.css` with a `.mp-calculator`-scoped equivalent, because `* { margin: 0; padding: 0 }` and `body { … }` would restyle the host page. But `.mp-calculator *` has specificity (0,1,0), while the base control styles in `utilities.css` (`button { padding: 8px 20px }`, `select, input { padding: 7px 10px }`) are bare element selectors at (0,0,1). Concatenating the scoped reset *after* them means it wins on both specificity and source order, and every control in the widget loses its padding.
+**Cause:** The widget replaces the SPA's global `reset.css` with a `.mp-calculator`-scoped equivalent, because `* { margin: 0; padding: 0 }` and `body { … }` would restyle the host page. But scoping changes the weight: `.mp-calculator *` is specificity **(0,1,0)**, while the base control styles in `utilities.css` — `button { padding: 8px 20px }`, `select, input { padding: 7px 10px }` — are bare element selectors at **(0,0,1)**. The reset therefore wins and zeroes their padding.
 
-**Solution:** Keep the scoped reset in the same position the SPA gives `reset.css` — **before** the component stylesheets. `build-css.sh` prepends `css/reset-scoped.css` and appends only `css/shell.css`. Do not reorder them.
+Specificity beats source order, so **reordering the concatenation does not fix this.** Class-styled controls survive because their rules are also (0,1,0) and come later in the file, which is why the breakage looks arbitrary.
 
-**Files:** `modules/ui-calculator/build-css.sh`, `modules/ui-calculator/css/reset-scoped.css`
+**Solution:** Wrap the scoped selectors in `:where()`, which contributes zero specificity:
+
+```css
+:where(.mp-calculator),
+:where(.mp-calculator *) { margin: 0; padding: 0; box-sizing: border-box; }
+```
+
+That weighs (0,0,0) — exactly like the `*` selector it replaces — so it behaves as a true reset while staying confined to the widget. Keep the file prepended (the position `reset.css` has in the SPA), and keep the typography rule on a plain `.mp-calculator` selector so it still wins against the host page's `body`.
+
+**Verify with computed styles, not screenshots.** Inputs carry `height: 36px` independently of padding, so a zero-padding input still looks roughly right in a screenshot. Compare `getComputedStyle(el).padding` for the same elements in both apps.
+
+**Files:** `modules/ui-calculator/css/reset-scoped.css`, `modules/ui-calculator/build-css.sh`
 
 ---
 

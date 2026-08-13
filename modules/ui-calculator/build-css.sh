@@ -12,8 +12,10 @@ SRC="$ROOT/modules/ui/src/main/resources"
 OUT="$ROOT/modules/ui-calculator/src/main/resources/calculator.css"
 
 # reset.css is deliberately absent: its `*` and `body` rules would restyle a
-# host page. css/reset-scoped.css carries a `.mp-calculator`-scoped equivalent
-# and must stay in its position — before the component stylesheets.
+# host page. css/reset-scoped.css carries a `.mp-calculator`-scoped equivalent,
+# kept here in the same position reset.css has in the SPA — before the component
+# stylesheets. (It uses `:where()` so it does not out-rank them on specificity
+# either; see the note in that file.)
 PARTS=(tokens layout utilities uikit pricing basket)
 
 {
