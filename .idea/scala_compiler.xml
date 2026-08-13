@@ -2,6 +2,22 @@
 <project version="4">
   <component name="ScalaCompilerConfiguration">
     <option name="separateProdTestSources" value="true" />
-    <profile name="sbt 1" modules="material-builder,material-builder.main,material-builder.test" />
+    <profile name="sbt 1" modules="material-builder,material-builder.main,material-builder.mpbuilder-backend,material-builder.mpbuilder-backend.main,material-builder.mpbuilder-backend.test,material-builder.mpbuilder-frontend,material-builder.mpbuilder-shared.sharedJS,material-builder.mpbuilder-shared.sharedJVM,material-builder.test" />
+    <profile name="sbt 2" modules="material-builder.mpbuilder-frontend.main,material-builder.mpbuilder-frontend.test">
+      <parameters>
+        <parameter value="-scalajs" />
+      </parameters>
+    </profile>
+    <profile name="sbt 3" modules="material-builder.mpbuilder-shared.sharedJS.main,material-builder.mpbuilder-shared.sharedJS.test">
+      <parameters>
+        <parameter value="-scalajs" />
+        <parameter value="-Xmax-inlines:128" />
+      </parameters>
+    </profile>
+    <profile name="sbt 4" modules="material-builder.mpbuilder-shared.sharedJVM.main,material-builder.mpbuilder-shared.sharedJVM.test">
+      <parameters>
+        <parameter value="-Xmax-inlines:128" />
+      </parameters>
+    </profile>
   </component>
 </project>

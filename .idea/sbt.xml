@@ -8,6 +8,11 @@
         <option name="modules">
           <set>
             <option value="$PROJECT_DIR$" />
+            <option value="$PROJECT_DIR$/modules/backend" />
+            <option value="$PROJECT_DIR$/modules/frontend" />
+            <option value="$PROJECT_DIR$/modules/shared" />
+            <option value="$PROJECT_DIR$/modules/shared/.js" />
+            <option value="$PROJECT_DIR$/modules/shared/.jvm" />
             <option value="$PROJECT_DIR$/project" />
           </set>
         </option>
