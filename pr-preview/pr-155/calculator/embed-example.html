@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Embedding the Price Calculator</title>
+    <style>
+      /* Deliberately *not* the calculator's stylesheet — this file stands in for
+         a print shop's own website, so it should look nothing like the widget. */
+      body { font: 16px/1.6 Georgia, serif; margin: 0; color: #23201c; background: #faf7f2; }
+      header, main { max-width: 68rem; margin: 0 auto; padding: 0 1.5rem; }
+      header { padding-top: 3rem; padding-bottom: 1rem; border-bottom: 2px solid #d8cfc0; }
+      h1 { margin: 0 0 .25rem; font-size: 2rem; }
+      .tagline { margin: 0 0 2rem; color: #6b6154; font-style: italic; }
+      .widget-frame { margin: 2.5rem 0 4rem; }
+      code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: .9em; background: #efe9de; padding: .1em .35em; border-radius: 3px; }
+    </style>
+</head>
+<body>
+    <header>
+      <h1>Novák &amp; Sons Printing</h1>
+      <p class="tagline">Family-run print shop in Prague since 1994</p>
+    </header>
+
+    <main>
+      <h2>Get a price</h2>
+      <p>
+        Configure your product below and we will confirm the price and the
+        production date by e-mail.
+      </p>
+
+      <!-- ── Integration mode A: mount into your own element ──────────────
+           1. Link the calculator's stylesheet.
+           2. Put an empty container anywhere on the page.
+           3. Load calculator.js and call MPCalculator.mount().
+
+           Config keys, both optional:
+             lang       'en' | 'cs'  (default: stored preference, then browser language)
+             orderEmail address that receives order requests (default: blank, so
+                        the customer fills the recipient in themselves)
+
+           Note: this mode shares the page's CSS cascade. If your site's styles
+           collide with the widget's, use the iframe instead — see index.html.
+      -->
+      <link rel="stylesheet" href="calculator.css">
+
+      <div class="widget-frame">
+        <div id="mp-calculator"></div>
+      </div>
+
+      <script src="main.js"></script>
+      <script>
+        MPCalculator.mount('#mp-calculator', {
+          lang: 'en',
+          orderEmail: 'orders@novak-print.example'
+        });
+      </script>
+
+      <h2>Visit us</h2>
+      <p>Václavské náměstí 1, 110 00 Praha 1 — Mon–Fri 8:00–17:00</p>
+    </main>
+</body>
+</html>
