@@ -171,12 +171,38 @@ mill ui-calculator.fullLinkJS     # prod → out/ui-calculator/fullLinkJS.dest/m
 Deploy `main.js` together with `calculator.css`, and `index.html` if using the iframe mode.
 
 `calculator.css` is generated, not hand-edited. It concatenates the widget's scoped reset, the
-seven SPA stylesheets the configurator actually uses (`tokens, layout, utilities, uikit,
+six SPA stylesheets the configurator actually uses (`tokens, layout, utilities, uikit,
 pricing, basket`) and the widget's shell styles. The SPA's `reset.css` is deliberately excluded —
 its `*` and `body` rules would restyle the host page. Rerun `build-css.sh` after editing any of
-the source stylesheets.
+the source stylesheets; CI fails the build if the committed file has drifted.
 
-## 7. Related documents
+## 7. Deployment & previews
+
+Both `deploy-pages.yml` (on `main`) and `deploy-preview.yml` (per PR) build the widget alongside
+the SPA and publish it under a `calculator/` subdirectory — the two apps cannot share a directory
+because both emit `main.js`.
+
+```
+_site/
+├── index.html, *.css, main.js        the full SPA
+└── calculator/
+    ├── index.html                    the widget, standalone (iframe this)
+    ├── embed-example.html            mount-div integration in a mock host site
+    ├── calculator.css
+    └── main.js
+```
+
+So on any PR preview:
+
+| URL | Shows |
+|---|---|
+| `<preview-url>/` | the full SPA |
+| `<preview-url>/calculator/` | the widget on its own |
+| `<preview-url>/calculator/embed-example.html` | the widget embedded in someone else's page |
+
+The same paths apply to the GitHub Pages deployment of `main`.
+
+## 8. Related documents
 
 - [manufacturing-speed-pipeline.md](manufacturing-speed-pipeline.md) — how the SPA derives the
   concrete dates this widget deliberately omits

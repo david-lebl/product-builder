@@ -35,6 +35,10 @@ jobs:
         if: github.event.action != 'closed'
         run: mill ui.fullLinkJS
 
+      - name: Build standalone calculator
+        if: github.event.action != 'closed'
+        run: mill ui-calculator.fullLinkJS
+
       - name: Assemble site
         if: github.event.action != 'closed'
         run: |
@@ -42,6 +46,12 @@ jobs:
           cp modules/ui/src/main/resources/index.html _site/
           cp modules/ui/src/main/resources/*.css _site/
           cp out/ui/fullLinkJS.dest/main.js _site/
+          # The calculator goes in its own directory — both apps emit main.js.
+          # index.html is the iframe-able standalone page, embed-example.html
+          # shows the mount-div integration inside a mock host site.
+          mkdir -p _site/calculator
+          cp modules/ui-calculator/src/main/resources/* _site/calculator/
+          cp out/ui-calculator/fullLinkJS.dest/main.js _site/calculator/
 
       - name: Deploy PR Preview
         uses: rossjrw/pr-preview-action@v1

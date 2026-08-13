@@ -33,12 +33,21 @@ jobs:
       - name: Build Scala.js UI
         run: mill ui.fullLinkJS
 
+      - name: Build standalone calculator
+        run: mill ui-calculator.fullLinkJS
+
       - name: Assemble site
         run: |
           mkdir -p _site
           cp modules/ui/src/main/resources/index.html _site/
           cp modules/ui/src/main/resources/*.css _site/
           cp out/ui/fullLinkJS.dest/main.js _site/
+          # The calculator goes in its own directory — both apps emit main.js.
+          # index.html is the iframe-able standalone page, embed-example.html
+          # shows the mount-div integration inside a mock host site.
+          mkdir -p _site/calculator
+          cp modules/ui-calculator/src/main/resources/* _site/calculator/
+          cp out/ui-calculator/fullLinkJS.dest/main.js _site/calculator/
 
       - name: Deploy to GitHub Pages
         uses: JamesIves/github-pages-deploy-action@v4
