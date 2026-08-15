@@ -1,7 +1,7 @@
 package mpbuilder.ui
 
 import com.raquo.laminar.api.L.*
-import mpbuilder.ui.productbuilder.{BuilderEnvironment, BuilderState, BasketPrimaryAction, ProductBuilderViewModel}
+import mpbuilder.ui.productbuilder.{BuilderEnvironment, BuilderState, BasketPrimaryAction, QuickOrderAction, ProductBuilderViewModel}
 import mpbuilder.domain.model.*
 import mpbuilder.domain.manufacturing.StationUtilisation
 import mpbuilder.domain.pricing.PricingContext
@@ -138,6 +138,17 @@ object FullAppEnvironment:
       onClick = () => {
         AppRouter.basketOpen.set(false)
         ProductBuilderViewModel.startCheckout()
+        AppRouter.navigateTo(AppRoute.Checkout)
+      },
+    ),
+    quickOrderAction = QuickOrderAction(
+      label = {
+        case Language.En => "Order Now →"
+        case Language.Cs => "Objednat nyní →"
+      },
+      enabled = ProductBuilderViewModel.state.map(_.configuration.isDefined),
+      onClick = quantity => {
+        ProductBuilderViewModel.startQuickCheckout(quantity)
         AppRouter.navigateTo(AppRoute.Checkout)
       },
     ),

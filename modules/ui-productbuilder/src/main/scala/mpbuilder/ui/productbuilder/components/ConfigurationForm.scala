@@ -161,17 +161,14 @@ object ConfigurationForm:
               },
               onClick --> { _ => ProductBuilderViewModel.addToBasket(quantityToAdd()) },
             ),
-            // Skips the basket entirely: order just this configuration by e-mail.
-            // Deliberately *not* disabled on an invalid configuration — the point
-            // of ordering by e-mail is to cover what the configurator cannot, and
-            // the message carries any validation issues along with it.
+            // Skips the basket entirely: order just this one configuration
+            // straight away. What that means is host-specific — see
+            // BuilderEnvironment.quickOrderAction.
             button(
               cls := "order-single-btn",
-              child.text <-- lang.map {
-                case Language.En => "✉ Order this by e-mail"
-                case Language.Cs => "✉ Objednat e-mailem"
-              },
-              onClick --> { _ => EmailOrderModal.open(quantityToAdd()) },
+              disabled <-- BuilderEnvironment.get.quickOrderAction.enabled.map(!_),
+              child.text <-- lang.map(BuilderEnvironment.get.quickOrderAction.label),
+              onClick --> { _ => BuilderEnvironment.get.quickOrderAction.onClick(quantityToAdd()) },
             ),
           ),
         ),

@@ -3,7 +3,7 @@ package mpbuilder.calculator
 import com.raquo.laminar.api.L.*
 import mpbuilder.domain.model.Language
 import mpbuilder.domain.pricing.PricingContext
-import mpbuilder.ui.productbuilder.{BasketPrimaryAction, BuilderEnvironment}
+import mpbuilder.ui.productbuilder.{BasketPrimaryAction, BuilderEnvironment, QuickOrderAction}
 import mpbuilder.ui.productbuilder.components.EmailOrderModal
 
 /** The product configurator as hosted by the standalone calculator.
@@ -43,6 +43,14 @@ object CalculatorEnvironment:
           basketOpen.set(false)
           EmailOrderModal.openForBasket()
         },
+      ),
+      quickOrderAction = QuickOrderAction(
+        label = {
+          case Language.En => "✉ Order this by e-mail"
+          case Language.Cs => "✉ Objednat e-mailem"
+        },
+        enabled = Val(true),
+        onClick = quantity => EmailOrderModal.open(quantity),
       ),
       orderEmail = config.orderEmail,
     )

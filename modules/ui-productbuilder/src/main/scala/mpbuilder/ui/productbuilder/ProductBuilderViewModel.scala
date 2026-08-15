@@ -45,6 +45,12 @@ case class BuilderState(
                          basket: Basket = Basket(BasketId.unsafe("main-basket"), List.empty),
                          basketMessage: Option[String] = None,
                          checkoutInfo: Option[CheckoutInfo] = None,
+                         /** Overrides the basket during checkout — set by a quick, single-item
+                           * checkout so the wizard shows just that item without touching (or
+                           * being touched by) the real basket. `None` means checkout is scoped
+                           * to the real basket, as usual.
+                           */
+                         checkoutBasket: Option[Basket] = None,
                          loginState: LoginState = LoginState.LoggedOut,
                        )
 
@@ -740,24 +746,56 @@ object ProductBuilderViewModel:
     ))
 
   // Checkout operations
-  def startCheckout(): Unit =
-    val current = stateVar.now()
-    current.loginState match
+
+  /** Pre-fill checkout contact details from a logged-in customer, skipping the
+    * Authentication step; otherwise start a blank guest/sign-in checkout.
+    */
+  private def initialCheckoutInfo(loginState: LoginState): CheckoutInfo =
+    loginState match
       case LoginState.LoggedIn(customer, _) =>
-        // Pre-fill from customer data, skip Authentication step
-        val ci = customer.contactInfo
-        val addr = customer.address
-        stateVar.update(_.copy(checkoutInfo = Some(CheckoutInfo(
+        CheckoutInfo(
           step = CheckoutStep.ContactDetails,
           customerType = CustomerType.Agency,
-          contactInfo = ci,
-          invoiceAddress = addr,
-        ))))
+          contactInfo = customer.contactInfo,
+          invoiceAddress = customer.address,
+        )
       case _ =>
-        stateVar.update(_.copy(checkoutInfo = Some(CheckoutInfo())))
+        CheckoutInfo()
+
+  def startCheckout(): Unit =
+    val current = stateVar.now()
+    stateVar.update(_.copy(
+      checkoutInfo = Some(initialCheckoutInfo(current.loginState)),
+      checkoutBasket = None,
+    ))
+
+  /** Skip the basket entirely: check out just the configuration currently
+    * being built, without adding it to (or otherwise touching) the real basket.
+    */
+  def startQuickCheckout(quantity: Int): Unit =
+    val current = stateVar.now()
+    val lang = current.language
+    current.configuration match
+      case Some(config) =>
+        val result = BasketService.addItem(BasketService.empty(BasketId.unsafe("quick-order")), config, quantity, pricelist)
+        result.fold(
+          errors => {
+            val errorMsg = errors.map(_.message(lang)).toList.mkString(", ")
+            stateVar.update(_.copy(basketMessage = Some(errorMsg)))
+          },
+          quickBasket => {
+            BuilderEnvironment.get.artwork.foreach(_.onAddedToBasket(config))
+            stateVar.update(_.copy(
+              checkoutBasket = Some(quickBasket),
+              checkoutInfo = Some(initialCheckoutInfo(current.loginState)),
+            ))
+            resetProductForm()
+          },
+        )
+      case None => ()
 
   def cancelCheckout(): Unit =
-    stateVar.update(_.copy(checkoutInfo = None))
+    stateVar.update(_.copy(checkoutInfo = None, checkoutBasket = None))
 
   def updateCheckoutInfo(info: CheckoutInfo): Unit =
     stateVar.update(_.copy(checkoutInfo = Some(info)))

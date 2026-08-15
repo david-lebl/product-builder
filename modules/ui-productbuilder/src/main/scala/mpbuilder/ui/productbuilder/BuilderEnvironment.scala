@@ -45,6 +45,25 @@ final case class BasketPrimaryAction(
     onClick: () => Unit,
 )
 
+/** The configuration form's "order this one now" button — a quick path for a
+  * single item that skips having to open the basket drawer at all.
+  *
+  * Full SPA: jumps straight into the checkout wizard scoped to just this item.
+  * Calculator: opens the e-mail order modal, since there is no real checkout
+  * to jump into.
+  *
+  * @param enabled whether the action can currently be invoked. The full SPA
+  *                needs a valid configuration to check out; the calculator's
+  *                e-mail request is deliberately always enabled, since covering
+  *                what the configurator itself cannot validate is the point.
+  * @param onClick receives the quantity from the "Quantity to add" field.
+  */
+final case class QuickOrderAction(
+    label: Language => String,
+    enabled: Signal[Boolean],
+    onClick: Int => Unit,
+)
+
 /** Everything the product configurator needs from its host application.
   *
   * This is the seam that lets `ui-productbuilder` stay free of any dependency on
@@ -84,6 +103,16 @@ final case class BuilderEnvironment(
         case Language.Cs => "Odeslat objednávku e-mailem"
       },
       onClick = () => (),
+    ),
+
+    /** What the configuration form's "order this one now" button says and does. */
+    quickOrderAction: QuickOrderAction = QuickOrderAction(
+      label = {
+        case Language.En => "Order this now"
+        case Language.Cs => "Objednat nyní"
+      },
+      enabled = Val(true),
+      onClick = _ => (),
     ),
 
     /** Recipient of the `mailto:` order. Empty leaves the To field blank so the

@@ -623,16 +623,19 @@ object CheckoutView:
   // ── Step 5: Summary ─────────────────────────────────────────────────────────
 
   private def stepSummary(info: CheckoutInfo, s: BuilderState, l: Language): Element =
-    val basketCalc = BasketService.calculateTotal(s.basket)
+    // A quick, single-item checkout overrides which items are being ordered —
+    // the real basket is neither read from nor written to in that case.
+    val checkoutItems = s.checkoutBasket.getOrElse(s.basket)
+    val basketCalc = BasketService.calculateTotal(checkoutItems)
     val codeVar    = Var(info.discountCode)
     val noteVar    = Var(info.note)
 
     val totalWeightG: Option[Double] =
-      val weights = s.basket.items.flatMap { item =>
+      val weights = checkoutItems.items.flatMap { item =>
         WeightCalculator.calculate(item.configuration).toOption
           .map(wb => wb.totalWeightG)
       }
-      if weights.size == s.basket.items.size && weights.nonEmpty then
+      if weights.size == checkoutItems.items.size && weights.nonEmpty then
         Some(weights.sum)
       else None
 
@@ -676,7 +679,7 @@ object CheckoutView:
       ),
       div(
         cls := "checkout-summary-items",
-        s.basket.items.map { item =>
+        checkoutItems.items.map { item =>
           div(
             cls := "checkout-summary-item",
             span(cls := "checkout-summary-item-name",
@@ -882,8 +885,10 @@ object CheckoutView:
           onClick --> { _ =>
             // Save note before clearing
             ProductBuilderViewModel.updateCheckoutInfo(info.copy(note = noteVar.now().trim))
-            // UI-only: just show confirmation and clear basket
-            ProductBuilderViewModel.clearBasket()
+            // UI-only: just show confirmation. A quick single-item checkout never
+            // touched the real basket, so only a basket-scoped checkout clears it.
+            if s.checkoutBasket.isEmpty then
+              ProductBuilderViewModel.clearBasket()
             ProductBuilderViewModel.cancelCheckout()
             ProductBuilderViewModel.resetProductForm()
             AppRouter.navigateTo(AppRoute.ProductBuilder)
