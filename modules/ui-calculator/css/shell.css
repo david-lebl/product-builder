@@ -1,0 +1,58 @@
+/* ─── Calculator shell ────────────────────────────────────────────────────
+ *
+ * Appended last to calculator.css by build-css.sh.
+ *
+ * Styles for the small bar the widget renders in place of the SPA's top bar
+ * and navigation. `.language-selector` normally lives in login.css, which the
+ * calculator does not ship, so its styling is repeated here.
+ *
+ * The scoped reset lives in reset-scoped.css and is *prepended* instead — see
+ * the note there about why the order cannot be swapped.
+ */
+
+/* ─── Calculator bar ───────────────────────────────────────────────────── */
+
+.calculator-bar {
+    background: var(--color-primary-gradient);
+    color: white;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 0 max(20px, calc((100% - 1200px) / 2));
+    height: var(--top-bar-height);
+}
+
+.calculator-bar .top-bar-spacer {
+    flex: 1;
+}
+
+.calculator-bar .language-selector select {
+    background: rgba(255, 255, 255, 0.15);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    border-radius: 6px;
+    padding: 4px 8px;
+    color: white;
+    font-size: 0.85rem;
+    cursor: pointer;
+}
+
+.calculator-bar .language-selector select option {
+    color: #333;
+}
+
+.calculator-bar .nav-basket-btn {
+    background: rgba(255, 255, 255, 0.15);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    border-radius: 6px;
+    padding: 5px 12px;
+    margin: 0;
+    color: white;
+    font-size: 0.9rem;
+    cursor: pointer;
+}
+
+.calculator-bar .nav-basket-btn:hover:not(:disabled) {
+    background: rgba(255, 255, 255, 0.25);
+    transform: none;
+    box-shadow: none;
+}

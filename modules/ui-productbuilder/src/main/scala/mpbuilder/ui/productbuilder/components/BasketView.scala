@@ -1,10 +1,9 @@
 package mpbuilder.ui.productbuilder.components
 
 import com.raquo.laminar.api.L.*
-import mpbuilder.ui.productbuilder.{ProductBuilderViewModel, ArtworkMode, LoginState}
-import mpbuilder.ui.{AppRouter, AppRoute}
+import mpbuilder.ui.productbuilder.{ProductBuilderViewModel, BuilderEnvironment, LoginState}
 import mpbuilder.domain.pricing.{Money, Currency, PriceCalculator, CustomerPricelistResolver}
-import mpbuilder.domain.model.{Language, ConfigurationId, ComponentRole, ArtworkId}
+import mpbuilder.domain.model.{Language, ConfigurationId, ComponentRole}
 
 object BasketView:
   def apply(): Element =
@@ -140,40 +139,10 @@ object BasketView:
                   ),
                   div(
                     cls := "basket-item-artwork",
-                    state.basketItemArtwork.get(item.configuration.id) match
-                      case Some(ArtworkMode.UploadArtwork(Some(fileName))) =>
-                        span(l match
-                          case Language.En => s"📎 Artwork: $fileName"
-                          case Language.Cs => s"📎 Data: $fileName"
-                        )
-                      case Some(ArtworkMode.UploadArtwork(None)) =>
-                        span(cls := "artwork-pending", l match
-                          case Language.En => "📎 Artwork: not uploaded yet"
-                          case Language.Cs => "📎 Data: ještě nenahrána"
-                        )
-                      case Some(ArtworkMode.DesignInEditor(Some(artworkId))) =>
-                        div(
-                          span(l match
-                            case Language.En => "🎨 Design: created in Visual Editor"
-                            case Language.Cs => "🎨 Design: vytvořen ve vizuálním editoru"
-                          ),
-                          button(
-                            cls := "edit-design-btn",
-                            l match
-                              case Language.En => "Edit Design"
-                              case Language.Cs => "Upravit design"
-                            ,
-                            onClick --> { _ =>
-                              AppRouter.navigateTo(AppRoute.VisualEditor(Some(artworkId.value)))
-                            },
-                          ),
-                        )
-                      case Some(ArtworkMode.DesignInEditor(None)) =>
-                        span(l match
-                          case Language.En => "🎨 Design: created in Visual Editor"
-                          case Language.Cs => "🎨 Design: vytvořen ve vizuálním editoru"
-                        )
-                      case None => emptyNode
+                    BuilderEnvironment.get.artwork match
+                      case Some(artwork) => artwork.renderBasketItem(item.configuration.id, l)
+                      case None          => emptyNode
+                    ,
                   ),
                 ),
               )
@@ -211,14 +180,9 @@ object BasketView:
                 cls := "basket-actions-row",
                 button(
                   cls := "checkout-btn basket-checkout-btn",
-                  l match
-                    case Language.En => "Proceed to Checkout →"
-                    case Language.Cs => "Přejít k pokladně →"
-                  ,
+                  BuilderEnvironment.get.basketPrimaryAction.label(l),
                   onClick --> { _ =>
-                    AppRouter.basketOpen.set(false)
-                    ProductBuilderViewModel.startCheckout()
-                    AppRouter.navigateTo(AppRoute.Checkout)
+                    BuilderEnvironment.get.basketPrimaryAction.onClick()
                   },
                 ),
                 button(

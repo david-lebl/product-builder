@@ -13,7 +13,7 @@ lazy val commonSettings = Seq(
 
 // Root project (JVM-only, aggregates other projects)
 lazy val root = (project in file("."))
-  .aggregate(domainJVM, domainJS, uiFramework, uiShowcase, ui)
+  .aggregate(domainJVM, domainJS, uiFramework, uiShowcase, uiProductBuilder, uiCalculator, ui)
   .settings(
     name := "material-builder-root",
     publish / skip := true,
@@ -63,10 +63,36 @@ lazy val uiShowcase = (project in file("modules/ui-showcase"))
     ),
   )
 
+// Product builder — shared configurator (form, pricing, basket, e-mail order),
+// consumed by both the full SPA and the standalone calculator
+lazy val uiProductBuilder = (project in file("modules/ui-productbuilder"))
+  .enablePlugins(ScalaJSPlugin)
+  .dependsOn(domainJS, uiFramework)
+  .settings(commonSettings)
+  .settings(
+    name := "material-builder-ui-productbuilder",
+    libraryDependencies ++= Seq(
+      "com.raquo" %%% "laminar" % "17.2.0",
+    ),
+  )
+
+// Standalone embeddable calculator — Scala.js library exporting a global MPCalculator
+lazy val uiCalculator = (project in file("modules/ui-calculator"))
+  .enablePlugins(ScalaJSPlugin)
+  .dependsOn(domainJS, uiFramework, uiProductBuilder)
+  .settings(commonSettings)
+  .settings(
+    name := "material-builder-ui-calculator",
+    scalaJSUseMainModuleInitializer := false,
+    libraryDependencies ++= Seq(
+      "com.raquo" %%% "laminar" % "17.2.0",
+    ),
+  )
+
 // UI module (Scala.js only)
 lazy val ui = (project in file("modules/ui"))
   .enablePlugins(ScalaJSPlugin)
-  .dependsOn(domainJS, uiFramework)
+  .dependsOn(domainJS, uiFramework, uiProductBuilder)
   .settings(commonSettings)
   .settings(
     name := "material-builder-ui",

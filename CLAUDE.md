@@ -12,7 +12,9 @@ This project uses **Mill** as the build tool. sbt is also available in the proje
 # Compile
 mill domain.jvm.compile      # Domain (JVM target)
 mill domain.js.compile       # Domain (Scala.js target)
-mill ui.compile              # UI (Scala.js)
+mill ui.compile              # Full SPA (Scala.js)
+mill ui-productbuilder.compile  # Shared product configurator
+mill ui-calculator.compile   # Standalone embeddable calculator
 mill ui-framework.compile    # UI framework only
 
 # Test
@@ -22,16 +24,36 @@ mill 'domain.jvm.test.testOnly *PriceCalculatorSpec' # Single suite (pattern)
 # JS build
 mill ui.fastLinkJS           # Dev build → out/ui/fastLinkJS.dest/main.js
 mill ui.fullLinkJS           # Production build → out/ui/fullLinkJS.dest/main.js
+mill ui-calculator.fullLinkJS   # Widget build → out/ui-calculator/fullLinkJS.dest/main.js
+
+./modules/ui-calculator/build-css.sh   # Regenerate the widget's bundled calculator.css
 ```
 
 ## Architecture Overview
 
-**Scala 3.3.3** monorepo with 4 modules:
+**Scala 3.3.3** monorepo with 6 modules:
 
 - **`domain/`** — Cross-compiled (JVM + JS). Pure functional core: no ZIO effects, only `Validation[E, A]` from ZIO Prelude. Contains pricing engine, compatibility rules, manufacturing workflow, and all services.
-- **`ui/`** — Scala.js + Laminar SPA. Depends on `domainJS` and `uiFramework`.
+- **`ui-productbuilder/`** — The shared product configurator (form, pricing preview, validation, basket, e-mail order), package `mpbuilder.ui.productbuilder`. Depends on `domainJS` and `uiFramework`. Consumed by both apps below, so it must not reference anything in `mpbuilder.ui.*`.
+- **`ui/`** — Scala.js + Laminar SPA. Depends on `domainJS`, `uiFramework`, `ui-productbuilder`.
+- **`ui-calculator/`** — Standalone embeddable price calculator (`mpbuilder.calculator`). Linked without a main initializer; exports a global `MPCalculator` with `mount(selector, config)`. See [docs/standalone-calculator.md](docs/standalone-calculator.md).
 - **`ui-framework/`** — Reusable Laminar components with no domain dependency (`mpbuilder.uikit` package).
 - **`ui-showcase/`** — Demo for `ui-framework` components.
+
+### The `BuilderEnvironment` seam
+
+`ui-productbuilder` gets everything host-specific — pricing context, completion dates, Express
+availability, the artwork step, the basket's primary action, the order e-mail recipient — from
+`BuilderEnvironment`, a singleton the host installs once before the first render:
+
+- `ui` → `FullAppEnvironment.environment` (from `Main.main`): simulated shop-floor queue, concrete
+  completion timestamps, surge pricing, visual-editor artwork, checkout wizard.
+- `ui-calculator` → `CalculatorEnvironment.environment(config)` (from `CalculatorWidget.mount`):
+  `PricingContext.default`, **no** completion dates (indicative ranges + disclaimer instead),
+  no artwork step, basket → e-mail order.
+
+Never reach for `AppRouter`, `EditorBridge` or shop-floor data from inside `ui-productbuilder`;
+add a field to `BuilderEnvironment` instead.
 
 ### Domain Layer Principles
 
@@ -69,6 +91,9 @@ When using `combineWith` on multiple signals/streams, tuples are flattened via `
 | Sample data | `modules/domain/src/main/scala/mpbuilder/domain/sample/` |
 | Manufacturing domain | `modules/domain/src/main/scala/mpbuilder/domain/manufacturing/` |
 | Manufacturing UI | `modules/ui/src/main/scala/mpbuilder/ui/manufacturing/` |
+| Product configurator (shared) | `modules/ui-productbuilder/src/main/scala/mpbuilder/ui/productbuilder/` |
+| Host seam | `modules/ui-productbuilder/.../BuilderEnvironment.scala`, `modules/ui/.../FullAppEnvironment.scala`, `modules/ui-calculator/.../CalculatorEnvironment.scala` |
+| Standalone calculator | `modules/ui-calculator/` (sources, `css/`, `build-css.sh`) |
 | Pricing tests | `modules/domain/src/test/scala/mpbuilder/domain/PriceCalculatorSpec.scala` |
 | UI kit components | `modules/ui-framework/src/main/scala/mpbuilder/uikit/` |
 

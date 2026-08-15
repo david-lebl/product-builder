@@ -91,6 +91,18 @@ modules/
 │   │   └── views/                   #     7 views (see below)
 │   └── components/                  #   Configurator UI components
 │
+├── ui-productbuilder/               # Shared product configurator (used by ui + ui-calculator)
+│   ├── ProductBuilderApp            #   Form / price / basket page
+│   ├── ProductBuilderViewModel      #   Reactive configuration + pricing state
+│   ├── BuilderEnvironment           #   Host seam — what differs between the two apps
+│   └── components/                  #   Selectors, price preview, basket, e-mail order modal
+│
+├── ui-calculator/                   # Standalone embeddable price calculator widget
+│   ├── CalculatorWidget             #   `MPCalculator.mount(selector, config)` entry point
+│   ├── CalculatorEnvironment        #   No production queue → indicative lead times only
+│   ├── CalculatorApp                #   Thin shell over ProductBuilderApp
+│   └── resources/                   #   calculator.css, index.html, embed-example.html
+│
 ├── ui-framework/                    # Reusable Laminar component library (no domain dep)
 │   ├── fields/                      #   TextField, SelectField, CheckboxField, RadioGroup
 │   ├── containers/                  #   Tabs, Stepper, SplitTableView
@@ -104,6 +116,7 @@ docs/
 ├── pricing.md                       # Pricing system with worked examples
 ├── visual-product-types.md          # Visual editor types & formats
 ├── manufacturing-implementation-plan.md  # Manufacturing phases 1–8
+├── standalone-calculator.md         # Embeddable calculator widget & how to embed it
 ├── ui-guide.md                      # Build, run & test instructions
 └── analysis/                        # Research & planning documents
     ├── printing-domain-analysis.md

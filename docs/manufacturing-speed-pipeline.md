@@ -155,8 +155,14 @@ Digital-printed 500 flyers, no lamination, Standard tier, ordered Monday 10:00:
 | Station time estimates & shop schedule | `modules/domain/src/main/scala/mpbuilder/domain/sample/SampleManufacturing.scala` |
 | `ShopSchedule` / `WorkingHours` | `modules/domain/src/main/scala/mpbuilder/domain/manufacturing/` |
 | `StationTimeEstimate` | `modules/domain/src/main/scala/mpbuilder/domain/manufacturing/StationTimeEstimate.scala` |
-| Wiring from UI state | `modules/ui/src/main/scala/mpbuilder/ui/productbuilder/ProductBuilderViewModel.scala` (`completionEstimate`, `currentLocalDateTime`, `deriveStepTypes`, simulated queue state) |
+| Wiring from UI state | `modules/ui/src/main/scala/mpbuilder/ui/FullAppEnvironment.scala` (`completionText`, `deriveStepTypes`, simulated station utilisation & queue state, surge `PricingContext`) |
 | Tests | `modules/domain/src/test/scala/mpbuilder/domain/ExpressManufacturingSpec.scala` |
+
+> **This pipeline runs in the full SPA only.** The standalone calculator
+> ([standalone-calculator.md](standalone-calculator.md)) has no production-queue data, so it
+> supplies no completion estimate and shows indicative lead-time ranges with an explicit
+> disclaimer instead of a concrete date. Queue-surge pricing and the Express shop-load cutoff
+> are likewise inactive there; per-category tier restrictions still apply.
 
 ## Tuning notes
 

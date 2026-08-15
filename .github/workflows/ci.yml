@@ -40,4 +40,15 @@ jobs:
       - name: Test
         run: mill __.test
 
+      # calculator.css is generated from the SPA's stylesheets but committed, so
+      # editing one of them without regenerating would silently ship stale CSS.
+      - name: Check calculator.css is up to date
+        run: |
+          ./modules/ui-calculator/build-css.sh
+          if ! git diff --quiet -- modules/ui-calculator/src/main/resources/calculator.css; then
+            echo "::error::calculator.css is out of date. Run ./modules/ui-calculator/build-css.sh and commit the result."
+            git diff --stat -- modules/ui-calculator/src/main/resources/calculator.css
+            exit 1
+          fi
+
 

@@ -61,3 +61,7 @@ dist/
 ### UI resources symlinks ###
 modules/ui/src/main/resources/main.js
 dist/
+
+# Linked Scala.js output must never be committed into a source resources dir.
+# The deploy workflows copy it from out/<module>/fullLinkJS.dest/ at build time.
+modules/*/src/main/resources/main.js

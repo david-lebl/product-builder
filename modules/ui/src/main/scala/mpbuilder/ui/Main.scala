@@ -3,13 +3,17 @@ package mpbuilder.ui
 import com.raquo.laminar.api.L.*
 import org.scalajs.dom
 import mpbuilder.domain.model.Language
-import mpbuilder.ui.productbuilder.ProductBuilderViewModel
+import mpbuilder.ui.productbuilder.{BuilderEnvironment, ProductBuilderViewModel}
 
 object Main:
   def main(args: Array[String]): Unit =
+    // Tell the shared product configurator it is running inside the full SPA:
+    // simulated shop-floor queue, visual editor artwork, checkout wizard.
+    BuilderEnvironment.init(FullAppEnvironment.environment)
+
     // Detect browser language from navigator.language or localStorage
     val detectedLanguage = detectBrowserLanguage()
-    
+
     // Initialize the view model with the detected language
     ProductBuilderViewModel.initializeLanguage(detectedLanguage)
     

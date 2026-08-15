@@ -8,6 +8,14 @@
         <option name="modules">
           <set>
             <option value="$PROJECT_DIR$" />
+            <option value="$PROJECT_DIR$/modules/domain" />
+            <option value="$PROJECT_DIR$/modules/domain/.js" />
+            <option value="$PROJECT_DIR$/modules/domain/.jvm" />
+            <option value="$PROJECT_DIR$/modules/ui" />
+            <option value="$PROJECT_DIR$/modules/ui-calculator" />
+            <option value="$PROJECT_DIR$/modules/ui-framework" />
+            <option value="$PROJECT_DIR$/modules/ui-productbuilder" />
+            <option value="$PROJECT_DIR$/modules/ui-showcase" />
             <option value="$PROJECT_DIR$/project" />
           </set>
         </option>
