@@ -23,8 +23,8 @@ Target architecture for decomposing the system into feature-aligned bounded cont
 
 | Document | Description |
 |----------|-------------|
-| [architecture/modular-architecture.md](architecture/modular-architecture.md) | Feature modules (catalog, customers, identity, order-intake, pricing, manufacturing) with `00-contract` / `01-core` / `02-infra` sub-modules, the cross-module dependency rule, ZIO + tapir + Postgres stack, and the phased implementation order |
-| [architecture/order-intake.md](architecture/order-intake.md) | Order-intake bounded context in detail — Basket and Order aggregates, status lifecycle, commands/events/errors, ports, Postgres schema, tapir endpoints, identity requirements, and frontend migration |
+| [architecture/modular-architecture.md](architecture/modular-architecture.md) | Bounded contexts (catalog, customers, identity, order-intake, pricing, manufacturing) as `01-core` / `02-infra` module pairs — public-vs-`impl` package split, the three dependency rules, anti-corruption ports, domain-modeling conventions, ZIO + tapir + Postgres stack, and the phased implementation order |
+| [architecture/order-intake.md](architecture/order-intake.md) | Order-intake bounded context in detail — Basket and Order aggregates with a hierarchical `Order.Status`, public service traits, anti-corruption ports, Postgres schema, tapir endpoints, identity requirements, and frontend migration |
 
 ## 🔬 Analysis & Research
 
