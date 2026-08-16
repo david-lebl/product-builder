@@ -10,16 +10,24 @@ This project uses **Mill** as the build tool. sbt is also available in the proje
 
 ```bash
 # Compile
+mill commons.jvm.compile     # Shared kernel (JVM target)
 mill domain.jvm.compile      # Domain (JVM target)
 mill domain.js.compile       # Domain (Scala.js target)
+mill 'catalog.01-core.jvm.compile'  # Catalog public contract
+mill 'catalog.02-infra.compile'     # Catalog adapters
 mill ui.compile              # Full SPA (Scala.js)
 mill ui-productbuilder.compile  # Shared product configurator
 mill ui-calculator.compile   # Standalone embeddable calculator
 mill ui-framework.compile    # UI framework only
 
 # Test
+mill commons.jvm.test                               # Shared kernel tests
 mill domain.jvm.test                                # All domain tests
 mill 'domain.jvm.test.testOnly *PriceCalculatorSpec' # Single suite (pattern)
+mill 'catalog.02-infra.test'                        # Catalog contract tests
+
+# Architecture guard — must pass before compile; CI runs it first
+./scripts/check-module-deps.sh
 
 # JS build
 mill ui.fastLinkJS           # Dev build → out/ui/fastLinkJS.dest/main.js
@@ -31,9 +39,19 @@ mill ui-calculator.fullLinkJS   # Widget build → out/ui-calculator/fullLinkJS.
 
 ## Architecture Overview
 
-**Scala 3.3.3** monorepo with 6 modules:
+**Scala 3.3.3** monorepo, mid-migration to feature-aligned bounded contexts — see
+[docs/architecture/modular-architecture.md](docs/architecture/modular-architecture.md). New work goes
+into a context (`<context>/01-core` + `<context>/02-infra`); `domain/` is the shrinking legacy module.
 
-- **`domain/`** — Cross-compiled (JVM + JS). Pure functional core: no ZIO effects, only `Validation[E, A]` from ZIO Prelude. Contains pricing engine, compatibility rules, manufacturing workflow, and all services.
+**The dependency rule, enforced by `scripts/check-module-deps.sh` in CI:** a `01-core` may depend on
+`commons` **only** — never another context's core, never any infra. A `02-infra` may depend on its
+own core plus other contexts' cores (that is where anti-corruption adapters live), never another
+context's infra.
+
+- **`commons/`** — Cross-compiled shared kernel: `Money`, `Currency`, `Price`, `Percentage`, `Language`, `LocalizedString`, `Dimension`, `Quantity`, `Timestamp`, `DomainError`, `Estimated[+A]`. Depends on nothing. Business concepts (`CategoryId`, `CustomerType`, …) do **not** belong here.
+- **`catalog/01-core`** — Catalog's public contract: `CatalogService`, `CatalogError`, `ConfigurationSnapshot`, request DTOs. Cross-compiled, `commons`-only.
+- **`catalog/02-infra`** — Adapters. `LegacyCatalogService` delegates to `domain/` until the model is extracted (Phase 7); `Mapping` is the whole DTO↔domain anti-corruption layer.
+- **`domain/`** — Cross-compiled (JVM + JS). Pure functional core: no ZIO effects, only `Validation[E, A]` from ZIO Prelude. Contains pricing engine, compatibility rules, manufacturing workflow, and all services. **Legacy** — being split into contexts.
 - **`ui-productbuilder/`** — The shared product configurator (form, pricing preview, validation, basket, e-mail order), package `mpbuilder.ui.productbuilder`. Depends on `domainJS` and `uiFramework`. Consumed by both apps below, so it must not reference anything in `mpbuilder.ui.*`.
 - **`ui/`** — Scala.js + Laminar SPA. Depends on `domainJS`, `uiFramework`, `ui-productbuilder`.
 - **`ui-calculator/`** — Standalone embeddable price calculator (`mpbuilder.calculator`). Linked without a main initializer; exports a global `MPCalculator` with `mount(selector, config)`. See [docs/standalone-calculator.md](docs/standalone-calculator.md).
@@ -85,6 +103,10 @@ When using `combineWith` on multiple signals/streams, tuples are flattened via `
 
 | Area | Path |
 |---|---|
+| Shared kernel | `modules/commons/src/main/scala/mpbuilder/commons/` |
+| Catalog contract / adapters | `modules/catalog/01-core/`, `modules/catalog/02-infra/` |
+| Configuration snapshot codecs | `modules/domain/.../codec/ConfigurationCodecs.scala` |
+| Architecture docs | `docs/architecture/` |
 | Pricing rules/engine | `modules/domain/src/main/scala/mpbuilder/domain/pricing/` |
 | Compatibility rules | `modules/domain/src/main/scala/mpbuilder/domain/rules/` |
 | Domain services | `modules/domain/src/main/scala/mpbuilder/domain/service/` |

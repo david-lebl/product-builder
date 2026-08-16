@@ -101,6 +101,57 @@ object domain extends Module {
 }
 
 // ---------------------------------------------------------------------------
+// Catalog — bounded context: what can be built.
+//
+//   01-core   public contract (service traits, DTOs, errors). Depends on
+//             `commons` ONLY — never on another context's core, and never on
+//             any infra. Cross-compiled: the offline calculator will run it.
+//   02-infra  adapters. Today the only implementation delegates to the legacy
+//             `domain` module; in Phase 7 the model moves into 01-core/impl and
+//             this shrinks to persistence + HTTP. JVM only.
+// ---------------------------------------------------------------------------
+
+object catalog extends Module {
+  private val base = rootDir / "modules" / "catalog"
+
+  object `01-core` extends Module {
+    object jvm extends ScalaModule {
+      def scalaVersion = scala3Version
+      def scalacOptions = commonScalacOptions
+      def sources = Task.Sources(base / "01-core" / "src" / "main" / "scala")
+      def moduleDeps = Seq(commons.jvm)
+      def mvnDeps = domainMvnDeps
+    }
+
+    object js extends ScalaJSModule {
+      def scalaVersion = scala3Version
+      def scalaJSVersion = build.scalaJsVersion
+      def scalacOptions = commonScalacOptions
+      def sources = Task.Sources(base / "01-core" / "src" / "main" / "scala")
+      def moduleDeps = Seq(commons.js)
+      def mvnDeps = domainMvnDeps
+    }
+  }
+
+  object `02-infra` extends ScalaModule {
+    def scalaVersion = scala3Version
+    def scalacOptions = commonScalacOptions
+    def sources = Task.Sources(base / "02-infra" / "src" / "main" / "scala")
+    def moduleDeps = Seq(`01-core`.jvm, domain.jvm)
+    def mvnDeps = domainMvnDeps
+
+    object test extends ScalaTests {
+      def sources = Task.Sources(base / "02-infra" / "src" / "test" / "scala")
+      def mvnDeps = Seq(
+        mvn"dev.zio::zio-test::2.1.16",
+        mvn"dev.zio::zio-test-sbt::2.1.16"
+      )
+      def testFramework = "zio.test.sbt.ZTestFramework"
+    }
+  }
+}
+
+// ---------------------------------------------------------------------------
 // UI Framework — Laminar components, no domain dependency (Scala.js only)
 // ---------------------------------------------------------------------------
 

@@ -493,29 +493,38 @@ failing; `mill ui.fullLinkJS` and `mill ui-calculator.fullLinkJS` both link.
 > `Basket` moves to order-intake (Phase 5) and `Customer` to customers (Phase 9). Until then the two
 > packages remain mutually referencing inside the single `domain` compile unit.
 
-**Phase 1 — first public services.** Create `catalog/01-core`, `pricing/01-core`,
-`customers/01-core` holding only their **public service traits, DTOs and error ADTs**. Nothing else
-moves yet. Add the CI dependency check.
-*Verify:* everything compiles; service-contract tests exercise the façades against `SampleCatalog` /
-`SamplePricelist`.
+**Phase 1 — first public services. ✅ catalog DONE; pricing and customers outstanding.**
 
-Two corrections to the original sketch, both found while doing Phase 0:
+Delivered:
+
+- **Configuration snapshot codecs** — `domain/codec/ConfigurationCodecs.scala`. `DomainCodecs` had
+  92 `given`s but none for `ProductConfiguration`; four were missing (`SelectedFinish`,
+  `ProductComponent`, `ProductSpecifications` with its `SpecKind`-keyed map, and
+  `ProductConfiguration`). `ConfigurationCodecSpec` proves round-trips for all 7 `FinishParameters`
+  variants, all 8 `SpecValue` variants and every `SpecKind` as a JSON field name.
+- **`catalog/01-core`** — `CatalogService`, `CatalogError`/`Problem`, `ConfigurationSnapshot` /
+  `CatalogVersion` / `ConfigurationView`, and the request DTOs. Cross-compiled JVM+JS, depends on
+  `commons` only.
+- **`catalog/02-infra`** — `LegacyCatalogService` over `SampleCatalog`, with `Mapping` (the entire
+  anti-corruption layer, one file) and `Describe`.
+- **`scripts/check-module-deps.sh`**, wired into CI ahead of compile. Verified to *fail* on a
+  planted violation, not merely to pass.
+
+*Verified:* `mill __.compile` clean; `mill __.test` 671 passing, 0 failing; both bundles link.
+
+Three things learned while building it:
 
 - **The delegating implementation goes in `02-infra`, not `01-core/impl`.** A `Live` inside
   `01-core` would have to depend on `domain`, breaking the "core depends on `commons` only" rule on
-  day one. Putting the legacy-backed implementation in `catalog/02-infra` needs no exception — it is
-  exactly what the infra layer is for, and swapping it for a real implementation later touches one
-  module.
-- **Renaming `domain` → `legacy-domain` is deferred to Phase 7.** It has 117 references across
-  `CLAUDE.md`, `README.md`, seven guides and ten *historical* changelog entries that should not be
-  rewritten. The rename buys nothing functional; it is worth doing once the module has actually
-  shrunk, when the edit is smaller and means something.
-
-**Known gap for Phase 1 sizing:** `codec/DomainCodecs.scala` has 92 `given`s but **none for
-`ProductConfiguration`**, so there is no serialized form of a configuration today. Order-intake's
-`ProductSpec` (a stored, versioned JSON snapshot) depends on one existing, so writing those codecs —
-covering all 8 `SpecKind`s and all 7 `FinishParameters` variants — is part of Phase 1's catalog
-façade, not a later detail.
+  day one. The legacy-backed implementation in `catalog/02-infra` needs no exception.
+- **Renaming `domain` → `legacy-domain` is deferred to Phase 7.** 117 references across
+  `CLAUDE.md`, `README.md`, seven guides and ten *historical* changelog entries. The rename buys
+  nothing functional; do it once the module has shrunk.
+- **A snapshot is a value, not an entity.** The first implementation stamped a random
+  `ConfigurationId` into every build, which was serialized into the payload — so two identical
+  products produced different snapshots and basket deduplication would have silently failed. Caught
+  by the fingerprint test. Snapshots now build with a constant id; identity comes from the context
+  that stores them (an order line id), never from the snapshot.
 
 **Phase 2 — `app` skeleton + `identity`.** Stand up `app` (ZIOAppDefault, zio-http, Flyway, Postgres
 via docker-compose, Swagger UI), then build `identity` end to end: `User`, Argon2 hashing, JWT

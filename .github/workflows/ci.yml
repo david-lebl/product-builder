@@ -34,6 +34,11 @@ jobs:
           curl -fL "https://repo1.maven.org/maven2/com/lihaoyi/mill-dist/1.1.3/mill-dist-1.1.3-mill.sh" -o /usr/local/bin/mill
           chmod +x /usr/local/bin/mill
 
+      # Bounded-context boundaries are only worth having if they are enforced. This is
+      # cheap to hold now and expensive to recover once violated.
+      - name: Check module dependency rules
+        run: ./scripts/check-module-deps.sh
+
       - name: Compile
         run: mill __.compile
 
