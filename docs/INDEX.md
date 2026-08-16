@@ -17,6 +17,15 @@ Core feature specifications — stable documents describing *what* the system do
 | [email-order-option.md](email-order-option.md) | Email order option — pre-filled modal popup for requesting orders via email |
 | [standalone-calculator.md](standalone-calculator.md) | Embeddable price calculator widget — scope, e-mail ordering, indicative (non-promised) lead times, and the two embedding modes |
 
+## 🏛 Architecture
+
+Target architecture for decomposing the system into feature-aligned bounded contexts.
+
+| Document | Description |
+|----------|-------------|
+| [architecture/modular-architecture.md](architecture/modular-architecture.md) | Feature modules (catalog, customers, identity, order-intake, pricing, manufacturing) with `00-contract` / `01-core` / `02-infra` sub-modules, the cross-module dependency rule, ZIO + tapir + Postgres stack, and the phased implementation order |
+| [architecture/order-intake.md](architecture/order-intake.md) | Order-intake bounded context in detail — Basket and Order aggregates, status lifecycle, commands/events/errors, ports, Postgres schema, tapir endpoints, identity requirements, and frontend migration |
+
 ## 🔬 Analysis & Research
 
 Research documents, gap analyses, and architecture decisions — context for *why* things are the way they are.
