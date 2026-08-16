@@ -1,5 +1,7 @@
 package mpbuilder.domain.pricing
 
+import mpbuilder.commons.*
+
 import mpbuilder.domain.model.*
 
 /** Generates a customer-specific `Pricelist` by overlaying `CustomerPricing`

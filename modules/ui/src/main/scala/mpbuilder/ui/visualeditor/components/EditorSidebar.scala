@@ -1,9 +1,10 @@
 package mpbuilder.ui.visualeditor.components
 
+import mpbuilder.commons.*
+
 import com.raquo.laminar.api.L.*
 import mpbuilder.ui.visualeditor.*
 import mpbuilder.ui.productbuilder.ProductBuilderViewModel
-import mpbuilder.domain.model.Language
 
 /** Vertical icon bar with collapsible content panels for the visual editor */
 object EditorSidebar {

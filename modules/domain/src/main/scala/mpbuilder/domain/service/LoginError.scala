@@ -1,9 +1,11 @@
 package mpbuilder.domain.service
 
+import mpbuilder.commons.*
+
 import mpbuilder.domain.model.*
 
 /** Error ADT for login operations. */
-enum LoginError:
+enum LoginError extends DomainError:
   case CustomerNotFound(identifier: String, identifierType: IdentifierType)
   case OtpExpired(customerId: CustomerId)
   case OtpInvalid(customerId: CustomerId)
@@ -11,7 +13,6 @@ enum LoginError:
   case CustomerSuspended(customerId: CustomerId)
   case SessionExpired(sessionId: SessionId)
 
-  def message: String = message(Language.En)
 
   def message(lang: Language): String = this match
     case CustomerNotFound(id, idType) => lang match

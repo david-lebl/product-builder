@@ -1,9 +1,11 @@
 package mpbuilder.ui.productbuilder.components
 
+import mpbuilder.commons.*
+
 import com.raquo.laminar.api.L.*
 import mpbuilder.ui.productbuilder.ProductBuilderViewModel
-import mpbuilder.domain.pricing.{Money, Currency, ComponentBreakdown, PriceBreakdown}
-import mpbuilder.domain.model.{Language, ComponentRole}
+import mpbuilder.domain.pricing.{ComponentBreakdown, PriceBreakdown}
+import mpbuilder.domain.model.{ComponentRole}
 import mpbuilder.domain.weight.WeightBreakdown
 
 object PricePreview:

@@ -1,5 +1,7 @@
 package mpbuilder.domain.model
 
+import mpbuilder.commons.*
+
 /** High-level product grouping for the customer-facing catalog.
   *
   * Categories like business cards, flyers, brochures are grouped under

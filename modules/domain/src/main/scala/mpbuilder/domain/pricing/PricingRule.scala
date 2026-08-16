@@ -1,5 +1,7 @@
 package mpbuilder.domain.pricing
 
+import mpbuilder.commons.*
+
 import mpbuilder.domain.model.*
 
 /** Area price tier for materials: if both [[MaterialAreaTier]] and [[MaterialAreaPrice]] exist for the same material,

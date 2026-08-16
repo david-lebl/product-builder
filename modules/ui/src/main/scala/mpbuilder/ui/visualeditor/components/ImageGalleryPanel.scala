@@ -1,10 +1,11 @@
 package mpbuilder.ui.visualeditor.components
 
+import mpbuilder.commons.*
+
 import com.raquo.laminar.api.L.*
 import mpbuilder.ui.visualeditor.*
 import mpbuilder.ui.persistence.EditorSessionStore
 import mpbuilder.ui.productbuilder.ProductBuilderViewModel
-import mpbuilder.domain.model.Language
 import org.scalajs.dom
 import org.scalajs.dom.FileReader
 import scala.scalajs.js

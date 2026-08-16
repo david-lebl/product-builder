@@ -1,10 +1,11 @@
 package mpbuilder.domain.service
 
+import mpbuilder.commons.*
+
 import mpbuilder.domain.model.*
-import mpbuilder.domain.pricing.Money
 
 /** Error ADT for discount code operations. */
-enum DiscountCodeError:
+enum DiscountCodeError extends DomainError:
   case CodeNotFound(code: String)
   case CodeExpired(code: String)
   case CodeNotYetValid(code: String)
@@ -17,7 +18,6 @@ enum DiscountCodeError:
   case CodeIdNotFound(id: DiscountCodeId)
   case InvalidDiscountValue(detail: String)
 
-  def message: String = message(Language.En)
 
   def message(lang: Language): String = this match
     case CodeNotFound(c) => lang match

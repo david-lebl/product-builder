@@ -1,7 +1,8 @@
 package mpbuilder.domain.sample
 
+import mpbuilder.commons.*
+
 import mpbuilder.domain.model.*
-import mpbuilder.domain.pricing.Money
 
 object SampleDiscountCodes:
 

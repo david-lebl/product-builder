@@ -1,5 +1,7 @@
 package mpbuilder.domain.service
 
+import mpbuilder.commons.*
+
 import mpbuilder.domain.model.*
 
 /** Derives a manufacturing workflow from a product configuration.

@@ -1,5 +1,7 @@
 package mpbuilder.domain.pricing
 
+import mpbuilder.commons.*
+
 import mpbuilder.domain.model.*
 
 /** Production cost rules define the floor price below which we should not sell.
@@ -32,14 +34,13 @@ final case class ProductionCostSheet(
 )
 
 /** Warning about margin issues. */
-enum CostWarning:
+enum CostWarning extends DomainError:
   /** The selling price is below the production cost. */
   case BelowProductionCost(shortfall: Money)
 
   /** The margin is below a recommended threshold. */
   case LowMargin(marginPct: Percentage, threshold: Percentage)
 
-  def message: String = message(Language.En)
 
   def message(lang: Language): String = this match
     case BelowProductionCost(shortfall) => lang match

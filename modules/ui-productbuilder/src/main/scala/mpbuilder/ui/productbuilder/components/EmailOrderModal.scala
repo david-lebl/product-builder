@@ -1,9 +1,10 @@
 package mpbuilder.ui.productbuilder.components
 
+import mpbuilder.commons.*
+
 import com.raquo.laminar.api.L.*
 import mpbuilder.ui.productbuilder.{ProductBuilderViewModel, BuilderEnvironment, BuilderState, LoginState}
 import mpbuilder.domain.model.*
-import mpbuilder.domain.pricing.{Money, Currency}
 import org.scalajs.dom
 import scala.scalajs.js.URIUtils
 

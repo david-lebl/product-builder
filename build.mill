@@ -16,6 +16,7 @@ val commonScalacOptions = Seq(
 )
 
 val rootDir = moduleDir
+val commonsDir = rootDir / "modules" / "commons"
 val domainDir = rootDir / "modules" / "domain"
 
 val domainMvnDeps = Seq(
@@ -24,6 +25,42 @@ val domainMvnDeps = Seq(
   mvn"dev.zio::zio-json::0.7.3",
   mvn"com.softwaremill.quicklens::quicklens::1.9.12"
 )
+
+// ---------------------------------------------------------------------------
+// Commons — shared kernel. Cross-compiled for JVM and JS. Depends on nothing:
+// Money/Language/Quantity and friends are owned by no bounded context, so
+// putting them here is what keeps `model` and `pricing` from importing each
+// other. Business concepts (CategoryId, CustomerType, …) do NOT belong here.
+// ---------------------------------------------------------------------------
+
+object commons extends Module {
+
+  /** Commons JVM target */
+  object jvm extends ScalaModule {
+    def scalaVersion = scala3Version
+    def scalacOptions = commonScalacOptions
+    def sources = Task.Sources(commonsDir / "src" / "main" / "scala")
+    def mvnDeps = domainMvnDeps
+
+    object test extends ScalaTests {
+      def sources = Task.Sources(commonsDir / "src" / "test" / "scala")
+      def mvnDeps = Seq(
+        mvn"dev.zio::zio-test::2.1.16",
+        mvn"dev.zio::zio-test-sbt::2.1.16"
+      )
+      def testFramework = "zio.test.sbt.ZTestFramework"
+    }
+  }
+
+  /** Commons Scala.js target */
+  object js extends ScalaJSModule {
+    def scalaVersion = scala3Version
+    def scalaJSVersion = build.scalaJsVersion
+    def scalacOptions = commonScalacOptions
+    def sources = Task.Sources(commonsDir / "src" / "main" / "scala")
+    def mvnDeps = domainMvnDeps
+  }
+}
 
 // ---------------------------------------------------------------------------
 // Domain — cross-compiled for JVM and JS (shared pure sources)
@@ -37,6 +74,7 @@ object domain extends Module {
     def scalacOptions = commonScalacOptions
     def sources = Task.Sources(domainDir / "src" / "main" / "scala")
     def resources = Task.Sources(domainDir / "src" / "main" / "resources")
+    def moduleDeps = Seq(commons.jvm)
     def mvnDeps = domainMvnDeps
 
     object test extends ScalaTests {
@@ -57,6 +95,7 @@ object domain extends Module {
     def scalacOptions = commonScalacOptions
     def sources = Task.Sources(domainDir / "src" / "main" / "scala")
     def resources = Task.Sources(domainDir / "src" / "main" / "resources")
+    def moduleDeps = Seq(commons.js)
     def mvnDeps = domainMvnDeps
   }
 }
@@ -105,7 +144,7 @@ object `ui-productbuilder` extends ScalaJSModule {
   def scalacOptions = commonScalacOptions
   def sources = Task.Sources(rootDir / "modules" / "ui-productbuilder" / "src" / "main" / "scala")
   def resources = Task.Sources(rootDir / "modules" / "ui-productbuilder" / "src" / "main" / "resources")
-  def moduleDeps = Seq(domain.js, `ui-framework`)
+  def moduleDeps = Seq(commons.js, domain.js, `ui-framework`)
   def mvnDeps = Seq(
     mvn"com.raquo::laminar::${laminarVersion}"
   )
@@ -123,7 +162,7 @@ object `ui-calculator` extends ScalaJSModule {
   def sources = Task.Sources(rootDir / "modules" / "ui-calculator" / "src" / "main" / "scala")
   def resources = Task.Sources(rootDir / "modules" / "ui-calculator" / "src" / "main" / "resources")
   def scalaJSUseMainModuleInitializer = false
-  def moduleDeps = Seq(domain.js, `ui-framework`, `ui-productbuilder`)
+  def moduleDeps = Seq(commons.js, domain.js, `ui-framework`, `ui-productbuilder`)
   def mvnDeps = Seq(
     mvn"com.raquo::laminar::${laminarVersion}"
   )
@@ -140,7 +179,7 @@ object ui extends ScalaJSModule {
   def sources = Task.Sources(rootDir / "modules" / "ui" / "src" / "main" / "scala")
   def resources = Task.Sources(rootDir / "modules" / "ui" / "src" / "main" / "resources")
   def scalaJSUseMainModuleInitializer = true
-  def moduleDeps = Seq(domain.js, `ui-framework`, `ui-productbuilder`)
+  def moduleDeps = Seq(commons.js, domain.js, `ui-framework`, `ui-productbuilder`)
   def mvnDeps = Seq(
     mvn"com.raquo::laminar::${laminarVersion}"
   )

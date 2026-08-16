@@ -1,5 +1,8 @@
-package mpbuilder.domain.pricing
+package mpbuilder.commons
 
+/** A monetary amount. Always `BigDecimal` — never `Double` — rounded `HALF_UP` to 2 decimal places
+  * by [[Money.rounded]] at presentation boundaries.
+  */
 opaque type Money = BigDecimal
 object Money:
   def apply(value: BigDecimal): Money = value

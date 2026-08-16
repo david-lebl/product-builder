@@ -1,5 +1,7 @@
 package mpbuilder.ui.catalog
 
+import mpbuilder.commons.*
+
 import com.raquo.laminar.api.L.*
 import zio.json.*
 import mpbuilder.domain.model.*

@@ -1,9 +1,11 @@
 package mpbuilder.domain.service
 
+import mpbuilder.commons.*
+
 import mpbuilder.domain.model.*
 
 /** Error ADT for employee and machine management operations. */
-enum ManagementError:
+enum ManagementError extends DomainError:
   case EmployeeNotFound(employeeId: EmployeeId)
   case EmployeeNameEmpty
   case EmployeeAlreadyExists(employeeId: EmployeeId)
@@ -12,7 +14,6 @@ enum ManagementError:
   case MachineNameEmpty
   case MachineAlreadyExists(machineId: MachineId)
 
-  def message: String = message(Language.En)
 
   def message(lang: Language): String = this match
     case EmployeeNotFound(id) => lang match

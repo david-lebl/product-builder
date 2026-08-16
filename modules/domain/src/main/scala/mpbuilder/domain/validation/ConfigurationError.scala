@@ -1,9 +1,11 @@
 package mpbuilder.domain.validation
 
+import mpbuilder.commons.*
+
 import mpbuilder.domain.model.*
 import mpbuilder.domain.rules.SpecPredicate
 
-enum ConfigurationError:
+enum ConfigurationError extends DomainError:
   case CategoryNotFound(categoryId: CategoryId)
   case MaterialNotFound(materialId: MaterialId)
   case FinishNotFound(finishId: FinishId)
@@ -33,7 +35,6 @@ enum ConfigurationError:
   case InvalidFinishParameters(finishId: FinishId, reason: String)
   case ScoringCreaseLimitExceeded(maxCreases: Int, actualCreases: Int, reason: String)
 
-  def message: String = message(Language.En)
 
   def message(lang: Language): String = this match
     case CategoryNotFound(id) => lang match

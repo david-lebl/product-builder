@@ -1,5 +1,7 @@
 package mpbuilder.ui.productbuilder
 
+import mpbuilder.commons.*
+
 import mpbuilder.domain.model.*
 import mpbuilder.domain.model.CheckoutStep.*
 import mpbuilder.domain.service.*

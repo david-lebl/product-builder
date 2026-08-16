@@ -1,7 +1,9 @@
 package mpbuilder.ui.productbuilder
 
+import mpbuilder.commons.*
+
 import com.raquo.laminar.api.L.*
-import mpbuilder.domain.model.{ConfigurationId, Language, ManufacturingSpeed, ProductConfiguration}
+import mpbuilder.domain.model.{ConfigurationId, ManufacturingSpeed, ProductConfiguration}
 import mpbuilder.domain.pricing.PricingContext
 
 /** How the host app lets the customer supply artwork.

@@ -1,10 +1,12 @@
 package mpbuilder.ui.visualeditor
 
+import mpbuilder.commons.*
+
 import com.raquo.laminar.api.L.*
 import mpbuilder.ui.visualeditor.components.*
 import mpbuilder.ui.productbuilder.ProductBuilderViewModel
 import mpbuilder.ui.{AppRouter, AppRoute}
-import mpbuilder.domain.model.{Language, ArtworkId}
+import mpbuilder.domain.model.{ArtworkId}
 import mpbuilder.uikit.containers.{Tabs, TabDef}
 import mpbuilder.ui.persistence.EditorSessionStore
 import org.scalajs.dom

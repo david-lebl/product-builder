@@ -1,9 +1,11 @@
 package mpbuilder.domain.service
 
+import mpbuilder.commons.*
+
 import mpbuilder.domain.model.*
 
 /** Error ADT for workflow engine state transitions. */
-enum WorkflowError:
+enum WorkflowError extends DomainError:
   case StepNotFound(stepId: StepId)
   case StepNotReady(stepId: StepId, currentStatus: StepStatus)
   case StepNotInProgress(stepId: StepId, currentStatus: StepStatus)
@@ -14,7 +16,6 @@ enum WorkflowError:
   case StepCannotBeSkipped(stepId: StepId, stationType: StationType)
   case StepCannotBeReset(stepId: StepId, currentStatus: StepStatus)
 
-  def message: String = message(Language.En)
 
   def message(lang: Language): String = this match
     case StepNotFound(stepId) => lang match

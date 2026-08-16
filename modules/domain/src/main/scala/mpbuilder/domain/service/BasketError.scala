@@ -1,14 +1,15 @@
 package mpbuilder.domain.service
 
+import mpbuilder.commons.*
+
 import mpbuilder.domain.model.*
 import mpbuilder.domain.pricing.PricingError
 
-enum BasketError:
+enum BasketError extends DomainError:
   case InvalidQuantity(quantity: Int)
   case ConfigurationNotFound(configurationId: ConfigurationId)
   case PricingFailed(error: PricingError)
 
-  def message: String = message(Language.En)
 
   def message(lang: Language): String = this match
     case InvalidQuantity(quantity) => lang match

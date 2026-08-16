@@ -1,5 +1,7 @@
 package mpbuilder.domain.model
 
+import mpbuilder.commons.*
+
 enum PrintingProcessType:
   case Offset, Digital, Letterpress, ScreenPrint, UVCurableInkjet, LatexInkjet, SolventInkjet
 

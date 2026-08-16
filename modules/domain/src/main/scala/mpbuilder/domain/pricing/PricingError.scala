@@ -1,15 +1,16 @@
 package mpbuilder.domain.pricing
 
+import mpbuilder.commons.*
+
 import mpbuilder.domain.model.*
 
-enum PricingError:
+enum PricingError extends DomainError:
   case NoBasePriceForMaterial(materialId: MaterialId, role: ComponentRole)
   case NoQuantityInSpecifications
   case NoSizeForAreaPricing(materialId: MaterialId, role: ComponentRole)
   case NoSizeForSheetPricing(materialId: MaterialId, role: ComponentRole)
   case MissingScoringPrice(creaseCount: Int)
 
-  def message: String = message(Language.En)
 
   def message(lang: Language): String = this match
     case NoBasePriceForMaterial(materialId, role) => lang match

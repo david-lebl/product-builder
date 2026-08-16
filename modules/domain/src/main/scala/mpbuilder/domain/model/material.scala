@@ -1,5 +1,7 @@
 package mpbuilder.domain.model
 
+import mpbuilder.commons.*
+
 import zio.prelude.*
 
 enum MaterialFamily:

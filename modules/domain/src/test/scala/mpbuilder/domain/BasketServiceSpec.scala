@@ -1,5 +1,7 @@
 package mpbuilder.domain
 
+import mpbuilder.commons.*
+
 import zio.test.*
 import zio.prelude.*
 import mpbuilder.domain.model.*

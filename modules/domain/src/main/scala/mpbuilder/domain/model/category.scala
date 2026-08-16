@@ -1,5 +1,7 @@
 package mpbuilder.domain.model
 
+import mpbuilder.commons.*
+
 enum SpecKind:
   case Size, Quantity, Orientation, Bleed, Pages, FoldType, BindingMethod, ManufacturingSpeed
 

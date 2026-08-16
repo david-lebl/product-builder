@@ -1,8 +1,9 @@
 package mpbuilder.domain
 
+import mpbuilder.commons.*
+
 import zio.test.*
 import mpbuilder.domain.model.*
-import mpbuilder.domain.pricing.Money
 import mpbuilder.domain.service.*
 import mpbuilder.domain.sample.{SampleDiscountCodes, SampleCustomers, SampleCatalog}
 

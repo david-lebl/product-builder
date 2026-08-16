@@ -1,5 +1,7 @@
 package mpbuilder.domain.weight
 
+import mpbuilder.commons.*
+
 import mpbuilder.domain.model.*
 
 enum WeightError:

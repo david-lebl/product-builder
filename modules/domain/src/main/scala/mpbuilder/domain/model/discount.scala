@@ -1,6 +1,7 @@
 package mpbuilder.domain.model
 
-import mpbuilder.domain.pricing.Money
+import mpbuilder.commons.*
+
 
 /** Type of discount applied by a discount code */
 enum DiscountType:

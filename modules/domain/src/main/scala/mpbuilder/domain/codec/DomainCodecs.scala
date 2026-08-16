@@ -1,5 +1,7 @@
 package mpbuilder.domain.codec
 
+import mpbuilder.commons.*
+
 import zio.json.*
 import mpbuilder.domain.model.*
 import mpbuilder.domain.pricing.*

@@ -1,18 +1,6 @@
 package mpbuilder.domain.model
 
-import zio.prelude.*
-
-final case class Dimension(widthMm: Double, heightMm: Double)
-
-opaque type Quantity = Int
-object Quantity:
-  def apply(value: Int): Validation[String, Quantity] =
-    if value > 0 then Validation.succeed(value)
-    else Validation.fail(s"Quantity must be positive, got $value")
-
-  def unsafe(value: Int): Quantity = value
-
-  extension (q: Quantity) def value: Int = q
+import mpbuilder.commons.*
 
 enum InkType:
   case CMYK, PMS, Grayscale, White, None

@@ -1,8 +1,9 @@
 package mpbuilder.ui
 
+import mpbuilder.commons.*
+
 import com.raquo.laminar.api.L.*
 import org.scalajs.dom
-import mpbuilder.domain.model.Language
 import mpbuilder.ui.productbuilder.{BuilderEnvironment, ProductBuilderViewModel}
 
 object Main:

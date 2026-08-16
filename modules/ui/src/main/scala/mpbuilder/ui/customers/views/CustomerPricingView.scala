@@ -1,5 +1,7 @@
 package mpbuilder.ui.customers.views
 
+import mpbuilder.commons.*
+
 import com.raquo.laminar.api.L.*
 import mpbuilder.domain.model.*
 import mpbuilder.domain.pricing.*

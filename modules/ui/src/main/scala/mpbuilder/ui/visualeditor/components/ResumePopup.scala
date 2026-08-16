@@ -1,8 +1,9 @@
 package mpbuilder.ui.visualeditor.components
 
+import mpbuilder.commons.*
+
 import com.raquo.laminar.api.L.*
 import mpbuilder.ui.visualeditor.EditorSession
-import mpbuilder.domain.model.Language
 import org.scalajs.dom
 
 /** Modal popup shown when opening the editor standalone with existing sessions in IndexedDB.

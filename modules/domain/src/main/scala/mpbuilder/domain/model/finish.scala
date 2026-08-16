@@ -1,5 +1,7 @@
 package mpbuilder.domain.model
 
+import mpbuilder.commons.*
+
 enum FinishCategory:
   case Surface, Decorative, Structural, LargeFormat
 

@@ -1,7 +1,8 @@
 package mpbuilder.calculator
 
+import mpbuilder.commons.*
+
 import com.raquo.laminar.api.L.*
-import mpbuilder.domain.model.Language
 import mpbuilder.domain.pricing.PricingContext
 import mpbuilder.ui.productbuilder.{BasketPrimaryAction, BuilderEnvironment, QuickOrderAction}
 import mpbuilder.ui.productbuilder.components.EmailOrderModal

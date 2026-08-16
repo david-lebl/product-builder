@@ -1,16 +1,17 @@
 package mpbuilder.domain.service
 
+import mpbuilder.commons.*
+
 import mpbuilder.domain.model.*
 
 /** Error ADT for customer management operations. */
-enum CustomerManagementError:
+enum CustomerManagementError extends DomainError:
   case DuplicateBusinessId(businessId: String)
   case DuplicateEmail(email: String)
   case CustomerNotFound(customerId: CustomerId)
   case InvalidStatus(from: CustomerStatus, to: CustomerStatus)
   case MissingRequiredField(fieldName: String)
 
-  def message: String = message(Language.En)
 
   def message(lang: Language): String = this match
     case DuplicateBusinessId(id) => lang match

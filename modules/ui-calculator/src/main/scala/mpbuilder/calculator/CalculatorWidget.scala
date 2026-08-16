@@ -1,10 +1,11 @@
 package mpbuilder.calculator
 
+import mpbuilder.commons.*
+
 import com.raquo.laminar.api.L.*
 import org.scalajs.dom
 import scala.scalajs.js
 import scala.scalajs.js.annotation.{JSExport, JSExportTopLevel}
-import mpbuilder.domain.model.Language
 import mpbuilder.ui.productbuilder.{BuilderEnvironment, ProductBuilderViewModel}
 
 /** Options a host page can pass to [[CalculatorWidget.mount]]. */

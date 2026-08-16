@@ -1,5 +1,7 @@
 package mpbuilder.domain.weight
 
+import mpbuilder.commons.*
+
 import zio.prelude.*
 import mpbuilder.domain.model.*
 

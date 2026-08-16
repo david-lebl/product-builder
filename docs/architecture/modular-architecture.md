@@ -476,17 +476,46 @@ while there are only three modules to police.
 
 ### Track A — foundations (first; unblocks everything)
 
-**Phase 0 — `commons`.** Extract `Money` / `Currency` / `Price` / `Percentage` / `Language` /
-`LocalizedString` / `Dimension` / `Quantity` / `Timestamp`; add the `NewType` idiom, `DomainError`
-and `Estimated[+A]`. **This breaks the `model ⇄ pricing` cycle.**
-*Verify:* `mill __.compile && mill __.test` — all 23 specs green; `mill ui.fastLinkJS` still links.
+**Phase 0 — `commons`. ✅ DONE.** Extracted `Money` / `Currency` / `Price` / `Percentage` /
+`Language` / `LocalizedString` / `Dimension` / `Quantity` into `modules/commons` (cross-compiled
+JVM+JS, `mpbuilder.commons`), and added `Timestamp`, `DomainError` and `Estimated[+A]`. All nine
+bilingual error ADTs now extend `DomainError`, which supplies the English rendering they each used
+to duplicate. `CommonsSpec` adds 23 tests covering `Money`/`Percentage` arithmetic, which had no
+coverage at all before.
+*Verified:* `mill __.compile` clean; `mill __.test` 648 passing (625 pre-existing + 23 new), 0
+failing; `mill ui.fullLinkJS` and `mill ui-calculator.fullLinkJS` both link.
 
-**Phase 1 — `legacy-domain` + first public services.** Rename `domain` → `legacy-domain` (same
-sources, still cross-compiled). Create `catalog/01-core`, `pricing/01-core`, `customers/01-core`
-holding only their **public service traits, DTOs and error ADTs**, with `Live` implementations in
-`impl` that delegate straight into `legacy-domain`. Nothing else moves yet. Add the CI dependency check.
+> **Cycle status — partly resolved, as expected.** The *kernel* edges are gone: `model` no longer
+> imports `pricing` for `Money`/`Currency`, and `pricing` no longer owns `Percentage`. Two
+> **business-concept** edges remain — `model/basket.scala → pricing.PriceBreakdown` and
+> `model/customer.scala → pricing.CustomerPricing`. These cannot be removed by relocating shared
+> types, because they are genuine references between two contexts' entities. They dissolve when
+> `Basket` moves to order-intake (Phase 5) and `Customer` to customers (Phase 9). Until then the two
+> packages remain mutually referencing inside the single `domain` compile unit.
+
+**Phase 1 — first public services.** Create `catalog/01-core`, `pricing/01-core`,
+`customers/01-core` holding only their **public service traits, DTOs and error ADTs**. Nothing else
+moves yet. Add the CI dependency check.
 *Verify:* everything compiles; service-contract tests exercise the façades against `SampleCatalog` /
 `SamplePricelist`.
+
+Two corrections to the original sketch, both found while doing Phase 0:
+
+- **The delegating implementation goes in `02-infra`, not `01-core/impl`.** A `Live` inside
+  `01-core` would have to depend on `domain`, breaking the "core depends on `commons` only" rule on
+  day one. Putting the legacy-backed implementation in `catalog/02-infra` needs no exception — it is
+  exactly what the infra layer is for, and swapping it for a real implementation later touches one
+  module.
+- **Renaming `domain` → `legacy-domain` is deferred to Phase 7.** It has 117 references across
+  `CLAUDE.md`, `README.md`, seven guides and ten *historical* changelog entries that should not be
+  rewritten. The rename buys nothing functional; it is worth doing once the module has actually
+  shrunk, when the edit is smaller and means something.
+
+**Known gap for Phase 1 sizing:** `codec/DomainCodecs.scala` has 92 `given`s but **none for
+`ProductConfiguration`**, so there is no serialized form of a configuration today. Order-intake's
+`ProductSpec` (a stored, versioned JSON snapshot) depends on one existing, so writing those codecs —
+covering all 8 `SpecKind`s and all 7 `FinishParameters` variants — is part of Phase 1's catalog
+façade, not a later detail.
 
 **Phase 2 — `app` skeleton + `identity`.** Stand up `app` (ZIOAppDefault, zio-http, Flyway, Postgres
 via docker-compose, Swagger UI), then build `identity` end to end: `User`, Argon2 hashing, JWT
@@ -521,7 +550,7 @@ Each is mechanical, because the public service contracts and their tests already
 
 | Risk | Handling |
 |---|---|
-| **`model ⇄ pricing` cycle** | Phase 0 kernel extraction. `Money`/`Language` move to `commons`; `CustomerPricing` moves to pricing, with `customers` holding only a `PricingProfile.Id`. |
+| **`model ⇄ pricing` cycle** | Phase 0 removed the kernel edges (done). The two remaining edges are entity references — `Basket → PriceBreakdown`, `Customer → CustomerPricing` — and are resolved by moving those entities to their contexts in Phases 5 and 9, not by relocating shared types. |
 | **`ManufacturingOrder` embeds `Order`** | Phase 6. Manufacturing declares its own `ProductionOrder` and translates from the `OrderPlaced` event in its infra layer. `orderItemIndex` → `Order.Line.Id`. |
 | **Two discount systems** | Discounts live only in `pricing`; order-intake only ever reads a quote. `DiscountService.lookupPercent` deleted in Phase 4. |
 | **Anti-corruption ports feel like duplication** | They are — deliberately, and small. When two contexts share most of their vocabulary and always change together, the guide's advice applies: merge them into one context rather than adapt. Revisit if catalog and pricing start moving in lockstep. |

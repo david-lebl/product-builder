@@ -1,10 +1,12 @@
 package mpbuilder.ui.visualeditor.components
 
+import mpbuilder.commons.*
+
 import com.raquo.laminar.api.L.*
 import mpbuilder.ui.visualeditor.*
 import mpbuilder.ui.persistence.EditorSessionStore
 import mpbuilder.ui.productbuilder.ProductBuilderViewModel
-import mpbuilder.domain.model.{Language, ArtworkId}
+import mpbuilder.domain.model.{ArtworkId}
 import org.scalajs.dom
 
 /** Sidebar panel showing saved editor sessions */

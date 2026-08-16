@@ -1,8 +1,8 @@
-package mpbuilder.domain.model
+package mpbuilder.commons
 
 enum Language:
   case En, Cs
-  
+
   def toCode: String = this match
     case En => "en"
     case Cs => "cs"
@@ -11,8 +11,9 @@ object Language:
   def fromCode(code: String): Language =
     code.toLowerCase match
       case "cs" => Cs
-      case _ => En
+      case _    => En
 
+/** A string with a translation per [[Language]], falling back to English. */
 opaque type LocalizedString = Map[Language, String]
 
 object LocalizedString:

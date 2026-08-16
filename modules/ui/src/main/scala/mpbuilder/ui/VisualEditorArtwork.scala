@@ -1,5 +1,7 @@
 package mpbuilder.ui
 
+import mpbuilder.commons.*
+
 import com.raquo.laminar.api.L.*
 import mpbuilder.ui.productbuilder.{ArtworkIntegration, ProductBuilderViewModel}
 import mpbuilder.ui.visualeditor.EditorBridge

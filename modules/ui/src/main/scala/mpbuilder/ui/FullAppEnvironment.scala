@@ -1,5 +1,7 @@
 package mpbuilder.ui
 
+import mpbuilder.commons.*
+
 import com.raquo.laminar.api.L.*
 import mpbuilder.ui.productbuilder.{BuilderEnvironment, BuilderState, BasketPrimaryAction, QuickOrderAction, ProductBuilderViewModel}
 import mpbuilder.domain.model.*

@@ -1,5 +1,7 @@
 package mpbuilder.domain.service
 
+import mpbuilder.commons.*
+
 import mpbuilder.domain.model.*
 import mpbuilder.domain.pricing.*
 import mpbuilder.domain.rules.*

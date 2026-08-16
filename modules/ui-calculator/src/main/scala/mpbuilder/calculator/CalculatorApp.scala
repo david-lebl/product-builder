@@ -1,7 +1,8 @@
 package mpbuilder.calculator
 
+import mpbuilder.commons.*
+
 import com.raquo.laminar.api.L.*
-import mpbuilder.domain.model.Language
 import mpbuilder.ui.productbuilder.ProductBuilderApp
 import mpbuilder.ui.productbuilder.ProductBuilderViewModel
 

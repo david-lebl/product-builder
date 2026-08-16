@@ -1,5 +1,7 @@
 package mpbuilder.domain
 
+import mpbuilder.commons.*
+
 import zio.test.*
 import mpbuilder.domain.model.*
 import mpbuilder.domain.sample.{SampleCatalog, SampleShowcase}
