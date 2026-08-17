@@ -161,7 +161,7 @@ object PricingServiceSpec extends ZIOSpecDefault:
         // The customer mistyped; that is not a fault, and must not blow up the checkout.
         for outcome <- service.applyDiscount(
             "DEFINITELY-NOT-A-CODE",
-            DiscountContext(Money(1000), Set.empty, now = Timestamp(0)),
+            DiscountContext(Money(1000), Nil, now = Timestamp(0)),
           )
         yield assertTrue(outcome match
           case DiscountOutcome.Refused(_, reason) =>
@@ -186,13 +186,14 @@ object PricingServiceSpec extends ZIOSpecDefault:
           .orElseFail(new AssertionError("sample data has no unconstrained discount code"))
           .flatMap { code =>
             service
-              .applyDiscount(code.code, DiscountContext(Money(10000), Set.empty, now = Timestamp(0)))
+              .applyDiscount(code.code, DiscountContext(Money(10000), Nil, now = Timestamp(0)))
               .map { outcome =>
                 assertTrue(outcome match
-                  case DiscountOutcome.Applied(applied, discount, finalTotal) =>
+                  case DiscountOutcome.Applied(applied, DiscountBenefit.Amount(off), finalTotal) =>
                     applied.equalsIgnoreCase(code.code) &&
-                    discount.value > BigDecimal(0) &&
+                    off.value > BigDecimal(0) &&
                     finalTotal.value < BigDecimal(10000)
+                  case DiscountOutcome.Applied(_, DiscountBenefit.FreeDelivery, _) => false
                   case DiscountOutcome.Refused(_, _) => false
                 )
               }
@@ -211,12 +212,60 @@ object PricingServiceSpec extends ZIOSpecDefault:
             service
               .applyDiscount(
                 code.code,
-                DiscountContext(Money(10000), Set.empty, now = Timestamp(java.lang.System.currentTimeMillis)),
+                DiscountContext(Money(10000), Nil, now = Timestamp(java.lang.System.currentTimeMillis)),
               )
               .map(outcome => assertTrue(outcome.isInstanceOf[DiscountOutcome.Refused]))
           }
           .mapError(e => new RuntimeException(e.toString))
           .orDie
+      },
+      test("a category-restricted code applies to a product in that category") {
+        // CARDS10 is restricted to business cards, and the fixture is a business card. Before the
+        // context carried the specs there was no way for a caller to say so, and this code — like
+        // every other category-restricted one — could not be accepted by anybody.
+        for outcome <- service.applyDiscount(
+            "CARDS10",
+            DiscountContext(Money(10000), List(standard), now = Timestamp(0)),
+          )
+        yield assertTrue(outcome match
+          case DiscountOutcome.Applied(_, DiscountBenefit.Amount(off), _) => off.value > BigDecimal(0)
+          case _                                                          => false
+        )
+      },
+      test("a category-restricted code is refused when nothing in the basket qualifies") {
+        for outcome <- service.applyDiscount(
+            "CARDS10",
+            DiscountContext(Money(10000), Nil, now = Timestamp(0)),
+          )
+        yield assertTrue(outcome.isInstanceOf[DiscountOutcome.Refused])
+      },
+      test("a free-delivery code reports its benefit rather than a zero amount") {
+        // FREESHIP takes nothing off the goods. Reported as `Amount(0)` it would be
+        // indistinguishable from a code that did nothing, which is how checkout used to lose it.
+        for outcome <- service.applyDiscount(
+            "FREESHIP",
+            DiscountContext(Money(10000), List(standard), now = Timestamp(0)),
+          )
+        yield assertTrue(outcome match
+          case DiscountOutcome.Applied(_, DiscountBenefit.FreeDelivery, total) =>
+            total.value == BigDecimal(10000)
+          case _ => false
+        )
+      },
+      test("a customer-type-restricted code is refused for the wrong type") {
+        for
+          agency <- service.applyDiscount(
+            "AGENCY15",
+            DiscountContext(Money(10000), List(standard), customerType = Some("Agency"), now = Timestamp(0)),
+          )
+          guest <- service.applyDiscount(
+            "AGENCY15",
+            DiscountContext(Money(10000), List(standard), customerType = Some("Guest"), now = Timestamp(0)),
+          )
+        yield assertTrue(
+          agency.isInstanceOf[DiscountOutcome.Applied],
+          guest.isInstanceOf[DiscountOutcome.Refused],
+        )
       },
     ),
   )

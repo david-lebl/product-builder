@@ -91,13 +91,30 @@ enum SpeedUnavailable:
 
 // ── Discounts ─────────────────────────────────────────────────────────────
 
+/** What a discount code is being offered against.
+  *
+  * Carries the specs themselves rather than the category ids a caller would have to extract from
+  * them. A caller *cannot* extract them — the payload is opaque outside pricing — so asking for
+  * category ids meant every caller passed an empty set, and a code restricted to a category could
+  * never be accepted by anyone.
+  */
 final case class DiscountContext(
     orderValue: Money,
-    categoryIds: Set[String],
+    specs: List[ProductSpec],
     customerType: Option[String] = None,
     customerId: Option[String] = None,
     now: Timestamp,
 )
+
+/** What an accepted code is worth.
+  *
+  * A sum rather than a `Money` plus a `freeDelivery` flag: a free-delivery code takes nothing off
+  * the goods, so representing it as `Money.zero` makes it indistinguishable from a code that did
+  * nothing at all — which is exactly how the legacy engine lost it.
+  */
+enum DiscountBenefit:
+  case Amount(off: Money)
+  case FreeDelivery
 
 /** The result of offering a discount code.
   *
@@ -106,5 +123,5 @@ final case class DiscountContext(
   * belongs in the error channel.
   */
 enum DiscountOutcome:
-  case Applied(code: String, discount: Money, finalTotal: Money)
+  case Applied(code: String, benefit: DiscountBenefit, finalTotal: Money)
   case Refused(code: String, reason: LocalizedString)

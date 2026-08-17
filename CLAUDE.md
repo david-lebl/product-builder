@@ -33,7 +33,8 @@ mill 'catalog.02-infra.test'                        # Catalog contract tests
 mill 'pricing.02-infra.test'                        # Pricing contract tests
 mill 'customers.02-infra.test'                      # Customers contract tests
 mill 'identity.02-infra.test'                       # Auth contract tests
-mill 'order-intake.02-infra.test'                   # Basket contract tests
+mill 'order-intake.01-core.test'                    # Pure checkout policy tests
+mill 'order-intake.02-infra.test'                   # Basket and checkout contract tests
 
 # Run the backend (Swagger UI at /docs, health at /health)
 JWT_SECRET=dev-secret PORT=8080 mill app.run
@@ -66,7 +67,7 @@ context's infra.
 - **`pricing/01-core` + `02-infra`** — `PricingService`: quotes, speed offers, discount codes. Pricing **owns** discounts, so there is only one place a discount can be computed. Cross-compiled core.
 - **`customers/01-core` + `02-infra`** — `CustomerService`: lookup, registration. Deliberately exposes **no** negotiated pricing — that is pricing's, resolved from a customer id.
 - **`identity/01-core` + `02-infra`** — `AuthService`: registration, password login, JWT issue/verify/refresh, roles, OTP sign-in. Owns credentials only — the business profile is `customers`, linked by `customerId`. Stores are `Ref`-backed until Phase 3.
-- **`order-intake/01-core` + `02-infra`** — `BasketService`: server-side basket, quoted through pricing and validated through catalog. `01-core/impl` holds the `Basket` aggregate and a pure `BasketPolicy`; `02-infra/impl/adapters` holds the only two files that know catalog and pricing exist. Store is `Ref`-backed until Postgres lands.
+- **`order-intake/01-core` + `02-infra`** — `BasketService` (server-side basket) and `CheckoutService` (delivery and payment options, whole-basket quote, discount codes, per-line speed offers). `01-core/impl` holds the `Basket` aggregate, the pure `BasketPolicy` and `CheckoutPolicy`, and the shared `Baskets` loader; `02-infra/impl/adapters` holds one adapter per foreign context — catalog, pricing, customers — and they are the only files that know those contexts exist. Stores are `Ref`-backed until Postgres lands.
 - **`app/`** — Composition root. The **only** module that may depend on an `02-infra`: it wires the ZLayer graph, mounts every context's tapir routes on one zio-http server, and serves the OpenAPI docs. No business logic.
 - **`domain/`** — Cross-compiled (JVM + JS). Pure functional core: no ZIO effects, only `Validation[E, A]` from ZIO Prelude. Contains pricing engine, compatibility rules, manufacturing workflow, and all services. **Legacy** — being split into contexts.
 - **`ui-productbuilder/`** — The shared product configurator (form, pricing preview, validation, basket, e-mail order), package `mpbuilder.ui.productbuilder`. Depends on `domainJS` and `uiFramework`. Consumed by both apps below, so it must not reference anything in `mpbuilder.ui.*`.

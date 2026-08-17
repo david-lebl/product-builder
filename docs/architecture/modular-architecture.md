@@ -675,6 +675,51 @@ carrying *both* accumulated catalog reasons.
 Still outstanding: the SPA switch (`BasketBackend` on `BuilderEnvironment`, `HttpBasketBackend`),
 and Postgres — Docker was still unavailable, so the repository remains `Ref`-backed behind its port.
 
+**Phase 4 — checkout & quoting. ✅ backend DONE; SPA switch outstanding.**
+
+`order-intake/01-core`: `CheckoutService`, `CheckoutError`, `Buyer`, `DeliveryOption` /
+`DeliveryKind` / `DeliveryCharge`, `PaymentMethod` / `PaymentOffer`, `CheckoutDraft` /
+`CheckoutQuote`, `DiscountDecision` / `DiscountBenefit`, `SpeedOfferView`. In `impl`: a pure
+`CheckoutPolicy` holding every payment and totals rule, the new `DiscountPort` / `BuyerPort` /
+`DeliveryCatalog` ports, and `Baskets` — the shared loader that stops the basket and checkout
+services from disagreeing about which basket is current. `order-intake/02-infra` gains a
+`CustomerBuyerAdapter`, so the rule is now *one adapter per foreign context*, and the delivery
+options move out of the SPA's view model into `StaticDeliveryCatalog`.
+
+Two dead features in the pricing contract were fixed to make this work at all:
+
+- **`DiscountContext` carries the specs, not category ids.** A caller cannot extract a category from
+  an opaque payload, so every caller passed an empty set — and a code restricted to a category
+  (`CARDS10`) could never be accepted by anybody. Pricing reads the categories itself now.
+- **`DiscountOutcome.Applied` carries a `DiscountBenefit`, not a `Money`.** A free-delivery code
+  takes nothing off the goods, so as an amount it was `Money.zero` — indistinguishable from a code
+  that did nothing. `FREESHIP` had been inert since it was written.
+
+Also fixed: `speedOffers` at a basket line multiplies the per-run surcharge by the line quantity —
+the same class of bug as the dropped line quantity in Phase 3.
+
+`BasketService.changeSpeed` was added alongside, because offering a customer a choice of speeds is
+half a feature if they cannot take one.
+
+*Verified:* guard passing; `mill __.compile` clean; `mill __.test` 793 passing; both bundles link;
+the checkout API exercised over HTTP against the **real** catalog, pricing and customer data —
+`SAVE10` −136, `CARDS10` accepted on business cards and refused on flyers, `FREESHIP` waiving a 249
+courier while leaving the goods at 1360, `FLAT100`, `OLDCODE` refused as expired, `AGENCY15` refused
+for the wrong account type, 422 on a guest asking to be invoiced, 400 on an unknown delivery option,
+and speed offers of +168 / 0 / −72 from the real engine.
+
+> **Open business question, now visible rather than dead.** Invoice-on-account is unreachable:
+> `CustomerSummary.canPayOnAccount` requires `RegisteredCorporate`, but all ten sample customers are
+> `CustomerType.Agency`. Signed in as `cust-print-shop-pro`, checkout answers "This account is not
+> approved for invoicing" — correct per the spec as written, and previously invisible because the
+> old UI simply omitted the option. Either the sample customers are mistyped or the rule should
+> include `Agency`; that is a decision for the business, not a refactor.
+
+Still outstanding: **`DiscountService.lookupPercent` is not yet deleted.** It is dead as far as the
+server is concerned — checkout only ever asks pricing — but `CheckoutView.scala:651` still calls it
+to compute a client-side total. Deleting it before the SPA switch would break the build for no gain;
+it goes with `HttpBasketBackend`, and the server-side answer is already authoritative.
+
 | Phase | Work | Verifiable when |
 |---|---|---|
 | **3** | Basket, server-side | Basket survives a page reload and a device switch; `ui-calculator` still works offline |
@@ -702,7 +747,7 @@ Each is mechanical, because the public service contracts and their tests already
 |---|---|
 | **`model ⇄ pricing` cycle** | Phase 0 removed the kernel edges (done). The two remaining edges are entity references — `Basket → PriceBreakdown`, `Customer → CustomerPricing` — and are resolved by moving those entities to their contexts in Phases 5 and 9, not by relocating shared types. |
 | **`ManufacturingOrder` embeds `Order`** | Phase 6. Manufacturing declares its own `ProductionOrder` and translates from the `OrderPlaced` event in its infra layer. `orderItemIndex` → `Order.Line.Id`. |
-| **Two discount systems** | Discounts live only in `pricing`; order-intake only ever reads a quote. `DiscountService.lookupPercent` deleted in Phase 4. |
+| **Two discount systems** | Discounts live only in `pricing`; order-intake only ever reads a decision. ✅ Server-side as of Phase 4 — `/checkout/discount` honours the real `DiscountCodeService`, including the category, customer-type and free-delivery rules that the façade could not previously express. `DiscountService.lookupPercent` survives only as the SPA's client-side total, and is deleted with the SPA switch. |
 | **Anti-corruption ports feel like duplication** | They are — deliberately, and small. When two contexts share most of their vocabulary and always change together, the guide's advice applies: merge them into one context rather than adapt. Revisit if catalog and pricing start moving in lockstep. |
 | **`sample/` is the database, and 12 of 23 specs import it** | Untouched until Phase 7, by which time everything real reads Postgres. Then split per context into `<context>/testkit`, one at a time, fixing that context's specs alongside. |
 | **Scala.js constraint** | `commons` and `catalog`/`pricing` `01-core` stay cross-compiled and effect-free (the `ui-calculator` offline guarantee). Other cores are JVM-only. Every phase's verification includes `mill ui-calculator.fullLinkJS`. |

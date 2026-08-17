@@ -3,6 +3,7 @@ package mpbuilder.orderintake
 import mpbuilder.catalog.json.given
 import mpbuilder.catalog as cat
 import mpbuilder.commons.*
+import mpbuilder.customers as cus
 import mpbuilder.pricing as pri
 import zio.*
 import zio.json.*
@@ -22,13 +23,15 @@ object BasketServiceSpec extends ZIOSpecDefault:
 
   private val layer =
     ZLayer.succeed[cat.CatalogService](Stubs.StubCatalog()) ++
-      ZLayer.succeed[pri.PricingService](Stubs.StubPricing()) >>>
+      ZLayer.succeed[pri.PricingService](Stubs.StubPricing()) ++
+      ZLayer.succeed[cus.CustomerService](Stubs.StubCustomers()) >>>
       OrderIntakeModule.inMemory()
 
   /** A separate service whose catalog has withdrawn a material, sharing no state with `layer`. */
   private val afterWithdrawal =
     ZLayer.succeed[cat.CatalogService](Stubs.StubCatalog(withdrawn = Set("mat-coated-300"))) ++
-      ZLayer.succeed[pri.PricingService](Stubs.StubPricing()) >>>
+      ZLayer.succeed[pri.PricingService](Stubs.StubPricing()) ++
+      ZLayer.succeed[cus.CustomerService](Stubs.StubCustomers()) >>>
       OrderIntakeModule.inMemory()
 
   private def configuration(quantity: Int = 500): String =
@@ -168,6 +171,44 @@ object BasketServiceSpec extends ZIOSpecDefault:
           manySmall <- BasketService.addItem(session("small"), AddItem(configuration(50), 10))
           oneLarge <- BasketService.addItem(session("large"), AddItem(configuration(500), 1))
         yield assertTrue(oneLarge.total.value < manySmall.total.value)
+      },
+      test("changing the speed re-prices the line") {
+        // The tier carries a surcharge, so a line kept at its old price after switching to Express
+        // would undercharge for a rush the shop actually has to run.
+        val actor = session("speed-change")
+        for
+          added <- add(actor, speed = "Standard")
+          itemId = added.items.head.id
+          express <- BasketService.changeSpeed(actor, itemId, UpdateSpeed("Express"))
+        yield assertTrue(
+          express.items.head.speed == "Express",
+          express.itemCount == 1,
+          express.total.value > added.total.value,
+        )
+      },
+      test("changing the speed to an unknown tier is refused, naming the field") {
+        val actor = session("speed-warp")
+        for
+          added <- add(actor)
+          error <- BasketService.changeSpeed(actor, added.items.head.id, UpdateSpeed("warp")).flip
+        yield assertTrue(error == BasketError.UnknownValue("speed", "warp"))
+      },
+      test("changing the speed of an unknown line reports it") {
+        val actor = session("speed-missing")
+        for
+          _ <- add(actor)
+          error <- BasketService.changeSpeed(actor, "no-such-item", UpdateSpeed("Express")).flip
+        yield assertTrue(error == BasketError.ItemNotFound("no-such-item"))
+      },
+      test("changing a line's speed onto another line's leaves both alone") {
+        // Folding them would change a quantity the customer did not ask to change.
+        val actor = session("speed-collide")
+        for
+          _ <- add(actor, speed = "Standard")
+          two <- add(actor, speed = "Express")
+          standardId = two.items.find(_.speed == "Standard").map(_.id).getOrElse("")
+          after <- BasketService.changeSpeed(actor, standardId, UpdateSpeed("Express"))
+        yield assertTrue(after.itemCount == 2, after.items.forall(_.speed == "Express"))
       },
       test("reports an unknown item") {
         val actor = session("unknown-item")

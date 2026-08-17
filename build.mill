@@ -317,7 +317,13 @@ object `order-intake` extends Module {
     def sources = Task.Sources(base / "02-infra" / "src" / "main" / "scala")
     def resources = Task.Sources(base / "02-infra" / "src" / "main" / "resources")
     // Other contexts' cores only — this is where the anti-corruption adapters live.
-    def moduleDeps = Seq(`01-core`, catalog.`01-core`.jvm, pricing.`01-core`.jvm, identity.`01-core`)
+    def moduleDeps = Seq(
+      `01-core`,
+      catalog.`01-core`.jvm,
+      pricing.`01-core`.jvm,
+      customers.`01-core`,
+      identity.`01-core`,
+    )
     def mvnDeps = serverMvnDeps
 
     object test extends ScalaTests {

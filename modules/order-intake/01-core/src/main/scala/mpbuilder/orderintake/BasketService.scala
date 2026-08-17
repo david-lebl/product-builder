@@ -72,6 +72,13 @@ trait BasketService:
 
   def updateQuantity(actor: Actor, itemId: String, input: UpdateQuantity): IO[BasketError, BasketView]
 
+  /** Change how fast an existing line is produced, re-pricing it at the new tier.
+    *
+    * The counterpart to `CheckoutService.speedOffers`: offering the customer a choice of speeds is
+    * only half a feature if they cannot then take one.
+    */
+  def changeSpeed(actor: Actor, itemId: String, input: UpdateSpeed): IO[BasketError, BasketView]
+
   def removeItem(actor: Actor, itemId: String): IO[BasketError, BasketView]
 
   def clear(actor: Actor): IO[BasketError, BasketView]
@@ -104,6 +111,13 @@ object BasketService:
       input: UpdateQuantity,
   ): ZIO[BasketService, BasketError, BasketView] =
     ZIO.serviceWithZIO(_.updateQuantity(actor, itemId, input))
+
+  def changeSpeed(
+      actor: Actor,
+      itemId: String,
+      input: UpdateSpeed,
+  ): ZIO[BasketService, BasketError, BasketView] =
+    ZIO.serviceWithZIO(_.changeSpeed(actor, itemId, input))
 
   def removeItem(actor: Actor, itemId: String): ZIO[BasketService, BasketError, BasketView] =
     ZIO.serviceWithZIO(_.removeItem(actor, itemId))

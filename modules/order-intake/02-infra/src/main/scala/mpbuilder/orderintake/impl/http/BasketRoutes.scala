@@ -11,13 +11,10 @@ import zio.*
 
 import BasketEndpoints.*
 
-/** Server logic for the basket endpoints.
-  *
-  * Resolving the caller is the only interesting part: a bearer token is verified through identity,
-  * an `X-Basket-Session` header identifies an anonymous shopper, and a request carrying neither is
-  * refused rather than silently given a shared basket.
-  */
+/** Server logic for the basket endpoints. */
 private[orderintake] final class BasketRoutes(baskets: BasketService, auth: id.AuthService):
+
+  private val actors = Actors(auth)
 
   def endpoints: List[ServerEndpoint[Any, Task]] = List(
     // tapir flattens tuple inputs, so the auth headers arrive as separate arguments rather than
@@ -32,6 +29,9 @@ private[orderintake] final class BasketRoutes(baskets: BasketService, auth: id.A
     },
     BasketEndpoints.updateQuantity.zServerLogic { case (bearer, session, itemId, req) =>
       withActor(bearer, session)(baskets.updateQuantity(_, itemId, UpdateQuantity(req.quantity)))
+    },
+    BasketEndpoints.changeSpeed.zServerLogic { case (bearer, session, itemId, req) =>
+      withActor(bearer, session)(baskets.changeSpeed(_, itemId, UpdateSpeed(req.speed)))
     },
     BasketEndpoints.removeItem.zServerLogic { case (bearer, session, itemId) =>
       withActor(bearer, session)(baskets.removeItem(_, itemId))
@@ -50,41 +50,7 @@ private[orderintake] final class BasketRoutes(baskets: BasketService, auth: id.A
   private def withActor(bearer: Option[String], session: Option[String])(
       f: Actor => IO[BasketError, BasketView]
   ): ZIO[Any, (StatusCode, ErrorResponse), BasketResponse] =
-    resolveActor(bearer, session).flatMap(actor => f(actor).mapBoth(toResponse, toBasketResponse))
-
-  private def resolveActor(
-      authorization: Option[String],
-      sessionHeader: Option[String],
-  ): ZIO[Any, (StatusCode, ErrorResponse), Actor] =
-    authorization.map(_.stripPrefix("Bearer ").trim).filter(_.nonEmpty) match
-      case Some(token) =>
-        auth
-          .verify(token)
-          .mapBoth(
-            error =>
-              (StatusCode.Unauthorized, ErrorResponse(List(ErrorItem("Unauthorized", error.message)))),
-            principal =>
-              Actor.Authenticated(principal.userId, principal.customerId, principal.isStaff),
-          )
-      case None =>
-        sessionHeader.filter(_.trim.nonEmpty) match
-          case Some(session) => ZIO.succeed(Actor.Anonymous(session.trim))
-          // Without either header there is no way to tell one anonymous shopper from another, and
-          // inventing a basket would mean handing everyone the same one.
-          case None =>
-            ZIO.fail(
-              (
-                StatusCode.BadRequest,
-                ErrorResponse(
-                  List(
-                    ErrorItem(
-                      "MissingSession",
-                      "Provide an Authorization bearer token or an X-Basket-Session header",
-                    )
-                  )
-                ),
-              )
-            )
+    actors.resolve(bearer, session).flatMap(actor => f(actor).mapBoth(toResponse, toBasketResponse))
 
   private def toBasketResponse(view: BasketView): BasketResponse =
     BasketResponse(

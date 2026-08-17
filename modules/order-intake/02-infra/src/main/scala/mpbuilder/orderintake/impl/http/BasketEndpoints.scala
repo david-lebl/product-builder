@@ -20,6 +20,7 @@ private[orderintake] object BasketEndpoints:
       artworkId: Option[String] = None,
   )
   final case class UpdateQuantityRequest(quantity: Int)
+  final case class UpdateSpeedRequest(speed: String)
   final case class MergeRequest(fromSession: String)
 
   final case class PriceView(
@@ -57,6 +58,7 @@ private[orderintake] object BasketEndpoints:
 
   given JsonCodec[AddItemRequest] = DeriveJsonCodec.gen
   given JsonCodec[UpdateQuantityRequest] = DeriveJsonCodec.gen
+  given JsonCodec[UpdateSpeedRequest] = DeriveJsonCodec.gen
   given JsonCodec[MergeRequest] = DeriveJsonCodec.gen
   given JsonCodec[PriceView] = DeriveJsonCodec.gen
   given JsonCodec[ItemView] = DeriveJsonCodec.gen
@@ -106,6 +108,17 @@ private[orderintake] object BasketEndpoints:
       .out(jsonBody[BasketResponse])
       .summary("Change how many of a line are wanted")
 
+  val changeSpeed =
+    base.patch
+      .in("current" / "items" / path[String]("itemId") / "speed")
+      .in(jsonBody[UpdateSpeedRequest])
+      .out(jsonBody[BasketResponse])
+      .summary("Change how fast a line is produced")
+      .description(
+        "One of `Express`, `Standard`, `Economy`. Re-prices the line at the new tier; see " +
+          "`GET /checkout/items/{itemId}/speeds` for what is on offer."
+      )
+
   val removeItem =
     base.delete
       .in("current" / "items" / path[String]("itemId"))
@@ -128,4 +141,5 @@ private[orderintake] object BasketEndpoints:
       .out(jsonBody[BasketResponse])
       .summary("Fold an anonymous basket into the signed-in customer's")
 
-  val all = List(current, addItem, updateQuantity, removeItem, clear, requote, merge)
+  val all =
+    List(current, addItem, updateQuantity, changeSpeed, removeItem, clear, requote, merge)

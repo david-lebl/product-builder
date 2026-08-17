@@ -2,8 +2,10 @@ package mpbuilder.app
 
 import mpbuilder.catalog.CatalogService
 import mpbuilder.catalog.impl.legacy.LegacyCatalogService
+import mpbuilder.customers.CustomerService
+import mpbuilder.customers.impl.legacy.LegacyCustomerService
 import mpbuilder.identity.{AuthService, IdentityHttp, IdentityModule}
-import mpbuilder.orderintake.{BasketService, OrderIntakeHttp, OrderIntakeModule}
+import mpbuilder.orderintake.{BasketService, CheckoutService, OrderIntakeHttp, OrderIntakeModule}
 import mpbuilder.pricing.PricingService
 import mpbuilder.pricing.impl.legacy.LegacyPricingService
 import sttp.tapir.server.ziohttp.ZioHttpInterpreter
@@ -35,6 +37,7 @@ object Main extends ZIOAppDefault:
         // concerned.
         ZLayer.succeed[CatalogService](legacyCatalog),
         ZLayer.succeed[PricingService](legacyPricing),
+        LegacyCustomerService.layer,
         OrderIntakeModule.inMemory(),
         Server.defaultWithPort(cfg.port),
       )
@@ -48,11 +51,14 @@ object Main extends ZIOAppDefault:
 
   private val legacyPricing: PricingService = LegacyPricingService.of()
 
-  private def serve(cfg: AppConfig): ZIO[AuthService & BasketService & Server, Throwable, Unit] =
+  private def serve(
+      cfg: AppConfig
+  ): ZIO[AuthService & BasketService & CheckoutService & Server, Throwable, Unit] =
     for
       auth <- ZIO.service[AuthService]
       baskets <- ZIO.service[BasketService]
-      apiRoutes = IdentityHttp.routes(auth) ++ OrderIntakeHttp.routes(baskets, auth)
+      checkout <- ZIO.service[CheckoutService]
+      apiRoutes = IdentityHttp.routes(auth) ++ OrderIntakeHttp.routes(baskets, checkout, auth)
       docRoutes = SwaggerInterpreter().fromEndpoints[Task](
         IdentityHttp.endpoints ++ OrderIntakeHttp.endpoints,
         "Material Builder API",

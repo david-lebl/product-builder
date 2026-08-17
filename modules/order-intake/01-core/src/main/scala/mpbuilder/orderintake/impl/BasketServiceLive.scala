@@ -6,7 +6,7 @@ import zio.*
 
 /** Orchestration only. Every rule lives in [[BasketPolicy]] or behind a port. */
 private[orderintake] final class BasketServiceLive(
-    baskets: BasketRepository,
+    baskets: Baskets,
     products: ProductPort,
     quotes: QuotePort,
     ids: Ids,
@@ -67,6 +67,30 @@ private[orderintake] final class BasketServiceLive(
         if i.id == item.id then i.copy(data = i.data.copy(quantity = quantity, price = price)) else i
       }
       saved <- baskets.save(basket.copy(data = basket.data.copy(items = updated)).touched(timestamp))
+    yield toView(saved)
+
+  def changeSpeed(actor: Actor, itemId: String, input: UpdateSpeed): IO[BasketError, BasketView] =
+    for
+      speed <- ZIO
+        .fromOption(ProductionSpeed.parse(input.speed))
+        .orElseFail(BasketError.UnknownValue("speed", input.speed))
+      basket <- load(actor)
+      item <- ZIO
+        .fromOption(basket.findItem(Basket.Item.Id(itemId)))
+        .orElseFail(BasketError.ItemNotFound(itemId))
+      // The speed tier carries a surcharge, so switching tiers re-prices the line.
+      price <- quotes.quote(
+        item.data.spec,
+        item.data.quantity,
+        speed,
+        customerIdOf(actor),
+        basket.currency.getOrElse(defaultCurrency),
+      )
+      timestamp <- now
+      moved = item.copy(data = item.data.copy(speed = speed, price = price))
+      // Changing speed can make this line identical to another one. Folding them would change a
+      // quantity the customer did not ask to change, so the lines stay separate.
+      saved <- baskets.save(BasketPolicy.upsert(basket, moved, timestamp))
     yield toView(saved)
 
   def removeItem(actor: Actor, itemId: String): IO[BasketError, BasketView] =
@@ -134,35 +158,7 @@ private[orderintake] final class BasketServiceLive(
 
   // ── internals ────────────────────────────────────────────────────────────
 
-  /** Fetches the actor's basket, creating one if absent and replacing it if expired.
-    *
-    * An expired basket is discarded rather than refused: the customer's prices are stale, but
-    * nothing about that should stop them starting again.
-    */
-  private def load(actor: Actor): IO[BasketError, Basket] =
-    val owner = BasketPolicy.ownerFor(actor)
-    for
-      timestamp <- now
-      existing <- baskets.find(owner)
-      basket <- existing.filterNot(_.isExpired(timestamp)) match
-        case Some(live) => ZIO.succeed(live)
-        case None       => fresh(owner, timestamp).flatMap(baskets.save)
-    yield basket
-
-  private def fresh(owner: Basket.Owner, timestamp: Timestamp): UIO[Basket] =
-    ids.next.map { id =>
-      Basket(
-        Basket.Id(id),
-        Basket.Data(
-          owner = owner,
-          items = Nil,
-          createdAt = timestamp,
-          updatedAt = timestamp,
-          expiresAt = BasketPolicy.expiryFor(owner, timestamp),
-          version = 0,
-        ),
-      )
-    }
+  private def load(actor: Actor): UIO[Basket] = baskets.load(actor)
 
   private def customerIdOf(actor: Actor): Option[String] = actor match
     case Actor.Anonymous(_)                    => None

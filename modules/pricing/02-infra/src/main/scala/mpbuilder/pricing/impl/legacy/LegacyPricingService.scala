@@ -60,33 +60,44 @@ private[pricing] final class LegacyPricingService(
     )
 
   def applyDiscount(code: String, ctx: DiscountContext): IO[PricingError, DiscountOutcome] =
-    val domainCtx = DiscountValidationContext(
-      orderValue = ctx.orderValue,
-      categoryIds = ctx.categoryIds.map(dm.CategoryId.unsafe),
-      customerType = ctx.customerType.flatMap(t => dm.CustomerType.values.find(_.toString.equalsIgnoreCase(t))),
-      customerId = ctx.customerId.map(dm.CustomerId.unsafe),
-      now = ctx.now.epochMillis,
-    )
-    ZIO.succeed(
-      DiscountCodeService.applyDiscount(discountCodes, code, ctx.orderValue, domainCtx).toEither match
-        case Right(result) =>
-          DiscountOutcome.Applied(
-            code = result.appliedCode.code,
-            discount = result.discountAmount,
-            finalTotal = result.finalTotal,
-          )
-        case Left(errors) =>
-          // A refused code is an answer, not a fault — the customer sees why and tries another.
-          DiscountOutcome.Refused(
-            code = code,
-            reason = LocalizedString(
-              errors.toList.map(_.message(Language.En)).mkString("; "),
-              errors.toList.map(_.message(Language.Cs)).mkString("; "),
-            ),
-          )
-    )
+    for
+      // Reading the category out of each spec is pricing's job precisely because the payload is
+      // opaque to everyone else. Without this, a code restricted to business cards would apply to
+      // a banner.
+      configs <- ZIO.foreach(ctx.specs)(decode)
+      domainCtx = DiscountValidationContext(
+        orderValue = ctx.orderValue,
+        categoryIds = configs.map(_.category.id).toSet,
+        customerType = ctx.customerType.flatMap(t => dm.CustomerType.values.find(_.toString.equalsIgnoreCase(t))),
+        customerId = ctx.customerId.map(dm.CustomerId.unsafe),
+        now = ctx.now.epochMillis,
+      )
+    yield DiscountCodeService.applyDiscount(discountCodes, code, ctx.orderValue, domainCtx).toEither match
+      case Right(result) =>
+        DiscountOutcome.Applied(
+          code = result.appliedCode.code,
+          benefit = benefitOf(result),
+          finalTotal = result.finalTotal,
+        )
+      case Left(errors) =>
+        // A refused code is an answer, not a fault — the customer sees why and tries another.
+        DiscountOutcome.Refused(
+          code = code,
+          reason = LocalizedString(
+            errors.toList.map(_.message(Language.En)).mkString("; "),
+            errors.toList.map(_.message(Language.Cs)).mkString("; "),
+          ),
+        )
 
   // ── internals ────────────────────────────────────────────────────────────
+
+  /** A free-delivery code reduces the goods total by nothing, so the *kind* of benefit has to
+    * survive the boundary — otherwise checkout cannot tell it apart from a code worth zero.
+    */
+  private def benefitOf(result: dm.DiscountResult): DiscountBenefit =
+    result.appliedCode.discountType match
+      case dm.DiscountType.FreeDelivery => DiscountBenefit.FreeDelivery
+      case _                            => DiscountBenefit.Amount(result.discountAmount)
 
   private def offerFor(
       speed: ProductionSpeed,

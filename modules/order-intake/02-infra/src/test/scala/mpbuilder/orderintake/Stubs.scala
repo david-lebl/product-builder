@@ -3,6 +3,7 @@ package mpbuilder.orderintake
 import mpbuilder.catalog as cat
 import mpbuilder.catalog.json.given
 import mpbuilder.commons.*
+import mpbuilder.customers as cus
 import mpbuilder.pricing as pri
 import zio.*
 import zio.json.*
@@ -23,7 +24,16 @@ import zio.json.*
   */
 object Stubs:
 
-  final case class StubCatalog(withdrawn: Set[String] = Set.empty) extends cat.CatalogService:
+  /** @param withdrawn
+    *   materials this catalog will not configure or revalidate at all
+    * @param withdrawnLater
+    *   materials that configure cleanly but no longer revalidate — the shape of time passing
+    *   between adding something to a basket and checking out with it
+    */
+  final case class StubCatalog(
+      withdrawn: Set[String] = Set.empty,
+      withdrawnLater: Set[String] = Set.empty,
+  ) extends cat.CatalogService:
 
     def currentVersion: UIO[cat.CatalogVersion] = ZIO.succeed(cat.CatalogVersion("stub-v1"))
 
@@ -59,7 +69,9 @@ object Stubs:
       ZIO
         .fromEither(snapshot.payload.fromJson[cat.ConfigurationRequestDto])
         .orElseFail(cat.CatalogError.MalformedSnapshot("unreadable"))
-        .flatMap(configure)
+        .flatMap(request =>
+          copy(withdrawn = withdrawn ++ withdrawnLater).configure(request)
+        )
         .unit
 
     def describe(snapshot: cat.ConfigurationSnapshot, lang: Language): IO[cat.CatalogError, String] =
@@ -117,13 +129,93 @@ object Stubs:
       ZIO.succeed(
         NonEmptyChunk(
           pri.SpeedOffer.Available(pri.ProductionSpeed.Standard, Money.zero),
-          pri.SpeedOffer.Available(pri.ProductionSpeed.Express, Money(35)),
-          pri.SpeedOffer.Available(pri.ProductionSpeed.Economy, Money.zero),
+          // Unavailable rather than merely expensive, so a test can prove the reason survives the
+          // boundary instead of being flattened into "not offered".
+          pri.SpeedOffer.Unavailable(pri.ProductionSpeed.Express, pri.SpeedUnavailable.ShopSaturated),
+          // A negative surcharge — waiting costs less. Non-zero so a test can tell a per-run
+          // figure apart from a per-line one, and signed so the sign has to survive too.
+          pri.SpeedOffer.Available(pri.ProductionSpeed.Economy, Money(-5)),
         )
       )
 
+    /** Deliberately opinionated so the checkout tests can exercise all three shapes of answer
+      * without a real discount engine: `TENOFF` takes 10 % off, `FREESHIP` waives delivery, and
+      * `VIPONLY` is accepted only for a buyer with a customer id — the closest thing to a
+      * customer-restricted code that a stub can honestly offer.
+      */
     def applyDiscount(
         code: String,
         context: pri.DiscountContext,
     ): IO[pri.PricingError, pri.DiscountOutcome] =
-      ZIO.succeed(pri.DiscountOutcome.Refused(code, LocalizedString("No such code", "Kód neexistuje")))
+      val orderValue = context.orderValue
+      code.trim.toUpperCase match
+        case "TENOFF" =>
+          val off = (orderValue * BigDecimal("0.1")).rounded
+          ZIO.succeed(
+            pri.DiscountOutcome
+              .Applied(code, pri.DiscountBenefit.Amount(off), Money(orderValue.value - off.value))
+          )
+        case "FREESHIP" =>
+          ZIO.succeed(
+            pri.DiscountOutcome.Applied(code, pri.DiscountBenefit.FreeDelivery, orderValue)
+          )
+        case "VIPONLY" if context.customerId.isDefined =>
+          ZIO.succeed(
+            pri.DiscountOutcome.Applied(
+              code,
+              pri.DiscountBenefit.Amount(Money(100)),
+              Money(orderValue.value - 100),
+            )
+          )
+        case _ =>
+          ZIO.succeed(
+            pri.DiscountOutcome.Refused(code, LocalizedString("No such code", "Kód neexistuje"))
+          )
+
+  /** Stand-in for the customers context.
+    *
+    * Carries one approved corporate customer and one that is not approved for invoicing, because
+    * the payment rules turn on exactly that distinction.
+    */
+  final case class StubCustomers(customers: Map[String, cus.CustomerSummary] = StubCustomers.sample)
+      extends cus.CustomerService:
+
+    def find(id: String): IO[cus.CustomerError, Option[cus.CustomerSummary]] =
+      ZIO.succeed(customers.get(id))
+
+    def findBy(identifier: cus.Identifier): IO[cus.CustomerError, Option[cus.CustomerSummary]] =
+      val email = identifier match
+        case cus.Identifier.Email(value) => Some(value)
+        case _                           => None
+      ZIO.succeed(email.flatMap(e => customers.values.find(_.email == e)))
+
+    def register(input: cus.RegisterCustomer): IO[cus.CustomerError, cus.CustomerSummary] =
+      ZIO.fail(cus.CustomerError.EmailAlreadyRegistered(input.email))
+
+  object StubCustomers:
+    val approvedId = "cust-approved"
+    val unapprovedId = "cust-unapproved"
+
+    val approved: cus.CustomerSummary = cus.CustomerSummary(
+      id = approvedId,
+      displayName = "Approved Corp",
+      email = "buyer@approved.example",
+      company = Some(cus.CompanyDetails("Approved Corp", Some("10203040"), None)),
+      customerType = "RegisteredCorporate",
+      status = "Active",
+      tier = "Gold",
+      isActive = true,
+      canPayOnAccount = true,
+    )
+
+    val unapproved: cus.CustomerSummary = approved.copy(
+      id = unapprovedId,
+      displayName = "Pending Ltd",
+      email = "buyer@pending.example",
+      customerType = "Agency",
+      tier = "Standard",
+      canPayOnAccount = false,
+    )
+
+    val sample: Map[String, cus.CustomerSummary] =
+      Map(approvedId -> approved, unapprovedId -> unapproved)

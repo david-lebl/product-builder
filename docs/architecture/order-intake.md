@@ -541,10 +541,26 @@ Postgres adapter; `ProductPort`/`QuotePort` adapters; `/api/v1/baskets/*`; a `Ba
 *Verify:* add / update / remove / clear persists across a page reload and across devices;
 `ui-calculator` still works with the network disabled.
 
-**Phase 4 — checkout & quoting.** `CheckoutService`, `/checkout/*`, `SpeedOffer` surfaced in the UI
-with per-speed unavailability reasons. **Delete `DiscountService.lookupPercent`.**
-*Verify:* an expired / exhausted / minimum-order code from `SampleDiscountCodes` is refused with the
-right `DiscountRefusal`; delivery and payment options vary correctly by buyer type.
+**Phase 4 — checkout & quoting. ✅ backend done.** `CheckoutService` with `options` / `quote` /
+`applyDiscount` / `speedOffers`; `GET /checkout/options`, `POST /checkout/quote`,
+`POST /checkout/discount`, `GET /checkout/items/{itemId}/speeds`; plus
+`PATCH /baskets/current/items/{itemId}/speed`, so a customer shown a speed offer can take it.
+
+The buyer is resolved through `BuyerPort` → `CustomerBuyerAdapter` → `customers`; delivery options
+moved server-side into `StaticDeliveryCatalog`; every payment rule lives in the pure
+`CheckoutPolicy`, which lists **every** method with a reason when it is not on offer rather than
+silently omitting it.
+
+Two contract defects in pricing had to be fixed for any of it to work: `DiscountContext` now carries
+the specs rather than category ids a caller cannot see (so category-restricted codes can be accepted
+at all), and `DiscountOutcome.Applied` carries a `DiscountBenefit` rather than a bare amount (so a
+free-delivery code is distinguishable from a code worth nothing).
+
+*Verified:* over HTTP against the real engine — `CARDS10` accepted on business cards and refused on
+flyers, `FREESHIP` waiving the courier surcharge while leaving the goods untouched, `OLDCODE` refused
+as expired, `AGENCY15` refused for the wrong account type, a guest refused invoice-on-account with
+the reason, and speed offers carrying per-line surcharges.
+*Outstanding:* the SPA switch; `DiscountService.lookupPercent` goes with it.
 
 **Phase 5 — the `Order` aggregate.** `Status` hierarchy + `OrderPolicy` transitions, `Order.Number`
 generator, orders / lines / transitions / outbox tables, `PlaceOrder` with the re-quote guard,
