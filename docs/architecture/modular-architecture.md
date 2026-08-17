@@ -563,6 +563,21 @@ Findings:
   fails loudly the moment the data is corrected. **Needs a decision:** either retype the business
   customers as `RegisteredCorporate`, or widen the checkout rule to include `Agency`.
 
+- **🐞 An injected clock that a library quietly overrode.** `TokenIssuer` takes `now` explicitly,
+  but `Jwt.decode` validates `exp` against the *system* clock regardless — so under ZIO Test's
+  clock (which starts at epoch 0) every freshly issued token looked years expired, and in
+  production the injected clock was decorative. Decoding now passes
+  `JwtOptions(expiration = false)` and checks expiry against the timestamp the caller actually
+  supplied. Signature verification is untouched, and a test proves a wrong secret is still rejected.
+
+- **🐞 An anti-enumeration measure that leaked, caught only end-to-end.** `requestOtp` returned
+  `deliveredTo: ""` for a *known* account and a masked address for an unknown one — precisely
+  inverted, so an empty field announced "this account exists". The unit test compared
+  `expiresInSeconds` but not `deliveredTo`, and only the HTTP walkthrough made it visible. Both
+  branches now build the response identically, and the test compares every field. Worth
+  remembering: a test that asserts *absence of information* has to compare the whole response, not
+  the fields one happened to think of.
+
 - **§8.3 speed reasons cannot be fully structured yet.** `TierRestrictionValidator.TierViolation`
   reports free text (`reason` / `reasonCs`), so `QuantityAboveCap`, `BindingRequiresCuring` and
   `MaterialExcluded` cannot be recovered structurally in the adapter. `SpeedUnavailable` therefore
@@ -570,11 +585,51 @@ Findings:
   for the rest, with a TODO. Splitting it belongs with the pricing extraction in Phase 8, where
   `TierViolation` itself can carry the structure.
 
-**Phase 2 — `app` skeleton + `identity`.** Stand up `app` (ZIOAppDefault, zio-http, Flyway, Postgres
-via docker-compose, Swagger UI), then build `identity` end to end: `User`, Argon2 hashing, JWT
-issue/verify/refresh, roles, auth endpoints; port today's `LoginService` OTP flow in as a second method.
-*Verify:* register → login → `/auth/me` against a real Postgres (testcontainers); the SPA's
-`LoginWidget` signs in for real.
+**Phase 2 — `app` skeleton + `identity`. ✅ DONE (persistence deferred).**
+
+Delivered:
+
+- **`identity/01-core`** — `AuthService`, `AuthError`, `Principal`, `Role`, `AuthTokens`,
+  `OtpChallenge`, request DTOs. In `impl`: `User` with `Credentials` as a sum (`Password` |
+  `OtpOnly`) and `Status.Suspended` carrying its reason; `Email` and `PasswordHash` as opaque types
+  with smart constructors; a pure `PasswordPolicy`; the driven ports; and `AuthServiceLive`
+  (orchestration only).
+- **`identity/02-infra`** — `Argon2PasswordHasher` (Argon2id, self-describing encoded hashes),
+  `JwtTokenIssuer` (HS256, 15-minute access / 30-day refresh), `InMemoryUserRepository`,
+  `InMemoryOtpStore`, the tapir endpoints and their server logic, and `IdentityModule` as the single
+  wiring entry point.
+- **`app`** — the composition root: `ZIOAppDefault`, zio-http, tapir routes, Swagger UI at `/docs`,
+  a dependency-free `/health`, and `AppConfig` reading `PORT` / `JWT_SECRET` with a loud warning
+  when the development signing key is in use.
+- **`scripts/check-module-deps.sh` rewritten in Python.** The awk version only matched single-line
+  `Seq(...)`, so it silently reported `app` — the one module whose dependencies matter most — as
+  having none. It now resolves relative sibling refs and is verified to fail on both a core→core
+  and an infra→infra violation.
+
+*Verified:* `mill __.compile` clean; `mill __.test` 723 passing, 0 failing; both bundles link; and
+the full flow exercised over real HTTP against a running server — register → `/me` → login →
+refresh → OTP, plus 401 without a token, 409 on duplicate, and 400 listing every password problem
+at once.
+
+**Scope change: Postgres and Flyway are deferred to Phase 3.** Docker is not running in this
+environment, so a persistence layer could not be verified — and an unverified database adapter is
+worse than none. Identity runs on `Ref`-backed stores behind `UserRepository` / `OtpStore`, which is
+the seam Postgres slots into. Nothing outside `identity/02-infra` changes when it does, and Phase 3
+is where durable storage first genuinely matters (a basket that survives a reload).
+
+Security properties, pinned by tests because they are easy to regress by "improving" an error message:
+
+- **A wrong password and an unknown account are indistinguishable** — same error, same message, same
+  401. The password hash is computed even when no account exists, so the two do not differ by timing
+  either. Otherwise the sign-in form is an account-enumeration oracle.
+- **Requesting a one-time code succeeds for any well-formed address**, whether or not an account
+  exists, for the same reason.
+- **A one-time code gets one attempt** — `consume` removes the challenge whether or not the code
+  matched, so a six-digit code cannot be brute-forced against a live challenge.
+- **Refresh tokens carry no roles.** Roles are re-read from storage on refresh, so revoking one
+  takes effect at the next refresh rather than lingering for the token's 30-day life.
+- **Access and refresh tokens are not interchangeable**, and a token signed with another secret is
+  rejected.
 
 ### Track B — order intake (the goal)
 

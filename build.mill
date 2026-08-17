@@ -26,6 +26,23 @@ val domainMvnDeps = Seq(
   mvn"com.softwaremill.quicklens::quicklens::1.9.12"
 )
 
+val tapirVersion = "1.11.13"
+
+/** Deps for adapter layers: HTTP, auth, crypto. Persistence lands in Phase 3. */
+val serverMvnDeps = domainMvnDeps ++ Seq(
+  mvn"com.softwaremill.sttp.tapir::tapir-core::${tapirVersion}",
+  mvn"com.softwaremill.sttp.tapir::tapir-json-zio::${tapirVersion}",
+  mvn"com.softwaremill.sttp.tapir::tapir-zio-http-server::${tapirVersion}",
+  mvn"com.softwaremill.sttp.tapir::tapir-swagger-ui-bundle::${tapirVersion}",
+  mvn"com.github.jwt-scala::jwt-zio-json::10.0.1",
+  mvn"org.bouncycastle:bcprov-jdk18on:1.80"
+)
+
+val testMvnDeps = Seq(
+  mvn"dev.zio::zio-test::2.1.16",
+  mvn"dev.zio::zio-test-sbt::2.1.16"
+)
+
 // ---------------------------------------------------------------------------
 // Commons — shared kernel. Cross-compiled for JVM and JS. Depends on nothing:
 // Money/Language/Quantity and friends are owned by no bounded context, so
@@ -228,6 +245,63 @@ object customers extends Module {
       def testFramework = "zio.test.sbt.ZTestFramework"
     }
   }
+}
+
+// ---------------------------------------------------------------------------
+// Identity — bounded context: who is signed in. Credentials and roles only;
+// the business profile is `customers`, linked by customerId.
+// ---------------------------------------------------------------------------
+
+object identity extends Module {
+  private val base = rootDir / "modules" / "identity"
+
+  object `01-core` extends ScalaModule {
+    def scalaVersion = scala3Version
+    def scalacOptions = commonScalacOptions
+    def sources = Task.Sources(base / "01-core" / "src" / "main" / "scala")
+    def moduleDeps = Seq(commons.jvm)
+    def mvnDeps = domainMvnDeps
+
+    object test extends ScalaTests {
+      def sources = Task.Sources(base / "01-core" / "src" / "test" / "scala")
+      def mvnDeps = testMvnDeps
+      def testFramework = "zio.test.sbt.ZTestFramework"
+    }
+  }
+
+  object `02-infra` extends ScalaModule {
+    def scalaVersion = scala3Version
+    def scalacOptions = commonScalacOptions
+    def sources = Task.Sources(base / "02-infra" / "src" / "main" / "scala")
+    def moduleDeps = Seq(`01-core`)
+    def mvnDeps = serverMvnDeps
+
+    object test extends ScalaTests {
+      def sources = Task.Sources(base / "02-infra" / "src" / "test" / "scala")
+      def mvnDeps = testMvnDeps
+      def testFramework = "zio.test.sbt.ZTestFramework"
+    }
+  }
+}
+
+// ---------------------------------------------------------------------------
+// App — composition root. The only module that sees any 02-infra: it wires the
+// ZLayer graph, mounts every context's routes on one server, and serves the
+// OpenAPI docs. No business logic lives here.
+// ---------------------------------------------------------------------------
+
+object app extends ScalaModule {
+  def scalaVersion = scala3Version
+  def scalacOptions = commonScalacOptions
+  def sources = Task.Sources(rootDir / "modules" / "app" / "src" / "main" / "scala")
+  def resources = Task.Sources(rootDir / "modules" / "app" / "src" / "main" / "resources")
+  def moduleDeps = Seq(
+    identity.`02-infra`,
+    catalog.`02-infra`,
+    pricing.`02-infra`,
+    customers.`02-infra`,
+  )
+  def mvnDeps = serverMvnDeps
 }
 
 // ---------------------------------------------------------------------------
