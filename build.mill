@@ -19,10 +19,15 @@ val rootDir = moduleDir
 val commonsDir = rootDir / "modules" / "commons"
 val domainDir = rootDir / "modules" / "domain"
 
+// Pinned deliberately: tapir-json-zio pulls zio-json 0.7.4, and a module compiled against 0.7.3
+// fails at *runtime* with NoSuchMethodError on magnolia's `join` when called from one that
+// resolved 0.7.4. Every module must agree on this version.
+val zioJsonVersion = "0.7.4"
+
 val domainMvnDeps = Seq(
   mvn"dev.zio::zio::2.1.16",
   mvn"dev.zio::zio-prelude::1.0.0-RC39",
-  mvn"dev.zio::zio-json::0.7.3",
+  mvn"dev.zio::zio-json::${zioJsonVersion}",
   mvn"com.softwaremill.quicklens::quicklens::1.9.12"
 )
 
@@ -285,6 +290,45 @@ object identity extends Module {
 }
 
 // ---------------------------------------------------------------------------
+// Order intake — bounded context: basket, checkout, orders. The first context
+// with a real client; everything above it exists to serve this one.
+// ---------------------------------------------------------------------------
+
+object `order-intake` extends Module {
+  private val base = rootDir / "modules" / "order-intake"
+
+  object `01-core` extends ScalaModule {
+    def scalaVersion = scala3Version
+    def scalacOptions = commonScalacOptions
+    def sources = Task.Sources(base / "01-core" / "src" / "main" / "scala")
+    def moduleDeps = Seq(commons.jvm)
+    def mvnDeps = domainMvnDeps
+
+    object test extends ScalaTests {
+      def sources = Task.Sources(base / "01-core" / "src" / "test" / "scala")
+      def mvnDeps = testMvnDeps
+      def testFramework = "zio.test.sbt.ZTestFramework"
+    }
+  }
+
+  object `02-infra` extends ScalaModule {
+    def scalaVersion = scala3Version
+    def scalacOptions = commonScalacOptions
+    def sources = Task.Sources(base / "02-infra" / "src" / "main" / "scala")
+    def resources = Task.Sources(base / "02-infra" / "src" / "main" / "resources")
+    // Other contexts' cores only — this is where the anti-corruption adapters live.
+    def moduleDeps = Seq(`01-core`, catalog.`01-core`.jvm, pricing.`01-core`.jvm, identity.`01-core`)
+    def mvnDeps = serverMvnDeps
+
+    object test extends ScalaTests {
+      def sources = Task.Sources(base / "02-infra" / "src" / "test" / "scala")
+      def mvnDeps = testMvnDeps
+      def testFramework = "zio.test.sbt.ZTestFramework"
+    }
+  }
+}
+
+// ---------------------------------------------------------------------------
 // App — composition root. The only module that sees any 02-infra: it wires the
 // ZLayer graph, mounts every context's routes on one server, and serves the
 // OpenAPI docs. No business logic lives here.
@@ -297,6 +341,7 @@ object app extends ScalaModule {
   def resources = Task.Sources(rootDir / "modules" / "app" / "src" / "main" / "resources")
   def moduleDeps = Seq(
     identity.`02-infra`,
+    `order-intake`.`02-infra`,
     catalog.`02-infra`,
     pricing.`02-infra`,
     customers.`02-infra`,

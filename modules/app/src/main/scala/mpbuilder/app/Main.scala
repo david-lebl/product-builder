@@ -1,6 +1,11 @@
 package mpbuilder.app
 
+import mpbuilder.catalog.CatalogService
+import mpbuilder.catalog.impl.legacy.LegacyCatalogService
 import mpbuilder.identity.{AuthService, IdentityHttp, IdentityModule}
+import mpbuilder.orderintake.{BasketService, OrderIntakeHttp, OrderIntakeModule}
+import mpbuilder.pricing.PricingService
+import mpbuilder.pricing.impl.legacy.LegacyPricingService
 import sttp.tapir.server.ziohttp.ZioHttpInterpreter
 import sttp.tapir.swagger.bundle.SwaggerInterpreter
 import zio.*
@@ -24,16 +29,35 @@ object Main extends ZIOAppDefault:
       _ <- ZIO.logInfo(s"Starting on http://localhost:${cfg.port} — docs at /docs")
       _ <- serve(cfg).provide(
         IdentityModule.inMemory(cfg.jwtSecret),
+        // Catalog and pricing are still backed by the legacy domain and its sample data. Choosing
+        // *which* adapter every context runs on is this file's job and nowhere else's — swapping
+        // these two lines in Phase 7/8 is the whole of that migration, as far as the app is
+        // concerned.
+        ZLayer.succeed[CatalogService](legacyCatalog),
+        ZLayer.succeed[PricingService](legacyPricing),
+        OrderIntakeModule.inMemory(),
         Server.defaultWithPort(cfg.port),
       )
     yield ()
 
-  private def serve(cfg: AppConfig): ZIO[AuthService & Server, Throwable, Unit] =
+  private val legacyCatalog: CatalogService =
+    LegacyCatalogService.of(
+      mpbuilder.domain.sample.SampleCatalog.catalog,
+      mpbuilder.domain.sample.SampleRules.ruleset,
+    )
+
+  private val legacyPricing: PricingService = LegacyPricingService.of()
+
+  private def serve(cfg: AppConfig): ZIO[AuthService & BasketService & Server, Throwable, Unit] =
     for
       auth <- ZIO.service[AuthService]
-      apiRoutes = IdentityHttp.routes(auth)
-      docRoutes = SwaggerInterpreter()
-        .fromEndpoints[Task](IdentityHttp.endpoints, "Material Builder API", "v1")
+      baskets <- ZIO.service[BasketService]
+      apiRoutes = IdentityHttp.routes(auth) ++ OrderIntakeHttp.routes(baskets, auth)
+      docRoutes = SwaggerInterpreter().fromEndpoints[Task](
+        IdentityHttp.endpoints ++ OrderIntakeHttp.endpoints,
+        "Material Builder API",
+        "v1",
+      )
       http = ZioHttpInterpreter().toHttp(apiRoutes ++ docRoutes)
       _ <- Server.serve(http ++ health)
       _ <- ZIO.never

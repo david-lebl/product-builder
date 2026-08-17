@@ -578,6 +578,31 @@ Findings:
   remembering: a test that asserts *absence of information* has to compare the whole response, not
   the fields one happened to think of.
 
+- **🐞 A version skew that would have failed at runtime, not compile time.** `catalog/01-core`
+  compiled its codecs against zio-json 0.7.3, but `tapir-json-zio` pulls 0.7.4, and magnolia's
+  `join` signature changed between them — so calling catalog's codecs from any module that resolved
+  0.7.4 threw `NoSuchMethodError`. Everything compiled; only running it revealed the problem.
+  `zioJsonVersion` is now pinned once and shared, with a comment saying why.
+
+- **🐞 Merged basket lines were under-charged.** `BasketPolicy.addOrMerge` added quantities but kept
+  the incoming price, so adding two copies twice gave a line of four priced as two. The unit test
+  checked the quantity and not the total, and only the HTTP walkthrough showed 1360 where 2720 was
+  owed. The policy no longer merges: it exposes `findMatching` and `upsert`, and the service
+  re-quotes at the combined quantity — because a merged line has a *different* quantity, and
+  quoting is an effect a pure policy cannot perform. The same fix applies to login-time merge.
+
+- **Two quantities are easy to conflate.** The configuration carries how many pieces one run makes
+  (500 cards) and volume tiers apply there; the basket line carries how many runs are wanted, and
+  that multiplies. `PricingQuoteAdapter` originally dropped the line quantity entirely, so changing
+  a basket quantity did not change the price at all. Matches the legacy
+  `BasketService.calculateTotal`, which computes `priceBreakdown.total * item.quantity`.
+
+- **Order-intake's tests cannot see catalog's implementation, and that is correct.** The first
+  version of `BasketServiceSpec` wired `LegacyCatalogService` directly and would not compile —
+  it is `private[catalog]`, and `domain` is not on this module's classpath. The context is specified
+  against its dependencies' *contracts* via `Stubs`, so those tests survive Phases 7–8 unchanged;
+  real integration is verified in `app`, over HTTP.
+
 - **§8.3 speed reasons cannot be fully structured yet.** `TierRestrictionValidator.TierViolation`
   reports free text (`reason` / `reasonCs`), so `QuantityAboveCap`, `BindingRequiresCuring` and
   `MaterialExcluded` cannot be recovered structurally in the adapter. `SpeedUnavailable` therefore
@@ -632,6 +657,23 @@ Security properties, pinned by tests because they are easy to regress by "improv
   rejected.
 
 ### Track B — order intake (the goal)
+
+**Phase 3 — server-side basket. ✅ backend DONE; SPA switch and Postgres outstanding.**
+
+`order-intake/01-core`: `BasketService`, `BasketError`, `Actor`, `ProductSpec`, `QuotedPrice`, view
+and request DTOs. In `impl`: the `Basket` aggregate with `Owner` as a sum, a pure `BasketPolicy`
+holding every invariant, and the driven ports (`BasketRepository`, `ProductPort`, `QuotePort`).
+`order-intake/02-infra`: `CatalogProductAdapter` and `PricingQuoteAdapter` — the only two files in
+the context that know the other contexts exist — a `Ref`-backed repository, and the tapir endpoints.
+`app` wires it to the real catalog and pricing services.
+
+*Verified:* `mill __.compile` clean; `mill __.test` 745 passing; both bundles link; the full API
+exercised over HTTP against a running server with the **real** catalog and pricing — add, merge,
+patch quantity, requote, register, merge-on-login, clear, plus 400 on an unknown speed and 422
+carrying *both* accumulated catalog reasons.
+
+Still outstanding: the SPA switch (`BasketBackend` on `BuilderEnvironment`, `HttpBasketBackend`),
+and Postgres — Docker was still unavailable, so the repository remains `Ref`-backed behind its port.
 
 | Phase | Work | Verifiable when |
 |---|---|---|
