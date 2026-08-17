@@ -15,6 +15,8 @@ mill domain.jvm.compile      # Domain (JVM target)
 mill domain.js.compile       # Domain (Scala.js target)
 mill 'catalog.01-core.jvm.compile'  # Catalog public contract
 mill 'catalog.02-infra.compile'     # Catalog adapters
+mill 'pricing.01-core.jvm.compile'  # Pricing public contract
+mill 'customers.01-core.compile'    # Customers public contract
 mill ui.compile              # Full SPA (Scala.js)
 mill ui-productbuilder.compile  # Shared product configurator
 mill ui-calculator.compile   # Standalone embeddable calculator
@@ -25,6 +27,8 @@ mill commons.jvm.test                               # Shared kernel tests
 mill domain.jvm.test                                # All domain tests
 mill 'domain.jvm.test.testOnly *PriceCalculatorSpec' # Single suite (pattern)
 mill 'catalog.02-infra.test'                        # Catalog contract tests
+mill 'pricing.02-infra.test'                        # Pricing contract tests
+mill 'customers.02-infra.test'                      # Customers contract tests
 
 # Architecture guard — must pass before compile; CI runs it first
 ./scripts/check-module-deps.sh
@@ -51,6 +55,8 @@ context's infra.
 - **`commons/`** — Cross-compiled shared kernel: `Money`, `Currency`, `Price`, `Percentage`, `Language`, `LocalizedString`, `Dimension`, `Quantity`, `Timestamp`, `DomainError`, `Estimated[+A]`. Depends on nothing. Business concepts (`CategoryId`, `CustomerType`, …) do **not** belong here.
 - **`catalog/01-core`** — Catalog's public contract: `CatalogService`, `CatalogError`, `ConfigurationSnapshot`, request DTOs. Cross-compiled, `commons`-only.
 - **`catalog/02-infra`** — Adapters. `LegacyCatalogService` delegates to `domain/` until the model is extracted (Phase 7); `Mapping` is the whole DTO↔domain anti-corruption layer.
+- **`pricing/01-core` + `02-infra`** — `PricingService`: quotes, speed offers, discount codes. Pricing **owns** discounts, so there is only one place a discount can be computed. Cross-compiled core.
+- **`customers/01-core` + `02-infra`** — `CustomerService`: lookup, registration. Deliberately exposes **no** negotiated pricing — that is pricing's, resolved from a customer id.
 - **`domain/`** — Cross-compiled (JVM + JS). Pure functional core: no ZIO effects, only `Validation[E, A]` from ZIO Prelude. Contains pricing engine, compatibility rules, manufacturing workflow, and all services. **Legacy** — being split into contexts.
 - **`ui-productbuilder/`** — The shared product configurator (form, pricing preview, validation, basket, e-mail order), package `mpbuilder.ui.productbuilder`. Depends on `domainJS` and `uiFramework`. Consumed by both apps below, so it must not reference anything in `mpbuilder.ui.*`.
 - **`ui/`** — Scala.js + Laminar SPA. Depends on `domainJS`, `uiFramework`, `ui-productbuilder`.

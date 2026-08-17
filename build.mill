@@ -152,6 +152,85 @@ object catalog extends Module {
 }
 
 // ---------------------------------------------------------------------------
+// Pricing — bounded context: what it costs. Owns discount codes, so there can
+// only ever be one place a discount is computed.
+// ---------------------------------------------------------------------------
+
+object pricing extends Module {
+  private val base = rootDir / "modules" / "pricing"
+
+  object `01-core` extends Module {
+    object jvm extends ScalaModule {
+      def scalaVersion = scala3Version
+      def scalacOptions = commonScalacOptions
+      def sources = Task.Sources(base / "01-core" / "src" / "main" / "scala")
+      def moduleDeps = Seq(commons.jvm)
+      def mvnDeps = domainMvnDeps
+    }
+
+    object js extends ScalaJSModule {
+      def scalaVersion = scala3Version
+      def scalaJSVersion = build.scalaJsVersion
+      def scalacOptions = commonScalacOptions
+      def sources = Task.Sources(base / "01-core" / "src" / "main" / "scala")
+      def moduleDeps = Seq(commons.js)
+      def mvnDeps = domainMvnDeps
+    }
+  }
+
+  object `02-infra` extends ScalaModule {
+    def scalaVersion = scala3Version
+    def scalacOptions = commonScalacOptions
+    def sources = Task.Sources(base / "02-infra" / "src" / "main" / "scala")
+    def moduleDeps = Seq(`01-core`.jvm, domain.jvm)
+    def mvnDeps = domainMvnDeps
+
+    object test extends ScalaTests {
+      def sources = Task.Sources(base / "02-infra" / "src" / "test" / "scala")
+      def mvnDeps = Seq(
+        mvn"dev.zio::zio-test::2.1.16",
+        mvn"dev.zio::zio-test-sbt::2.1.16"
+      )
+      def testFramework = "zio.test.sbt.ZTestFramework"
+    }
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Customers — bounded context: who we sell to. Deliberately knows nothing
+// about negotiated pricing; that is pricing's, resolved from a customer id.
+// ---------------------------------------------------------------------------
+
+object customers extends Module {
+  private val base = rootDir / "modules" / "customers"
+
+  object `01-core` extends ScalaModule {
+    def scalaVersion = scala3Version
+    def scalacOptions = commonScalacOptions
+    def sources = Task.Sources(base / "01-core" / "src" / "main" / "scala")
+    def moduleDeps = Seq(commons.jvm)
+    def mvnDeps = domainMvnDeps
+  }
+
+  object `02-infra` extends ScalaModule {
+    def scalaVersion = scala3Version
+    def scalacOptions = commonScalacOptions
+    def sources = Task.Sources(base / "02-infra" / "src" / "main" / "scala")
+    def moduleDeps = Seq(`01-core`, domain.jvm)
+    def mvnDeps = domainMvnDeps
+
+    object test extends ScalaTests {
+      def sources = Task.Sources(base / "02-infra" / "src" / "test" / "scala")
+      def mvnDeps = Seq(
+        mvn"dev.zio::zio-test::2.1.16",
+        mvn"dev.zio::zio-test-sbt::2.1.16"
+      )
+      def testFramework = "zio.test.sbt.ZTestFramework"
+    }
+  }
+}
+
+// ---------------------------------------------------------------------------
 // UI Framework — Laminar components, no domain dependency (Scala.js only)
 // ---------------------------------------------------------------------------
 

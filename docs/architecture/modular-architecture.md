@@ -493,7 +493,7 @@ failing; `mill ui.fullLinkJS` and `mill ui-calculator.fullLinkJS` both link.
 > `Basket` moves to order-intake (Phase 5) and `Customer` to customers (Phase 9). Until then the two
 > packages remain mutually referencing inside the single `domain` compile unit.
 
-**Phase 1 — first public services. ✅ catalog DONE; pricing and customers outstanding.**
+**Phase 1 — first public services. ✅ DONE.**
 
 Delivered:
 
@@ -507,12 +507,35 @@ Delivered:
   `commons` only.
 - **`catalog/02-infra`** — `LegacyCatalogService` over `SampleCatalog`, with `Mapping` (the entire
   anti-corruption layer, one file) and `Describe`.
+- **`pricing/01-core`** — `PricingService`, `PricingError`, `ProductSpec`, `PriceQuote` /
+  `ComponentQuote` / `LineItemView`, `ProductionSpeed`, `SpeedOffer` / `SpeedUnavailable`,
+  `DiscountContext` / `DiscountOutcome`. Cross-compiled, `commons`-only.
+- **`pricing/02-infra`** — `LegacyPricingService` over the sample pricelists, with `Mapping` and
+  `Restrictions` (the §8.3 speed gates).
+- **`customers/01-core`** — `CustomerService`, `CustomerError`, `CustomerSummary`, `Identifier`,
+  `RegisterCustomer`. JVM-only; the offline widget has no use for it.
+- **`customers/02-infra`** — `LegacyCustomerService` over a `Ref`-backed store seeded from
+  `SampleCustomers`. A real store, not a stub: register-then-find works end to end, so Phase 9 only
+  swaps the `Ref` for Postgres.
+- **`Problem` promoted to `commons`** — every context reports validation failures in the same
+  shape, and it is an error-reporting convention rather than a business concept.
 - **`scripts/check-module-deps.sh`**, wired into CI ahead of compile. Verified to *fail* on a
   planted violation, not merely to pass.
 
-*Verified:* `mill __.compile` clean; `mill __.test` 671 passing, 0 failing; both bundles link.
+*Verified:* `mill __.compile` clean; `mill __.test` 700 passing, 0 failing; both bundles link.
 
-Three things learned while building it:
+Design points worth keeping:
+
+- **A refused discount code is an outcome, not an error.** `DiscountOutcome.Refused` carries the
+  localized reason. A mistyped code must not travel through the error channel and blow up a checkout.
+- **`quoteAll` fails the whole basket if any line fails.** A total that silently omitted a line
+  would be worse than no total.
+- **`speedOffers` returns offers, not a `Set[ProductionSpeed]`.** When Express is withdrawn the
+  customer is owed the reason, and the shop's reason is what the configurator displays.
+- **Negotiated pricing stayed inside pricing.** `CustomerSummary` deliberately carries none;
+  pricing resolves the overlay from a customer id. A test asserts the DTO does not leak it.
+
+Findings:
 
 - **The delegating implementation goes in `02-infra`, not `01-core/impl`.** A `Live` inside
   `01-core` would have to depend on `domain`, breaking the "core depends on `commons` only" rule on
@@ -525,6 +548,27 @@ Three things learned while building it:
   products produced different snapshots and basket deduplication would have silently failed. Caught
   by the fingerprint test. Snapshots now build with a constant id; identity comes from the context
   that stores them (an order line id), never from the snapshot.
+
+- **🐞 "Invoice on account" is unreachable today.** `CheckoutView.scala:548` gates it on
+  `customerType == RegisteredCorporate`, but **every** business customer in the system is created as
+  `CustomerType.Agency` — all 10 in `SampleCustomers`, plus the three places that construct
+  customers at runtime (`LoginWidget.scala:147`, `ProductBuilderViewModel.scala:760`,
+  `CustomersView.scala:471`). No customer can ever qualify, so the payment method is dead code.
+  This is not in the §15 known-gaps list.
+
+  The façade implements the spec as written (§9.1: `RegisteredCorporate` only) rather than silently
+  widening the rule to `Agency` — changing who may be invoiced is a business decision, not a
+  refactor. `CustomerServiceSpec` pins both halves: the rule works for an explicit
+  `RegisteredCorporate` fixture, and a second test asserts no sample customer qualifies, so it
+  fails loudly the moment the data is corrected. **Needs a decision:** either retype the business
+  customers as `RegisteredCorporate`, or widen the checkout rule to include `Agency`.
+
+- **§8.3 speed reasons cannot be fully structured yet.** `TierRestrictionValidator.TierViolation`
+  reports free text (`reason` / `reasonCs`), so `QuantityAboveCap`, `BindingRequiresCuring` and
+  `MaterialExcluded` cannot be recovered structurally in the adapter. `SpeedUnavailable` therefore
+  has `ShopSaturated` (genuinely structural, from the utilisation gate) and `Restricted(explanation)`
+  for the rest, with a TODO. Splitting it belongs with the pricing extraction in Phase 8, where
+  `TierViolation` itself can carry the structure.
 
 **Phase 2 — `app` skeleton + `identity`.** Stand up `app` (ZIOAppDefault, zio-http, Flyway, Postgres
 via docker-compose, Swagger UI), then build `identity` end to end: `User`, Argon2 hashing, JWT

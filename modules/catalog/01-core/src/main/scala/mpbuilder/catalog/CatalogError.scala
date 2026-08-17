@@ -3,17 +3,6 @@ package mpbuilder.catalog
 import mpbuilder.commons.*
 import zio.NonEmptyChunk
 
-/** One thing wrong with a request, in a form the caller can render or key off.
-  *
-  * `code` is stable and machine-readable (`"MaterialNotFound"`); `message` is already localized, so
-  * a caller in another bounded context can surface it without knowing anything about catalog rules.
-  */
-final case class Problem(code: String, message: LocalizedString)
-
-object Problem:
-  def apply(code: String, en: String, cs: String): Problem =
-    Problem(code, LocalizedString(en, cs))
-
 enum CatalogError extends DomainError:
 
   /** The request named things that do not exist, or asked for a combination the compatibility
