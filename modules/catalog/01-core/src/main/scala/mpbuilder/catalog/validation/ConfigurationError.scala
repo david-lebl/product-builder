@@ -2,7 +2,7 @@ package mpbuilder.catalog.validation
 
 import mpbuilder.commons.*
 
-import mpbuilder.catalog.model.*
+import mpbuilder.product.model.*
 import mpbuilder.catalog.rules.SpecPredicate
 
 enum ConfigurationError extends DomainError:

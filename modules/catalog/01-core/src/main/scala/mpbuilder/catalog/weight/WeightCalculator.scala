@@ -3,7 +3,7 @@ package mpbuilder.catalog.weight
 import mpbuilder.commons.*
 
 import zio.prelude.*
-import mpbuilder.catalog.model.*
+import mpbuilder.product.model.*
 
 object WeightCalculator:
 

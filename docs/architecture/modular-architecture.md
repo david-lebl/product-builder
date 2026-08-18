@@ -73,11 +73,23 @@ narrow further with `private[postgres]`, `private[http]`.
 ### 3.2 The three dependency rules (non-negotiable)
 
 ```
-01-core   →  commons only.  NEVER another context's 01-core, never any 02-infra.
+01-core   →  commons and product-kernel only.
+             NEVER another context's 01-core, never any 02-infra.
 02-infra  →  its own 01-core, plus other contexts' 01-core (to write adapters).
              NEVER another context's 02-infra.
 app       →  every 02-infra.
 ```
+
+**On the two shared kernels.** `commons` owns `Money`, `Language` and friends: types every context
+needs and none of them owns. `product-kernel` owns the *product* — `ProductConfiguration`, materials,
+finishes, specifications — because catalog and pricing both genuinely need it and neither can be
+said to own it alone: you cannot price a product without knowing what a product is.
+
+Naming that sharing is the point. The alternatives were to let cores depend on each other (which
+ends with every core depending on every other), or to give pricing its own product model and
+translate at the boundary (correct, and a rewrite of the whole pricing engine — see Phase 8). A
+named kernel is a decision a reader can see and the guard can check; both kernels are checked to
+depend on nothing but `commons`.
 
 This is the part that makes extraction mechanical, and it is stricter than "modules talk through
 interfaces". A context's core does not know that the other contexts *exist*. When order-intake needs
@@ -848,6 +860,37 @@ approve-then-pay and pay-then-approve each reach `active/InProduction`, dispatch
 
 Full detail in [order-intake.md](order-intake.md) §8.
 
+**Phase 8 — `product-kernel` and the pricing extraction. ✅ DONE.**
+
+The product model moved once more, out of `catalog/01-core` and into a new cross-compiled
+`product-kernel`, and pricing's engine — `PriceCalculator`, the 17 `PricingRule` variants,
+`PriceBreakdown`, `PricingContext`, production costs, the customer pricing overlay and the entire
+discount system — moved out of the legacy module into `pricing/01-core/engine`. The legacy module is
+down to ~3,350 LOC from ~11,700 at the start of this work.
+
+This is the shared-kernel answer to the question Phase 7 raised. The engine has to cross-compile,
+because the offline calculator prices in the browser, so it could not go in `02-infra`; and it
+speaks catalog's language, so it could not sit behind a `commons`-only rule. Naming the shared half
+resolves both without pretending the two contexts are independent.
+
+**Pricing stopped compiling against customers' identity types**, which was the other half of what
+kept the engine in the legacy module. It now has its own `CustomerRef`, and a customer *type* is a
+plain label it checks rather than a concept it owns — which is exactly what the `PricingService`
+contract already claimed. One behavioural consequence, worth knowing: matching a restricted code's
+customer type is now exact rather than case-insensitive. Both sides produce the same casing, and the
+sample codes were converted with the move, but a hand-written code with different casing would now
+be refused where it previously applied.
+
+The engine's own `PricingError` was renamed `CalculationError`. Two types with that name in one
+context — the service contract's and the engine's — would have been a coin toss at every call site.
+
+*Verified:* guard passing, now checking that both kernels depend on nothing but `commons`;
+`mill __.compile` clean; 876 JVM tests plus 16 Scala.js, all green; both bundles link — including
+the offline calculator, which is the constraint the whole shape exists to protect. Over HTTP against
+the moved engine: a basket priced at 1808.40, `SAVE10` and `CARDS10` applied, `FREESHIP` reported as
+free delivery, `OLDCODE` refused as expired, and both restricted codes still resolving — `AGENCY15`
+for an Agency customer and `VIP25` for the customer it names.
+
 **Phase 7 — extract `catalog`. ✅ DONE.**
 
 `catalog/01-core` now owns what it is about: `model/` (10 entity files plus the five ids catalog
@@ -878,7 +921,7 @@ same 876 as before the move, which is the point of a refactor; both bundles link
 | Phase | Work |
 |---|---|
 | **7 — `catalog`** ✅ | Done. Model, ids, rules, validation, weight, codecs, `ConfigurationBuilder` and `CatalogQueryService` moved into `catalog/01-core` (cross-compiled); the bundled catalog moved into `catalog/sample`. The legacy module went from ~11.7k to 6.3k LOC. |
-| **8 — `pricing`** | Same for pricing + discount codes + production cost + the customer pricing overlay. |
+| **8 — `pricing`** ✅ | Done. The engine, pricing rules, production costs, the customer pricing overlay and the whole discount system moved into `pricing/01-core/engine`; the pricelists and discount codes into `pricing/sample`. Introduced `product-kernel`. |
 | **9 — `customers`** | Customer entity + CRM; tier→discount mapping lands in pricing. |
 | **10 — `manufacturing`** | Split `model/manufacturing.scala` out of `model/`; move the six config files and eight services; persist workflows. |
 | **11 — remainder** | `artwork`, `notifications`, analytics read-models. `legacy-domain` is now empty — delete it. |

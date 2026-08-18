@@ -4,15 +4,16 @@ import mpbuilder.commons.*
 
 import com.raquo.laminar.api.L.*
 import mpbuilder.domain.model.*
-import mpbuilder.catalog.model.*
+import mpbuilder.product.model.*
 import mpbuilder.domain.model.ManufacturingWorkflow.*
 import mpbuilder.domain.model.ManufacturingOrder.*
 import mpbuilder.catalog.service.*
 import mpbuilder.domain.service.*
 import mpbuilder.catalog.sample.*
+import mpbuilder.pricing.sample.*
 import mpbuilder.domain.sample.*
 import mpbuilder.domain.manufacturing.{ShopSchedule, WorkingHours, StationTimeEstimate}
-import mpbuilder.domain.pricing.BusyPeriodMultiplier
+import mpbuilder.pricing.engine.BusyPeriodMultiplier
 import java.time.{DayOfWeek, LocalDate, LocalTime}
 
 /** Reactive state management for the manufacturing UI. */
@@ -417,7 +418,7 @@ object ManufacturingViewModel:
     ): ManufacturingOrder =
       val pricelist = SamplePricelist.pricelistCzkSheet
       val basketItems = items.map { case (config, qty) =>
-        val priceResult = mpbuilder.domain.pricing.PriceCalculator.calculate(config, pricelist)
+        val priceResult = mpbuilder.pricing.engine.PriceCalculator.calculate(config, pricelist)
         val breakdown = priceResult.toEither.toOption.get
         BasketItem(config, qty, breakdown)
       }

@@ -10,8 +10,8 @@ import mpbuilder.ui.manufacturing.ManufacturingApp
 import mpbuilder.ui.catalog.CatalogEditorApp
 import mpbuilder.ui.customers.CustomerManagementApp
 import mpbuilder.ui.productcatalog.ProductCatalogApp
-import mpbuilder.catalog.model.{CategoryId}
-import mpbuilder.catalog.model.*
+import mpbuilder.product.model.{CategoryId}
+import mpbuilder.product.model.*
 
 sealed trait AppRoute
 object AppRoute {

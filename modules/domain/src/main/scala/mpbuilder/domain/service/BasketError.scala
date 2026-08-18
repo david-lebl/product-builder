@@ -3,13 +3,13 @@ package mpbuilder.domain.service
 import mpbuilder.commons.*
 
 import mpbuilder.domain.model.*
-import mpbuilder.catalog.model.*
-import mpbuilder.domain.pricing.PricingError
+import mpbuilder.product.model.*
+import mpbuilder.pricing.engine.CalculationError
 
 enum BasketError extends DomainError:
   case InvalidQuantity(quantity: Int)
   case ConfigurationNotFound(configurationId: ConfigurationId)
-  case PricingFailed(error: PricingError)
+  case PricingFailed(error: CalculationError)
 
 
   def message(lang: Language): String = this match

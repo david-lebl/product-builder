@@ -4,10 +4,11 @@ import mpbuilder.commons.*
 
 import zio.test.*
 import mpbuilder.domain.model.*
-import mpbuilder.catalog.model.*
+import mpbuilder.product.model.*
 import mpbuilder.catalog.service.*
 import mpbuilder.domain.service.*
 import mpbuilder.catalog.sample.*
+import mpbuilder.pricing.sample.*
 import mpbuilder.domain.sample.*
 
 object CatalogQueryServiceSpec extends ZIOSpecDefault:

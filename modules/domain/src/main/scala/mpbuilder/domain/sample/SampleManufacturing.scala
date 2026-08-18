@@ -1,7 +1,7 @@
 package mpbuilder.domain.sample
 
 import mpbuilder.domain.model.StationType
-import mpbuilder.catalog.model.*
+import mpbuilder.product.model.*
 import mpbuilder.domain.manufacturing.*
 import java.time.*
 
@@ -30,23 +30,23 @@ object SampleManufacturing:
   val shopSchedule: ShopSchedule = ShopSchedule.default
 
   /** Sample busy period multipliers for dynamic pricing. */
-  val busyPeriodMultipliers: List[mpbuilder.domain.pricing.BusyPeriodMultiplier] = List(
+  val busyPeriodMultipliers: List[mpbuilder.pricing.engine.BusyPeriodMultiplier] = List(
     // Monday and Friday are peak order days
-    mpbuilder.domain.pricing.BusyPeriodMultiplier(
+    mpbuilder.pricing.engine.BusyPeriodMultiplier(
       dayOfWeek = Some(Set(DayOfWeek.MONDAY, DayOfWeek.FRIDAY)),
       monthRange = None,
       timeAfter = None,
       additionalMultiplier = BigDecimal("0.05"),
     ),
     // Pre-Christmas season (November-December)
-    mpbuilder.domain.pricing.BusyPeriodMultiplier(
+    mpbuilder.pricing.engine.BusyPeriodMultiplier(
       dayOfWeek = None,
       monthRange = Some((Month.NOVEMBER, Month.DECEMBER)),
       timeAfter = None,
       additionalMultiplier = BigDecimal("0.10"),
     ),
     // Conference season (September)
-    mpbuilder.domain.pricing.BusyPeriodMultiplier(
+    mpbuilder.pricing.engine.BusyPeriodMultiplier(
       dayOfWeek = None,
       monthRange = Some((Month.SEPTEMBER, Month.SEPTEMBER)),
       timeAfter = None,

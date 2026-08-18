@@ -5,8 +5,8 @@ import mpbuilder.catalog.sample.*
 import mpbuilder.commons.*
 
 import mpbuilder.domain.model.*
-import mpbuilder.catalog.model.*
-import mpbuilder.domain.pricing.*
+import mpbuilder.product.model.*
+import mpbuilder.pricing.engine.*
 
 object SampleCustomers:
 

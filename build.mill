@@ -99,7 +99,9 @@ object domain extends Module {
     // The catalog model, rules, validation and weight left this module in Phase 7. What remains
     // still uses them — the pricing engine prices a `ProductConfiguration`, the workflow generator
     // plans one — so the dependency now points at catalog rather than at a package of its own.
-    def moduleDeps = Seq(commons.jvm, catalog.`01-core`.jvm, catalog.sample.jvm)
+    def moduleDeps =
+      Seq(commons.jvm, `product-kernel`.jvm, catalog.`01-core`.jvm, catalog.sample.jvm,
+          pricing.`01-core`.jvm, pricing.sample.jvm)
     def mvnDeps = domainMvnDeps
 
     object test extends ScalaTests {
@@ -120,7 +122,40 @@ object domain extends Module {
     def scalacOptions = commonScalacOptions
     def sources = Task.Sources(domainDir / "src" / "main" / "scala")
     def resources = Task.Sources(domainDir / "src" / "main" / "resources")
-    def moduleDeps = Seq(commons.js, catalog.`01-core`.js, catalog.sample.js)
+    def moduleDeps =
+      Seq(commons.js, `product-kernel`.js, catalog.`01-core`.js, catalog.sample.js,
+          pricing.`01-core`.js, pricing.sample.js)
+    def mvnDeps = domainMvnDeps
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Product kernel — the language catalog and pricing genuinely share.
+//
+// A product model belongs to catalog, and pricing cannot price one without
+// knowing what a product is. Rather than pretend the two can be separated —
+// or let cores depend on each other freely — the shared half is named and
+// depended on explicitly, exactly as `commons` is. Cross-compiled, because
+// the offline calculator prices in the browser.
+// ---------------------------------------------------------------------------
+
+object `product-kernel` extends Module {
+  private val base = rootDir / "modules" / "product-kernel"
+
+  object jvm extends ScalaModule {
+    def scalaVersion = scala3Version
+    def scalacOptions = commonScalacOptions
+    def sources = Task.Sources(base / "src" / "main" / "scala")
+    def moduleDeps = Seq(commons.jvm)
+    def mvnDeps = domainMvnDeps
+  }
+
+  object js extends ScalaJSModule {
+    def scalaVersion = scala3Version
+    def scalaJSVersion = build.scalaJsVersion
+    def scalacOptions = commonScalacOptions
+    def sources = Task.Sources(base / "src" / "main" / "scala")
+    def moduleDeps = Seq(commons.js)
     def mvnDeps = domainMvnDeps
   }
 }
@@ -144,7 +179,7 @@ object catalog extends Module {
       def scalaVersion = scala3Version
       def scalacOptions = commonScalacOptions
       def sources = Task.Sources(base / "01-core" / "src" / "main" / "scala")
-      def moduleDeps = Seq(commons.jvm)
+      def moduleDeps = Seq(commons.jvm, `product-kernel`.jvm)
       def mvnDeps = domainMvnDeps
     }
 
@@ -153,7 +188,7 @@ object catalog extends Module {
       def scalaJSVersion = build.scalaJsVersion
       def scalacOptions = commonScalacOptions
       def sources = Task.Sources(base / "01-core" / "src" / "main" / "scala")
-      def moduleDeps = Seq(commons.js)
+      def moduleDeps = Seq(commons.js, `product-kernel`.js)
       def mvnDeps = domainMvnDeps
     }
   }
@@ -170,7 +205,7 @@ object catalog extends Module {
       def scalaVersion = scala3Version
       def scalacOptions = commonScalacOptions
       def sources = Task.Sources(base / "sample" / "src" / "main" / "scala")
-      def moduleDeps = Seq(`01-core`.jvm)
+      def moduleDeps = Seq(`product-kernel`.jvm, `01-core`.jvm)
       def mvnDeps = domainMvnDeps
     }
 
@@ -179,7 +214,7 @@ object catalog extends Module {
       def scalaJSVersion = build.scalaJsVersion
       def scalacOptions = commonScalacOptions
       def sources = Task.Sources(base / "sample" / "src" / "main" / "scala")
-      def moduleDeps = Seq(`01-core`.js)
+      def moduleDeps = Seq(`product-kernel`.js, `01-core`.js)
       def mvnDeps = domainMvnDeps
     }
   }
@@ -215,7 +250,7 @@ object pricing extends Module {
       def scalaVersion = scala3Version
       def scalacOptions = commonScalacOptions
       def sources = Task.Sources(base / "01-core" / "src" / "main" / "scala")
-      def moduleDeps = Seq(commons.jvm)
+      def moduleDeps = Seq(commons.jvm, `product-kernel`.jvm)
       def mvnDeps = domainMvnDeps
     }
 
@@ -224,7 +259,7 @@ object pricing extends Module {
       def scalaJSVersion = build.scalaJsVersion
       def scalacOptions = commonScalacOptions
       def sources = Task.Sources(base / "01-core" / "src" / "main" / "scala")
-      def moduleDeps = Seq(commons.js)
+      def moduleDeps = Seq(commons.js, `product-kernel`.js)
       def mvnDeps = domainMvnDeps
     }
   }
@@ -241,7 +276,7 @@ object pricing extends Module {
       def scalaVersion = scala3Version
       def scalacOptions = commonScalacOptions
       def sources = Task.Sources(base / "sample" / "src" / "main" / "scala")
-      def moduleDeps = Seq(`01-core`.jvm)
+      def moduleDeps = Seq(`product-kernel`.jvm, `01-core`.jvm, catalog.sample.jvm)
       def mvnDeps = domainMvnDeps
     }
 
@@ -250,7 +285,7 @@ object pricing extends Module {
       def scalaJSVersion = build.scalaJsVersion
       def scalacOptions = commonScalacOptions
       def sources = Task.Sources(base / "sample" / "src" / "main" / "scala")
-      def moduleDeps = Seq(`01-core`.js)
+      def moduleDeps = Seq(`product-kernel`.js, `01-core`.js, catalog.sample.js)
       def mvnDeps = domainMvnDeps
     }
   }
@@ -498,7 +533,8 @@ object `ui-productbuilder` extends ScalaJSModule {
   def scalacOptions = commonScalacOptions
   def sources = Task.Sources(rootDir / "modules" / "ui-productbuilder" / "src" / "main" / "scala")
   def resources = Task.Sources(rootDir / "modules" / "ui-productbuilder" / "src" / "main" / "resources")
-  def moduleDeps = Seq(commons.js, domain.js, catalog.`01-core`.js, catalog.sample.js, `ui-framework`)
+  def moduleDeps = Seq(commons.js, domain.js, `product-kernel`.js, catalog.`01-core`.js, catalog.sample.js,
+      pricing.`01-core`.js, pricing.sample.js, `ui-framework`)
   def mvnDeps = Seq(
     mvn"com.raquo::laminar::${laminarVersion}"
   )
@@ -527,7 +563,8 @@ object `ui-calculator` extends ScalaJSModule {
   def sources = Task.Sources(rootDir / "modules" / "ui-calculator" / "src" / "main" / "scala")
   def resources = Task.Sources(rootDir / "modules" / "ui-calculator" / "src" / "main" / "resources")
   def scalaJSUseMainModuleInitializer = false
-  def moduleDeps = Seq(commons.js, domain.js, catalog.`01-core`.js, catalog.sample.js, `ui-framework`, `ui-productbuilder`)
+  def moduleDeps = Seq(commons.js, domain.js, `product-kernel`.js, catalog.`01-core`.js, catalog.sample.js,
+      pricing.`01-core`.js, pricing.sample.js, `ui-framework`, `ui-productbuilder`)
   def mvnDeps = Seq(
     mvn"com.raquo::laminar::${laminarVersion}"
   )
@@ -549,7 +586,8 @@ object ui extends ScalaJSModule {
   // configuration payload is the largest and most changeable part of the wire format, and a copy
   // of it in the browser would drift.
   def moduleDeps =
-    Seq(commons.js, domain.js, catalog.`01-core`.js, catalog.sample.js, `ui-framework`, `ui-productbuilder`)
+    Seq(commons.js, domain.js, `product-kernel`.js, catalog.`01-core`.js, catalog.sample.js,
+      pricing.`01-core`.js, pricing.sample.js, `ui-framework`, `ui-productbuilder`)
   def mvnDeps = Seq(
     mvn"com.raquo::laminar::${laminarVersion}"
   )

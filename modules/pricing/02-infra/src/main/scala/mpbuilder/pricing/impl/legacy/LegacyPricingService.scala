@@ -4,12 +4,15 @@ package legacy
 
 import mpbuilder.commons.*
 import mpbuilder.catalog.codec.ConfigurationCodecs.given
-import mpbuilder.catalog.model as cm
+import mpbuilder.product.model as cm
+import mpbuilder.pricing.engine as engine
 import mpbuilder.domain.model as dm
-import mpbuilder.catalog.model.*
-import mpbuilder.domain.pricing as dp
-import mpbuilder.domain.sample.{SampleCustomers, SampleDiscountCodes, SamplePricelist, SampleTierRestrictions}
-import mpbuilder.domain.service.{DiscountCodeService, DiscountValidationContext, TierRestrictionValidator}
+import mpbuilder.product.model.*
+import mpbuilder.pricing.engine as dp
+import mpbuilder.pricing.sample.{SampleDiscountCodes, SamplePricelist}
+import mpbuilder.domain.sample.{SampleCustomers, SampleTierRestrictions}
+import mpbuilder.pricing.engine.{DiscountCodeService, DiscountValidationContext}
+import mpbuilder.domain.service.{TierRestrictionValidator}
 import zio.*
 import zio.json.*
 import zio.prelude.Validation
@@ -22,7 +25,7 @@ import zio.prelude.Validation
   */
 private[pricing] final class LegacyPricingService(
     pricelists: Map[Currency, dp.Pricelist],
-    discountCodes: List[dm.DiscountCode],
+    discountCodes: List[engine.DiscountCode],
     restrictions: List[mpbuilder.domain.manufacturing.TierRestriction],
     customerPricing: String => Option[dp.CustomerPricing],
     context: dp.PricingContext,
@@ -70,8 +73,8 @@ private[pricing] final class LegacyPricingService(
       domainCtx = DiscountValidationContext(
         orderValue = ctx.orderValue,
         categoryIds = configs.map(_.category.id).toSet,
-        customerType = ctx.customerType.flatMap(t => dm.CustomerType.values.find(_.toString.equalsIgnoreCase(t))),
-        customerId = ctx.customerId.map(dm.CustomerId.unsafe),
+        customerType = ctx.customerType,
+        customerId = ctx.customerId.map(engine.CustomerRef.unsafe),
         now = ctx.now.epochMillis,
       )
     yield DiscountCodeService.applyDiscount(discountCodes, code, ctx.orderValue, domainCtx).toEither match
@@ -96,9 +99,9 @@ private[pricing] final class LegacyPricingService(
   /** A free-delivery code reduces the goods total by nothing, so the *kind* of benefit has to
     * survive the boundary — otherwise checkout cannot tell it apart from a code worth zero.
     */
-  private def benefitOf(result: dm.DiscountResult): DiscountBenefit =
+  private def benefitOf(result: engine.DiscountResult): DiscountBenefit =
     result.appliedCode.discountType match
-      case dm.DiscountType.FreeDelivery => DiscountBenefit.FreeDelivery
+      case engine.DiscountType.FreeDelivery => DiscountBenefit.FreeDelivery
       case _                            => DiscountBenefit.Amount(result.discountAmount)
 
   private def offerFor(
@@ -149,7 +152,7 @@ private[pricing] final class LegacyPricingService(
   ): IO[PricingError, dp.PriceBreakdown] =
     toZIO(dp.PriceCalculator.calculateWithContext(config, pricelist, context, lang))
 
-  private def toZIO[A](v: Validation[dp.PricingError, A]): IO[PricingError, A] =
+  private def toZIO[A](v: Validation[dp.CalculationError, A]): IO[PricingError, A] =
     v.toEither match
       case Right(a) => ZIO.succeed(a)
       case Left(errors) =>
@@ -184,7 +187,7 @@ object LegacyPricingService:
 
   def of(
       pricelists: Map[Currency, dp.Pricelist] = samplePricelists,
-      discountCodes: List[dm.DiscountCode] = SampleDiscountCodes.all,
+      discountCodes: List[engine.DiscountCode] = SampleDiscountCodes.all,
       restrictions: List[mpbuilder.domain.manufacturing.TierRestriction] = SampleTierRestrictions.restrictions,
       customerPricing: String => Option[dp.CustomerPricing] = sampleCustomerPricing,
       context: dp.PricingContext = dp.PricingContext.default,

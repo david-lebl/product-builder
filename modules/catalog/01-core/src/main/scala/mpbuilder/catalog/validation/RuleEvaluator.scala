@@ -4,8 +4,8 @@ import mpbuilder.commons.*
 
 import zio.NonEmptyChunk
 import zio.prelude.*
-import mpbuilder.catalog.model.*
-import mpbuilder.catalog.model.FinishType.finishCategory
+import mpbuilder.product.model.*
+import mpbuilder.product.model.FinishType.finishCategory
 import mpbuilder.catalog.rules.*
 
 object RuleEvaluator:

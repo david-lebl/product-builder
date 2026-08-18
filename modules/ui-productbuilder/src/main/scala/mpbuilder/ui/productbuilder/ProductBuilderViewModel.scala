@@ -3,14 +3,15 @@ package mpbuilder.ui.productbuilder
 import mpbuilder.commons.*
 
 import mpbuilder.domain.model.*
-import mpbuilder.catalog.model.*
+import mpbuilder.product.model.*
 import mpbuilder.domain.model.CheckoutStep.*
 import mpbuilder.catalog.service.*
 import mpbuilder.domain.service.*
 import mpbuilder.catalog.validation.*
-import mpbuilder.domain.pricing.*
+import mpbuilder.pricing.engine.*
 import mpbuilder.catalog.weight.{WeightBreakdown, WeightCalculator}
 import mpbuilder.catalog.sample.*
+import mpbuilder.pricing.sample.*
 import mpbuilder.domain.sample.*
 import zio.prelude.Validation
 import com.raquo.laminar.api.L.*

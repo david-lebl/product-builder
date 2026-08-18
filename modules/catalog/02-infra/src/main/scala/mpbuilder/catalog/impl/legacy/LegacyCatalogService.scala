@@ -4,9 +4,9 @@ package legacy
 
 import mpbuilder.commons.*
 import mpbuilder.catalog.codec.ConfigurationCodecs.given
-import mpbuilder.catalog.model as cm
+import mpbuilder.product.model as cm
 import mpbuilder.domain.model as dm
-import mpbuilder.catalog.model.*
+import mpbuilder.product.model.*
 import mpbuilder.catalog.rules.CompatibilityRuleset
 import mpbuilder.catalog.sample.{SampleCatalog, SampleRules}
 import mpbuilder.catalog.service.{ConfigurationBuilder, ConfigurationRequest}

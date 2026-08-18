@@ -3,7 +3,7 @@ package mpbuilder.domain.service
 import mpbuilder.commons.*
 
 import mpbuilder.domain.model.*
-import mpbuilder.catalog.model.*
+import mpbuilder.product.model.*
 
 /** Error ADT for customer management operations. */
 enum CustomerManagementError extends DomainError:

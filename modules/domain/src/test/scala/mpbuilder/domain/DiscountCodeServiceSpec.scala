@@ -4,11 +4,13 @@ import mpbuilder.commons.*
 
 import zio.test.*
 import mpbuilder.domain.model.*
-import mpbuilder.catalog.model.*
+import mpbuilder.product.model.*
+import mpbuilder.pricing.engine.*
 import mpbuilder.catalog.service.*
 import mpbuilder.domain.service.*
 import mpbuilder.catalog.sample.{SampleCatalog}
-import mpbuilder.domain.sample.{SampleDiscountCodes, SampleCustomers}
+import mpbuilder.pricing.sample.{SampleDiscountCodes}
+import mpbuilder.domain.sample.{SampleCustomers}
 
 object DiscountCodeServiceSpec extends ZIOSpecDefault:
 
@@ -18,8 +20,8 @@ object DiscountCodeServiceSpec extends ZIOSpecDefault:
   private def ctx(
       orderValue: Money = Money(1000),
       categoryIds: Set[CategoryId] = Set(SampleCatalog.businessCardsId),
-      customerType: Option[CustomerType] = Some(CustomerType.Guest),
-      customerId: Option[CustomerId] = None,
+      customerType: Option[String] = Some("Guest"),
+      customerId: Option[CustomerRef] = None,
       time: Long = now,
   ): DiscountValidationContext = DiscountValidationContext(orderValue, categoryIds, customerType, customerId, time)
 
@@ -102,7 +104,7 @@ object DiscountCodeServiceSpec extends ZIOSpecDefault:
       test("fails when customer type is not eligible") {
         val result = DiscountCodeService.validate(
           allCodes, "AGENCY15",
-          ctx(customerType = Some(CustomerType.Guest)),
+          ctx(customerType = Some("Guest")),
         )
         assertTrue(
           result.toEither.isLeft,
@@ -112,14 +114,14 @@ object DiscountCodeServiceSpec extends ZIOSpecDefault:
       test("succeeds when customer type is eligible") {
         val result = DiscountCodeService.validate(
           allCodes, "AGENCY15",
-          ctx(customerType = Some(CustomerType.Agency)),
+          ctx(customerType = Some("Agency")),
         )
         assertTrue(result.toEither.isRight)
       },
       test("fails when customer ID is not in allowed set") {
         val result = DiscountCodeService.validate(
           allCodes, "VIP25",
-          ctx(customerId = Some(SampleCustomers.localPrintId)),
+          ctx(customerId = Some(CustomerRef.unsafe(SampleCustomers.localPrintId.value))),
         )
         assertTrue(
           result.toEither.isLeft,
@@ -129,7 +131,7 @@ object DiscountCodeServiceSpec extends ZIOSpecDefault:
       test("succeeds when customer ID is in allowed set") {
         val result = DiscountCodeService.validate(
           allCodes, "VIP25",
-          ctx(customerId = Some(SampleCustomers.printShopProId)),
+          ctx(customerId = Some(CustomerRef.unsafe(SampleCustomers.printShopProId.value))),
         )
         assertTrue(result.toEither.isRight)
       },

@@ -3,9 +3,9 @@ package mpbuilder.ui.productbuilder
 import mpbuilder.commons.*
 
 import com.raquo.laminar.api.L.*
-import mpbuilder.catalog.model.{ManufacturingSpeed, ProductConfiguration}
-import mpbuilder.catalog.model.*
-import mpbuilder.domain.pricing.PricingContext
+import mpbuilder.product.model.{ManufacturingSpeed, ProductConfiguration}
+import mpbuilder.product.model.*
+import mpbuilder.pricing.engine.PricingContext
 import mpbuilder.ui.productbuilder.basket.{BasketBackend, LocalBasketBackend}
 
 /** How the host app lets the customer supply artwork.
@@ -107,7 +107,7 @@ final case class BuilderEnvironment(
       * basket then survives a reload and follows the customer between devices.
       */
     basketBackend: BasketBackend = LocalBasketBackend(() =>
-      mpbuilder.domain.sample.SamplePricelist.pricelistCzkSheet
+      mpbuilder.pricing.sample.SamplePricelist.pricelistCzkSheet
     ),
 
     /** Basket drawer open/closed — owned by the host shell, which also renders

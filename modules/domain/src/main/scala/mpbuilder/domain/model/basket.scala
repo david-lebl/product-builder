@@ -1,8 +1,8 @@
 package mpbuilder.domain.model
 
-import mpbuilder.catalog.model.*
+import mpbuilder.product.model.*
 
-import mpbuilder.domain.pricing.PriceBreakdown
+import mpbuilder.pricing.engine.PriceBreakdown
 
 final case class BasketItem(
     configuration: ProductConfiguration,

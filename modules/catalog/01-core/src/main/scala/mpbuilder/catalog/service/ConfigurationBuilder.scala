@@ -1,7 +1,7 @@
 package mpbuilder.catalog.service
 
 import zio.prelude.*
-import mpbuilder.catalog.model.*
+import mpbuilder.product.model.*
 import mpbuilder.catalog.rules.*
 import mpbuilder.catalog.validation.*
 

@@ -4,8 +4,8 @@ import mpbuilder.commons.*
 
 import zio.prelude.*
 import mpbuilder.domain.model.*
-import mpbuilder.catalog.model.*
-import mpbuilder.domain.pricing.*
+import mpbuilder.product.model.*
+import mpbuilder.pricing.engine.*
 
 final case class BasketCalculation(
     items: List[BasketItem],

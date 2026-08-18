@@ -2,7 +2,7 @@ package mpbuilder.ui.catalog.views
 
 import com.raquo.laminar.api.L.*
 import mpbuilder.domain.model.*
-import mpbuilder.catalog.model.*
+import mpbuilder.product.model.*
 import mpbuilder.catalog.rules.*
 import mpbuilder.ui.catalog.*
 import mpbuilder.uikit.fields.SelectOption

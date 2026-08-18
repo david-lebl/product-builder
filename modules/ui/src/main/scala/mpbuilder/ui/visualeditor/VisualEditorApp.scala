@@ -7,7 +7,7 @@ import mpbuilder.ui.visualeditor.components.*
 import mpbuilder.ui.productbuilder.ProductBuilderViewModel
 import mpbuilder.ui.{AppRouter, AppRoute}
 import mpbuilder.domain.model.{ArtworkId}
-import mpbuilder.catalog.model.*
+import mpbuilder.product.model.*
 import mpbuilder.uikit.containers.{Tabs, TabDef}
 import mpbuilder.ui.persistence.EditorSessionStore
 import org.scalajs.dom

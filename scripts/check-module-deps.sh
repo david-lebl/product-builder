@@ -83,8 +83,14 @@ for module, deps in sorted(modules.items()):
 
     for dep in qualified:
         if "01-core" in module:
-            if dep not in ("commons.jvm", "commons.js"):
-                violations.append(f"{module} depends on '{dep}'; a 01-core may depend on commons only")
+            # `commons` and `product-kernel` are shared kernels: owned by no context, depended on
+            # by several, and named so the sharing is a decision rather than a leak. Everything
+            # else is still forbidden — a core may not see another context's core.
+            if dep not in ("commons.jvm", "commons.js", "product-kernel.jvm", "product-kernel.js"):
+                violations.append(
+                    f"{module} depends on '{dep}'; a 01-core may depend on commons and "
+                    "product-kernel only"
+                )
         if "02-infra" in dep and module != "app":
             violations.append(f"{module} depends on infra '{dep}'; only the app composition root may")
         if "02-infra" in module and "02-infra" in dep:
@@ -92,6 +98,14 @@ for module, deps in sorted(modules.items()):
 
 if "commons" in modules:
     violations.append("commons declares moduleDeps; the shared kernel must depend on nothing")
+
+# The product kernel is shared, so it must stay small and dependency-free apart from commons.
+for kernel in ("product-kernel.jvm", "product-kernel.js"):
+    for dep in modules.get(kernel, []):
+        if not dep.startswith("commons"):
+            violations.append(
+                f"{kernel} depends on '{dep}'; the product kernel may depend on commons only"
+            )
 
 # `app` must actually be checked — if it parsed as dependency-free, the parser is broken.
 if "app" in modules and not modules["app"]:

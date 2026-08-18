@@ -4,8 +4,8 @@ import mpbuilder.commons.*
 
 import zio.test.*
 import mpbuilder.domain.model.*
-import mpbuilder.catalog.model.*
-import mpbuilder.domain.pricing.CustomerPricing
+import mpbuilder.product.model.*
+import mpbuilder.pricing.engine.CustomerPricing
 import mpbuilder.catalog.service.*
 import mpbuilder.domain.service.*
 import mpbuilder.domain.sample.SampleCustomers

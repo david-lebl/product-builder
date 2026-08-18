@@ -2,8 +2,8 @@ package mpbuilder.ui.basket
 
 import mpbuilder.commons.*
 import mpbuilder.commons.json.given
-import mpbuilder.catalog.model.ProductConfiguration
-import mpbuilder.catalog.model.*
+import mpbuilder.product.model.ProductConfiguration
+import mpbuilder.product.model.*
 import mpbuilder.ui.productbuilder.basket.*
 import org.scalajs.dom
 import zio.json.*
@@ -64,7 +64,7 @@ final class HttpBasketBackend(baseUrl: String) extends BasketBackend:
     */
   private def speedOf(configuration: ProductConfiguration): String =
     configuration.specifications.specs.values
-      .collectFirst { case mpbuilder.catalog.model.SpecValue.ManufacturingSpeedSpec(s) => s.toString }
+      .collectFirst { case mpbuilder.product.model.SpecValue.ManufacturingSpeedSpec(s) => s.toString }
       .getOrElse("Standard")
 
   private def request(

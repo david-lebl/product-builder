@@ -1,8 +1,8 @@
 package mpbuilder.catalog.validation
 
 import zio.prelude.*
-import mpbuilder.catalog.model.*
-import mpbuilder.catalog.model.ProductCategory.*
+import mpbuilder.product.model.*
+import mpbuilder.product.model.ProductCategory.*
 import mpbuilder.catalog.rules.*
 
 object ConfigurationValidator:

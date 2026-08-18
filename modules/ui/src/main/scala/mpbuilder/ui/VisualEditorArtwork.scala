@@ -6,7 +6,7 @@ import com.raquo.laminar.api.L.*
 import mpbuilder.ui.productbuilder.{ArtworkIntegration, ProductBuilderViewModel}
 import mpbuilder.ui.visualeditor.EditorBridge
 import mpbuilder.domain.model.*
-import mpbuilder.catalog.model.*
+import mpbuilder.product.model.*
 import mpbuilder.uikit.util.Visibility
 
 /** How the customer will provide artwork for the configured product */

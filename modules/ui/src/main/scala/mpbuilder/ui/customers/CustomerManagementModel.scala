@@ -1,7 +1,8 @@
 package mpbuilder.ui.customers
 
 import mpbuilder.domain.model.*
-import mpbuilder.catalog.model.*
+import mpbuilder.product.model.*
+import mpbuilder.pricing.engine.*
 
 /** Which section of the customer management UI is currently active. */
 enum CustomerSection:

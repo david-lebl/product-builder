@@ -3,10 +3,10 @@ package mpbuilder.pricing
 import mpbuilder.commons.*
 import mpbuilder.pricing.impl.legacy.LegacyPricingService
 import mpbuilder.catalog.codec.ConfigurationCodecs.given
-import mpbuilder.catalog.model as cm
+import mpbuilder.product.model as cm
 import mpbuilder.domain.model as dm
-import mpbuilder.catalog.model.*
-import mpbuilder.domain.pricing as dp
+import mpbuilder.product.model.*
+import mpbuilder.pricing.engine as dp
 import mpbuilder.catalog.rules.CompatibilityRuleset
 import mpbuilder.catalog.sample.{SampleCatalog, SampleRules}
 import mpbuilder.catalog.service.{ConfigurationBuilder, ConfigurationRequest}
@@ -173,7 +173,7 @@ object PricingServiceSpec extends ZIOSpecDefault:
       },
       test("a valid code reduces the total") {
         // An unconstrained, always-valid code, so the assertion does not depend on the clock.
-        val unconstrained = mpbuilder.domain.sample.SampleDiscountCodes.all.find { c =>
+        val unconstrained = mpbuilder.pricing.sample.SampleDiscountCodes.all.find { c =>
           c.isActive &&
           c.constraints.validFrom.isEmpty && c.constraints.validUntil.isEmpty &&
           c.constraints.minimumOrderValue.isEmpty &&
@@ -204,7 +204,7 @@ object PricingServiceSpec extends ZIOSpecDefault:
           .orDie
       },
       test("an expired code is refused") {
-        val expired = mpbuilder.domain.sample.SampleDiscountCodes.all
+        val expired = mpbuilder.pricing.sample.SampleDiscountCodes.all
           .find(c => c.constraints.validUntil.exists(_ < java.lang.System.currentTimeMillis))
 
         ZIO

@@ -2,10 +2,11 @@ package mpbuilder.ui.customers
 
 import com.raquo.laminar.api.L.*
 import mpbuilder.domain.model.*
-import mpbuilder.catalog.model.*
-import mpbuilder.domain.pricing.*
+import mpbuilder.product.model.*
+import mpbuilder.pricing.engine.*
 import mpbuilder.catalog.service.*
 import mpbuilder.domain.service.*
+import mpbuilder.pricing.sample.*
 import mpbuilder.domain.sample.*
 
 /** Reactive state management for the customer management UI.

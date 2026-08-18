@@ -2,7 +2,7 @@ package mpbuilder.domain
 
 import zio.test.*
 import mpbuilder.domain.model.*
-import mpbuilder.catalog.model.*
+import mpbuilder.product.model.*
 import mpbuilder.domain.model.FulfilmentChecklist.*
 
 object FulfilmentChecklistSpec extends ZIOSpecDefault:

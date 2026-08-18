@@ -1,6 +1,6 @@
 package mpbuilder.domain.manufacturing
 
-import mpbuilder.catalog.model.*
+import mpbuilder.product.model.*
 
 import java.time.LocalTime
 

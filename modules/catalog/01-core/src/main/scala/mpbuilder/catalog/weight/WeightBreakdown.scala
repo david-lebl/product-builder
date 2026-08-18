@@ -1,6 +1,6 @@
 package mpbuilder.catalog.weight
 
-import mpbuilder.catalog.model.ComponentRole
+import mpbuilder.product.model.ComponentRole
 
 final case class ComponentWeightBreakdown(
     role: ComponentRole,

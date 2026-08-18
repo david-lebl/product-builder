@@ -4,7 +4,7 @@ import zio.prelude.Validation
 
 /** The ids still owned by the legacy module.
   *
-  * Catalog's five moved to `mpbuilder.catalog.model` when that context was extracted; each of
+  * Catalog's five moved to `mpbuilder.product.model` when that context was extracted; each of
   * these follows its own context — order and basket to order-intake, customer to customers,
   * discount to pricing, artwork to artwork.
   */
@@ -39,15 +39,6 @@ object CustomerId:
 
   extension (id: CustomerId) def value: String = id
 
-opaque type DiscountCodeId = String
-object DiscountCodeId:
-  def apply(value: String): Validation[String, DiscountCodeId] =
-    if value.nonEmpty then Validation.succeed(value)
-    else Validation.fail("DiscountCodeId must not be empty")
-
-  def unsafe(value: String): DiscountCodeId = value
-
-  extension (id: DiscountCodeId) def value: String = id
 
 opaque type ArtworkId = String
 object ArtworkId:

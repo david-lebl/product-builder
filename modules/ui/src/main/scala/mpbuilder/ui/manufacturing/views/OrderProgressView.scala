@@ -4,7 +4,7 @@ import mpbuilder.commons.*
 
 import com.raquo.laminar.api.L.*
 import mpbuilder.domain.model.*
-import mpbuilder.catalog.model.*
+import mpbuilder.product.model.*
 import mpbuilder.domain.model.ManufacturingOrder.*
 import mpbuilder.domain.model.ManufacturingWorkflow.*
 import mpbuilder.domain.model.FulfilmentChecklist.*

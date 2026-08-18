@@ -5,9 +5,10 @@ import mpbuilder.commons.*
 import zio.test.*
 import zio.prelude.*
 import mpbuilder.domain.model.*
-import mpbuilder.catalog.model.*
-import mpbuilder.domain.pricing.*
+import mpbuilder.product.model.*
+import mpbuilder.pricing.engine.*
 import mpbuilder.catalog.sample.*
+import mpbuilder.pricing.sample.*
 import mpbuilder.domain.sample.*
 
 object PriceCalculatorSpec extends ZIOSpecDefault:
@@ -439,7 +440,7 @@ object PriceCalculatorSpec extends ZIOSpecDefault:
         val result = PriceCalculator.calculate(config, emptyPricelist)
         val errors = result.toEither.left.toOption.get.toList
         assertTrue(
-          errors.exists(_.isInstanceOf[PricingError.NoBasePriceForMaterial]),
+          errors.exists(_.isInstanceOf[CalculationError.NoBasePriceForMaterial]),
         )
       },
       test("missing quantity spec returns NoQuantityInSpecifications") {
@@ -457,7 +458,7 @@ object PriceCalculatorSpec extends ZIOSpecDefault:
         val result = PriceCalculator.calculate(config, pricelist)
         val errors = result.toEither.left.toOption.get.toList
         assertTrue(
-          errors.exists(_.isInstanceOf[PricingError.NoQuantityInSpecifications.type]),
+          errors.exists(_.isInstanceOf[CalculationError.NoQuantityInSpecifications.type]),
         )
       },
       test("area pricing without size spec returns NoSizeForAreaPricing") {
@@ -475,7 +476,7 @@ object PriceCalculatorSpec extends ZIOSpecDefault:
         val result = PriceCalculator.calculate(config, pricelist)
         val errors = result.toEither.left.toOption.get.toList
         assertTrue(
-          errors.exists(_.isInstanceOf[PricingError.NoSizeForAreaPricing]),
+          errors.exists(_.isInstanceOf[CalculationError.NoSizeForAreaPricing]),
         )
       },
       test("banner PVC 510g CZK tier: 1 m² → 555 CZK/m²") {
@@ -1023,7 +1024,7 @@ object PriceCalculatorSpec extends ZIOSpecDefault:
         val result = PriceCalculator.calculate(config, SamplePricelist.pricelistCzkSheet)
         val errors = result.toEither.left.toOption.get.toList
         assertTrue(
-          errors.exists(_.isInstanceOf[PricingError.NoSizeForSheetPricing]),
+          errors.exists(_.isInstanceOf[CalculationError.NoSizeForSheetPricing]),
         )
       },
       test("area pricing takes precedence over sheet pricing") {
@@ -2051,7 +2052,7 @@ object PriceCalculatorSpec extends ZIOSpecDefault:
         val errors = result.toEither.left.toOption.get.toList
         assertTrue(
           errors.exists {
-            case PricingError.MissingScoringPrice(3) => true
+            case CalculationError.MissingScoringPrice(3) => true
             case _                                   => false
           },
         )

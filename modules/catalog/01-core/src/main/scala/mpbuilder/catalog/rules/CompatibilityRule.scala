@@ -1,6 +1,6 @@
 package mpbuilder.catalog.rules
 
-import mpbuilder.catalog.model.*
+import mpbuilder.product.model.*
 
 enum CompatibilityRule:
   case MaterialFinishIncompatible(

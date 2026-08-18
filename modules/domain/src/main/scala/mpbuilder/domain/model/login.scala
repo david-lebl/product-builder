@@ -1,6 +1,6 @@
 package mpbuilder.domain.model
 
-import mpbuilder.catalog.model.*
+import mpbuilder.product.model.*
 
 import mpbuilder.commons.*
 

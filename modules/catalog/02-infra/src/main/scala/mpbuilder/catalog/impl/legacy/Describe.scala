@@ -3,9 +3,9 @@ package impl
 package legacy
 
 import mpbuilder.commons.*
-import mpbuilder.catalog.model as cm
+import mpbuilder.product.model as cm
 import mpbuilder.domain.model as dm
-import mpbuilder.catalog.model.*
+import mpbuilder.product.model.*
 
 /** Renders a configuration as one human-readable line.
   *

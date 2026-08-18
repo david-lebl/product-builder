@@ -3,7 +3,8 @@ package mpbuilder.catalog.codec
 import mpbuilder.commons.*
 
 import zio.json.*
-import mpbuilder.catalog.model.*
+import mpbuilder.product.model.*
+import mpbuilder.product.codec.ProductCodecs
 
 /** JSON codecs for a fully resolved [[ProductConfiguration]].
   *
@@ -28,7 +29,7 @@ object ConfigurationCodecs:
 
   // Everything below builds on the catalog codecs (Material, Finish, ProductCategory,
   // PrintingMethod, SpecValue, InkConfiguration, FinishParameters, …).
-  export CatalogCodecs.given
+  export ProductCodecs.given
 
   // ── Component ────────────────────────────────────────────────────────────
 

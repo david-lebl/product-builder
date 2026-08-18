@@ -1,8 +1,8 @@
 package mpbuilder.catalog.service
 
-import mpbuilder.catalog.model.*
-import mpbuilder.catalog.model.FinishType.finishCategory
-import mpbuilder.catalog.model.ProductCategory.*
+import mpbuilder.product.model.*
+import mpbuilder.product.model.FinishType.finishCategory
+import mpbuilder.product.model.ProductCategory.*
 import mpbuilder.catalog.rules.*
 
 object CatalogQueryService:

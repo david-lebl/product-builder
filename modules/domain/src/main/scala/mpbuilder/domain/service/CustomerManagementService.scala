@@ -1,7 +1,7 @@
 package mpbuilder.domain.service
 
 import mpbuilder.domain.model.*
-import mpbuilder.catalog.model.*
+import mpbuilder.product.model.*
 import zio.prelude.*
 
 /** Pure service for managing customers — CRUD operations with validation. */

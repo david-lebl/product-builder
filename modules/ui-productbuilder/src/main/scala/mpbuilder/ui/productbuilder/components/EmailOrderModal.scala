@@ -5,7 +5,7 @@ import mpbuilder.commons.*
 import com.raquo.laminar.api.L.*
 import mpbuilder.ui.productbuilder.{ProductBuilderViewModel, BuilderEnvironment, BuilderState, LoginState}
 import mpbuilder.domain.model.*
-import mpbuilder.catalog.model.*
+import mpbuilder.product.model.*
 import org.scalajs.dom
 import scala.scalajs.js.URIUtils
 

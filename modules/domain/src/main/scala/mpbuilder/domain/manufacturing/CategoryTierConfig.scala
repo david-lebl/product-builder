@@ -1,7 +1,7 @@
 package mpbuilder.domain.manufacturing
 
-import mpbuilder.catalog.model.CategoryId
-import mpbuilder.catalog.model.*
+import mpbuilder.product.model.CategoryId
+import mpbuilder.product.model.*
 
 /** Per-category configuration overrides for manufacturing speed tiers. */
 final case class CategoryTierConfig(

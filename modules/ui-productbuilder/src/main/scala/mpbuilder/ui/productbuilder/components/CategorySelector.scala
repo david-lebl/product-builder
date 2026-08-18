@@ -7,7 +7,7 @@ import mpbuilder.ui.productbuilder.ProductBuilderViewModel
 import mpbuilder.uikit.feedback.HelpInfo
 import mpbuilder.uikit.fields.{ComboBoxField, ComboBoxOption}
 import mpbuilder.domain.model.*
-import mpbuilder.catalog.model.*
+import mpbuilder.product.model.*
 import mpbuilder.catalog.sample.SampleShowcase
 
 object CategorySelector:

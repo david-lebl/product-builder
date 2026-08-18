@@ -3,8 +3,8 @@ package mpbuilder.domain.service
 import mpbuilder.commons.*
 
 import mpbuilder.domain.model.*
-import mpbuilder.catalog.model.*
-import mpbuilder.domain.pricing.*
+import mpbuilder.product.model.*
+import mpbuilder.pricing.engine.*
 import mpbuilder.catalog.rules.*
 import mpbuilder.catalog.service.{ConfigurationBuilder, ConfigurationRequest}
 import zio.prelude.Validation

@@ -4,10 +4,10 @@ package legacy
 
 import mpbuilder.commons.*
 import mpbuilder.domain.manufacturing.TierRestriction
-import mpbuilder.catalog.model as cm
+import mpbuilder.product.model as cm
 import mpbuilder.domain.model as dm
-import mpbuilder.catalog.model.*
-import mpbuilder.domain.pricing as dp
+import mpbuilder.product.model.*
+import mpbuilder.pricing.engine as dp
 import mpbuilder.domain.service.{TierRestrictionValidator, UtilisationCalculator}
 
 /** Decides whether a speed tier can be sold at all — spec §8.3.

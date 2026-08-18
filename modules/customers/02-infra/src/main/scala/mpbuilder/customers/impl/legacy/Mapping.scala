@@ -4,8 +4,8 @@ package legacy
 
 import mpbuilder.commons.*
 import mpbuilder.domain.model as dm
-import mpbuilder.catalog.model.*
-import mpbuilder.domain.pricing as dp
+import mpbuilder.product.model.*
+import mpbuilder.pricing.engine as dp
 import mpbuilder.domain.service.CustomerManagementError
 
 /** Translation between the public customer contract and the legacy domain model. */

@@ -2,7 +2,7 @@ package mpbuilder.catalog.weight
 
 import mpbuilder.commons.*
 
-import mpbuilder.catalog.model.*
+import mpbuilder.product.model.*
 
 enum WeightError:
   case NoSizeInSpecifications

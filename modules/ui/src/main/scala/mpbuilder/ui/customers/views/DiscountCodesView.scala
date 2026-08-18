@@ -4,7 +4,8 @@ import mpbuilder.commons.*
 
 import com.raquo.laminar.api.L.*
 import mpbuilder.domain.model.*
-import mpbuilder.catalog.model.*
+import mpbuilder.product.model.*
+import mpbuilder.pricing.engine.*
 import mpbuilder.ui.customers.*
 import mpbuilder.uikit.containers.*
 import mpbuilder.uikit.form.FormComponents

@@ -3,10 +3,10 @@ package impl
 package legacy
 
 import mpbuilder.commons.*
-import mpbuilder.catalog.model as cm
+import mpbuilder.product.model as cm
 import mpbuilder.domain.model as dm
-import mpbuilder.catalog.model.*
-import mpbuilder.domain.pricing as dp
+import mpbuilder.product.model.*
+import mpbuilder.pricing.engine as dp
 
 /** Translation between the public pricing contract and the legacy domain model.
   *
@@ -50,7 +50,7 @@ private[pricing] object Mapping:
       sheetsUsed = c.sheetsUsed,
     )
 
-  def toProblem(error: dp.PricingError): Problem =
+  def toProblem(error: dp.CalculationError): Problem =
     Problem(
       code = error.toString.takeWhile(_ != '('),
       message = LocalizedString(error.message(Language.En), error.message(Language.Cs)),

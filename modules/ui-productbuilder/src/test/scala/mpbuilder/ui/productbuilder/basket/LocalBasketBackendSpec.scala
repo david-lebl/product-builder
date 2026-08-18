@@ -1,11 +1,11 @@
 package mpbuilder.ui.productbuilder.basket
 
 import mpbuilder.commons.*
-import mpbuilder.catalog.model as cm
+import mpbuilder.product.model as cm
 import mpbuilder.domain.model as dm
-import mpbuilder.catalog.model.*
+import mpbuilder.product.model.*
 import mpbuilder.catalog.sample.{SampleCatalog, SampleRules}
-import mpbuilder.domain.sample.{SamplePricelist}
+import mpbuilder.pricing.sample.{SamplePricelist}
 import mpbuilder.catalog.service.{ConfigurationBuilder, ConfigurationRequest}
 import zio.*
 import zio.test.*

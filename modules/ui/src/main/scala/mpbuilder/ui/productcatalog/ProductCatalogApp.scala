@@ -5,10 +5,10 @@ import mpbuilder.commons.*
 import com.raquo.laminar.api.L.*
 import com.raquo.laminar.codecs.StringAsIsCodec
 import mpbuilder.domain.model.*
-import mpbuilder.catalog.model.*
-import mpbuilder.domain.pricing.{PriceBreakdown}
+import mpbuilder.product.model.*
+import mpbuilder.pricing.engine.{PriceBreakdown}
 import mpbuilder.catalog.sample.{SampleCatalog, SampleRules, SampleShowcase}
-import mpbuilder.domain.sample.{SamplePricelist}
+import mpbuilder.pricing.sample.{SamplePricelist}
 import mpbuilder.domain.service.PresetPriceService
 import mpbuilder.ui.{AppRouter, AppRoute}
 import mpbuilder.ui.productbuilder.ProductBuilderViewModel

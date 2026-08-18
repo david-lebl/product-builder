@@ -1,7 +1,7 @@
 package mpbuilder.domain.manufacturing
 
 import mpbuilder.domain.model.StationType
-import mpbuilder.catalog.model.*
+import mpbuilder.product.model.*
 
 /** Real-time utilisation metrics for a production station. */
 final case class StationUtilisation(

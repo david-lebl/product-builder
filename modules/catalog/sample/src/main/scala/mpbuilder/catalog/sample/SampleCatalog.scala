@@ -2,7 +2,7 @@ package mpbuilder.catalog.sample
 
 import mpbuilder.commons.*
 
-import mpbuilder.catalog.model.*
+import mpbuilder.product.model.*
 
 object SampleCatalog:
 

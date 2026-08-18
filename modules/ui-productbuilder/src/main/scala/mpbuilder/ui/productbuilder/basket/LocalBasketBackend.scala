@@ -1,9 +1,9 @@
 package mpbuilder.ui.productbuilder.basket
 
 import mpbuilder.commons.*
-import mpbuilder.catalog.model.ProductConfiguration
-import mpbuilder.catalog.model.*
-import mpbuilder.domain.pricing.{PriceCalculator, Pricelist}
+import mpbuilder.product.model.ProductConfiguration
+import mpbuilder.product.model.*
+import mpbuilder.pricing.engine.{PriceCalculator, Pricelist}
 
 import scala.concurrent.Future
 

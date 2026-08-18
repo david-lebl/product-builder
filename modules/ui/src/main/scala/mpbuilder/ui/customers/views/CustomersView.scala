@@ -2,8 +2,8 @@ package mpbuilder.ui.customers.views
 
 import com.raquo.laminar.api.L.*
 import mpbuilder.domain.model.*
-import mpbuilder.catalog.model.*
-import mpbuilder.domain.pricing.*
+import mpbuilder.product.model.*
+import mpbuilder.pricing.engine.*
 import mpbuilder.ui.customers.*
 import mpbuilder.ui.manufacturing.ManufacturingViewModel
 import mpbuilder.uikit.containers.*

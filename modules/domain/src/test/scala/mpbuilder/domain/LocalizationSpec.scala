@@ -5,12 +5,13 @@ import mpbuilder.commons.*
 import zio.test.*
 import zio.prelude.*
 import mpbuilder.domain.model.*
-import mpbuilder.catalog.model.*
+import mpbuilder.product.model.*
 import mpbuilder.catalog.validation.*
-import mpbuilder.domain.pricing.*
+import mpbuilder.pricing.engine.*
 import mpbuilder.catalog.service.*
 import mpbuilder.domain.service.*
 import mpbuilder.catalog.sample.*
+import mpbuilder.pricing.sample.*
 import mpbuilder.domain.sample.*
 
 object LocalizationSpec extends ZIOSpecDefault:
@@ -169,23 +170,23 @@ object LocalizationSpec extends ZIOSpecDefault:
         assertTrue(err.message == err.message(Language.En))
       },
     ),
-    suite("PricingError Czech messages")(
+    suite("CalculationError Czech messages")(
       test("NoBasePriceForMaterial in Czech") {
-        val err = PricingError.NoBasePriceForMaterial(MaterialId.unsafe("mat-test"), ComponentRole.Main)
+        val err = CalculationError.NoBasePriceForMaterial(MaterialId.unsafe("mat-test"), ComponentRole.Main)
         assertTrue(
           err.message(Language.Cs).contains("Nebyla nalezena základní cena"),
           err.message(Language.En).contains("No base price found"),
         )
       },
       test("NoQuantityInSpecifications in Czech") {
-        val err = PricingError.NoQuantityInSpecifications
+        val err = CalculationError.NoQuantityInSpecifications
         assertTrue(
           err.message(Language.Cs).contains("vyžadována specifikace množství"),
           err.message(Language.En).contains("Quantity specification is required"),
         )
       },
       test("backward-compatible parameterless message returns English") {
-        val err = PricingError.NoQuantityInSpecifications
+        val err = CalculationError.NoQuantityInSpecifications
         assertTrue(err.message == err.message(Language.En))
       },
     ),

@@ -1,10 +1,10 @@
 package mpbuilder.domain.model
 
-import mpbuilder.catalog.model.*
+import mpbuilder.product.model.*
 
 import mpbuilder.commons.*
 
-import mpbuilder.domain.pricing.CustomerPricing
+import mpbuilder.pricing.engine.CustomerPricing
 
 /** Status of a customer account */
 enum CustomerStatus:

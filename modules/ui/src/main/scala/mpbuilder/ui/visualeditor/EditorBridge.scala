@@ -4,7 +4,7 @@ import mpbuilder.commons.*
 
 import com.raquo.laminar.api.L.*
 import mpbuilder.domain.model.*
-import mpbuilder.catalog.model.*
+import mpbuilder.product.model.*
 import mpbuilder.ui.{AppRouter, AppRoute}
 
 /** Bridge for passing product configuration context from the Product Builder to the Visual Editor. */

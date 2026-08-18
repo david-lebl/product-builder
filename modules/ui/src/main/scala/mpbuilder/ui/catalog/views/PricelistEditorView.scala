@@ -4,8 +4,8 @@ import mpbuilder.commons.*
 
 import com.raquo.laminar.api.L.*
 import mpbuilder.domain.model.*
-import mpbuilder.catalog.model.*
-import mpbuilder.domain.pricing.*
+import mpbuilder.product.model.*
+import mpbuilder.pricing.engine.*
 import mpbuilder.ui.catalog.*
 import mpbuilder.uikit.containers.*
 

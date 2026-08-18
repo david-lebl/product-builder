@@ -3,7 +3,7 @@ package mpbuilder.domain.service
 import mpbuilder.commons.*
 
 import mpbuilder.domain.model.*
-import mpbuilder.catalog.model.*
+import mpbuilder.product.model.*
 import mpbuilder.domain.manufacturing.TierRestriction
 
 object TierRestrictionValidator:

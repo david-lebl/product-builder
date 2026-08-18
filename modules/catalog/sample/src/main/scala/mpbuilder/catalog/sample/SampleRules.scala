@@ -1,6 +1,6 @@
 package mpbuilder.catalog.sample
 
-import mpbuilder.catalog.model.*
+import mpbuilder.product.model.*
 import mpbuilder.catalog.rules.*
 
 object SampleRules:

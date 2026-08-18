@@ -3,19 +3,20 @@ package mpbuilder.domain.codec
 import mpbuilder.commons.*
 
 import zio.json.*
-import mpbuilder.catalog.model.*
+import mpbuilder.product.model.*
 import mpbuilder.catalog.rules.*
-import mpbuilder.domain.pricing.*
+import mpbuilder.catalog.codec.CatalogCodecs.given
+import mpbuilder.pricing.engine.*
 
 /** JSON codecs for what the legacy module still owns.
   *
-  * Catalog's moved to `mpbuilder.catalog.codec.CatalogCodecs` with the model they encode, and are
+  * Catalog's moved to `mpbuilder.product.codec.ProductCodecs` with the model they encode, and are
   * re-exported here so existing callers keep working: a codec object that only covers half of a
   * payload's types would make every caller import two.
   */
 object DomainCodecs:
 
-  export mpbuilder.catalog.codec.CatalogCodecs.given
+  export mpbuilder.product.codec.ProductCodecs.given
 
   given JsonCodec[QueueThreshold] = DeriveJsonCodec.gen[QueueThreshold]
 

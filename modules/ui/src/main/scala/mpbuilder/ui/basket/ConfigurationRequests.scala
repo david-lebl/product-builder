@@ -1,9 +1,9 @@
 package mpbuilder.ui.basket
 
 import mpbuilder.catalog as cat
-import mpbuilder.catalog.model as cm
+import mpbuilder.product.model as cm
 import mpbuilder.domain.model as dm
-import mpbuilder.catalog.model.*
+import mpbuilder.product.model.*
 
 /** Turning a configured product back into the request that describes it.
   *

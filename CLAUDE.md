@@ -68,15 +68,18 @@ mill ui-calculator.fullLinkJS   # Widget build → out/ui-calculator/fullLinkJS.
 into a context (`<context>/01-core` + `<context>/02-infra`); `domain/` is the shrinking legacy module.
 
 **The dependency rule, enforced by `scripts/check-module-deps.sh` in CI:** a `01-core` may depend on
-`commons` **only** — never another context's core, never any infra. A `02-infra` may depend on its
+the two shared kernels — `commons` and `product-kernel` — **only**; never another context's core,
+never any infra. A `02-infra` may depend on its
 own core plus other contexts' cores (that is where anti-corruption adapters live), never another
 context's infra.
 
+- **`product-kernel/`** — Cross-compiled shared kernel for the *product*: `ProductConfiguration`, `ProductCatalog`, `Material`, `Finish`, `PrintingMethod`, `ProductSpecifications`, `SpecValue`, `ManufacturingSpeed`, catalog's ids, and their JSON codecs. Owned by no context, depended on by catalog and pricing — you cannot price a product without knowing what a product is. Depends on `commons` only.
 - **`commons/`** — Cross-compiled shared kernel: `Money`, `Currency`, `Price`, `Percentage`, `Language`, `LocalizedString`, `Dimension`, `Quantity`, `Timestamp`, `DomainError`, `Estimated[+A]`. Depends on nothing. Business concepts (`CategoryId`, `CustomerType`, …) do **not** belong here.
 - **`catalog/01-core`** — Catalog's public contract *and* its model: `CatalogService`, `CatalogError`, `ConfigurationSnapshot`, request DTOs, plus `model/` (entities and catalog's five ids), `rules/`, `validation/`, `weight/`, `codec/` and `service/` (`ConfigurationBuilder`, `CatalogQueryService`). Cross-compiled, `commons`-only. The model is public rather than behind `impl` because pricing's engine, manufacturing's generator and the SPA all operate on `ProductConfiguration` directly; narrowing it belongs with the pricing extraction.
 - **`catalog/sample`** — The bundled product catalog (`SampleCatalog`, `SampleRules`, `SampleShowcase`). Fixture data standing in for a store that does not exist yet — and, until it does, what the running SPA sells from. Cross-compiled.
 - **`catalog/02-infra`** — Adapters. `LegacyCatalogService` delegates to `domain/` until the model is extracted (Phase 7); `Mapping` is the whole DTO↔domain anti-corruption layer.
-- **`pricing/01-core` + `02-infra`** — `PricingService`: quotes, speed offers, discount codes. Pricing **owns** discounts, so there is only one place a discount can be computed. Cross-compiled core.
+- **`pricing/01-core` + `02-infra`** — `PricingService`: quotes, speed offers, discount codes. `01-core/engine` holds the calculation engine itself (`PriceCalculator`, `PricingRule`, `PriceBreakdown`, `PricingContext`, production costs, the customer pricing overlay) and the whole discount system — pricing **owns** discounts, so there is only one place a discount can be computed. Cross-compiled, because the offline calculator prices in the browser. It refers to a customer by its own `CustomerRef` and to a customer type by a plain label, never by the customers context's types. The engine's error is `CalculationError`; `PricingError` is the service contract's.
+- **`pricing/sample`** — The bundled pricelists, discount codes and production costs.
 - **`customers/01-core` + `02-infra`** — `CustomerService`: lookup, registration. Deliberately exposes **no** negotiated pricing — that is pricing's, resolved from a customer id.
 - **`identity/01-core` + `02-infra`** — `AuthService`: registration, password login, JWT issue/verify/refresh, roles, OTP sign-in. Owns credentials only — the business profile is `customers`, linked by `customerId`. Stores are `Ref`-backed until Phase 3.
 - **`order-intake/01-core` + `02-infra`** — `BasketService` (server-side basket), `CheckoutService` (delivery and payment options, whole-basket quote, discount codes, per-line speed offers) and `OrderService` (place, read, cancel, confirm payment, reject). `01-core/impl` holds the `Basket` and `Order` aggregates, the pure `BasketPolicy`, `CheckoutPolicy` and `OrderPolicy`, and the shared `Baskets` loader; `02-infra/impl/adapters` holds one adapter per foreign context — catalog, pricing, customers — and they are the only files that know those contexts exist. Stores are `Ref`-backed until Postgres lands.
@@ -140,9 +143,10 @@ When using `combineWith` on multiple signals/streams, tuples are flattened via `
 | Catalog contract / adapters | `modules/catalog/01-core/`, `modules/catalog/02-infra/` |
 | Configuration snapshot codecs | `modules/catalog/01-core/.../codec/ConfigurationCodecs.scala` |
 | Architecture docs | `docs/architecture/` |
-| Catalog model / rules / validation | `modules/catalog/01-core/src/main/scala/mpbuilder/catalog/` |
+| Catalog rules / validation / weight | `modules/catalog/01-core/src/main/scala/mpbuilder/catalog/` |
 | Bundled catalog data | `modules/catalog/sample/src/main/scala/mpbuilder/catalog/sample/` |
-| Pricing rules/engine | `modules/domain/src/main/scala/mpbuilder/domain/pricing/` |
+| Pricing rules/engine | `modules/pricing/01-core/src/main/scala/mpbuilder/pricing/engine/` |
+| Product kernel | `modules/product-kernel/src/main/scala/mpbuilder/product/` |
 | Domain services | `modules/domain/src/main/scala/mpbuilder/domain/service/` |
 | Sample data | `modules/domain/src/main/scala/mpbuilder/domain/sample/` |
 | Manufacturing domain | `modules/domain/src/main/scala/mpbuilder/domain/manufacturing/` |
@@ -150,7 +154,7 @@ When using `combineWith` on multiple signals/streams, tuples are flattened via `
 | Product configurator (shared) | `modules/ui-productbuilder/src/main/scala/mpbuilder/ui/productbuilder/` |
 | Host seam | `modules/ui-productbuilder/.../BuilderEnvironment.scala`, `modules/ui/.../FullAppEnvironment.scala`, `modules/ui-calculator/.../CalculatorEnvironment.scala` |
 | Standalone calculator | `modules/ui-calculator/` (sources, `css/`, `build-css.sh`) |
-| Pricing tests | `modules/domain/src/test/scala/mpbuilder/domain/PriceCalculatorSpec.scala` |
+| Pricing tests | `modules/domain/src/test/scala/mpbuilder/domain/PriceCalculatorSpec.scala` (moves with Phase 11) |
 | UI kit components | `modules/ui-framework/src/main/scala/mpbuilder/uikit/` |
 
 ### UI Framework Components (`mpbuilder.uikit`)
