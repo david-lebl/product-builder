@@ -627,16 +627,17 @@ object CheckoutView:
     // A quick, single-item checkout overrides which items are being ordered —
     // the real basket is neither read from nor written to in that case.
     val checkoutItems = s.checkoutBasket.getOrElse(s.basket)
-    val basketCalc = BasketService.calculateTotal(checkoutItems)
+    // The basket's own total, as its owner computed it — the server for the real basket, the
+    // browser only for a quick single-item checkout that never reaches one.
     val codeVar    = Var(info.discountCode)
     val noteVar    = Var(info.note)
 
     val totalWeightG: Option[Double] =
-      val weights = checkoutItems.items.flatMap { item =>
+      val weights = checkoutItems.lines.flatMap { item =>
         WeightCalculator.calculate(item.configuration).toOption
           .map(wb => wb.totalWeightG)
       }
-      if weights.size == checkoutItems.items.size && weights.nonEmpty then
+      if weights.size == checkoutItems.lines.size && weights.nonEmpty then
         Some(weights.sum)
       else None
 
@@ -651,16 +652,16 @@ object CheckoutView:
     val discountPercent: Option[Int] = DiscountService.lookupPercent(info.discountCode)
     val discountAmount: Money =
       discountPercent match
-        case Some(pct) => (basketCalc.total * BigDecimal(pct) / 100).rounded
+        case Some(pct) => (checkoutItems.total * BigDecimal(pct) / 100).rounded
         case None      => Money.zero
     val discountedItemsTotal: Money =
       discountPercent match
-        case Some(pct) => (basketCalc.total * BigDecimal(100 - pct) / 100).rounded
-        case None      => basketCalc.total
+        case Some(pct) => (checkoutItems.total * BigDecimal(100 - pct) / 100).rounded
+        case None      => checkoutItems.total
 
     // Delivery cost
     val deliveryMoney: Option[Money] = deliveryCostMoney(info.deliveryOption)
-    val currency = basketCalc.currency
+    val currency = checkoutItems.currency
 
     // Grand total = discounted items + delivery
     val grandTotal: Money =
@@ -680,14 +681,14 @@ object CheckoutView:
       ),
       div(
         cls := "checkout-summary-items",
-        checkoutItems.items.map { item =>
+        checkoutItems.lines.map { item =>
           div(
             cls := "checkout-summary-item",
             span(cls := "checkout-summary-item-name",
               s"${item.quantity}× ${item.configuration.category.name(l)}"
             ),
             span(cls := "checkout-summary-item-price",
-              formatMoney(item.priceBreakdown.total * item.quantity, item.priceBreakdown.currency)
+              formatMoney(item.lineTotal, item.currency)
             ),
           )
         },
@@ -836,7 +837,7 @@ object CheckoutView:
         div(
           cls := "checkout-breakdown-row",
           span(if l == Language.Cs then "Mezisoučet položek:" else "Items subtotal:"),
-          span(formatMoney(basketCalc.total, currency)),
+          span(formatMoney(checkoutItems.total, currency)),
         ),
         // Discount row (only when a valid code is applied)
         discountPercent match

@@ -5,12 +5,11 @@ import mpbuilder.commons.*
 import com.raquo.laminar.api.L.*
 import mpbuilder.ui.productbuilder.{ProductBuilderViewModel, BuilderEnvironment, LoginState}
 import mpbuilder.domain.pricing.{PriceCalculator, CustomerPricelistResolver}
-import mpbuilder.domain.model.{ConfigurationId, ComponentRole}
+import mpbuilder.domain.model.ComponentRole
 
 object BasketView:
   def apply(): Element =
     val lang = ProductBuilderViewModel.currentLanguage
-    val basketCalc = ProductBuilderViewModel.basketCalculation
 
     div(
       cls := "card",
@@ -38,11 +37,26 @@ object BasketView:
         },
       ),
 
+      // With a server-side basket a click is a round trip, so the drawer says so rather than
+      // appearing to have ignored it.
+      div(
+        child.maybe <-- ProductBuilderViewModel.state.combineWith(lang).map { case (state, l) =>
+          Option.when(state.basketBusy)(
+            div(
+              cls := "basket-busy",
+              l match
+                case Language.En => "Updating…"
+                case Language.Cs => "Aktualizuji…"
+            )
+          )
+        },
+      ),
+
       // Basket items
       div(
         cls := "basket-items",
         children <-- ProductBuilderViewModel.state.combineWith(lang).map { case (state, l) =>
-          if state.basket.items.isEmpty then
+          if state.basket.isEmpty then
             List(
               p(
                 cls := "empty-basket",
@@ -52,7 +66,7 @@ object BasketView:
               ),
             )
           else
-            state.basket.items.map { item =>
+            state.basket.lines.map { item =>
               div(
                 cls := "basket-item",
                 div(
@@ -70,7 +84,7 @@ object BasketView:
                       case Language.Cs => "Odebrat z košíku"
                     ),
                     onClick --> { _ =>
-                      ProductBuilderViewModel.removeFromBasket(item.configuration.id)
+                      ProductBuilderViewModel.removeFromBasket(item.id)
                     },
                   ),
                 ),
@@ -105,8 +119,13 @@ object BasketView:
                       minAttr := "1",
                       value := item.quantity.toString,
                       cls := "quantity-input",
-                      onInput.mapToValue.map(_.toIntOption.getOrElse(1)) --> { newQty =>
-                        ProductBuilderViewModel.updateBasketQuantity(item.configuration.id, newQty)
+                      // Debounced: with a server-side basket every keystroke would otherwise be
+                      // a request, and the customer would watch their total flicker through 1, 12,
+                      // 125 on the way to 1250.
+                      onInput.mapToValue
+                        .map(_.toIntOption.getOrElse(1))
+                        .compose(_.debounce(400)) --> { newQty =>
+                        ProductBuilderViewModel.updateBasketQuantity(item.id, newQty)
                       },
                     ),
                   ),
@@ -131,18 +150,18 @@ object BasketView:
                       case _ => emptyNode
                     ,
                     span(cls := "unit-price", l match
-                      case Language.En => s"Unit: ${formatMoney(item.priceBreakdown.total, item.priceBreakdown.currency)}"
-                      case Language.Cs => s"Jednotka: ${formatMoney(item.priceBreakdown.total, item.priceBreakdown.currency)}"
+                      case Language.En => s"Unit: ${formatMoney(item.unitPrice, item.currency)}"
+                      case Language.Cs => s"Jednotka: ${formatMoney(item.unitPrice, item.currency)}"
                     ),
                     span(cls := "line-total", l match
-                      case Language.En => s"Total: ${formatMoney(item.priceBreakdown.total * item.quantity, item.priceBreakdown.currency)}"
-                      case Language.Cs => s"Celkem: ${formatMoney(item.priceBreakdown.total * item.quantity, item.priceBreakdown.currency)}"
+                      case Language.En => s"Total: ${formatMoney(item.lineTotal, item.currency)}"
+                      case Language.Cs => s"Celkem: ${formatMoney(item.lineTotal, item.currency)}"
                     ),
                   ),
                   div(
                     cls := "basket-item-artwork",
                     BuilderEnvironment.get.artwork match
-                      case Some(artwork) => artwork.renderBasketItem(item.configuration.id, l)
+                      case Some(artwork) => artwork.renderBasketItem(item.id, l)
                       case None          => emptyNode
                     ,
                   ),
@@ -156,7 +175,7 @@ object BasketView:
       div(
         cls := "basket-total",
         child.maybe <-- ProductBuilderViewModel.state.combineWith(lang).map { case (state, l) =>
-          if state.basket.items.nonEmpty then
+          if state.basket.nonEmpty then
             Some(
               div(
                 cls := "basket-total-row",
@@ -164,7 +183,9 @@ object BasketView:
                   case Language.En => "Basket Total:"
                   case Language.Cs => "Celkem v košíku:"
                 ),
-                strong(child.text <-- basketCalc.map(calc => formatMoney(calc.total, calc.currency))),
+                // The backend's total, not one recomputed here. When the two would differ, the
+                // backend is the one the customer is actually going to be charged by.
+                strong(formatMoney(state.basket.total, state.basket.currency)),
               )
             )
           else
@@ -176,7 +197,7 @@ object BasketView:
       div(
         cls := "basket-actions",
         child.maybe <-- ProductBuilderViewModel.state.combineWith(lang).map { case (state, l) =>
-          if state.basket.items.nonEmpty then
+          if state.basket.nonEmpty then
             Some(
               div(
                 cls := "basket-actions-row",

@@ -154,6 +154,7 @@ private[orderintake] final class CheckoutServiceLive(
     BasketItemView(
       id = item.id.value,
       description = item.data.description,
+      configuration = item.data.spec.payload,
       quantity = item.data.quantity,
       speed = item.data.speed.toString,
       artworkId = item.data.artworkId,

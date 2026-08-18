@@ -17,7 +17,12 @@ object Main:
 
     // Initialize the view model with the detected language
     ProductBuilderViewModel.initializeLanguage(detectedLanguage)
-    
+
+    // Pull whatever basket the server already holds for this visitor. This is the switch's whole
+    // visible effect: the basket is there after a reload, and on another device, because it was
+    // never in the browser to begin with.
+    ProductBuilderViewModel.loadBasket()
+
     renderOnDomContentLoaded(
       dom.document.getElementById("app-root"),
       AppRouter()

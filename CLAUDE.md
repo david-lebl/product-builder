@@ -36,13 +36,21 @@ mill 'identity.02-infra.test'                       # Auth contract tests
 mill 'order-intake.01-core.test'                    # Pure checkout policy tests
 mill 'order-intake.02-infra.test'                   # Basket and checkout contract tests
 
-# Run the backend (Swagger UI at /docs, health at /health)
+# Run the backend (Swagger UI at /docs, health at /health).
+# Also serves the built SPA from ./dist (override with ASSET_ROOT), so the app and the API share
+# an origin — the server-side basket needs that.
 JWT_SECRET=dev-secret PORT=8080 mill app.run
+
+# Refresh ./dist after a UI change
+mill ui.fullLinkJS && cp out/ui/fullLinkJS.dest/main.js dist/ \
+  && cp modules/ui/src/main/resources/*.css modules/ui/src/main/resources/index.html dist/
 
 # Architecture guard — must pass before compile; CI runs it first
 ./scripts/check-module-deps.sh
 
 # JS build
+mill ui.test                 # SPA translation tests (Scala.js, runs on Node)
+mill ui-productbuilder.test  # Offline basket tests (Scala.js, runs on Node)
 mill ui.fastLinkJS           # Dev build → out/ui/fastLinkJS.dest/main.js
 mill ui.fullLinkJS           # Production build → out/ui/fullLinkJS.dest/main.js
 mill ui-calculator.fullLinkJS   # Widget build → out/ui-calculator/fullLinkJS.dest/main.js
@@ -70,8 +78,8 @@ context's infra.
 - **`order-intake/01-core` + `02-infra`** — `BasketService` (server-side basket) and `CheckoutService` (delivery and payment options, whole-basket quote, discount codes, per-line speed offers). `01-core/impl` holds the `Basket` aggregate, the pure `BasketPolicy` and `CheckoutPolicy`, and the shared `Baskets` loader; `02-infra/impl/adapters` holds one adapter per foreign context — catalog, pricing, customers — and they are the only files that know those contexts exist. Stores are `Ref`-backed until Postgres lands.
 - **`app/`** — Composition root. The **only** module that may depend on an `02-infra`: it wires the ZLayer graph, mounts every context's tapir routes on one zio-http server, and serves the OpenAPI docs. No business logic.
 - **`domain/`** — Cross-compiled (JVM + JS). Pure functional core: no ZIO effects, only `Validation[E, A]` from ZIO Prelude. Contains pricing engine, compatibility rules, manufacturing workflow, and all services. **Legacy** — being split into contexts.
-- **`ui-productbuilder/`** — The shared product configurator (form, pricing preview, validation, basket, e-mail order), package `mpbuilder.ui.productbuilder`. Depends on `domainJS` and `uiFramework`. Consumed by both apps below, so it must not reference anything in `mpbuilder.ui.*`.
-- **`ui/`** — Scala.js + Laminar SPA. Depends on `domainJS`, `uiFramework`, `ui-productbuilder`.
+- **`ui-productbuilder/`** — The shared product configurator (form, pricing preview, validation, basket, e-mail order), package `mpbuilder.ui.productbuilder`. Depends on `domainJS` and `uiFramework`. Consumed by both apps below, so it must not reference anything in `mpbuilder.ui.*`. `basket/` holds the `BasketBackend` seam and the offline `LocalBasketBackend`.
+- **`ui/`** — Scala.js + Laminar SPA. Depends on `domainJS`, `catalog/01-core` (JS), `uiFramework`, `ui-productbuilder`. `basket/HttpBasketBackend` puts the basket on the server; served from the same origin as the API by `app`.
 - **`ui-calculator/`** — Standalone embeddable price calculator (`mpbuilder.calculator`). Linked without a main initializer; exports a global `MPCalculator` with `mount(selector, config)`. See [docs/standalone-calculator.md](docs/standalone-calculator.md).
 - **`ui-framework/`** — Reusable Laminar components with no domain dependency (`mpbuilder.uikit` package).
 - **`ui-showcase/`** — Demo for `ui-framework` components.
@@ -79,14 +87,16 @@ context's infra.
 ### The `BuilderEnvironment` seam
 
 `ui-productbuilder` gets everything host-specific — pricing context, completion dates, Express
-availability, the artwork step, the basket's primary action, the order e-mail recipient — from
-`BuilderEnvironment`, a singleton the host installs once before the first render:
+availability, the artwork step, **where the basket lives**, the basket's primary action, the order
+e-mail recipient — from `BuilderEnvironment`, a singleton the host installs once before the first
+render:
 
 - `ui` → `FullAppEnvironment.environment` (from `Main.main`): simulated shop-floor queue, concrete
   completion timestamps, surge pricing, visual-editor artwork, checkout wizard.
 - `ui-calculator` → `CalculatorEnvironment.environment(config)` (from `CalculatorWidget.mount`):
   `PricingContext.default`, **no** completion dates (indicative ranges + disclaimer instead),
-  no artwork step, basket → e-mail order.
+  no artwork step, basket → e-mail order, and `LocalBasketBackend` — the widget must keep working
+  with the network off.
 
 Never reach for `AppRouter`, `EditorBridge` or shop-floor data from inside `ui-productbuilder`;
 add a field to `BuilderEnvironment` instead.

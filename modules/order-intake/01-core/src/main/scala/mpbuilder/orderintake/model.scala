@@ -46,6 +46,14 @@ final case class QuotedPrice(
 final case class BasketItemView(
     id: String,
     description: LocalizedString,
+    /** The stored configuration, as the catalog resolved it.
+      *
+      * Handed back verbatim and still opaque to this context. A configurator that reloads the page
+      * has to be able to render what is in the basket, and the only alternative — the client
+      * keeping its own copy keyed by line id — stops working the moment the basket outlives the
+      * tab, which is the entire reason the basket moved to the server.
+      */
+    configuration: String,
     quantity: Int,
     speed: String,
     artworkId: Option[String],

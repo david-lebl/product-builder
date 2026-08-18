@@ -65,7 +65,7 @@ object Main extends ZIOAppDefault:
         "v1",
       )
       http = ZioHttpInterpreter().toHttp(apiRoutes ++ docRoutes)
-      _ <- Server.serve(http ++ health)
+      _ <- Server.serve(http ++ health ++ Assets.routes(cfg.assetRoot))
       _ <- ZIO.never
     yield ()
 
@@ -77,9 +77,16 @@ object Main extends ZIOAppDefault:
     import zio.http.*
     Routes(Method.GET / "health" -> handler(Response.text("ok")))
 
-final case class AppConfig(port: Int, jwtSecret: String)
+final case class AppConfig(
+    port: Int,
+    jwtSecret: String,
+    /** Where the built SPA lives. `None` when there is nothing built to serve. */
+    assetRoot: Option[java.io.File],
+)
 
 object AppConfig:
+
+  private val defaultAssetRoot = "dist"
 
   /** Reads from the environment with development defaults.
     *
@@ -96,4 +103,12 @@ object AppConfig:
             "Set JWT_SECRET before running anywhere real."
         )
         .when(secret.isEmpty)
-    yield AppConfig(port, secret.getOrElse("dev-only-secret-do-not-use-in-production"))
+      configured <- System.env("ASSET_ROOT").map(_.getOrElse(defaultAssetRoot))
+      assets = Option(java.io.File(configured)).filter(_.isDirectory)
+      _ <- ZIO
+        .logWarning(
+          s"No SPA assets at '$configured' — serving the API only. " +
+            "Run `mill ui.fullLinkJS` and copy the bundle there to serve the app itself."
+        )
+        .when(assets.isEmpty)
+    yield AppConfig(port, secret.getOrElse("dev-only-secret-do-not-use-in-production"), assets)

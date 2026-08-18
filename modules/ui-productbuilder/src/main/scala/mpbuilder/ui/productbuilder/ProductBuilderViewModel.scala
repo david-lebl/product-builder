@@ -11,8 +11,11 @@ import mpbuilder.domain.weight.{WeightBreakdown, WeightCalculator}
 import mpbuilder.domain.sample.*
 import zio.prelude.Validation
 import com.raquo.laminar.api.L.*
+import mpbuilder.ui.productbuilder.basket.{BasketLine, BasketOutcome, BasketSnapshot}
 import org.scalajs.dom
 import java.time.LocalDateTime
+import scala.concurrent.Future
+import scala.scalajs.concurrent.JSExecutionContext.Implicits.queue
 
 /** Current state of the agency login flow */
 sealed trait LoginState
@@ -44,15 +47,19 @@ case class BuilderState(
                          weightBreakdown: Option[WeightBreakdown] = None,
                          configuration: Option[ProductConfiguration] = None,
                          language: Language = Language.En,
-                         basket: Basket = Basket(BasketId.unsafe("main-basket"), List.empty),
+                         basket: BasketSnapshot = BasketSnapshot.empty,
                          basketMessage: Option[String] = None,
+                         /** True while a basket operation is in flight, so the drawer can say so
+                           * rather than appearing to have ignored the click.
+                           */
+                         basketBusy: Boolean = false,
                          checkoutInfo: Option[CheckoutInfo] = None,
                          /** Overrides the basket during checkout — set by a quick, single-item
                            * checkout so the wizard shows just that item without touching (or
                            * being touched by) the real basket. `None` means checkout is scoped
                            * to the real basket, as usual.
                            */
-                         checkoutBasket: Option[Basket] = None,
+                         checkoutBasket: Option[BasketSnapshot] = None,
                          loginState: LoginState = LoginState.LoggedOut,
                        )
 
@@ -668,68 +675,112 @@ object ProductBuilderViewModel:
   private def buildDynamicPricingContext(): PricingContext =
     BuilderEnvironment.get.pricingContext()
 
-  // Basket operations
+  // ── Basket operations ────────────────────────────────────────────────────
+  //
+  // Every one of these goes through `BuilderEnvironment.get.basketBackend`, which is either the
+  // server (full SPA) or the browser (embeddable calculator). The view model no longer computes a
+  // basket: it asks, and renders the answer. That is what makes the price the customer sees the
+  // price the shop agreed to, rather than one the browser worked out for itself.
+
+  /** Load whatever basket the backend already holds for this visitor.
+    *
+    * Called once at start-up. With the local backend it is an empty basket; with the server it is
+    * the basket from the customer's last visit, which is the whole point of the switch.
+    */
+  def loadBasket(): Unit =
+    val lang = stateVar.now().language
+    run(BuilderEnvironment.get.basketBackend.load(lang))(_ => None)
+
   def addToBasket(quantity: Int): Unit =
     val currentState = stateVar.now()
     val lang = currentState.language
 
     currentState.configuration match
       case Some(config) =>
-        val result = BasketService.addItem(currentState.basket, config, quantity, pricelist)
-        result.fold(
-          errors => {
-            val errorMsg = errors.map(_.message(lang)).toList.mkString(", ")
-            stateVar.update(_.copy(basketMessage = Some(errorMsg)))
-          },
-          updatedBasket => {
-            val msg = lang match
-              case Language.En => s"Added to basket (${quantity}×)"
-              case Language.Cs => s"Přidáno do košíku (${quantity}×)"
-            BuilderEnvironment.get.artwork.foreach(_.onAddedToBasket(config))
-            stateVar.update(_.copy(
-              basket = updatedBasket,
-              basketMessage = Some(msg),
-            ))
-            resetProductForm()
+        val before = currentState.basket
+        run(BuilderEnvironment.get.basketBackend.add(config, quantity, lang)) { after =>
+          // The line the product landed on: a brand-new one, or an existing one whose quantity
+          // grew because the backend folded an identical product into it. The artwork chosen for
+          // this configuration belongs to that line.
+          affectedLine(before, after).foreach { lineId =>
+            BuilderEnvironment.get.artwork.foreach(_.onAddedToBasket(lineId, config))
           }
-        )
+          resetProductForm()
+          Some(lang match
+            case Language.En => s"Added to basket (${quantity}×)"
+            case Language.Cs => s"Přidáno do košíku (${quantity}×)"
+          )
+        }
       case None =>
         val msg = lang match
           case Language.En => "Please configure and validate a product first"
           case Language.Cs => "Nejprve nakonfigurujte a ověřte produkt"
         stateVar.update(_.copy(basketMessage = Some(msg)))
 
-  def removeFromBasket(configId: ConfigurationId): Unit =
-    val currentState = stateVar.now()
-    val updatedBasket = BasketService.removeItem(currentState.basket, configId)
-    BuilderEnvironment.get.artwork.foreach(_.onRemovedFromBasket(configId))
-    stateVar.update(_.copy(basket = updatedBasket, basketMessage = None))
+  def removeFromBasket(lineId: String): Unit =
+    val lang = stateVar.now().language
+    run(BuilderEnvironment.get.basketBackend.remove(lineId, lang)) { _ =>
+      BuilderEnvironment.get.artwork.foreach(_.onRemovedFromBasket(lineId))
+      None
+    }
 
-  def updateBasketQuantity(configId: ConfigurationId, newQuantity: Int): Unit =
-    val currentState = stateVar.now()
-    val lang = currentState.language
-    val result = BasketService.updateQuantity(currentState.basket, configId, newQuantity)
-    result.fold(
-      errors => {
-        val errorMsg = errors.map(_.message(lang)).toList.mkString(", ")
-        stateVar.update(_.copy(basketMessage = Some(errorMsg)))
-      },
-      updatedBasket => {
-        stateVar.update(_.copy(basket = updatedBasket, basketMessage = None))
-      }
-    )
+  def updateBasketQuantity(lineId: String, newQuantity: Int): Unit =
+    val lang = stateVar.now().language
+    run(BuilderEnvironment.get.basketBackend.updateQuantity(lineId, newQuantity, lang))(_ => None)
 
   def clearBasket(): Unit =
-    val currentState = stateVar.now()
-    val clearedBasket = BasketService.clear(currentState.basket)
-    BuilderEnvironment.get.artwork.foreach(_.onBasketCleared())
-    stateVar.update(_.copy(basket = clearedBasket, basketMessage = None))
-
-  def basketCalculation: Signal[BasketCalculation] =
-    state.map(s => BasketService.calculateTotal(s.basket))
+    val lang = stateVar.now().language
+    run(BuilderEnvironment.get.basketBackend.clear(lang)) { _ =>
+      BuilderEnvironment.get.artwork.foreach(_.onBasketCleared())
+      None
+    }
 
   def clearBasketMessage(): Unit =
     stateVar.update(_.copy(basketMessage = None))
+
+  /** Apply a backend answer to the state.
+    *
+    * `onUpdated` runs only when the basket actually changed, and returns the message to show. A
+    * refusal keeps the basket exactly as it was — the backend is the authority on what is in it,
+    * and guessing at a half-applied change is how a client and a server drift apart.
+    */
+  private def run(
+      operation: Future[BasketOutcome]
+  )(onUpdated: BasketSnapshot => Option[String]): Unit =
+    stateVar.update(_.copy(basketBusy = true))
+    operation
+      .recover { case error => BasketOutcome.Unavailable(error.getMessage) }
+      .foreach {
+        case BasketOutcome.Updated(basket) =>
+          val message = onUpdated(basket)
+          stateVar.update(_.copy(basket = basket, basketBusy = false, basketMessage = message))
+        case BasketOutcome.Refused(problems) =>
+          stateVar.update(
+            _.copy(basketBusy = false, basketMessage = Some(problems.mkString(", ")))
+          )
+        case BasketOutcome.Unavailable(detail) =>
+          val lang = stateVar.now().language
+          val msg = lang match
+            case Language.En => s"The basket is not reachable right now ($detail)"
+            case Language.Cs => s"Košík je momentálně nedostupný ($detail)"
+          stateVar.update(_.copy(basketBusy = false, basketMessage = Some(msg)))
+      }
+
+  /** Which line an `add` landed on, by comparing the basket before and after.
+    *
+    * The backend returns the whole basket rather than naming the line, and asking it to name one
+    * would put a client's bookkeeping concern into the shop's contract. The difference is
+    * unambiguous: exactly one line is either new or larger.
+    */
+  private def affectedLine(before: BasketSnapshot, after: BasketSnapshot): Option[String] =
+    after.lines
+      .find(line => !before.lines.exists(_.id == line.id))
+      .orElse(
+        after.lines.find(line =>
+          before.lines.exists(previous => previous.id == line.id && previous.quantity < line.quantity)
+        )
+      )
+      .map(_.id)
 
   /** Reset all product-form fields back to their initial state while preserving basket and language. */
   def resetProductForm(): Unit =
@@ -779,21 +830,31 @@ object ProductBuilderViewModel:
     val lang = current.language
     current.configuration match
       case Some(config) =>
-        val result = BasketService.addItem(BasketService.empty(BasketId.unsafe("quick-order")), config, quantity, pricelist)
-        result.fold(
-          errors => {
-            val errorMsg = errors.map(_.message(lang)).toList.mkString(", ")
+        // Deliberately priced here rather than through the backend: this path exists precisely to
+        // avoid touching the real basket, and putting a throwaway single-item basket on the server
+        // to price one line would be a second basket to create, expire and reconcile. The order
+        // itself is re-quoted server-side when it is placed (Phase 5), which is where the number
+        // has to be authoritative.
+        PriceCalculator.calculate(config, pricelist, lang).toEither match
+          case Left(errors) =>
+            val errorMsg = errors.toList.map(_.message(lang)).mkString(", ")
             stateVar.update(_.copy(basketMessage = Some(errorMsg)))
-          },
-          quickBasket => {
-            BuilderEnvironment.get.artwork.foreach(_.onAddedToBasket(config))
+          case Right(breakdown) =>
+            val lineId = "quick-order"
+            val line = BasketLine(
+              id = lineId,
+              configuration = config,
+              quantity = quantity,
+              unitPrice = breakdown.total,
+              lineTotal = (breakdown.total * quantity).rounded,
+              currency = breakdown.currency,
+            )
+            BuilderEnvironment.get.artwork.foreach(_.onAddedToBasket(lineId, config))
             stateVar.update(_.copy(
-              checkoutBasket = Some(quickBasket),
+              checkoutBasket = Some(BasketSnapshot(List(line), line.lineTotal, line.currency)),
               checkoutInfo = Some(initialCheckoutInfo(current.loginState)),
             ))
             resetProductForm()
-          },
-        )
       case None => ()
 
   def cancelCheckout(): Unit =

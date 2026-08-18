@@ -403,6 +403,17 @@ object `ui-productbuilder` extends ScalaJSModule {
   def mvnDeps = Seq(
     mvn"com.raquo::laminar::${laminarVersion}"
   )
+
+  // Runs on Node. Pins the offline basket, which is what the embeddable calculator ships with:
+  // it must keep pricing and totalling correctly with no server anywhere.
+  object test extends ScalaJSTests {
+    def sources = Task.Sources(rootDir / "modules" / "ui-productbuilder" / "src" / "test" / "scala")
+    def mvnDeps = Seq(
+      mvn"dev.zio::zio-test::2.1.16",
+      mvn"dev.zio::zio-test-sbt::2.1.16"
+    )
+    def testFramework = "zio.test.sbt.ZTestFramework"
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -434,8 +445,26 @@ object ui extends ScalaJSModule {
   def sources = Task.Sources(rootDir / "modules" / "ui" / "src" / "main" / "scala")
   def resources = Task.Sources(rootDir / "modules" / "ui" / "src" / "main" / "resources")
   def scalaJSUseMainModuleInitializer = true
-  def moduleDeps = Seq(commons.js, domain.js, `ui-framework`, `ui-productbuilder`)
+  // `catalog.01-core.js` is the request DTO the SPA sends when adding to the basket. Sharing the
+  // real contract rather than hand-writing the JSON is why that core is cross-compiled: the
+  // configuration payload is the largest and most changeable part of the wire format, and a copy
+  // of it in the browser would drift.
+  def moduleDeps =
+    Seq(commons.js, domain.js, catalog.`01-core`.js, `ui-framework`, `ui-productbuilder`)
   def mvnDeps = Seq(
     mvn"com.raquo::laminar::${laminarVersion}"
   )
+
+  // Runs on Node. The pieces worth testing here are pure: turning a resolved configuration back
+  // into the request the server is sent, and reading a stored configuration back out of a basket
+  // line. Both are translations between two representations, which is exactly where a silent
+  // mistranslation hides.
+  object test extends ScalaJSTests {
+    def sources = Task.Sources(rootDir / "modules" / "ui" / "src" / "test" / "scala")
+    def mvnDeps = Seq(
+      mvn"dev.zio::zio-test::2.1.16",
+      mvn"dev.zio::zio-test-sbt::2.1.16"
+    )
+    def testFramework = "zio.test.sbt.ZTestFramework"
+  }
 }

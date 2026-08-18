@@ -23,7 +23,10 @@ object ArtworkMode:
 object VisualEditorArtwork extends ArtworkIntegration:
 
   private val modeVar: Var[ArtworkMode] = Var(ArtworkMode.UploadArtwork())
-  private val basketItemArtworkVar: Var[Map[ConfigurationId, ArtworkMode]] = Var(Map.empty)
+  /** Keyed by basket line id, not by configuration id: the basket's owner decides what a line is,
+    * and two identical configurations are one value there.
+    */
+  private val basketItemArtworkVar: Var[Map[String, ArtworkMode]] = Var(Map.empty)
 
   val mode: Signal[ArtworkMode] = modeVar.signal
 
@@ -32,11 +35,11 @@ object VisualEditorArtwork extends ArtworkIntegration:
   def setEditorArtworkId(artworkId: ArtworkId): Unit =
     modeVar.set(ArtworkMode.DesignInEditor(Some(artworkId)))
 
-  override def onAddedToBasket(config: ProductConfiguration): Unit =
-    basketItemArtworkVar.update(_ + (config.id -> modeVar.now()))
+  override def onAddedToBasket(lineId: String, config: ProductConfiguration): Unit =
+    basketItemArtworkVar.update(_ + (lineId -> modeVar.now()))
 
-  override def onRemovedFromBasket(configId: ConfigurationId): Unit =
-    basketItemArtworkVar.update(_ - configId)
+  override def onRemovedFromBasket(lineId: String): Unit =
+    basketItemArtworkVar.update(_ - lineId)
 
   override def onBasketCleared(): Unit =
     basketItemArtworkVar.set(Map.empty)
@@ -44,8 +47,8 @@ object VisualEditorArtwork extends ArtworkIntegration:
   override def onFormReset(): Unit =
     modeVar.set(ArtworkMode.UploadArtwork())
 
-  override def emailSummary(configId: ConfigurationId, lang: Language): Option[String] =
-    basketItemArtworkVar.now().get(configId).map {
+  override def emailSummary(lineId: String, lang: Language): Option[String] =
+    basketItemArtworkVar.now().get(lineId).map {
       case ArtworkMode.UploadArtwork(Some(fileName)) => lang match
         case Language.En => s"Artwork: $fileName"
         case Language.Cs => s"Data: $fileName"
@@ -57,10 +60,10 @@ object VisualEditorArtwork extends ArtworkIntegration:
         case Language.Cs => "Design: vytvořen ve vizuálním editoru"
     }
 
-  override def renderBasketItem(configId: ConfigurationId, lang: Language): Element =
+  override def renderBasketItem(lineId: String, lang: Language): Element =
     div(
-      child <-- basketItemArtworkVar.signal.map { byConfig =>
-        byConfig.get(configId) match
+      child <-- basketItemArtworkVar.signal.map { byLine =>
+        byLine.get(lineId) match
           case Some(ArtworkMode.UploadArtwork(Some(fileName))) =>
             span(lang match
               case Language.En => s"📎 Artwork: $fileName"

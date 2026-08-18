@@ -76,7 +76,7 @@ object AppRouter {
               case _ => "nav-basket-btn-hidden"
             },
             child <-- ProductBuilderViewModel.state.combineWith(lang).map { case (state, l) =>
-              val count = state.basket.items.size
+              val count = state.basket.size
               span(
                 cls := "nav-basket-content",
                 span(cls := "basket-icon", "\uD83D\uDED2"),

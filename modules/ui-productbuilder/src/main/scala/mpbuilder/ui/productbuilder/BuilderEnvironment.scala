@@ -3,8 +3,9 @@ package mpbuilder.ui.productbuilder
 import mpbuilder.commons.*
 
 import com.raquo.laminar.api.L.*
-import mpbuilder.domain.model.{ConfigurationId, ManufacturingSpeed, ProductConfiguration}
+import mpbuilder.domain.model.{ManufacturingSpeed, ProductConfiguration}
 import mpbuilder.domain.pricing.PricingContext
+import mpbuilder.ui.productbuilder.basket.{BasketBackend, LocalBasketBackend}
 
 /** How the host app lets the customer supply artwork.
   *
@@ -15,16 +16,21 @@ trait ArtworkIntegration:
   /** Rendered inside the "Provide Artwork" form section. */
   def render(): Element
 
-  /** Rendered on each basket line to show which artwork belongs to that item. */
-  def renderBasketItem(configId: ConfigurationId, lang: Language): Element
-
-  /** Called when a configuration is added to the basket, so the host can
-    * remember which artwork belongs to which basket item.
+  /** Rendered on each basket line to show which artwork belongs to that item.
+    *
+    * Keyed by the basket line's id, not by the configuration's. Two customers ordering the same
+    * product supply different artwork, and once the basket lives on the server two identical
+    * configurations are deliberately one value — so a configuration id cannot identify a line.
     */
-  def onAddedToBasket(config: ProductConfiguration): Unit
+  def renderBasketItem(lineId: String, lang: Language): Element
 
-  /** Called when a basket item is removed. */
-  def onRemovedFromBasket(configId: ConfigurationId): Unit
+  /** Called when a configuration is added to the basket, with the id of the line it landed on, so
+    * the host can remember which artwork belongs to which basket line.
+    */
+  def onAddedToBasket(lineId: String, config: ProductConfiguration): Unit
+
+  /** Called when a basket line is removed. */
+  def onRemovedFromBasket(lineId: String): Unit
 
   /** Called when the basket is cleared. */
   def onBasketCleared(): Unit
@@ -35,7 +41,7 @@ trait ArtworkIntegration:
   def onFormReset(): Unit
 
   /** A one-line artwork summary for the order e-mail, if any. */
-  def emailSummary(configId: ConfigurationId, lang: Language): Option[String]
+  def emailSummary(lineId: String, lang: Language): Option[String]
 
 /** The basket's primary call to action.
   *
@@ -92,6 +98,16 @@ final case class BuilderEnvironment(
 
     /** Artwork step. `None` hides the section entirely. */
     artwork: Option[ArtworkIntegration] = None,
+
+    /** Where the basket lives.
+      *
+      * The default keeps it in the browser, which is what the embeddable calculator needs and what
+      * every host gets until it says otherwise. The full SPA installs an HTTP backend, and the
+      * basket then survives a reload and follows the customer between devices.
+      */
+    basketBackend: BasketBackend = LocalBasketBackend(() =>
+      mpbuilder.domain.sample.SamplePricelist.pricelistCzkSheet
+    ),
 
     /** Basket drawer open/closed — owned by the host shell, which also renders
       * the button that toggles it.

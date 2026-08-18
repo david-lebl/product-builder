@@ -2669,6 +2669,15 @@ button:disabled {
     box-shadow: none;
 }
 
+/* Shown while a basket change is in flight against the server. Deliberately quiet: the drawer
+   keeps showing the last known basket rather than emptying itself, so this is a note that an
+   answer is coming, not a placeholder for missing content. */
+.basket-busy {
+    font-size: 0.82rem;
+    color: var(--color-text-muted, #6b7280);
+    padding: 4px 0 8px;
+}
+
 /* ================= shell.css ================= */
 /* ─── Calculator shell ────────────────────────────────────────────────────
  *

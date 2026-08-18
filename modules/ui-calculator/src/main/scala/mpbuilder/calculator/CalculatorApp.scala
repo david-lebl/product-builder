@@ -41,7 +41,7 @@ object CalculatorApp:
         button(
           cls := "nav-basket-btn",
           child <-- ProductBuilderViewModel.state.combineWith(lang).map { case (state, l) =>
-            val count = state.basket.items.size
+            val count = state.basket.size
             span(
               cls := "nav-basket-content",
               span(cls := "basket-icon", "🛒"),

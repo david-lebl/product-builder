@@ -123,6 +123,7 @@ private[orderintake] object CheckoutEndpoints:
   private val base = endpoint
     .in("api" / "v1" / "checkout")
     .in(header[Option[String]]("Authorization").and(header[Option[String]]("X-Basket-Session")))
+    .in(BasketEndpoints.languageInput)
     .errorOut(
       oneOf[(StatusCode, ErrorResponse)](
         oneOfVariantValueMatcher(statusCode.and(jsonBody[ErrorResponse]))({ case _ => true })

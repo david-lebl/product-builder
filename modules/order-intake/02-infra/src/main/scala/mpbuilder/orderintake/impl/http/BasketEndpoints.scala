@@ -32,6 +32,8 @@ private[orderintake] object BasketEndpoints:
   final case class ItemView(
       id: String,
       description: Map[String, String],
+      /** The stored configuration as JSON, so a reloading configurator can render this line. */
+      configuration: String,
       quantity: Int,
       speed: String,
       artworkId: Option[String],
@@ -75,9 +77,15 @@ private[orderintake] object BasketEndpoints:
   private val actorInput: EndpointInput[(Option[String], Option[String])] =
     header[Option[String]]("Authorization").and(header[Option[String]]("X-Basket-Session"))
 
+  /** Which language to answer problems in. Every domain error already carries both; without this
+    * the API picked one for the customer.
+    */
+  val languageInput: EndpointInput[Option[String]] = header[Option[String]]("Accept-Language")
+
   private val base = endpoint
     .in("api" / "v1" / "baskets")
     .in(actorInput)
+    .in(languageInput)
     .errorOut(
       oneOf[(StatusCode, ErrorResponse)](
         oneOfVariantValueMatcher(statusCode.and(jsonBody[ErrorResponse]))({ case _ => true })

@@ -27,7 +27,9 @@ build = open(sys.argv[1]).read()
 # single-line Seq(...) and silently reported multi-line modules as having no dependencies at all —
 # which meant it was not checking the one module (`app`) whose dependencies matter most.
 OBJECT = re.compile(r'^(\s*)(?:private\s+)?object\s+`?([A-Za-z0-9_-]+)`?\s+extends')
-DEPS = re.compile(r'^\s*def\s+moduleDeps\s*=\s*Seq\(', re.M)
+# The `Seq(` may sit on the next line — a long dependency list gets wrapped by any formatter — so
+# the declaration and the opening of the sequence are matched separately.
+DEPS = re.compile(r'^\s*def\s+moduleDeps\s*=', re.M)
 
 lines = build.split("\n")
 stack = []          # (indent, name)
@@ -47,12 +49,17 @@ for i, line in enumerate(lines):
     if not DEPS.match(line):
         continue
     # Gather until parens balance, so multi-line Seq(...) is captured whole.
-    buf, depth = "", 0
+    buf, depth, started = "", 0, False
     for j in range(i, len(lines)):
         buf += lines[j]
-        depth += lines[j].count("(") - lines[j].count(")")
-        if depth <= 0:
-            break
+        if "Seq(" in buf:
+            started = True
+        if started:
+            depth += lines[j].count("(") - lines[j].count(")")
+            if depth <= 0:
+                break
+    if "Seq(" not in buf:
+        continue
     inner = buf[buf.index("Seq(") + 4 : buf.rindex(")")]
     deps = [d.strip().strip("`").rstrip(",").strip() for d in inner.split(",")]
     deps = [d.replace("`", "") for d in deps if d]
@@ -89,6 +96,15 @@ if "commons" in modules:
 # `app` must actually be checked — if it parsed as dependency-free, the parser is broken.
 if "app" in modules and not modules["app"]:
     violations.append("app parsed with no moduleDeps; the parser is not seeing them")
+
+# Every declaration must have been parsed. A module the parser silently skips is a module the
+# guard is not guarding — which has already happened twice, once to `app` and once to `ui`.
+declared = len(DEPS.findall(build))
+if declared != len(modules):
+    violations.append(
+        f"{declared} moduleDeps declarations in the build, but {len(modules)} parsed — "
+        "the parser is missing one, and whatever it missed is unchecked"
+    )
 
 print()
 if violations:

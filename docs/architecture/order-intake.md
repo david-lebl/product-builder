@@ -560,7 +560,8 @@ free-delivery code is distinguishable from a code worth nothing).
 flyers, `FREESHIP` waiving the courier surcharge while leaving the goods untouched, `OLDCODE` refused
 as expired, `AGENCY15` refused for the wrong account type, a guest refused invoice-on-account with
 the reason, and speed offers carrying per-line surcharges.
-*Outstanding:* the SPA switch; `DiscountService.lookupPercent` goes with it.
+*Outstanding:* the checkout wizard still totals client-side, so `DiscountService.lookupPercent`
+survives until `CheckoutView` calls `/checkout/quote`.
 
 **Phase 5 — the `Order` aggregate.** `Status` hierarchy + `OrderPolicy` transitions, `Order.Number`
 generator, orders / lines / transitions / outbox tables, `PlaceOrder` with the re-quote guard,
@@ -583,10 +584,17 @@ shape — but mutations become API calls. This is exactly what the existing **`B
 seam** is for (`modules/ui-productbuilder/.../BuilderEnvironment.scala`): add a
 `basketBackend: BasketBackend` field.
 
-- `FullAppEnvironment` (SPA) → `HttpBasketBackend`, using the tapir-generated client from
-  `order-intake/01-core`'s JS target.
-- `CalculatorEnvironment` (widget) → `LocalBasketBackend`, today's in-memory `BasketService` plus
-  `EmailOrderModal`. **The widget keeps working with zero network.**
+- `FullAppEnvironment` (SPA) → `HttpBasketBackend`. Hand-written over `fetch` rather than generated:
+  `order-intake/01-core` is JVM-only, and the half of the wire format that actually changes — the
+  configuration payload — is shared for real, from `catalog/01-core`'s JS target.
+- `CalculatorEnvironment` (widget) → `LocalBasketBackend`, priced in the browser by the same
+  `PriceCalculator` the preview uses. **The widget keeps working with zero network**, and that is
+  now pinned by tests rather than by intention.
+
+✅ **Done.** `BuilderState.basket` is a `BasketSnapshot` the backend owns; the view model asks and
+renders. Basket lines are identified by the owner's line id, which is why `ArtworkIntegration` is
+keyed by line id rather than `ConfigurationId` — identical products deliberately share a snapshot,
+so a configuration id cannot name a line.
 
 `CheckoutView.scala` (990 LOC) keeps its five-step wizard as pure client state; "✓ Place Order" calls
 `POST /api/v1/orders` and renders accumulated field errors. `LoginWidget.scala` switches from mock

@@ -17,40 +17,43 @@ private[orderintake] final class BasketRoutes(baskets: BasketService, auth: id.A
   private val actors = Actors(auth)
 
   def endpoints: List[ServerEndpoint[Any, Task]] = List(
-    // tapir flattens tuple inputs, so the auth headers arrive as separate arguments rather than
-    // as the pair they were declared as.
-    BasketEndpoints.current.zServerLogic { case (bearer, session) =>
-      withActor(bearer, session)(baskets.current)
+    // tapir flattens tuple inputs, so the headers arrive as separate arguments rather than as the
+    // groups they were declared as.
+    BasketEndpoints.current.zServerLogic { case (bearer, session, lang) =>
+      withActor(bearer, session, lang)(baskets.current)
     },
-    BasketEndpoints.addItem.zServerLogic { case (bearer, session, req) =>
-      withActor(bearer, session)(actor =>
+    BasketEndpoints.addItem.zServerLogic { case (bearer, session, lang, req) =>
+      withActor(bearer, session, lang)(actor =>
         baskets.addItem(actor, AddItem(req.configuration, req.quantity, req.speed, req.artworkId))
       )
     },
-    BasketEndpoints.updateQuantity.zServerLogic { case (bearer, session, itemId, req) =>
-      withActor(bearer, session)(baskets.updateQuantity(_, itemId, UpdateQuantity(req.quantity)))
+    BasketEndpoints.updateQuantity.zServerLogic { case (bearer, session, lang, itemId, req) =>
+      withActor(bearer, session, lang)(baskets.updateQuantity(_, itemId, UpdateQuantity(req.quantity)))
     },
-    BasketEndpoints.changeSpeed.zServerLogic { case (bearer, session, itemId, req) =>
-      withActor(bearer, session)(baskets.changeSpeed(_, itemId, UpdateSpeed(req.speed)))
+    BasketEndpoints.changeSpeed.zServerLogic { case (bearer, session, lang, itemId, req) =>
+      withActor(bearer, session, lang)(baskets.changeSpeed(_, itemId, UpdateSpeed(req.speed)))
     },
-    BasketEndpoints.removeItem.zServerLogic { case (bearer, session, itemId) =>
-      withActor(bearer, session)(baskets.removeItem(_, itemId))
+    BasketEndpoints.removeItem.zServerLogic { case (bearer, session, lang, itemId) =>
+      withActor(bearer, session, lang)(baskets.removeItem(_, itemId))
     },
-    BasketEndpoints.clear.zServerLogic { case (bearer, session) =>
-      withActor(bearer, session)(baskets.clear)
+    BasketEndpoints.clear.zServerLogic { case (bearer, session, lang) =>
+      withActor(bearer, session, lang)(baskets.clear)
     },
-    BasketEndpoints.requote.zServerLogic { case (bearer, session) =>
-      withActor(bearer, session)(baskets.requote)
+    BasketEndpoints.requote.zServerLogic { case (bearer, session, lang) =>
+      withActor(bearer, session, lang)(baskets.requote)
     },
-    BasketEndpoints.merge.zServerLogic { case (bearer, session, req) =>
-      withActor(bearer, session)(baskets.merge(_, req.fromSession))
+    BasketEndpoints.merge.zServerLogic { case (bearer, session, lang, req) =>
+      withActor(bearer, session, lang)(baskets.merge(_, req.fromSession))
     },
   )
 
-  private def withActor(bearer: Option[String], session: Option[String])(
+  private def withActor(bearer: Option[String], session: Option[String], acceptLanguage: Option[String])(
       f: Actor => IO[BasketError, BasketView]
   ): ZIO[Any, (StatusCode, ErrorResponse), BasketResponse] =
-    actors.resolve(bearer, session).flatMap(actor => f(actor).mapBoth(toResponse, toBasketResponse))
+    val lang = Languages.parse(acceptLanguage)
+    actors
+      .resolve(bearer, session)
+      .flatMap(actor => f(actor).mapBoth(toResponse(lang), toBasketResponse))
 
   private def toBasketResponse(view: BasketView): BasketResponse =
     BasketResponse(
@@ -59,6 +62,7 @@ private[orderintake] final class BasketRoutes(baskets: BasketService, auth: id.A
         ItemView(
           id = item.id,
           description = Language.values.map(l => l.toCode -> item.description(l)).toMap,
+          configuration = item.configuration,
           quantity = item.quantity,
           speed = item.speed,
           artworkId = item.artworkId,
@@ -76,7 +80,7 @@ private[orderintake] final class BasketRoutes(baskets: BasketService, auth: id.A
       expiresAt = view.expiresAt,
     )
 
-  private def toResponse(error: BasketError): (StatusCode, ErrorResponse) =
+  private def toResponse(lang: Language)(error: BasketError): (StatusCode, ErrorResponse) =
     val status = error match
       case BasketError.NotFound          => StatusCode.NotFound
       case BasketError.ItemNotFound(_)   => StatusCode.NotFound
@@ -92,8 +96,8 @@ private[orderintake] final class BasketRoutes(baskets: BasketService, auth: id.A
     // wrong at once instead of one problem per attempt.
     val items = error match
       case BasketError.Rejected(problems) =>
-        problems.toList.map(p => ErrorItem(p.code, p.message(Language.En)))
+        problems.toList.map(p => ErrorItem(p.code, p.message(lang)))
       case other =>
-        List(ErrorItem(other.toString.takeWhile(_ != '('), other.message(Language.En)))
+        List(ErrorItem(other.toString.takeWhile(_ != '('), other.message(lang)))
 
     (status, ErrorResponse(items))

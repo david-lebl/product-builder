@@ -672,10 +672,10 @@ exercised over HTTP against a running server with the **real** catalog and prici
 patch quantity, requote, register, merge-on-login, clear, plus 400 on an unknown speed and 422
 carrying *both* accumulated catalog reasons.
 
-Still outstanding: the SPA switch (`BasketBackend` on `BuilderEnvironment`, `HttpBasketBackend`),
-and Postgres — Docker was still unavailable, so the repository remains `Ref`-backed behind its port.
+Still outstanding: Postgres — Docker was still unavailable, so the repository remains `Ref`-backed
+behind its port. The SPA switch is done; see below.
 
-**Phase 4 — checkout & quoting. ✅ backend DONE; SPA switch outstanding.**
+**Phase 4 — checkout & quoting. ✅ backend DONE; the checkout UI still quotes client-side.**
 
 `order-intake/01-core`: `CheckoutService`, `CheckoutError`, `Buyer`, `DeliveryOption` /
 `DeliveryKind` / `DeliveryCharge`, `PaymentMethod` / `PaymentOffer`, `CheckoutDraft` /
@@ -717,8 +717,54 @@ and speed offers of +168 / 0 / −72 from the real engine.
 
 Still outstanding: **`DiscountService.lookupPercent` is not yet deleted.** It is dead as far as the
 server is concerned — checkout only ever asks pricing — but `CheckoutView.scala:651` still calls it
-to compute a client-side total. Deleting it before the SPA switch would break the build for no gain;
-it goes with `HttpBasketBackend`, and the server-side answer is already authoritative.
+to compute a client-side total. It goes when the checkout wizard moves onto `/checkout/quote`, which
+the basket switch below does not cover.
+
+**The SPA switch. ✅ DONE.**
+
+`ui-productbuilder` gains `basket/`: `BasketLine`, `BasketSnapshot`, `BasketOutcome` and the
+`BasketBackend` seam, installed through `BuilderEnvironment`. Two implementations —
+`LocalBasketBackend` in the browser (the default, and what the embeddable calculator keeps using)
+and `HttpBasketBackend` in the SPA. The view model no longer computes a basket at all: it asks and
+renders the answer, so the total on screen is the total the shop quoted.
+
+Consequences worth knowing:
+
+- **Lines are identified by the basket's owner, not by `ConfigurationId`.** A stored configuration
+  is a *value* — two identical products deliberately share one snapshot — so `ArtworkIntegration`
+  is re-keyed by line id. Keying artwork by configuration id would have attached one customer's
+  file to another line the moment two orders matched.
+- **`BasketItemView` carries the stored configuration back.** Still opaque to order-intake, which
+  hands it over verbatim; the SPA decodes it to render a basket it never configured. Without it a
+  reloaded page could only show a description, which defeats the point of the basket surviving.
+- **The SPA sends a *request*, not its resolved configuration** (`ConfigurationRequests`), so the
+  catalog re-resolves and can refuse a product whose material has since been withdrawn.
+- **`Accept-Language` is honoured** by every basket and checkout endpoint. The domain has carried
+  both languages all along; the API was throwing the Czech half away at the last step.
+- **`app` serves the built SPA** from `dist/` (`ASSET_ROOT` to override), so the app and the API
+  share an origin and no CORS list has to be maintained.
+- **The SPA still shops anonymously.** Sign-in is the mock OTP flow, not identity's real tokens, so
+  the basket is keyed by an `X-Basket-Session` token in `localStorage`. The server-side merge on
+  login already exists and is what `LoginWidget` will call when it is switched over.
+
+*Verified:* guard passing (and fixed — see below); `mill __.compile` clean; 793 JVM tests plus 16
+new Scala.js tests on Node, all green; both bundles link and the client code survives the optimiser.
+Over HTTP against the real server: an empty basket on a first visit, a finished Express product
+added and priced at 1808.40, the same basket after a reload, its configuration coming back whole
+with its finishes, a quantity change re-priced to 4521.00, a second visitor seeing nothing, and a
+refusal in Czech.
+
+> **A bug this introduced and then fixed.** The first version of `Assets` served the SPA from a
+> `GET /` catch-all. It also matched `GET /api/v1/baskets/current`, so every API *read* answered
+> with the HTML page — the basket would have looked permanently empty while writes appeared to
+> work. It now serves one route per file that exists, which also removes any path-traversal
+> question, and the SPA needs no fallback route because its router never touches the URL.
+
+> **The dependency guard had stopped checking `ui`.** Wrapping `def moduleDeps =` onto two lines
+> was enough for the parser to skip the module silently. It now matches the declaration and the
+> `Seq(` separately, and asserts that the number of declarations it parsed equals the number in the
+> build — the general form of the `app` check added in Phase 1, after the same thing happened
+> there.
 
 | Phase | Work | Verifiable when |
 |---|---|---|

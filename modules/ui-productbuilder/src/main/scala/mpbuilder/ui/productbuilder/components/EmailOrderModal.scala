@@ -244,9 +244,9 @@ object EmailOrderModal:
               val lang  = state.language
               val subject = (lang, modeVar.now()) match
                 case (Language.En, Mode.Basket) =>
-                  s"Order Request (${state.basket.items.size} items)"
+                  s"Order Request (${state.basket.size} items)"
                 case (Language.Cs, Mode.Basket) =>
-                  s"Objednavka (${state.basket.items.size} polozek)"
+                  s"Objednavka (${state.basket.size} polozek)"
                 case (Language.En, Mode.SingleConfiguration) =>
                   val cat = categoryName(state, Language.En)
                   s"Product Order Inquiry${if cat.nonEmpty then s" - $cat" else ""}"
@@ -417,7 +417,7 @@ object EmailOrderModal:
     */
   private def buildBasketEmailText(state: BuilderState, lang: Language): String =
     val sb = new StringBuilder
-    val items = state.basket.items
+    val items = state.basket.lines
 
     lang match
       case Language.En => sb.append("Hello,\n\nI would like to order the following:\n\n")
@@ -425,25 +425,23 @@ object EmailOrderModal:
 
     items.zipWithIndex.foreach { case (item, idx) =>
       val config = item.configuration
-      val lineTotal = item.priceBreakdown.total * item.quantity
       lang match
         case Language.En =>
-          sb.append(s"${idx + 1}) ${config.category.name(lang)} — ${item.quantity}× — ${formatMoney(lineTotal, item.priceBreakdown.currency)}\n")
+          sb.append(s"${idx + 1}) ${config.category.name(lang)} — ${item.quantity}× — ${formatMoney(item.lineTotal, item.currency)}\n")
         case Language.Cs =>
-          sb.append(s"${idx + 1}) ${config.category.name(lang)} — ${item.quantity}× — ${formatMoney(lineTotal, item.priceBreakdown.currency)}\n")
+          sb.append(s"${idx + 1}) ${config.category.name(lang)} — ${item.quantity}× — ${formatMoney(item.lineTotal, item.currency)}\n")
       sb.append(describeConfiguration(config, lang))
       BuilderEnvironment.get.artwork
-        .flatMap(_.emailSummary(config.id, lang))
+        .flatMap(_.emailSummary(item.id, lang))
         .foreach(s => sb.append(s"   $s\n"))
       sb.append("\n")
     }
 
-    // Grand total
-    val calc = mpbuilder.domain.service.BasketService.calculateTotal(state.basket)
+    // Grand total, as the basket's owner computed it.
     if items.nonEmpty then
       lang match
-        case Language.En => sb.append(s"Total: ${formatMoney(calc.total, calc.currency)}\n\n")
-        case Language.Cs => sb.append(s"Celkem: ${formatMoney(calc.total, calc.currency)}\n\n")
+        case Language.En => sb.append(s"Total: ${formatMoney(state.basket.total, state.basket.currency)}\n\n")
+        case Language.Cs => sb.append(s"Celkem: ${formatMoney(state.basket.total, state.basket.currency)}\n\n")
 
     lang match
       case Language.En =>

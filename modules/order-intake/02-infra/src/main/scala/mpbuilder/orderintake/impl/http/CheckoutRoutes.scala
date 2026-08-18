@@ -18,27 +18,32 @@ private[orderintake] final class CheckoutRoutes(checkout: CheckoutService, auth:
   private val actors = Actors(auth)
 
   def endpoints: List[ServerEndpoint[Any, Task]] = List(
-    CheckoutEndpoints.options.zServerLogic { case (bearer, session) =>
-      withActor(bearer, session)(checkout.options).map(toOptionsResponse)
+    CheckoutEndpoints.options.zServerLogic { case (bearer, session, lang) =>
+      withActor(bearer, session, lang)(checkout.options).map(toOptionsResponse)
     },
-    CheckoutEndpoints.quote.zServerLogic { case (bearer, session, req) =>
-      withActor(bearer, session)(
+    CheckoutEndpoints.quote.zServerLogic { case (bearer, session, lang, req) =>
+      withActor(bearer, session, lang)(
         checkout.quote(_, CheckoutDraft(req.deliveryOptionId, req.discountCode, req.paymentMethod))
       ).map(toQuoteResponse)
     },
-    CheckoutEndpoints.discount.zServerLogic { case (bearer, session, req) =>
-      withActor(bearer, session)(checkout.applyDiscount(_, req.code)).map(toDiscountView)
+    CheckoutEndpoints.discount.zServerLogic { case (bearer, session, lang, req) =>
+      withActor(bearer, session, lang)(checkout.applyDiscount(_, req.code)).map(toDiscountView)
     },
-    CheckoutEndpoints.speeds.zServerLogic { case (bearer, session, itemId) =>
-      withActor(bearer, session)(checkout.speedOffers(_, itemId))
+    CheckoutEndpoints.speeds.zServerLogic { case (bearer, session, lang, itemId) =>
+      withActor(bearer, session, lang)(checkout.speedOffers(_, itemId))
         .map(offers => SpeedOffersResponse(offers.map(toSpeedView)))
     },
   )
 
-  private def withActor[A](bearer: Option[String], session: Option[String])(
+  private def withActor[A](
+      bearer: Option[String],
+      session: Option[String],
+      acceptLanguage: Option[String],
+  )(
       f: Actor => IO[CheckoutError, A]
   ): ZIO[Any, (StatusCode, ErrorResponse), A] =
-    actors.resolve(bearer, session).flatMap(actor => f(actor).mapError(toResponse))
+    val lang = Languages.parse(acceptLanguage)
+    actors.resolve(bearer, session).flatMap(actor => f(actor).mapError(toResponse(lang)))
 
   // ── Views ───────────────────────────────────────────────────────────────
 
@@ -114,6 +119,7 @@ private[orderintake] final class CheckoutRoutes(checkout: CheckoutService, auth:
     ItemView(
       id = item.id,
       description = text(item.description),
+      configuration = item.configuration,
       quantity = item.quantity,
       speed = item.speed,
       artworkId = item.artworkId,
@@ -125,7 +131,7 @@ private[orderintake] final class CheckoutRoutes(checkout: CheckoutService, auth:
       ),
     )
 
-  private def toResponse(error: CheckoutError): (StatusCode, ErrorResponse) =
+  private def toResponse(lang: Language)(error: CheckoutError): (StatusCode, ErrorResponse) =
     val status = error match
       case CheckoutError.ItemNotFound(_)            => StatusCode.NotFound
       case CheckoutError.EmptyBasket                => StatusCode.UnprocessableEntity
@@ -140,10 +146,10 @@ private[orderintake] final class CheckoutRoutes(checkout: CheckoutService, auth:
     // basket at once instead of one problem per attempt.
     val items = error match
       case CheckoutError.LineNoLongerAvailable(itemId, problems) =>
-        problems.toList.map(p => ErrorItem(p.code, s"[$itemId] ${p.message(Language.En)}"))
+        problems.toList.map(p => ErrorItem(p.code, s"[$itemId] ${p.message(lang)}"))
       case CheckoutError.CannotPrice(problems) =>
-        problems.toList.map(p => ErrorItem(p.code, p.message(Language.En)))
+        problems.toList.map(p => ErrorItem(p.code, p.message(lang)))
       case other =>
-        List(ErrorItem(other.toString.takeWhile(_ != '('), other.message(Language.En)))
+        List(ErrorItem(other.toString.takeWhile(_ != '('), other.message(lang)))
 
     (status, ErrorResponse(items))

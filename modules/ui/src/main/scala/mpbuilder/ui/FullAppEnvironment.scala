@@ -3,6 +3,7 @@ package mpbuilder.ui
 import mpbuilder.commons.*
 
 import com.raquo.laminar.api.L.*
+import mpbuilder.ui.basket.HttpBasketBackend
 import mpbuilder.ui.productbuilder.{BuilderEnvironment, BuilderState, BasketPrimaryAction, QuickOrderAction, ProductBuilderViewModel}
 import mpbuilder.domain.model.*
 import mpbuilder.domain.manufacturing.StationUtilisation
@@ -131,6 +132,9 @@ object FullAppEnvironment:
     completionText = completionText,
     expressAvailable = Val(UtilisationCalculator.isExpressAvailable(globalUtilisation)),
     artwork = Some(VisualEditorArtwork),
+    // The basket lives on the server. Same origin, so the SPA works unchanged behind whatever host
+    // and port it is served from.
+    basketBackend = HttpBasketBackend("/api/v1/baskets"),
     basketOpen = AppRouter.basketOpen,
     basketPrimaryAction = BasketPrimaryAction(
       label = {
