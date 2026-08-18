@@ -81,13 +81,26 @@ private[orderintake] object InMemoryOrderNumbers:
 
 /** The outbox, in memory.
   *
-  * Events are appended and kept, rather than handed straight to a subscriber. That is the whole
-  * point of an outbox: manufacturing being slow or down must not fail a customer's checkout, and a
-  * subscriber that was not listening must still be able to catch up. Phase 6 adds the relay that
-  * drains it.
+  * Events are appended and kept until the relay says it has taken them, rather than handed straight
+  * to a subscriber. That is the whole point of an outbox: manufacturing being slow or down must not
+  * fail a customer's checkout, and a subscriber that was not listening must still be able to catch
+  * up. A relay that dies mid-batch re-delivers rather than loses, which makes delivery
+  * at-least-once — and is why every consumer of these has to be idempotent.
   */
-private[orderintake] final class InMemoryEvents(store: Ref[Vector[OrderEvent]]) extends Events:
-  def publish(events: List[OrderEvent]): UIO[Unit] = store.update(_ ++ events).unit
+private[orderintake] final class InMemoryEvents(
+    store: Ref[Vector[OrderOutboxEntry]],
+    counter: Ref[Long],
+) extends Events
+    with OrderOutbox:
 
-  /** Everything published so far. The relay's seam, and what tests assert against. */
-  def published: UIO[List[OrderEvent]] = store.get.map(_.toList)
+  def publish(events: List[OrderEvent]): UIO[Unit] =
+    ZIO
+      .foreach(events)(event => counter.updateAndGet(_ + 1).map(OrderOutboxEntry(_, event)))
+      .flatMap(entries => store.update(_ ++ entries))
+      .unit
+
+  def pending(limit: Int): UIO[List[OrderOutboxEntry]] =
+    store.get.map(_.take(limit.max(1)).toList)
+
+  def markPublished(ids: List[Long]): UIO[Unit] =
+    store.update(_.filterNot(entry => ids.contains(entry.id))).unit

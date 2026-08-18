@@ -14,6 +14,13 @@ private[identity] final class AuthServiceLive(
     otp: OtpStore,
     ids: Ids,
     now: UIO[Timestamp],
+    /** Which roles an e-mail address is entitled to at registration.
+      *
+      * A function rather than a flag, and supplied by the composition root, because provisioning
+      * the shop's own staff is an operational decision — not something a registration form may
+      * ask for. Anyone who could name their own roles could make themselves an administrator.
+      */
+    rolesFor: Email => Set[Role] = _ => Set(Role.Customer),
 ) extends AuthService:
 
   /** Must match the store's TTL; both are stated once, here and in the store's default. */
@@ -36,7 +43,7 @@ private[identity] final class AuthServiceLive(
           email = email,
           credentials = User.Credentials.Password(hash),
           status = User.Status.Active,
-          roles = Set(Role.Customer),
+          roles = rolesFor(email),
           customerId = input.customerId,
           createdAt = timestamp,
           lastLoginAt = None,

@@ -102,7 +102,18 @@ private[orderintake] object Order:
       currency: Currency,
   )
 
-  final case class Transition(from: Option[Status], to: Status, at: Timestamp, by: Actor)
+  /** Who caused a transition.
+    *
+    * A sum rather than an `Actor`, because some transitions have no caller at all: the shop floor
+    * approving work moves the order, and no person made that request. Widening `Actor` with a
+    * `System` case was the alternative, and it would have made six unrelated matches — "whose
+    * basket is this", "may this actor cancel" — silently non-exhaustive.
+    */
+  enum By:
+    case Person(actor: Actor)
+    case System
+
+  final case class Transition(from: Option[Status], to: Status, at: Timestamp, by: By)
 
   final case class Data(
       number: Number,
@@ -119,6 +130,14 @@ private[orderintake] object Order:
       totals: Totals,
       speed: ProductionSpeed,
       note: Option[String],
+      /** When the shop floor authorised the work, if it has.
+        *
+        * Kept apart from `status`, which is the order's *commercial* state, because the two are
+        * genuinely independent: approval can arrive before payment or after it, and the order is
+        * the only place that knows both. Production starts when both have happened, whichever
+        * order they happen in.
+        */
+      approvedForProduction: Option[Timestamp],
       placedAt: Timestamp,
       history: List[Transition],
       version: Long,

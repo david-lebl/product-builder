@@ -34,12 +34,15 @@ mill 'pricing.02-infra.test'                        # Pricing contract tests
 mill 'customers.02-infra.test'                      # Customers contract tests
 mill 'identity.02-infra.test'                       # Auth contract tests
 mill 'order-intake.01-core.test'                    # Pure checkout and order policy tests
-mill 'order-intake.02-infra.test'                   # Basket and checkout contract tests
+mill 'order-intake.02-infra.test'                   # Basket, checkout and order contract tests
+mill 'manufacturing.02-infra.test'                  # Production contract tests, incl. the event translation
 
 # Run the backend (Swagger UI at /docs, health at /health).
 # Also serves the built SPA from ./dist (override with ASSET_ROOT), so the app and the API share
 # an origin — the server-side basket needs that.
-JWT_SECRET=dev-secret PORT=8080 mill app.run
+# STAFF_EMAILS provisions staff accounts: those addresses register with the operator role, which is
+# what lets anyone approve production or confirm a payment. Registration never grants it by itself.
+JWT_SECRET=dev-secret PORT=8080 STAFF_EMAILS=floor@shop.example mill app.run
 
 # Refresh ./dist after a UI change
 mill ui.fullLinkJS && cp out/ui/fullLinkJS.dest/main.js dist/ \
@@ -76,7 +79,8 @@ context's infra.
 - **`customers/01-core` + `02-infra`** — `CustomerService`: lookup, registration. Deliberately exposes **no** negotiated pricing — that is pricing's, resolved from a customer id.
 - **`identity/01-core` + `02-infra`** — `AuthService`: registration, password login, JWT issue/verify/refresh, roles, OTP sign-in. Owns credentials only — the business profile is `customers`, linked by `customerId`. Stores are `Ref`-backed until Phase 3.
 - **`order-intake/01-core` + `02-infra`** — `BasketService` (server-side basket), `CheckoutService` (delivery and payment options, whole-basket quote, discount codes, per-line speed offers) and `OrderService` (place, read, cancel, confirm payment, reject). `01-core/impl` holds the `Basket` and `Order` aggregates, the pure `BasketPolicy`, `CheckoutPolicy` and `OrderPolicy`, and the shared `Baskets` loader; `02-infra/impl/adapters` holds one adapter per foreign context — catalog, pricing, customers — and they are the only files that know those contexts exist. Stores are `Ref`-backed until Postgres lands.
-- **`app/`** — Composition root. The **only** module that may depend on an `02-infra`: it wires the ZLayer graph, mounts every context's tapir routes on one zio-http server, and serves the OpenAPI docs. No business logic.
+- **`manufacturing/01-core` + `02-infra`** — `ProductionService`: takes work from order-intake's `OrderPlaced` events, plans it into workflow steps, and reports approval and dispatch back as its own events. Depends on **no** other context's core from `01-core` — it is told what to make and cannot reach back, which is what replaces `ManufacturingOrder` embedding `Order`. `02-infra/impl/adapters/OrderIntakeAdapter` is the only file that knows order-intake exists; `impl/legacy` plans steps with the legacy `WorkflowGenerator` until Phase 10.
+- **`app/`** — Composition root. The **only** module that may depend on an `02-infra`: it wires the ZLayer graph, mounts every context's tapir routes on one zio-http server, serves the built SPA and the OpenAPI docs, and runs `EventRelay` — the only thing with both order-intake and manufacturing in scope. No business logic.
 - **`domain/`** — Cross-compiled (JVM + JS). Pure functional core: no ZIO effects, only `Validation[E, A]` from ZIO Prelude. Contains pricing engine, compatibility rules, manufacturing workflow, and all services. **Legacy** — being split into contexts.
 - **`ui-productbuilder/`** — The shared product configurator (form, pricing preview, validation, basket, e-mail order), package `mpbuilder.ui.productbuilder`. Depends on `domainJS` and `uiFramework`. Consumed by both apps below, so it must not reference anything in `mpbuilder.ui.*`. `basket/` holds the `BasketBackend` seam and the offline `LocalBasketBackend`.
 - **`ui/`** — Scala.js + Laminar SPA. Depends on `domainJS`, `catalog/01-core` (JS), `uiFramework`, `ui-productbuilder`. `basket/HttpBasketBackend` puts the basket on the server; served from the same origin as the API by `app`.

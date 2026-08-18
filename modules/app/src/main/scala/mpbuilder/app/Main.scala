@@ -5,7 +5,16 @@ import mpbuilder.catalog.impl.legacy.LegacyCatalogService
 import mpbuilder.customers.CustomerService
 import mpbuilder.customers.impl.legacy.LegacyCustomerService
 import mpbuilder.identity.{AuthService, IdentityHttp, IdentityModule}
-import mpbuilder.orderintake.{BasketService, CheckoutService, OrderIntakeHttp, OrderIntakeModule, OrderService}
+import mpbuilder.manufacturing.{ManufacturingHttp, ManufacturingModule, ProductionOutbox, ProductionService}
+import mpbuilder.orderintake.{
+  BasketService,
+  CheckoutService,
+  OrderIntakeHttp,
+  OrderIntakeModule,
+  OrderLifecycle,
+  OrderOutbox,
+  OrderService,
+}
 import mpbuilder.pricing.PricingService
 import mpbuilder.pricing.impl.legacy.LegacyPricingService
 import sttp.tapir.server.ziohttp.ZioHttpInterpreter
@@ -30,7 +39,7 @@ object Main extends ZIOAppDefault:
       cfg <- config
       _ <- ZIO.logInfo(s"Starting on http://localhost:${cfg.port} — docs at /docs")
       _ <- serve(cfg).provide(
-        IdentityModule.inMemory(cfg.jwtSecret),
+        IdentityModule.inMemory(cfg.jwtSecret, cfg.staffEmails),
         // Catalog and pricing are still backed by the legacy domain and its sample data. Choosing
         // *which* adapter every context runs on is this file's job and nowhere else's — swapping
         // these two lines in Phase 7/8 is the whole of that migration, as far as the app is
@@ -39,6 +48,7 @@ object Main extends ZIOAppDefault:
         ZLayer.succeed[PricingService](legacyPricing),
         LegacyCustomerService.layer,
         OrderIntakeModule.inMemory(),
+        ManufacturingModule.inMemory,
         Server.defaultWithPort(cfg.port),
       )
     yield ()
@@ -53,15 +63,25 @@ object Main extends ZIOAppDefault:
 
   private def serve(
       cfg: AppConfig
-  ): ZIO[AuthService & BasketService & CheckoutService & OrderService & Server, Throwable, Unit] =
+  ): ZIO[
+    AuthService & BasketService & CheckoutService & OrderService & OrderLifecycle & OrderOutbox &
+      ProductionService & ProductionOutbox & Server,
+    Throwable,
+    Unit,
+  ] =
     for
       auth <- ZIO.service[AuthService]
       baskets <- ZIO.service[BasketService]
       checkout <- ZIO.service[CheckoutService]
       orders <- ZIO.service[OrderService]
-      apiRoutes = IdentityHttp.routes(auth) ++ OrderIntakeHttp.routes(baskets, checkout, orders, auth)
+      production <- ZIO.service[ProductionService]
+      // The two contexts never call each other; this carries what one published to the other.
+      _ <- EventRelay.run
+      apiRoutes = IdentityHttp.routes(auth) ++
+        OrderIntakeHttp.routes(baskets, checkout, orders, auth) ++
+        ManufacturingHttp.routes(production, auth)
       docRoutes = SwaggerInterpreter().fromEndpoints[Task](
-        IdentityHttp.endpoints ++ OrderIntakeHttp.endpoints,
+        IdentityHttp.endpoints ++ OrderIntakeHttp.endpoints ++ ManufacturingHttp.endpoints,
         "Material Builder API",
         "v1",
       )
@@ -81,6 +101,11 @@ object Main extends ZIOAppDefault:
 final case class AppConfig(
     port: Int,
     jwtSecret: String,
+    /** Addresses that register as staff. Empty means nobody, which is the right default: a shop
+      * with no configured staff is a shop where nobody can approve production, not one where
+      * anybody can.
+      */
+    staffEmails: Set[String],
     /** Where the built SPA lives. `None` when there is nothing built to serve. */
     assetRoot: Option[java.io.File],
 )
@@ -104,6 +129,15 @@ object AppConfig:
             "Set JWT_SECRET before running anywhere real."
         )
         .when(secret.isEmpty)
+      staff <- System
+        .env("STAFF_EMAILS")
+        .map(_.toList.flatMap(_.split(",").toList).map(_.trim).filter(_.nonEmpty).toSet)
+      _ <- ZIO
+        .logWarning(
+          "STAFF_EMAILS is not set — no account can approve production or confirm a payment. " +
+            "Set it to a comma-separated list of addresses that should register as staff."
+        )
+        .when(staff.isEmpty)
       configured <- System.env("ASSET_ROOT").map(_.getOrElse(defaultAssetRoot))
       assets = Option(java.io.File(configured)).filter(_.isDirectory)
       _ <- ZIO
@@ -112,4 +146,9 @@ object AppConfig:
             "Run `mill ui.fullLinkJS` and copy the bundle there to serve the app itself."
         )
         .when(assets.isEmpty)
-    yield AppConfig(port, secret.getOrElse("dev-only-secret-do-not-use-in-production"), assets)
+    yield AppConfig(
+      port = port,
+      jwtSecret = secret.getOrElse("dev-only-secret-do-not-use-in-production"),
+      staffEmails = staff,
+      assetRoot = assets,
+    )

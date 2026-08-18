@@ -20,7 +20,8 @@ private[orderintake] final class OrderServiceLive(
     ids: Ids,
     now: UIO[Timestamp],
     yearOf: Timestamp => Int,
-) extends OrderService:
+) extends OrderService
+    with OrderLifecycle:
 
   def place(actor: Actor, input: PlaceOrder): IO[OrderError, OrderView] =
     for
@@ -65,8 +66,16 @@ private[orderintake] final class OrderServiceLive(
           ),
           speed = speedOf(quote),
           note = input.note.map(_.trim).filter(_.nonEmpty),
+          approvedForProduction = None,
           placedAt = timestamp,
-          history = List(Order.Transition(None, OrderPolicy.initialStatus(method, timestamp), timestamp, actor)),
+          history = List(
+            Order.Transition(
+              None,
+              OrderPolicy.initialStatus(method, timestamp),
+              timestamp,
+              Order.By.Person(actor),
+            )
+          ),
           version = 0,
         ),
       )
@@ -132,6 +141,31 @@ private[orderintake] final class OrderServiceLive(
         )
       )
     }
+
+  // ── Driven by events, not by requests ───────────────────────────────────
+
+  /** Applied by the relay on manufacturing's word.
+    *
+    * The actor is the system itself: no person authorised this, the shop floor did, and recording
+    * a member of staff who happened to be nearby would be a lie in the order's own history.
+    */
+  def productionStarted(orderId: String): IO[OrderError, Unit] =
+    applyLifecycle(orderId)(OrderPolicy.startProduction)
+
+  def dispatched(orderId: String, tracking: Option[String]): IO[OrderError, Unit] =
+    applyLifecycle(orderId)(OrderPolicy.complete(_, tracking, _))
+
+  private def applyLifecycle(orderId: String)(
+      apply: (Order, Timestamp) => Either[OrderError, Order]
+  ): IO[OrderError, Unit] =
+    for
+      order <- orders
+        .find(Order.Id(orderId))
+        .flatMap(ZIO.fromOption(_).orElseFail(OrderError.NotFound(orderId)))
+      timestamp <- now
+      moved <- ZIO.fromEither(apply(order, timestamp))
+      _ <- orders.save(moved)
+    yield ()
 
   // ── internals ────────────────────────────────────────────────────────────
 

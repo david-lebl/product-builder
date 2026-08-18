@@ -52,10 +52,12 @@ private[orderintake] object OrderPolicy:
   ): Either[OrderError, Order] =
     order.status match
       case closed: Order.Status.Closed => Left(OrderError.AlreadyClosed(closed.kind))
-      case _: Order.Status.Open        => Right(transition(order, Order.Status.Cancelled(now, by, reason), by, now))
+      case _: Order.Status.Open =>
+        Right(transition(order, Order.Status.Cancelled(now, by, reason), Order.By.Person(by), now))
       case _: Order.Status.Active =>
         // Work has started, so calling it off is a decision with a cost. Staff only.
-        if isStaff(by) then Right(transition(order, Order.Status.Cancelled(now, by, reason), by, now))
+        if isStaff(by) then
+          Right(transition(order, Order.Status.Cancelled(now, by, reason), Order.By.Person(by), now))
         else Left(OrderError.StaffOnly)
 
   def confirmPayment(
@@ -68,7 +70,11 @@ private[orderintake] object OrderPolicy:
     else
       order.status match
         case _: Order.Status.AwaitingPayment =>
-          Right(transition(order, Order.Status.Paid(now, reference), by, now))
+          val paid = transition(order, Order.Status.Paid(now, reference), Order.By.Person(by), now)
+          // The floor may have approved the work while the order was still unpaid. Both facts are
+          // in now, so production starts — otherwise that approval would be lost and the order
+          // would sit paid and never made.
+          Right(if paid.data.approvedForProduction.isDefined then intoProduction(paid, now) else paid)
         case closed: Order.Status.Closed => Left(OrderError.AlreadyClosed(closed.kind))
         case other => Left(OrderError.IllegalTransition(other.kind, "Paid"))
 
@@ -82,30 +88,46 @@ private[orderintake] object OrderPolicy:
     else
       order.status match
         case closed: Order.Status.Closed => Left(OrderError.AlreadyClosed(closed.kind))
-        case _: Order.Status.Open        => Right(transition(order, Order.Status.Rejected(now, by, reason), by, now))
+        case _: Order.Status.Open =>
+          Right(transition(order, Order.Status.Rejected(now, by, reason), Order.By.Person(by), now))
         // Once the shop has started making it, refusing it is a cancellation — which owes the
         // customer their money back — not a rejection.
         case other => Left(OrderError.IllegalTransition(other.kind, "Rejected"))
 
-  /** Manufacturing has approved the order and started work. Reached by event, not by request. */
-  def startProduction(order: Order, by: Actor, now: Timestamp): Either[OrderError, Order] =
+  /** Manufacturing has approved the work.
+    *
+    * Reached by event, not by request — so the transition records the system, not whichever person
+    * happened to be nearby when the relay ran.
+    *
+    * Approval and payment can arrive in either order, and production needs both. An approval that
+    * arrives first is *recorded* rather than refused; refusing it would drop it, and the order
+    * would then sit paid and approved yet never made.
+    */
+  def startProduction(order: Order, now: Timestamp): Either[OrderError, Order] =
+    val approved = order.copy(data = order.data.copy(approvedForProduction = Some(now)))
     order.status match
-      case _: Order.Status.Paid        => Right(transition(order, Order.Status.InProduction(now), by, now))
+      case _: Order.Status.Paid            => Right(intoProduction(approved, now))
+      case _: Order.Status.AwaitingPayment => Right(approved)
+      // Already being made: an outbox delivers at least once, so a repeat is a no-op.
+      case _: Order.Status.Active      => Right(order)
       case closed: Order.Status.Closed => Left(OrderError.AlreadyClosed(closed.kind))
-      case other                       => Left(OrderError.IllegalTransition(other.kind, "InProduction"))
 
+  private def intoProduction(order: Order, now: Timestamp): Order =
+    transition(order, Order.Status.InProduction(now), Order.By.System, now)
+
+  /** The goods have left. Also driven by an event. */
   def complete(
       order: Order,
-      by: Actor,
       tracking: Option[String],
       now: Timestamp,
   ): Either[OrderError, Order] =
     order.status match
-      case _: Order.Status.Active      => Right(transition(order, Order.Status.Completed(now, tracking), by, now))
+      case _: Order.Status.Active =>
+        Right(transition(order, Order.Status.Completed(now, tracking), Order.By.System, now))
       case closed: Order.Status.Closed => Left(OrderError.AlreadyClosed(closed.kind))
       case other                       => Left(OrderError.IllegalTransition(other.kind, "Completed"))
 
-  private def transition(order: Order, to: Order.Status, by: Actor, now: Timestamp): Order =
+  private def transition(order: Order, to: Order.Status, by: Order.By, now: Timestamp): Order =
     order.copy(data =
       order.data.copy(
         status = to,

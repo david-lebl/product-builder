@@ -804,12 +804,47 @@ accepted once corrected, eight validation problems accumulated into one Czech re
 reading and cancelling their own order, `409 AlreadyClosed` on cancelling it twice, and `403
 StaffOnly` on both staff endpoints.
 
+**Phase 6 — events → manufacturing. ✅ DONE (stores still in memory).**
+
+A new `manufacturing` context, and the relay that lets it and order-intake talk without either
+knowing the other exists. `01-core`: `ProductionService`, `ProductionRequest`, `ProductionStatus`,
+`ProductionEvent`, and in `impl` the `ProductionOrder` aggregate with a pure `ProductionPolicy`.
+`02-infra`: `OrderIntakeAdapter` (the only file in the context that knows order-intake exists),
+`LegacyWorkflowAdapter` over the legacy `WorkflowGenerator`, `Ref`-backed stores, and the shop-floor
+endpoints. `app`: `EventRelay`, two poll loops draining one context's outbox into the other's door.
+
+**`ManufacturingOrder` embedding `Order` is answered.** The new context is told what to make by an
+event carrying a snapshot, and *cannot* reach back — nothing in it can see an order. The legacy type
+still exists for the legacy manufacturing UI and dies with the extraction in Phase 10; what this
+phase settles is the shape.
+
+Two things this phase forced into the open:
+
+- **Approval and payment arrive in either order, and production needs both.** The first version
+  refused an approval that arrived while the order was unpaid — which *dropped* it, leaving the
+  order paid, approved, and never made. The order records `approvedForProduction` separately from
+  its commercial status, because it is the only thing that knows both facts. Found by running the
+  flow, not by a test.
+- **Staff accounts are provisioned by configuration** (`STAFF_EMAILS`), because nothing could
+  approve production otherwise: registration only ever issues `Role.Customer`, and a registration
+  form that let a caller name their own roles would let anyone become an administrator. This also
+  makes Phase 5's staff endpoints reachable for the first time.
+
+Delivery is at-least-once — an outbox entry survives until the relay says it took it — so
+`ProductionService.accept` is idempotent in the order id, and a repeated approval is a no-op.
+
+*Verified:* guard passing; `mill __.compile` clean; 876 JVM tests plus 16 Scala.js, all green. Over
+HTTP end to end: an order placed by a customer appears on the shop floor by itself with real steps
+(Prepress → DigitalPrinter → Cutter → QualityControl → Packaging), and **both orderings** work —
+approve-then-pay and pay-then-approve each reach `active/InProduction`, dispatch closes the order at
+`closed_fulfilled/Completed`, and the tracking code lands on the order.
+
 | Phase | Work | Verifiable when |
 |---|---|---|
 | **3** | Basket, server-side | Basket survives a page reload and a device switch; `ui-calculator` still works offline |
 | **4** | Checkout & quoting; deletes `DiscountService.lookupPercent` | An expired / exhausted / min-order code from `SampleDiscountCodes` is correctly refused |
 | **5** | The `Order` aggregate ✅ | Placing an order writes an order, its lines and an `OrderPlaced` outbox entry. The portal still reads sample data — the SPA's checkout has not been moved onto `POST /api/v1/orders` yet. |
-| **6** | Events → manufacturing; `ManufacturingOrder` stops embedding `Order` | A placed order appears in the approval queue; approving it moves the order to `InProduction` |
+| **6** | Events → manufacturing ✅ | A placed order appears in the approval queue by itself; approving it and paying — in either order — moves the order to `Active.InProduction` |
 
 Full detail in [order-intake.md](order-intake.md) §8.
 

@@ -335,6 +335,48 @@ object `order-intake` extends Module {
 }
 
 // ---------------------------------------------------------------------------
+// Manufacturing — bounded context: how it gets made. Consumes order-intake's
+// events and never sees an Order: it builds its own ProductionOrder from the
+// snapshot the event carries, which is what lets the two be extracted apart.
+// ---------------------------------------------------------------------------
+
+object manufacturing extends Module {
+  private val base = rootDir / "modules" / "manufacturing"
+
+  object `01-core` extends ScalaModule {
+    def scalaVersion = scala3Version
+    def scalacOptions = commonScalacOptions
+    def sources = Task.Sources(base / "01-core" / "src" / "main" / "scala")
+    def moduleDeps = Seq(commons.jvm)
+    def mvnDeps = domainMvnDeps
+
+    object test extends ScalaTests {
+      def sources = Task.Sources(base / "01-core" / "src" / "test" / "scala")
+      def mvnDeps = testMvnDeps
+      def testFramework = "zio.test.sbt.ZTestFramework"
+    }
+  }
+
+  object `02-infra` extends ScalaModule {
+    def scalaVersion = scala3Version
+    def scalacOptions = commonScalacOptions
+    def sources = Task.Sources(base / "02-infra" / "src" / "main" / "scala")
+    def resources = Task.Sources(base / "02-infra" / "src" / "main" / "resources")
+    // `order-intake.01-core` is here because this is where its events are translated into this
+    // context's own vocabulary — the anti-corruption boundary, and the only place that knows
+    // order-intake exists. `domain.jvm` supplies the legacy workflow generator until Phase 10.
+    def moduleDeps = Seq(`01-core`, `order-intake`.`01-core`, identity.`01-core`, domain.jvm)
+    def mvnDeps = serverMvnDeps
+
+    object test extends ScalaTests {
+      def sources = Task.Sources(base / "02-infra" / "src" / "test" / "scala")
+      def mvnDeps = testMvnDeps
+      def testFramework = "zio.test.sbt.ZTestFramework"
+    }
+  }
+}
+
+// ---------------------------------------------------------------------------
 // App — composition root. The only module that sees any 02-infra: it wires the
 // ZLayer graph, mounts every context's routes on one server, and serves the
 // OpenAPI docs. No business logic lives here.
@@ -348,6 +390,7 @@ object app extends ScalaModule {
   def moduleDeps = Seq(
     identity.`02-infra`,
     `order-intake`.`02-infra`,
+    manufacturing.`02-infra`,
     catalog.`02-infra`,
     pricing.`02-infra`,
     customers.`02-infra`,

@@ -584,10 +584,18 @@ together in Czech.
 `CustomerPortalView` still read `sample` data. Moving them is the next piece of frontend work and is
 what finally deletes `DiscountService.lookupPercent`.
 
-**Phase 6 — events → manufacturing.** Outbox relay; manufacturing subscribes to `OrderPlaced` and
-generates workflows from its own `ProductionOrder`. **`ManufacturingOrder` stops embedding `Order`.**
-*Verify:* a placed order appears in the approval queue with correct workflows; approving it moves the
-order to `Active.InProduction` in the customer portal.
+**Phase 6 — events → manufacturing. ✅ done.** `OrderOutbox` exposes what this context published;
+`OrderLifecycle` is how the relay moves an order on manufacturing's word, and is deliberately kept
+off the HTTP surface — nothing a customer or a member of staff sends reaches it.
+
+`Order.By` was added along the way: who caused a transition is its own sum, `Person(actor)` or
+`System`, because the shop floor approving work moves the order and no person made that request.
+Widening `Actor` with a `System` case was the alternative, and it made six unrelated matches —
+"whose basket is this", "may this actor cancel" — silently non-exhaustive.
+
+Production needs *both* payment and approval, which can arrive in either order, so
+`approvedForProduction` is recorded separately from the commercial status. Refusing an early
+approval, as the first version did, dropped it.
 
 ## 9. Frontend migration
 

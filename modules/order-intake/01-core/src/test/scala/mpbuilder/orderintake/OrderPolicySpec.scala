@@ -36,6 +36,7 @@ object OrderPolicySpec extends ZIOSpecDefault:
         totals = Order.Totals(Money(100), Money.zero, Money.zero, Money(100), Currency.CZK),
         speed = ProductionSpeed.Standard,
         note = None,
+        approvedForProduction = None,
         placedAt = now,
         history = Nil,
         version = 0,
@@ -139,7 +140,7 @@ object OrderPolicySpec extends ZIOSpecDefault:
           case Right(List(transition)) =>
             transition.from.contains(awaitingPayment.status) &&
               transition.to.kind == "Cancelled" &&
-              transition.by == customer
+              transition.by == Order.By.Person(customer)
           case _ => false
         )
       },
@@ -185,16 +186,53 @@ object OrderPolicySpec extends ZIOSpecDefault:
       },
     ),
     suite("production")(
-      test("production starts from paid, and only from paid") {
+      test("production starts once the order is paid and the work approved") {
+        assertTrue(OrderPolicy.startProduction(paid, later).map(_.status.kind) == Right("InProduction"))
+      },
+      test("approval arriving before payment is remembered, not refused") {
+        // It used to be refused, which dropped it: the order then sat paid, approved, and never
+        // made, because nothing would ever say "approved" again.
+        val approved = OrderPolicy.startProduction(awaitingPayment, later)
         assertTrue(
-          OrderPolicy.startProduction(paid, staff, later).isRight,
-          OrderPolicy.startProduction(awaitingPayment, staff, later) ==
-            Left(OrderError.IllegalTransition("AwaitingPayment", "InProduction")),
+          approved.map(_.status.kind) == Right("AwaitingPayment"),
+          approved.map(_.data.approvedForProduction.isDefined) == Right(true),
         )
+      },
+      test("payment then starts production, when approval already arrived") {
+        val result = for
+          approved <- OrderPolicy.startProduction(awaitingPayment, later)
+          paidLater <- OrderPolicy.confirmPayment(approved, staff, "VS-1", later)
+        yield paidLater
+        assertTrue(result.map(_.status.kind) == Right("InProduction"))
+      },
+      test("payment alone does not start production") {
+        assertTrue(
+          OrderPolicy.confirmPayment(awaitingPayment, staff, "VS-1", later).map(_.status.kind) ==
+            Right("Paid")
+        )
+      },
+      test("approving twice is a no-op, because an outbox delivers at least once") {
+        val result = for
+          started <- OrderPolicy.startProduction(paid, later)
+          again <- OrderPolicy.startProduction(started, later)
+        yield again
+        assertTrue(result.map(_.status.kind) == Right("InProduction"))
+      },
+      test("approving a closed order is refused") {
+        assertTrue(
+          OrderPolicy.startProduction(cancelled, later) ==
+            Left(OrderError.AlreadyClosed("Cancelled"))
+        )
+      },
+      test("a system-driven transition records the system, not a person") {
+        // Manufacturing approving work moves the order, and no person made that request. An
+        // order's history naming whoever happened to be nearby would simply be false.
+        assertTrue(OrderPolicy.startProduction(paid, later).map(_.data.history.last.by) ==
+          Right(Order.By.System))
       },
       test("an order completes from production") {
         assertTrue(
-          OrderPolicy.complete(inProduction, staff, Some("TRACK-1"), later).map(_.status) match
+          OrderPolicy.complete(inProduction, Some("TRACK-1"), later).map(_.status) match
             case Right(Order.Status.Completed(at, tracking)) =>
               at == later && tracking.contains("TRACK-1")
             case _ => false
@@ -202,7 +240,7 @@ object OrderPolicySpec extends ZIOSpecDefault:
       },
       test("a closed order cannot complete") {
         assertTrue(
-          OrderPolicy.complete(cancelled, staff, None, later) ==
+          OrderPolicy.complete(cancelled, None, later) ==
             Left(OrderError.AlreadyClosed("Cancelled"))
         )
       },

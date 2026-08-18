@@ -133,3 +133,34 @@ object OrderService:
 
   def reject(actor: Actor, id: String, input: RejectOrder): ZIO[OrderService, OrderError, OrderView] =
     ZIO.serviceWithZIO(_.reject(actor, id, input))
+
+/** One event, still waiting to be handed on.
+  *
+  * Numbered so a relay can say what it has taken. Entries stay until it does, which makes delivery
+  * at-least-once — and is why every consumer of these has to be idempotent.
+  */
+final case class OrderOutboxEntry(id: Long, event: OrderEvent)
+
+/** The events this context has produced and not yet handed on.
+  *
+  * Public because the relay in `app` drains it. An outbox rather than a direct call: manufacturing
+  * generating workflows must not be able to fail a customer's checkout, and a subscriber that was
+  * down must still be able to catch up.
+  */
+trait OrderOutbox:
+  def pending(limit: Int): zio.UIO[List[OrderOutboxEntry]]
+  def markPublished(ids: List[Long]): zio.UIO[Unit]
+
+/** The transitions that are driven by what happens elsewhere, not by a request.
+  *
+  * Separate from [[OrderService]] because nothing a customer or a member of staff does reaches
+  * these: the shop floor approving work is what starts production, and dispatching it is what
+  * completes the order. Keeping them apart makes "who is allowed to cause this" legible, and keeps
+  * them off the HTTP surface entirely.
+  */
+trait OrderLifecycle:
+  /** Manufacturing has approved the order and started work. */
+  def productionStarted(orderId: String): IO[OrderError, Unit]
+
+  /** The goods have left the building. */
+  def dispatched(orderId: String, tracking: Option[String]): IO[OrderError, Unit]
