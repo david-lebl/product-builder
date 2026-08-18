@@ -766,11 +766,49 @@ refusal in Czech.
 > build — the general form of the `app` check added in Phase 1, after the same thing happened
 > there.
 
+**Phase 5 — the `Order` aggregate. ✅ DONE (stores still in memory).**
+
+`order-intake/01-core`: `OrderService`, `OrderError`, `PlaceOrder` / `CancelOrder` / `RejectOrder` /
+`ConfirmPayment`, `OrderView` / `OrderSummaryView` / `Paged` / `Page` / `OrderSearch`, `OrderBuyer`,
+`Address`, and the public `OrderEvent`. In `impl`: the `Order` aggregate with the hierarchical
+`Status`, and a pure `OrderPolicy` holding the whole transition table. `02-infra`: `Ref`-backed
+order store, per-year number sequence, an in-memory outbox, and the customer and staff endpoints.
+
+What the hierarchy buys, concretely: `canCustomerCancel` is three cases over the *groups*, not one
+per leaf, and `OrderRepository.search` filters on `status.group` — so `?status=open` keeps meaning
+"open" when a leaf is added. Each leaf carries its own evidence: `Cancelled` cannot be constructed
+without an actor and a reason, which is what today's parallel history table with nullable columns
+cannot promise.
+
+Deliberate departures from §4 of [order-intake.md](order-intake.md), all narrower than designed:
+
+- **`place` lives on `OrderService`, not `CheckoutService`.** It creates an order; checkout stays a
+  set of questions about a basket.
+- **`PriceChanged` is order-level**, carrying the total that was quoted and the total now. The
+  customer agreed to a total, not to a line, and that is what the confirm-and-retry asks about.
+- **An invoiced order is `AwaitingPayment`, not `Paid`.** The original table auto-paid it. An
+  unsettled invoice is not money in the bank, and an order list saying otherwise would misreport
+  the shop's own position.
+- **A guest cannot re-read their order.** Lookup by `number + email` is not built, so the order is
+  reachable only through the response that created it; guessing an id gets a 404. Listing as a
+  guest is refused outright rather than answered with an empty list.
+- **No staff account can be created.** Registration always issues `Role.Customer`, so the staff
+  endpoints are exercised by the contract tests and only their *refusals* are reachable over HTTP.
+  Provisioning staff is an admin concern, and a "make me staff" endpoint would be a hole.
+
+*Verified:* guard passing; `mill __.compile` clean; 853 JVM tests plus 16 Scala.js, all green; both
+bundles link. Over HTTP against the real catalog, pricing and customers: an order placed at
+1808.40 − 180.84 + 99 = **1726.56** as `MP-2026-000001`, the basket emptied behind it and a second
+attempt refused with `EmptyBasket`, a stale `expectedTotal` refused **409 PriceChanged** and then
+accepted once corrected, eight validation problems accumulated into one Czech response, a customer
+reading and cancelling their own order, `409 AlreadyClosed` on cancelling it twice, and `403
+StaffOnly` on both staff endpoints.
+
 | Phase | Work | Verifiable when |
 |---|---|---|
 | **3** | Basket, server-side | Basket survives a page reload and a device switch; `ui-calculator` still works offline |
 | **4** | Checkout & quoting; deletes `DiscountService.lookupPercent` | An expired / exhausted / min-order code from `SampleDiscountCodes` is correctly refused |
-| **5** | The `Order` aggregate | Placing an order writes `orders`, `order_lines` and an `OrderPlaced` outbox row; the portal shows it |
+| **5** | The `Order` aggregate ✅ | Placing an order writes an order, its lines and an `OrderPlaced` outbox entry. The portal still reads sample data — the SPA's checkout has not been moved onto `POST /api/v1/orders` yet. |
 | **6** | Events → manufacturing; `ManufacturingOrder` stops embedding `Order` | A placed order appears in the approval queue; approving it moves the order to `InProduction` |
 
 Full detail in [order-intake.md](order-intake.md) §8.

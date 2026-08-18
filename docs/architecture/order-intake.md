@@ -563,13 +563,26 @@ the reason, and speed offers carrying per-line surcharges.
 *Outstanding:* the checkout wizard still totals client-side, so `DiscountService.lookupPercent`
 survives until `CheckoutView` calls `/checkout/quote`.
 
-**Phase 5 — the `Order` aggregate.** `Status` hierarchy + `OrderPolicy` transitions, `Order.Number`
-generator, orders / lines / transitions / outbox tables, `PlaceOrder` with the re-quote guard,
-`ConfirmPayment` / `cancel` / `reject`, order-read endpoints. `CheckoutView`'s "Place Order" becomes
-real; `OrderHistoryView` and `CustomerPortalView` read live data.
-*Verify:* placing an order writes `orders` + `order_lines` + an `OrderPlaced` outbox row with
-`status_group='open'`; the portal shows it; a stale price is rejected with confirm-and-retry;
-property test — every reachable `Status` is produced by exactly one legal transition path.
+**Phase 5 — the `Order` aggregate. ✅ backend done.** The `Status` hierarchy and `OrderPolicy`'s
+transition table, the per-year `Order.Number` sequence, `place` with the re-quote guard,
+`confirmPayment` / `cancel` / `reject`, the customer and staff read endpoints, and an outbox that
+`OrderPlaced` / `OrderPaid` / `OrderCancelled` / `OrderRejected` are written to.
+
+Placing an order goes through `CheckoutService.quote` rather than re-implementing the pricing
+pipeline: the order has to say exactly what the customer was quoted, and the surest way to promise
+that is for both numbers to come from the same code. What the quote returns is then *frozen* — the
+configuration payload, the rendered description, the per-line price, the discount and the delivery
+charge all become part of the order and are never recomputed.
+
+*Verified:* 26 pure policy tests over the transition table, 5 over what the outbox records, 29
+service-level contract tests, and an end-to-end walkthrough over HTTP — an order at
+1808.40 − 180.84 + 99 = 1726.56 as `MP-2026-000001`, the basket emptied behind it, a stale
+`expectedTotal` refused with 409 and accepted once corrected, and eight validation problems returned
+together in Czech.
+
+*Outstanding:* `CheckoutView`'s "Place Order" still fakes it, and `OrderHistoryView` /
+`CustomerPortalView` still read `sample` data. Moving them is the next piece of frontend work and is
+what finally deletes `DiscountService.lookupPercent`.
 
 **Phase 6 — events → manufacturing.** Outbox relay; manufacturing subscribes to `OrderPlaced` and
 generates workflows from its own `ProductionOrder`. **`ManufacturingOrder` stops embedding `Order`.**
