@@ -1,6 +1,7 @@
 package mpbuilder.domain.sample
 
 import mpbuilder.domain.model.*
+import mpbuilder.catalog.model.*
 import mpbuilder.domain.manufacturing.TierRestriction
 
 /** Sample tier restrictions for Express manufacturing. */

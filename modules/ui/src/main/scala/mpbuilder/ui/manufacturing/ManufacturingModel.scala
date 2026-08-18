@@ -1,6 +1,7 @@
 package mpbuilder.ui.manufacturing
 
 import mpbuilder.domain.model.*
+import mpbuilder.catalog.model.*
 
 /** Route definitions for the manufacturing UI. */
 enum ManufacturingRoute(val label: String, val icon: String, val isAvailable: Boolean = true):

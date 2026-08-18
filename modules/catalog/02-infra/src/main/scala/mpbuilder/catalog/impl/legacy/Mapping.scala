@@ -3,9 +3,11 @@ package impl
 package legacy
 
 import mpbuilder.commons.*
+import mpbuilder.catalog.model as cm
 import mpbuilder.domain.model as dm
-import mpbuilder.domain.service.ConfigurationRequest
-import mpbuilder.domain.validation.ConfigurationError
+import mpbuilder.catalog.model.*
+import mpbuilder.catalog.service.ConfigurationRequest
+import mpbuilder.catalog.validation.ConfigurationError
 
 /** Translation between the public DTOs and the legacy domain model.
   *
@@ -21,61 +23,61 @@ private[catalog] object Mapping:
       components <- traverse(dto.components)(toComponent)
       specs <- toSpecs(dto.specifications)
     yield ConfigurationRequest(
-      categoryId = dm.CategoryId.unsafe(dto.categoryId),
-      printingMethodId = dm.PrintingMethodId.unsafe(dto.printingMethodId),
+      categoryId = cm.CategoryId.unsafe(dto.categoryId),
+      printingMethodId = cm.PrintingMethodId.unsafe(dto.printingMethodId),
       components = components,
       specs = specs,
     )
 
-  private def toComponent(dto: ComponentRequestDto): Either[CatalogError, dm.ComponentRequest] =
+  private def toComponent(dto: ComponentRequestDto): Either[CatalogError, cm.ComponentRequest] =
     for
-      role <- parse("role", dto.role, dm.ComponentRole.values)
+      role <- parse("role", dto.role, cm.ComponentRole.values)
       front <- toInkSetup(dto.ink.front)
       back <- toInkSetup(dto.ink.back)
       finishes <- traverse(dto.finishes)(toFinishSelection)
-    yield dm.ComponentRequest(
+    yield cm.ComponentRequest(
       role = role,
-      materialId = dm.MaterialId.unsafe(dto.materialId),
-      inkConfiguration = dm.InkConfiguration(front, back),
+      materialId = cm.MaterialId.unsafe(dto.materialId),
+      inkConfiguration = cm.InkConfiguration(front, back),
       finishes = finishes,
     )
 
-  private def toInkSetup(dto: InkSetupDto): Either[CatalogError, dm.InkSetup] =
-    parse("ink.inkType", dto.inkType, dm.InkType.values).map(dm.InkSetup(_, dto.colorCount))
+  private def toInkSetup(dto: InkSetupDto): Either[CatalogError, cm.InkSetup] =
+    parse("ink.inkType", dto.inkType, cm.InkType.values).map(cm.InkSetup(_, dto.colorCount))
 
-  private def toFinishSelection(dto: FinishSelectionDto): Either[CatalogError, dm.FinishSelection] =
-    dto.params.fold(Right(None): Either[CatalogError, Option[dm.FinishParameters]])(
+  private def toFinishSelection(dto: FinishSelectionDto): Either[CatalogError, cm.FinishSelection] =
+    dto.params.fold(Right(None): Either[CatalogError, Option[cm.FinishParameters]])(
       toFinishParams(_).map(Some(_))
-    ).map(params => dm.FinishSelection(dm.FinishId.unsafe(dto.finishId), params))
+    ).map(params => cm.FinishSelection(cm.FinishId.unsafe(dto.finishId), params))
 
-  private def toFinishParams(dto: FinishParamsDto): Either[CatalogError, dm.FinishParameters] =
+  private def toFinishParams(dto: FinishParamsDto): Either[CatalogError, cm.FinishParameters] =
     dto match
       case FinishParamsDto.RoundCorners(count, radius) =>
-        Right(dm.FinishParameters.RoundCornersParams(count, radius))
+        Right(cm.FinishParameters.RoundCornersParams(count, radius))
       case FinishParamsDto.Lamination(side) =>
-        parse("finish.side", side, dm.FinishSide.values).map(dm.FinishParameters.LaminationParams(_))
+        parse("finish.side", side, cm.FinishSide.values).map(cm.FinishParameters.LaminationParams(_))
       case FinishParamsDto.FoilStamping(color) =>
-        parse("finish.color", color, dm.FoilColor.values).map(dm.FinishParameters.FoilStampingParams(_))
-      case FinishParamsDto.Grommet(spacing)   => Right(dm.FinishParameters.GrommetParams(spacing))
-      case FinishParamsDto.Perforation(pitch) => Right(dm.FinishParameters.PerforationParams(pitch))
-      case FinishParamsDto.Rope(length)       => Right(dm.FinishParameters.RopeParams(length))
-      case FinishParamsDto.Scoring(creases)   => Right(dm.FinishParameters.ScoringParams(creases))
+        parse("finish.color", color, cm.FoilColor.values).map(cm.FinishParameters.FoilStampingParams(_))
+      case FinishParamsDto.Grommet(spacing)   => Right(cm.FinishParameters.GrommetParams(spacing))
+      case FinishParamsDto.Perforation(pitch) => Right(cm.FinishParameters.PerforationParams(pitch))
+      case FinishParamsDto.Rope(length)       => Right(cm.FinishParameters.RopeParams(length))
+      case FinishParamsDto.Scoring(creases)   => Right(cm.FinishParameters.ScoringParams(creases))
 
-  private def toSpecs(dto: SpecificationsDto): Either[CatalogError, List[dm.SpecValue]] =
+  private def toSpecs(dto: SpecificationsDto): Either[CatalogError, List[cm.SpecValue]] =
     for
-      orientation <- optional(dto.orientation)(parse("orientation", _, dm.Orientation.values))
-      foldType <- optional(dto.foldType)(parse("foldType", _, dm.FoldType.values))
-      binding <- optional(dto.bindingMethod)(parse("bindingMethod", _, dm.BindingMethod.values))
-      speed <- optional(dto.speed)(parse("speed", _, dm.ManufacturingSpeed.values))
+      orientation <- optional(dto.orientation)(parse("orientation", _, cm.Orientation.values))
+      foldType <- optional(dto.foldType)(parse("foldType", _, cm.FoldType.values))
+      binding <- optional(dto.bindingMethod)(parse("bindingMethod", _, cm.BindingMethod.values))
+      speed <- optional(dto.speed)(parse("speed", _, cm.ManufacturingSpeed.values))
     yield List(
-      dto.size.map(s => dm.SpecValue.SizeSpec(Dimension(s.widthMm, s.heightMm))),
-      dto.quantity.map(q => dm.SpecValue.QuantitySpec(Quantity.unsafe(q))),
-      orientation.map(dm.SpecValue.OrientationSpec(_)),
-      dto.bleedMm.map(dm.SpecValue.BleedSpec(_)),
-      dto.pages.map(dm.SpecValue.PagesSpec(_)),
-      foldType.map(dm.SpecValue.FoldTypeSpec(_)),
-      binding.map(dm.SpecValue.BindingMethodSpec(_)),
-      speed.map(dm.SpecValue.ManufacturingSpeedSpec(_)),
+      dto.size.map(s => cm.SpecValue.SizeSpec(Dimension(s.widthMm, s.heightMm))),
+      dto.quantity.map(q => cm.SpecValue.QuantitySpec(Quantity.unsafe(q))),
+      orientation.map(cm.SpecValue.OrientationSpec(_)),
+      dto.bleedMm.map(cm.SpecValue.BleedSpec(_)),
+      dto.pages.map(cm.SpecValue.PagesSpec(_)),
+      foldType.map(cm.SpecValue.FoldTypeSpec(_)),
+      binding.map(cm.SpecValue.BindingMethodSpec(_)),
+      speed.map(cm.SpecValue.ManufacturingSpeedSpec(_)),
     ).flatten
 
   // ── domain → domain (for revalidation) ───────────────────────────────────
@@ -83,16 +85,16 @@ private[catalog] object Mapping:
   /** Recover the request a stored configuration was built from, so it can be rebuilt against the
     * current catalog.
     */
-  def toRequest(config: dm.ProductConfiguration): ConfigurationRequest =
+  def toRequest(config: cm.ProductConfiguration): ConfigurationRequest =
     ConfigurationRequest(
       categoryId = config.category.id,
       printingMethodId = config.printingMethod.id,
       components = config.components.map { c =>
-        dm.ComponentRequest(
+        cm.ComponentRequest(
           role = c.role,
           materialId = c.material.id,
           inkConfiguration = c.inkConfiguration,
-          finishes = c.finishes.map(sf => dm.FinishSelection(sf.finish.id, sf.params)),
+          finishes = c.finishes.map(sf => cm.FinishSelection(sf.finish.id, sf.params)),
         )
       },
       specs = config.specifications.specs.values.toList,

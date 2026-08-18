@@ -3,8 +3,10 @@ package impl
 package legacy
 
 import mpbuilder.commons.*
-import mpbuilder.domain.codec.ConfigurationCodecs.given
+import mpbuilder.catalog.codec.ConfigurationCodecs.given
+import mpbuilder.catalog.model as cm
 import mpbuilder.domain.model as dm
+import mpbuilder.catalog.model.*
 import mpbuilder.domain.pricing as dp
 import mpbuilder.domain.sample.{SampleCustomers, SampleDiscountCodes, SamplePricelist, SampleTierRestrictions}
 import mpbuilder.domain.service.{DiscountCodeService, DiscountValidationContext, TierRestrictionValidator}
@@ -101,7 +103,7 @@ private[pricing] final class LegacyPricingService(
 
   private def offerFor(
       speed: ProductionSpeed,
-      config: dm.ProductConfiguration,
+      config: cm.ProductConfiguration,
       pricelist: dp.Pricelist,
       baseTotal: Money,
   ): IO[PricingError, SpeedOffer] =
@@ -113,24 +115,24 @@ private[pricing] final class LegacyPricingService(
 
   /** The speed tier is carried as a specification, so switching tiers means re-specifying. */
   private def withSpeed(
-      config: dm.ProductConfiguration,
-      speed: dm.ManufacturingSpeed,
-  ): dm.ProductConfiguration =
+      config: cm.ProductConfiguration,
+      speed: cm.ManufacturingSpeed,
+  ): cm.ProductConfiguration =
     config.copy(specifications =
-      dm.ProductSpecifications(
-        config.specifications.specs + (dm.SpecKind.ManufacturingSpeed -> dm.SpecValue.ManufacturingSpeedSpec(speed))
+      cm.ProductSpecifications(
+        config.specifications.specs + (cm.SpecKind.ManufacturingSpeed -> cm.SpecValue.ManufacturingSpeedSpec(speed))
       )
     )
 
-  private def decode(spec: ProductSpec): IO[PricingError, dm.ProductConfiguration] =
+  private def decode(spec: ProductSpec): IO[PricingError, cm.ProductConfiguration] =
     ZIO
-      .fromEither(spec.payload.fromJson[dm.ProductConfiguration])
+      .fromEither(spec.payload.fromJson[cm.ProductConfiguration])
       .mapError(PricingError.MalformedSpec(_))
 
   private def pricelistFor(
       currency: Currency,
       customerId: Option[String],
-      config: dm.ProductConfiguration,
+      config: cm.ProductConfiguration,
   ): IO[PricingError, dp.Pricelist] =
     ZIO.fromOption(pricelists.get(currency)).orElseFail(PricingError.NoPricelist(currency)).map { base =>
       // A customer's negotiated pricing is resolved here, inside pricing — never handed out.
@@ -141,7 +143,7 @@ private[pricing] final class LegacyPricingService(
     }
 
   private def price(
-      config: dm.ProductConfiguration,
+      config: cm.ProductConfiguration,
       pricelist: dp.Pricelist,
       lang: Language,
   ): IO[PricingError, dp.PriceBreakdown] =

@@ -3,8 +3,10 @@ package mpbuilder.domain.service
 import mpbuilder.commons.*
 
 import mpbuilder.domain.model.*
+import mpbuilder.catalog.model.*
 import mpbuilder.domain.pricing.*
-import mpbuilder.domain.rules.*
+import mpbuilder.catalog.rules.*
+import mpbuilder.catalog.service.{ConfigurationBuilder, ConfigurationRequest}
 import zio.prelude.Validation
 
 /** Computes a starting price for a [[CategoryPreset]] by building a

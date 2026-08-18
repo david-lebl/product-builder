@@ -2,6 +2,7 @@ package mpbuilder.domain.pricing
 
 import mpbuilder.commons.*
 import mpbuilder.domain.model.*
+import mpbuilder.catalog.model.*
 import zio.prelude.*
 
 /** Customer-specific pricing overlay on top of a base Pricelist.

@@ -3,8 +3,10 @@ package impl
 package legacy
 
 import mpbuilder.commons.*
-import mpbuilder.domain.codec.ConfigurationCodecs.given
+import mpbuilder.catalog.codec.ConfigurationCodecs.given
+import mpbuilder.catalog.model as cm
 import mpbuilder.domain.model as dm
+import mpbuilder.catalog.model.*
 import mpbuilder.domain.service.WorkflowGenerator
 import zio.*
 import zio.json.*
@@ -24,7 +26,7 @@ private[manufacturing] final class LegacyWorkflowAdapter extends WorkflowPort:
       quantity: Int,
   ): IO[ProductionError, List[ProductionOrder.Step]] =
     ZIO
-      .fromEither(spec.fromJson[dm.ProductConfiguration])
+      .fromEither(spec.fromJson[cm.ProductConfiguration])
       .mapError(detail =>
         ProductionError.CannotPlan(
           NonEmptyChunk(

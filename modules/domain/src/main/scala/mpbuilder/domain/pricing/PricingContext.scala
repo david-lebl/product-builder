@@ -1,6 +1,7 @@
 package mpbuilder.domain.pricing
 
-import mpbuilder.domain.model.ManufacturingSpeed
+import mpbuilder.catalog.model.ManufacturingSpeed
+import mpbuilder.catalog.model.*
 
 /** Dynamic pricing context provided at calculation time.
   *

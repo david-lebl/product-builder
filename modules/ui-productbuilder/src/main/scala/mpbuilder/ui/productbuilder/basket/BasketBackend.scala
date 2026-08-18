@@ -1,7 +1,8 @@
 package mpbuilder.ui.productbuilder.basket
 
 import mpbuilder.commons.*
-import mpbuilder.domain.model.ProductConfiguration
+import mpbuilder.catalog.model.ProductConfiguration
+import mpbuilder.catalog.model.*
 
 import scala.concurrent.Future
 

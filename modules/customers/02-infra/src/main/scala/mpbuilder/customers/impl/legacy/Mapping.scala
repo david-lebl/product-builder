@@ -4,6 +4,7 @@ package legacy
 
 import mpbuilder.commons.*
 import mpbuilder.domain.model as dm
+import mpbuilder.catalog.model.*
 import mpbuilder.domain.pricing as dp
 import mpbuilder.domain.service.CustomerManagementError
 

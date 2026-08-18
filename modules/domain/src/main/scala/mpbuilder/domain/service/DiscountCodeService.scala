@@ -3,6 +3,7 @@ package mpbuilder.domain.service
 import mpbuilder.commons.*
 
 import mpbuilder.domain.model.*
+import mpbuilder.catalog.model.*
 import zio.prelude.*
 import com.softwaremill.quicklens.*
 

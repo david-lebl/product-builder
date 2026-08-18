@@ -3,12 +3,14 @@ package impl
 package legacy
 
 import mpbuilder.commons.*
-import mpbuilder.domain.codec.ConfigurationCodecs.given
+import mpbuilder.catalog.codec.ConfigurationCodecs.given
+import mpbuilder.catalog.model as cm
 import mpbuilder.domain.model as dm
-import mpbuilder.domain.rules.CompatibilityRuleset
-import mpbuilder.domain.sample.{SampleCatalog, SampleRules}
-import mpbuilder.domain.service.{ConfigurationBuilder, ConfigurationRequest}
-import mpbuilder.domain.validation.ConfigurationError
+import mpbuilder.catalog.model.*
+import mpbuilder.catalog.rules.CompatibilityRuleset
+import mpbuilder.catalog.sample.{SampleCatalog, SampleRules}
+import mpbuilder.catalog.service.{ConfigurationBuilder, ConfigurationRequest}
+import mpbuilder.catalog.validation.ConfigurationError
 import zio.*
 import zio.json.*
 import zio.prelude.Validation
@@ -21,7 +23,7 @@ import zio.prelude.Validation
   * deleted and the callers do not change.
   */
 private[catalog] final class LegacyCatalogService(
-    catalog: dm.ProductCatalog,
+    catalog: cm.ProductCatalog,
     ruleset: CompatibilityRuleset,
 ) extends CatalogService:
 
@@ -60,9 +62,9 @@ private[catalog] final class LegacyCatalogService(
 
   // ── internals ────────────────────────────────────────────────────────────
 
-  private def decode(snapshot: ConfigurationSnapshot): IO[CatalogError, dm.ProductConfiguration] =
+  private def decode(snapshot: ConfigurationSnapshot): IO[CatalogError, cm.ProductConfiguration] =
     ZIO
-      .fromEither(snapshot.payload.fromJson[dm.ProductConfiguration])
+      .fromEither(snapshot.payload.fromJson[cm.ProductConfiguration])
       .mapError(CatalogError.MalformedSnapshot(_))
 
   // A snapshot is a *value*, not an entity: two identical configurations are the same thing, and
@@ -70,9 +72,9 @@ private[catalog] final class LegacyCatalogService(
   // ConfigurationId would be baked into the payload and defeat that. Whatever identity a stored
   // configuration needs is supplied by the context that stores it (an order line id, a basket item
   // id) — never by the snapshot itself.
-  private val snapshotId = dm.ConfigurationId.unsafe("snapshot")
+  private val snapshotId = cm.ConfigurationId.unsafe("snapshot")
 
-  private def build(request: ConfigurationRequest): IO[CatalogError, dm.ProductConfiguration] =
+  private def build(request: ConfigurationRequest): IO[CatalogError, cm.ProductConfiguration] =
     toZIO(ConfigurationBuilder.build(request, catalog, ruleset, snapshotId))
 
   /** Carry the accumulated errors across into the public error type, keeping every one of them —
@@ -95,5 +97,5 @@ object LegacyCatalogService:
   val layer: ULayer[CatalogService] =
     ZLayer.succeed(new LegacyCatalogService(SampleCatalog.catalog, SampleRules.ruleset))
 
-  def of(catalog: dm.ProductCatalog, ruleset: CompatibilityRuleset): CatalogService =
+  def of(catalog: cm.ProductCatalog, ruleset: CompatibilityRuleset): CatalogService =
     new LegacyCatalogService(catalog, ruleset)

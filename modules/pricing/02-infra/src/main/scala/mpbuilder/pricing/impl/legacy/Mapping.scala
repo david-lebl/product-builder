@@ -3,7 +3,9 @@ package impl
 package legacy
 
 import mpbuilder.commons.*
+import mpbuilder.catalog.model as cm
 import mpbuilder.domain.model as dm
+import mpbuilder.catalog.model.*
 import mpbuilder.domain.pricing as dp
 
 /** Translation between the public pricing contract and the legacy domain model.
@@ -13,10 +15,10 @@ import mpbuilder.domain.pricing as dp
   */
 private[pricing] object Mapping:
 
-  def toDomainSpeed(speed: ProductionSpeed): dm.ManufacturingSpeed = speed match
-    case ProductionSpeed.Express  => dm.ManufacturingSpeed.Express
-    case ProductionSpeed.Standard => dm.ManufacturingSpeed.Standard
-    case ProductionSpeed.Economy  => dm.ManufacturingSpeed.Economy
+  def toDomainSpeed(speed: ProductionSpeed): cm.ManufacturingSpeed = speed match
+    case ProductionSpeed.Express  => cm.ManufacturingSpeed.Express
+    case ProductionSpeed.Standard => cm.ManufacturingSpeed.Standard
+    case ProductionSpeed.Economy  => cm.ManufacturingSpeed.Economy
 
   def toLineItem(item: dp.LineItem): LineItemView =
     LineItemView(item.label, item.unitPrice, item.quantity, item.lineTotal)

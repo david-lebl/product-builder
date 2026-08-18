@@ -2,6 +2,7 @@ package mpbuilder.domain.service
 
 import zio.prelude.*
 import mpbuilder.domain.model.*
+import mpbuilder.catalog.model.*
 
 /** Pure service for OTP-based agency login. */
 object LoginService:

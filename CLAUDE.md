@@ -73,7 +73,8 @@ own core plus other contexts' cores (that is where anti-corruption adapters live
 context's infra.
 
 - **`commons/`** — Cross-compiled shared kernel: `Money`, `Currency`, `Price`, `Percentage`, `Language`, `LocalizedString`, `Dimension`, `Quantity`, `Timestamp`, `DomainError`, `Estimated[+A]`. Depends on nothing. Business concepts (`CategoryId`, `CustomerType`, …) do **not** belong here.
-- **`catalog/01-core`** — Catalog's public contract: `CatalogService`, `CatalogError`, `ConfigurationSnapshot`, request DTOs. Cross-compiled, `commons`-only.
+- **`catalog/01-core`** — Catalog's public contract *and* its model: `CatalogService`, `CatalogError`, `ConfigurationSnapshot`, request DTOs, plus `model/` (entities and catalog's five ids), `rules/`, `validation/`, `weight/`, `codec/` and `service/` (`ConfigurationBuilder`, `CatalogQueryService`). Cross-compiled, `commons`-only. The model is public rather than behind `impl` because pricing's engine, manufacturing's generator and the SPA all operate on `ProductConfiguration` directly; narrowing it belongs with the pricing extraction.
+- **`catalog/sample`** — The bundled product catalog (`SampleCatalog`, `SampleRules`, `SampleShowcase`). Fixture data standing in for a store that does not exist yet — and, until it does, what the running SPA sells from. Cross-compiled.
 - **`catalog/02-infra`** — Adapters. `LegacyCatalogService` delegates to `domain/` until the model is extracted (Phase 7); `Mapping` is the whole DTO↔domain anti-corruption layer.
 - **`pricing/01-core` + `02-infra`** — `PricingService`: quotes, speed offers, discount codes. Pricing **owns** discounts, so there is only one place a discount can be computed. Cross-compiled core.
 - **`customers/01-core` + `02-infra`** — `CustomerService`: lookup, registration. Deliberately exposes **no** negotiated pricing — that is pricing's, resolved from a customer id.
@@ -81,7 +82,7 @@ context's infra.
 - **`order-intake/01-core` + `02-infra`** — `BasketService` (server-side basket), `CheckoutService` (delivery and payment options, whole-basket quote, discount codes, per-line speed offers) and `OrderService` (place, read, cancel, confirm payment, reject). `01-core/impl` holds the `Basket` and `Order` aggregates, the pure `BasketPolicy`, `CheckoutPolicy` and `OrderPolicy`, and the shared `Baskets` loader; `02-infra/impl/adapters` holds one adapter per foreign context — catalog, pricing, customers — and they are the only files that know those contexts exist. Stores are `Ref`-backed until Postgres lands.
 - **`manufacturing/01-core` + `02-infra`** — `ProductionService`: takes work from order-intake's `OrderPlaced` events, plans it into workflow steps, and reports approval and dispatch back as its own events. Depends on **no** other context's core from `01-core` — it is told what to make and cannot reach back, which is what replaces `ManufacturingOrder` embedding `Order`. `02-infra/impl/adapters/OrderIntakeAdapter` is the only file that knows order-intake exists; `impl/legacy` plans steps with the legacy `WorkflowGenerator` until Phase 10.
 - **`app/`** — Composition root. The **only** module that may depend on an `02-infra`: it wires the ZLayer graph, mounts every context's tapir routes on one zio-http server, serves the built SPA and the OpenAPI docs, and runs `EventRelay` — the only thing with both order-intake and manufacturing in scope. No business logic.
-- **`domain/`** — Cross-compiled (JVM + JS). Pure functional core: no ZIO effects, only `Validation[E, A]` from ZIO Prelude. Contains pricing engine, compatibility rules, manufacturing workflow, and all services. **Legacy** — being split into contexts.
+- **`domain/`** — Cross-compiled (JVM + JS). Pure functional core: no ZIO effects, only `Validation[E, A]` from ZIO Prelude. **Legacy and shrinking** — catalog left in Phase 7; what remains is the pricing engine, the manufacturing workflow model, customers, orders and the rest of `service/`. Now depends on `catalog/01-core`.
 - **`ui-productbuilder/`** — The shared product configurator (form, pricing preview, validation, basket, e-mail order), package `mpbuilder.ui.productbuilder`. Depends on `domainJS` and `uiFramework`. Consumed by both apps below, so it must not reference anything in `mpbuilder.ui.*`. `basket/` holds the `BasketBackend` seam and the offline `LocalBasketBackend`.
 - **`ui/`** — Scala.js + Laminar SPA. Depends on `domainJS`, `catalog/01-core` (JS), `uiFramework`, `ui-productbuilder`. `basket/HttpBasketBackend` puts the basket on the server; served from the same origin as the API by `app`.
 - **`ui-calculator/`** — Standalone embeddable price calculator (`mpbuilder.calculator`). Linked without a main initializer; exports a global `MPCalculator` with `mount(selector, config)`. See [docs/standalone-calculator.md](docs/standalone-calculator.md).
@@ -137,10 +138,11 @@ When using `combineWith` on multiple signals/streams, tuples are flattened via `
 |---|---|
 | Shared kernel | `modules/commons/src/main/scala/mpbuilder/commons/` |
 | Catalog contract / adapters | `modules/catalog/01-core/`, `modules/catalog/02-infra/` |
-| Configuration snapshot codecs | `modules/domain/.../codec/ConfigurationCodecs.scala` |
+| Configuration snapshot codecs | `modules/catalog/01-core/.../codec/ConfigurationCodecs.scala` |
 | Architecture docs | `docs/architecture/` |
+| Catalog model / rules / validation | `modules/catalog/01-core/src/main/scala/mpbuilder/catalog/` |
+| Bundled catalog data | `modules/catalog/sample/src/main/scala/mpbuilder/catalog/sample/` |
 | Pricing rules/engine | `modules/domain/src/main/scala/mpbuilder/domain/pricing/` |
-| Compatibility rules | `modules/domain/src/main/scala/mpbuilder/domain/rules/` |
 | Domain services | `modules/domain/src/main/scala/mpbuilder/domain/service/` |
 | Sample data | `modules/domain/src/main/scala/mpbuilder/domain/sample/` |
 | Manufacturing domain | `modules/domain/src/main/scala/mpbuilder/domain/manufacturing/` |

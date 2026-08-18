@@ -3,6 +3,7 @@ package mpbuilder.domain.service
 import mpbuilder.commons.*
 
 import mpbuilder.domain.model.*
+import mpbuilder.catalog.model.*
 
 /** Error ADT for employee and machine management operations. */
 enum ManagementError extends DomainError:

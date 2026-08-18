@@ -4,6 +4,7 @@ import mpbuilder.commons.*
 
 import zio.prelude.*
 import mpbuilder.domain.model.*
+import mpbuilder.catalog.model.*
 
 object PriceCalculator:
 

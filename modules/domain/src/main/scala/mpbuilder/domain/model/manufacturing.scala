@@ -1,5 +1,7 @@
 package mpbuilder.domain.model
 
+import mpbuilder.catalog.model.*
+
 import mpbuilder.commons.*
 
 import zio.prelude.*
@@ -119,6 +121,17 @@ enum WorkflowStatus:
 enum Priority:
   case Rush, Normal, Low
 
+/** How a customer's chosen speed maps onto the floor's priority.
+  *
+  * An extension rather than a method on the enum: the speed itself is part of what was ordered, so
+  * it belongs to catalog, while what it means for scheduling is manufacturing's business.
+  */
+extension (s: ManufacturingSpeed)
+  def toPriority: Priority = s match
+    case ManufacturingSpeed.Express  => Priority.Rush
+    case ManufacturingSpeed.Standard => Priority.Normal
+    case ManufacturingSpeed.Economy  => Priority.Low
+
 object Priority:
   extension (p: Priority) def displayName: String = p match
     case Rush   => "Rush"
@@ -129,26 +142,6 @@ object Priority:
     case Rush   => 2
     case Normal => 1
     case Low    => 0
-
-/** Customer-facing manufacturing speed tier */
-enum ManufacturingSpeed:
-  case Express, Standard, Economy
-
-object ManufacturingSpeed:
-  extension (s: ManufacturingSpeed) def toPriority: Priority = s match
-    case Express  => Priority.Rush
-    case Standard => Priority.Normal
-    case Economy  => Priority.Low
-
-  extension (s: ManufacturingSpeed) def displayName(lang: Language): String = s match
-    case Express  => lang match { case Language.En => "Express"; case Language.Cs => "Expres" }
-    case Standard => lang match { case Language.En => "Standard"; case Language.Cs => "Standardní" }
-    case Economy  => lang match { case Language.En => "Economy"; case Language.Cs => "Ekonomická" }
-
-  extension (s: ManufacturingSpeed) def icon: String = s match
-    case Express  => "⚡"
-    case Standard => "●"
-    case Economy  => "🐢"
 
 /** Status of an order in the approval queue */
 enum ApprovalStatus:

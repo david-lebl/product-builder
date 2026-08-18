@@ -5,9 +5,12 @@ import mpbuilder.commons.*
 import zio.test.*
 import zio.prelude.*
 import mpbuilder.domain.model.*
+import mpbuilder.catalog.model.*
 import mpbuilder.domain.pricing.*
 import mpbuilder.domain.manufacturing.*
+import mpbuilder.catalog.sample.*
 import mpbuilder.domain.sample.*
+import mpbuilder.catalog.service.*
 import mpbuilder.domain.service.*
 import mpbuilder.domain.service.CompletionEstimator.*
 import mpbuilder.domain.model.ManufacturingWorkflow.*

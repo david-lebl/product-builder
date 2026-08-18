@@ -1,5 +1,7 @@
 package mpbuilder.domain.manufacturing
 
+import mpbuilder.catalog.model.*
+
 import java.time.LocalTime
 
 /** Shop schedule with working hours and cutoff times for manufacturing tiers. */

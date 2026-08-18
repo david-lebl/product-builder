@@ -1,5 +1,7 @@
 package mpbuilder.domain.manufacturing
 
+import mpbuilder.catalog.model.*
+
 import java.time.{DayOfWeek, LocalDate, LocalTime, ZoneId}
 
 /** Working hours configuration for the print shop. */

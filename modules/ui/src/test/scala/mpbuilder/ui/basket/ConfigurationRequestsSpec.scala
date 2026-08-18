@@ -2,10 +2,12 @@ package mpbuilder.ui.basket
 
 import mpbuilder.catalog as cat
 import mpbuilder.commons.*
+import mpbuilder.catalog.model as cm
 import mpbuilder.domain.model as dm
-import mpbuilder.domain.codec.ConfigurationCodecs.given
-import mpbuilder.domain.sample.{SampleCatalog, SampleRules}
-import mpbuilder.domain.service.{ConfigurationBuilder, ConfigurationRequest}
+import mpbuilder.catalog.model.*
+import mpbuilder.catalog.codec.ConfigurationCodecs.given
+import mpbuilder.catalog.sample.{SampleCatalog, SampleRules}
+import mpbuilder.catalog.service.{ConfigurationBuilder, ConfigurationRequest}
 import zio.json.*
 import zio.test.*
 
@@ -19,58 +21,58 @@ import zio.test.*
 object ConfigurationRequestsSpec extends ZIOSpecDefault:
 
   private def resolve(
-      components: List[dm.ComponentRequest],
-      specs: List[dm.SpecValue],
-      categoryId: dm.CategoryId = SampleCatalog.businessCardsId,
-      printingMethodId: dm.PrintingMethodId = SampleCatalog.digitalId,
-  ): dm.ProductConfiguration =
+      components: List[cm.ComponentRequest],
+      specs: List[cm.SpecValue],
+      categoryId: cm.CategoryId = SampleCatalog.businessCardsId,
+      printingMethodId: cm.PrintingMethodId = SampleCatalog.digitalId,
+  ): cm.ProductConfiguration =
     ConfigurationBuilder
       .build(
         ConfigurationRequest(categoryId, printingMethodId, components, specs),
         SampleCatalog.catalog,
         SampleRules.ruleset,
-        dm.ConfigurationId.unsafe("fixture"),
+        cm.ConfigurationId.unsafe("fixture"),
       )
       .toEither
       .fold(errors => throw new AssertionError(s"fixture did not build: $errors"), identity)
 
   private val plainCard = resolve(
     components = List(
-      dm.ComponentRequest(
-        dm.ComponentRole.Main,
+      cm.ComponentRequest(
+        cm.ComponentRole.Main,
         SampleCatalog.coated300gsmId,
-        dm.InkConfiguration.cmyk4_4,
+        cm.InkConfiguration.cmyk4_4,
         Nil,
       )
     ),
     specs = List(
-      dm.SpecValue.SizeSpec(Dimension(90, 55)),
-      dm.SpecValue.QuantitySpec(Quantity.unsafe(500)),
+      cm.SpecValue.SizeSpec(Dimension(90, 55)),
+      cm.SpecValue.QuantitySpec(Quantity.unsafe(500)),
     ),
   )
 
   private val finishedCard = resolve(
     components = List(
-      dm.ComponentRequest(
-        dm.ComponentRole.Main,
+      cm.ComponentRequest(
+        cm.ComponentRole.Main,
         SampleCatalog.coated300gsmId,
-        dm.InkConfiguration.cmyk4_4,
+        cm.InkConfiguration.cmyk4_4,
         List(
-          dm.FinishSelection(
+          cm.FinishSelection(
             SampleCatalog.roundCornersId,
-            Some(dm.FinishParameters.RoundCornersParams(4, 3)),
+            Some(cm.FinishParameters.RoundCornersParams(4, 3)),
           ),
-          dm.FinishSelection(
+          cm.FinishSelection(
             SampleCatalog.matteLaminationId,
-            Some(dm.FinishParameters.LaminationParams(dm.FinishSide.Both)),
+            Some(cm.FinishParameters.LaminationParams(cm.FinishSide.Both)),
           ),
         ),
       )
     ),
     specs = List(
-      dm.SpecValue.SizeSpec(Dimension(90, 55)),
-      dm.SpecValue.QuantitySpec(Quantity.unsafe(250)),
-      dm.SpecValue.ManufacturingSpeedSpec(dm.ManufacturingSpeed.Express),
+      cm.SpecValue.SizeSpec(Dimension(90, 55)),
+      cm.SpecValue.QuantitySpec(Quantity.unsafe(250)),
+      cm.SpecValue.ManufacturingSpeedSpec(cm.ManufacturingSpeed.Express),
     ),
   )
 
@@ -118,21 +120,21 @@ object ConfigurationRequestsSpec extends ZIOSpecDefault:
       val request = ConfigurationRequests.of(finishedCard)
       val rebuilt = resolve(
         components = request.components.map { c =>
-          dm.ComponentRequest(
-            role = dm.ComponentRole.valueOf(c.role),
-            materialId = dm.MaterialId.unsafe(c.materialId),
-            inkConfiguration = dm.InkConfiguration(
-              dm.InkSetup(dm.InkType.valueOf(c.ink.front.inkType), c.ink.front.colorCount),
-              dm.InkSetup(dm.InkType.valueOf(c.ink.back.inkType), c.ink.back.colorCount),
+          cm.ComponentRequest(
+            role = cm.ComponentRole.valueOf(c.role),
+            materialId = cm.MaterialId.unsafe(c.materialId),
+            inkConfiguration = cm.InkConfiguration(
+              cm.InkSetup(cm.InkType.valueOf(c.ink.front.inkType), c.ink.front.colorCount),
+              cm.InkSetup(cm.InkType.valueOf(c.ink.back.inkType), c.ink.back.colorCount),
             ),
             finishes = c.finishes.map(f =>
-              dm.FinishSelection(
-                dm.FinishId.unsafe(f.finishId),
+              cm.FinishSelection(
+                cm.FinishId.unsafe(f.finishId),
                 f.params.map {
                   case cat.FinishParamsDto.RoundCorners(count, radius) =>
-                    dm.FinishParameters.RoundCornersParams(count, radius)
+                    cm.FinishParameters.RoundCornersParams(count, radius)
                   case cat.FinishParamsDto.Lamination(side) =>
-                    dm.FinishParameters.LaminationParams(dm.FinishSide.valueOf(side))
+                    cm.FinishParameters.LaminationParams(cm.FinishSide.valueOf(side))
                   case other => throw new AssertionError(s"unexpected params: $other")
                 },
               )
@@ -140,10 +142,10 @@ object ConfigurationRequestsSpec extends ZIOSpecDefault:
           )
         },
         specs = List(
-          dm.SpecValue.SizeSpec(Dimension(request.specifications.size.get.widthMm, request.specifications.size.get.heightMm)),
-          dm.SpecValue.QuantitySpec(Quantity.unsafe(request.specifications.quantity.get)),
-          dm.SpecValue.ManufacturingSpeedSpec(
-            dm.ManufacturingSpeed.valueOf(request.specifications.speed.get)
+          cm.SpecValue.SizeSpec(Dimension(request.specifications.size.get.widthMm, request.specifications.size.get.heightMm)),
+          cm.SpecValue.QuantitySpec(Quantity.unsafe(request.specifications.quantity.get)),
+          cm.SpecValue.ManufacturingSpeedSpec(
+            cm.ManufacturingSpeed.valueOf(request.specifications.speed.get)
           ),
         ),
       )

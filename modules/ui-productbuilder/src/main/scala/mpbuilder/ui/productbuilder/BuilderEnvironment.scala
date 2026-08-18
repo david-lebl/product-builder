@@ -3,7 +3,8 @@ package mpbuilder.ui.productbuilder
 import mpbuilder.commons.*
 
 import com.raquo.laminar.api.L.*
-import mpbuilder.domain.model.{ManufacturingSpeed, ProductConfiguration}
+import mpbuilder.catalog.model.{ManufacturingSpeed, ProductConfiguration}
+import mpbuilder.catalog.model.*
 import mpbuilder.domain.pricing.PricingContext
 import mpbuilder.ui.productbuilder.basket.{BasketBackend, LocalBasketBackend}
 

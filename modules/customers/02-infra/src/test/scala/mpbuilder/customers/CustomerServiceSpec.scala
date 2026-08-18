@@ -3,6 +3,7 @@ package mpbuilder.customers
 import mpbuilder.commons.*
 import mpbuilder.customers.impl.legacy.LegacyCustomerService
 import mpbuilder.domain.model as dm
+import mpbuilder.catalog.model.*
 import mpbuilder.domain.sample.SampleCustomers
 import zio.*
 import zio.test.*

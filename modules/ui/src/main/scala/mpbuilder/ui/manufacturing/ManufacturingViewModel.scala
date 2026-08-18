@@ -4,9 +4,12 @@ import mpbuilder.commons.*
 
 import com.raquo.laminar.api.L.*
 import mpbuilder.domain.model.*
+import mpbuilder.catalog.model.*
 import mpbuilder.domain.model.ManufacturingWorkflow.*
 import mpbuilder.domain.model.ManufacturingOrder.*
+import mpbuilder.catalog.service.*
 import mpbuilder.domain.service.*
+import mpbuilder.catalog.sample.*
 import mpbuilder.domain.sample.*
 import mpbuilder.domain.manufacturing.{ShopSchedule, WorkingHours, StationTimeEstimate}
 import mpbuilder.domain.pricing.BusyPeriodMultiplier

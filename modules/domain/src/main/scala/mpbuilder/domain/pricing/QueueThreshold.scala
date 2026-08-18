@@ -1,5 +1,7 @@
 package mpbuilder.domain.pricing
 
+import mpbuilder.catalog.model.*
+
 /** Queue utilisation threshold that triggers an additional pricing multiplier.
   *
   * When globalUtilisation >= minUtilisation, the additionalMultiplier is

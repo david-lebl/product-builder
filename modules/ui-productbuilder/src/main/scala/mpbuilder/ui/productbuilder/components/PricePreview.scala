@@ -5,8 +5,9 @@ import mpbuilder.commons.*
 import com.raquo.laminar.api.L.*
 import mpbuilder.ui.productbuilder.ProductBuilderViewModel
 import mpbuilder.domain.pricing.{ComponentBreakdown, PriceBreakdown}
-import mpbuilder.domain.model.{ComponentRole}
-import mpbuilder.domain.weight.WeightBreakdown
+import mpbuilder.catalog.model.{ComponentRole}
+import mpbuilder.catalog.model.*
+import mpbuilder.catalog.weight.WeightBreakdown
 
 object PricePreview:
   def apply(): Element =

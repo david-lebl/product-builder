@@ -1,5 +1,7 @@
 package mpbuilder.domain.pricing
 
+import mpbuilder.catalog.model.*
+
 import mpbuilder.commons.*
 
 final case class Pricelist(

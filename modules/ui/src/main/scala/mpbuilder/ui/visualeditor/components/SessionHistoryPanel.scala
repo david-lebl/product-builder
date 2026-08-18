@@ -7,6 +7,7 @@ import mpbuilder.ui.visualeditor.*
 import mpbuilder.ui.persistence.EditorSessionStore
 import mpbuilder.ui.productbuilder.ProductBuilderViewModel
 import mpbuilder.domain.model.{ArtworkId}
+import mpbuilder.catalog.model.*
 import org.scalajs.dom
 
 /** Sidebar panel showing saved editor sessions */

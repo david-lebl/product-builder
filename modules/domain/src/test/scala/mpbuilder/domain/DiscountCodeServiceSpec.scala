@@ -4,8 +4,11 @@ import mpbuilder.commons.*
 
 import zio.test.*
 import mpbuilder.domain.model.*
+import mpbuilder.catalog.model.*
+import mpbuilder.catalog.service.*
 import mpbuilder.domain.service.*
-import mpbuilder.domain.sample.{SampleDiscountCodes, SampleCustomers, SampleCatalog}
+import mpbuilder.catalog.sample.{SampleCatalog}
+import mpbuilder.domain.sample.{SampleDiscountCodes, SampleCustomers}
 
 object DiscountCodeServiceSpec extends ZIOSpecDefault:
 

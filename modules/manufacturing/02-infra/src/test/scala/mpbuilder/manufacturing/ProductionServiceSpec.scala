@@ -1,10 +1,12 @@
 package mpbuilder.manufacturing
 
 import mpbuilder.commons.*
-import mpbuilder.domain.codec.ConfigurationCodecs.given
+import mpbuilder.catalog.codec.ConfigurationCodecs.given
+import mpbuilder.catalog.model as cm
 import mpbuilder.domain.model as dm
-import mpbuilder.domain.sample.{SampleCatalog, SampleRules}
-import mpbuilder.domain.service.{ConfigurationBuilder, ConfigurationRequest}
+import mpbuilder.catalog.model.*
+import mpbuilder.catalog.sample.{SampleCatalog, SampleRules}
+import mpbuilder.catalog.service.{ConfigurationBuilder, ConfigurationRequest}
 import mpbuilder.orderintake as oi
 import zio.*
 import zio.json.*
@@ -27,21 +29,21 @@ object ProductionServiceSpec extends ZIOSpecDefault:
           categoryId = SampleCatalog.businessCardsId,
           printingMethodId = SampleCatalog.digitalId,
           components = List(
-            dm.ComponentRequest(
-              dm.ComponentRole.Main,
+            cm.ComponentRequest(
+              cm.ComponentRole.Main,
               SampleCatalog.coated300gsmId,
-              dm.InkConfiguration.cmyk4_4,
+              cm.InkConfiguration.cmyk4_4,
               Nil,
             )
           ),
           specs = List(
-            dm.SpecValue.SizeSpec(Dimension(90, 55)),
-            dm.SpecValue.QuantitySpec(Quantity.unsafe(quantity)),
+            cm.SpecValue.SizeSpec(Dimension(90, 55)),
+            cm.SpecValue.QuantitySpec(Quantity.unsafe(quantity)),
           ),
         ),
         SampleCatalog.catalog,
         SampleRules.ruleset,
-        dm.ConfigurationId.unsafe("fixture"),
+        cm.ConfigurationId.unsafe("fixture"),
       )
       .toEither
       .fold(errors => throw new AssertionError(s"fixture did not build: $errors"), _.toJson)

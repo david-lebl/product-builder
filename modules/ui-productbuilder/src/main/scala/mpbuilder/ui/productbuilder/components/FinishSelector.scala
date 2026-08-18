@@ -6,8 +6,9 @@ import com.raquo.laminar.api.L.*
 import mpbuilder.ui.productbuilder.ProductBuilderViewModel
 import mpbuilder.uikit.feedback.HelpInfo
 import mpbuilder.domain.model.*
+import mpbuilder.catalog.model.*
 import mpbuilder.uikit.util.Visibility
-import mpbuilder.domain.sample.SampleCatalog
+import mpbuilder.catalog.sample.SampleCatalog
 
 object FinishSelector:
   def apply(role: ComponentRole): Element =

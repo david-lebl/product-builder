@@ -1,5 +1,7 @@
 package mpbuilder.domain.model
 
+import mpbuilder.catalog.model.*
+
 import mpbuilder.domain.pricing.PriceBreakdown
 
 final case class BasketItem(

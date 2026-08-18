@@ -1,6 +1,7 @@
 package mpbuilder.domain.service
 
 import mpbuilder.domain.model.*
+import mpbuilder.catalog.model.*
 import mpbuilder.domain.model.ManufacturingWorkflow.*
 import mpbuilder.domain.model.ManufacturingOrder.*
 

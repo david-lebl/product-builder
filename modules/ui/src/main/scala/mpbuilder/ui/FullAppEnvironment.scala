@@ -6,9 +6,11 @@ import com.raquo.laminar.api.L.*
 import mpbuilder.ui.basket.HttpBasketBackend
 import mpbuilder.ui.productbuilder.{BuilderEnvironment, BuilderState, BasketPrimaryAction, QuickOrderAction, ProductBuilderViewModel}
 import mpbuilder.domain.model.*
+import mpbuilder.catalog.model.*
 import mpbuilder.domain.manufacturing.StationUtilisation
 import mpbuilder.domain.pricing.PricingContext
-import mpbuilder.domain.sample.{SampleCatalog, SampleManufacturing}
+import mpbuilder.catalog.sample.{SampleCatalog}
+import mpbuilder.domain.sample.{SampleManufacturing}
 import mpbuilder.domain.service.{BusyPeriodFilter, CompletionEstimator, UtilisationCalculator}
 
 /** The product configurator as hosted by the full SPA: simulated shop-floor

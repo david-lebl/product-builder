@@ -2,7 +2,8 @@ package mpbuilder.domain.pricing
 
 import mpbuilder.commons.*
 
-import mpbuilder.domain.model.ComponentRole
+import mpbuilder.catalog.model.ComponentRole
+import mpbuilder.catalog.model.*
 
 final case class LineItem(
     label: String,

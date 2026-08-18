@@ -6,7 +6,8 @@ import com.raquo.laminar.api.L.*
 import mpbuilder.ui.productbuilder.ProductBuilderViewModel
 import mpbuilder.uikit.feedback.HelpInfo
 import mpbuilder.domain.model.*
-import mpbuilder.domain.sample.SampleCatalog
+import mpbuilder.catalog.model.*
+import mpbuilder.catalog.sample.SampleCatalog
 import mpbuilder.domain.service.{CompletionEstimator, TierRestrictionValidator}
 import mpbuilder.uikit.util.Visibility
 

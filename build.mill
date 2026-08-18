@@ -96,7 +96,10 @@ object domain extends Module {
     def scalacOptions = commonScalacOptions
     def sources = Task.Sources(domainDir / "src" / "main" / "scala")
     def resources = Task.Sources(domainDir / "src" / "main" / "resources")
-    def moduleDeps = Seq(commons.jvm)
+    // The catalog model, rules, validation and weight left this module in Phase 7. What remains
+    // still uses them — the pricing engine prices a `ProductConfiguration`, the workflow generator
+    // plans one — so the dependency now points at catalog rather than at a package of its own.
+    def moduleDeps = Seq(commons.jvm, catalog.`01-core`.jvm, catalog.sample.jvm)
     def mvnDeps = domainMvnDeps
 
     object test extends ScalaTests {
@@ -117,7 +120,7 @@ object domain extends Module {
     def scalacOptions = commonScalacOptions
     def sources = Task.Sources(domainDir / "src" / "main" / "scala")
     def resources = Task.Sources(domainDir / "src" / "main" / "resources")
-    def moduleDeps = Seq(commons.js)
+    def moduleDeps = Seq(commons.js, catalog.`01-core`.js, catalog.sample.js)
     def mvnDeps = domainMvnDeps
   }
 }
@@ -155,11 +158,37 @@ object catalog extends Module {
     }
   }
 
+  /** The bundled product catalog.
+    *
+    * Fixture data standing in for a store that does not exist yet — and, until it does, what the
+    * running SPA actually sells from. Kept out of `01-core` so the contract is not defined in terms
+    * of one particular catalog, and out of `02-infra` so the offline calculator can still link it.
+    * Phase 11 deletes it, or turns it into a seed script.
+    */
+  object sample extends Module {
+    object jvm extends ScalaModule {
+      def scalaVersion = scala3Version
+      def scalacOptions = commonScalacOptions
+      def sources = Task.Sources(base / "sample" / "src" / "main" / "scala")
+      def moduleDeps = Seq(`01-core`.jvm)
+      def mvnDeps = domainMvnDeps
+    }
+
+    object js extends ScalaJSModule {
+      def scalaVersion = scala3Version
+      def scalaJSVersion = build.scalaJsVersion
+      def scalacOptions = commonScalacOptions
+      def sources = Task.Sources(base / "sample" / "src" / "main" / "scala")
+      def moduleDeps = Seq(`01-core`.js)
+      def mvnDeps = domainMvnDeps
+    }
+  }
+
   object `02-infra` extends ScalaModule {
     def scalaVersion = scala3Version
     def scalacOptions = commonScalacOptions
     def sources = Task.Sources(base / "02-infra" / "src" / "main" / "scala")
-    def moduleDeps = Seq(`01-core`.jvm, domain.jvm)
+    def moduleDeps = Seq(`01-core`.jvm, sample.jvm, domain.jvm)
     def mvnDeps = domainMvnDeps
 
     object test extends ScalaTests {
@@ -200,11 +229,37 @@ object pricing extends Module {
     }
   }
 
+  /** The bundled product catalog.
+    *
+    * Fixture data standing in for a store that does not exist yet — and, until it does, what the
+    * running SPA actually sells from. Kept out of `01-core` so the contract is not defined in terms
+    * of one particular catalog, and out of `02-infra` so the offline calculator can still link it.
+    * Phase 11 deletes it, or turns it into a seed script.
+    */
+  object sample extends Module {
+    object jvm extends ScalaModule {
+      def scalaVersion = scala3Version
+      def scalacOptions = commonScalacOptions
+      def sources = Task.Sources(base / "sample" / "src" / "main" / "scala")
+      def moduleDeps = Seq(`01-core`.jvm)
+      def mvnDeps = domainMvnDeps
+    }
+
+    object js extends ScalaJSModule {
+      def scalaVersion = scala3Version
+      def scalaJSVersion = build.scalaJsVersion
+      def scalacOptions = commonScalacOptions
+      def sources = Task.Sources(base / "sample" / "src" / "main" / "scala")
+      def moduleDeps = Seq(`01-core`.js)
+      def mvnDeps = domainMvnDeps
+    }
+  }
+
   object `02-infra` extends ScalaModule {
     def scalaVersion = scala3Version
     def scalacOptions = commonScalacOptions
     def sources = Task.Sources(base / "02-infra" / "src" / "main" / "scala")
-    def moduleDeps = Seq(`01-core`.jvm, domain.jvm)
+    def moduleDeps = Seq(`01-core`.jvm, sample.jvm, domain.jvm)
     def mvnDeps = domainMvnDeps
 
     object test extends ScalaTests {
@@ -365,7 +420,8 @@ object manufacturing extends Module {
     // `order-intake.01-core` is here because this is where its events are translated into this
     // context's own vocabulary — the anti-corruption boundary, and the only place that knows
     // order-intake exists. `domain.jvm` supplies the legacy workflow generator until Phase 10.
-    def moduleDeps = Seq(`01-core`, `order-intake`.`01-core`, identity.`01-core`, domain.jvm)
+    def moduleDeps =
+      Seq(`01-core`, `order-intake`.`01-core`, identity.`01-core`, catalog.sample.jvm, domain.jvm)
     def mvnDeps = serverMvnDeps
 
     object test extends ScalaTests {
@@ -442,7 +498,7 @@ object `ui-productbuilder` extends ScalaJSModule {
   def scalacOptions = commonScalacOptions
   def sources = Task.Sources(rootDir / "modules" / "ui-productbuilder" / "src" / "main" / "scala")
   def resources = Task.Sources(rootDir / "modules" / "ui-productbuilder" / "src" / "main" / "resources")
-  def moduleDeps = Seq(commons.js, domain.js, `ui-framework`)
+  def moduleDeps = Seq(commons.js, domain.js, catalog.`01-core`.js, catalog.sample.js, `ui-framework`)
   def mvnDeps = Seq(
     mvn"com.raquo::laminar::${laminarVersion}"
   )
@@ -471,7 +527,7 @@ object `ui-calculator` extends ScalaJSModule {
   def sources = Task.Sources(rootDir / "modules" / "ui-calculator" / "src" / "main" / "scala")
   def resources = Task.Sources(rootDir / "modules" / "ui-calculator" / "src" / "main" / "resources")
   def scalaJSUseMainModuleInitializer = false
-  def moduleDeps = Seq(commons.js, domain.js, `ui-framework`, `ui-productbuilder`)
+  def moduleDeps = Seq(commons.js, domain.js, catalog.`01-core`.js, catalog.sample.js, `ui-framework`, `ui-productbuilder`)
   def mvnDeps = Seq(
     mvn"com.raquo::laminar::${laminarVersion}"
   )
@@ -493,7 +549,7 @@ object ui extends ScalaJSModule {
   // configuration payload is the largest and most changeable part of the wire format, and a copy
   // of it in the browser would drift.
   def moduleDeps =
-    Seq(commons.js, domain.js, catalog.`01-core`.js, `ui-framework`, `ui-productbuilder`)
+    Seq(commons.js, domain.js, catalog.`01-core`.js, catalog.sample.js, `ui-framework`, `ui-productbuilder`)
   def mvnDeps = Seq(
     mvn"com.raquo::laminar::${laminarVersion}"
   )

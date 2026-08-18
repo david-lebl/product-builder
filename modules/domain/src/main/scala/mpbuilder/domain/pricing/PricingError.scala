@@ -3,6 +3,7 @@ package mpbuilder.domain.pricing
 import mpbuilder.commons.*
 
 import mpbuilder.domain.model.*
+import mpbuilder.catalog.model.*
 
 enum PricingError extends DomainError:
   case NoBasePriceForMaterial(materialId: MaterialId, role: ComponentRole)

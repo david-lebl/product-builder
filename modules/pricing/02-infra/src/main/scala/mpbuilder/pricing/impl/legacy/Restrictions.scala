@@ -4,7 +4,9 @@ package legacy
 
 import mpbuilder.commons.*
 import mpbuilder.domain.manufacturing.TierRestriction
+import mpbuilder.catalog.model as cm
 import mpbuilder.domain.model as dm
+import mpbuilder.catalog.model.*
 import mpbuilder.domain.pricing as dp
 import mpbuilder.domain.service.{TierRestrictionValidator, UtilisationCalculator}
 
@@ -19,7 +21,7 @@ private[pricing] object Restrictions:
 
   def check(
       speed: ProductionSpeed,
-      config: dm.ProductConfiguration,
+      config: cm.ProductConfiguration,
       restrictions: List[TierRestriction],
       context: dp.PricingContext,
   ): Option[SpeedUnavailable] =
@@ -41,13 +43,13 @@ private[pricing] object Restrictions:
         SpeedUnavailable.Restricted(LocalizedString(v.message(Language.En), v.message(Language.Cs)))
       }
 
-  private def quantityOf(config: dm.ProductConfiguration): Int =
+  private def quantityOf(config: cm.ProductConfiguration): Int =
     config.specifications
-      .get(dm.SpecKind.Quantity)
-      .collect { case dm.SpecValue.QuantitySpec(q) => q.value }
+      .get(cm.SpecKind.Quantity)
+      .collect { case cm.SpecValue.QuantitySpec(q) => q.value }
       .getOrElse(1)
 
-  private def bindingOf(config: dm.ProductConfiguration): Option[dm.BindingMethod] =
+  private def bindingOf(config: cm.ProductConfiguration): Option[cm.BindingMethod] =
     config.specifications
-      .get(dm.SpecKind.BindingMethod)
-      .collect { case dm.SpecValue.BindingMethodSpec(m) => m }
+      .get(cm.SpecKind.BindingMethod)
+      .collect { case cm.SpecValue.BindingMethodSpec(m) => m }

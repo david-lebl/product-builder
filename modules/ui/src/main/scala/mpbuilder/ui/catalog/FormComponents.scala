@@ -5,6 +5,7 @@ import mpbuilder.commons.*
 import com.raquo.laminar.api.L.*
 import mpbuilder.uikit.fields.*
 import mpbuilder.domain.model.*
+import mpbuilder.catalog.model.*
 import mpbuilder.domain.pricing.*
 
 /** Domain-specific form components that extend the generic ui-framework FormComponents.

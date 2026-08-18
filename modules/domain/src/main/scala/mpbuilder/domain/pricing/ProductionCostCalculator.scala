@@ -4,6 +4,7 @@ import mpbuilder.commons.*
 
 import zio.prelude.*
 import mpbuilder.domain.model.*
+import mpbuilder.catalog.model.*
 
 /** Calculates production cost (floor price) from a configuration and cost rules.
   *

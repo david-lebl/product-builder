@@ -1,6 +1,7 @@
 package mpbuilder.domain.service
 
 import mpbuilder.domain.model.*
+import mpbuilder.catalog.model.*
 import zio.prelude.*
 
 /** Pure state-transition engine for manufacturing workflows.

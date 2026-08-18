@@ -1,6 +1,7 @@
 package mpbuilder.domain.sample
 
 import mpbuilder.domain.model.StationType
+import mpbuilder.catalog.model.*
 import mpbuilder.domain.manufacturing.*
 import java.time.*
 

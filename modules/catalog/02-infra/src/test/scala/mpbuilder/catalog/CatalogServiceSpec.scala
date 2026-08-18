@@ -2,7 +2,7 @@ package mpbuilder.catalog
 
 import mpbuilder.commons.*
 import mpbuilder.catalog.impl.legacy.LegacyCatalogService
-import mpbuilder.domain.sample.SampleCatalog
+import mpbuilder.catalog.sample.SampleCatalog
 import zio.*
 import zio.test.*
 
@@ -14,7 +14,7 @@ import zio.test.*
   */
 object CatalogServiceSpec extends ZIOSpecDefault:
 
-  private val service: CatalogService = LegacyCatalogService.of(SampleCatalog.catalog, mpbuilder.domain.sample.SampleRules.ruleset)
+  private val service: CatalogService = LegacyCatalogService.of(SampleCatalog.catalog, mpbuilder.catalog.sample.SampleRules.ruleset)
 
   private val businessCards = ConfigurationRequestDto(
     categoryId = SampleCatalog.businessCardsId.value,
@@ -99,7 +99,7 @@ object CatalogServiceSpec extends ZIOSpecDefault:
           materials = SampleCatalog.catalog.materials - SampleCatalog.coated300gsmId
         )
         val afterWithdrawal =
-          LegacyCatalogService.of(withdrawn, mpbuilder.domain.sample.SampleRules.ruleset)
+          LegacyCatalogService.of(withdrawn, mpbuilder.catalog.sample.SampleRules.ruleset)
         for
           view <- service.configure(businessCards)
           result <- afterWithdrawal.revalidate(view.snapshot).exit
@@ -117,7 +117,7 @@ object CatalogServiceSpec extends ZIOSpecDefault:
         // must still be able to render what was bought.
         val emptied = SampleCatalog.catalog.copy(materials = Map.empty, categories = Map.empty)
         val afterPurge =
-          LegacyCatalogService.of(emptied, mpbuilder.domain.sample.SampleRules.ruleset)
+          LegacyCatalogService.of(emptied, mpbuilder.catalog.sample.SampleRules.ruleset)
         for
           view <- service.configure(businessCards)
           text <- afterPurge.describe(view.snapshot, Language.En)
@@ -145,7 +145,7 @@ object CatalogServiceSpec extends ZIOSpecDefault:
         val changed = SampleCatalog.catalog.copy(
           materials = SampleCatalog.catalog.materials - SampleCatalog.coated300gsmId
         )
-        val other = LegacyCatalogService.of(changed, mpbuilder.domain.sample.SampleRules.ruleset)
+        val other = LegacyCatalogService.of(changed, mpbuilder.catalog.sample.SampleRules.ruleset)
         for
           a <- service.currentVersion
           b <- service.currentVersion

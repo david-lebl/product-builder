@@ -5,10 +5,12 @@ import mpbuilder.commons.*
 import zio.test.*
 import zio.json.*
 import mpbuilder.domain.model.*
-import mpbuilder.domain.rules.*
+import mpbuilder.catalog.model.*
+import mpbuilder.catalog.rules.*
+import mpbuilder.catalog.sample.*
 import mpbuilder.domain.sample.*
-import mpbuilder.domain.service.{ConfigurationBuilder, ConfigurationRequest}
-import mpbuilder.domain.codec.ConfigurationCodecs.given
+import mpbuilder.catalog.service.{ConfigurationBuilder, ConfigurationRequest}
+import mpbuilder.catalog.codec.ConfigurationCodecs.given
 
 /** Round-trip tests for the configuration snapshot format.
   *

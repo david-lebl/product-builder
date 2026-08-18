@@ -55,8 +55,8 @@ object Main extends ZIOAppDefault:
 
   private val legacyCatalog: CatalogService =
     LegacyCatalogService.of(
-      mpbuilder.domain.sample.SampleCatalog.catalog,
-      mpbuilder.domain.sample.SampleRules.ruleset,
+      mpbuilder.catalog.sample.SampleCatalog.catalog,
+      mpbuilder.catalog.sample.SampleRules.ruleset,
     )
 
   private val legacyPricing: PricingService = LegacyPricingService.of()

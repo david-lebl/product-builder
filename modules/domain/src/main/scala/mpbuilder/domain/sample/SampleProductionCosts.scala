@@ -1,8 +1,11 @@
 package mpbuilder.domain.sample
 
+import mpbuilder.catalog.sample.*
+
 import mpbuilder.commons.*
 
 import mpbuilder.domain.model.*
+import mpbuilder.catalog.model.*
 import mpbuilder.domain.pricing.*
 
 /** Sample production cost rules for testing and demos.

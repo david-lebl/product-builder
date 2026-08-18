@@ -1,5 +1,7 @@
 package mpbuilder.domain.pricing
 
+import mpbuilder.catalog.model.*
+
 import java.time.{DayOfWeek, Month, LocalTime}
 
 /** Time-based busy period multiplier for dynamic pricing.

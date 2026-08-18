@@ -848,11 +848,36 @@ approve-then-pay and pay-then-approve each reach `active/InProduction`, dispatch
 
 Full detail in [order-intake.md](order-intake.md) §8.
 
+**Phase 7 — extract `catalog`. ✅ DONE.**
+
+`catalog/01-core` now owns what it is about: `model/` (10 entity files plus the five ids catalog
+owns), `rules/`, `validation/`, `weight/`, `codec/` and the two catalog services. `catalog/sample`
+holds the bundled product catalog. The legacy module dropped from ~11,700 to ~6,350 LOC, and
+`domain` now depends on `catalog/01-core` rather than the other way round.
+
+**One deliberate departure from §7's plan: the model is `catalog`'s *public* package, not `impl`.**
+The design has the model private behind DTOs, and that is right eventually — but pricing's engine
+prices a `ProductConfiguration`, manufacturing's generator plans one, and the whole SPA builds one.
+Hiding it today would mean rewriting the pricing engine in the same change. The plan already has UI
+modules depending on cores, so a public catalog model is consistent with it; narrowing it to `impl`
+belongs with Phase 8, when pricing's engine moves and can be reshaped to take a spec instead.
+
+`ManufacturingSpeed` moved with the model — it is part of what was ordered — while `toPriority`, the
+mapping onto the shop floor's scheduling, stayed behind as an extension on catalog's type. The ten
+ids that lived in one file are split by owner: catalog took five, the rest wait for their contexts.
+
+`catalog/sample` is named for what it is. Calling it a testkit would have been misleading in the
+other direction: the running SPA still sells from it, and that dependency is the smell that keeps
+the remaining migration honest.
+
+*Verified:* guard passing; `mill __.compile` clean; 876 JVM tests plus 16 Scala.js, all green — the
+same 876 as before the move, which is the point of a refactor; both bundles link.
+
 ### Track C — back-fill extractions (behind services already in use)
 
 | Phase | Work |
 |---|---|
-| **7 — `catalog`** | Move catalog model + rules + validation + weight + codecs from `legacy-domain` into `catalog/01-core/impl`; keep JVM+JS. Split `SampleCatalog`/`SampleRules` into `catalog/testkit`. |
+| **7 — `catalog`** ✅ | Done. Model, ids, rules, validation, weight, codecs, `ConfigurationBuilder` and `CatalogQueryService` moved into `catalog/01-core` (cross-compiled); the bundled catalog moved into `catalog/sample`. The legacy module went from ~11.7k to 6.3k LOC. |
 | **8 — `pricing`** | Same for pricing + discount codes + production cost + the customer pricing overlay. |
 | **9 — `customers`** | Customer entity + CRM; tier→discount mapping lands in pricing. |
 | **10 — `manufacturing`** | Split `model/manufacturing.scala` out of `model/`; move the six config files and eight services; persist workflows. |

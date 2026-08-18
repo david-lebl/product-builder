@@ -2,7 +2,9 @@ package mpbuilder.ui.customers
 
 import com.raquo.laminar.api.L.*
 import mpbuilder.domain.model.*
+import mpbuilder.catalog.model.*
 import mpbuilder.domain.pricing.*
+import mpbuilder.catalog.service.*
 import mpbuilder.domain.service.*
 import mpbuilder.domain.sample.*
 

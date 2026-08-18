@@ -1,7 +1,8 @@
 package mpbuilder.ui.basket
 
-import mpbuilder.domain.codec.ConfigurationCodecs.given
-import mpbuilder.domain.model.ProductConfiguration
+import mpbuilder.catalog.codec.ConfigurationCodecs.given
+import mpbuilder.catalog.model.ProductConfiguration
+import mpbuilder.catalog.model.*
 import zio.json.*
 
 /** Reading a stored configuration back out of a basket line.

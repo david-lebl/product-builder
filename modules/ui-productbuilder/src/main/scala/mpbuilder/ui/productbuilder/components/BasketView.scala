@@ -5,7 +5,8 @@ import mpbuilder.commons.*
 import com.raquo.laminar.api.L.*
 import mpbuilder.ui.productbuilder.{ProductBuilderViewModel, BuilderEnvironment, LoginState}
 import mpbuilder.domain.pricing.{PriceCalculator, CustomerPricelistResolver}
-import mpbuilder.domain.model.ComponentRole
+import mpbuilder.catalog.model.ComponentRole
+import mpbuilder.catalog.model.*
 
 object BasketView:
   def apply(): Element =
@@ -234,10 +235,10 @@ object BasketView:
       case Currency.EUR => f"€${money.value}%.2f"
       case Currency.GBP => f"£${money.value}%.2f"
 
-  private def finishDescription(sf: mpbuilder.domain.model.SelectedFinish, lang: Language): String =
-    import mpbuilder.domain.model.FinishParameters.*
-    import mpbuilder.domain.model.FoilColor.*
-    import mpbuilder.domain.model.FinishSide.*
+  private def finishDescription(sf: mpbuilder.catalog.model.SelectedFinish, lang: Language): String =
+    import mpbuilder.catalog.model.FinishParameters.*
+    import mpbuilder.catalog.model.FoilColor.*
+    import mpbuilder.catalog.model.FinishSide.*
     val paramsDesc = sf.params match
       case None => ""
       case Some(RoundCornersParams(count, radius)) => lang match

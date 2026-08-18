@@ -5,6 +5,7 @@ import mpbuilder.commons.*
 import com.raquo.laminar.api.L.*
 import mpbuilder.ui.productbuilder.{ProductBuilderViewModel, BuilderEnvironment}
 import mpbuilder.domain.model.*
+import mpbuilder.catalog.model.*
 import mpbuilder.uikit.fields.CheckboxField
 import mpbuilder.uikit.util.Visibility
 

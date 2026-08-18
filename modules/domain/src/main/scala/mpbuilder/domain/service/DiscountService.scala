@@ -1,5 +1,7 @@
 package mpbuilder.domain.service
 
+import mpbuilder.catalog.model.*
+
 /**
  * Predefined discount codes mapped to their percentage (integer, 5–50).
  * A code is looked up case-insensitively.

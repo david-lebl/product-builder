@@ -1,6 +1,7 @@
 package mpbuilder.domain.manufacturing
 
 import mpbuilder.domain.model.StationType
+import mpbuilder.catalog.model.*
 
 /** Configurable time estimate for a production station.
   *

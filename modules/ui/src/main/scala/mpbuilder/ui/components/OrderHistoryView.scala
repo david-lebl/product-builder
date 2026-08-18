@@ -7,6 +7,7 @@ import mpbuilder.ui.productbuilder.{ProductBuilderViewModel, LoginState}
 import mpbuilder.ui.{AppRouter, AppRoute}
 import mpbuilder.ui.manufacturing.ManufacturingViewModel
 import mpbuilder.domain.model.*
+import mpbuilder.catalog.model.*
 import mpbuilder.domain.model.ManufacturingOrder.*
 
 /** Customer-facing order status, mapped from internal manufacturing statuses. */

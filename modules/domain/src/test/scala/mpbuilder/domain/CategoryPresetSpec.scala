@@ -5,10 +5,13 @@ import mpbuilder.commons.*
 import zio.test.*
 import zio.test.Assertion.*
 import mpbuilder.domain.model.*
+import mpbuilder.catalog.model.*
+import mpbuilder.catalog.sample.*
 import mpbuilder.domain.sample.*
+import mpbuilder.catalog.service.*
 import mpbuilder.domain.service.*
 import mpbuilder.domain.pricing.*
-import mpbuilder.domain.validation.*
+import mpbuilder.catalog.validation.*
 
 object CategoryPresetSpec extends ZIOSpecDefault:
 

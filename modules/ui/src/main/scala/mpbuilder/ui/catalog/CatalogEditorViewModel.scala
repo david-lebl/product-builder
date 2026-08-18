@@ -5,8 +5,10 @@ import mpbuilder.commons.*
 import com.raquo.laminar.api.L.*
 import zio.json.*
 import mpbuilder.domain.model.*
+import mpbuilder.catalog.model.*
 import mpbuilder.domain.pricing.*
-import mpbuilder.domain.rules.*
+import mpbuilder.catalog.rules.*
+import mpbuilder.catalog.sample.*
 import mpbuilder.domain.sample.*
 import mpbuilder.domain.codec.DomainCodecs
 import mpbuilder.domain.codec.DomainCodecs.given

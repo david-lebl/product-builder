@@ -1,5 +1,7 @@
 package mpbuilder.domain.service
 
+import mpbuilder.catalog.model.*
+
 import mpbuilder.domain.pricing.BusyPeriodMultiplier
 import java.time.{LocalDateTime, DayOfWeek, Month}
 

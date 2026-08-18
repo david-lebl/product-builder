@@ -5,9 +5,12 @@ import mpbuilder.commons.*
 import zio.test.*
 import zio.prelude.*
 import mpbuilder.domain.model.*
-import mpbuilder.domain.rules.*
-import mpbuilder.domain.validation.*
+import mpbuilder.catalog.model.*
+import mpbuilder.catalog.rules.*
+import mpbuilder.catalog.validation.*
+import mpbuilder.catalog.service.*
 import mpbuilder.domain.service.*
+import mpbuilder.catalog.sample.*
 import mpbuilder.domain.sample.*
 
 object ConfigurationBuilderSpec extends ZIOSpecDefault:

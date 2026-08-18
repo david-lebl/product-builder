@@ -2,12 +2,14 @@ package mpbuilder.pricing
 
 import mpbuilder.commons.*
 import mpbuilder.pricing.impl.legacy.LegacyPricingService
-import mpbuilder.domain.codec.ConfigurationCodecs.given
+import mpbuilder.catalog.codec.ConfigurationCodecs.given
+import mpbuilder.catalog.model as cm
 import mpbuilder.domain.model as dm
+import mpbuilder.catalog.model.*
 import mpbuilder.domain.pricing as dp
-import mpbuilder.domain.rules.CompatibilityRuleset
-import mpbuilder.domain.sample.{SampleCatalog, SampleRules}
-import mpbuilder.domain.service.{ConfigurationBuilder, ConfigurationRequest}
+import mpbuilder.catalog.rules.CompatibilityRuleset
+import mpbuilder.catalog.sample.{SampleCatalog, SampleRules}
+import mpbuilder.catalog.service.{ConfigurationBuilder, ConfigurationRequest}
 import zio.*
 import zio.json.*
 import zio.test.*
@@ -22,11 +24,11 @@ object PricingServiceSpec extends ZIOSpecDefault:
 
   private val service = LegacyPricingService.of()
 
-  private def specFor(quantity: Int, binding: Option[dm.BindingMethod] = None): ProductSpec =
+  private def specFor(quantity: Int, binding: Option[cm.BindingMethod] = None): ProductSpec =
     val specs = List(
-      dm.SpecValue.SizeSpec(Dimension(90, 55)),
-      dm.SpecValue.QuantitySpec(Quantity.unsafe(quantity)),
-    ) ++ binding.map(dm.SpecValue.BindingMethodSpec(_))
+      cm.SpecValue.SizeSpec(Dimension(90, 55)),
+      cm.SpecValue.QuantitySpec(Quantity.unsafe(quantity)),
+    ) ++ binding.map(cm.SpecValue.BindingMethodSpec(_))
 
     val config = ConfigurationBuilder
       .build(
@@ -34,10 +36,10 @@ object PricingServiceSpec extends ZIOSpecDefault:
           categoryId = SampleCatalog.businessCardsId,
           printingMethodId = SampleCatalog.digitalId,
           components = List(
-            dm.ComponentRequest(
-              dm.ComponentRole.Main,
+            cm.ComponentRequest(
+              cm.ComponentRole.Main,
               SampleCatalog.coated300gsmId,
-              dm.InkConfiguration.cmyk4_4,
+              cm.InkConfiguration.cmyk4_4,
               Nil,
             )
           ),
@@ -45,7 +47,7 @@ object PricingServiceSpec extends ZIOSpecDefault:
         ),
         SampleCatalog.catalog,
         SampleRules.ruleset,
-        dm.ConfigurationId.unsafe("snapshot"),
+        cm.ConfigurationId.unsafe("snapshot"),
       )
       .toEither
       .getOrElse(throw new AssertionError("fixture did not build"))

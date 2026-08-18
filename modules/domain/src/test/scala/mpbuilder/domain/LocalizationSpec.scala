@@ -5,9 +5,12 @@ import mpbuilder.commons.*
 import zio.test.*
 import zio.prelude.*
 import mpbuilder.domain.model.*
-import mpbuilder.domain.validation.*
+import mpbuilder.catalog.model.*
+import mpbuilder.catalog.validation.*
 import mpbuilder.domain.pricing.*
+import mpbuilder.catalog.service.*
 import mpbuilder.domain.service.*
+import mpbuilder.catalog.sample.*
 import mpbuilder.domain.sample.*
 
 object LocalizationSpec extends ZIOSpecDefault:

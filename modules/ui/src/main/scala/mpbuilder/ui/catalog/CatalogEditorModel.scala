@@ -1,8 +1,10 @@
 package mpbuilder.ui.catalog
 
 import mpbuilder.domain.model.*
+import mpbuilder.catalog.model.*
 import mpbuilder.domain.pricing.*
-import mpbuilder.domain.rules.*
+import mpbuilder.catalog.rules.*
+import mpbuilder.catalog.sample.*
 import mpbuilder.domain.sample.*
 
 /** Which section of the catalog editor is currently active. */
