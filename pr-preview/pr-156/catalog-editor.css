@@ -1,0 +1,405 @@
+/* ─── Catalog Editor ──────────────────────────────────────────────── */
+
+.catalog-editor-app {
+    display: flex;
+    flex-direction: column;
+    min-height: calc(100vh - var(--top-bar-height));
+    background: var(--color-surface);
+}
+
+.catalog-status-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 32px;
+    background: #dbeafe;
+    color: #1e40af;
+    font-size: 0.85rem;
+    border-bottom: 1px solid #bfdbfe;
+}
+
+.catalog-status-bar .btn-sm {
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    color: #1e40af;
+    font-size: 1rem;
+    padding: 0 4px;
+}
+
+/* Wider side panel for catalog/customer editors (480px vs 360px default) */
+.catalog-editor-app .split-table-content--with-panel {
+    grid-template-columns: 1fr 480px;
+}
+
+.catalog-editor-app .split-table-side-panel {
+    max-height: calc(100vh - var(--top-bar-height) - 100px);
+}
+
+/* Detail panel styling for catalog forms in side panel */
+.catalog-detail-panel {
+    position: relative;
+}
+
+.catalog-detail-panel .detail-panel-header {
+    margin-bottom: 12px;
+}
+
+.catalog-detail-panel .detail-panel-header h3 {
+    margin: 0;
+    font-size: 1.05rem;
+    color: var(--color-text);
+}
+
+.catalog-detail-panel .detail-panel-section {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.catalog-detail-panel .detail-panel-section h4 {
+    margin: 12px 0 4px;
+    font-size: 0.9rem;
+    color: #475569;
+    font-weight: 600;
+}
+
+.catalog-detail-panel .detail-panel-actions {
+    display: flex;
+    gap: 8px;
+    margin-top: 16px;
+    padding-top: 12px;
+    border-top: 1px solid #e2e8f0;
+}
+
+.catalog-detail-panel .detail-panel-close {
+    position: absolute;
+    top: 0;
+    right: 0;
+    background: none;
+    border: none;
+    font-size: 1.3rem;
+    color: #94a3b8;
+    cursor: pointer;
+    padding: 4px 8px;
+}
+
+.catalog-detail-panel .detail-panel-close:hover {
+    color: #475569;
+}
+
+.catalog-detail-panel .form-group {
+    margin-bottom: 8px;
+}
+
+.catalog-detail-panel input[type="text"],
+.catalog-detail-panel input[type="number"],
+.catalog-detail-panel select {
+    width: 100%;
+}
+
+/* Catalog detail panel tabs — underline style matching visual editor */
+.catalog-detail-panel .tabs {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-height: 0;
+    overflow: hidden;
+}
+
+.catalog-detail-panel .tabs-bar {
+    display: flex;
+    gap: 0;
+    border-bottom: 2px solid #e2e8f0;
+    margin-bottom: 0;
+    flex-shrink: 0;
+}
+
+.catalog-detail-panel .tab-button {
+    flex: 1;
+    padding: 8px 12px;
+    font-size: 0.8rem;
+    background: transparent;
+    color: var(--color-text-muted);
+    border: none;
+    border-bottom: 2px solid transparent;
+    cursor: pointer;
+    transition: color 0.15s, border-bottom-color 0.15s;
+    margin-bottom: -2px;
+    border-radius: 0;
+    font-weight: 500;
+}
+
+.catalog-detail-panel .tab-button:hover {
+    color: var(--color-text);
+    background: #f8fafc;
+    transform: none;
+    box-shadow: none;
+}
+
+.catalog-detail-panel .tab-button--active {
+    color: var(--color-primary);
+    border-bottom-color: var(--color-primary);
+    font-weight: 600;
+    background: transparent;
+}
+
+.catalog-detail-panel .tabs-content {
+    flex: 1;
+    overflow-y: auto;
+}
+
+/* Customer notes */
+.notes-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-bottom: 16px;
+}
+
+.note-item {
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 6px;
+    padding: 10px 12px;
+}
+
+.note-meta {
+    display: flex;
+    gap: 6px;
+    font-size: 0.75rem;
+    color: #94a3b8;
+    margin-bottom: 4px;
+}
+
+.note-date { font-weight: 500; }
+.note-author { color: var(--color-text-muted); }
+
+.note-text {
+    font-size: 0.85rem;
+    color: #334155;
+    margin: 0;
+    white-space: pre-wrap;
+}
+
+.empty-notes, .empty-state {
+    color: #94a3b8;
+    font-size: 0.85rem;
+    font-style: italic;
+    text-align: center;
+    padding: 16px 0;
+}
+
+/* Customer orders */
+.orders-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.order-item {
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 6px;
+    padding: 10px 12px;
+}
+
+.order-item-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 4px;
+}
+
+.order-id {
+    font-family: 'Fira Code', 'Cascadia Code', monospace;
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: #334155;
+}
+
+.order-item-details {
+    display: flex;
+    gap: 12px;
+    font-size: 0.75rem;
+    color: var(--color-text-muted);
+}
+
+/* Customer pricing rules */
+.pricing-summary {
+    font-size: 0.85rem;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.pricing-summary h4, .pricing-summary h5 {
+    color: #475569;
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    margin: 4px 0;
+}
+
+.pricing-rules-list {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin-bottom: 8px;
+}
+
+.pricing-rule-row, .pricing-rule-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 8px;
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 4px;
+    font-size: 0.8rem;
+}
+
+.pricing-rule-label {
+    flex: 1;
+    color: #334155;
+    font-family: 'Fira Code', 'Cascadia Code', monospace;
+    font-size: 0.78rem;
+}
+
+.pricing-add-row {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 8px;
+    background: var(--color-surface);
+    border-radius: 6px;
+    margin-top: 4px;
+}
+
+
+.entity-id {
+    font-family: 'Fira Code', 'Cascadia Code', monospace;
+    font-size: 0.8rem;
+    color: var(--color-text-muted);
+    background: var(--color-surface);
+    padding: 2px 8px;
+    border-radius: 4px;
+}
+
+.entity-name {
+    font-weight: 600;
+    color: var(--color-text);
+}
+
+.entity-detail {
+    color: var(--color-text-muted);
+    font-size: 0.85rem;
+}
+
+.entity-tags {
+    color: #94a3b8;
+    font-size: 0.8rem;
+}
+
+.entity-actions {
+    display: flex;
+    gap: 6px;
+    flex-shrink: 0;
+}
+
+/* Localized string editor */
+.localized-fields {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.localized-fields > div {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.lang-tag {
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: var(--color-text-muted);
+    background: var(--color-surface);
+    padding: 2px 6px;
+    border-radius: 3px;
+    min-width: 24px;
+    text-align: center;
+}
+
+/* Component template editor */
+.component-template-editor {
+    border: 1px solid #e2e8f0;
+    border-radius: 6px;
+    padding: 12px;
+    margin-bottom: 8px;
+    background: #fafbfc;
+}
+
+.component-template-editor h5 {
+    margin: 0 0 10px;
+    color: #475569;
+    font-size: 0.9rem;
+}
+
+/* Pricelist tabs */
+.pricelist-tabs {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+    margin-bottom: 16px;
+}
+
+/* JSON export/import */
+.export-import-actions {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 16px;
+}
+
+.json-textarea {
+    width: 100%;
+    min-height: 300px;
+    font-family: 'Fira Code', 'Cascadia Code', monospace;
+    font-size: 0.8rem;
+    padding: 12px;
+    border: 1px solid #d1d5db;
+    border-radius: 6px;
+    background: #fafbfc;
+    resize: vertical;
+}
+
+.json-textarea:focus {
+    outline: none;
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+}
+
+.export-stats {
+    margin-top: 16px;
+    padding: 12px;
+    background: #f8fafc;
+    border-radius: 6px;
+    border: 1px solid #e2e8f0;
+}
+
+.export-stats h4 {
+    margin: 0 0 8px;
+    color: #475569;
+    font-size: 0.9rem;
+}
+
+.export-stats ul {
+    margin: 0;
+    padding-left: 20px;
+}
+
+.export-stats li {
+    color: var(--color-text-muted);
+    font-size: 0.85rem;
+    margin-bottom: 2px;
+}

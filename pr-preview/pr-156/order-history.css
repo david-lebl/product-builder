@@ -1,0 +1,186 @@
+/* ─── Order History ─────────────────────────────────── */
+
+.order-history-page {
+    padding: 20px max(20px, calc((100% - 1200px) / 2));
+}
+
+.order-history-page .card {
+    max-width: 100%;
+}
+
+.order-history-empty {
+    text-align: center;
+    padding: 40px 20px;
+    color: #666;
+}
+
+.order-history-summary {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+}
+
+.order-history-summary-card {
+    flex: 1;
+    min-width: 100px;
+    text-align: center;
+    padding: 14px 10px;
+    border-radius: 10px;
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+}
+
+.order-history-summary-count {
+    font-size: 1.6rem;
+    font-weight: 700;
+    color: #334155;
+}
+
+.order-history-summary-label {
+    font-size: 0.78rem;
+    color: var(--color-text-muted);
+    margin-top: 2px;
+}
+
+.order-history-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.88rem;
+}
+
+.order-history-table thead th {
+    text-align: left;
+    padding: 10px 12px;
+    background: #f8fafc;
+    border-bottom: 2px solid #e2e8f0;
+    color: var(--color-text-muted);
+    font-weight: 600;
+    font-size: 0.78rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.order-history-row {
+    cursor: pointer;
+    transition: background 0.12s;
+}
+
+.order-history-row td {
+    padding: 10px 12px;
+    border-bottom: 1px solid var(--color-surface);
+    vertical-align: middle;
+}
+
+.order-history-row:hover {
+    background: #f8fafc;
+}
+
+.order-history-row--expanded {
+    background: #f0f4ff;
+}
+
+.order-id-cell {
+    font-family: monospace;
+    font-size: 0.8rem;
+    color: var(--color-primary);
+}
+
+.order-expand-icon {
+    color: #94a3b8;
+    font-size: 0.75rem;
+}
+
+.order-history-detail-row td {
+    padding: 0;
+    border-bottom: 2px solid #e2e8f0;
+}
+
+.order-history-detail {
+    padding: 16px 20px;
+    background: #fafbfe;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.order-history-detail h4 {
+    margin: 0 0 8px;
+    font-size: 0.85rem;
+    color: #475569;
+}
+
+.order-history-status-steps {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+
+.order-status-step {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 0.78rem;
+    color: #94a3b8;
+}
+
+.order-status-step--done {
+    color: #059669;
+}
+
+.order-status-step--current {
+    color: var(--color-primary);
+    font-weight: 700;
+}
+
+.order-status-step-dot {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    font-size: 0.7rem;
+    font-weight: 700;
+    background: #e2e8f0;
+    color: var(--color-text-muted);
+}
+
+.order-status-step--done .order-status-step-dot {
+    background: #dcfce7;
+    color: #059669;
+}
+
+.order-status-step--current .order-status-step-dot {
+    background: #e0e7ff;
+    color: var(--color-primary);
+}
+
+.order-history-item-detail {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 6px 0;
+    border-bottom: 1px solid var(--color-surface);
+}
+
+.order-history-item-material {
+    color: #94a3b8;
+    font-size: 0.8rem;
+}
+
+.order-history-item-price {
+    font-weight: 600;
+    color: #334155;
+}
+
+.order-history-tracking-number {
+    font-family: monospace;
+    font-size: 0.88rem;
+    color: var(--color-primary);
+}
+
+.order-history-actions {
+    display: flex;
+    gap: 8px;
+}
