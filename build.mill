@@ -145,3 +145,102 @@ object ui extends ScalaJSModule {
     mvn"com.raquo::laminar::${laminarVersion}"
   )
 }
+
+// ---------------------------------------------------------------------------
+// Backend Modular Monolith — Bounded-Context Domain Cores
+// Following guides/scala_3_modulith_boilerplate.md:
+//   - `shared` sits at the top (pure primitives, cross-context IDs, EventBus)
+//   - Every `<context>/01-c-core` depends ONLY on `shared` (zero cross-core deps)
+//   - Zero serialization/DTO libraries in domain cores
+// ---------------------------------------------------------------------------
+
+val backendCoreDeps = Seq(
+  mvn"dev.zio::zio::2.1.16",
+  mvn"dev.zio::zio-prelude::1.0.0-RC39"
+)
+
+val backendTestDeps = Seq(
+  mvn"dev.zio::zio-test::2.1.16",
+  mvn"dev.zio::zio-test-sbt::2.1.16"
+)
+
+trait BackendCoreModule extends ScalaModule {
+  def baseDir: os.Path
+  def scalaVersion = scala3Version
+  def scalacOptions = commonScalacOptions
+  def sources = Task.Sources(baseDir / "src" / "main" / "scala")
+  def resources = Task.Sources(baseDir / "src" / "main" / "resources")
+  def mvnDeps = backendCoreDeps
+
+  trait CoreTests extends ScalaTests {
+    def sources = Task.Sources(baseDir / "src" / "test" / "scala")
+    def resources = Task.Sources(baseDir / "src" / "test" / "resources")
+    def mvnDeps = backendTestDeps
+    def testFramework = "zio.test.sbt.ZTestFramework"
+  }
+}
+
+object backend extends Module {
+  private val backendDir = rootDir / "backend"
+
+  /** Top kernel: pure primitives, cross-context IDs, measurements, Money, EventBus. */
+  object shared extends BackendCoreModule {
+    def baseDir = backendDir / "shared"
+    object test extends CoreTests
+  }
+
+  /** Bounded Context 1: Product Catalog, Capabilities, Rules, Imposition & Configuration. */
+  object catalog extends Module {
+    object `01-c-core` extends BackendCoreModule {
+      def baseDir = backendDir / "catalog" / "01-c-core"
+      def moduleDeps = Seq(backend.shared)
+      object test extends CoreTests
+    }
+  }
+
+  /** Bounded Context 2: Commercial Pricing, Customer Agreements, Promo Codes & Margin Analysis. */
+  object pricing extends Module {
+    object `01-c-core` extends BackendCoreModule {
+      def baseDir = backendDir / "pricing" / "01-c-core"
+      def moduleDeps = Seq(backend.shared)
+      object test extends CoreTests
+    }
+  }
+
+  /** Bounded Context 3: Customer Accounts, Organizations, Tiers & Credit Terms. */
+  object customers extends Module {
+    object `01-c-core` extends BackendCoreModule {
+      def baseDir = backendDir / "customers" / "01-c-core"
+      def moduleDeps = Seq(backend.shared)
+      object test extends CoreTests
+    }
+  }
+
+  /** Bounded Context 4: Artwork Assets, Revisions & Prepress Preflight. */
+  object artwork extends Module {
+    object `01-c-core` extends BackendCoreModule {
+      def baseDir = backendDir / "artwork" / "01-c-core"
+      def moduleDeps = Seq(backend.shared)
+      object test extends CoreTests
+    }
+  }
+
+  /** Bounded Context 5: Shopping Cart, Order Placement & Order Lifecycle. */
+  object ordering extends Module {
+    object `01-c-core` extends BackendCoreModule {
+      def baseDir = backendDir / "ordering" / "01-c-core"
+      def moduleDeps = Seq(backend.shared)
+      object test extends CoreTests
+    }
+  }
+
+  /** Bounded Context 6: Shop-Floor Manufacturing Workflows, Capacity & Fulfilment. */
+  object manufacturing extends Module {
+    object `01-c-core` extends BackendCoreModule {
+      def baseDir = backendDir / "manufacturing" / "01-c-core"
+      def moduleDeps = Seq(backend.shared)
+      object test extends CoreTests
+    }
+  }
+}
+
