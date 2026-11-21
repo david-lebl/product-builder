@@ -275,6 +275,14 @@ final class InMemoryCustomerRepository(
   override def findByEmail(email: EmailAddress): UIO[Option[Customer]] =
     ref.get.map(_.values.find(_.contact.email == email))
 
+  override def findByRegistrationNumber(regNo: NonEmptyString): UIO[Option[Customer]] =
+    val normalized = regNo.value.trim.replaceAll("\\s+", "")
+    ref.get.map(_.values.find(_.company.exists(_.registrationNumber.value.trim.replaceAll("\\s+", "") == normalized)))
+
+  override def findByVatId(vatId: NonEmptyString): UIO[Option[Customer]] =
+    val normalized = vatId.value.trim.replaceAll("\\s+", "").toUpperCase
+    ref.get.map(_.values.find(_.company.flatMap(_.vatId).exists(_.value.trim.replaceAll("\\s+", "").toUpperCase == normalized)))
+
   override def save(customer: Customer): UIO[Unit] =
     ref.update(_ + (customer.id -> customer))
 

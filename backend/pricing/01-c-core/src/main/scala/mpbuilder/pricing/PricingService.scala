@@ -27,9 +27,21 @@ final case class PriceQuoteCmd(
     promoCode: Option[String] = None,
 )
 
+final case class EvaluatePromoCmd(
+    code: String,
+    orderNetTotal: Money,
+    categoryIds: Set[CategoryId],
+    currency: Currency,
+    customerId: Option[CustomerId] = None,
+    customerSegment: Option[CustomerSegment] = None,
+)
+
 trait PricingService:
   def quote(cmd: PriceQuoteCmd): IO[PricingError, PriceQuote]
   def analyzeMargin(cmd: PriceQuoteCmd, lowMarginThreshold: Percentage = Percentage.unsafe(BigDecimal(15))): IO[PricingError, MarginAnalysis]
+  def evaluatePromoCode(cmd: EvaluatePromoCmd): IO[PricingError, PromoEvaluation]
+  def redeemPromoCode(codeId: DiscountCodeId): IO[PricingError, Unit]
+  def speedMultipliers(currency: Currency): IO[PricingError.PricelistNotFound, List[SpeedMultiplierSummary]]
 
 object PricingService:
   def quote(cmd: PriceQuoteCmd): ZIO[PricingService, PricingError, PriceQuote] =

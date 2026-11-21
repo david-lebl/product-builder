@@ -127,6 +127,8 @@ final case class Dimension3D(length: PositiveMm, width: PositiveMm, height: Posi
 /** Positive order quantity (number of finished items). */
 opaque type Quantity = Int
 object Quantity:
+  val one: Quantity = 1
+
   def apply(value: Int): Validation[String, Quantity] =
     if value > 0 then Validation.succeed(value)
     else Validation.fail(s"Quantity must be positive, got $value")

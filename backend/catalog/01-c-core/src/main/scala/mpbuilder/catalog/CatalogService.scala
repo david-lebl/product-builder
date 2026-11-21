@@ -32,6 +32,16 @@ trait CatalogService:
       alreadySelectedFinishIds: Set[FinishId] = Set.empty,
   ): IO[CatalogError, List[Finish]]
 
+  /** Returns effective numeric parameter upper bounds for parameterized finishes (e.g. scoring max creases),
+    * derived from the canonical RuleEngine so the UI never duplicates constraint rules.
+    */
+  def finishParameterLimits(
+      categoryId: CategoryId,
+      componentKey: ComponentKey,
+      materialId: MaterialId,
+      printingMethodId: Option[PrintingMethodId],
+  ): IO[CatalogError, Map[FinishType, BigDecimal]]
+
   def configure(cmd: ConfigureProductCmd): IO[CatalogError, ConfigurationResult]
 
 object CatalogService:
@@ -47,4 +57,14 @@ object CatalogService:
   ): ZIO[CatalogService, CatalogError, List[Finish]] =
     ZIO.serviceWithZIO[CatalogService](
       _.compatibleFinishes(categoryId, componentKey, materialId, printingMethodId, alreadySelectedFinishIds)
+    )
+
+  def finishParameterLimits(
+      categoryId: CategoryId,
+      componentKey: ComponentKey,
+      materialId: MaterialId,
+      printingMethodId: Option[PrintingMethodId],
+  ): ZIO[CatalogService, CatalogError, Map[FinishType, BigDecimal]] =
+    ZIO.serviceWithZIO[CatalogService](
+      _.finishParameterLimits(categoryId, componentKey, materialId, printingMethodId)
     )

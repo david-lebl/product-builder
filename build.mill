@@ -243,6 +243,30 @@ object backend extends Module {
     }
   }
 
+  /** Bounded Context 7: Identity, Authentication (Password + OTP) & Sessions (Customers + Future Employees). */
+  object identity extends Module {
+    object `01-c-core` extends BackendCoreModule {
+      def baseDir = backendDir / "identity" / "01-c-core"
+      def moduleDeps = Seq(backend.shared)
+      object test extends CoreTests
+    }
+  }
+
+  /** Storefront BFF / Application Orchestration Facade (depends ONLY on public context APIs). */
+  object storefront extends BackendCoreModule {
+    def baseDir = backendDir / "storefront"
+    def moduleDeps = Seq(
+      backend.shared,
+      backend.catalog.`01-c-core`,
+      backend.pricing.`01-c-core`,
+      backend.customers.`01-c-core`,
+      backend.identity.`01-c-core`,
+      backend.ordering.`01-c-core`,
+      backend.manufacturing.`01-c-core`,
+    )
+    object test extends CoreTests
+  }
+
   /** Sample data, in-memory adapters, cross-context ACL bridges & standalone showcase runtime. */
   object sample extends BackendCoreModule {
     def baseDir = backendDir / "sample"
@@ -251,9 +275,11 @@ object backend extends Module {
       backend.catalog.`01-c-core`,
       backend.pricing.`01-c-core`,
       backend.customers.`01-c-core`,
+      backend.identity.`01-c-core`,
       backend.artwork.`01-c-core`,
       backend.ordering.`01-c-core`,
       backend.manufacturing.`01-c-core`,
+      backend.storefront,
     )
     object test extends CoreTests
   }

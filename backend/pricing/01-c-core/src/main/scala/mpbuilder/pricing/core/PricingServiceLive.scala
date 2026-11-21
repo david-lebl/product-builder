@@ -46,6 +46,30 @@ private[pricing] final class PricingServiceLive(
                          .fold(errs => ZIO.fail(errs.head), ZIO.succeed(_))
     yield analysis
 
+  override def evaluatePromoCode(cmd: EvaluatePromoCmd): IO[PricingError, PromoEvaluation] =
+    for
+      now   <- Clock.instant
+      promo <- promoRepo.findByCode(cmd.code).someOrFail(PricingError.PromoCodeNotFound(cmd.code))
+      ctx    = PromoContext(now = now, customerId = cmd.customerId, customerSegment = cmd.customerSegment)
+      res   <- PricingEngine
+                 .evaluatePromo(promo, cmd.categoryIds, cmd.orderNetTotal, cmd.currency, ctx)
+                 .fold(
+                   errs => ZIO.fail(if errs.size == 1 then errs.head else PricingError.PricingValidationFailed(errs)),
+                   ZIO.succeed(_),
+                 )
+    yield res
+
+  override def redeemPromoCode(codeId: DiscountCodeId): IO[PricingError, Unit] =
+    promoRepo.incrementUsage(codeId)
+
+  override def speedMultipliers(currency: Currency): IO[PricingError.PricelistNotFound, List[SpeedMultiplierSummary]] =
+    for
+      pricelist <- pricelistRepo.findActive(currency)
+      context   <- capacityPort.currentPricingContext
+    yield ManufacturingSpeed.values.toList.map { speed =>
+      PricingEngine.speedMultiplierSummary(speed, pricelist, context)
+    }
+
   private def resolveAgreement(
       customerId: Option[CustomerId],
       customerTier: Option[CustomerTier],

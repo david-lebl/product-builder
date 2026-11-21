@@ -15,6 +15,7 @@ private[pricing] trait CustomerAgreementRepository:
 
 private[pricing] trait PromoCodeRepository:
   def findByCode(code: String): UIO[Option[PromoCode]]
+  def incrementUsage(codeId: DiscountCodeId): UIO[Unit]
 
 private[pricing] trait CostSheetRepository:
   def findActive(currency: Currency): UIO[Option[ProductionCostSheet]]

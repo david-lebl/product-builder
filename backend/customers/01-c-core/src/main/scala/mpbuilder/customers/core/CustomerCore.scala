@@ -103,6 +103,8 @@ private[customers] object Customer:
 private[customers] trait CustomerRepository:
   def findById(id: CustomerId): UIO[Option[Customer]]
   def findByEmail(email: EmailAddress): UIO[Option[Customer]]
+  def findByRegistrationNumber(regNo: NonEmptyString): UIO[Option[Customer]]
+  def findByVatId(vatId: NonEmptyString): UIO[Option[Customer]]
   def save(customer: Customer): UIO[Unit]
 
 private[customers] final class CustomerServiceLive(
@@ -122,6 +124,15 @@ private[customers] final class CustomerServiceLive(
 
   override def getById(id: CustomerId): IO[CustomerError.NotFound, CustomerView] =
     repo.findById(id).someOrFail(new CustomerError.NotFound(id)).map(_.toView)
+
+  override def findByIdentifier(
+      identifier: CustomerIdentifier,
+  ): IO[CustomerError.NotFoundByIdentifier, CustomerView] =
+    val lookup = identifier match
+      case CustomerIdentifier.Email(email)       => repo.findByEmail(email)
+      case CustomerIdentifier.CompanyRegNo(regNo) => repo.findByRegistrationNumber(regNo)
+      case CustomerIdentifier.VatId(vatId)       => repo.findByVatId(vatId)
+    lookup.someOrFail(new CustomerError.NotFoundByIdentifier(identifier)).map(_.toView)
 
   override def approve(id: CustomerId): IO[CustomerError, CustomerView] =
     for

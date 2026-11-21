@@ -38,6 +38,10 @@ object CustomerDomainSpec extends ZIOSpecDefault:
             ref.get.map(_.get(id))
           override def findByEmail(email: EmailAddress): UIO[Option[Customer]] =
             ref.get.map(_.values.find(_.contact.email == email))
+          override def findByRegistrationNumber(regNo: NonEmptyString): UIO[Option[Customer]] =
+            ref.get.map(_.values.find(_.company.exists(_.registrationNumber == regNo)))
+          override def findByVatId(vatId: NonEmptyString): UIO[Option[Customer]] =
+            ref.get.map(_.values.find(_.company.flatMap(_.vatId).contains(vatId)))
           override def save(customer: Customer): UIO[Unit] =
             ref.update(_ + (customer.id -> customer))
       }
@@ -96,27 +100,35 @@ object CustomerDomainSpec extends ZIOSpecDefault:
         suspended.map(_.paymentTerms) == Right(PaymentTerms.PrepaidOnly),
       )
     },
-    test("CustomerServiceLive enforces duplicate email check and emits domain events") {
+    test("CustomerServiceLive enforces duplicate email check, supports Email/IČO/DIČ lookup, and emits domain events") {
       ZIO.scoped {
         for
-          svc   <- ZIO.service[CustomerService]
-          bus   <- ZIO.service[EventBus]
-          queue <- bus.subscribe
-          cmd    = RegisterCustomerCmd(
-                     CustomerId.unsafe("c-1"),
-                     CustomerSegment.Agency,
-                     Some(sampleCompany),
-                     contact("agency@studio.cz"),
-                     sampleAddress,
-                   )
-          v1    <- svc.register(cmd)
-          dup   <- svc.register(cmd.copy(id = CustomerId.unsafe("c-2"))).either
-          v2    <- svc.approve(v1.id)
-          ev1   <- queue.take
-          ev2   <- queue.take
+          svc     <- ZIO.service[CustomerService]
+          bus     <- ZIO.service[EventBus]
+          queue   <- bus.subscribe
+          cmd      = RegisterCustomerCmd(
+                       CustomerId.unsafe("c-1"),
+                       CustomerSegment.Agency,
+                       Some(sampleCompany),
+                       contact("agency@studio.cz"),
+                       sampleAddress,
+                     )
+          v1      <- svc.register(cmd)
+          dup     <- svc.register(cmd.copy(id = CustomerId.unsafe("c-2"))).either
+          byEmail <- svc.findByIdentifier(CustomerIdentifier.Email(cmd.contact.email))
+          byIco   <- svc.findByIdentifier(CustomerIdentifier.CompanyRegNo(sampleCompany.registrationNumber))
+          byDic   <- svc.findByIdentifier(CustomerIdentifier.VatId(sampleCompany.vatId.get))
+          missing <- svc.findByIdentifier(CustomerIdentifier.CompanyRegNo(NonEmptyString.unsafe("99999999"))).either
+          v2      <- svc.approve(v1.id)
+          ev1     <- queue.take
+          ev2     <- queue.take
         yield assertTrue(
           v1.status == CustomerStatus.PendingApproval,
           dup == Left(CustomerError.EmailAlreadyRegistered(cmd.contact.email)),
+          byEmail.id == v1.id,
+          byIco.id == v1.id,
+          byDic.id == v1.id,
+          missing.isLeft,
           v2.status == CustomerStatus.Active,
           ev1.isInstanceOf[CustomerRegistered],
           ev2.isInstanceOf[CustomerApproved],

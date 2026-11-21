@@ -264,6 +264,23 @@ final case class PromoContext(
     customerSegment: Option[CustomerSegment] = None,
 )
 
+/** Result of evaluating a promo code against an order/cart net subtotal. */
+final case class PromoEvaluation(
+    codeId: DiscountCodeId,
+    code: NonEmptyString,
+    benefit: PromoBenefit,
+    discountNet: Money,
+    freeDelivery: Boolean,
+)
+
+/** Effective speed tier multiplier (including live capacity surge) for storefront display. */
+final case class SpeedMultiplierSummary(
+    speed: ManufacturingSpeed,
+    baseMultiplier: BigDecimal,
+    effectiveMultiplier: BigDecimal,
+    surchargePercent: BigDecimal,
+)
+
 // ── Language-Independent Structured Quote Output ─────────────────────────────
 
 /** Typed charge classifier — eliminates localized strings from the pricing engine! */

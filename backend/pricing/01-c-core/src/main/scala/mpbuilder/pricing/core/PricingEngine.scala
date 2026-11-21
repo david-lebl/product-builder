@@ -388,14 +388,14 @@ private[pricing] object PricingEngine:
       }
       .getOrElse(BigDecimal(1))
 
-  private def computeSpeedAdjustment(
+  def speedMultiplierSummary(
       speed: ManufacturingSpeed,
       pricelist: Pricelist,
       context: DynamicPricingContext,
-      discountedSubtotalNet: Money,
-  ): (Option[ChargeLine], Money) =
+  ): SpeedMultiplierSummary =
     pricelist.speedPolicies.get(speed) match
-      case None => (None, discountedSubtotalNet)
+      case None =>
+        SpeedMultiplierSummary(speed, BigDecimal(1), BigDecimal(1), BigDecimal(0))
       case Some(policy) =>
         val queueAdd =
           if !policy.subjectToSurge then BigDecimal(0)
@@ -407,19 +407,30 @@ private[pricing] object PricingEngine:
 
         val rawMult = policy.baseMultiplier + queueAdd + busyAdd
         val effMult = if policy.subjectToSurge then rawMult.min(context.expressMultiplierCap) else policy.baseMultiplier
+        val pct     = ((effMult - BigDecimal(1)) * BigDecimal(100)).setScale(0, BigDecimal.RoundingMode.HALF_UP)
+        SpeedMultiplierSummary(speed, policy.baseMultiplier, effMult, pct)
 
-        if effMult == BigDecimal(1) then (None, discountedSubtotalNet)
-        else
-          val afterSpeed = (discountedSubtotalNet * effMult).rounded
-          val delta      = (afterSpeed - discountedSubtotalNet).rounded
-          val line = ChargeLine(
-            kind = ChargeKind.SpeedAdjustment(speed, effMult),
-            componentKey = None,
-            unitPrice = delta,
-            quantity = BigDecimal(1),
-            total = delta,
-          )
-          (Some(line), afterSpeed)
+  private def computeSpeedAdjustment(
+      speed: ManufacturingSpeed,
+      pricelist: Pricelist,
+      context: DynamicPricingContext,
+      discountedSubtotalNet: Money,
+  ): (Option[ChargeLine], Money) =
+    val summary = speedMultiplierSummary(speed, pricelist, context)
+    val effMult = summary.effectiveMultiplier
+
+    if effMult == BigDecimal(1) then (None, discountedSubtotalNet)
+    else
+      val afterSpeed = (discountedSubtotalNet * effMult).rounded
+      val delta      = (afterSpeed - discountedSubtotalNet).rounded
+      val line = ChargeLine(
+        kind = ChargeKind.SpeedAdjustment(speed, effMult),
+        componentKey = None,
+        unitPrice = delta,
+        quantity = BigDecimal(1),
+        total = delta,
+      )
+      (Some(line), afterSpeed)
 
   private def collectSetupFees(
       subject: PricingSubject,
@@ -487,13 +498,14 @@ private[pricing] object PricingEngine:
 
     finishIdLines ++ finishTypeLines ++ methodLines ++ foldLine ++ bindingLine ++ versionSetupLine
 
-  private def applyPromoCode(
+  /** Validates and evaluates a promo code against a single-item or multi-item cart net total. */
+  def evaluatePromo(
       promo: PromoCode,
-      categoryId: CategoryId,
+      categoryIds: Set[CategoryId],
       netBeforePromo: Money,
       currency: Currency,
       ctx: PromoContext,
-  ): Validation[PricingError, (Option[ChargeLine], Money)] =
+  ): Validation[PricingError, PromoEvaluation] =
     val codeStr = promo.code.value
     val c       = promo.constraints
 
@@ -509,8 +521,8 @@ private[pricing] object PricingEngine:
       if c.minimumOrderNet.forall(min => netBeforePromo >= min) then Validation.unit
       else Validation.fail(PricingError.PromoCodeNotEligible(codeStr, "Order net total below minimum"))
     val catV =
-      if c.allowedCategories.isEmpty || c.allowedCategories.contains(categoryId) then Validation.unit
-      else Validation.fail(PricingError.PromoCodeNotEligible(codeStr, s"Category '${categoryId.value}' not eligible"))
+      if c.allowedCategories.isEmpty || categoryIds.exists(c.allowedCategories.contains) then Validation.unit
+      else Validation.fail(PricingError.PromoCodeNotEligible(codeStr, s"Categories '${categoryIds.map(_.value).mkString(", ")}' not eligible"))
     val segV =
       if c.allowedSegments.isEmpty || ctx.customerSegment.exists(c.allowedSegments.contains) then Validation.unit
       else Validation.fail(PricingError.PromoCodeNotEligible(codeStr, "Customer segment not eligible"))
@@ -524,18 +536,31 @@ private[pricing] object PricingEngine:
     allChecks.flatMap { _ =>
       promo.benefit match
         case PromoBenefit.PercentageOff(pct) =>
-          val discount = pct.of(netBeforePromo).atMost(netBeforePromo)
-          val line = ChargeLine(ChargeKind.PromoDiscount(promo.id, codeStr), None, -discount, BigDecimal(1), -discount)
-          Validation.succeed((Some(line), (netBeforePromo - discount).rounded))
+          val discount = pct.of(netBeforePromo).atMost(netBeforePromo).rounded
+          Validation.succeed(PromoEvaluation(promo.id, promo.code, promo.benefit, discount, freeDelivery = false))
         case PromoBenefit.FixedAmountOff(price) =>
           if price.currency != currency then
             Validation.fail(PricingError.CurrencyMismatch(currency, price.currency))
           else
             val discount = price.amount.atMost(netBeforePromo).rounded
-            val line = ChargeLine(ChargeKind.PromoDiscount(promo.id, codeStr), None, -discount, BigDecimal(1), -discount)
-            Validation.succeed((Some(line), (netBeforePromo - discount).rounded))
+            Validation.succeed(PromoEvaluation(promo.id, promo.code, promo.benefit, discount, freeDelivery = false))
         case PromoBenefit.FreeDelivery =>
-          Validation.succeed((None, netBeforePromo))
+          Validation.succeed(PromoEvaluation(promo.id, promo.code, promo.benefit, Money.zero, freeDelivery = true))
+    }
+
+  private def applyPromoCode(
+      promo: PromoCode,
+      categoryId: CategoryId,
+      netBeforePromo: Money,
+      currency: Currency,
+      ctx: PromoContext,
+  ): Validation[PricingError, (Option[ChargeLine], Money)] =
+    evaluatePromo(promo, Set(categoryId), netBeforePromo, currency, ctx).map { eval =>
+      if eval.discountNet.isPositive then
+        val line = ChargeLine(ChargeKind.PromoDiscount(eval.codeId, eval.code.value), None, -eval.discountNet, BigDecimal(1), -eval.discountNet)
+        (Some(line), (netBeforePromo - eval.discountNet).rounded)
+      else
+        (None, netBeforePromo)
     }
 
   /** Calculates production cost & compares against net selling price from a quote. */

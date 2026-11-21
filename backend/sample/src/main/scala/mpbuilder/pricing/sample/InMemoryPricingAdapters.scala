@@ -38,6 +38,15 @@ final class InMemoryPromoCodeRepository(
   override def findByCode(code: String): UIO[Option[PromoCode]] =
     ref.get.map(_.get(code.trim.toUpperCase))
 
+  override def incrementUsage(codeId: DiscountCodeId): UIO[Unit] =
+    ref.update { m =>
+      m.map { case (k, promo) =>
+        if promo.id == codeId then
+          k -> promo.copy(constraints = promo.constraints.copy(currentUses = promo.constraints.currentUses + 1))
+        else k -> promo
+      }
+    }
+
   def save(promo: PromoCode): UIO[Unit] =
     ref.update(_ + (promo.code.value.trim.toUpperCase -> promo))
 

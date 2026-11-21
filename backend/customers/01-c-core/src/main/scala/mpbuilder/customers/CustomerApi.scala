@@ -61,9 +61,16 @@ final case class RegisterCustomerCmd(
     billingAddress: Address,
 )
 
+enum CustomerIdentifier:
+  case Email(email: EmailAddress)
+  case CompanyRegNo(registrationNumber: NonEmptyString)
+  case VatId(vatId: NonEmptyString)
+
 enum CustomerError(val message: String):
   case NotFound(id: CustomerId)
       extends CustomerError(s"Customer '${id.value}' not found")
+  case NotFoundByIdentifier(identifier: CustomerIdentifier)
+      extends CustomerError(s"Customer not found for identifier $identifier")
   case EmailAlreadyRegistered(email: EmailAddress)
       extends CustomerError(s"Email '${email.value}' is already registered")
   case CompanyProfileRequired(segment: CustomerSegment)
@@ -101,6 +108,7 @@ final case class CustomerTierChanged(
 trait CustomerService:
   def register(cmd: RegisterCustomerCmd): IO[CustomerError, CustomerView]
   def getById(id: CustomerId): IO[CustomerError.NotFound, CustomerView]
+  def findByIdentifier(identifier: CustomerIdentifier): IO[CustomerError.NotFoundByIdentifier, CustomerView]
   def approve(id: CustomerId): IO[CustomerError, CustomerView]
   def suspend(id: CustomerId, reason: NonEmptyString, by: Option[EmployeeId]): IO[CustomerError, CustomerView]
   def changeTier(id: CustomerId, newTier: CustomerTier): IO[CustomerError, CustomerView]

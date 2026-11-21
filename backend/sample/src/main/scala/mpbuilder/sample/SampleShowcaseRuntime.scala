@@ -6,16 +6,20 @@ import mpbuilder.catalog.*
 import mpbuilder.catalog.sample.CatalogSampleLayer
 import mpbuilder.customers.CustomerService
 import mpbuilder.customers.sample.CustomerSampleLayer
+import mpbuilder.identity.IdentityService
+import mpbuilder.identity.sample.{IdentitySampleLayer, InMemoryOtpInbox}
 import mpbuilder.manufacturing.ManufacturingService
 import mpbuilder.manufacturing.sample.ManufacturingSampleLayer
-import mpbuilder.ordering.{CartService, OrderService}
+import mpbuilder.ordering.{CartService, CheckoutOptionsService, OrderService}
 import mpbuilder.ordering.sample.OrderingSampleLayer
 import mpbuilder.pricing.*
 import mpbuilder.pricing.sample.PricingSampleLayer
 import mpbuilder.shared.*
+import mpbuilder.storefront.StorefrontFacade
 import zio.*
 
-/** Unified backend-less in-memory runtime wiring all 6 bounded-context services + `EventBus`.
+/** Unified backend-less in-memory runtime wiring all 7 bounded-context services,
+  * `EventBus`, and the `StorefrontFacade` BFF.
   *
   * Ready to power:
   *   - Full cross-context integration tests
@@ -28,13 +32,18 @@ object SampleShowcaseRuntime:
       CatalogService &
       PricingService &
       CustomerService &
+      IdentityService &
+      InMemoryOtpInbox &
       ArtworkService &
       CartService &
+      CheckoutOptionsService &
       OrderService &
-      ManufacturingService
+      ManufacturingService &
+      StorefrontFacade
 
   /** Builds a fresh, isolated in-memory runtime with live shop-floor capacity bridged
-    * from `ManufacturingService.currentCapacity` into `PricingService`.
+    * from `ManufacturingService.currentCapacity` into `PricingService`, plus `IdentityService`
+    * bridged to `CustomerService` and `StorefrontFacade` coordinating all public ports.
     */
   def layer(
       useSheetCzk: Boolean = true,
@@ -53,15 +62,18 @@ object SampleShowcaseRuntime:
         useSheetCzk = useSheetCzk,
       )
 
-    val coreServicesLayer: ZLayer[EventBus, Nothing, ShowcaseEnv] =
+    val customerAndIdentityLayer: ZLayer[EventBus, Nothing, CustomerService & IdentityService & InMemoryOtpInbox] =
+      (CustomerSampleLayer.live() ++ ZLayer.service[EventBus]) >+> IdentitySampleLayer.live()
+
+    val baseServicesLayer =
       ZLayer.service[EventBus] ++
         CatalogSampleLayer.live() ++
-        CustomerSampleLayer.live() ++
+        customerAndIdentityLayer ++
         ArtworkSampleLayer.live ++
         OrderingSampleLayer.live ++
         (mfgLayer >+> pricingLayer)
 
-    busLayer >>> coreServicesLayer
+    busLayer >>> (baseServicesLayer >+> StorefrontFacade.layer)
 
 /** Error union returned by high-level showcase orchestration operations. */
 enum ShowcaseError(val message: String):

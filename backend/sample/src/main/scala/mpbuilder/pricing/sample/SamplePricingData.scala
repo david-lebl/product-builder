@@ -234,12 +234,19 @@ object SamplePromoCodes:
     constraints = PromoConstraints(allowedSegments = Set(CustomerSegment.Agency)),
   )
 
+  val singleUse: PromoCode = pctCode(
+    id = "dc-single-use",
+    code = "ONEUSE",
+    pct = 10,
+    constraints = PromoConstraints(maxUses = Some(1), currentUses = 0),
+  )
+
   val all: List[PromoCode] = List(
     save5, save10, save15, save20, save25, save30, save40, save50,
     welcome20, summer10, print15,
     fixedOff100, freeShip, vipOnly,
     expired, future, exhausted, inactive,
-    cardsOnly, agencyOnly,
+    cardsOnly, agencyOnly, singleUse,
   )
 
 /** Sample production cost sheets (USD & CZK) replicated from legacy `SampleProductionCosts`. */

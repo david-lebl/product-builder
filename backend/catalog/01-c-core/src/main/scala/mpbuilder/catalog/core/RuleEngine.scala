@@ -103,6 +103,96 @@ private[catalog] object RuleEngine:
       !triggered || evalConfig(rule.mustHold, List(syntheticComp), specsOpt = None)
     }
 
+  /** Discovers effective numeric upper bounds for parameterized finishes (e.g. `FinishType.Scoring` max creases)
+    * from the canonical `CompatibilityRuleset`, taking the tightest (minimum) cap across all triggered `Error` rules.
+    */
+  def finishParameterLimits(
+      ruleset: CompatibilityRuleset,
+      categoryId: CategoryId,
+      componentKey: ComponentKey,
+      material: Material,
+      printingMethod: Option[PrintingMethod],
+  ): Map[FinishType, BigDecimal] =
+    val dummyGeometry = ComponentGeometry(
+      finishedSize = Dimension2D.A4,
+      flatSize = Dimension2D.A4,
+      unitsPerProduct = 1,
+      totalFlatUnits = 1,
+      areaPerUnitSqM = Dimension2D.A4.areaSqM,
+      perimeterPerUnitM = Dimension2D.A4.perimeterMeters,
+      imposition = ImpositionResult.DiscreteUnit(1),
+    )
+    val syntheticPrint = printingMethod.map(pm => PrintSpec(pm, InkConfiguration.cmyk4_0))
+    val syntheticComp = ConfiguredComponent(
+      key = componentKey,
+      material = material,
+      print = syntheticPrint,
+      finishes = Nil,
+      geometry = dummyGeometry,
+    )
+
+    val applicableErrorRules = ruleset.rules.filter { rule =>
+      rule.severity == RuleSeverity.Error &&
+      (rule.scope == RuleScope.Global || rule.scope == RuleScope.Category(categoryId)) &&
+      !mentionsSpec(rule.when) &&
+      (printingMethod.isDefined || !mentionsPrinting(rule.when))
+    }
+
+    applicableErrorRules.foldLeft(Map.empty[FinishType, BigDecimal]) { (acc, rule) =>
+      val paramCaps = extractFinishParamCaps(rule.mustHold, syntheticComp)
+      if paramCaps.isEmpty then acc
+      else
+        // Trigger check: ignore finish-presence conjuncts in `when` so we discover the cap *before* the user selects the finish
+        val strippedWhen = stripFinishPresence(rule.when)
+        val triggered    = evalConfig(strippedWhen, List(syntheticComp), specsOpt = None)
+        if !triggered then acc
+        else
+          paramCaps.foldLeft(acc) { case (m, (ft, cap)) =>
+            m.updated(ft, m.get(ft).fold(cap)(_.min(cap)))
+          }
+    }
+
+  private def extractFinishParamCaps(
+      pred: ConfigPredicate,
+      comp: ConfiguredComponent,
+  ): List[(FinishType, BigDecimal)] =
+    pred match
+      case ConfigPredicate.ForAllComponents(cp) => extractFinishParamCapsComp(cp, comp)
+      case ConfigPredicate.ExistsComponent(cp)  => extractFinishParamCapsComp(cp, comp)
+      case ConfigPredicate.ForComponent(k, cp)  =>
+        if k == comp.key then extractFinishParamCapsComp(cp, comp) else Nil
+      case ConfigPredicate.And(l, r)            =>
+        extractFinishParamCaps(l, comp) ++ extractFinishParamCaps(r, comp)
+      case _                                    => Nil
+
+  private def extractFinishParamCapsComp(
+      cp: ComponentPredicate,
+      comp: ConfiguredComponent,
+  ): List[(FinishType, BigDecimal)] =
+    cp match
+      case ComponentPredicate.FinishParamMax(ft, maxVal) => List(ft -> maxVal)
+      case ComponentPredicate.And(l, r)                  =>
+        extractFinishParamCapsComp(l, comp) ++ extractFinishParamCapsComp(r, comp)
+      case ComponentPredicate.Or(ComponentPredicate.Not(guard), rhs) =>
+        if evalComponent(stripFinishPresenceComp(guard), comp) then extractFinishParamCapsComp(rhs, comp) else Nil
+      case ComponentPredicate.Or(lhs, ComponentPredicate.Not(guard)) =>
+        if evalComponent(stripFinishPresenceComp(guard), comp) then extractFinishParamCapsComp(lhs, comp) else Nil
+      case _                                             => Nil
+
+  private def stripFinishPresence(pred: ConfigPredicate): ConfigPredicate =
+    pred match
+      case ConfigPredicate.ForAllComponents(cp) => ConfigPredicate.ForAllComponents(stripFinishPresenceComp(cp))
+      case ConfigPredicate.ExistsComponent(cp)  => ConfigPredicate.ExistsComponent(stripFinishPresenceComp(cp))
+      case ConfigPredicate.ForComponent(k, cp)  => ConfigPredicate.ForComponent(k, stripFinishPresenceComp(cp))
+      case ConfigPredicate.And(l, r)            => ConfigPredicate.And(stripFinishPresence(l), stripFinishPresence(r))
+      case other                                => other
+
+  private def stripFinishPresenceComp(cp: ComponentPredicate): ComponentPredicate =
+    cp match
+      case _: ComponentPredicate.HasFinish | _: ComponentPredicate.HasFinishType => ComponentPredicate.AnyComponent
+      case ComponentPredicate.And(l, r) => ComponentPredicate.And(stripFinishPresenceComp(l), stripFinishPresenceComp(r))
+      case other                        => other
+
   private def evalConfig(
       pred: ConfigPredicate,
       components: List[ConfiguredComponent],

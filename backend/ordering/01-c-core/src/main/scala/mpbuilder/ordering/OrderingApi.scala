@@ -23,6 +23,14 @@ object OrderNumber:
   def unsafe(raw: String): OrderNumber = raw
   extension (n: OrderNumber) def value: String = n
 
+opaque type DeliveryOptionId = String
+object DeliveryOptionId:
+  def apply(raw: String): Validation[String, DeliveryOptionId] =
+    if raw.trim.nonEmpty then Validation.succeed(raw.trim)
+    else Validation.fail("DeliveryOptionId must not be empty")
+  def unsafe(raw: String): DeliveryOptionId = raw
+  extension (id: DeliveryOptionId) def value: String = id
+
 // ── Immutable Order Snapshots (No Mutable Catalog Aggregates Embedded!) ──────
 
 final case class ComponentSnapshot(
@@ -46,7 +54,7 @@ final case class ProductSnapshot(
     summaryNotes: Option[String] = None,
 )
 
-/** Frozen commercial valuation snapshot persisted with an order line. */
+/** Frozen commercial valuation snapshot persisted with an order line (per 1 copy/set). */
 final case class LinePriceSnapshot(
     quoteId: QuoteId,
     pricelistId: PricelistId,
@@ -58,6 +66,83 @@ final case class LinePriceSnapshot(
     grossAmount: Money,
 )
 
+/** Frozen cart/order-level promo code discount snapshot (validated by `pricing`). */
+final case class AppliedPromoSnapshot(
+    codeId: DiscountCodeId,
+    code: NonEmptyString,
+    discountNet: Money,
+    freeDelivery: Boolean = false,
+)
+
+// ── Delivery Catalog & Checkout Option Models ────────────────────────────────
+
+final case class ShopPickupLocation(
+    id: DeliveryOptionId,
+    name: LocalizedString,
+    address: LocalizedString,
+    openingHours: Option[LocalizedString] = None,
+    isActive: Boolean = true,
+)
+
+final case class CourierServiceOption(
+    id: DeliveryOptionId,
+    name: LocalizedString,
+    estimatedDelivery: LocalizedString,
+    feeNet: Money,
+    currency: Currency,
+    taxRate: TaxRate,
+    freeShippingThresholdNet: Option[Money] = None,
+    maxWeightGrams: Option[BigDecimal] = None,
+    isActive: Boolean = true,
+)
+
+final case class BankAccountConfig(
+    iban: NonEmptyString,
+    bic: Option[NonEmptyString] = None,
+    accountHolder: NonEmptyString,
+)
+
+/** Customer's selection during checkout — server resolves authoritative shipping fee from this. */
+enum DeliveryOptionChoice:
+  case ShopPickup(locationId: DeliveryOptionId)
+  case Courier(serviceId: DeliveryOptionId, shippingAddress: Address)
+
+/** Priced and eligibility-evaluated delivery option presented to the storefront UI. */
+final case class DeliveryOptionQuote(
+    id: DeliveryOptionId,
+    isPickup: Boolean,
+    name: LocalizedString,
+    description: LocalizedString,
+    feeNet: Money,
+    taxRate: TaxRate,
+    feeGross: Money,
+    currency: Currency,
+    freeShippingApplied: Boolean,
+    available: Boolean,
+    unavailableReason: Option[String] = None,
+)
+
+/** Eligibility-evaluated payment option presented to the storefront UI. */
+final case class PaymentOption(
+    method: PaymentMethod,
+    available: Boolean,
+    unavailableReason: Option[String] = None,
+)
+
+/** Actionable payment details returned after order placement. */
+enum PaymentInstructions:
+  case BankTransferQR(
+      iban: NonEmptyString,
+      bic: Option[NonEmptyString],
+      accountHolder: NonEmptyString,
+      variableSymbol: NonEmptyString,
+      amount: Money,
+      currency: Currency,
+      qrPayload: String,
+  )
+  case CardPending(checkoutUrl: Option[String] = None, message: String)
+  case InvoiceScheduled(dueDays: Int, invoiceReference: NonEmptyString)
+
 // ── Cart Models ──────────────────────────────────────────────────────────────
 
 final case class CartLine(
@@ -68,17 +153,31 @@ final case class CartLine(
     speed: ManufacturingSpeed,
     price: LinePriceSnapshot,
     artworkIds: Map[ComponentKey, ArtworkId] = Map.empty,
-)
+    copies: Quantity = Quantity.one,
+    weightGrams: Option[BigDecimal] = None,
+):
+  def lineNetTotal: Money   = (price.netAmount * BigDecimal(copies.value)).rounded
+  def lineTaxTotal: Money   = (price.taxAmount * BigDecimal(copies.value)).rounded
+  def lineGrossTotal: Money = (price.grossAmount * BigDecimal(copies.value)).rounded
+  def totalWeightGrams: Option[BigDecimal] = weightGrams.map(_ * BigDecimal(copies.value))
+
+  def toOrderLine: OrderLine =
+    OrderLine(lineId, product, runQuantity, versionCount, speed, price, artworkIds, copies, weightGrams)
 
 final case class CartView(
     id: CartId,
     customerId: Option[CustomerId],
     currency: Currency,
     lines: List[CartLine],
-    appliedPromoCode: Option[String],
+    appliedPromo: Option[AppliedPromoSnapshot],
+    linesNetTotal: Money,
+    promoDiscountNet: Money,
     netTotal: Money,
+    taxTotal: Money,
     grossTotal: Money,
-)
+    totalWeightGrams: Option[BigDecimal],
+):
+  def appliedPromoCode: Option[String] = appliedPromo.map(_.code.value)
 
 // ── Order Models (Zero UI Wizard State, Zero Passwords) ──────────────────────
 
@@ -130,7 +229,13 @@ final case class OrderLine(
     speed: ManufacturingSpeed,
     price: LinePriceSnapshot,
     artworkIds: Map[ComponentKey, ArtworkId],
-)
+    copies: Quantity = Quantity.one,
+    weightGrams: Option[BigDecimal] = None,
+):
+  def lineNetTotal: Money   = (price.netAmount * BigDecimal(copies.value)).rounded
+  def lineTaxTotal: Money   = (price.taxAmount * BigDecimal(copies.value)).rounded
+  def lineGrossTotal: Money = (price.grossAmount * BigDecimal(copies.value)).rounded
+  def totalWeightGrams: Option[BigDecimal] = weightGrams.map(_ * BigDecimal(copies.value))
 
 final case class OrderTotals(
     linesNetTotal: Money,
@@ -138,6 +243,7 @@ final case class OrderTotals(
     taxTotal: Money,
     grandTotalGross: Money,
     currency: Currency,
+    promoDiscountNet: Money = Money.zero,
 )
 
 final case class OrderView(
@@ -152,6 +258,7 @@ final case class OrderView(
     totals: OrderTotals,
     customerNote: Option[String],
     placedAt: Instant,
+    appliedPromo: Option[AppliedPromoSnapshot] = None,
 )
 
 // ── Commands & Errors ────────────────────────────────────────────────────────
@@ -166,11 +273,14 @@ final case class PlaceOrderCmd(
     invoiceApproved: Boolean,
     lines: NonEmptyChunk[OrderLine],
     customerNote: Option[String] = None,
+    appliedPromo: Option[AppliedPromoSnapshot] = None,
 )
 
 enum OrderError(val message: String):
   case CartNotFound(cartId: CartId)
       extends OrderError(s"Cart '${cartId.value}' not found")
+  case CartLineNotFound(cartId: CartId, lineId: OrderLineId)
+      extends OrderError(s"Line '${lineId.value}' not found in cart '${cartId.value}'")
   case OrderNotFound(orderId: OrderId)
       extends OrderError(s"Order '${orderId.value}' not found")
   case EmptyCart(cartId: CartId)
@@ -179,6 +289,10 @@ enum OrderError(val message: String):
       extends OrderError(s"Currency mismatch: expected $expected, got $actual")
   case InvoiceNotAllowed(customerEmail: EmailAddress)
       extends OrderError(s"Customer '${customerEmail.value}' is not approved for InvoiceOnAccount payment")
+  case DeliveryOptionNotFound(optionId: DeliveryOptionId)
+      extends OrderError(s"Delivery option '${optionId.value}' not found or inactive")
+  case DeliveryOptionUnavailable(optionId: DeliveryOptionId, reason: String)
+      extends OrderError(s"Delivery option '${optionId.value}' is unavailable: $reason")
   case InvalidStatusTransition(orderId: OrderId, from: OrderStatus, to: OrderStatus)
       extends OrderError(s"Cannot transition order '${orderId.value}' from $from to $to")
   case OrderAlreadyCancelled(orderId: OrderId)
@@ -211,9 +325,45 @@ final case class OrderCancelled(
 // ── Public Inbound Ports (Module API) ────────────────────────────────────────
 
 trait CartService:
+  def createCart(cartId: CartId, currency: Currency, customerId: Option[CustomerId] = None): IO[OrderError, CartView]
   def addLine(cartId: CartId, line: CartLine): IO[OrderError, CartView]
+  def updateLineCopies(cartId: CartId, lineId: OrderLineId, copies: Quantity): IO[OrderError, CartView]
+  def replaceLine(cartId: CartId, line: CartLine): IO[OrderError, CartView]
   def removeLine(cartId: CartId, lineId: OrderLineId): IO[OrderError, CartView]
+  def clearCart(cartId: CartId): IO[OrderError, CartView]
+  def applyPromo(cartId: CartId, promo: AppliedPromoSnapshot): IO[OrderError, CartView]
+  def removePromo(cartId: CartId): IO[OrderError, CartView]
+  def assignCustomer(cartId: CartId, customerId: Option[CustomerId]): IO[OrderError, CartView]
   def getCart(cartId: CartId): IO[OrderError.CartNotFound, CartView]
+
+trait CheckoutOptionsService:
+  def availableDeliveryOptions(
+      currency: Currency,
+      itemsNetSubtotal: Money,
+      totalWeightGrams: Option[BigDecimal],
+      freeDeliveryPromo: Boolean = false,
+  ): UIO[List[DeliveryOptionQuote]]
+
+  def resolveDelivery(
+      choice: DeliveryOptionChoice,
+      currency: Currency,
+      itemsNetSubtotal: Money,
+      totalWeightGrams: Option[BigDecimal],
+      freeDeliveryPromo: Boolean = false,
+  ): IO[OrderError, DeliverySelection]
+
+  def availablePaymentOptions(
+      invoiceApproved: Boolean,
+      cardEnabled: Boolean = false,
+  ): UIO[List[PaymentOption]]
+
+  def generatePaymentInstructions(
+      orderNumber: OrderNumber,
+      method: PaymentMethod,
+      grandTotalGross: Money,
+      currency: Currency,
+      invoiceDueDays: Option[Int] = None,
+  ): UIO[PaymentInstructions]
 
 trait OrderService:
   def placeOrder(cmd: PlaceOrderCmd): IO[OrderError, OrderView]
@@ -224,6 +374,7 @@ trait OrderService:
   def complete(orderId: OrderId): IO[OrderError, OrderView]
   def cancel(orderId: OrderId, reason: NonEmptyString): IO[OrderError, OrderView]
   def getOrder(orderId: OrderId): IO[OrderError.OrderNotFound, OrderView]
+  def listOrdersByCustomer(customerId: CustomerId): UIO[List[OrderView]]
 
 object OrderService:
   def placeOrder(cmd: PlaceOrderCmd): ZIO[OrderService, OrderError, OrderView] =

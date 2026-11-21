@@ -56,6 +56,24 @@ private[catalog] final class CatalogServiceLive(
       RuleEngine.isCandidateFinishCompatible(ruleset, categoryId, componentKey, material, pmOpt, existing, fin)
     }
 
+  override def finishParameterLimits(
+      categoryId: CategoryId,
+      componentKey: ComponentKey,
+      materialId: MaterialId,
+      printingMethodId: Option[PrintingMethodId],
+  ): IO[CatalogError, Map[FinishType, BigDecimal]] =
+    for
+      catalog  <- repo.loadCatalog
+      ruleset  <- repo.loadRuleset
+      category <- ZIO.fromOption(catalog.categories.get(categoryId)).orElseFail(CatalogError.CategoryNotFound(categoryId))
+      _        <- ZIO.fromOption(category.templateFor(componentKey))
+                    .orElseFail(CatalogError.UnexpectedComponent(categoryId, componentKey))
+      material <- ZIO.fromOption(catalog.materials.get(materialId)).orElseFail(CatalogError.MaterialNotFound(materialId))
+      pmOpt    <- ZIO.foreach(printingMethodId)(id =>
+                    ZIO.fromOption(catalog.printingMethods.get(id)).orElseFail(CatalogError.PrintingMethodNotFound(id))
+                  )
+    yield RuleEngine.finishParameterLimits(ruleset, categoryId, componentKey, material, pmOpt)
+
   override def configure(cmd: ConfigureProductCmd): IO[CatalogError, ConfigurationResult] =
     for
       catalog <- repo.loadCatalog
