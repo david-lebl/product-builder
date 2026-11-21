@@ -242,5 +242,20 @@ object backend extends Module {
       object test extends CoreTests
     }
   }
+
+  /** Sample data, in-memory adapters, cross-context ACL bridges & standalone showcase runtime. */
+  object sample extends BackendCoreModule {
+    def baseDir = backendDir / "sample"
+    def moduleDeps = Seq(
+      backend.shared,
+      backend.catalog.`01-c-core`,
+      backend.pricing.`01-c-core`,
+      backend.customers.`01-c-core`,
+      backend.artwork.`01-c-core`,
+      backend.ordering.`01-c-core`,
+      backend.manufacturing.`01-c-core`,
+    )
+    object test extends CoreTests
+  }
 }
 
