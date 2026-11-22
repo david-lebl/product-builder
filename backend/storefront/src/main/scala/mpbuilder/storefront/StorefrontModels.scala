@@ -17,6 +17,7 @@ enum StorefrontError(val message: String):
   case CustomerFailure(error: CustomerError)           extends StorefrontError(error.message)
   case IdentityFailure(error: IdentityError)           extends StorefrontError(error.message)
   case ArtworkFailure(error: ArtworkError)             extends StorefrontError(error.message)
+  case BlobFailure(error: BlobError)                   extends StorefrontError(error.message)
   case OrderFailure(error: OrderError)                 extends StorefrontError(error.message)
   case ManufacturingFailure(error: ManufacturingError) extends StorefrontError(error.message)
   case PresetNotFound(categoryId: CategoryId, presetId: PresetId)

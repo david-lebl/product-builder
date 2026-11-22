@@ -187,7 +187,8 @@ final class StorefrontFacadeLive(
     checkoutOptionsService: CheckoutOptionsService,
     orderService: OrderService,
     manufacturingService: ManufacturingService,
-    seqCounter: Ref[Long],
+    idSequence: IdSequence,
+    blobStorage: BlobStorage,
 ) extends StorefrontFacade:
 
   override def getCatalog: UIO[ProductCatalog] =
@@ -277,7 +278,7 @@ final class StorefrontFacadeLive(
     for
       cat    <- catalogService.getCategory(categoryId).mapError(StorefrontError.CatalogFailure.apply)
       preset <- ZIO.fromOption(cat.presets.find(_.id == presetId)).orElseFail(StorefrontError.PresetNotFound(categoryId, presetId))
-      seq    <- seqCounter.updateAndGet(_ + 1)
+      seq    <- idSequence.next
       cmd     = StorefrontTranslators.presetToConfigureCmd(
                   configId = ConfigurationId.unsafe(s"cfg-${presetId.value}-$seq"),
                   categoryId = categoryId,
@@ -590,20 +591,14 @@ final class StorefrontFacadeLive(
     val req      = buildPreflightRequirement(expectedTrimSize, expectedPageCount)
     for
       artId <- nextArtworkId
+      file  <- assetFile(s"drafts/${sessionId.value}/${artId.value}-${sanitizeFileSegment(payload.fileName.value)}", payload)
       view  <- artworkService
                  .upload(
                    UploadArtworkCmd(
                      artworkId = artId,
                      owner = ArtworkOwner.DraftSession(sessionId),
                      componentKey = componentKey,
-                     file = AssetFileMetadata(
-                       fileName = payload.fileName,
-                       mimeType = payload.mimeType,
-                       sizeBytes = payload.sizeBytes.max(1L),
-                       storageKey = NonEmptyString.unsafe(s"drafts/${sessionId.value}/${artId.value}-${sanitizeFileSegment(payload.fileName.value)}"),
-                       downloadUrl = payload.downloadUrl,
-                       previewUrl = payload.previewUrl.orElse(payload.downloadUrl),
-                     ),
+                     file = file,
                      extractedSpecs = ExtractedFileSpecs(
                        resolutionDpi = payload.resolutionDpi,
                        trimSize = trimSize,
@@ -620,7 +615,13 @@ final class StorefrontFacadeLive(
     yield view
 
   override def deleteDraftArtwork(artworkId: ArtworkId): IO[StorefrontError, Unit] =
-    artworkService.deleteDraft(artworkId).mapError(StorefrontError.ArtworkFailure.apply)
+    for
+      existing <- artworkService.getById(artworkId).option
+      _        <- artworkService.deleteDraft(artworkId).mapError(StorefrontError.ArtworkFailure.apply)
+      // Best-effort cleanup of stored print files & previews of the discarded draft.
+      keys      = existing.toList.flatMap(_.revisions.map(_.file.storageKey.value))
+      _        <- ZIO.foreachDiscard(keys)(k => blobStorage.delete(k).ignore *> blobStorage.delete(s"$k.preview").ignore)
+    yield ()
 
   override def listOrderArtworks(
       sessionToken: SessionToken,
@@ -663,20 +664,14 @@ final class StorefrontFacadeLive(
                  val req      = buildPreflightRequirement(comp.finishedSize, Some(expPages))
                  for
                    artId <- nextArtworkId
+                   file  <- assetFile(s"uploads/${orderId.value}/${artId.value}-${sanitizeFileSegment(payload.fileName.value)}", payload)
                    view  <- artworkService
                               .upload(
                                 UploadArtworkCmd(
                                   artworkId = artId,
                                   owner = ArtworkOwner.OrderLineRef(orderId, lineIndex),
                                   componentKey = componentKey,
-                                  file = AssetFileMetadata(
-                                    fileName = payload.fileName,
-                                    mimeType = payload.mimeType,
-                                    sizeBytes = payload.sizeBytes.max(1L),
-                                    storageKey = NonEmptyString.unsafe(s"uploads/${orderId.value}/${artId.value}-${sanitizeFileSegment(payload.fileName.value)}"),
-                                    downloadUrl = payload.downloadUrl,
-                                    previewUrl = payload.previewUrl.orElse(payload.downloadUrl),
-                                  ),
+                                  file = file,
                                   extractedSpecs = ExtractedFileSpecs(
                                     resolutionDpi = payload.resolutionDpi,
                                     trimSize = trimSize,
@@ -721,18 +716,12 @@ final class StorefrontFacadeLive(
       pageCnt   = payload.pageCount.getOrElse(existing.latestRevision.extractedSpecs.pageCount)
       req       = buildPreflightRequirement(expTrim, Some(existing.latestRevision.extractedSpecs.pageCount))
       revNum    = existing.revisionCount + 1
+      file     <- assetFile(s"uploads/${orderId.value}/${artworkId.value}-v$revNum-${sanitizeFileSegment(payload.fileName.value)}", payload)
       updated  <- artworkService
                     .uploadRevision(
                       UploadRevisionCmd(
                         artworkId = artworkId,
-                        file = AssetFileMetadata(
-                          fileName = payload.fileName,
-                          mimeType = payload.mimeType,
-                          sizeBytes = payload.sizeBytes.max(1L),
-                          storageKey = NonEmptyString.unsafe(s"uploads/${orderId.value}/${artworkId.value}-v$revNum-${sanitizeFileSegment(payload.fileName.value)}"),
-                          downloadUrl = payload.downloadUrl,
-                          previewUrl = payload.previewUrl.orElse(payload.downloadUrl),
-                        ),
+                        file = file,
                         extractedSpecs = ExtractedFileSpecs(
                           resolutionDpi = payload.resolutionDpi,
                           trimSize = trimSize,
@@ -899,23 +888,23 @@ final class StorefrontFacadeLive(
           lines.map(l => l.price.taxRate.taxOnNet((l.lineNetTotal * ratio).rounded)).foldLeft(Money.zero)(_ + _).rounded
 
   private def nextQuoteId: UIO[QuoteId] =
-    seqCounter.updateAndGet(_ + 1).map(n => QuoteId.unsafe(s"q-$n"))
+    idSequence.next.map(n => QuoteId.unsafe(s"q-$n"))
 
   private def nextLineId: UIO[OrderLineId] =
-    seqCounter.updateAndGet(_ + 1).map(n => OrderLineId.unsafe(s"line-$n"))
+    idSequence.next.map(n => OrderLineId.unsafe(s"line-$n"))
 
   private def nextOrderId: UIO[OrderId] =
-    seqCounter.updateAndGet(_ + 1).map(n => OrderId.unsafe(s"ord-$n"))
+    idSequence.next.map(n => OrderId.unsafe(s"ord-$n"))
 
   private def nextOrderNumber: UIO[OrderNumber] =
     for
       now <- Clock.instant
-      n   <- seqCounter.updateAndGet(_ + 1)
+      n   <- idSequence.next
       year = now.atZone(ZoneOffset.UTC).getYear
     yield OrderNumber.unsafe(f"ORD-$year-$n%04d")
 
   private def nextArtworkId: UIO[ArtworkId] =
-    seqCounter.updateAndGet(_ + 1).map(n => ArtworkId.unsafe(s"art-$n"))
+    idSequence.next.map(n => ArtworkId.unsafe(s"art-$n"))
 
   private def buildPreflightRequirement(
       expectedTrimSize: Dimension2D,
@@ -935,13 +924,30 @@ final class StorefrontFacadeLive(
       case Some(_)                     => 2
       case None                        => 1
 
+  /** Builds artwork file metadata, moving inline `data:` URL payloads into `BlobStorage` (Phase 5). */
+  private def assetFile(storageKey: String, payload: ArtworkUploadPayload): IO[StorefrontError, AssetFileMetadata] =
+    BlobIngest
+      .ingest(blobStorage, storageKey, payload.downloadUrl.map(_.value), payload.previewUrl.orElse(payload.downloadUrl).map(_.value))
+      .mapError(StorefrontError.BlobFailure.apply)
+      .map { ing =>
+        AssetFileMetadata(
+          fileName = payload.fileName,
+          mimeType = payload.mimeType,
+          sizeBytes = ing.sizeBytes.getOrElse(payload.sizeBytes).max(1L),
+          storageKey = NonEmptyString.unsafe(storageKey),
+          checksumSha256 = ing.checksumSha256.map(NonEmptyString.unsafe),
+          downloadUrl = ing.downloadUrl.map(NonEmptyString.unsafe),
+          previewUrl = ing.previewUrl.map(NonEmptyString.unsafe),
+        )
+      }
+
   private def sanitizeFileSegment(raw: String): String =
     val cleaned = raw.trim.replaceAll("[^a-zA-Z0-9._-]+", "-")
     if cleaned.nonEmpty then cleaned else "artwork.pdf"
 
 object StorefrontFacade:
   val layer: ZLayer[
-    CatalogService & PricingService & CustomerService & IdentityService & ArtworkService & CartService & CheckoutOptionsService & OrderService & ManufacturingService,
+    CatalogService & PricingService & CustomerService & IdentityService & ArtworkService & CartService & CheckoutOptionsService & OrderService & ManufacturingService & IdSequence & BlobStorage,
     Nothing,
     StorefrontFacade,
   ] =
@@ -956,6 +962,7 @@ object StorefrontFacade:
         opts  <- ZIO.service[CheckoutOptionsService]
         ord   <- ZIO.service[OrderService]
         mfg   <- ZIO.service[ManufacturingService]
-        seq   <- Ref.make(0L)
-      yield new StorefrontFacadeLive(cat, prc, cust, id, art, cart, opts, ord, mfg, seq)
+        seq   <- ZIO.service[IdSequence]
+        blobs <- ZIO.service[BlobStorage]
+      yield new StorefrontFacadeLive(cat, prc, cust, id, art, cart, opts, ord, mfg, seq, blobs)
     }

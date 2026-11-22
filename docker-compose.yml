@@ -1,0 +1,25 @@
+# Local PostgreSQL for the persistent backend (Phase 3).
+#
+#   docker compose up -d postgres
+#   DATABASE_URL=jdbc:postgresql://localhost:5432/printcraft ./mill backend.app.run --storage=postgres
+#
+# Flyway migrations and the sample-data seeder run automatically on first boot.
+services:
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: printcraft
+      POSTGRES_USER: printcraft
+      POSTGRES_PASSWORD: printcraft
+    ports:
+      - "5432:5432"
+    volumes:
+      - printcraft-pg:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U printcraft -d printcraft"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+volumes:
+  printcraft-pg:

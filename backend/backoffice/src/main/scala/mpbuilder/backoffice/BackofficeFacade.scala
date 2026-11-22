@@ -145,7 +145,7 @@ trait BackofficeFacade:
 
 object BackofficeFacade:
   val layer: ZLayer[
-    CatalogService & PricingService & CustomerService & IdentityService & OrderService & CheckoutOptionsService & ArtworkService,
+    CatalogService & PricingService & CustomerService & IdentityService & OrderService & CheckoutOptionsService & ArtworkService & BlobStorage,
     Nothing,
     BackofficeFacade,
   ] = ZLayer.fromFunction(BackofficeFacadeLive.apply)
@@ -158,6 +158,7 @@ final class BackofficeFacadeLive(
     orderService: OrderService,
     checkoutOptionsService: CheckoutOptionsService,
     artworkService: ArtworkService,
+    blobStorage: BlobStorage,
 ) extends BackofficeFacade:
 
   private val AnyStaffRoles: Set[EmployeeRole]     = EmployeeRole.values.toSet
@@ -429,18 +430,12 @@ final class BackofficeFacadeLive(
       pageCnt   = payload.pageCount.getOrElse(existing.latestRevision.extractedSpecs.pageCount)
       req       = preflightRequirementFor(trimSize, pageCnt)
       revNum    = existing.revisionCount + 1
+      file     <- assetFile(s"uploads/${orderId.value}/${artworkId.value}-v$revNum-${sanitizeFileSegment(payload.fileName.value)}", payload)
       updated  <- artworkService
                     .uploadRevision(
                       UploadRevisionCmd(
                         artworkId = artworkId,
-                        file = AssetFileMetadata(
-                          fileName = payload.fileName,
-                          mimeType = payload.mimeType,
-                          sizeBytes = payload.sizeBytes.max(1L),
-                          storageKey = NonEmptyString.unsafe(s"uploads/${orderId.value}/${artworkId.value}-v$revNum-${sanitizeFileSegment(payload.fileName.value)}"),
-                          downloadUrl = payload.downloadUrl,
-                          previewUrl = payload.previewUrl.orElse(payload.downloadUrl),
-                        ),
+                        file = file,
                         extractedSpecs = ExtractedFileSpecs(
                           resolutionDpi = payload.resolutionDpi,
                           trimSize = trimSize,
@@ -482,20 +477,14 @@ final class BackofficeFacadeLive(
                    now   <- Clock.instant
                    rnd   <- Random.nextIntBetween(1000, 9999)
                    artId  = ArtworkId.unsafe(s"art-staff-${now.toEpochMilli}-$rnd")
+                   file  <- assetFile(s"uploads/${orderId.value}/${artId.value}-${sanitizeFileSegment(payload.fileName.value)}", payload)
                    view  <- artworkService
                               .upload(
                                 UploadArtworkCmd(
                                   artworkId = artId,
                                   owner = ArtworkOwner.OrderLineRef(orderId, lineIndex),
                                   componentKey = componentKey,
-                                  file = AssetFileMetadata(
-                                    fileName = payload.fileName,
-                                    mimeType = payload.mimeType,
-                                    sizeBytes = payload.sizeBytes.max(1L),
-                                    storageKey = NonEmptyString.unsafe(s"uploads/${orderId.value}/${artId.value}-${sanitizeFileSegment(payload.fileName.value)}"),
-                                    downloadUrl = payload.downloadUrl,
-                                    previewUrl = payload.previewUrl.orElse(payload.downloadUrl),
-                                  ),
+                                  file = file,
                                   extractedSpecs = ExtractedFileSpecs(
                                     resolutionDpi = payload.resolutionDpi,
                                     trimSize = trimSize,
@@ -545,6 +534,23 @@ final class BackofficeFacadeLive(
       minResolutionDpi = if isLargeFormat then 150 else 300,
       expectedPageCount = Some(pageCount),
     )
+
+  /** Builds artwork file metadata, moving inline `data:` URL payloads into `BlobStorage` (Phase 5). */
+  private def assetFile(storageKey: String, payload: StaffArtworkUploadPayload): IO[BackofficeError, AssetFileMetadata] =
+    BlobIngest
+      .ingest(blobStorage, storageKey, payload.downloadUrl.map(_.value), payload.previewUrl.orElse(payload.downloadUrl).map(_.value))
+      .mapError(BackofficeError.BlobFailure.apply)
+      .map { ing =>
+        AssetFileMetadata(
+          fileName = payload.fileName,
+          mimeType = payload.mimeType,
+          sizeBytes = ing.sizeBytes.getOrElse(payload.sizeBytes).max(1L),
+          storageKey = NonEmptyString.unsafe(storageKey),
+          checksumSha256 = ing.checksumSha256.map(NonEmptyString.unsafe),
+          downloadUrl = ing.downloadUrl.map(NonEmptyString.unsafe),
+          previewUrl = ing.previewUrl.map(NonEmptyString.unsafe),
+        )
+      }
 
   private def sanitizeFileSegment(raw: String): String =
     val cleaned = raw.trim.replaceAll("[^a-zA-Z0-9._-]+", "-")

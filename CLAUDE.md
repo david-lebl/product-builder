@@ -7,6 +7,8 @@ This file provides guidance to AI assistants and developers when working with co
 - **JDK 25** (required by `io.getkyo:kyo-ui:1.0.0-RC7`, which targets JVM class file version 69.0)
 - **Scala 3.9.0**, **Scala.js 1.22.0**, **Mill 1.1.3**
 - **Kyo 1.0.0-RC7** (`kyo-ui`, `kyo-i18n`, `kyo-zio`) + **ZIO 2.1.26** + **ZIO Prelude 1.0.0-RC39**
+- **Persistence**: Magnum 2.0.0 (`magnumzio`) + HikariCP + Flyway + PostgreSQL 17, jsoniter-scala codecs
+- **Docker** must be running for the `02-o-db`, `platform` and `app` test suites (Testcontainers)
 
 ## Build & Test Commands
 
@@ -25,6 +27,11 @@ This project uses **Mill** (`build.mill`).
 ./mill ui-core.jvm.test
 ./mill ui-admin-core.jvm.test
 ./mill 'backend.pricing.01-c-core.jvm.test'
+
+# Persistence contract tests (in-memory vs PostgreSQL via Testcontainers) & facades-on-PostgreSQL test
+./mill 'backend.ordering.02-o-db.test'
+./mill backend.app.test
+docker compose up -d postgres   # local PostgreSQL 17
 
 # Build Scala.js bundles
 ./mill ui.fastLinkJS             # Dev Unified Storefront + #/admin SPA → out/ui/fastLinkJS.dest/main.js
@@ -53,6 +60,10 @@ All backend modules cross-compile to both `.jvm` and `.js` so the static fronten
 - **`backend/identity/01-c-core`** — Identity, Authentication (Password + Passwordless OTP), Sessions & Staff Directory Management.
 - **`backend/storefront`** — Storefront BFF / Application Orchestration Facade (`StorefrontFacade`). Depends only on public context APIs.
 - **`backend/backoffice`** — Role-based Staff Backoffice & Order Intake BFF (`BackofficeFacade`). Enforces `Operator` / `Prepress` / `Manager` / `Admin` RBAC across all contexts. Depends only on public context APIs.
+- **`backend/json`** (JVM + JS) — jsoniter-scala codecs for all public domain types (JSONB rows); opaque types decode through smart constructors.
+- **`backend/platform`** (JVM) — Magnum `Database` (HikariCP), per-context Flyway migrations (schema per context), `PostgresIdSequence`, `LocalFileBlobStorage`.
+- **`backend/<context>/02-o-db`** (JVM) — PostgreSQL repository adapters + migrations for identity, customers, catalog, pricing, ordering, artwork (manufacturing stays in-memory).
+- **`backend/app`** (JVM) — Composition root: per-context Postgres wiring in `mpbuilder.<ctx>.wiring`, `AppRuntime.postgresServices`, idempotent DB seeder.
 - **`backend/sample`** — Sample showcase data (15 products, 5 groups, demo B2B accounts, 4 seeded demo orders, demo staff accounts, promo codes), in-memory adapters, ACL bridges, and `SampleShowcaseRuntime`.
 
 ### Frontend (`modules/`)
@@ -74,6 +85,8 @@ All backend modules cross-compile to both `.jvm` and `.js` so the static fronten
 - **Opaque types with smart constructors** — IDs and value objects use Scala 3 opaque types validated via ZIO Prelude `Validation[E, A]`. Use `.unsafe(...)` only in tests/sample fixtures.
 - **Money** — `Money` is an opaque type over `BigDecimal` (`HALF_UP` rounding). Never use `Double` for monetary calculations.
 - **i18n** — UI copy lives in `Translations.scala` & `AdminTranslations.scala` (`kyo-i18n` Fluent bundles, EN & CS); domain entities use `LocalizedString`. Every UI change must keep EN & CS complete without missing-key markers (`‹` / `›`).
+- **Persistence** — Repository ports stay `private[context]`; Postgres adapters live in `mpbuilder.<ctx>.db`. Persist via indexed key columns + a `doc JSONB` aggregate, always derived with `mpbuilder.json.JsonSupport.config`. New tables go in a new `V<n>__*.sql` under `db/migration/<ctx>/` (never edit applied migrations). Every repository change must keep its in-memory/Postgres contract spec green.
+- **Facade IDs & files** — Facades draw IDs from `IdSequence` and store artwork bytes via `BlobStorage` (`BlobIngest`), never in aggregates.
 - **Kyo UI cross-platform purity** — Never import `org.scalajs.dom` or `backend.sample` inside `modules/ui-core` or `modules/ui-admin-core`. Browser-only glue (clipboard, `localStorage`, `window.location.hash`, `mailto:`) is injected via callbacks from `modules/ui`, `modules/ui-admin`, and `modules/ui-calculator`.
 
 ## Key Paths
@@ -96,6 +109,8 @@ All backend modules cross-compile to both `.jvm` and `.js` so the static fronten
 | JVM UI Tests | `modules/ui-core/src/test/scala/mpbuilder/ui/StorefrontUiSpec.scala`, `modules/ui-admin-core/src/test/scala/mpbuilder/admin/BackofficeUiSpec.scala` |
 | Unified SPA entrypoint | `modules/ui/src/main/scala/mpbuilder/ui/Main.scala` |
 | Standalone Admin SPA | `modules/ui-admin/src/main/scala/mpbuilder/admin/AdminMain.scala` |
+| JSON codecs | `backend/json/src/main/scala/mpbuilder/json/` |
+| DB platform & migrations | `backend/platform/src/main/scala/mpbuilder/platform/`, `backend/*/02-o-db/src/main/resources/db/migration/` |
 | Calculator JS export | `modules/ui-calculator/src/main/scala/mpbuilder/calculator/CalculatorWidget.scala` |
 
 ## Documentation Knowledge Base

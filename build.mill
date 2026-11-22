@@ -10,6 +10,12 @@ val zioVersion      = "2.1.26"
 val zioPreludeVer   = "1.0.0-RC39"
 val kyoVersion      = "1.0.0-RC7"
 val javaTimeJsVer   = "2.7.0"
+val magnumVersion   = "2.0.0"
+val jsoniterVersion = "2.38.6"
+val flywayVersion   = "11.3.4"
+val hikariVersion   = "6.2.1"
+val postgresVersion = "42.7.5"
+val tcVersion       = "2.0.5"
 
 val commonScalacOptions = Seq(
   "-encoding", "utf-8",
@@ -32,6 +38,27 @@ val backendJsExtraDeps = Seq(
 val backendTestDeps = Seq(
   mvn"dev.zio::zio-test::${zioVersion}",
   mvn"dev.zio::zio-test-sbt::${zioVersion}",
+)
+
+// JSON codecs (jsoniter-scala) — cross-compiled, shared by JSONB persistence and HTTP wire format.
+val jsonDeps = Seq(
+  mvn"com.github.plokhotnyuk.jsoniter-scala::jsoniter-scala-core::${jsoniterVersion}",
+  mvn"com.github.plokhotnyuk.jsoniter-scala::jsoniter-scala-macros::${jsoniterVersion}",
+)
+
+// JVM-only database infrastructure (Magnum + HikariCP + Flyway + PostgreSQL).
+val dbDeps = Seq(
+  mvn"com.augustnagro::magnum::${magnumVersion}",
+  mvn"com.augustnagro::magnumzio::${magnumVersion}",
+  mvn"com.zaxxer:HikariCP:${hikariVersion}",
+  mvn"org.flywaydb:flyway-core:${flywayVersion}",
+  mvn"org.flywaydb:flyway-database-postgresql:${flywayVersion}",
+  mvn"org.postgresql:postgresql:${postgresVersion}",
+)
+
+val dbTestDeps = Seq(
+  mvn"org.testcontainers:testcontainers-postgresql:${tcVersion}",
+  mvn"org.slf4j:slf4j-nop:2.0.17",
 )
 
 val kyoUiDeps = Seq(
@@ -74,6 +101,15 @@ trait BackendJsModule extends ScalaJSModule {
   def mvnDeps        = backendCoreDeps ++ backendJsExtraDeps
 }
 
+/** JVM-only outbound persistence adapter (`<context>/02-o-db`) built on `backend/platform` (Magnum). */
+trait BackendDbModule extends BackendJvmModule {
+  def mvnDeps = backendCoreDeps ++ dbDeps ++ jsonDeps
+
+  trait DbTests extends CoreTests {
+    def mvnDeps = backendTestDeps ++ dbTestDeps
+  }
+}
+
 object backend extends Module {
   private val backendDir = rootDir / "backend"
 
@@ -103,6 +139,15 @@ object backend extends Module {
         def moduleDeps = Seq(backend.shared.js)
       }
     }
+
+    /** Outbound PostgreSQL persistence adapter (Magnum) for `catalog` repositories. */
+    object `02-o-db` extends BackendDbModule {
+      def baseDir    = backendDir / "catalog" / "02-o-db"
+      def moduleDeps = Seq(backend.catalog.`01-c-core`.jvm, backend.platform, backend.json.jvm)
+      object test extends DbTests {
+        def moduleDeps = super.moduleDeps ++ Seq(backend.sample.jvm, backend.platform.test)
+      }
+    }
   }
 
   /** Bounded Context 2: Commercial Pricing, Customer Agreements, Promo Codes & Margin Analysis. */
@@ -117,6 +162,15 @@ object backend extends Module {
       object js extends BackendJsModule {
         def baseDir    = dir
         def moduleDeps = Seq(backend.shared.js)
+      }
+    }
+
+    /** Outbound PostgreSQL persistence adapter (Magnum) for `pricing` repositories. */
+    object `02-o-db` extends BackendDbModule {
+      def baseDir    = backendDir / "pricing" / "02-o-db"
+      def moduleDeps = Seq(backend.pricing.`01-c-core`.jvm, backend.platform, backend.json.jvm)
+      object test extends DbTests {
+        def moduleDeps = super.moduleDeps ++ Seq(backend.sample.jvm, backend.platform.test)
       }
     }
   }
@@ -135,6 +189,15 @@ object backend extends Module {
         def moduleDeps = Seq(backend.shared.js)
       }
     }
+
+    /** Outbound PostgreSQL persistence adapter (Magnum) for `customers` repositories. */
+    object `02-o-db` extends BackendDbModule {
+      def baseDir    = backendDir / "customers" / "02-o-db"
+      def moduleDeps = Seq(backend.customers.`01-c-core`.jvm, backend.platform, backend.json.jvm)
+      object test extends DbTests {
+        def moduleDeps = super.moduleDeps ++ Seq(backend.sample.jvm, backend.platform.test)
+      }
+    }
   }
 
   /** Bounded Context 4: Artwork Assets, Revisions & Prepress Preflight. */
@@ -151,6 +214,15 @@ object backend extends Module {
         def moduleDeps = Seq(backend.shared.js)
       }
     }
+
+    /** Outbound PostgreSQL persistence adapter (Magnum) for `artwork` repositories. */
+    object `02-o-db` extends BackendDbModule {
+      def baseDir    = backendDir / "artwork" / "02-o-db"
+      def moduleDeps = Seq(backend.artwork.`01-c-core`.jvm, backend.platform, backend.json.jvm)
+      object test extends DbTests {
+        def moduleDeps = super.moduleDeps ++ Seq(backend.sample.jvm, backend.platform.test)
+      }
+    }
   }
 
   /** Bounded Context 5: Shopping Cart, Order Placement & Order Lifecycle. */
@@ -165,6 +237,15 @@ object backend extends Module {
       object js extends BackendJsModule {
         def baseDir    = dir
         def moduleDeps = Seq(backend.shared.js)
+      }
+    }
+
+    /** Outbound PostgreSQL persistence adapter (Magnum) for `ordering` repositories. */
+    object `02-o-db` extends BackendDbModule {
+      def baseDir    = backendDir / "ordering" / "02-o-db"
+      def moduleDeps = Seq(backend.ordering.`01-c-core`.jvm, backend.platform, backend.json.jvm)
+      object test extends DbTests {
+        def moduleDeps = super.moduleDeps ++ Seq(backend.sample.jvm, backend.platform.test)
       }
     }
   }
@@ -197,6 +278,15 @@ object backend extends Module {
       object js extends BackendJsModule {
         def baseDir    = dir
         def moduleDeps = Seq(backend.shared.js)
+      }
+    }
+
+    /** Outbound PostgreSQL persistence adapter (Magnum) for `identity` repositories. */
+    object `02-o-db` extends BackendDbModule {
+      def baseDir    = backendDir / "identity" / "02-o-db"
+      def moduleDeps = Seq(backend.identity.`01-c-core`.jvm, backend.platform, backend.json.jvm)
+      object test extends DbTests {
+        def moduleDeps = super.moduleDeps ++ Seq(backend.sample.jvm, backend.platform.test)
       }
     }
   }
@@ -298,6 +388,74 @@ object backend extends Module {
       )
     }
   }
+
+  /** Cross-compiled jsoniter-scala codecs for every public domain model (JSONB persistence + HTTP wire). */
+  object json extends Module {
+    private val dir = backendDir / "json"
+    private def coreJvm = Seq(
+      backend.shared.jvm,
+      backend.catalog.`01-c-core`.jvm,
+      backend.pricing.`01-c-core`.jvm,
+      backend.customers.`01-c-core`.jvm,
+      backend.identity.`01-c-core`.jvm,
+      backend.artwork.`01-c-core`.jvm,
+      backend.ordering.`01-c-core`.jvm,
+      backend.manufacturing.`01-c-core`.jvm,
+    )
+    object jvm extends BackendJvmModule {
+      def baseDir    = dir
+      def moduleDeps = coreJvm
+      def mvnDeps    = backendCoreDeps ++ jsonDeps
+      object test extends CoreTests {
+        def moduleDeps = super.moduleDeps ++ Seq(backend.sample.jvm)
+      }
+    }
+    object js extends BackendJsModule {
+      def baseDir = dir
+      def moduleDeps = Seq(
+        backend.shared.js,
+        backend.catalog.`01-c-core`.js,
+        backend.pricing.`01-c-core`.js,
+        backend.customers.`01-c-core`.js,
+        backend.identity.`01-c-core`.js,
+        backend.artwork.`01-c-core`.js,
+        backend.ordering.`01-c-core`.js,
+        backend.manufacturing.`01-c-core`.js,
+      )
+      def mvnDeps = backendCoreDeps ++ backendJsExtraDeps ++ jsonDeps
+    }
+  }
+
+  /** Bottom infrastructure (JVM): Magnum/HikariCP database pool, Flyway migrations, local blob storage. */
+  object platform extends BackendJvmModule {
+    def baseDir    = backendDir / "platform"
+    def moduleDeps = Seq(backend.shared.jvm)
+    def mvnDeps    = backendCoreDeps ++ dbDeps
+    object test extends CoreTests {
+      def mvnDeps = backendTestDeps ++ dbTestDeps
+    }
+  }
+
+  /** Composition root (JVM): per-context PostgreSQL wiring & DB seeder (HTTP server arrives in Phase 4). */
+  object app extends BackendJvmModule {
+    def baseDir = backendDir / "app"
+    def moduleDeps = Seq(
+      backend.platform,
+      backend.sample.jvm,
+      backend.catalog.`02-o-db`,
+      backend.pricing.`02-o-db`,
+      backend.customers.`02-o-db`,
+      backend.identity.`02-o-db`,
+      backend.ordering.`02-o-db`,
+      backend.artwork.`02-o-db`,
+    )
+    def mvnDeps = backendCoreDeps ++ dbDeps
+    object test extends CoreTests {
+      def mvnDeps    = backendTestDeps :+ mvn"org.testcontainers:testcontainers-postgresql:${tcVersion}"
+      def moduleDeps = super.moduleDeps ++ Seq(backend.platform.test)
+    }
+  }
+
 }
 
 // ---------------------------------------------------------------------------

@@ -40,6 +40,8 @@ object SampleShowcaseRuntime:
       CheckoutOptionsService &
       OrderService &
       ManufacturingService &
+      BlobStorage &
+      IdSequence &
       StorefrontFacade &
       BackofficeFacade
 
@@ -52,6 +54,7 @@ object SampleShowcaseRuntime:
       useSheetCzk: Boolean = true,
       busyPeriods: List[BusyPeriodMultiplier] = Nil,
       seedSampleOrders: Boolean = true,
+      blobStorage: ULayer[BlobStorage] = BlobStorage.inMemoryLayer,
   ): ULayer[ShowcaseEnv] =
     val busLayer: ULayer[EventBus] = EventBus.live
 
@@ -71,6 +74,8 @@ object SampleShowcaseRuntime:
 
     val baseServicesLayer =
       ZLayer.service[EventBus] ++
+        blobStorage ++
+        IdSequence.inMemoryLayer() ++
         CatalogSampleLayer.live() ++
         customerAndIdentityLayer ++
         ArtworkSampleLayer.live(seedSampleArtworks = seedSampleOrders) ++

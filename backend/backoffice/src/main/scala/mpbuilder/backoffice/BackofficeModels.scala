@@ -26,6 +26,7 @@ enum BackofficeError(val message: String):
   case IdentityFailure(error: IdentityError) extends BackofficeError(error.message)
   case OrderFailure(error: OrderError)       extends BackofficeError(error.message)
   case ArtworkFailure(error: ArtworkError)   extends BackofficeError(error.message)
+  case BlobFailure(error: BlobError)         extends BackofficeError(error.message)
   case PresetNotFound(categoryId: CategoryId, presetId: PresetId)
       extends BackofficeError(s"Preset '${presetId.value}' not found in category '${categoryId.value}'")
 

@@ -88,7 +88,7 @@ object ArtworkSampleLayer:
       i += 3
     sb.toString
 
-  private def seedArtworks: Map[ArtworkId, ArtworkSubmission] =
+  private[artwork] def seedArtworks: Map[ArtworkId, ArtworkSubmission] =
     val proof1 = generateProofSvgDataUrl("Dvořák Business Cards", "dvorak-business-cards-v1.pdf · 2 pages", "#4F46E5", 90, 50, 240, "RGB", 3)
     val art1 = ArtworkSubmission
       .create(

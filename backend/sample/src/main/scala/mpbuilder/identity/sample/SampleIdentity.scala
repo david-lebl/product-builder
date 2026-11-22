@@ -56,6 +56,18 @@ object SampleIdentity:
     roles = Set(EmployeeRole.Prepress),
   )
 
+  /** Demo customer logins (password: [[demoCustomerPassword]]). */
+  val demoCustomerLogins: List[(CustomerId, String, EmailAddress)] = List(
+    (CustomerId.unsafe("cust-print-shop-pro"), "Print Shop Pro s.r.o.", EmailAddress.unsafe("jan@printshoppro.cz")),
+    (CustomerId.unsafe("cust-graphic-design-co"), "Graphic Design Co.", EmailAddress.unsafe("marie@graphicdesign.cz")),
+    (CustomerId.unsafe("cust-mega-corp"), "MegaCorp a.s.", EmailAddress.unsafe("petr@megacorp.cz")),
+    (CustomerId.unsafe("cust-local-print"), "Local Print", EmailAddress.unsafe("eva@localprint.cz")),
+  )
+
+  /** Demo staff accounts (password: [[demoEmployeePassword]]). */
+  def demoStaff: List[Principal.Employee] =
+    List(adminEmployeePrincipal, prepressEmployeePrincipal, managerEmployeePrincipal)
+
   val managerEmployeePrincipal: Principal.Employee = Principal.Employee(
     employeeId = EmployeeId.unsafe("emp-3"),
     displayName = NonEmptyString.unsafe("Operations Manager"),
@@ -69,12 +81,7 @@ object IdentitySampleLayer:
     ZLayer.fromZIO(Ref.make(Map.empty[OtpChallengeId, OtpCode]).map(new InMemoryOtpInbox(_)))
 
   def live(
-      seedCustomerEmails: List[(CustomerId, String, EmailAddress)] = List(
-        (CustomerId.unsafe("cust-print-shop-pro"), "Print Shop Pro s.r.o.", EmailAddress.unsafe("jan@printshoppro.cz")),
-        (CustomerId.unsafe("cust-graphic-design-co"), "Graphic Design Co.", EmailAddress.unsafe("marie@graphicdesign.cz")),
-        (CustomerId.unsafe("cust-mega-corp"), "MegaCorp a.s.", EmailAddress.unsafe("petr@megacorp.cz")),
-        (CustomerId.unsafe("cust-local-print"), "Local Print", EmailAddress.unsafe("eva@localprint.cz")),
-      ),
+      seedCustomerEmails: List[(CustomerId, String, EmailAddress)] = SampleIdentity.demoCustomerLogins,
       config: IdentityConfig = IdentityConfig(),
   ): ZLayer[CustomerService & EventBus, Nothing, IdentityService & InMemoryOtpInbox] =
     ZLayer.fromZIOEnvironment {

@@ -44,6 +44,7 @@ Implementation plans and future feature designs.
 | [manufacturing-implementation-plan.md](manufacturing-implementation-plan.md) | Manufacturing system phases 1–8 implementation plan |
 | [customer-portal-plan.md](customer-portal-plan.md) | Customer-facing order tracking portal (5 use cases, 12 future features) |
 | [customer-management-plan.md](customer-management-plan.md) | Customer account management feature plan |
+| [../docs_roadmap/platform_roadmap.md](../docs_roadmap/platform_roadmap.md) | Platform roadmap — Phases 1–6 (backoffice, persistence, HTTP API, artwork & editor) with implementation status |
 
 ## 🛠 Developer Guides
 
@@ -52,6 +53,7 @@ How-to guides for developers working with the codebase.
 | Document | Description |
 |----------|-------------|
 | [ui-guide.md](ui-guide.md) | Build, run, and test instructions (Mill) |
+| [backend-persistence.md](backend-persistence.md) | PostgreSQL persistence (Magnum + Flyway, schema per context, JSONB aggregates), DB seeder, contract tests, and artwork `BlobStorage` |
 | [adding-new-product-guide.md](adding-new-product-guide.md) | Step-by-step guide for adding new products to the catalog |
 | [../CLAUDE.md](../CLAUDE.md) | AI assistant guidance — architecture, build commands, coding conventions |
 
@@ -76,6 +78,7 @@ Session-by-session work logs documenting what was done, decisions made, and issu
 | Document | Description |
 |----------|-------------|
 | [changelog/README.md](changelog/README.md) | Changelog format, template, and log entries index |
+| [changelog/2026-11-23-phase3-postgres-persistence.md](changelog/2026-11-23-phase3-postgres-persistence.md) | Roadmap Phase 3 + 5.1 storage — PostgreSQL persistence (Magnum + Flyway), DB seeder, contract tests, artwork BlobStorage |
 | [changelog/2026-05-03-printing-method-setup-fee.md](changelog/2026-05-03-printing-method-setup-fee.md) | Add PrintingMethodSetupFee pricing rule; update all three sample pricelists and affected tests |
 | [changelog/2026-05-03-dtg-sublimation-uv-mug-pricing-fix.md](changelog/2026-05-03-dtg-sublimation-uv-mug-pricing-fix.md) | Fix missing ink config prices for DTG, sublimation, and UV flatbed on mugs in pricelistCzkSheet |
 | [changelog/2026-05-03-ink-config-single-sided-constraint.md](changelog/2026-05-03-ink-config-single-sided-constraint.md) | IsSingleSided predicate, large-format inkjet single-sided constraint, pricelistCzkSheet solvent/Epson pricing fix, UI ink config selector filtering |

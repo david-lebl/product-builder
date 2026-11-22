@@ -311,3 +311,40 @@ That weighs (0,0,0) — exactly like the `*` selector it replaces — so it beha
 **Solution:** Call `BuilderEnvironment.init(...)` once, before the first render. The SPA does this in `Main.main` with `FullAppEnvironment.environment`; the calculator does it in `CalculatorWidget.mount` with `CalculatorEnvironment.environment(config)`.
 
 **Files:** `modules/ui-productbuilder/src/main/scala/mpbuilder/ui/productbuilder/BuilderEnvironment.scala`, `modules/ui/src/main/scala/mpbuilder/ui/Main.scala`, `modules/ui-calculator/src/main/scala/mpbuilder/calculator/CalculatorWidget.scala`
+
+---
+
+### `JsonReaderException: expected key: "type"` when reading a JSONB row
+
+**Symptom:** A value written with the `backend/json` codecs round-trips in memory but fails to decode after a trip through a PostgreSQL `JSONB` column, with `expected key: "type"`.
+
+**Cause:** `JSONB` does not preserve object key order (it sorts keys by length, then bytes). jsoniter-scala, by default, requires an ADT's discriminator field to be the **first** key of the object.
+
+**Solution:** The shared `JsonSupport.config` sets `.withRequireDiscriminatorFirst(false)`. Always derive persisted codecs with `JsonCodecMaker.make(config)` from `mpbuilder.json.JsonSupport`, never with the library default config.
+
+**Files:** `backend/json/src/main/scala/mpbuilder/json/JsonSupport.scala`
+
+---
+
+### `Conflicting definitions: given_JsonValueCodec_NonEmptyChunk`
+
+**Symptom:** Several `given JsonValueCodec[NonEmptyChunk[X]] = …` in one object fail to compile.
+
+**Cause:** Anonymous givens are named after the outer type constructor only, so `NonEmptyChunk[A]` and `NonEmptyChunk[B]` both become `given_JsonValueCodec_NonEmptyChunk`.
+
+**Solution:** Name them: `given necOrderLine: JsonValueCodec[NonEmptyChunk[OrderLine]] = …`.
+
+**Files:** `backend/json/src/main/scala/mpbuilder/json/*Codecs.scala`
+
+---
+
+### Facade-generated IDs collide after a server restart
+
+**Symptom:** With PostgreSQL storage, the first order after a restart fails with a unique violation or overwrites `ord-1`.
+
+**Cause:** `StorefrontFacade` used to number orders, lines and artwork from an in-memory counter that restarted at 0.
+
+**Solution:** Facades take an `IdSequence` port: `IdSequence.inMemoryLayer()` in the static demo, `PostgresIdSequence.layer` (`platform.id_sequence`, starting at 10000) in persistent mode.
+
+**Files:** `backend/shared/src/main/scala/mpbuilder/shared/BlobStorage.scala` (`IdSequence`), `backend/platform/src/main/scala/mpbuilder/platform/db/PostgresIdSequence.scala`
+
