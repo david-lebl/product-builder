@@ -14,10 +14,10 @@ object AppTheme:
 
   // ── Typed Color Palette ────────────────────────────────────────────────────
 
-  private def hexColor(raw: String, fallback: Color = Color.slate): Color =
-    Color.hex(raw).getOrElse(fallback)
-
   object Palette:
+    private[theme] def hexColor(raw: String, fallback: Color = Color.slate): Color =
+      Color.hex(raw).getOrElse(fallback)
+
     val canvas: Color         = hexColor("#F8FAFC")
     val surface: Color        = Color.white
     val surfaceAlt: Color     = hexColor("#F1F5F9")

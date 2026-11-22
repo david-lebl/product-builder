@@ -43,6 +43,7 @@ jobs:
       - name: Link Scala.js bundles
         run: |
           mill ui.fastLinkJS
+          mill ui-admin.fastLinkJS
           mill ui-calculator.fastLinkJS
 
 

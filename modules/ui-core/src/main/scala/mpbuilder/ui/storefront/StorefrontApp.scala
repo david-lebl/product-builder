@@ -12,7 +12,10 @@ import mpbuilder.ui.theme.AppTheme.Palette.*
 /** Complete responsive Storefront SPA shell (Header, Mobile Drawer, Routed Views, Cart Drawer, Auth Modal, Toast & Footer). */
 object StorefrontApp:
 
-  def render(state: StorefrontState): UI < Async =
+  def render(
+      state: StorefrontState,
+      onOpenAdmin: Option[() => Unit < Async] = None,
+  ): UI < Async =
     for
       catalogUI    <- CatalogView.render(state)
       cartDrawerUI <- CartDrawer.render(state)
@@ -26,8 +29,8 @@ object StorefrontApp:
       val builderUI: UI = ConfiguratorView.render(state.configurator, builderHost, showHeader = true)
 
       div.cssClass("mp-app")(
-        renderHeader(state),
-        renderMobileMenu(state),
+        renderHeader(state, onOpenAdmin),
+        renderMobileMenu(state, onOpenAdmin),
         // Main Content
         main.cssClass("mp-container").style(Style.padding(28.px, 24.px, 56.px, 24.px).flexGrow(1.0))(
           state.route.combineLatest(state.checkoutSession).render { case (currentRoute, checkoutOpt) =>
@@ -53,7 +56,15 @@ object StorefrontApp:
         )(
           div.cssClass("mp-container").style(Style.row.flexWrap(FlexWrap.wrap).justify(Justification.spaceBetween).align(Alignment.center).gap(12.px))(
             span(state.i18n.t("brand-name")).style(Style.fontWeight(FontWeight.w700).fontSize(14.px).color(ink)),
-            span(state.i18n.t("footer-static-note")).style(smallText),
+            div.style(Style.row.flexWrap(FlexWrap.wrap).align(Alignment.center).gap(12.px))(
+              span(state.i18n.t("footer-static-note")).style(smallText),
+              onOpenAdmin match
+                case Some(openAdmin) =>
+                  button
+                    .cssClass("mp-btn mp-btn-secondary mp-btn-sm")
+                    .onClick(openAdmin())(state.i18n.t("nav-admin"))
+                case None => UI.empty,
+            ),
           ),
         ),
         // Overlays
@@ -62,7 +73,10 @@ object StorefrontApp:
         renderToast(state),
       )
 
-  private def renderHeader(state: StorefrontState): UI =
+  private def renderHeader(
+      state: StorefrontState,
+      onOpenAdmin: Option[() => Unit < Async],
+  ): UI =
     val headerSignal =
       state.route
         .combineLatest(state.currency)
@@ -116,6 +130,13 @@ object StorefrontApp:
                   .cssClass(if isAccount then "mp-btn mp-btn-nav-active mp-btn-sm" else "mp-btn mp-btn-ghost mp-btn-sm")
                   .onClick(state.openAccount)(state.i18n.t("nav-account"))
               else UI.empty,
+              onOpenAdmin match
+                case Some(openAdmin) =>
+                  button
+                    .cssClass("mp-btn mp-btn-ghost mp-btn-sm")
+                    .style(Style.color(brand))
+                    .onClick(openAdmin())(state.i18n.t("nav-admin"))
+                case None => UI.empty,
             ),
 
             // Currency switcher
@@ -179,7 +200,10 @@ object StorefrontApp:
       ),
     )
 
-  private def renderMobileMenu(state: StorefrontState): UI =
+  private def renderMobileMenu(
+      state: StorefrontState,
+      onOpenAdmin: Option[() => Unit < Async],
+  ): UI =
     UI.when(state.mobileMenuOpen)(
       state.currency.combineLatest(state.authSession).render { case (cur, sessOpt) =>
         div.cssClass("mp-mobile-menu")(
@@ -193,6 +217,12 @@ object StorefrontApp:
                 button
                   .cssClass("mp-btn mp-btn-primary mp-btn-sm")
                   .onClick(state.mobileMenuOpen.set(false).andThen(state.authModalOpen.set(true)))(state.i18n.t("nav-sign-in")),
+            onOpenAdmin match
+              case Some(openAdmin) =>
+                button
+                  .cssClass("mp-btn mp-btn-secondary mp-btn-sm")
+                  .onClick(state.mobileMenuOpen.set(false).andThen(openAdmin()))(state.i18n.t("nav-admin"))
+              case None => UI.empty,
           ),
           div.style(Style.row.gap(8.px).align(Alignment.center))(
             List(Currency.CZK, Currency.USD).map { c =>

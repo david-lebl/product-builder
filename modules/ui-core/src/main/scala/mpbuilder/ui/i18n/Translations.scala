@@ -49,13 +49,14 @@ object Translations:
     csLocale -> csFtl,
   )
 
-  private val enFtl: String =
+  val enFtl: String =
     """# Brand & Navigation
       |brand-name = PrintCraft Studio
       |brand-tagline = Custom Print & Packaging
       |nav-catalog = Products
       |nav-builder = Configurator
       |nav-account = My Account
+      |nav-admin = Staff Backoffice
       |nav-cart = Cart
       |nav-sign-in = Sign In
       |nav-sign-out = Sign Out
@@ -299,13 +300,14 @@ object Translations:
       |footer-static-note = Running 100% client-side with Kyo UI + modular Scala 3 backend sample runtime (no server required).
       |""".stripMargin
 
-  private val csFtl: String =
+  val csFtl: String =
     """# Značka & Navigace
       |brand-name = PrintCraft Studio
       |brand-tagline = Zakázkový tisk a obaly
       |nav-catalog = Produkty
       |nav-builder = Konfigurátor
       |nav-account = Můj účet
+      |nav-admin = Administrace
       |nav-cart = Košík
       |nav-sign-in = Přihlásit se
       |nav-sign-out = Odhlásit se

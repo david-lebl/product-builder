@@ -352,18 +352,81 @@ object `ui-core` extends Module {
 }
 
 // ---------------------------------------------------------------------------
-// UI — Static Scala.js Storefront SPA powered by Kyo UI + backend.sample
+// UI Admin Core — Cross-compiled Kyo UI Backoffice & Order Intake modules.
+// Compiles to BOTH JVM (SSR / Kyo server-push / tests) and Scala.js (browser SPA).
+// Depends ONLY on ui-core, public backend APIs & BackofficeClient port (never backend.sample).
+// ---------------------------------------------------------------------------
+
+object `ui-admin-core` extends Module {
+  private val dir = rootDir / "modules" / "ui-admin-core"
+
+  object jvm extends ScalaModule {
+    def scalaVersion  = scala3Version
+    def scalacOptions = commonScalacOptions
+    def sources       = Task.Sources(dir / "src" / "main" / "scala")
+    def resources     = Task.Sources(dir / "src" / "main" / "resources")
+    def moduleDeps = Seq(
+      `ui-core`.jvm,
+      backend.artwork.`01-c-core`.jvm,
+      backend.backoffice.jvm,
+    )
+    def mvnDeps = kyoUiDeps
+
+    object test extends ScalaTests {
+      def sources       = Task.Sources(dir / "src" / "test" / "scala")
+      def resources     = Task.Sources(dir / "src" / "test" / "resources")
+      def moduleDeps    = Seq(`ui-admin-core`.jvm, backend.sample.jvm)
+      def mvnDeps       = backendTestDeps
+      def testFramework = "zio.test.sbt.ZTestFramework"
+    }
+  }
+
+  object js extends ScalaJSModule {
+    def scalaVersion   = scala3Version
+    def scalaJSVersion = build.scalaJsVersion
+    def scalacOptions  = commonScalacOptions
+    def sources        = Task.Sources(dir / "src" / "main" / "scala")
+    def resources      = Task.Sources(dir / "src" / "main" / "resources")
+    def moduleDeps = Seq(
+      `ui-core`.js,
+      backend.artwork.`01-c-core`.js,
+      backend.backoffice.js,
+    )
+    def mvnDeps = kyoUiDeps
+  }
+}
+
+// ---------------------------------------------------------------------------
+// UI — Static Scala.js Unified Demo SPA (Storefront + #/admin Backoffice)
+// Shares a single in-memory SampleShowcaseRuntime so Storefront orders land
+// immediately in Staff Order Intake.
 // ---------------------------------------------------------------------------
 
 object ui extends ScalaJSModule {
-  def scalaVersion                  = scala3Version
-  def scalaJSVersion                = build.scalaJsVersion
-  def scalacOptions                 = commonScalacOptions
-  def sources                       = Task.Sources(rootDir / "modules" / "ui" / "src" / "main" / "scala")
-  def resources                     = Task.Sources(rootDir / "modules" / "ui" / "src" / "main" / "resources")
+  def scalaVersion                    = scala3Version
+  def scalaJSVersion                  = build.scalaJsVersion
+  def scalacOptions                   = commonScalacOptions
+  def sources                         = Task.Sources(rootDir / "modules" / "ui" / "src" / "main" / "scala")
+  def resources                       = Task.Sources(rootDir / "modules" / "ui" / "src" / "main" / "resources")
   def scalaJSUseMainModuleInitializer = true
-  def moduleDeps                    = Seq(`ui-core`.js, backend.sample.js)
-  def mvnDeps                       = kyoUiDeps
+  def moduleDeps                      = Seq(`ui-core`.js, `ui-admin-core`.js, backend.sample.js)
+  def mvnDeps                         = kyoUiDeps
+}
+
+// ---------------------------------------------------------------------------
+// UI Admin — Standalone Scala.js Backoffice SPA powered by Kyo UI + backend.sample
+// Deployable independently on its own host/path (e.g. /admin).
+// ---------------------------------------------------------------------------
+
+object `ui-admin` extends ScalaJSModule {
+  def scalaVersion                    = scala3Version
+  def scalaJSVersion                  = build.scalaJsVersion
+  def scalacOptions                   = commonScalacOptions
+  def sources                         = Task.Sources(rootDir / "modules" / "ui-admin" / "src" / "main" / "scala")
+  def resources                       = Task.Sources(rootDir / "modules" / "ui-admin" / "src" / "main" / "resources")
+  def scalaJSUseMainModuleInitializer = true
+  def moduleDeps                      = Seq(`ui-admin-core`.js, backend.sample.js)
+  def mvnDeps                         = kyoUiDeps
 }
 
 // ---------------------------------------------------------------------------
