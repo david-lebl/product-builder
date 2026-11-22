@@ -41,6 +41,13 @@ trait BackofficeFacade:
       note: Option[NonEmptyString] = None,
   ): IO[BackofficeError, OrderView]
   def confirmOrderPayment(token: SessionToken, orderId: OrderId, note: Option[NonEmptyString] = None): IO[BackofficeError, OrderView]
+  def markOrderPaymentStatus(
+      token: SessionToken,
+      orderId: OrderId,
+      status: PaymentStatus,
+      note: Option[NonEmptyString] = None,
+  ): IO[BackofficeError, OrderView]
+  def editOrderLine(token: SessionToken, cmd: EditOrderLineCmd): IO[BackofficeError, OrderView]
   def cancelOrder(token: SessionToken, orderId: OrderId, reason: NonEmptyString): IO[BackofficeError, OrderView]
   def addOrderInternalNote(token: SessionToken, orderId: OrderId, text: NonEmptyString): IO[BackofficeError, OrderView]
 
@@ -55,6 +62,11 @@ trait BackofficeFacade:
       token: SessionToken,
       artworkId: ArtworkId,
       notes: NonEmptyString,
+  ): IO[BackofficeError, ArtworkSubmissionView]
+  def rejectArtwork(
+      token: SessionToken,
+      artworkId: ArtworkId,
+      reason: NonEmptyString,
   ): IO[BackofficeError, ArtworkSubmissionView]
 
   // ── 5. Catalog Management ──────────────────────────────────────────────────
@@ -287,6 +299,30 @@ final class BackofficeFacadeLive(
                .mapError(BackofficeError.OrderFailure.apply)
     yield res
 
+  override def markOrderPaymentStatus(
+      token: SessionToken,
+      orderId: OrderId,
+      status: PaymentStatus,
+      note: Option[NonEmptyString],
+  ): IO[BackofficeError, OrderView] =
+    for
+      emp <- authorize(token, ManagerAdminRoles)
+      res <- orderService
+               .markPaymentStatus(orderId, status, emp.employeeId, Some(emp.displayName), note.map(_.value))
+               .mapError(BackofficeError.OrderFailure.apply)
+    yield res
+
+  override def editOrderLine(
+      token: SessionToken,
+      cmd: EditOrderLineCmd,
+  ): IO[BackofficeError, OrderView] =
+    for
+      emp <- authorize(token, IntakeRoles + EmployeeRole.Prepress)
+      res <- orderService
+               .editOrderLine(cmd, emp.employeeId, Some(emp.displayName))
+               .mapError(BackofficeError.OrderFailure.apply)
+    yield res
+
   override def cancelOrder(
       token: SessionToken,
       orderId: OrderId,
@@ -344,6 +380,18 @@ final class BackofficeFacadeLive(
   ): IO[BackofficeError, ArtworkSubmissionView] =
     authorize(token, AnyStaffRoles) *>
       artworkService.requestChanges(artworkId, notes).mapError(BackofficeError.ArtworkFailure.apply)
+
+  override def rejectArtwork(
+      token: SessionToken,
+      artworkId: ArtworkId,
+      reason: NonEmptyString,
+  ): IO[BackofficeError, ArtworkSubmissionView] =
+    for
+      emp <- authorize(token, AnyStaffRoles)
+      res <- artworkService
+               .reject(artworkId, emp.employeeId, reason)
+               .mapError(BackofficeError.ArtworkFailure.apply)
+    yield res
 
   // ── 5. Catalog Management ──────────────────────────────────────────────────
 
@@ -524,8 +572,12 @@ final class BackofficeFacadeLive(
       customerService.register(cmd).mapError(BackofficeError.CustomerFailure.apply)
 
   override def approveCustomer(token: SessionToken, id: CustomerId): IO[BackofficeError, CustomerView] =
-    authorize(token, ManagerAdminRoles) *>
-      customerService.approve(id).mapError(BackofficeError.CustomerFailure.apply)
+    for
+      emp <- authorize(token, ManagerAdminRoles)
+      res <- customerService
+               .approve(id, CustomerActor.Employee(emp.employeeId, Some(emp.displayName)))
+               .mapError(BackofficeError.CustomerFailure.apply)
+    yield res
 
   override def suspendCustomer(
       token: SessionToken,
@@ -534,7 +586,9 @@ final class BackofficeFacadeLive(
   ): IO[BackofficeError, CustomerView] =
     for
       emp <- authorize(token, ManagerAdminRoles)
-      res <- customerService.suspend(id, reason, Some(emp.employeeId)).mapError(BackofficeError.CustomerFailure.apply)
+      res <- customerService
+               .suspend(id, reason, Some(emp.employeeId), Some(emp.displayName))
+               .mapError(BackofficeError.CustomerFailure.apply)
     yield res
 
   override def deactivateCustomer(
@@ -544,7 +598,9 @@ final class BackofficeFacadeLive(
   ): IO[BackofficeError, CustomerView] =
     for
       emp <- authorize(token, ManagerAdminRoles)
-      res <- customerService.deactivate(id, reason, Some(emp.employeeId)).mapError(BackofficeError.CustomerFailure.apply)
+      res <- customerService
+               .deactivate(id, reason, Some(emp.employeeId), Some(emp.displayName))
+               .mapError(BackofficeError.CustomerFailure.apply)
     yield res
 
   override def changeCustomerTier(
@@ -552,23 +608,35 @@ final class BackofficeFacadeLive(
       id: CustomerId,
       tier: CustomerTier,
   ): IO[BackofficeError, CustomerView] =
-    authorize(token, ManagerAdminRoles) *>
-      customerService.changeTier(id, tier).mapError(BackofficeError.CustomerFailure.apply)
+    for
+      emp <- authorize(token, ManagerAdminRoles)
+      res <- customerService
+               .changeTier(id, tier, CustomerActor.Employee(emp.employeeId, Some(emp.displayName)))
+               .mapError(BackofficeError.CustomerFailure.apply)
+    yield res
 
   override def grantCustomerPaymentTerms(
       token: SessionToken,
       id: CustomerId,
       terms: PaymentTerms,
   ): IO[BackofficeError, CustomerView] =
-    authorize(token, ManagerAdminRoles) *>
-      customerService.grantPaymentTerms(id, terms).mapError(BackofficeError.CustomerFailure.apply)
+    for
+      emp <- authorize(token, ManagerAdminRoles)
+      res <- customerService
+               .grantPaymentTerms(id, terms, CustomerActor.Employee(emp.employeeId, Some(emp.displayName)))
+               .mapError(BackofficeError.CustomerFailure.apply)
+    yield res
 
   override def updateCustomerProfile(
       token: SessionToken,
       cmd: UpdateCustomerProfileCmd,
   ): IO[BackofficeError, CustomerView] =
-    authorize(token, ManagerAdminRoles) *>
-      customerService.updateProfile(cmd).mapError(BackofficeError.CustomerFailure.apply)
+    for
+      emp <- authorize(token, ManagerAdminRoles)
+      res <- customerService
+               .updateProfile(cmd.copy(actor = CustomerActor.Employee(emp.employeeId, Some(emp.displayName))))
+               .mapError(BackofficeError.CustomerFailure.apply)
+    yield res
 
   override def addCustomerNote(
       token: SessionToken,
@@ -577,7 +645,9 @@ final class BackofficeFacadeLive(
   ): IO[BackofficeError, CustomerView] =
     for
       emp <- authorize(token, AnyStaffRoles)
-      res <- customerService.addNote(id, text, Some(emp.employeeId)).mapError(BackofficeError.CustomerFailure.apply)
+      res <- customerService
+               .addNote(id, text, Some(emp.employeeId), Some(emp.displayName))
+               .mapError(BackofficeError.CustomerFailure.apply)
     yield res
 
   // ── 8. Staff Directory & Store Delivery / Bank Settings ────────────────────

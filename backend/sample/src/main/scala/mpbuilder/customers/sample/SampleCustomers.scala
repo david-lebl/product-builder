@@ -40,7 +40,11 @@ object SampleCustomers:
       notes: List[AccountNote] = Nil,
       tags: Set[String] = Set.empty,
       createdAtMs: Long,
+      additionalContacts: List[ContactPerson] = Nil,
+      shippingAddresses: List[Address] = Nil,
+      defaultShippingIndex: Option[Int] = None,
   ): Customer =
+    val created = Instant.ofEpochMilli(createdAtMs)
     Customer(
       id = id,
       segment = CustomerSegment.Agency,
@@ -59,6 +63,7 @@ object SampleCustomers:
         lastName = NonEmptyString.unsafe(lastName),
         email = EmailAddress.unsafe(email),
         phone = Some(NonEmptyString.unsafe(phone)),
+        roleTitle = Some(NonEmptyString.unsafe("Primary Contact")),
       ),
       billingAddress = Address(
         street = NonEmptyString.unsafe(street),
@@ -66,11 +71,21 @@ object SampleCustomers:
         postalCode = NonEmptyString.unsafe(postal),
         countryCode = NonEmptyString.unsafe("CZ"),
       ),
-      shippingAddresses = Nil,
+      shippingAddresses = shippingAddresses,
       paymentTerms = paymentTerms,
       notes = notes,
       tags = tags,
-      createdAt = Instant.ofEpochMilli(createdAtMs),
+      createdAt = created,
+      additionalContacts = additionalContacts,
+      defaultShippingIndex = defaultShippingIndex.orElse(if shippingAddresses.nonEmpty then Some(0) else None),
+      auditLog = List(
+        CustomerAuditEntry(
+          action = "Registered",
+          summary = s"Account created ($tier, $status)",
+          actor = CustomerActor.System,
+          occurredAt = created,
+        )
+      ),
     )
 
   private[customers] val printShopPro: Customer = mkCustomer(
@@ -91,6 +106,37 @@ object SampleCustomers:
     notes = List(AccountNote(NonEmptyString.unsafe("VIP customer, priority handling"), Instant.ofEpochMilli(1700000000000L), Some(EmployeeId.unsafe("emp-1")))),
     tags = Set("vip", "agency"),
     createdAtMs = 1690000000000L,
+    additionalContacts = List(
+      ContactPerson(
+        firstName = NonEmptyString.unsafe("Lucie"),
+        lastName = NonEmptyString.unsafe("Procházková"),
+        email = EmailAddress.unsafe("lucie.billing@printshoppro.cz"),
+        phone = Some(NonEmptyString.unsafe("+420 123 456 790")),
+        roleTitle = Some(NonEmptyString.unsafe("Billing & Invoicing")),
+      ),
+      ContactPerson(
+        firstName = NonEmptyString.unsafe("Tomáš"),
+        lastName = NonEmptyString.unsafe("Beneš"),
+        email = EmailAddress.unsafe("tomas.production@printshoppro.cz"),
+        phone = Some(NonEmptyString.unsafe("+420 123 456 791")),
+        roleTitle = Some(NonEmptyString.unsafe("Production Buyer")),
+      ),
+    ),
+    shippingAddresses = List(
+      Address(
+        street = NonEmptyString.unsafe("Vinohradská 10"),
+        city = NonEmptyString.unsafe("Praha"),
+        postalCode = NonEmptyString.unsafe("12000"),
+        countryCode = NonEmptyString.unsafe("CZ"),
+      ),
+      Address(
+        street = NonEmptyString.unsafe("Průmyslová 45, Sklad B"),
+        city = NonEmptyString.unsafe("Praha 10"),
+        postalCode = NonEmptyString.unsafe("10200"),
+        countryCode = NonEmptyString.unsafe("CZ"),
+      ),
+    ),
+    defaultShippingIndex = Some(1),
   )
 
   private[customers] val graphicDesignCo: Customer = mkCustomer(
@@ -132,6 +178,24 @@ object SampleCustomers:
     ),
     tags = Set("enterprise", "vip"),
     createdAtMs = 1685000000000L,
+    additionalContacts = List(
+      ContactPerson(
+        firstName = NonEmptyString.unsafe("Klára"),
+        lastName = NonEmptyString.unsafe("Horáková"),
+        email = EmailAddress.unsafe("klara.marketing@megacorp.cz"),
+        phone = Some(NonEmptyString.unsafe("+420 111 222 340")),
+        roleTitle = Some(NonEmptyString.unsafe("Head of Marketing")),
+      )
+    ),
+    shippingAddresses = List(
+      Address(
+        street = NonEmptyString.unsafe("Wenceslas Square 1, Reception"),
+        city = NonEmptyString.unsafe("Praha"),
+        postalCode = NonEmptyString.unsafe("11000"),
+        countryCode = NonEmptyString.unsafe("CZ"),
+      )
+    ),
+    defaultShippingIndex = Some(0),
   )
 
   private[customers] val localPrint: Customer = mkCustomer(

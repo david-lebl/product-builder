@@ -146,6 +146,7 @@ object SamplePromoCodes:
       pct: Int,
       constraints: PromoConstraints = PromoConstraints(),
       active: Boolean = true,
+      createdAtMs: Long = 1715000000000L,
   ): PromoCode =
     PromoCode(
       id = DiscountCodeId.unsafe(id),
@@ -153,19 +154,20 @@ object SamplePromoCodes:
       benefit = PromoBenefit.PercentageOff(Percentage.unsafe(BigDecimal(pct))),
       constraints = constraints,
       isActive = active,
+      createdAt = Instant.ofEpochMilli(createdAtMs),
     )
 
-  val save5: PromoCode     = pctCode("dc-save5", "SAVE5", 5)
-  val save10: PromoCode    = pctCode("dc-save10", "SAVE10", 10)
-  val save15: PromoCode    = pctCode("dc-save15", "SAVE15", 15)
-  val save20: PromoCode    = pctCode("dc-save20", "SAVE20", 20)
-  val save25: PromoCode    = pctCode("dc-save25", "SAVE25", 25)
-  val save30: PromoCode    = pctCode("dc-save30", "SAVE30", 30)
-  val save40: PromoCode    = pctCode("dc-save40", "SAVE40", 40)
-  val save50: PromoCode    = pctCode("dc-save50", "SAVE50", 50)
-  val welcome20: PromoCode = pctCode("dc-welcome20", "WELCOME20", 20)
-  val summer10: PromoCode  = pctCode("dc-summer10", "SUMMER10", 10)
-  val print15: PromoCode   = pctCode("dc-print15", "PRINT15", 15)
+  val save5: PromoCode     = pctCode("dc-save5", "SAVE5", 5, createdAtMs = 1710000000000L)
+  val save10: PromoCode    = pctCode("dc-save10", "SAVE10", 10, createdAtMs = 1718000000000L)
+  val save15: PromoCode    = pctCode("dc-save15", "SAVE15", 15, createdAtMs = 1711000000000L)
+  val save20: PromoCode    = pctCode("dc-save20", "SAVE20", 20, createdAtMs = 1712000000000L)
+  val save25: PromoCode    = pctCode("dc-save25", "SAVE25", 25, createdAtMs = 1713000000000L)
+  val save30: PromoCode    = pctCode("dc-save30", "SAVE30", 30, createdAtMs = 1714000000000L)
+  val save40: PromoCode    = pctCode("dc-save40", "SAVE40", 40, createdAtMs = 1714500000000L)
+  val save50: PromoCode    = pctCode("dc-save50", "SAVE50", 50, createdAtMs = 1714800000000L)
+  val welcome20: PromoCode = pctCode("dc-welcome20", "WELCOME20", 20, createdAtMs = 1717000000000L)
+  val summer10: PromoCode  = pctCode("dc-summer10", "SUMMER10", 10, createdAtMs = 1716000000000L)
+  val print15: PromoCode   = pctCode("dc-print15", "PRINT15", 15, createdAtMs = 1716500000000L)
 
   val fixedOff100: PromoCode = PromoCode(
     id = DiscountCodeId.unsafe("dc-fixed-off-100"),
@@ -173,6 +175,7 @@ object SamplePromoCodes:
     benefit = PromoBenefit.FixedAmountOff(Price(Money("100"), Currency.CZK)),
     constraints = PromoConstraints(minimumOrderNet = Some(Money("500"))),
     isActive = true,
+    createdAt = Instant.ofEpochMilli(1719000000000L),
   )
 
   val freeShip: PromoCode = PromoCode(
@@ -181,6 +184,7 @@ object SamplePromoCodes:
     benefit = PromoBenefit.FreeDelivery,
     constraints = PromoConstraints(),
     isActive = true,
+    createdAt = Instant.ofEpochMilli(1720000000000L),
   )
 
   val vipOnly: PromoCode = pctCode(
@@ -190,6 +194,7 @@ object SamplePromoCodes:
     constraints = PromoConstraints(
       allowedCustomerIds = Set(SampleAgreements.printShopProId, SampleAgreements.megaCorpId)
     ),
+    createdAtMs = 1719500000000L,
   )
 
   val expired: PromoCode = pctCode(

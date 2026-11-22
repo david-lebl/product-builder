@@ -159,6 +159,13 @@ private[artwork] final case class ArtworkSubmission(
       case _ =>
         Right(copy(status = ArtworkStatus.ChangesRequested(notes)))
 
+  def reject(reason: NonEmptyString): Either[ArtworkError, ArtworkSubmission] =
+    status match
+      case _: ArtworkStatus.OperatorApproved =>
+        Left(ArtworkError.AlreadyFinalized(id, status))
+      case _ =>
+        Right(copy(status = ArtworkStatus.Rejected(reason)))
+
   def toView: ArtworkSubmissionView =
     ArtworkSubmissionView(
       id = id,
@@ -238,6 +245,15 @@ private[artwork] final class ArtworkServiceLive(
       upd <- ZIO.fromEither(sub.requestChanges(notes))
       _   <- repo.save(upd)
       _   <- eventBus.publish(ArtworkChangesRequested(upd.id, upd.owner, notes, now))
+    yield upd.toView
+
+  override def reject(artworkId: ArtworkId, operatorId: EmployeeId, reason: NonEmptyString): IO[ArtworkError, ArtworkSubmissionView] =
+    for
+      now <- Clock.instant
+      sub <- repo.findById(artworkId).someOrFail(ArtworkError.NotFound(artworkId))
+      upd <- ZIO.fromEither(sub.reject(reason))
+      _   <- repo.save(upd)
+      _   <- eventBus.publish(ArtworkChangesRequested(upd.id, upd.owner, reason, now))
     yield upd.toView
 
   override def getById(artworkId: ArtworkId): IO[ArtworkError.NotFound, ArtworkSubmissionView] =

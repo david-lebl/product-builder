@@ -1,5 +1,6 @@
 package mpbuilder.storefront
 
+import mpbuilder.artwork.*
 import mpbuilder.catalog.*
 import mpbuilder.customers.*
 import mpbuilder.identity.*
@@ -17,6 +18,7 @@ import java.time.ZoneOffset
   *   - `PricingService`
   *   - `CustomerService`
   *   - `IdentityService`
+  *   - `ArtworkService`
   *   - `CartService`, `CheckoutOptionsService`, `OrderService`
   *   - `ManufacturingService` (speed availability policy only)
   */
@@ -120,11 +122,41 @@ trait StorefrontFacade:
 
   def listMyOrders(sessionToken: SessionToken): IO[StorefrontError, List[OrderView]]
 
+  // ── Customer Self-Service (Addresses, Payment Re-view, Artwork Re-upload) ──
+
+  def updateMyAddresses(
+      sessionToken: SessionToken,
+      billingAddress: Address,
+      shippingAddresses: List[Address],
+      defaultShippingIndex: Option[Int],
+  ): IO[StorefrontError, CustomerView]
+
+  def getOrderPaymentInstructions(
+      sessionToken: SessionToken,
+      orderId: OrderId,
+  ): IO[StorefrontError, PaymentInstructions]
+
+  def listOrderArtworks(
+      sessionToken: SessionToken,
+      orderId: OrderId,
+  ): IO[StorefrontError, List[ArtworkSubmissionView]]
+
+  def reuploadOrderArtwork(
+      sessionToken: SessionToken,
+      orderId: OrderId,
+      artworkId: ArtworkId,
+      fileName: NonEmptyString,
+      resolutionDpi: Int = 300,
+      bleedMm: Int = 3,
+      colorSpace: ColorSpace = ColorSpace.CMYK,
+  ): IO[StorefrontError, ArtworkSubmissionView]
+
 final class StorefrontFacadeLive(
     catalogService: CatalogService,
     pricingService: PricingService,
     customerService: CustomerService,
     identityService: IdentityService,
+    artworkService: ArtworkService,
     cartService: CartService,
     checkoutOptionsService: CheckoutOptionsService,
     orderService: OrderService,
@@ -331,10 +363,16 @@ final class StorefrontFacadeLive(
       deliveryOptions                 <- checkoutOptionsService.availableDeliveryOptions(currency, itemsNet, totalWeight, freeDelivery)
       (invoiceApproved, invoiceDueOpt) = invoiceEligibility(customerOpt)
       paymentOptions                  <- checkoutOptionsService.availablePaymentOptions(invoiceApproved)
+      orderedShippings                 = customerOpt.fold(Nil) { c =>
+                                           c.defaultShippingIndex match
+                                             case Some(idx) if idx >= 0 && idx < c.shippingAddresses.size =>
+                                               c.shippingAddresses(idx) :: c.shippingAddresses.patch(idx, Nil, 1)
+                                             case _ => c.shippingAddresses
+                                         }
       prefill                          = CheckoutPrefill(
                                            customer = customerOpt,
                                            billingAddress = customerOpt.map(_.billingAddress),
-                                           shippingAddresses = customerOpt.map(_.shippingAddresses).getOrElse(Nil),
+                                           shippingAddresses = orderedShippings,
                                            invoiceApproved = invoiceApproved,
                                            invoiceDueDays = invoiceDueOpt,
                                          )
@@ -457,7 +495,118 @@ final class StorefrontFacadeLive(
       orders   <- orderService.listOrdersByCustomer(customer.id)
     yield orders
 
+  override def updateMyAddresses(
+      sessionToken: SessionToken,
+      billingAddress: Address,
+      shippingAddresses: List[Address],
+      defaultShippingIndex: Option[Int],
+  ): IO[StorefrontError, CustomerView] =
+    for
+      customer <- currentCustomer(sessionToken)
+      updated  <- customerService
+                    .updateAddresses(
+                      UpdateCustomerAddressesCmd(
+                        id = customer.id,
+                        billingAddress = billingAddress,
+                        shippingAddresses = shippingAddresses,
+                        defaultShippingIndex = defaultShippingIndex,
+                        actor = CustomerActor.CustomerSelf(
+                          customer.id,
+                          NonEmptyString.unsafe(s"${customer.contact.firstName.value} ${customer.contact.lastName.value}"),
+                        ),
+                      )
+                    )
+                    .mapError(StorefrontError.CustomerFailure.apply)
+    yield updated
+
+  override def getOrderPaymentInstructions(
+      sessionToken: SessionToken,
+      orderId: OrderId,
+  ): IO[StorefrontError, PaymentInstructions] =
+    for
+      customer <- currentCustomer(sessionToken)
+      order    <- loadOwnedOrder(customer.id, orderId)
+      (_, dueOpt) = invoiceEligibility(Some(customer))
+      instr    <- checkoutOptionsService.generatePaymentInstructions(
+                    orderNumber = order.orderNumber,
+                    method = order.payment.method,
+                    grandTotalGross = order.totals.grandTotalGross,
+                    currency = order.totals.currency,
+                    invoiceDueDays = dueOpt,
+                  )
+    yield instr
+
+  override def listOrderArtworks(
+      sessionToken: SessionToken,
+      orderId: OrderId,
+  ): IO[StorefrontError, List[ArtworkSubmissionView]] =
+    for
+      customer <- currentCustomer(sessionToken)
+      order    <- loadOwnedOrder(customer.id, orderId)
+      byIdx    <- ZIO.foreach(order.lines.toList.zipWithIndex) { case (_, idx) =>
+                    artworkService.listByOwner(ArtworkOwner.OrderLineRef(orderId, idx))
+                  }
+    yield byIdx.flatten
+
+  override def reuploadOrderArtwork(
+      sessionToken: SessionToken,
+      orderId: OrderId,
+      artworkId: ArtworkId,
+      fileName: NonEmptyString,
+      resolutionDpi: Int,
+      bleedMm: Int,
+      colorSpace: ColorSpace,
+  ): IO[StorefrontError, ArtworkSubmissionView] =
+    for
+      customer <- currentCustomer(sessionToken)
+      order    <- loadOwnedOrder(customer.id, orderId)
+      existing <- artworkService.getById(artworkId).mapError(StorefrontError.ArtworkFailure.apply)
+      _        <- existing.owner match
+                    case ArtworkOwner.OrderLineRef(oid, _) if oid == orderId => ZIO.unit
+                    case _ => ZIO.fail(StorefrontError.OrderNotOwned(orderId))
+      lineOpt   = existing.owner match
+                    case ArtworkOwner.OrderLineRef(_, idx) => order.lines.lift(idx)
+                    case _                                 => None
+      trimSize  = lineOpt.map(_.product.components.head.finishedSize).getOrElse(existing.latestRevision.extractedSpecs.trimSize)
+      pageCnt   = existing.latestRevision.extractedSpecs.pageCount
+      req       = PreflightRequirement(
+                    expectedTrimSize = trimSize,
+                    requiredBleed = NonNegativeMm.unsafe(3),
+                    minResolutionDpi = 300,
+                    expectedPageCount = Some(pageCnt),
+                  )
+      revNum    = existing.revisionCount + 1
+      updated  <- artworkService
+                    .uploadRevision(
+                      UploadRevisionCmd(
+                        artworkId = artworkId,
+                        file = AssetFileMetadata(
+                          fileName = fileName,
+                          mimeType = NonEmptyString.unsafe("application/pdf"),
+                          sizeBytes = 6_400_000L,
+                          storageKey = NonEmptyString.unsafe(s"uploads/${orderId.value}/${artworkId.value}-v$revNum.pdf"),
+                        ),
+                        extractedSpecs = ExtractedFileSpecs(
+                          resolutionDpi = resolutionDpi,
+                          trimSize = trimSize,
+                          bleed = NonNegativeMm.unsafe(bleedMm.max(0)),
+                          colorSpace = colorSpace,
+                          pageCount = pageCnt,
+                          fontsEmbedded = true,
+                        ),
+                        requirement = Some(req),
+                      )
+                    )
+                    .mapError(StorefrontError.ArtworkFailure.apply)
+    yield updated
+
   // ── Private Helpers ────────────────────────────────────────────────────────
+
+  private def loadOwnedOrder(customerId: CustomerId, orderId: OrderId): IO[StorefrontError, OrderView] =
+    for
+      order <- orderService.getOrder(orderId).mapError(StorefrontError.OrderFailure.apply)
+      _     <- ZIO.fail(StorefrontError.OrderNotOwned(orderId)).unless(order.customer.customerId.contains(customerId))
+    yield order
 
   private def resolveOptionalCustomer(sessionToken: Option[SessionToken]): IO[StorefrontError, Option[CustomerView]] =
     sessionToken match
@@ -597,7 +746,7 @@ final class StorefrontFacadeLive(
 
 object StorefrontFacade:
   val layer: ZLayer[
-    CatalogService & PricingService & CustomerService & IdentityService & CartService & CheckoutOptionsService & OrderService & ManufacturingService,
+    CatalogService & PricingService & CustomerService & IdentityService & ArtworkService & CartService & CheckoutOptionsService & OrderService & ManufacturingService,
     Nothing,
     StorefrontFacade,
   ] =
@@ -607,10 +756,11 @@ object StorefrontFacade:
         prc   <- ZIO.service[PricingService]
         cust  <- ZIO.service[CustomerService]
         id    <- ZIO.service[IdentityService]
+        art   <- ZIO.service[ArtworkService]
         cart  <- ZIO.service[CartService]
         opts  <- ZIO.service[CheckoutOptionsService]
         ord   <- ZIO.service[OrderService]
         mfg   <- ZIO.service[ManufacturingService]
         seq   <- Ref.make(0L)
-      yield new StorefrontFacadeLive(cat, prc, cust, id, cart, opts, ord, mfg, seq)
+      yield new StorefrontFacadeLive(cat, prc, cust, id, art, cart, opts, ord, mfg, seq)
     }

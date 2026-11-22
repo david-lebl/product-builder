@@ -22,15 +22,36 @@ private[customers] final case class Customer(
     notes: List[AccountNote],
     tags: Set[String],
     createdAt: Instant,
+    additionalContacts: List[ContactPerson] = Nil,
+    defaultShippingIndex: Option[Int] = None,
+    auditLog: List[CustomerAuditEntry] = Nil,
 ):
-  def approve: Either[CustomerError, Customer] =
+  private def appendAudit(action: String, summary: String, actor: CustomerActor, at: Instant): List[CustomerAuditEntry] =
+    auditLog :+ CustomerAuditEntry(action, summary, actor, at)
+
+  private def normalizeDefaultIndex(addrs: List[Address], idx: Option[Int]): Option[Int] =
+    if addrs.isEmpty then None
+    else idx.filter(i => i >= 0 && i < addrs.size).orElse(Some(0))
+
+  def approve(actor: CustomerActor, at: Instant): Either[CustomerError, Customer] =
     status match
       case CustomerStatus.PendingApproval | CustomerStatus.Suspended =>
-        Right(copy(status = CustomerStatus.Active))
+        Right(
+          copy(
+            status = CustomerStatus.Active,
+            auditLog = appendAudit("Approved", s"Status changed from $status to Active", actor, at),
+          )
+        )
       case other =>
         Left(CustomerError.InvalidStatusTransition(id, other, CustomerStatus.Active))
 
-  def suspend(reason: NonEmptyString, by: Option[EmployeeId], at: Instant): Either[CustomerError, Customer] =
+  def suspend(
+      reason: NonEmptyString,
+      by: Option[EmployeeId],
+      byName: Option[NonEmptyString],
+      at: Instant,
+  ): Either[CustomerError, Customer] =
+    val actor = by.map(id => CustomerActor.Employee(id, byName)).getOrElse(CustomerActor.System)
     status match
       case CustomerStatus.Active =>
         Right(
@@ -38,12 +59,19 @@ private[customers] final case class Customer(
             status = CustomerStatus.Suspended,
             paymentTerms = PaymentTerms.PrepaidOnly,
             notes = notes :+ AccountNote(reason, at, by),
+            auditLog = appendAudit("Suspended", s"Account suspended: ${reason.value}", actor, at),
           )
         )
       case other =>
         Left(CustomerError.InvalidStatusTransition(id, other, CustomerStatus.Suspended))
 
-  def deactivate(reason: NonEmptyString, by: Option[EmployeeId], at: Instant): Either[CustomerError, Customer] =
+  def deactivate(
+      reason: NonEmptyString,
+      by: Option[EmployeeId],
+      byName: Option[NonEmptyString],
+      at: Instant,
+  ): Either[CustomerError, Customer] =
+    val actor = by.map(id => CustomerActor.Employee(id, byName)).getOrElse(CustomerActor.System)
     status match
       case CustomerStatus.Deactivated =>
         Left(CustomerError.InvalidStatusTransition(id, CustomerStatus.Deactivated, CustomerStatus.Deactivated))
@@ -53,29 +81,76 @@ private[customers] final case class Customer(
             status = CustomerStatus.Deactivated,
             paymentTerms = PaymentTerms.PrepaidOnly,
             notes = notes :+ AccountNote(reason, at, by),
+            auditLog = appendAudit("Deactivated", s"Account deactivated: ${reason.value}", actor, at),
           )
         )
 
-  def addNote(text: NonEmptyString, by: Option[EmployeeId], at: Instant): Customer =
-    copy(notes = notes :+ AccountNote(text, at, by))
+  def addNote(text: NonEmptyString, by: Option[EmployeeId], byName: Option[NonEmptyString], at: Instant): Customer =
+    val actor = by.map(id => CustomerActor.Employee(id, byName)).getOrElse(CustomerActor.System)
+    copy(
+      notes = notes :+ AccountNote(text, at, by),
+      auditLog = appendAudit("NoteAdded", s"Internal note added", actor, at),
+    )
 
-  def updateProfile(cmd: UpdateCustomerProfileCmd): Either[CustomerError, Customer] =
-    val needsCompany = segment == CustomerSegment.Business || segment == CustomerSegment.Agency
-    if needsCompany && cmd.company.isEmpty then Left(CustomerError.CompanyProfileRequired(segment))
+  def updateProfile(cmd: UpdateCustomerProfileCmd, at: Instant): Either[CustomerError, Customer] =
+    val isB2B = segment == CustomerSegment.Business || segment == CustomerSegment.Agency
+    if isB2B && cmd.company.isEmpty then Left(CustomerError.CompanyProfileRequired(segment))
+    else if !isB2B && cmd.additionalContacts.exists(_.nonEmpty) then
+      Left(CustomerError.MultipleContactsNotAllowed(segment))
     else
+      val nextContacts = cmd.additionalContacts.getOrElse(additionalContacts)
+      val nextShipping = cmd.shippingAddresses.getOrElse(shippingAddresses)
+      val nextDefIdx   = normalizeDefaultIndex(nextShipping, cmd.defaultShippingIndex.orElse(defaultShippingIndex))
+      val diffs = List(
+        Option.when(cmd.company != company)("company details"),
+        Option.when(cmd.contact != contact)("primary contact"),
+        Option.when(nextContacts != additionalContacts)(s"additional contacts (${nextContacts.size})"),
+        Option.when(cmd.billingAddress != billingAddress)("billing address"),
+        Option.when(nextShipping != shippingAddresses || nextDefIdx != defaultShippingIndex)(s"delivery addresses (${nextShipping.size})"),
+        Option.when(cmd.tags != tags)("tags"),
+      ).flatten
+      val summary = if diffs.nonEmpty then s"Updated ${diffs.mkString(", ")}" else "Profile saved (no field changes)"
       Right(
         copy(
           company = cmd.company,
           contact = cmd.contact,
           billingAddress = cmd.billingAddress,
+          shippingAddresses = nextShipping,
+          defaultShippingIndex = nextDefIdx,
+          additionalContacts = nextContacts,
           tags = cmd.tags,
+          auditLog = appendAudit("ProfileUpdated", summary, cmd.actor, at),
         )
       )
 
-  def withPaymentTerms(terms: PaymentTerms): Either[CustomerError, Customer] =
+  def updateAddresses(cmd: UpdateCustomerAddressesCmd, at: Instant): Customer =
+    val nextDefIdx = normalizeDefaultIndex(cmd.shippingAddresses, cmd.defaultShippingIndex)
+    val summary =
+      s"Billing: ${cmd.billingAddress.street.value}, ${cmd.billingAddress.city.value}; ${cmd.shippingAddresses.size} delivery address(es)"
+    copy(
+      billingAddress = cmd.billingAddress,
+      shippingAddresses = cmd.shippingAddresses,
+      defaultShippingIndex = nextDefIdx,
+      auditLog = appendAudit("AddressesUpdated", summary, cmd.actor, at),
+    )
+
+  def withTier(newTier: CustomerTier, actor: CustomerActor, at: Instant): Customer =
+    if newTier == tier then this
+    else
+      copy(
+        tier = newTier,
+        auditLog = appendAudit("TierChanged", s"Tier changed from $tier to $newTier", actor, at),
+      )
+
+  def withPaymentTerms(terms: PaymentTerms, actor: CustomerActor, at: Instant): Either[CustomerError, Customer] =
     terms match
       case PaymentTerms.PrepaidOnly =>
-        Right(copy(paymentTerms = PaymentTerms.PrepaidOnly))
+        Right(
+          copy(
+            paymentTerms = PaymentTerms.PrepaidOnly,
+            auditLog = appendAudit("PaymentTermsChanged", "Payment terms set to PrepaidOnly", actor, at),
+          )
+        )
       case PaymentTerms.NetInvoice(days, limit) =>
         if status != CustomerStatus.Active then
           Left(CustomerError.NetInvoiceNotEligible(id, s"Customer status is $status (must be Active)"))
@@ -86,7 +161,17 @@ private[customers] final case class Customer(
         else if !limit.amount.isPositive then
           Left(CustomerError.InvalidCreditTerms(s"creditLimit must be positive, got ${limit.amount.value}"))
         else
-          Right(copy(paymentTerms = terms))
+          Right(
+            copy(
+              paymentTerms = terms,
+              auditLog = appendAudit(
+                "PaymentTermsChanged",
+                s"Granted Net-$days invoice terms (limit ${limit.amount.value} ${limit.currency})",
+                actor,
+                at,
+              ),
+            )
+          )
 
   def toView: CustomerView =
     CustomerView(
@@ -102,17 +187,25 @@ private[customers] final case class Customer(
       tags = tags,
       createdAt = createdAt,
       notes = notes,
+      additionalContacts = additionalContacts,
+      defaultShippingIndex = defaultShippingIndex,
+      auditLog = auditLog,
     )
 
 private[customers] object Customer:
   def register(cmd: RegisterCustomerCmd, now: Instant): Either[CustomerError, Customer] =
-    val needsCompany = cmd.segment == CustomerSegment.Business || cmd.segment == CustomerSegment.Agency
-    if needsCompany && cmd.company.isEmpty then
+    val isB2B = cmd.segment == CustomerSegment.Business || cmd.segment == CustomerSegment.Agency
+    if isB2B && cmd.company.isEmpty then
       Left(CustomerError.CompanyProfileRequired(cmd.segment))
+    else if !isB2B && cmd.additionalContacts.nonEmpty then
+      Left(CustomerError.MultipleContactsNotAllowed(cmd.segment))
     else
       val initialStatus =
         if cmd.segment == CustomerSegment.Individual then CustomerStatus.Active
         else CustomerStatus.PendingApproval
+      val normDefIdx =
+        if cmd.shippingAddresses.isEmpty then None
+        else cmd.defaultShippingIndex.filter(i => i >= 0 && i < cmd.shippingAddresses.size).orElse(Some(0))
       Right(
         Customer(
           id = cmd.id,
@@ -122,11 +215,21 @@ private[customers] object Customer:
           company = cmd.company,
           contact = cmd.contact,
           billingAddress = cmd.billingAddress,
-          shippingAddresses = List.empty,
+          shippingAddresses = cmd.shippingAddresses,
           paymentTerms = PaymentTerms.PrepaidOnly,
           notes = List.empty,
           tags = Set.empty,
           createdAt = now,
+          additionalContacts = cmd.additionalContacts,
+          defaultShippingIndex = normDefIdx,
+          auditLog = List(
+            CustomerAuditEntry(
+              action = "Registered",
+              summary = s"Account registered (${cmd.segment}, initial status $initialStatus)",
+              actor = CustomerActor.System,
+              occurredAt = now,
+            )
+          ),
         )
       )
 
@@ -177,6 +280,10 @@ private[customers] final class CustomerServiceLive(
             c.id.value.toLowerCase.contains(needle) ||
             c.contact.email.value.toLowerCase.contains(needle) ||
             s"${c.contact.firstName.value} ${c.contact.lastName.value}".toLowerCase.contains(needle) ||
+            c.additionalContacts.exists(ac =>
+              ac.email.value.toLowerCase.contains(needle) ||
+                s"${ac.firstName.value} ${ac.lastName.value}".toLowerCase.contains(needle)
+            ) ||
             c.company.exists(co =>
               co.legalName.value.toLowerCase.contains(needle) ||
                 co.registrationNumber.value.toLowerCase.contains(needle) ||
@@ -189,50 +296,70 @@ private[customers] final class CustomerServiceLive(
         .map(_.toView)
     }
 
-  override def approve(id: CustomerId): IO[CustomerError, CustomerView] =
+  override def approve(id: CustomerId, actor: CustomerActor = CustomerActor.System): IO[CustomerError, CustomerView] =
     for
       now      <- Clock.instant
       customer <- repo.findById(id).someOrFail(CustomerError.NotFound(id))
-      updated  <- ZIO.fromEither(customer.approve)
+      updated  <- ZIO.fromEither(customer.approve(actor, now))
       _        <- repo.save(updated)
       _        <- eventBus.publish(CustomerApproved(updated.id, now))
     yield updated.toView
 
-  override def suspend(id: CustomerId, reason: NonEmptyString, by: Option[EmployeeId]): IO[CustomerError, CustomerView] =
+  override def suspend(
+      id: CustomerId,
+      reason: NonEmptyString,
+      by: Option[EmployeeId],
+      byName: Option[NonEmptyString] = None,
+  ): IO[CustomerError, CustomerView] =
     for
       now      <- Clock.instant
       customer <- repo.findById(id).someOrFail(CustomerError.NotFound(id))
-      updated  <- ZIO.fromEither(customer.suspend(reason, by, now))
+      updated  <- ZIO.fromEither(customer.suspend(reason, by, byName, now))
       _        <- repo.save(updated)
     yield updated.toView
 
-  override def deactivate(id: CustomerId, reason: NonEmptyString, by: Option[EmployeeId]): IO[CustomerError, CustomerView] =
+  override def deactivate(
+      id: CustomerId,
+      reason: NonEmptyString,
+      by: Option[EmployeeId],
+      byName: Option[NonEmptyString] = None,
+  ): IO[CustomerError, CustomerView] =
     for
       now      <- Clock.instant
       customer <- repo.findById(id).someOrFail(CustomerError.NotFound(id))
-      updated  <- ZIO.fromEither(customer.deactivate(reason, by, now))
+      updated  <- ZIO.fromEither(customer.deactivate(reason, by, byName, now))
       _        <- repo.save(updated)
     yield updated.toView
 
-  override def changeTier(id: CustomerId, newTier: CustomerTier): IO[CustomerError, CustomerView] =
+  override def changeTier(
+      id: CustomerId,
+      newTier: CustomerTier,
+      actor: CustomerActor = CustomerActor.System,
+  ): IO[CustomerError, CustomerView] =
     for
       now      <- Clock.instant
       customer <- repo.findById(id).someOrFail(CustomerError.NotFound(id))
       prev      = customer.tier
-      updated   = customer.copy(tier = newTier)
+      updated   = customer.withTier(newTier, actor, now)
       _        <- repo.save(updated)
       _        <- eventBus.publish(CustomerTierChanged(updated.id, prev, newTier, now)).when(prev != newTier)
     yield updated.toView
 
-  override def grantPaymentTerms(id: CustomerId, terms: PaymentTerms): IO[CustomerError, CustomerView] =
+  override def grantPaymentTerms(
+      id: CustomerId,
+      terms: PaymentTerms,
+      actor: CustomerActor = CustomerActor.System,
+  ): IO[CustomerError, CustomerView] =
     for
+      now      <- Clock.instant
       customer <- repo.findById(id).someOrFail(CustomerError.NotFound(id))
-      updated  <- ZIO.fromEither(customer.withPaymentTerms(terms))
+      updated  <- ZIO.fromEither(customer.withPaymentTerms(terms, actor, now))
       _        <- repo.save(updated)
     yield updated.toView
 
   override def updateProfile(cmd: UpdateCustomerProfileCmd): IO[CustomerError, CustomerView] =
     for
+      now      <- Clock.instant
       customer <- repo.findById(cmd.id).someOrFail(CustomerError.NotFound(cmd.id))
       _        <- ZIO
                     .when(cmd.contact.email != customer.contact.email) {
@@ -244,15 +371,28 @@ private[customers] final class CustomerServiceLive(
                             .when(existing.exists(_.id != cmd.id))
                         )
                     }
-      updated  <- ZIO.fromEither(customer.updateProfile(cmd))
+      updated  <- ZIO.fromEither(customer.updateProfile(cmd, now))
       _        <- repo.save(updated)
     yield updated.toView
 
-  override def addNote(id: CustomerId, text: NonEmptyString, by: Option[EmployeeId]): IO[CustomerError, CustomerView] =
+  override def updateAddresses(cmd: UpdateCustomerAddressesCmd): IO[CustomerError, CustomerView] =
+    for
+      now      <- Clock.instant
+      customer <- repo.findById(cmd.id).someOrFail(CustomerError.NotFound(cmd.id))
+      updated   = customer.updateAddresses(cmd, now)
+      _        <- repo.save(updated)
+    yield updated.toView
+
+  override def addNote(
+      id: CustomerId,
+      text: NonEmptyString,
+      by: Option[EmployeeId],
+      byName: Option[NonEmptyString] = None,
+  ): IO[CustomerError, CustomerView] =
     for
       now      <- Clock.instant
       customer <- repo.findById(id).someOrFail(CustomerError.NotFound(id))
-      updated   = customer.addNote(text, by, now)
+      updated   = customer.addNote(text, by, byName, now)
       _        <- repo.save(updated)
     yield updated.toView
 

@@ -73,7 +73,7 @@ object SampleShowcaseRuntime:
       ZLayer.service[EventBus] ++
         CatalogSampleLayer.live() ++
         customerAndIdentityLayer ++
-        ArtworkSampleLayer.live ++
+        ArtworkSampleLayer.live(seedSampleArtworks = seedSampleOrders) ++
         OrderingSampleLayer.live(seedSampleOrders = seedSampleOrders) ++
         (mfgLayer >+> pricingLayer)
 

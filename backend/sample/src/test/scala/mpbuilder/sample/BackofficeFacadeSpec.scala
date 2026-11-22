@@ -1,5 +1,6 @@
 package mpbuilder.sample
 
+import mpbuilder.artwork.*
 import mpbuilder.backoffice.*
 import mpbuilder.catalog.*
 import mpbuilder.catalog.sample.SampleCatalog
@@ -271,6 +272,170 @@ object BackofficeFacadeSpec extends ZIOSpecDefault:
         shops1.size == settings0.pickupLocations.size + 1,
         shops2.size == settings0.pickupLocations.size,
         banks1.contains(Currency.EUR),
+      )
+    }.provide(SampleShowcaseRuntime.layer()),
+
+    test("Customer multi-contacts & audit trail, Promo createdAt/lifecycle, Order priority/deadline/payment/line-edit, and Artwork review") {
+      for
+        _        <- TestClock.setTime(java.time.Instant.parse("2026-07-01T12:00:00Z"))
+        bo       <- ZIO.service[BackofficeFacade]
+        mgrAuth  <- bo.loginStaff(managerEmail, staffPass)
+        tok       = mgrAuth.session.token
+
+        // 1. Business customer profile edit with multiple contacts records employee audit entry
+        pspBefore <- bo.getCustomerDetail(tok, SampleCustomers.printShopProId)
+        extraC     = ContactPerson(
+                       NonEmptyString.unsafe("Eva"),
+                       NonEmptyString.unsafe("Nováková"),
+                       EmailAddress.unsafe("eva@printshoppro.cz"),
+                       Some(NonEmptyString.unsafe("+420 777 111 222")),
+                       Some(NonEmptyString.unsafe("Billing Lead")),
+                     )
+        psp        = pspBefore.customer
+        edited    <- bo.updateCustomerProfile(
+                       tok,
+                       UpdateCustomerProfileCmd(
+                         id = psp.id,
+                         company = psp.company,
+                         contact = psp.contact,
+                         billingAddress = psp.billingAddress,
+                         tags = psp.tags,
+                         additionalContacts = Some(psp.additionalContacts :+ extraC),
+                       ),
+                     )
+        // Individual customer rejects additional contacts
+        indivCust <- bo.registerCustomer(
+                       tok,
+                       RegisterCustomerCmd(
+                         id = CustomerId.unsafe("cust-indiv-test"),
+                         segment = CustomerSegment.Individual,
+                         company = None,
+                         contact = ContactPerson(
+                           NonEmptyString.unsafe("Anna"),
+                           NonEmptyString.unsafe("Svobodová"),
+                           EmailAddress.unsafe("anna.indiv@example.cz"),
+                         ),
+                         billingAddress = psp.billingAddress,
+                       ),
+                     )
+        indivBad  <- bo
+                       .updateCustomerProfile(
+                         tok,
+                         UpdateCustomerProfileCmd(
+                           id = indivCust.id,
+                           company = indivCust.company,
+                           contact = indivCust.contact,
+                           billingAddress = indivCust.billingAddress,
+                           tags = indivCust.tags,
+                           additionalContacts = Some(List(extraC)),
+                         ),
+                       )
+                       .either
+
+        // 2. Promo codes newest-first ordering + lifecycle classification
+        now       <- Clock.instant
+        freshPromo = PromoCode(
+                       id = DiscountCodeId.unsafe("promo-newest-99"),
+                       code = NonEmptyString.unsafe("NEWEST99"),
+                       benefit = PromoBenefit.PercentageOff(Percentage.unsafe(BigDecimal(10))),
+                       constraints = PromoConstraints(validUntil = Some(now.plusSeconds(86400L * 30))),
+                       isActive = true,
+                     )
+        _         <- bo.savePromoCode(tok, freshPromo)
+        promos    <- bo.listPromoCodes(tok)
+        statuses   = promos.map(_.lifecycleStatus(now)).toSet
+
+        // 3. Order priority, deadline, decoupled payment toggle, line editing & artwork reject
+        ord2      <- bo.getOrder(tok, OrderId.unsafe("ord-seed-0902"))
+        // Mark payment Confirmed without changing stage, then toggle back to Pending
+        paidOrd   <- bo.markOrderPaymentStatus(tok, ord2.id, PaymentStatus.Confirmed, Some(NonEmptyString.unsafe("Manual bank match")))
+        unpaidOrd <- bo.markOrderPaymentStatus(tok, ord2.id, PaymentStatus.Pending, Some(NonEmptyString.unsafe("Reverted")))
+        // Edit line quantity, speed, and specNote
+        line0      = ord2.lines.head
+        editedOrd <- bo.editOrderLine(
+                       tok,
+                       EditOrderLineCmd(
+                         orderId = ord2.id,
+                         lineId = line0.lineId,
+                         copies = Some(Quantity.unsafe(2)),
+                         speed = Some(ManufacturingSpeed.Economy),
+                         specNote = Some(Some("Use Pantone 286C match")),
+                       ),
+                     )
+        // Artwork list & reject
+        arts      <- bo.listOrderArtwork(tok, OrderId.unsafe("ord-seed-0901"))
+        rejected  <- bo.rejectArtwork(tok, arts.head.id, NonEmptyString.unsafe("Corrupted PDF"))
+      yield assertTrue(
+        edited.additionalContacts.exists(_.email.value == "eva@printshoppro.cz"),
+        edited.auditLog.exists { e =>
+          e.action == "ProfileUpdated" && e.actor.isInstanceOf[CustomerActor.Employee]
+        },
+        indivBad.left.exists {
+          case BackofficeError.CustomerFailure(_: CustomerError.MultipleContactsNotAllowed) => true
+          case _                                                                            => false
+        },
+        promos.head.code.value == "NEWEST99",
+        statuses.contains(PromoLifecycleStatus.Active),
+        statuses.contains(PromoLifecycleStatus.Expired),
+        statuses.contains(PromoLifecycleStatus.Exhausted),
+        statuses.contains(PromoLifecycleStatus.Inactive),
+        ord2.priority == OrderPriority.Urgent,
+        ord2.calculatedDeadline == ord2.placedAt.plusSeconds(24L * 3600L),
+        paidOrd.payment.status == PaymentStatus.Confirmed,
+        paidOrd.status == ord2.status,
+        unpaidOrd.payment.status == PaymentStatus.Pending,
+        editedOrd.priority == OrderPriority.Economy,
+        editedOrd.lines.head.copies.value == 2,
+        editedOrd.lines.head.specNote.contains("Use Pantone 286C match"),
+        editedOrd.totals.linesNetTotal.value > ord2.totals.linesNetTotal.value,
+        rejected.status == ArtworkStatus.Rejected(NonEmptyString.unsafe("Corrupted PDF")),
+      )
+    }.provide(SampleShowcaseRuntime.layer()),
+
+    test("Customer self-service address editing, payment instructions re-view, and artwork re-upload") {
+      for
+        sf      <- ZIO.service[StorefrontFacade]
+        auth    <- sf.loginWithPassword(customerEmail, customerPass)
+        tok      = auth.session.token
+        cust0    = auth.customer.get
+
+        // 1. Update billing + multiple delivery addresses with default index
+        newBill  = cust0.billingAddress.copy(street = NonEmptyString.unsafe("Na Příkopě 22"))
+        deliv1   = Address(NonEmptyString.unsafe("Křižíkova 10"), NonEmptyString.unsafe("Praha"), NonEmptyString.unsafe("18600"), NonEmptyString.unsafe("CZ"))
+        deliv2   = Address(NonEmptyString.unsafe("Masarykova 5"), NonEmptyString.unsafe("Brno"), NonEmptyString.unsafe("60200"), NonEmptyString.unsafe("CZ"))
+        updated <- sf.updateMyAddresses(tok, newBill, List(deliv1, deliv2), Some(1))
+
+        // 2. View payment instructions for unpaid order ord-seed-0902
+        orders  <- sf.listMyOrders(tok)
+        ord2     = orders.find(_.id == OrderId.unsafe("ord-seed-0902")).get
+        instr   <- sf.getOrderPaymentInstructions(tok, ord2.id)
+        instrOk  = instr match
+                     case PaymentInstructions.InvoiceScheduled(due, ref)            => due > 0 && ref.value.nonEmpty
+                     case PaymentInstructions.BankTransferQR(_, _, _, _, amt, _, _) => amt == ord2.totals.grandTotalGross
+                     case PaymentInstructions.CardPending(_, msg)                   => msg.nonEmpty
+
+        // 3. List order artworks and re-upload corrected revision for ChangesRequested artwork
+        arts0   <- sf.listOrderArtworks(tok, ord2.id)
+        art0     = arts0.head
+        art1    <- sf.reuploadOrderArtwork(
+                     sessionToken = tok,
+                     orderId = ord2.id,
+                     artworkId = art0.id,
+                     fileName = NonEmptyString.unsafe("printshoppro-a5-flyers-cmyk-v2.pdf"),
+                     resolutionDpi = 300,
+                     bleedMm = 3,
+                     colorSpace = ColorSpace.CMYK,
+                   )
+      yield assertTrue(
+        updated.billingAddress.street.value == "Na Příkopě 22",
+        updated.shippingAddresses.size == 2,
+        updated.defaultShippingIndex.contains(1),
+        updated.defaultShippingAddress.contains(deliv2),
+        updated.auditLog.exists(_.actor.isInstanceOf[CustomerActor.CustomerSelf]),
+        instrOk,
+        art0.status.isInstanceOf[ArtworkStatus.ChangesRequested],
+        art1.revisionCount == art0.revisionCount + 1,
+        art1.status == ArtworkStatus.PreflightPassed,
       )
     }.provide(SampleShowcaseRuntime.layer()),
   )

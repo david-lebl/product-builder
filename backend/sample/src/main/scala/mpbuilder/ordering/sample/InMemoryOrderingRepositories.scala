@@ -215,6 +215,7 @@ object SampleSeedOrders:
       sheets: Int,
       net: BigDecimal,
       speed: ManufacturingSpeed = ManufacturingSpeed.Standard,
+      artworkId: Option[String] = None,
   ): OrderLine =
     val netMoney = Money(net)
     val taxAmt   = (netMoney * (TaxRate.czStandard.value / BigDecimal(100))).rounded
@@ -252,20 +253,21 @@ object SampleSeedOrders:
         taxAmount = taxAmt,
         grossAmount = gross,
       ),
-      artworkIds = Map.empty,
+      artworkIds = artworkId.map(aid => ComponentKey.Main -> ArtworkId.unsafe(aid)).toMap,
     )
 
   /** 4 realistic demo orders across the intake workflow:
-    *   - ORD-2026-0901: AwaitingPayment (Bank transfer, walk-in customer)
-    *   - ORD-2026-0902: Confirmed (NetInvoice, Print Shop Pro s.r.o. — ready for intake acceptance)
-    *   - ORD-2026-0903: Accepted (NetInvoice, MegaCorp a.s. — accepted by Operations Manager)
-    *   - ORD-2026-0904: InProduction (Paid, Graphic Design Co. — active print job)
+    *   - ORD-2026-0901: AwaitingPayment (Bank transfer, walk-in customer, Standard)
+    *   - ORD-2026-0902: Confirmed (NetInvoice, Print Shop Pro s.r.o. — Express Rush, ChangesRequested artwork)
+    *   - ORD-2026-0903: Accepted (NetInvoice, MegaCorp a.s. — Standard, Approved artwork)
+    *   - ORD-2026-0904: InProduction (Paid, Graphic Design Co. — Economy, Approved artwork)
     */
   private[ordering] val initialOrders: List[Order] =
     val ord1Line = mkLine(
       "seed-line-1", "cat-business-cards", "Business Cards", "Vizitky",
       "mat-coated-350", "Coated Silk 350g", "Křída matná 350g",
       "pm-digital", "4/4", 90, 50, 500, 26, BigDecimal("690.00"),
+      artworkId = Some("art-seed-0901"),
     )
     val ord1 = Order
       .place(
@@ -301,6 +303,7 @@ object SampleSeedOrders:
       "mat-coated-170", "Coated Silk 170g", "Křída matná 170g",
       "pm-digital", "4/4", 148, 210, 1000, 260, BigDecimal("2450.00"),
       speed = ManufacturingSpeed.Express,
+      artworkId = Some("art-seed-0902"),
     )
     val ord2 = Order
       .place(
@@ -348,6 +351,7 @@ object SampleSeedOrders:
       "seed-line-3", "cat-posters", "Posters", "Plakáty",
       "mat-coated-200", "Coated Gloss 200g", "Křída lesklá 200g",
       "pm-large-format", "4/0", 420, 594, 50, 50, BigDecimal("3120.00"),
+      artworkId = Some("art-seed-0903"),
     )
     val ord3 = Order
       .place(
@@ -386,6 +390,8 @@ object SampleSeedOrders:
       "seed-line-4", "cat-brochures", "Brochures", "Brožury",
       "mat-coated-135", "Coated Silk 135g", "Křída matná 135g",
       "pm-offset", "4/4", 210, 297, 250, 140, BigDecimal("4850.00"),
+      speed = ManufacturingSpeed.Economy,
+      artworkId = Some("art-seed-0904"),
     )
     val ord4 = Order
       .place(

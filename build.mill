@@ -212,6 +212,7 @@ object backend extends Module {
         backend.pricing.`01-c-core`.jvm,
         backend.customers.`01-c-core`.jvm,
         backend.identity.`01-c-core`.jvm,
+        backend.artwork.`01-c-core`.jvm,
         backend.ordering.`01-c-core`.jvm,
         backend.manufacturing.`01-c-core`.jvm,
       )
@@ -225,6 +226,7 @@ object backend extends Module {
         backend.pricing.`01-c-core`.js,
         backend.customers.`01-c-core`.js,
         backend.identity.`01-c-core`.js,
+        backend.artwork.`01-c-core`.js,
         backend.ordering.`01-c-core`.js,
         backend.manufacturing.`01-c-core`.js,
       )
@@ -318,6 +320,7 @@ object `ui-core` extends Module {
       backend.pricing.`01-c-core`.jvm,
       backend.customers.`01-c-core`.jvm,
       backend.identity.`01-c-core`.jvm,
+      backend.artwork.`01-c-core`.jvm,
       backend.ordering.`01-c-core`.jvm,
       backend.storefront.jvm,
     )
@@ -344,6 +347,7 @@ object `ui-core` extends Module {
       backend.pricing.`01-c-core`.js,
       backend.customers.`01-c-core`.js,
       backend.identity.`01-c-core`.js,
+      backend.artwork.`01-c-core`.js,
       backend.ordering.`01-c-core`.js,
       backend.storefront.js,
     )

@@ -219,6 +219,109 @@ private[ordering] final case class Order(
       Right(copy(status = next, previousStatusBeforeHold = prevHold, statusHistory = statusHistory :+ ev))
     else Left(OrderError.InvalidStatusTransition(id, status, next))
 
+  def setPaymentStatus(
+      nextPaymentStatus: PaymentStatus,
+      reference: Option[String],
+      now: Instant,
+      actor: OrderActor,
+  ): Either[OrderError, Order] =
+    status match
+      case _: OrderStatus.Cancelled if nextPaymentStatus != PaymentStatus.Refunded =>
+        Left(OrderError.OrderAlreadyCancelled(id))
+      case _ =>
+        val nextConfirmedAt =
+          if nextPaymentStatus == PaymentStatus.Confirmed then payment.confirmedAt.orElse(Some(now))
+          else None
+        val nextOrderStatus =
+          if nextPaymentStatus == PaymentStatus.Confirmed && status == OrderStatus.AwaitingPayment then
+            OrderStatus.Confirmed
+          else status
+        val label = nextPaymentStatus match
+          case PaymentStatus.Confirmed  => "Payment marked as Paid"
+          case PaymentStatus.Pending    => "Payment marked as Unpaid (Pending)"
+          case PaymentStatus.Authorized => "Payment marked as Authorized"
+          case PaymentStatus.Failed     => "Payment marked as Failed"
+          case PaymentStatus.Refunded   => "Payment marked as Refunded"
+        val noteText = reference.filter(_.trim.nonEmpty).fold(label)(r => s"$label ($r)")
+        val ev       = OrderStatusEvent(Some(status), nextOrderStatus, actor, Some(noteText), now)
+        Right(
+          copy(
+            payment = payment.copy(
+              status = nextPaymentStatus,
+              externalReference = reference.filter(_.trim.nonEmpty).orElse(payment.externalReference),
+              confirmedAt = nextConfirmedAt,
+            ),
+            status = nextOrderStatus,
+            statusHistory = statusHistory :+ ev,
+          )
+        )
+
+  def editLine(
+      cmd: EditOrderLineCmd,
+      actor: OrderActor,
+      now: Instant,
+  ): Either[OrderError, Order] =
+    status match
+      case OrderStatus.Dispatched | OrderStatus.Completed | _: OrderStatus.Cancelled =>
+        Left(OrderError.OrderNotEditable(id, status))
+      case _ =>
+        lines.find(_.lineId == cmd.lineId) match
+          case None => Left(OrderError.OrderLineNotFound(id, cmd.lineId))
+          case Some(target) =>
+            val nextQty    = cmd.runQuantity.getOrElse(target.runQuantity)
+            val nextCopies = cmd.copies.getOrElse(target.copies)
+            val nextSpeed  = cmd.speed.getOrElse(target.speed)
+            val nextNote   = cmd.specNote.map(_.map(_.trim).filter(_.nonEmpty)).getOrElse(target.specNote)
+
+            // Scale per-copy net price proportionally if runQuantity changed (keeps subtotal accurate in-memory)
+            val nextPrice =
+              if nextQty != target.runQuantity && target.runQuantity.value > 0 then
+                val factor  = BigDecimal(nextQty.value) / BigDecimal(target.runQuantity.value)
+                val newNet  = (target.price.netAmount * factor).rounded
+                val newTax  = target.price.taxRate.taxOnNet(newNet)
+                val newGrs  = (newNet + newTax).rounded
+                target.price.copy(netAmount = newNet, taxAmount = newTax, grossAmount = newGrs)
+              else target.price
+
+            val updatedLine = target.copy(
+              runQuantity = nextQty,
+              copies = nextCopies,
+              speed = nextSpeed,
+              price = nextPrice,
+              specNote = nextNote,
+            )
+            val updatedLines = lines.map(l => if l.lineId == cmd.lineId then updatedLine else l)
+            val promoRaw     = appliedPromo.map(_.discountNet).getOrElse(Money.zero)
+            val (linesNet, promoDiscount, linesTax) = TotalsCalculator.computeLinesNetAndTax(
+              updatedLines.toList.map(l => (l.lineNetTotal, l.price.taxRate)),
+              promoRaw,
+            )
+            val (shipNet, shipTax) = delivery match
+              case DeliverySelection.ShopPickup(_) => (Money.zero, Money.zero)
+              case DeliverySelection.Courier(_, _, feeNet, taxRate) =>
+                (feeNet.rounded, taxRate.taxOnNet(feeNet))
+            val discountedLinesNet = (linesNet - promoDiscount).rounded
+            val totalTax           = (linesTax + shipTax).rounded
+            val grandGross         = (discountedLinesNet + shipNet + totalTax).rounded
+            val newTotals          = totals.copy(
+              linesNetTotal = linesNet,
+              shippingNet = shipNet,
+              taxTotal = totalTax,
+              grandTotalGross = grandGross,
+              promoDiscountNet = promoDiscount,
+            )
+            val changes = List(
+              Option.when(nextQty != target.runQuantity)(s"qty ${target.runQuantity.value}→${nextQty.value}"),
+              Option.when(nextCopies != target.copies)(s"copies ${target.copies.value}→${nextCopies.value}"),
+              Option.when(nextSpeed != target.speed)(s"speed ${target.speed}→$nextSpeed"),
+              Option.when(nextNote != target.specNote)("specification note updated"),
+            ).flatten
+            val summary =
+              s"Edited line ${target.product.categoryName(Language.En)}: " +
+                (if changes.nonEmpty then changes.mkString(", ") else "no changes")
+            val ev = OrderStatusEvent(Some(status), status, actor, Some(summary), now)
+            Right(copy(lines = updatedLines, totals = newTotals, statusHistory = statusHistory :+ ev))
+
   def addNote(authorId: EmployeeId, authorName: Option[NonEmptyString], text: NonEmptyString, now: Instant): Order =
     copy(internalNotes = internalNotes :+ OrderInternalNote(authorId, authorName, text, now))
 
@@ -704,6 +807,34 @@ private[ordering] final class OrderServiceLive(
       reference: Option[String],
   ): IO[OrderError, OrderView] =
     confirmPaymentInternal(orderId, reference, OrderActor.Employee(by, byName))
+
+  override def markPaymentStatus(
+      orderId: OrderId,
+      status: PaymentStatus,
+      by: EmployeeId,
+      byName: Option[NonEmptyString],
+      reference: Option[String],
+  ): IO[OrderError, OrderView] =
+    for
+      now     <- Clock.instant
+      order   <- repo.findById(orderId).someOrFail(OrderError.OrderNotFound(orderId))
+      updated <- ZIO.fromEither(order.setPaymentStatus(status, reference, now, OrderActor.Employee(by, byName)))
+      _       <- repo.save(updated)
+      _       <- eventBus.publish(OrderConfirmed(updated.id, updated.orderNumber, updated.lines, now))
+                   .when(order.status != OrderStatus.Confirmed && updated.status == OrderStatus.Confirmed)
+    yield updated.toView
+
+  override def editOrderLine(
+      cmd: EditOrderLineCmd,
+      by: EmployeeId,
+      byName: Option[NonEmptyString],
+  ): IO[OrderError, OrderView] =
+    for
+      now     <- Clock.instant
+      order   <- repo.findById(cmd.orderId).someOrFail(OrderError.OrderNotFound(cmd.orderId))
+      updated <- ZIO.fromEither(order.editLine(cmd, OrderActor.Employee(by, byName), now))
+      _       <- repo.save(updated)
+    yield updated.toView
 
   override def cancelByStaff(
       orderId: OrderId,

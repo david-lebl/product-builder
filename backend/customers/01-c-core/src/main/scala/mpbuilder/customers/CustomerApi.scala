@@ -21,12 +21,25 @@ final case class ContactPerson(
     lastName: NonEmptyString,
     email: EmailAddress,
     phone: Option[NonEmptyString] = None,
+    roleTitle: Option[NonEmptyString] = None,
 )
 
 enum PaymentTerms:
   case PrepaidOnly
   /** Net invoice credit terms — allowed only for Active Business/Agency customers. */
   case NetInvoice(dueDays: Int, creditLimit: Price)
+
+enum CustomerActor:
+  case System
+  case CustomerSelf(customerId: CustomerId, name: NonEmptyString)
+  case Employee(employeeId: EmployeeId, name: Option[NonEmptyString] = None)
+
+final case class CustomerAuditEntry(
+    action: String,
+    summary: String,
+    actor: CustomerActor,
+    occurredAt: Instant,
+)
 
 final case class AccountNote(
     text: NonEmptyString,
@@ -52,7 +65,12 @@ final case class CustomerView(
     tags: Set[String],
     createdAt: Instant,
     notes: List[AccountNote] = Nil,
-)
+    additionalContacts: List[ContactPerson] = Nil,
+    defaultShippingIndex: Option[Int] = None,
+    auditLog: List[CustomerAuditEntry] = Nil,
+):
+  def defaultShippingAddress: Option[Address] =
+    defaultShippingIndex.flatMap(shippingAddresses.lift).orElse(shippingAddresses.headOption)
 
 final case class CustomerFilter(
     status: Option[CustomerStatus] = None,
@@ -67,6 +85,9 @@ final case class RegisterCustomerCmd(
     company: Option[CompanyProfile],
     contact: ContactPerson,
     billingAddress: Address,
+    additionalContacts: List[ContactPerson] = Nil,
+    shippingAddresses: List[Address] = Nil,
+    defaultShippingIndex: Option[Int] = None,
 )
 
 final case class UpdateCustomerProfileCmd(
@@ -75,6 +96,18 @@ final case class UpdateCustomerProfileCmd(
     contact: ContactPerson,
     billingAddress: Address,
     tags: Set[String],
+    additionalContacts: Option[List[ContactPerson]] = None,
+    shippingAddresses: Option[List[Address]] = None,
+    defaultShippingIndex: Option[Int] = None,
+    actor: CustomerActor = CustomerActor.System,
+)
+
+final case class UpdateCustomerAddressesCmd(
+    id: CustomerId,
+    billingAddress: Address,
+    shippingAddresses: List[Address],
+    defaultShippingIndex: Option[Int],
+    actor: CustomerActor = CustomerActor.System,
 )
 
 enum CustomerIdentifier:
@@ -91,6 +124,8 @@ enum CustomerError(val message: String):
       extends CustomerError(s"Email '${email.value}' is already registered")
   case CompanyProfileRequired(segment: CustomerSegment)
       extends CustomerError(s"Company profile is required for $segment customers")
+  case MultipleContactsNotAllowed(segment: CustomerSegment)
+      extends CustomerError(s"Additional contact persons are only supported for Business and Agency accounts (got $segment)")
   case InvalidStatusTransition(id: CustomerId, from: CustomerStatus, to: CustomerStatus)
       extends CustomerError(s"Cannot transition customer '${id.value}' from $from to $to")
   case NetInvoiceNotEligible(id: CustomerId, reason: String)
@@ -126,13 +161,14 @@ trait CustomerService:
   def getById(id: CustomerId): IO[CustomerError.NotFound, CustomerView]
   def findByIdentifier(identifier: CustomerIdentifier): IO[CustomerError.NotFoundByIdentifier, CustomerView]
   def listCustomers(filter: CustomerFilter = CustomerFilter()): UIO[List[CustomerView]]
-  def approve(id: CustomerId): IO[CustomerError, CustomerView]
-  def suspend(id: CustomerId, reason: NonEmptyString, by: Option[EmployeeId]): IO[CustomerError, CustomerView]
-  def deactivate(id: CustomerId, reason: NonEmptyString, by: Option[EmployeeId]): IO[CustomerError, CustomerView]
-  def changeTier(id: CustomerId, newTier: CustomerTier): IO[CustomerError, CustomerView]
-  def grantPaymentTerms(id: CustomerId, terms: PaymentTerms): IO[CustomerError, CustomerView]
+  def approve(id: CustomerId, actor: CustomerActor = CustomerActor.System): IO[CustomerError, CustomerView]
+  def suspend(id: CustomerId, reason: NonEmptyString, by: Option[EmployeeId], byName: Option[NonEmptyString] = None): IO[CustomerError, CustomerView]
+  def deactivate(id: CustomerId, reason: NonEmptyString, by: Option[EmployeeId], byName: Option[NonEmptyString] = None): IO[CustomerError, CustomerView]
+  def changeTier(id: CustomerId, newTier: CustomerTier, actor: CustomerActor = CustomerActor.System): IO[CustomerError, CustomerView]
+  def grantPaymentTerms(id: CustomerId, terms: PaymentTerms, actor: CustomerActor = CustomerActor.System): IO[CustomerError, CustomerView]
   def updateProfile(cmd: UpdateCustomerProfileCmd): IO[CustomerError, CustomerView]
-  def addNote(id: CustomerId, text: NonEmptyString, by: Option[EmployeeId]): IO[CustomerError, CustomerView]
+  def updateAddresses(cmd: UpdateCustomerAddressesCmd): IO[CustomerError, CustomerView]
+  def addNote(id: CustomerId, text: NonEmptyString, by: Option[EmployeeId], byName: Option[NonEmptyString] = None): IO[CustomerError, CustomerView]
 
 object CustomerService:
   def register(cmd: RegisterCustomerCmd): ZIO[CustomerService, CustomerError, CustomerView] =

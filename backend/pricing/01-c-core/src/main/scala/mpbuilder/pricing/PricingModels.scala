@@ -250,13 +250,22 @@ final case class PromoConstraints(
     allowedCustomerIds: Set[CustomerId] = Set.empty,
 )
 
+enum PromoLifecycleStatus:
+  case Active, Expired, Exhausted, Inactive
+
 final case class PromoCode(
     id: DiscountCodeId,
     code: NonEmptyString,
     benefit: PromoBenefit,
     constraints: PromoConstraints,
     isActive: Boolean,
-)
+    createdAt: Instant = Instant.EPOCH,
+):
+  def lifecycleStatus(now: Instant): PromoLifecycleStatus =
+    if !isActive then PromoLifecycleStatus.Inactive
+    else if constraints.validUntil.exists(_.isBefore(now)) then PromoLifecycleStatus.Expired
+    else if constraints.maxUses.exists(max => constraints.currentUses >= max) then PromoLifecycleStatus.Exhausted
+    else PromoLifecycleStatus.Active
 
 final case class PromoContext(
     now: Instant,

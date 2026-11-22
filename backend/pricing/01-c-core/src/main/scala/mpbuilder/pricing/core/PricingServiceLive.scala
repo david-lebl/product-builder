@@ -3,6 +3,7 @@ package core
 
 import mpbuilder.shared.*
 import zio.*
+import java.time.Instant
 
 /** Live ZIO implementation of `PricingService` (compile-time isolated inside `pricing`). */
 private[pricing] final class PricingServiceLive(
@@ -88,10 +89,18 @@ private[pricing] final class PricingServiceLive(
     agreementRepo.delete(target, currency)
 
   override def listPromoCodes: UIO[List[PromoCode]] =
-    promoRepo.listAll.map(_.sortBy(_.code.value))
+    promoRepo.listAll.map(_.sortBy(p => (p.createdAt, p.code.value))(using Ordering.Tuple2(using Ordering[Instant].reverse, Ordering.String)))
 
   override def savePromoCode(promo: PromoCode): IO[PricingError, PromoCode] =
-    promoRepo.save(promo).as(promo)
+    for
+      now      <- Clock.instant
+      existing <- promoRepo.findById(promo.id)
+      stamped   = existing match
+                    case Some(prev) if promo.createdAt == Instant.EPOCH => promo.copy(createdAt = prev.createdAt)
+                    case None if promo.createdAt == Instant.EPOCH       => promo.copy(createdAt = now)
+                    case _                                              => promo
+      _        <- promoRepo.save(stamped)
+    yield stamped
 
   override def setPromoCodeActive(id: DiscountCodeId, active: Boolean): IO[PricingError, PromoCode] =
     for

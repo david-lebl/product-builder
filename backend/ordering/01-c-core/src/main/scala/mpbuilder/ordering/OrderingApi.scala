@@ -269,6 +269,31 @@ final case class OrderFilter(
     query: Option[String] = None,
 )
 
+enum OrderPriority(val rank: Int):
+  case Urgent   extends OrderPriority(0)
+  case Standard extends OrderPriority(1)
+  case Economy  extends OrderPriority(2)
+
+object OrderPriority:
+  def fromSpeed(speed: ManufacturingSpeed): OrderPriority = speed match
+    case ManufacturingSpeed.Express  => Urgent
+    case ManufacturingSpeed.Standard => Standard
+    case ManufacturingSpeed.Economy  => Economy
+
+  def turnaroundHours(speed: ManufacturingSpeed): Long = speed match
+    case ManufacturingSpeed.Express  => 24L
+    case ManufacturingSpeed.Standard => 72L
+    case ManufacturingSpeed.Economy  => 120L
+
+  def forLines(lines: NonEmptyChunk[OrderLine]): OrderPriority =
+    lines.map(l => fromSpeed(l.speed)).minBy(_.rank)
+
+  def deadlineFor(placedAt: Instant, speed: ManufacturingSpeed): Instant =
+    placedAt.plusSeconds(turnaroundHours(speed) * 3600L)
+
+  def orderDeadline(placedAt: Instant, lines: NonEmptyChunk[OrderLine]): Instant =
+    lines.map(l => deadlineFor(placedAt, l.speed)).min
+
 final case class OrderLine(
     lineId: OrderLineId,
     product: ProductSnapshot,
@@ -279,11 +304,13 @@ final case class OrderLine(
     artworkIds: Map[ComponentKey, ArtworkId],
     copies: Quantity = Quantity.one,
     weightGrams: Option[BigDecimal] = None,
+    specNote: Option[String] = None,
 ):
   def lineNetTotal: Money   = (price.netAmount * BigDecimal(copies.value)).rounded
   def lineTaxTotal: Money   = (price.taxAmount * BigDecimal(copies.value)).rounded
   def lineGrossTotal: Money = (price.grossAmount * BigDecimal(copies.value)).rounded
   def totalWeightGrams: Option[BigDecimal] = weightGrams.map(_ * BigDecimal(copies.value))
+  def estimatedDeadline(placedAt: Instant): Instant = OrderPriority.deadlineFor(placedAt, speed)
 
 final case class OrderTotals(
     linesNetTotal: Money,
@@ -309,7 +336,11 @@ final case class OrderView(
     appliedPromo: Option[AppliedPromoSnapshot] = None,
     statusHistory: List[OrderStatusEvent] = Nil,
     internalNotes: List[OrderInternalNote] = Nil,
-)
+):
+  def priority: OrderPriority        = OrderPriority.forLines(lines)
+  def calculatedDeadline: Instant    = OrderPriority.orderDeadline(placedAt, lines)
+  def hasMixedSpeeds: Boolean        = lines.map(_.speed).distinct.size > 1
+  def isPaid: Boolean                = payment.status == PaymentStatus.Confirmed
 
 // ── Commands & Errors ────────────────────────────────────────────────────────
 
@@ -326,6 +357,15 @@ final case class PlaceOrderCmd(
     appliedPromo: Option[AppliedPromoSnapshot] = None,
 )
 
+final case class EditOrderLineCmd(
+    orderId: OrderId,
+    lineId: OrderLineId,
+    runQuantity: Option[Quantity] = None,
+    copies: Option[Quantity] = None,
+    speed: Option[ManufacturingSpeed] = None,
+    specNote: Option[Option[String]] = None,
+)
+
 enum OrderError(val message: String):
   case CartNotFound(cartId: CartId)
       extends OrderError(s"Cart '${cartId.value}' not found")
@@ -333,6 +373,10 @@ enum OrderError(val message: String):
       extends OrderError(s"Line '${lineId.value}' not found in cart '${cartId.value}'")
   case OrderNotFound(orderId: OrderId)
       extends OrderError(s"Order '${orderId.value}' not found")
+  case OrderLineNotFound(orderId: OrderId, lineId: OrderLineId)
+      extends OrderError(s"Line '${lineId.value}' not found in order '${orderId.value}'")
+  case OrderNotEditable(orderId: OrderId, status: OrderStatus)
+      extends OrderError(s"Order '${orderId.value}' cannot be edited while in status $status")
   case EmptyCart(cartId: CartId)
       extends OrderError(s"Cannot place order from empty cart '${cartId.value}'")
   case CurrencyMismatch(expected: Currency, actual: Currency)
@@ -492,6 +536,18 @@ trait OrderService:
       by: EmployeeId,
       byName: Option[NonEmptyString] = None,
       reference: Option[String] = None,
+  ): IO[OrderError, OrderView]
+  def markPaymentStatus(
+      orderId: OrderId,
+      status: PaymentStatus,
+      by: EmployeeId,
+      byName: Option[NonEmptyString] = None,
+      reference: Option[String] = None,
+  ): IO[OrderError, OrderView]
+  def editOrderLine(
+      cmd: EditOrderLineCmd,
+      by: EmployeeId,
+      byName: Option[NonEmptyString] = None,
   ): IO[OrderError, OrderView]
   def cancelByStaff(
       orderId: OrderId,

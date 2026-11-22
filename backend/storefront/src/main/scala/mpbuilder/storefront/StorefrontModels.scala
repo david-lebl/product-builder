@@ -1,5 +1,6 @@
 package mpbuilder.storefront
 
+import mpbuilder.artwork.*
 import mpbuilder.catalog.*
 import mpbuilder.customers.*
 import mpbuilder.identity.*
@@ -15,12 +16,15 @@ enum StorefrontError(val message: String):
   case PricingFailure(error: PricingError)             extends StorefrontError(error.message)
   case CustomerFailure(error: CustomerError)           extends StorefrontError(error.message)
   case IdentityFailure(error: IdentityError)           extends StorefrontError(error.message)
+  case ArtworkFailure(error: ArtworkError)             extends StorefrontError(error.message)
   case OrderFailure(error: OrderError)                 extends StorefrontError(error.message)
   case ManufacturingFailure(error: ManufacturingError) extends StorefrontError(error.message)
   case PresetNotFound(categoryId: CategoryId, presetId: PresetId)
       extends StorefrontError(s"Preset '${presetId.value}' not found in category '${categoryId.value}'")
   case NotACustomerSession
       extends StorefrontError("Authenticated principal is not a customer account")
+  case OrderNotOwned(orderId: OrderId)
+      extends StorefrontError(s"Order '${orderId.value}' does not belong to the signed-in customer")
   case PaymentMethodNotAllowed(method: PaymentMethod, reason: String)
       extends StorefrontError(s"Payment method $method is not allowed: $reason")
 
