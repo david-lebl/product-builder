@@ -18,14 +18,12 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      # Install Temurin JDK 17 — its bundled CA certificates include the root CAs
-      # needed by Coursier to download from Maven Central (repo1.maven.org).
-      # Without this step the default JVM in the runner environment fails with an
-      # SSLHandshakeException when Mill tries to resolve mill-runner-daemon.
-      - name: Set up JDK 17 (Temurin)
+      # Install Temurin JDK 25 — required by Kyo 1.0.0-RC7 (class file version 69.0)
+      # and includes the root CA certificates needed by Coursier for Maven Central.
+      - name: Set up JDK 25 (Temurin)
         uses: actions/setup-java@v4
         with:
-          java-version: '17'
+          java-version: '25'
           distribution: 'temurin'
 
       - name: Cache Coursier

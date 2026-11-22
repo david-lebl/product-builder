@@ -1,130 +1,94 @@
 # CLAUDE.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+This file provides guidance to AI assistants and developers when working with code in this repository.
+
+## Prerequisites & Stack
+
+- **JDK 25** (required by `io.getkyo:kyo-ui:1.0.0-RC7`, which targets JVM class file version 69.0)
+- **Scala 3.9.0**, **Scala.js 1.22.0**, **Mill 1.1.3**
+- **Kyo 1.0.0-RC7** (`kyo-ui`, `kyo-i18n`, `kyo-zio`) + **ZIO 2.1.26** + **ZIO Prelude 1.0.0-RC39**
 
 ## Build & Test Commands
 
-This project uses **Mill** as the build tool. sbt is also available in the project but not covered here.
-
-### Mill
+This project uses **Mill** (`build.mill`).
 
 ```bash
-# Compile
-mill domain.jvm.compile      # Domain (JVM target)
-mill domain.js.compile       # Domain (Scala.js target)
-mill ui.compile              # Full SPA (Scala.js)
-mill ui-productbuilder.compile  # Shared product configurator
-mill ui-calculator.compile   # Standalone embeddable calculator
-mill ui-framework.compile    # UI framework only
+# Compile everything (JVM + Scala.js)
+./mill __.compile
 
-# Test
-mill domain.jvm.test                                # All domain tests
-mill 'domain.jvm.test.testOnly *PriceCalculatorSpec' # Single suite (pattern)
+# Run all tests (all backend bounded contexts + Kyo UI JVM tests)
+./mill __.test
 
-# JS build
-mill ui.fastLinkJS           # Dev build → out/ui/fastLinkJS.dest/main.js
-mill ui.fullLinkJS           # Production build → out/ui/fullLinkJS.dest/main.js
-mill ui-calculator.fullLinkJS   # Widget build → out/ui-calculator/fullLinkJS.dest/main.js
+# Targeted test suites
+./mill backend.storefront.jvm.test
+./mill ui-core.jvm.test
+./mill 'backend.pricing.01-c-core.jvm.test'
 
-./modules/ui-calculator/build-css.sh   # Regenerate the widget's bundled calculator.css
+# Build Scala.js bundles
+./mill ui.fastLinkJS             # Dev Storefront SPA → out/ui/fastLinkJS.dest/main.js
+./mill ui.fullLinkJS             # Prod Storefront SPA → out/ui/fullLinkJS.dest/main.js
+./mill ui-calculator.fastLinkJS  # Dev Calculator Widget → out/ui-calculator/fastLinkJS.dest/main.js
+./mill ui-calculator.fullLinkJS  # Prod Calculator Widget → out/ui-calculator/fullLinkJS.dest/main.js
 ```
 
 ## Architecture Overview
 
-**Scala 3.3.3** monorepo with 6 modules:
+The repository is split into a **cross-compiled (JVM + Scala.js) modular monolith** under `backend/` and a **Kyo UI frontend** under `modules/`:
 
-- **`domain/`** — Cross-compiled (JVM + JS). Pure functional core: no ZIO effects, only `Validation[E, A]` from ZIO Prelude. Contains pricing engine, compatibility rules, manufacturing workflow, and all services.
-- **`ui-productbuilder/`** — The shared product configurator (form, pricing preview, validation, basket, e-mail order), package `mpbuilder.ui.productbuilder`. Depends on `domainJS` and `uiFramework`. Consumed by both apps below, so it must not reference anything in `mpbuilder.ui.*`.
-- **`ui/`** — Scala.js + Laminar SPA. Depends on `domainJS`, `uiFramework`, `ui-productbuilder`.
-- **`ui-calculator/`** — Standalone embeddable price calculator (`mpbuilder.calculator`). Linked without a main initializer; exports a global `MPCalculator` with `mount(selector, config)`. See [docs/standalone-calculator.md](docs/standalone-calculator.md).
-- **`ui-framework/`** — Reusable Laminar components with no domain dependency (`mpbuilder.uikit` package).
-- **`ui-showcase/`** — Demo for `ui-framework` components.
+### Backend Modular Monolith (`backend/`)
 
-### The `BuilderEnvironment` seam
+All backend modules cross-compile to both `.jvm` and `.js` so the static frontend can execute the exact same domain, pricing, rule, auth, cart, and checkout logic client-side via `backend.sample.js`, while keeping clean boundaries for future REST / GraphQL / Kyo server-push deployment:
 
-`ui-productbuilder` gets everything host-specific — pricing context, completion dates, Express
-availability, the artwork step, the basket's primary action, the order e-mail recipient — from
-`BuilderEnvironment`, a singleton the host installs once before the first render:
+- **`backend/shared`** — Top kernel: pure primitives, cross-context opaque IDs, measurements, `Money`, `Language`, `LocalizedString`, `EventBus`.
+- **`backend/catalog/01-c-core`** — Product Catalog, Capabilities, Compatibility Rules, Imposition & Configuration.
+- **`backend/pricing/01-c-core`** — Commercial Pricing, Customer Agreements, Promo Codes & Margin Analysis.
+- **`backend/customers/01-c-core`** — Customer Accounts, Organizations, Tiers & Credit Terms.
+- **`backend/artwork/01-c-core`** — Artwork Assets, Revisions & Prepress Preflight.
+- **`backend/ordering/01-c-core`** — Shopping Cart, Order Placement & Order Lifecycle.
+- **`backend/manufacturing/01-c-core`** — Shop-Floor Manufacturing Workflows, Capacity & Fulfilment.
+- **`backend/identity/01-c-core`** — Identity, Authentication (Password + Passwordless OTP) & Sessions.
+- **`backend/storefront`** — Storefront BFF / Application Orchestration Facade (`StorefrontFacade`). Depends only on public context APIs.
+- **`backend/sample`** — Sample showcase data (15 products, 5 groups, demo B2B accounts, promo codes), in-memory adapters, ACL bridges, and `SampleShowcaseRuntime`.
 
-- `ui` → `FullAppEnvironment.environment` (from `Main.main`): simulated shop-floor queue, concrete
-  completion timestamps, surge pricing, visual-editor artwork, checkout wizard.
-- `ui-calculator` → `CalculatorEnvironment.environment(config)` (from `CalculatorWidget.mount`):
-  `PricingContext.default`, **no** completion dates (indicative ranges + disclaimer instead),
-  no artwork step, basket → e-mail order.
+### Frontend (`modules/`)
 
-Never reach for `AppRouter`, `EditorBridge` or shop-floor data from inside `ui-productbuilder`;
-add a field to `BuilderEnvironment` instead.
+- **`modules/ui-core`** (`ui-core.jvm`, `ui-core.js`) — Cross-compiled Kyo UI library with **zero** `org.scalajs.dom` imports and **zero** dependency on `backend.sample`. Contains:
+  - `mpbuilder.ui.port.StorefrontClient` — Transport-agnostic pure Kyo async port (plus `StorefrontClient.fromZio` adapter via `kyo-zio` for static/in-memory or embedded JVM usage; future REST/GraphQL/server-push transports simply implement `StorefrontClient`).
+  - `mpbuilder.ui.i18n.Translations` — Reactive EN/CS Fluent (`.ftl`) bundles backed by `kyo-i18n`, kept in lockstep with `mpbuilder.shared.Language`.
+  - `mpbuilder.ui.theme.AppTheme` — Typed `kyo.Stylesheet` + `Palette` with responsive breakpoints (`960px` tablet, `640px` mobile); injected at runtime via `UI.runStylesheet(...)` (no separate static `.css` files to maintain).
+  - `mpbuilder.ui.configurator` — Shared reactive 2-column Product Configurator (`ConfiguratorController` + `ConfiguratorView`) parameterized by `ConfiguratorHost` (`Storefront` vs `Calculator`).
+  - `mpbuilder.ui.storefront` — Complete responsive Storefront SPA: Catalog, Product Detail (live-quoted presets), Configurator, Cart Drawer (with promo codes), Checkout (Cart & Quick Order + SVG QR payment visual), Auth Modal (Passwordless OTP via Email/IČO/DIČ + Password login), and Account & Order History.
+  - `mpbuilder.ui.calculator` — Embeddable calculator shell (`CalculatorView`) wrapping `ConfiguratorView` + Email Quote Request modal.
+  - JVM UI test suite in `modules/ui-core/src/test/scala/mpbuilder/ui/StorefrontUiSpec.scala` using `UI.runRender` + `SampleShowcaseRuntime`.
+- **`modules/ui`** (`ui`) — Static Scala.js Storefront SPA (`mpbuilder.ui.Main` extending `KyoApp`) wired to `backend.sample.js` via `StorefrontClient.fromZio`.
+- **`modules/ui-calculator`** (`ui-calculator`) — Standalone embeddable Scala.js widget (`mpbuilder.calculator.CalculatorWidget`) exporting global `MPCalculator.mount(selector, config)` without a main initializer.
 
-### Domain Layer Principles
+## Domain & UI Conventions
 
-**Rules as sealed ADTs** — Both `CompatibilityRule` (12 variants) and `PricingRule` (17 variants) are data, not functions. They are serializable and interpreted by a pure engine.
+- **Bounded context isolation** — Every `backend/<context>/01-c-core` depends ONLY on `backend/shared` (zero cross-core dependencies).
+- **Opaque types with smart constructors** — IDs and value objects use Scala 3 opaque types validated via ZIO Prelude `Validation[E, A]`. Use `.unsafe(...)` only in tests/sample fixtures.
+- **Money** — `Money` is an opaque type over `BigDecimal` (`HALF_UP` rounding). Never use `Double` for monetary calculations.
+- **i18n** — UI copy lives in `Translations.scala` (`kyo-i18n` Fluent bundles, EN & CS); domain entities use `LocalizedString`. Every UI change must keep EN & CS complete without missing-key markers (`‹` / `›`).
+- **Kyo UI cross-platform purity** — Never import `org.scalajs.dom` or `backend.sample` inside `modules/ui-core`. Browser-only glue (clipboard, `localStorage`, `window.location.hash`, `mailto:`) is injected via callbacks from `modules/ui` and `modules/ui-calculator`.
 
-**Error accumulation** — All domain functions return `Validation[E, A]` which collects all errors (not short-circuiting). Never use `Either` for domain results.
-
-**Opaque types with smart constructors** — Every ID (`CategoryId`, `MaterialId`, etc.) and value object uses Scala 3 opaque types. Smart constructors return `Validation`. Use `.unsafe(...)` only in tests/sample data.
-
-**Pure domain, no effects** — The domain module must remain effect-free so it cross-compiles to Scala.js. ZIO effects only appear in infrastructure layers (not yet implemented).
-
-### Pricing Calculation Flow
-
-```
-subtotal → discountedSubtotal (× quantity multiplier) → + setupFees → billable → max(billable, minimumOrderPrice)
-```
-
-`PriceBreakdown` has `setupFees: List[LineItem]` and `minimumApplied: Option[Money]`. Setup fees are NOT multiplied by the quantity discount multiplier.
-
-### Manufacturing Workflow
-
-`WorkflowGenerator.generate(config, stations, now)` derives `List[ProductionStep]` from a `ProductConfiguration`. Steps form a DAG enforced by `WorkflowEngine`. `SampleStations.allStations` has 8 stations covering the full lifecycle.
-
-### Laminar Notes
-
-When using `combineWith` on multiple signals/streams, tuples are flattened via `tuplez`. Always use explicit argument types in the handler: `(a: A, b: B) =>` not `case (a, b) =>`.
-
-### Key Paths
+## Key Paths
 
 | Area | Path |
 |---|---|
-| Pricing rules/engine | `modules/domain/src/main/scala/mpbuilder/domain/pricing/` |
-| Compatibility rules | `modules/domain/src/main/scala/mpbuilder/domain/rules/` |
-| Domain services | `modules/domain/src/main/scala/mpbuilder/domain/service/` |
-| Sample data | `modules/domain/src/main/scala/mpbuilder/domain/sample/` |
-| Manufacturing domain | `modules/domain/src/main/scala/mpbuilder/domain/manufacturing/` |
-| Manufacturing UI | `modules/ui/src/main/scala/mpbuilder/ui/manufacturing/` |
-| Product configurator (shared) | `modules/ui-productbuilder/src/main/scala/mpbuilder/ui/productbuilder/` |
-| Host seam | `modules/ui-productbuilder/.../BuilderEnvironment.scala`, `modules/ui/.../FullAppEnvironment.scala`, `modules/ui-calculator/.../CalculatorEnvironment.scala` |
-| Standalone calculator | `modules/ui-calculator/` (sources, `css/`, `build-css.sh`) |
-| Pricing tests | `modules/domain/src/test/scala/mpbuilder/domain/PriceCalculatorSpec.scala` |
-| UI kit components | `modules/ui-framework/src/main/scala/mpbuilder/uikit/` |
-
-### UI Framework Components (`mpbuilder.uikit`)
-
-- **fields/**: `TextField`, `TextAreaField`, `SelectField` (+ `SelectOption`), `CheckboxField`, `RadioGroup` (+ `RadioOption`)
-- **containers/**: `Tabs` (+ `TabDef`), `Stepper` (+ `StepDef`), `SplitTableView` (+ `ColumnDef[A]`, `RowAction[A]`)
-- **feedback/**: `ValidationDisplay`
-- **form/**: `FormState` (Mirror-based derivation), `FormRenderer`, `FormFieldState`, `FieldValidator`
-- **util/**: `Visibility.when` / `Visibility.unless`
-
-All field components take `Signal[String]` labels (not `Language`) to keep the framework domain-independent.
-
-### i18n
-
-`LocalizedString` is an opaque type. All user-facing error messages are localized to EN/CS. `Language` enum has `En` and `Cs` variants.
-
-### Money
-
-`Money` is an opaque type over `BigDecimal`. Always use `HALF_UP` rounding. Never use `Double` for monetary values.
+| Build definition | `build.mill` |
+| Backend bounded contexts | `backend/{shared,catalog,pricing,customers,artwork,ordering,manufacturing,identity}/` |
+| Storefront BFF facade | `backend/storefront/src/main/scala/mpbuilder/storefront/` |
+| Sample showcase runtime | `backend/sample/src/main/scala/mpbuilder/sample/SampleShowcaseRuntime.scala` |
+| StorefrontClient port | `modules/ui-core/src/main/scala/mpbuilder/ui/port/StorefrontClient.scala` |
+| i18n (EN/CS Fluent) | `modules/ui-core/src/main/scala/mpbuilder/ui/i18n/Translations.scala` |
+| Responsive Kyo Stylesheet | `modules/ui-core/src/main/scala/mpbuilder/ui/theme/AppTheme.scala` |
+| Shared Configurator | `modules/ui-core/src/main/scala/mpbuilder/ui/configurator/` |
+| Storefront Views | `modules/ui-core/src/main/scala/mpbuilder/ui/storefront/` |
+| Calculator View | `modules/ui-core/src/main/scala/mpbuilder/ui/calculator/CalculatorView.scala` |
+| JVM UI Tests | `modules/ui-core/src/test/scala/mpbuilder/ui/StorefrontUiSpec.scala` |
+| Static SPA entrypoint | `modules/ui/src/main/scala/mpbuilder/ui/Main.scala` |
+| Calculator JS export | `modules/ui-calculator/src/main/scala/mpbuilder/calculator/CalculatorWidget.scala` |
 
 ## Documentation Knowledge Base
 
-This project maintains a structured documentation system. **All documentation lives in `docs/`** with a master index at **[docs/INDEX.md](docs/INDEX.md)**.
-
-| Resource | Purpose |
-|----------|---------|
-| [docs/INDEX.md](docs/INDEX.md) | Master table of contents — find any document by category |
-| [docs/troubleshooting.md](docs/troubleshooting.md) | Known issues & solutions (build, domain, UI, agent sessions) |
-| [docs/changelog/](docs/changelog/) | Per-session work logs (what was done, decisions, issues) |
-
-## Post-Work Documentation
-
-After completing any task, run the **post-work-docs** skill to update changelog, troubleshooting, specs, and the docs index. See [`.claude/skills/post-work-docs/SKILL.md`](.claude/skills/post-work-docs/SKILL.md) for the full procedure.
+Structured documentation lives in `docs/` with a master index at **[docs/INDEX.md](docs/INDEX.md)**.

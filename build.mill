@@ -4,284 +4,348 @@ package build
 
 import mill.*, scalalib.*, scalajslib.*
 
-val scala3Version = "3.3.3"
-val scalaJsVersion = "1.18.1"
-val laminarVersion = "17.2.0"
+val scala3Version   = "3.9.0"
+val scalaJsVersion  = "1.22.0"
+val zioVersion      = "2.1.26"
+val zioPreludeVer   = "1.0.0-RC39"
+val kyoVersion      = "1.0.0-RC7"
+val javaTimeJsVer   = "2.7.0"
 
 val commonScalacOptions = Seq(
   "-encoding", "utf-8",
   "-deprecation",
   "-feature",
-  "-Xmax-inlines:64"
+  "-Xmax-inlines:64",
 )
 
 val rootDir = moduleDir
-val domainDir = rootDir / "modules" / "domain"
 
-val domainMvnDeps = Seq(
-  mvn"dev.zio::zio::2.1.16",
-  mvn"dev.zio::zio-prelude::1.0.0-RC39",
-  mvn"dev.zio::zio-json::0.7.3",
-  mvn"com.softwaremill.quicklens::quicklens::1.9.12"
+val backendCoreDeps = Seq(
+  mvn"dev.zio::zio::${zioVersion}",
+  mvn"dev.zio::zio-prelude::${zioPreludeVer}",
+)
+
+val backendJsExtraDeps = Seq(
+  mvn"io.github.cquiroz::scala-java-time::${javaTimeJsVer}",
+)
+
+val backendTestDeps = Seq(
+  mvn"dev.zio::zio-test::${zioVersion}",
+  mvn"dev.zio::zio-test-sbt::${zioVersion}",
+)
+
+val kyoUiDeps = Seq(
+  mvn"io.getkyo::kyo-ui::${kyoVersion}",
+  mvn"io.getkyo::kyo-i18n::${kyoVersion}",
+  mvn"io.getkyo::kyo-zio::${kyoVersion}",
 )
 
 // ---------------------------------------------------------------------------
-// Domain — cross-compiled for JVM and JS (shared pure sources)
-// ---------------------------------------------------------------------------
-
-object domain extends Module {
-
-  /** Domain JVM target */
-  object jvm extends ScalaModule {
-    def scalaVersion = scala3Version
-    def scalacOptions = commonScalacOptions
-    def sources = Task.Sources(domainDir / "src" / "main" / "scala")
-    def resources = Task.Sources(domainDir / "src" / "main" / "resources")
-    def mvnDeps = domainMvnDeps
-
-    object test extends ScalaTests {
-      def sources = Task.Sources(domainDir / "src" / "test" / "scala")
-      def resources = Task.Sources(domainDir / "src" / "test" / "resources")
-      def mvnDeps = Seq(
-        mvn"dev.zio::zio-test::2.1.16",
-        mvn"dev.zio::zio-test-sbt::2.1.16"
-      )
-      def testFramework = "zio.test.sbt.ZTestFramework"
-    }
-  }
-
-  /** Domain Scala.js target */
-  object js extends ScalaJSModule {
-    def scalaVersion = scala3Version
-    def scalaJSVersion = build.scalaJsVersion
-    def scalacOptions = commonScalacOptions
-    def sources = Task.Sources(domainDir / "src" / "main" / "scala")
-    def resources = Task.Sources(domainDir / "src" / "main" / "resources")
-    def mvnDeps = domainMvnDeps
-  }
-}
-
-// ---------------------------------------------------------------------------
-// UI Framework — Laminar components, no domain dependency (Scala.js only)
-// ---------------------------------------------------------------------------
-
-object `ui-framework` extends ScalaJSModule {
-  def scalaVersion = scala3Version
-  def scalaJSVersion = build.scalaJsVersion
-  def scalacOptions = commonScalacOptions
-  def sources = Task.Sources(rootDir / "modules" / "ui-framework" / "src" / "main" / "scala")
-  def resources = Task.Sources(rootDir / "modules" / "ui-framework" / "src" / "main" / "resources")
-  def mvnDeps = Seq(
-    mvn"com.raquo::laminar::${laminarVersion}"
-  )
-}
-
-// ---------------------------------------------------------------------------
-// UI Showcase — demo for UI Framework components (Scala.js only)
-// ---------------------------------------------------------------------------
-
-object `ui-showcase` extends ScalaJSModule {
-  def scalaVersion = scala3Version
-  def scalaJSVersion = build.scalaJsVersion
-  def scalacOptions = commonScalacOptions
-  def sources = Task.Sources(rootDir / "modules" / "ui-showcase" / "src" / "main" / "scala")
-  def resources = Task.Sources(rootDir / "modules" / "ui-showcase" / "src" / "main" / "resources")
-  def scalaJSUseMainModuleInitializer = true
-  def moduleDeps = Seq(`ui-framework`)
-  def mvnDeps = Seq(
-    mvn"com.raquo::laminar::${laminarVersion}"
-  )
-}
-
-// ---------------------------------------------------------------------------
-// UI Product Builder — the shared product configurator (form, pricing, basket,
-// e-mail order). Consumed by both the full SPA (`ui`) and the standalone
-// embeddable calculator (`ui-calculator`).
-// ---------------------------------------------------------------------------
-
-object `ui-productbuilder` extends ScalaJSModule {
-  def scalaVersion = scala3Version
-  def scalaJSVersion = build.scalaJsVersion
-  def scalacOptions = commonScalacOptions
-  def sources = Task.Sources(rootDir / "modules" / "ui-productbuilder" / "src" / "main" / "scala")
-  def resources = Task.Sources(rootDir / "modules" / "ui-productbuilder" / "src" / "main" / "resources")
-  def moduleDeps = Seq(domain.js, `ui-framework`)
-  def mvnDeps = Seq(
-    mvn"com.raquo::laminar::${laminarVersion}"
-  )
-}
-
-// ---------------------------------------------------------------------------
-// UI Calculator — standalone embeddable price calculator (Scala.js library:
-// no main initializer, exports a global `MPCalculator` object)
-// ---------------------------------------------------------------------------
-
-object `ui-calculator` extends ScalaJSModule {
-  def scalaVersion = scala3Version
-  def scalaJSVersion = build.scalaJsVersion
-  def scalacOptions = commonScalacOptions
-  def sources = Task.Sources(rootDir / "modules" / "ui-calculator" / "src" / "main" / "scala")
-  def resources = Task.Sources(rootDir / "modules" / "ui-calculator" / "src" / "main" / "resources")
-  def scalaJSUseMainModuleInitializer = false
-  def moduleDeps = Seq(domain.js, `ui-framework`, `ui-productbuilder`)
-  def mvnDeps = Seq(
-    mvn"com.raquo::laminar::${laminarVersion}"
-  )
-}
-
-// ---------------------------------------------------------------------------
-// UI — main Scala.js web application
-// ---------------------------------------------------------------------------
-
-object ui extends ScalaJSModule {
-  def scalaVersion = scala3Version
-  def scalaJSVersion = build.scalaJsVersion
-  def scalacOptions = commonScalacOptions
-  def sources = Task.Sources(rootDir / "modules" / "ui" / "src" / "main" / "scala")
-  def resources = Task.Sources(rootDir / "modules" / "ui" / "src" / "main" / "resources")
-  def scalaJSUseMainModuleInitializer = true
-  def moduleDeps = Seq(domain.js, `ui-framework`, `ui-productbuilder`)
-  def mvnDeps = Seq(
-    mvn"com.raquo::laminar::${laminarVersion}"
-  )
-}
-
-// ---------------------------------------------------------------------------
-// Backend Modular Monolith — Bounded-Context Domain Cores
+// Cross-compiled Backend Modular Monolith (JVM + Scala.js)
 // Following guides/scala_3_modulith_boilerplate.md:
 //   - `shared` sits at the top (pure primitives, cross-context IDs, EventBus)
 //   - Every `<context>/01-c-core` depends ONLY on `shared` (zero cross-core deps)
 //   - Zero serialization/DTO libraries in domain cores
 // ---------------------------------------------------------------------------
 
-val backendCoreDeps = Seq(
-  mvn"dev.zio::zio::2.1.16",
-  mvn"dev.zio::zio-prelude::1.0.0-RC39"
-)
-
-val backendTestDeps = Seq(
-  mvn"dev.zio::zio-test::2.1.16",
-  mvn"dev.zio::zio-test-sbt::2.1.16"
-)
-
-trait BackendCoreModule extends ScalaModule {
+trait BackendJvmModule extends ScalaModule {
   def baseDir: os.Path
-  def scalaVersion = scala3Version
+  def scalaVersion  = scala3Version
   def scalacOptions = commonScalacOptions
-  def sources = Task.Sources(baseDir / "src" / "main" / "scala")
-  def resources = Task.Sources(baseDir / "src" / "main" / "resources")
-  def mvnDeps = backendCoreDeps
+  def sources       = Task.Sources(baseDir / "src" / "main" / "scala")
+  def resources     = Task.Sources(baseDir / "src" / "main" / "resources")
+  def mvnDeps       = backendCoreDeps
 
   trait CoreTests extends ScalaTests {
-    def sources = Task.Sources(baseDir / "src" / "test" / "scala")
-    def resources = Task.Sources(baseDir / "src" / "test" / "resources")
-    def mvnDeps = backendTestDeps
+    def sources       = Task.Sources(baseDir / "src" / "test" / "scala")
+    def resources     = Task.Sources(baseDir / "src" / "test" / "resources")
+    def mvnDeps       = backendTestDeps
     def testFramework = "zio.test.sbt.ZTestFramework"
   }
+}
+
+trait BackendJsModule extends ScalaJSModule {
+  def baseDir: os.Path
+  def scalaVersion   = scala3Version
+  def scalaJSVersion = build.scalaJsVersion
+  def scalacOptions  = commonScalacOptions
+  def sources        = Task.Sources(baseDir / "src" / "main" / "scala")
+  def resources      = Task.Sources(baseDir / "src" / "main" / "resources")
+  def mvnDeps        = backendCoreDeps ++ backendJsExtraDeps
 }
 
 object backend extends Module {
   private val backendDir = rootDir / "backend"
 
   /** Top kernel: pure primitives, cross-context IDs, measurements, Money, EventBus. */
-  object shared extends BackendCoreModule {
-    def baseDir = backendDir / "shared"
-    object test extends CoreTests
+  object shared extends Module {
+    private val dir = backendDir / "shared"
+    object jvm extends BackendJvmModule {
+      def baseDir = dir
+      object test extends CoreTests
+    }
+    object js extends BackendJsModule {
+      def baseDir = dir
+    }
   }
 
   /** Bounded Context 1: Product Catalog, Capabilities, Rules, Imposition & Configuration. */
   object catalog extends Module {
-    object `01-c-core` extends BackendCoreModule {
-      def baseDir = backendDir / "catalog" / "01-c-core"
-      def moduleDeps = Seq(backend.shared)
-      object test extends CoreTests
+    object `01-c-core` extends Module {
+      private val dir = backendDir / "catalog" / "01-c-core"
+      object jvm extends BackendJvmModule {
+        def baseDir    = dir
+        def moduleDeps = Seq(backend.shared.jvm)
+        object test extends CoreTests
+      }
+      object js extends BackendJsModule {
+        def baseDir    = dir
+        def moduleDeps = Seq(backend.shared.js)
+      }
     }
   }
 
   /** Bounded Context 2: Commercial Pricing, Customer Agreements, Promo Codes & Margin Analysis. */
   object pricing extends Module {
-    object `01-c-core` extends BackendCoreModule {
-      def baseDir = backendDir / "pricing" / "01-c-core"
-      def moduleDeps = Seq(backend.shared)
-      object test extends CoreTests
+    object `01-c-core` extends Module {
+      private val dir = backendDir / "pricing" / "01-c-core"
+      object jvm extends BackendJvmModule {
+        def baseDir    = dir
+        def moduleDeps = Seq(backend.shared.jvm)
+        object test extends CoreTests
+      }
+      object js extends BackendJsModule {
+        def baseDir    = dir
+        def moduleDeps = Seq(backend.shared.js)
+      }
     }
   }
 
   /** Bounded Context 3: Customer Accounts, Organizations, Tiers & Credit Terms. */
   object customers extends Module {
-    object `01-c-core` extends BackendCoreModule {
-      def baseDir = backendDir / "customers" / "01-c-core"
-      def moduleDeps = Seq(backend.shared)
-      object test extends CoreTests
+    object `01-c-core` extends Module {
+      private val dir = backendDir / "customers" / "01-c-core"
+      object jvm extends BackendJvmModule {
+        def baseDir    = dir
+        def moduleDeps = Seq(backend.shared.jvm)
+        object test extends CoreTests
+      }
+      object js extends BackendJsModule {
+        def baseDir    = dir
+        def moduleDeps = Seq(backend.shared.js)
+      }
     }
   }
 
   /** Bounded Context 4: Artwork Assets, Revisions & Prepress Preflight. */
   object artwork extends Module {
-    object `01-c-core` extends BackendCoreModule {
-      def baseDir = backendDir / "artwork" / "01-c-core"
-      def moduleDeps = Seq(backend.shared)
-      object test extends CoreTests
+    object `01-c-core` extends Module {
+      private val dir = backendDir / "artwork" / "01-c-core"
+      object jvm extends BackendJvmModule {
+        def baseDir    = dir
+        def moduleDeps = Seq(backend.shared.jvm)
+        object test extends CoreTests
+      }
+      object js extends BackendJsModule {
+        def baseDir    = dir
+        def moduleDeps = Seq(backend.shared.js)
+      }
     }
   }
 
   /** Bounded Context 5: Shopping Cart, Order Placement & Order Lifecycle. */
   object ordering extends Module {
-    object `01-c-core` extends BackendCoreModule {
-      def baseDir = backendDir / "ordering" / "01-c-core"
-      def moduleDeps = Seq(backend.shared)
-      object test extends CoreTests
+    object `01-c-core` extends Module {
+      private val dir = backendDir / "ordering" / "01-c-core"
+      object jvm extends BackendJvmModule {
+        def baseDir    = dir
+        def moduleDeps = Seq(backend.shared.jvm)
+        object test extends CoreTests
+      }
+      object js extends BackendJsModule {
+        def baseDir    = dir
+        def moduleDeps = Seq(backend.shared.js)
+      }
     }
   }
 
   /** Bounded Context 6: Shop-Floor Manufacturing Workflows, Capacity & Fulfilment. */
   object manufacturing extends Module {
-    object `01-c-core` extends BackendCoreModule {
-      def baseDir = backendDir / "manufacturing" / "01-c-core"
-      def moduleDeps = Seq(backend.shared)
-      object test extends CoreTests
+    object `01-c-core` extends Module {
+      private val dir = backendDir / "manufacturing" / "01-c-core"
+      object jvm extends BackendJvmModule {
+        def baseDir    = dir
+        def moduleDeps = Seq(backend.shared.jvm)
+        object test extends CoreTests
+      }
+      object js extends BackendJsModule {
+        def baseDir    = dir
+        def moduleDeps = Seq(backend.shared.js)
+      }
     }
   }
 
-  /** Bounded Context 7: Identity, Authentication (Password + OTP) & Sessions (Customers + Future Employees). */
+  /** Bounded Context 7: Identity, Authentication (Password + OTP) & Sessions. */
   object identity extends Module {
-    object `01-c-core` extends BackendCoreModule {
-      def baseDir = backendDir / "identity" / "01-c-core"
-      def moduleDeps = Seq(backend.shared)
-      object test extends CoreTests
+    object `01-c-core` extends Module {
+      private val dir = backendDir / "identity" / "01-c-core"
+      object jvm extends BackendJvmModule {
+        def baseDir    = dir
+        def moduleDeps = Seq(backend.shared.jvm)
+        object test extends CoreTests
+      }
+      object js extends BackendJsModule {
+        def baseDir    = dir
+        def moduleDeps = Seq(backend.shared.js)
+      }
     }
   }
 
   /** Storefront BFF / Application Orchestration Facade (depends ONLY on public context APIs). */
-  object storefront extends BackendCoreModule {
-    def baseDir = backendDir / "storefront"
-    def moduleDeps = Seq(
-      backend.shared,
-      backend.catalog.`01-c-core`,
-      backend.pricing.`01-c-core`,
-      backend.customers.`01-c-core`,
-      backend.identity.`01-c-core`,
-      backend.ordering.`01-c-core`,
-      backend.manufacturing.`01-c-core`,
-    )
-    object test extends CoreTests
+  object storefront extends Module {
+    private val dir = backendDir / "storefront"
+    object jvm extends BackendJvmModule {
+      def baseDir = dir
+      def moduleDeps = Seq(
+        backend.shared.jvm,
+        backend.catalog.`01-c-core`.jvm,
+        backend.pricing.`01-c-core`.jvm,
+        backend.customers.`01-c-core`.jvm,
+        backend.identity.`01-c-core`.jvm,
+        backend.ordering.`01-c-core`.jvm,
+        backend.manufacturing.`01-c-core`.jvm,
+      )
+      object test extends CoreTests
+    }
+    object js extends BackendJsModule {
+      def baseDir = dir
+      def moduleDeps = Seq(
+        backend.shared.js,
+        backend.catalog.`01-c-core`.js,
+        backend.pricing.`01-c-core`.js,
+        backend.customers.`01-c-core`.js,
+        backend.identity.`01-c-core`.js,
+        backend.ordering.`01-c-core`.js,
+        backend.manufacturing.`01-c-core`.js,
+      )
+    }
   }
 
   /** Sample data, in-memory adapters, cross-context ACL bridges & standalone showcase runtime. */
-  object sample extends BackendCoreModule {
-    def baseDir = backendDir / "sample"
-    def moduleDeps = Seq(
-      backend.shared,
-      backend.catalog.`01-c-core`,
-      backend.pricing.`01-c-core`,
-      backend.customers.`01-c-core`,
-      backend.identity.`01-c-core`,
-      backend.artwork.`01-c-core`,
-      backend.ordering.`01-c-core`,
-      backend.manufacturing.`01-c-core`,
-      backend.storefront,
-    )
-    object test extends CoreTests
+  object sample extends Module {
+    private val dir = backendDir / "sample"
+    object jvm extends BackendJvmModule {
+      def baseDir = dir
+      def moduleDeps = Seq(
+        backend.shared.jvm,
+        backend.catalog.`01-c-core`.jvm,
+        backend.pricing.`01-c-core`.jvm,
+        backend.customers.`01-c-core`.jvm,
+        backend.identity.`01-c-core`.jvm,
+        backend.artwork.`01-c-core`.jvm,
+        backend.ordering.`01-c-core`.jvm,
+        backend.manufacturing.`01-c-core`.jvm,
+        backend.storefront.jvm,
+      )
+      object test extends CoreTests
+    }
+    object js extends BackendJsModule {
+      def baseDir = dir
+      def moduleDeps = Seq(
+        backend.shared.js,
+        backend.catalog.`01-c-core`.js,
+        backend.pricing.`01-c-core`.js,
+        backend.customers.`01-c-core`.js,
+        backend.identity.`01-c-core`.js,
+        backend.artwork.`01-c-core`.js,
+        backend.ordering.`01-c-core`.js,
+        backend.manufacturing.`01-c-core`.js,
+        backend.storefront.js,
+      )
+    }
   }
 }
 
+// ---------------------------------------------------------------------------
+// UI Core — Cross-compiled Kyo UI views, theme, i18n, configurator & storefront.
+// Compiles to BOTH JVM (SSR / Kyo server-push / tests) and Scala.js (browser SPA).
+// Depends ONLY on public backend models & StorefrontClient port (never backend.sample).
+// ---------------------------------------------------------------------------
+
+object `ui-core` extends Module {
+  private val dir = rootDir / "modules" / "ui-core"
+
+  object jvm extends ScalaModule {
+    def scalaVersion  = scala3Version
+    def scalacOptions = commonScalacOptions
+    def sources       = Task.Sources(dir / "src" / "main" / "scala")
+    def resources     = Task.Sources(dir / "src" / "main" / "resources")
+    def moduleDeps = Seq(
+      backend.shared.jvm,
+      backend.catalog.`01-c-core`.jvm,
+      backend.pricing.`01-c-core`.jvm,
+      backend.customers.`01-c-core`.jvm,
+      backend.identity.`01-c-core`.jvm,
+      backend.ordering.`01-c-core`.jvm,
+      backend.storefront.jvm,
+    )
+    def mvnDeps = kyoUiDeps
+
+    object test extends ScalaTests {
+      def sources       = Task.Sources(dir / "src" / "test" / "scala")
+      def resources     = Task.Sources(dir / "src" / "test" / "resources")
+      def moduleDeps    = Seq(`ui-core`.jvm, backend.sample.jvm)
+      def mvnDeps       = backendTestDeps
+      def testFramework = "zio.test.sbt.ZTestFramework"
+    }
+  }
+
+  object js extends ScalaJSModule {
+    def scalaVersion   = scala3Version
+    def scalaJSVersion = build.scalaJsVersion
+    def scalacOptions  = commonScalacOptions
+    def sources        = Task.Sources(dir / "src" / "main" / "scala")
+    def resources      = Task.Sources(dir / "src" / "main" / "resources")
+    def moduleDeps = Seq(
+      backend.shared.js,
+      backend.catalog.`01-c-core`.js,
+      backend.pricing.`01-c-core`.js,
+      backend.customers.`01-c-core`.js,
+      backend.identity.`01-c-core`.js,
+      backend.ordering.`01-c-core`.js,
+      backend.storefront.js,
+    )
+    def mvnDeps = kyoUiDeps
+  }
+}
+
+// ---------------------------------------------------------------------------
+// UI — Static Scala.js Storefront SPA powered by Kyo UI + backend.sample
+// ---------------------------------------------------------------------------
+
+object ui extends ScalaJSModule {
+  def scalaVersion                  = scala3Version
+  def scalaJSVersion                = build.scalaJsVersion
+  def scalacOptions                 = commonScalacOptions
+  def sources                       = Task.Sources(rootDir / "modules" / "ui" / "src" / "main" / "scala")
+  def resources                     = Task.Sources(rootDir / "modules" / "ui" / "src" / "main" / "resources")
+  def scalaJSUseMainModuleInitializer = true
+  def moduleDeps                    = Seq(`ui-core`.js, backend.sample.js)
+  def mvnDeps                       = kyoUiDeps
+}
+
+// ---------------------------------------------------------------------------
+// UI Calculator — Standalone Embeddable Price Calculator (Kyo UI, Scala.js lib)
+// Exports global `MPCalculator` with `mount(selector, config)`.
+// ---------------------------------------------------------------------------
+
+object `ui-calculator` extends ScalaJSModule {
+  def scalaVersion                  = scala3Version
+  def scalaJSVersion                = build.scalaJsVersion
+  def scalacOptions                 = commonScalacOptions
+  def sources                       = Task.Sources(rootDir / "modules" / "ui-calculator" / "src" / "main" / "scala")
+  def resources                     = Task.Sources(rootDir / "modules" / "ui-calculator" / "src" / "main" / "resources")
+  def scalaJSUseMainModuleInitializer = false
+  def moduleDeps                    = Seq(`ui-core`.js, backend.sample.js)
+  def mvnDeps                       = kyoUiDeps
+}

@@ -1,41 +1,81 @@
 package mpbuilder.ui
 
-import com.raquo.laminar.api.L.*
+import kyo.*
+import mpbuilder.identity.sample.InMemoryOtpInbox
+import mpbuilder.sample.SampleShowcaseRuntime
+import mpbuilder.shared.{Currency, Language}
+import mpbuilder.storefront.StorefrontFacade
+import mpbuilder.ui.i18n.Translations
+import mpbuilder.ui.port.StorefrontClient
+import mpbuilder.ui.storefront.{AppRoute, StorefrontApp, StorefrontState}
+import mpbuilder.ui.theme.AppTheme
 import org.scalajs.dom
-import mpbuilder.domain.model.Language
-import mpbuilder.ui.productbuilder.{BuilderEnvironment, ProductBuilderViewModel}
+import scala.scalajs.js
 
-object Main:
-  def main(args: Array[String]): Unit =
-    // Tell the shared product configurator it is running inside the full SPA:
-    // simulated shop-floor queue, visual editor artwork, checkout wizard.
-    BuilderEnvironment.init(FullAppEnvironment.environment)
+/** Static client-side Storefront SPA entrypoint powered by Kyo UI + modular Scala 3 backend sample runtime. */
+object Main extends KyoApp:
 
-    // Detect browser language from navigator.language or localStorage
-    val detectedLanguage = detectBrowserLanguage()
+  private val LangStorageKey = "mpbuilder.lang"
 
-    // Initialize the view model with the detected language
-    ProductBuilderViewModel.initializeLanguage(detectedLanguage)
-    
-    renderOnDomContentLoaded(
-      dom.document.getElementById("app-root"),
-      AppRouter()
-    )
-  
-  private def detectBrowserLanguage(): Language =
-    try
-      // First check if user has previously selected a language
-      val storedLang = Option(dom.window.localStorage.getItem("selectedLanguage"))
-      
-      storedLang match
-        case Some(code) => Language.fromCode(code)
-        case None => browserLanguageFromNavigator()
-    catch
-      case _: scala.scalajs.js.JavaScriptException =>
-        // If localStorage access fails (e.g., private browsing), fall back to browser language
-        browserLanguageFromNavigator()
-  
-  private def browserLanguageFromNavigator(): Language =
-    val browserLang = dom.window.navigator.language.toLowerCase()
-    if browserLang.startsWith("cs") then Language.Cs
-    else Language.En
+  private def detectInitialLanguage: Language =
+    val saved =
+      try Option(dom.window.localStorage.getItem(LangStorageKey))
+      catch case _: Throwable => None
+    val raw = saved.orElse(Option(dom.window.navigator.language)).getOrElse("en").toLowerCase
+    if raw.startsWith("cs") then Language.Cs else Language.En
+
+  private def bootSampleClient: StorefrontClient < Async =
+    val bootZio: zio.UIO[(StorefrontFacade, InMemoryOtpInbox)] =
+      zio.ZIO.scoped {
+        SampleShowcaseRuntime.layer().build.map { env =>
+          (env.get[StorefrontFacade], env.get[InMemoryOtpInbox])
+        }
+      }
+    Abort.run[Nothing](ZIOs.get(bootZio)).map { res =>
+      val (facade, otpInbox) = res.getOrThrow
+      StorefrontClient.fromZio(facade, otpInbox.codeFor)
+    }
+
+  run {
+    val initialLang  = detectInitialLanguage
+    val initialRoute = AppRoute.fromHash(dom.window.location.hash).getOrElse(AppRoute.Catalog)
+
+    for
+      client  <- bootSampleClient
+      appI18n <- Translations.init(initialLang)
+      _       <- UI.runStylesheet(AppTheme.storefrontStylesheet)
+      _ <- I18n.let(appI18n.handle) {
+             for
+               state <- StorefrontState.init(
+                          client = client,
+                          i18n = appI18n,
+                          initialCurrency = Currency.CZK,
+                          initialRoute = initialRoute,
+                          onRouteChange = r =>
+                            Sync.defer {
+                              val target = AppRoute.toHash(r)
+                              if dom.window.location.hash != target then
+                                dom.window.location.hash = target
+                            },
+                          onLanguagePersist = lang =>
+                            Sync.defer {
+                              try dom.window.localStorage.setItem(LangStorageKey, lang.code)
+                              catch case _: Throwable => ()
+                            },
+                        )
+               _ <- Sync.defer {
+                      import kyo.AllowUnsafe.embrace.danger
+                      val listener: js.Function1[dom.HashChangeEvent, Unit] = _ =>
+                        AppRoute.fromHash(dom.window.location.hash).foreach { nextRoute =>
+                          val eff = I18n.let(appI18n.handle)(state.navigate(nextRoute, syncHash = false))
+                          val _   = Sync.Unsafe.evalOrThrow(Fiber.initUnscoped(eff))
+                        }
+                      dom.window.addEventListener("hashchange", listener)
+                    }
+               ui <- StorefrontApp.render(state)
+               _  <- UI.runMount(ui, "#app-root")
+               _  <- Async.never
+             yield ()
+           }
+    yield ()
+  }
