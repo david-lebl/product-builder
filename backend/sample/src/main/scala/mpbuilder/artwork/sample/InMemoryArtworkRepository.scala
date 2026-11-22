@@ -12,6 +12,9 @@ final class InMemoryArtworkRepository(
   override def findById(id: ArtworkId): UIO[Option[ArtworkSubmission]] =
     ref.get.map(_.get(id))
 
+  override def findByOwner(owner: ArtworkOwner): UIO[List[ArtworkSubmission]] =
+    ref.get.map(_.values.filter(_.owner == owner).toList)
+
   override def save(submission: ArtworkSubmission): UIO[Unit] =
     ref.update(_ + (submission.id -> submission))
 

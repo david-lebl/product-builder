@@ -15,8 +15,14 @@ final class InMemoryPricelistRepository(
   override def findActive(currency: Currency): IO[PricingError.PricelistNotFound, Pricelist] =
     ref.get.flatMap(m => ZIO.fromOption(m.get(currency)).orElseFail(new PricingError.PricelistNotFound(currency)))
 
-  def setActive(pricelist: Pricelist): UIO[Unit] =
+  override def listAll: UIO[List[Pricelist]] =
+    ref.get.map(_.values.toList)
+
+  override def save(pricelist: Pricelist): UIO[Unit] =
     ref.update(_ + (pricelist.currency -> pricelist))
+
+  def setActive(pricelist: Pricelist): UIO[Unit] =
+    save(pricelist)
 
 final class InMemoryCustomerAgreementRepository(
     ref: Ref[List[CustomerPriceAgreement]],
@@ -28,8 +34,17 @@ final class InMemoryCustomerAgreementRepository(
   override def findForTier(tier: CustomerTier, currency: Currency): UIO[Option[CustomerPriceAgreement]] =
     ref.get.map(_.find(a => a.currency == currency && a.target == AgreementTarget.TierDefault(tier)))
 
-  def upsert(agreement: CustomerPriceAgreement): UIO[Unit] =
+  override def listAll: UIO[List[CustomerPriceAgreement]] =
+    ref.get
+
+  override def save(agreement: CustomerPriceAgreement): UIO[Unit] =
     ref.update(list => list.filterNot(a => a.target == agreement.target && a.currency == agreement.currency) :+ agreement)
+
+  override def delete(target: AgreementTarget, currency: Currency): UIO[Unit] =
+    ref.update(_.filterNot(a => a.target == target && a.currency == currency))
+
+  def upsert(agreement: CustomerPriceAgreement): UIO[Unit] =
+    save(agreement)
 
 final class InMemoryPromoCodeRepository(
     ref: Ref[Map[String, PromoCode]],
@@ -37,6 +52,9 @@ final class InMemoryPromoCodeRepository(
 
   override def findByCode(code: String): UIO[Option[PromoCode]] =
     ref.get.map(_.get(code.trim.toUpperCase))
+
+  override def listAll: UIO[List[PromoCode]] =
+    ref.get.map(_.values.toList)
 
   override def incrementUsage(codeId: DiscountCodeId): UIO[Unit] =
     ref.update { m =>
@@ -47,8 +65,14 @@ final class InMemoryPromoCodeRepository(
       }
     }
 
-  def save(promo: PromoCode): UIO[Unit] =
-    ref.update(_ + (promo.code.value.trim.toUpperCase -> promo))
+  override def save(promo: PromoCode): UIO[Unit] =
+    ref.update { m =>
+      val withoutSameId = m.filterNot { case (_, existing) => existing.id == promo.id }
+      withoutSameId + (promo.code.value.trim.toUpperCase -> promo)
+    }
+
+  override def delete(id: DiscountCodeId): UIO[Unit] =
+    ref.update(_.filterNot { case (_, p) => p.id == id })
 
 final class InMemoryCostSheetRepository(
     ref: Ref[Map[Currency, ProductionCostSheet]],
@@ -56,6 +80,12 @@ final class InMemoryCostSheetRepository(
 
   override def findActive(currency: Currency): UIO[Option[ProductionCostSheet]] =
     ref.get.map(_.get(currency))
+
+  override def listAll: UIO[List[ProductionCostSheet]] =
+    ref.get.map(_.values.toList)
+
+  override def save(sheet: ProductionCostSheet): UIO[Unit] =
+    ref.update(_ + (sheet.currency -> sheet))
 
 final class StaticShopCapacityPort(
     ref: Ref[DynamicPricingContext],

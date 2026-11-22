@@ -155,22 +155,36 @@ object CommonComponents:
     case (FoilColor.Holographic, _)           => "Holographic"
 
   def orderStatusLabel(s: OrderStatus, lang: Language): String = (s, lang) match
-    case (OrderStatus.Placed, Language.Cs)          => "Přijata"
-    case (OrderStatus.Placed, _)                    => "Placed"
-    case (OrderStatus.AwaitingPayment, Language.Cs) => "Čeká na platbu"
-    case (OrderStatus.AwaitingPayment, _)           => "Awaiting Payment"
-    case (OrderStatus.Confirmed, Language.Cs)       => "Potvrzena"
-    case (OrderStatus.Confirmed, _)                 => "Confirmed"
-    case (OrderStatus.InProduction, Language.Cs)    => "Ve výrobě"
-    case (OrderStatus.InProduction, _)              => "In Production"
-    case (OrderStatus.ReadyForDispatch, Language.Cs)=> "Připravena k expedici"
-    case (OrderStatus.ReadyForDispatch, _)          => "Ready for Dispatch"
-    case (OrderStatus.Dispatched, Language.Cs)      => "Odeslána"
-    case (OrderStatus.Dispatched, _)                => "Dispatched"
-    case (OrderStatus.Completed, Language.Cs)       => "Dokončena"
-    case (OrderStatus.Completed, _)                 => "Completed"
-    case (OrderStatus.Cancelled(_), Language.Cs)    => "Zrušena"
-    case (OrderStatus.Cancelled(_), _)              => "Cancelled"
+    case (OrderStatus.Placed, Language.Cs)           => "Odeslána"
+    case (OrderStatus.Placed, _)                     => "Placed"
+    case (OrderStatus.AwaitingPayment, Language.Cs)  => "Čeká na platbu"
+    case (OrderStatus.AwaitingPayment, _)            => "Awaiting Payment"
+    case (OrderStatus.Confirmed, Language.Cs)        => "Potvrzena"
+    case (OrderStatus.Confirmed, _)                  => "Confirmed"
+    case (OrderStatus.Accepted, Language.Cs)         => "Přijata"
+    case (OrderStatus.Accepted, _)                   => "Accepted"
+    case (OrderStatus.InProduction, Language.Cs)     => "Ve výrobě"
+    case (OrderStatus.InProduction, _)               => "In Progress"
+    case (OrderStatus.ReadyForDispatch, Language.Cs) => "Připravena k expedici"
+    case (OrderStatus.ReadyForDispatch, _)           => "Ready for Dispatch"
+    case (OrderStatus.Dispatched, Language.Cs)       => "Expedována"
+    case (OrderStatus.Dispatched, _)                 => "Dispatched"
+    case (OrderStatus.Completed, Language.Cs)        => "Dokončena"
+    case (OrderStatus.Completed, _)                  => "Completed"
+    case (OrderStatus.OnHold(_), Language.Cs)        => "Pozastavena"
+    case (OrderStatus.OnHold(_), _)                  => "On Hold"
+    case (OrderStatus.Cancelled(_), Language.Cs)     => "Zrušena"
+    case (OrderStatus.Cancelled(_), _)               => "Cancelled"
+
+  def orderStatusTone(s: OrderStatus): BadgeTone = s match
+    case OrderStatus.Confirmed | OrderStatus.Accepted | OrderStatus.Completed | OrderStatus.Dispatched =>
+      BadgeTone.Emerald
+    case OrderStatus.AwaitingPayment | OrderStatus.OnHold(_) =>
+      BadgeTone.Amber
+    case OrderStatus.Cancelled(_) =>
+      BadgeTone.Rose
+    case OrderStatus.Placed | OrderStatus.InProduction | OrderStatus.ReadyForDispatch =>
+      BadgeTone.Brand
 
   def tierLabel(t: CustomerTier): String = t.toString
 

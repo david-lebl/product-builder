@@ -115,10 +115,19 @@ private[ordering] final case class Order(
     customerNote: Option[String],
     placedAt: Instant,
     appliedPromo: Option[AppliedPromoSnapshot] = None,
+    statusHistory: List[OrderStatusEvent] = Nil,
+    internalNotes: List[OrderInternalNote] = Nil,
+    previousStatusBeforeHold: Option[OrderStatus] = None,
 ):
-  def confirmPayment(reference: Option[String], now: Instant): Either[OrderError, Order] =
+  def confirmPayment(
+      reference: Option[String],
+      now: Instant,
+      actor: OrderActor = OrderActor.System,
+  ): Either[OrderError, Order] =
     status match
       case OrderStatus.Placed | OrderStatus.AwaitingPayment =>
+        val next = OrderStatus.Confirmed
+        val ev   = OrderStatusEvent(Some(status), next, actor, reference.map(r => s"Payment confirmed ($r)"), now)
         Right(
           copy(
             payment = payment.copy(
@@ -126,24 +135,92 @@ private[ordering] final case class Order(
               externalReference = reference.orElse(payment.externalReference),
               confirmedAt = Some(now),
             ),
-            status = OrderStatus.Confirmed,
+            status = next,
+            statusHistory = statusHistory :+ ev,
+          )
+        )
+      // Allow staff to confirm payment even if they already accepted the order or placed it on hold
+      case OrderStatus.Accepted | OrderStatus.InProduction | OrderStatus.ReadyForDispatch | OrderStatus.OnHold(_)
+          if payment.status != PaymentStatus.Confirmed =>
+        val ev = OrderStatusEvent(Some(status), status, actor, Some(reference.fold("Payment confirmed")(r => s"Payment confirmed ($r)")), now)
+        Right(
+          copy(
+            payment = payment.copy(
+              status = PaymentStatus.Confirmed,
+              externalReference = reference.orElse(payment.externalReference),
+              confirmedAt = Some(now),
+            ),
+            statusHistory = statusHistory :+ ev,
           )
         )
       case other =>
         Left(OrderError.InvalidStatusTransition(id, other, OrderStatus.Confirmed))
 
-  def transitionTo(next: OrderStatus): Either[OrderError, Order] =
-    val allowed = (status, next) match
-      case (OrderStatus.Confirmed, OrderStatus.InProduction)           => true
-      case (OrderStatus.InProduction, OrderStatus.ReadyForDispatch)    => true
-      case (OrderStatus.ReadyForDispatch, OrderStatus.Dispatched)      => true
-      case (OrderStatus.Dispatched, OrderStatus.Completed)             => true
-      case (OrderStatus.Placed | OrderStatus.AwaitingPayment | OrderStatus.Confirmed, _: OrderStatus.Cancelled) =>
-        true
-      case _ => false
+  def accept(actor: OrderActor, note: Option[String], now: Instant): Either[OrderError, Order] =
+    status match
+      case OrderStatus.Placed | OrderStatus.AwaitingPayment | OrderStatus.Confirmed =>
+        val ev = OrderStatusEvent(Some(status), OrderStatus.Accepted, actor, note, now)
+        Right(copy(status = OrderStatus.Accepted, statusHistory = statusHistory :+ ev))
+      case other =>
+        Left(OrderError.InvalidStatusTransition(id, other, OrderStatus.Accepted))
 
-    if allowed then Right(copy(status = next))
+  def putOnHold(reason: NonEmptyString, actor: OrderActor, now: Instant): Either[OrderError, Order] =
+    status match
+      case OrderStatus.Completed | _: OrderStatus.Cancelled | _: OrderStatus.OnHold =>
+        Left(OrderError.InvalidStatusTransition(id, status, OrderStatus.OnHold(reason)))
+      case current =>
+        val next = OrderStatus.OnHold(reason)
+        val ev   = OrderStatusEvent(Some(current), next, actor, Some(reason.value), now)
+        Right(
+          copy(
+            status = next,
+            previousStatusBeforeHold = Some(current),
+            statusHistory = statusHistory :+ ev,
+          )
+        )
+
+  def resumeFromHold(actor: OrderActor, note: Option[String], now: Instant): Either[OrderError, Order] =
+    status match
+      case _: OrderStatus.OnHold =>
+        val restored = previousStatusBeforeHold.getOrElse(OrderStatus.Accepted)
+        val ev       = OrderStatusEvent(Some(status), restored, actor, note, now)
+        Right(
+          copy(
+            status = restored,
+            previousStatusBeforeHold = None,
+            statusHistory = statusHistory :+ ev,
+          )
+        )
+      case other =>
+        Left(OrderError.OrderNotOnHold(id, other))
+
+  def transitionTo(
+      next: OrderStatus,
+      actor: OrderActor = OrderActor.System,
+      note: Option[String] = None,
+      now: Instant = placedAt,
+  ): Either[OrderError, Order] =
+    val allowed = (status, next) match
+      case (OrderStatus.Placed | OrderStatus.AwaitingPayment | OrderStatus.Confirmed, OrderStatus.Accepted) => true
+      case (OrderStatus.Confirmed | OrderStatus.Accepted, OrderStatus.InProduction)                         => true
+      case (OrderStatus.Accepted | OrderStatus.InProduction, OrderStatus.ReadyForDispatch)                  => true
+      case (OrderStatus.ReadyForDispatch, OrderStatus.Dispatched)                                           => true
+      case (OrderStatus.Dispatched | OrderStatus.ReadyForDispatch, OrderStatus.Completed)                   => true
+      case (s, _: OrderStatus.OnHold) if !s.isTerminal && !s.isInstanceOf[OrderStatus.OnHold]               => true
+      case (OrderStatus.Placed | OrderStatus.AwaitingPayment | OrderStatus.Confirmed | OrderStatus.Accepted | _: OrderStatus.OnHold, _: OrderStatus.Cancelled) =>
+        true
+      case _                                                                                                => false
+
+    if allowed then
+      val ev = OrderStatusEvent(Some(status), next, actor, note, now)
+      val prevHold = next match
+        case _: OrderStatus.OnHold => Some(status)
+        case _                     => None
+      Right(copy(status = next, previousStatusBeforeHold = prevHold, statusHistory = statusHistory :+ ev))
     else Left(OrderError.InvalidStatusTransition(id, status, next))
+
+  def addNote(authorId: EmployeeId, authorName: Option[NonEmptyString], text: NonEmptyString, now: Instant): Order =
+    copy(internalNotes = internalNotes :+ OrderInternalNote(authorId, authorName, text, now))
 
   def toView: OrderView =
     OrderView(
@@ -159,6 +236,8 @@ private[ordering] final case class Order(
       customerNote = customerNote,
       placedAt = placedAt,
       appliedPromo = appliedPromo,
+      statusHistory = statusHistory,
+      internalNotes = internalNotes,
     )
 
 private[ordering] object Order:
@@ -198,6 +277,14 @@ private[ordering] object Order:
         case PaymentMethod.InvoiceOnAccount => (OrderStatus.Confirmed, PaymentStatus.Authorized)
         case _                              => (OrderStatus.AwaitingPayment, PaymentStatus.Pending)
 
+      val initialEvent = OrderStatusEvent(
+        from = None,
+        to = initialStatus,
+        actor = OrderActor.Customer(cmd.customer.customerId, cmd.customer.fullName),
+        note = cmd.customerNote,
+        occurredAt = now,
+      )
+
       Right(
         Order(
           id = cmd.orderId,
@@ -212,6 +299,8 @@ private[ordering] object Order:
           customerNote = cmd.customerNote,
           placedAt = now,
           appliedPromo = cmd.appliedPromo,
+          statusHistory = List(initialEvent),
+          internalNotes = Nil,
         )
       )
 
@@ -224,12 +313,22 @@ private[ordering] trait CartRepository:
 private[ordering] trait OrderRepository:
   def findById(id: OrderId): UIO[Option[Order]]
   def findByCustomer(customerId: CustomerId): UIO[List[Order]]
+  def listAll: UIO[List[Order]]
   def save(order: Order): UIO[Unit]
 
 private[ordering] trait DeliveryCatalogRepository:
   def pickupLocations: UIO[List[ShopPickupLocation]]
+  def savePickupLocation(loc: ShopPickupLocation): UIO[Unit] = ZIO.unit
+  def deletePickupLocation(id: DeliveryOptionId): UIO[Unit]  = ZIO.unit
   def courierOptions(currency: Currency): UIO[List[CourierServiceOption]]
+  def allCourierOptions: UIO[List[CourierServiceOption]] =
+    ZIO.foreach(Currency.values.toList)(courierOptions).map(_.flatten)
+  def saveCourierOption(opt: CourierServiceOption): UIO[Unit]              = ZIO.unit
+  def deleteCourierOption(id: DeliveryOptionId, currency: Currency): UIO[Unit] = ZIO.unit
   def bankAccount(currency: Currency): UIO[Option[BankAccountConfig]]
+  def allBankAccounts: UIO[Map[Currency, BankAccountConfig]] =
+    ZIO.foreach(Currency.values.toList)(c => bankAccount(c).map(_.map(c -> _))).map(_.flatten.toMap)
+  def saveBankAccount(currency: Currency, config: BankAccountConfig): UIO[Unit] = ZIO.unit
 
 // ── Live Service Implementations ─────────────────────────────────────────────
 
@@ -450,6 +549,30 @@ private[ordering] final class CheckoutOptionsServiceLive(
           )
         )
 
+  override def listAllPickupLocations: UIO[List[ShopPickupLocation]] =
+    deliveryRepo.pickupLocations
+
+  override def upsertPickupLocation(loc: ShopPickupLocation): UIO[ShopPickupLocation] =
+    deliveryRepo.savePickupLocation(loc).as(loc)
+
+  override def deletePickupLocation(id: DeliveryOptionId): UIO[Unit] =
+    deliveryRepo.deletePickupLocation(id)
+
+  override def listAllCourierOptions: UIO[List[CourierServiceOption]] =
+    deliveryRepo.allCourierOptions
+
+  override def upsertCourierOption(opt: CourierServiceOption): UIO[CourierServiceOption] =
+    deliveryRepo.saveCourierOption(opt).as(opt)
+
+  override def deleteCourierOption(id: DeliveryOptionId, currency: Currency): UIO[Unit] =
+    deliveryRepo.deleteCourierOption(id, currency)
+
+  override def listBankAccounts: UIO[Map[Currency, BankAccountConfig]] =
+    deliveryRepo.allBankAccounts
+
+  override def upsertBankAccount(currency: Currency, config: BankAccountConfig): UIO[BankAccountConfig] =
+    deliveryRepo.saveBankAccount(currency, config).as(config)
+
 private[ordering] final class OrderServiceLive(
     repo: OrderRepository,
     eventBus: EventBus,
@@ -466,45 +589,180 @@ private[ordering] final class OrderServiceLive(
     yield order.toView
 
   override def confirmPayment(orderId: OrderId, reference: Option[String]): IO[OrderError, OrderView] =
-    for
-      now     <- Clock.instant
-      order   <- repo.findById(orderId).someOrFail(OrderError.OrderNotFound(orderId))
-      updated <- ZIO.fromEither(order.confirmPayment(reference, now))
-      _       <- repo.save(updated)
-      _       <- eventBus.publish(OrderConfirmed(updated.id, updated.orderNumber, updated.lines, now))
-    yield updated.toView
+    confirmPaymentInternal(orderId, reference, OrderActor.System)
 
   override def markInProduction(orderId: OrderId): IO[OrderError, OrderView] =
-    transition(orderId, OrderStatus.InProduction)
+    transition(orderId, OrderStatus.InProduction, OrderActor.System, None)
 
   override def markReadyForDispatch(orderId: OrderId): IO[OrderError, OrderView] =
-    transition(orderId, OrderStatus.ReadyForDispatch)
+    transition(orderId, OrderStatus.ReadyForDispatch, OrderActor.System, None)
 
   override def markDispatched(orderId: OrderId): IO[OrderError, OrderView] =
-    transition(orderId, OrderStatus.Dispatched)
+    transition(orderId, OrderStatus.Dispatched, OrderActor.System, None)
 
   override def complete(orderId: OrderId): IO[OrderError, OrderView] =
-    transition(orderId, OrderStatus.Completed)
+    transition(orderId, OrderStatus.Completed, OrderActor.System, None)
 
   override def cancel(orderId: OrderId, reason: NonEmptyString): IO[OrderError, OrderView] =
-    for
-      now     <- Clock.instant
-      order   <- repo.findById(orderId).someOrFail(OrderError.OrderNotFound(orderId))
-      updated <- ZIO.fromEither(order.transitionTo(OrderStatus.Cancelled(reason)))
-      _       <- repo.save(updated)
-      _       <- eventBus.publish(OrderCancelled(updated.id, reason, now))
-    yield updated.toView
+    cancelInternal(orderId, reason, OrderActor.System)
 
   override def getOrder(orderId: OrderId): IO[OrderError.OrderNotFound, OrderView] =
     repo.findById(orderId).someOrFail(new OrderError.OrderNotFound(orderId)).map(_.toView)
 
   override def listOrdersByCustomer(customerId: CustomerId): UIO[List[OrderView]] =
-    repo.findByCustomer(customerId).map(_.map(_.toView).sortBy(_.placedAt)(Ordering[Instant].reverse))
+    repo.findByCustomer(customerId).map(_.map(_.toView).sortBy(_.placedAt)(using Ordering[Instant].reverse))
 
-  private def transition(orderId: OrderId, next: OrderStatus): IO[OrderError, OrderView] =
+  override def listOrders(filter: OrderFilter): UIO[List[OrderView]] =
+    repo.listAll.map { orders =>
+      val qOpt = filter.query.map(_.trim.toLowerCase).filter(_.nonEmpty)
+      orders
+        .filter { o =>
+          val statusOk = filter.statuses.isEmpty || filter.statuses.contains(o.status.kind)
+          val payOk    = filter.paymentStatus.forall(_ == o.payment.status)
+          val custOk   = filter.customerId.forall(cid => o.customer.customerId.contains(cid))
+          val queryOk  = qOpt.forall { q =>
+            o.orderNumber.value.toLowerCase.contains(q) ||
+            o.customer.fullName.value.toLowerCase.contains(q) ||
+            o.customer.email.value.toLowerCase.contains(q) ||
+            o.customer.companyName.exists(_.value.toLowerCase.contains(q)) ||
+            o.customer.companyRegNo.exists(_.value.toLowerCase.contains(q))
+          }
+          statusOk && payOk && custOk && queryOk
+        }
+        .map(_.toView)
+        .sortBy(_.placedAt)(using Ordering[Instant].reverse)
+    }
+
+  override def acceptOrder(
+      orderId: OrderId,
+      by: EmployeeId,
+      byName: Option[NonEmptyString],
+      note: Option[String],
+  ): IO[OrderError, OrderView] =
     for
+      now     <- Clock.instant
       order   <- repo.findById(orderId).someOrFail(OrderError.OrderNotFound(orderId))
-      updated <- ZIO.fromEither(order.transitionTo(next))
+      updated <- ZIO.fromEither(order.accept(OrderActor.Employee(by, byName), note, now))
+      _       <- repo.save(updated)
+      _       <- eventBus.publish(OrderAccepted(updated.id, updated.orderNumber, by, now))
+      _       <- eventBus.publish(OrderStageChanged(updated.id, order.status, updated.status, by, now))
+    yield updated.toView
+
+  override def putOnHold(
+      orderId: OrderId,
+      by: EmployeeId,
+      byName: Option[NonEmptyString],
+      reason: NonEmptyString,
+  ): IO[OrderError, OrderView] =
+    for
+      now     <- Clock.instant
+      order   <- repo.findById(orderId).someOrFail(OrderError.OrderNotFound(orderId))
+      updated <- ZIO.fromEither(order.putOnHold(reason, OrderActor.Employee(by, byName), now))
+      _       <- repo.save(updated)
+      _       <- eventBus.publish(OrderPutOnHold(updated.id, reason, by, now))
+      _       <- eventBus.publish(OrderStageChanged(updated.id, order.status, updated.status, by, now))
+    yield updated.toView
+
+  override def resumeFromHold(
+      orderId: OrderId,
+      by: EmployeeId,
+      byName: Option[NonEmptyString],
+      note: Option[String],
+  ): IO[OrderError, OrderView] =
+    for
+      now     <- Clock.instant
+      order   <- repo.findById(orderId).someOrFail(OrderError.OrderNotFound(orderId))
+      updated <- ZIO.fromEither(order.resumeFromHold(OrderActor.Employee(by, byName), note, now))
+      _       <- repo.save(updated)
+      _       <- eventBus.publish(OrderStageChanged(updated.id, order.status, updated.status, by, now))
+    yield updated.toView
+
+  override def advanceStage(
+      orderId: OrderId,
+      target: OrderStatus,
+      by: EmployeeId,
+      byName: Option[NonEmptyString],
+      note: Option[String],
+  ): IO[OrderError, OrderView] =
+    target match
+      case OrderStatus.Accepted          => acceptOrder(orderId, by, byName, note)
+      case OrderStatus.OnHold(reason)    => putOnHold(orderId, by, byName, reason)
+      case OrderStatus.Cancelled(reason) => cancelByStaff(orderId, by, byName, reason)
+      case other =>
+        for
+          now     <- Clock.instant
+          order   <- repo.findById(orderId).someOrFail(OrderError.OrderNotFound(orderId))
+          updated <- ZIO.fromEither(order.transitionTo(other, OrderActor.Employee(by, byName), note, now))
+          _       <- repo.save(updated)
+          _       <- eventBus.publish(OrderStageChanged(updated.id, order.status, updated.status, by, now))
+        yield updated.toView
+
+  override def confirmPaymentByStaff(
+      orderId: OrderId,
+      by: EmployeeId,
+      byName: Option[NonEmptyString],
+      reference: Option[String],
+  ): IO[OrderError, OrderView] =
+    confirmPaymentInternal(orderId, reference, OrderActor.Employee(by, byName))
+
+  override def cancelByStaff(
+      orderId: OrderId,
+      by: EmployeeId,
+      byName: Option[NonEmptyString],
+      reason: NonEmptyString,
+  ): IO[OrderError, OrderView] =
+    cancelInternal(orderId, reason, OrderActor.Employee(by, byName))
+
+  override def addInternalNote(
+      orderId: OrderId,
+      by: EmployeeId,
+      byName: Option[NonEmptyString],
+      text: NonEmptyString,
+  ): IO[OrderError, OrderView] =
+    for
+      now     <- Clock.instant
+      order   <- repo.findById(orderId).someOrFail(OrderError.OrderNotFound(orderId))
+      updated  = order.addNote(by, byName, text, now)
+      _       <- repo.save(updated)
+    yield updated.toView
+
+  private def confirmPaymentInternal(
+      orderId: OrderId,
+      reference: Option[String],
+      actor: OrderActor,
+  ): IO[OrderError, OrderView] =
+    for
+      now     <- Clock.instant
+      order   <- repo.findById(orderId).someOrFail(OrderError.OrderNotFound(orderId))
+      updated <- ZIO.fromEither(order.confirmPayment(reference, now, actor))
+      _       <- repo.save(updated)
+      _       <- eventBus.publish(OrderConfirmed(updated.id, updated.orderNumber, updated.lines, now))
+                   .when(order.status != OrderStatus.Confirmed && updated.status == OrderStatus.Confirmed)
+    yield updated.toView
+
+  private def cancelInternal(
+      orderId: OrderId,
+      reason: NonEmptyString,
+      actor: OrderActor,
+  ): IO[OrderError, OrderView] =
+    for
+      now     <- Clock.instant
+      order   <- repo.findById(orderId).someOrFail(OrderError.OrderNotFound(orderId))
+      updated <- ZIO.fromEither(order.transitionTo(OrderStatus.Cancelled(reason), actor, Some(reason.value), now))
+      _       <- repo.save(updated)
+      _       <- eventBus.publish(OrderCancelled(updated.id, reason, now))
+    yield updated.toView
+
+  private def transition(
+      orderId: OrderId,
+      next: OrderStatus,
+      actor: OrderActor,
+      note: Option[String],
+  ): IO[OrderError, OrderView] =
+    for
+      now     <- Clock.instant
+      order   <- repo.findById(orderId).someOrFail(OrderError.OrderNotFound(orderId))
+      updated <- ZIO.fromEither(order.transitionTo(next, actor, note, now))
       _       <- repo.save(updated)
     yield updated.toView
 

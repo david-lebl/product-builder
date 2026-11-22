@@ -72,6 +72,7 @@ object OrderingDomainSpec extends ZIOSpecDefault:
           override def findById(id: OrderId): UIO[Option[Order]] = ref.get.map(_.get(id))
           override def findByCustomer(customerId: CustomerId): UIO[List[Order]] =
             ref.get.map(_.values.filter(_.customer.customerId.contains(customerId)).toList)
+          override def listAll: UIO[List[Order]]     = ref.get.map(_.values.toList)
           override def save(order: Order): UIO[Unit] = ref.update(_ + (order.id -> order))
       }
     }
@@ -252,6 +253,54 @@ object OrderingDomainSpec extends ZIOSpecDefault:
           case PaymentInstructions.BankTransferQR(_, _, _, vs, amt, cur, payload) =>
             vs.value == "20260042" && amt == Money("1331.00") && cur == Currency.CZK && payload.startsWith("SPD*1.0*ACC:")
           case _ => false,
+      )
+    }.provide(orderServiceLayer),
+    test("Staff Order Intake supports accept, hold/resume restoring prior stage, payment confirmation, manual stage progression, notes, and filters") {
+      val line      = sampleLine("l-intake", Currency.CZK, Money(1500))
+      val staffId   = EmployeeId.unsafe("emp-intake-1")
+      val staffName = Some(NonEmptyString.unsafe("Operations Lead"))
+      val cmd = PlaceOrderCmd(
+        orderId = OrderId.unsafe("ord-intake-1"),
+        orderNumber = OrderNumber.unsafe("ORD-2026-0101"),
+        customer = customerSnap,
+        billingAddress = address,
+        delivery = DeliverySelection.ShopPickup(NonEmptyString.unsafe("prague-hq")),
+        paymentMethod = PaymentMethod.BankTransferQR,
+        invoiceApproved = false,
+        lines = NonEmptyChunk.single(line),
+      )
+
+      for
+        svc        <- ZIO.service[OrderService]
+        placed     <- svc.placeOrder(cmd)
+        accepted   <- svc.acceptOrder(placed.id, staffId, staffName, Some("Checked artwork and stock"))
+        paid       <- svc.confirmPaymentByStaff(placed.id, staffId, staffName, Some("WIRE-771"))
+        onHold     <- svc.putOnHold(placed.id, staffId, staffName, NonEmptyString.unsafe("Waiting for bleed fix"))
+        resumed    <- svc.resumeFromHold(placed.id, staffId, staffName, Some("Corrected PDF received"))
+        noted      <- svc.addInternalNote(placed.id, staffId, staffName, NonEmptyString.unsafe("Customer picks up after 16:00"))
+        inProd     <- svc.advanceStage(placed.id, OrderStatus.InProduction, staffId, staffName, Some("Press #2"))
+        ready      <- svc.advanceStage(placed.id, OrderStatus.ReadyForDispatch, staffId, staffName, None)
+        completed  <- svc.advanceStage(placed.id, OrderStatus.Completed, staffId, staffName, Some("Handed over at reception"))
+        byStatus   <- svc.listOrders(OrderFilter(statuses = Set(OrderStatusKind.Completed)))
+        byQuery    <- svc.listOrders(OrderFilter(query = Some("0101")))
+        byPaid     <- svc.listOrders(OrderFilter(paymentStatus = Some(PaymentStatus.Confirmed)))
+        badResume  <- svc.resumeFromHold(placed.id, staffId, staffName, None).either
+      yield assertTrue(
+        placed.status == OrderStatus.AwaitingPayment,
+        accepted.status == OrderStatus.Accepted,
+        paid.status == OrderStatus.Accepted,
+        paid.payment.status == PaymentStatus.Confirmed,
+        onHold.status == OrderStatus.OnHold(NonEmptyString.unsafe("Waiting for bleed fix")),
+        resumed.status == OrderStatus.Accepted,
+        noted.internalNotes.size == 1,
+        inProd.status == OrderStatus.InProduction,
+        ready.status == OrderStatus.ReadyForDispatch,
+        completed.status == OrderStatus.Completed,
+        completed.statusHistory.size == 8,
+        byStatus.map(_.id) == List(placed.id),
+        byQuery.map(_.id) == List(placed.id),
+        byPaid.map(_.id) == List(placed.id),
+        badResume == Left(OrderError.OrderNotOnHold(placed.id, OrderStatus.Completed)),
       )
     }.provide(orderServiceLayer),
   )

@@ -2,6 +2,7 @@ package mpbuilder.sample
 
 import mpbuilder.artwork.ArtworkService
 import mpbuilder.artwork.sample.ArtworkSampleLayer
+import mpbuilder.backoffice.BackofficeFacade
 import mpbuilder.catalog.*
 import mpbuilder.catalog.sample.CatalogSampleLayer
 import mpbuilder.customers.CustomerService
@@ -19,11 +20,11 @@ import mpbuilder.storefront.StorefrontFacade
 import zio.*
 
 /** Unified backend-less in-memory runtime wiring all 7 bounded-context services,
-  * `EventBus`, and the `StorefrontFacade` BFF.
+  * `EventBus`, `StorefrontFacade`, and `BackofficeFacade`.
   *
   * Ready to power:
   *   - Full cross-context integration tests
-  *   - Standalone UI showcase / interactive product configurator without a database or HTTP backend
+  *   - Standalone UI showcase & Staff Backoffice without a database or HTTP backend
   */
 object SampleShowcaseRuntime:
 
@@ -39,15 +40,18 @@ object SampleShowcaseRuntime:
       CheckoutOptionsService &
       OrderService &
       ManufacturingService &
-      StorefrontFacade
+      StorefrontFacade &
+      BackofficeFacade
 
   /** Builds a fresh, isolated in-memory runtime with live shop-floor capacity bridged
     * from `ManufacturingService.currentCapacity` into `PricingService`, plus `IdentityService`
-    * bridged to `CustomerService` and `StorefrontFacade` coordinating all public ports.
+    * bridged to `CustomerService`, `StorefrontFacade`, and `BackofficeFacade` sharing the
+    * exact same in-memory state.
     */
   def layer(
       useSheetCzk: Boolean = true,
       busyPeriods: List[BusyPeriodMultiplier] = Nil,
+      seedSampleOrders: Boolean = true,
   ): ULayer[ShowcaseEnv] =
     val busLayer: ULayer[EventBus] = EventBus.live
 
@@ -70,10 +74,10 @@ object SampleShowcaseRuntime:
         CatalogSampleLayer.live() ++
         customerAndIdentityLayer ++
         ArtworkSampleLayer.live ++
-        OrderingSampleLayer.live ++
+        OrderingSampleLayer.live(seedSampleOrders = seedSampleOrders) ++
         (mfgLayer >+> pricingLayer)
 
-    busLayer >>> (baseServicesLayer >+> StorefrontFacade.layer)
+    busLayer >>> (baseServicesLayer >+> (StorefrontFacade.layer ++ BackofficeFacade.layer))
 
 /** Error union returned by high-level showcase orchestration operations. */
 enum ShowcaseError(val message: String):

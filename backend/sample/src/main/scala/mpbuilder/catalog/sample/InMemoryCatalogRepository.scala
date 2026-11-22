@@ -12,8 +12,10 @@ final class InMemoryCatalogRepository(
     rulesetRef: Ref[CompatibilityRuleset],
 ) extends CatalogRepository:
 
-  override def loadCatalog: UIO[ProductCatalog]       = catalogRef.get
-  override def loadRuleset: UIO[CompatibilityRuleset] = rulesetRef.get
+  override def loadCatalog: UIO[ProductCatalog]              = catalogRef.get
+  override def loadRuleset: UIO[CompatibilityRuleset]        = rulesetRef.get
+  override def saveCatalog(catalog: ProductCatalog): UIO[Unit]       = catalogRef.set(catalog)
+  override def saveRuleset(ruleset: CompatibilityRuleset): UIO[Unit] = rulesetRef.set(ruleset)
 
   def updateCatalog(f: ProductCatalog => ProductCatalog): UIO[Unit] =
     catalogRef.update(f)

@@ -86,6 +86,22 @@ final case class RegisterPasswordCmd(
     rawPassword: NonEmptyString,
 )
 
+final case class StaffMemberView(
+    employeeId: EmployeeId,
+    displayName: NonEmptyString,
+    email: EmailAddress,
+    roles: Set[EmployeeRole],
+    isActive: Boolean,
+)
+
+final case class CreateStaffCmd(
+    employeeId: EmployeeId,
+    displayName: NonEmptyString,
+    email: EmailAddress,
+    roles: Set[EmployeeRole],
+    initialPassword: NonEmptyString,
+)
+
 // ── Errors ───────────────────────────────────────────────────────────────────
 
 enum IdentityError(val message: String):
@@ -97,6 +113,8 @@ enum IdentityError(val message: String):
       extends IdentityError(s"No account found for identifier $identifier")
   case CredentialAlreadyExists(email: EmailAddress)
       extends IdentityError(s"Credentials already exist for '${email.value}'")
+  case StaffNotFound(employeeId: EmployeeId)
+      extends IdentityError(s"Staff member '${employeeId.value}' not found")
   case OtpChallengeNotFound(challengeId: OtpChallengeId)
       extends IdentityError(s"OTP challenge '${challengeId.value}' not found")
   case OtpExpired(challengeId: OtpChallengeId)
@@ -140,6 +158,13 @@ trait IdentityService:
   def verifyOtp(challengeId: OtpChallengeId, code: OtpCode): IO[IdentityError, AuthSession]
   def validateSession(token: SessionToken): IO[IdentityError, AuthSession]
   def logout(token: SessionToken): UIO[Unit]
+
+  // ── Staff directory management ─────────────────────────────────────────────
+  def listStaffMembers: UIO[List[StaffMemberView]]
+  def createStaffMember(cmd: CreateStaffCmd): IO[IdentityError, StaffMemberView]
+  def updateStaffRoles(employeeId: EmployeeId, roles: Set[EmployeeRole]): IO[IdentityError, StaffMemberView]
+  def setStaffActive(employeeId: EmployeeId, isActive: Boolean): IO[IdentityError, StaffMemberView]
+  def resetPassword(email: EmailAddress, newRawPassword: NonEmptyString): IO[IdentityError, Unit]
 
 object IdentityService:
   def loginWithPassword(email: EmailAddress, rawPassword: NonEmptyString): ZIO[IdentityService, IdentityError, AuthSession] =

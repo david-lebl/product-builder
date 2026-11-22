@@ -286,8 +286,11 @@ final class InMemoryCustomerRepository(
   override def save(customer: Customer): UIO[Unit] =
     ref.update(_ + (customer.id -> customer))
 
-  def listAll: UIO[List[CustomerView]] =
-    ref.get.map(_.values.map(_.toView).toList.sortBy(_.id.value))
+  override def listAll: UIO[List[Customer]] =
+    ref.get.map(_.values.toList.sortBy(_.id.value))
+
+  def listAllViews: UIO[List[CustomerView]] =
+    listAll.map(_.map(_.toView))
 
 object CustomerSampleLayer:
 

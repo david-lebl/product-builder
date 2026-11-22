@@ -185,6 +185,7 @@ private[artwork] object ArtworkSubmission:
 
 private[artwork] trait ArtworkRepository:
   def findById(id: ArtworkId): UIO[Option[ArtworkSubmission]]
+  def findByOwner(owner: ArtworkOwner): UIO[List[ArtworkSubmission]] = ZIO.succeed(Nil)
   def save(submission: ArtworkSubmission): UIO[Unit]
 
 private[artwork] final class ArtworkServiceLive(
@@ -241,6 +242,9 @@ private[artwork] final class ArtworkServiceLive(
 
   override def getById(artworkId: ArtworkId): IO[ArtworkError.NotFound, ArtworkSubmissionView] =
     repo.findById(artworkId).someOrFail(new ArtworkError.NotFound(artworkId)).map(_.toView)
+
+  override def listByOwner(owner: ArtworkOwner): UIO[List[ArtworkSubmissionView]] =
+    repo.findByOwner(owner).map(_.map(_.toView))
 
 private[artwork] object ArtworkServiceLive:
   val layer: ZLayer[ArtworkRepository & EventBus, Nothing, ArtworkService] =

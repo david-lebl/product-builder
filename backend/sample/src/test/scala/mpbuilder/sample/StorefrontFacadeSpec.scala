@@ -276,5 +276,5 @@ object StorefrontFacadeSpec extends ZIOSpecDefault:
         history.size == 2,
         history.map(_.id).toSet == Set(confirm1.order.id, confirm2.order.id),
       )
-    }.provide(SampleShowcaseRuntime.layer()),
+    }.provide(SampleShowcaseRuntime.layer(seedSampleOrders = false)),
   )

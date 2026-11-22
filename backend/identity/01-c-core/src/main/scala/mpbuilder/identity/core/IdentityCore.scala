@@ -175,6 +175,7 @@ private[identity] object SecretHasher:
 
 private[identity] trait CredentialRepository:
   def findByEmail(email: EmailAddress): UIO[Option[PasswordCredential]]
+  def listAll: UIO[List[PasswordCredential]] = ZIO.succeed(Nil)
   def save(credential: PasswordCredential): UIO[Unit]
 
 private[identity] trait OtpRepository:
@@ -295,6 +296,60 @@ private[identity] final class IdentityServiceLive(
       sessOpt <- sessions.findByToken(token)
       _       <- sessions.revoke(token)
       _       <- ZIO.foreachDiscard(sessOpt.filterNot(_.revoked))(s => eventBus.publish(UserLoggedOut(s.principal, now)))
+    yield ()
+
+  override def listStaffMembers: UIO[List[StaffMemberView]] =
+    credentials.listAll.map { creds =>
+      creds.collect { case PasswordCredential(email, _, _, Principal.Employee(empId, name, _, roles), active) =>
+        StaffMemberView(empId, name, email, roles, active)
+      }.sortBy(_.employeeId.value)
+    }
+
+  override def createStaffMember(cmd: CreateStaffCmd): IO[IdentityError, StaffMemberView] =
+    val principal = Principal.Employee(cmd.employeeId, cmd.displayName, cmd.email, cmd.roles)
+    registerPasswordCredential(RegisterPasswordCmd(principal, cmd.email, cmd.initialPassword))
+      .as(StaffMemberView(cmd.employeeId, cmd.displayName, cmd.email, cmd.roles, isActive = true))
+
+  override def updateStaffRoles(
+      employeeId: EmployeeId,
+      roles: Set[EmployeeRole],
+  ): IO[IdentityError, StaffMemberView] =
+    for
+      all  <- credentials.listAll
+      cred <- ZIO
+                .fromOption(all.find(_.principal.employeeIdOpt.contains(employeeId)))
+                .orElseFail(IdentityError.StaffNotFound(employeeId))
+      emp  <- cred.principal match
+                case e: Principal.Employee =>
+                  ZIO.succeed(new Principal.Employee(e.employeeId, e.displayName, e.email, roles))
+                case _ =>
+                  ZIO.fail(IdentityError.StaffNotFound(employeeId))
+      upd   = cred.copy(principal = emp)
+      _    <- credentials.save(upd)
+    yield StaffMemberView(emp.employeeId, emp.displayName, upd.email, emp.roles, upd.isActive)
+
+  override def setStaffActive(
+      employeeId: EmployeeId,
+      isActive: Boolean,
+  ): IO[IdentityError, StaffMemberView] =
+    for
+      all  <- credentials.listAll
+      cred <- ZIO
+                .fromOption(all.find(_.principal.employeeIdOpt.contains(employeeId)))
+                .orElseFail(IdentityError.StaffNotFound(employeeId))
+      emp  <- cred.principal match
+                case e: Principal.Employee => ZIO.succeed(e)
+                case _                     => ZIO.fail(IdentityError.StaffNotFound(employeeId))
+      upd   = cred.copy(isActive = isActive)
+      _    <- credentials.save(upd)
+    yield StaffMemberView(emp.employeeId, emp.displayName, upd.email, emp.roles, upd.isActive)
+
+  override def resetPassword(email: EmailAddress, newRawPassword: NonEmptyString): IO[IdentityError, Unit] =
+    for
+      cred <- credentials.findByEmail(email).someOrFail(IdentityError.AccountNotFound(LoginIdentifier.Email(email)))
+      salt <- tokens.generateSalt
+      hash  = SecretHasher.hash(newRawPassword.value, salt)
+      _    <- credentials.save(cred.copy(passwordHash = hash, salt = salt))
     yield ()
 
   private def issueSession(principal: Principal, method: AuthMethod, now: Instant): UIO[AuthSession] =

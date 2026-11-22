@@ -97,11 +97,7 @@ object AccountView:
               else
                 div.style(Style.column.gap(12.px))(
                   orders.map { order =>
-                    val statusTone = order.status match
-                      case OrderStatus.Confirmed | OrderStatus.Completed | OrderStatus.Dispatched => BadgeTone.Emerald
-                      case OrderStatus.AwaitingPayment                                            => BadgeTone.Amber
-                      case OrderStatus.Cancelled(_)                                               => BadgeTone.Rose
-                      case _                                                                      => BadgeTone.Brand
+                    val statusTone = orderStatusTone(order.status)
 
                     div.style(Style.column.gap(10.px).padding(16.px).rounded(12.px).border(1.px, Palette.border).bg(surfaceAlt))(
                       div.style(rowBetween)(

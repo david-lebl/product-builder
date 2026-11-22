@@ -215,11 +215,59 @@ enum OrderStatus:
   case Placed
   case AwaitingPayment
   case Confirmed
+  case Accepted
   case InProduction
   case ReadyForDispatch
   case Dispatched
   case Completed
+  case OnHold(reason: NonEmptyString)
   case Cancelled(reason: NonEmptyString)
+
+  def kind: OrderStatusKind = this match
+    case Placed           => OrderStatusKind.Placed
+    case AwaitingPayment  => OrderStatusKind.AwaitingPayment
+    case Confirmed        => OrderStatusKind.Confirmed
+    case Accepted         => OrderStatusKind.Accepted
+    case InProduction     => OrderStatusKind.InProduction
+    case ReadyForDispatch => OrderStatusKind.ReadyForDispatch
+    case Dispatched       => OrderStatusKind.Dispatched
+    case Completed        => OrderStatusKind.Completed
+    case OnHold(_)        => OrderStatusKind.OnHold
+    case Cancelled(_)     => OrderStatusKind.Cancelled
+
+  def isTerminal: Boolean = this match
+    case Completed | Cancelled(_) => true
+    case _                        => false
+
+enum OrderStatusKind:
+  case Placed, AwaitingPayment, Confirmed, Accepted, InProduction, ReadyForDispatch, Dispatched, Completed, OnHold, Cancelled
+
+enum OrderActor:
+  case System
+  case Customer(customerId: Option[CustomerId], name: NonEmptyString)
+  case Employee(employeeId: EmployeeId, name: Option[NonEmptyString] = None)
+
+final case class OrderStatusEvent(
+    from: Option[OrderStatus],
+    to: OrderStatus,
+    actor: OrderActor,
+    note: Option[String] = None,
+    occurredAt: Instant,
+)
+
+final case class OrderInternalNote(
+    authorId: EmployeeId,
+    authorName: Option[NonEmptyString] = None,
+    text: NonEmptyString,
+    createdAt: Instant,
+)
+
+final case class OrderFilter(
+    statuses: Set[OrderStatusKind] = Set.empty,
+    paymentStatus: Option[PaymentStatus] = None,
+    customerId: Option[CustomerId] = None,
+    query: Option[String] = None,
+)
 
 final case class OrderLine(
     lineId: OrderLineId,
@@ -259,6 +307,8 @@ final case class OrderView(
     customerNote: Option[String],
     placedAt: Instant,
     appliedPromo: Option[AppliedPromoSnapshot] = None,
+    statusHistory: List[OrderStatusEvent] = Nil,
+    internalNotes: List[OrderInternalNote] = Nil,
 )
 
 // ── Commands & Errors ────────────────────────────────────────────────────────
@@ -297,6 +347,8 @@ enum OrderError(val message: String):
       extends OrderError(s"Cannot transition order '${orderId.value}' from $from to $to")
   case OrderAlreadyCancelled(orderId: OrderId)
       extends OrderError(s"Order '${orderId.value}' is already cancelled")
+  case OrderNotOnHold(orderId: OrderId, currentStatus: OrderStatus)
+      extends OrderError(s"Order '${orderId.value}' is not on hold (current status: $currentStatus)")
 
 // ── Domain Events ────────────────────────────────────────────────────────────
 
@@ -313,6 +365,28 @@ final case class OrderConfirmed(
     orderId: OrderId,
     orderNumber: OrderNumber,
     lines: NonEmptyChunk[OrderLine],
+    occurredAt: Instant,
+) extends DomainEvent
+
+final case class OrderAccepted(
+    orderId: OrderId,
+    orderNumber: OrderNumber,
+    acceptedBy: EmployeeId,
+    occurredAt: Instant,
+) extends DomainEvent
+
+final case class OrderPutOnHold(
+    orderId: OrderId,
+    reason: NonEmptyString,
+    by: EmployeeId,
+    occurredAt: Instant,
+) extends DomainEvent
+
+final case class OrderStageChanged(
+    orderId: OrderId,
+    from: OrderStatus,
+    to: OrderStatus,
+    by: EmployeeId,
     occurredAt: Instant,
 ) extends DomainEvent
 
@@ -365,6 +439,16 @@ trait CheckoutOptionsService:
       invoiceDueDays: Option[Int] = None,
   ): UIO[PaymentInstructions]
 
+  // ── Admin Delivery & Payment Configuration ─────────────────────────────────
+  def listAllPickupLocations: UIO[List[ShopPickupLocation]]
+  def upsertPickupLocation(loc: ShopPickupLocation): UIO[ShopPickupLocation]
+  def deletePickupLocation(id: DeliveryOptionId): UIO[Unit]
+  def listAllCourierOptions: UIO[List[CourierServiceOption]]
+  def upsertCourierOption(opt: CourierServiceOption): UIO[CourierServiceOption]
+  def deleteCourierOption(id: DeliveryOptionId, currency: Currency): UIO[Unit]
+  def listBankAccounts: UIO[Map[Currency, BankAccountConfig]]
+  def upsertBankAccount(currency: Currency, config: BankAccountConfig): UIO[BankAccountConfig]
+
 trait OrderService:
   def placeOrder(cmd: PlaceOrderCmd): IO[OrderError, OrderView]
   def confirmPayment(orderId: OrderId, reference: Option[String]): IO[OrderError, OrderView]
@@ -375,6 +459,52 @@ trait OrderService:
   def cancel(orderId: OrderId, reason: NonEmptyString): IO[OrderError, OrderView]
   def getOrder(orderId: OrderId): IO[OrderError.OrderNotFound, OrderView]
   def listOrdersByCustomer(customerId: CustomerId): UIO[List[OrderView]]
+
+  // ── Staff Order Intake & Manual Stage Management ───────────────────────────
+  def listOrders(filter: OrderFilter = OrderFilter()): UIO[List[OrderView]]
+  def acceptOrder(
+      orderId: OrderId,
+      by: EmployeeId,
+      byName: Option[NonEmptyString] = None,
+      note: Option[String] = None,
+  ): IO[OrderError, OrderView]
+  def putOnHold(
+      orderId: OrderId,
+      by: EmployeeId,
+      byName: Option[NonEmptyString] = None,
+      reason: NonEmptyString,
+  ): IO[OrderError, OrderView]
+  def resumeFromHold(
+      orderId: OrderId,
+      by: EmployeeId,
+      byName: Option[NonEmptyString] = None,
+      note: Option[String] = None,
+  ): IO[OrderError, OrderView]
+  def advanceStage(
+      orderId: OrderId,
+      target: OrderStatus,
+      by: EmployeeId,
+      byName: Option[NonEmptyString] = None,
+      note: Option[String] = None,
+  ): IO[OrderError, OrderView]
+  def confirmPaymentByStaff(
+      orderId: OrderId,
+      by: EmployeeId,
+      byName: Option[NonEmptyString] = None,
+      reference: Option[String] = None,
+  ): IO[OrderError, OrderView]
+  def cancelByStaff(
+      orderId: OrderId,
+      by: EmployeeId,
+      byName: Option[NonEmptyString] = None,
+      reason: NonEmptyString,
+  ): IO[OrderError, OrderView]
+  def addInternalNote(
+      orderId: OrderId,
+      by: EmployeeId,
+      byName: Option[NonEmptyString] = None,
+      text: NonEmptyString,
+  ): IO[OrderError, OrderView]
 
 object OrderService:
   def placeOrder(cmd: PlaceOrderCmd): ZIO[OrderService, OrderError, OrderView] =

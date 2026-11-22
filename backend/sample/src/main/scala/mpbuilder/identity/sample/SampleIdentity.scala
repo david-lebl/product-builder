@@ -56,6 +56,13 @@ object SampleIdentity:
     roles = Set(EmployeeRole.Prepress),
   )
 
+  val managerEmployeePrincipal: Principal.Employee = Principal.Employee(
+    employeeId = EmployeeId.unsafe("emp-3"),
+    displayName = NonEmptyString.unsafe("Operations Manager"),
+    email = EmailAddress.unsafe("manager@printshop.cz"),
+    roles = Set(EmployeeRole.Manager, EmployeeRole.Operator),
+  )
+
 object IdentitySampleLayer:
 
   val otpInboxLayer: ULayer[InMemoryOtpInbox] =
@@ -84,7 +91,8 @@ object IdentitySampleLayer:
 
         credRepo = new CredentialRepository:
           override def findByEmail(email: EmailAddress): UIO[Option[PasswordCredential]] = credRef.get.map(_.get(email))
-          override def save(credential: PasswordCredential): UIO[Unit]                   = credRef.update(_ + (credential.email -> credential))
+          override def listAll: UIO[List[PasswordCredential]]                          = credRef.get.map(_.values.toList)
+          override def save(credential: PasswordCredential): UIO[Unit]                 = credRef.update(_ + (credential.email -> credential))
 
         otpRepo = new OtpRepository:
           override def findById(id: OtpChallengeId): UIO[Option[OtpChallenge]] = otpRef.get.map(_.get(id))
@@ -121,23 +129,22 @@ object IdentitySampleLayer:
                  )
                  .ignore
              }
-        _ <- svc
-               .registerPasswordCredential(
-                 RegisterPasswordCmd(
-                   principal = SampleIdentity.adminEmployeePrincipal,
-                   email = SampleIdentity.adminEmployeePrincipal.email,
-                   rawPassword = SampleIdentity.demoEmployeePassword,
-                 )
+        _ <- ZIO.foreachDiscard(
+               List(
+                 SampleIdentity.adminEmployeePrincipal,
+                 SampleIdentity.prepressEmployeePrincipal,
+                 SampleIdentity.managerEmployeePrincipal,
                )
-               .ignore
-        _ <- svc
-               .registerPasswordCredential(
-                 RegisterPasswordCmd(
-                   principal = SampleIdentity.prepressEmployeePrincipal,
-                   email = SampleIdentity.prepressEmployeePrincipal.email,
-                   rawPassword = SampleIdentity.demoEmployeePassword,
+             ) { emp =>
+               svc
+                 .registerPasswordCredential(
+                   RegisterPasswordCmd(
+                     principal = emp,
+                     email = emp.email,
+                     rawPassword = SampleIdentity.demoEmployeePassword,
+                   )
                  )
-               )
-               .ignore
+                 .ignore
+             }
       yield ZEnvironment[IdentityService, InMemoryOtpInbox](svc, inbox)
     }

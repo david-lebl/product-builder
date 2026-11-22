@@ -43,6 +43,35 @@ private[customers] final case class Customer(
       case other =>
         Left(CustomerError.InvalidStatusTransition(id, other, CustomerStatus.Suspended))
 
+  def deactivate(reason: NonEmptyString, by: Option[EmployeeId], at: Instant): Either[CustomerError, Customer] =
+    status match
+      case CustomerStatus.Deactivated =>
+        Left(CustomerError.InvalidStatusTransition(id, CustomerStatus.Deactivated, CustomerStatus.Deactivated))
+      case _ =>
+        Right(
+          copy(
+            status = CustomerStatus.Deactivated,
+            paymentTerms = PaymentTerms.PrepaidOnly,
+            notes = notes :+ AccountNote(reason, at, by),
+          )
+        )
+
+  def addNote(text: NonEmptyString, by: Option[EmployeeId], at: Instant): Customer =
+    copy(notes = notes :+ AccountNote(text, at, by))
+
+  def updateProfile(cmd: UpdateCustomerProfileCmd): Either[CustomerError, Customer] =
+    val needsCompany = segment == CustomerSegment.Business || segment == CustomerSegment.Agency
+    if needsCompany && cmd.company.isEmpty then Left(CustomerError.CompanyProfileRequired(segment))
+    else
+      Right(
+        copy(
+          company = cmd.company,
+          contact = cmd.contact,
+          billingAddress = cmd.billingAddress,
+          tags = cmd.tags,
+        )
+      )
+
   def withPaymentTerms(terms: PaymentTerms): Either[CustomerError, Customer] =
     terms match
       case PaymentTerms.PrepaidOnly =>
@@ -72,6 +101,7 @@ private[customers] final case class Customer(
       paymentTerms = paymentTerms,
       tags = tags,
       createdAt = createdAt,
+      notes = notes,
     )
 
 private[customers] object Customer:
@@ -105,6 +135,7 @@ private[customers] trait CustomerRepository:
   def findByEmail(email: EmailAddress): UIO[Option[Customer]]
   def findByRegistrationNumber(regNo: NonEmptyString): UIO[Option[Customer]]
   def findByVatId(vatId: NonEmptyString): UIO[Option[Customer]]
+  def listAll: UIO[List[Customer]] = ZIO.succeed(Nil)
   def save(customer: Customer): UIO[Unit]
 
 private[customers] final class CustomerServiceLive(
@@ -134,6 +165,30 @@ private[customers] final class CustomerServiceLive(
       case CustomerIdentifier.VatId(vatId)       => repo.findByVatId(vatId)
     lookup.someOrFail(new CustomerError.NotFoundByIdentifier(identifier)).map(_.toView)
 
+  override def listCustomers(filter: CustomerFilter = CustomerFilter()): UIO[List[CustomerView]] =
+    repo.listAll.map { all =>
+      val q = filter.query.map(_.trim.toLowerCase).filter(_.nonEmpty)
+      all
+        .filter { c =>
+          filter.status.forall(_ == c.status) &&
+          filter.segment.forall(_ == c.segment) &&
+          filter.tier.forall(_ == c.tier) &&
+          q.forall { needle =>
+            c.id.value.toLowerCase.contains(needle) ||
+            c.contact.email.value.toLowerCase.contains(needle) ||
+            s"${c.contact.firstName.value} ${c.contact.lastName.value}".toLowerCase.contains(needle) ||
+            c.company.exists(co =>
+              co.legalName.value.toLowerCase.contains(needle) ||
+                co.registrationNumber.value.toLowerCase.contains(needle) ||
+                co.vatId.exists(_.value.toLowerCase.contains(needle))
+            ) ||
+            c.tags.exists(_.toLowerCase.contains(needle))
+          }
+        }
+        .sortBy(_.createdAt)(using Ordering[Instant].reverse)
+        .map(_.toView)
+    }
+
   override def approve(id: CustomerId): IO[CustomerError, CustomerView] =
     for
       now      <- Clock.instant
@@ -151,6 +206,14 @@ private[customers] final class CustomerServiceLive(
       _        <- repo.save(updated)
     yield updated.toView
 
+  override def deactivate(id: CustomerId, reason: NonEmptyString, by: Option[EmployeeId]): IO[CustomerError, CustomerView] =
+    for
+      now      <- Clock.instant
+      customer <- repo.findById(id).someOrFail(CustomerError.NotFound(id))
+      updated  <- ZIO.fromEither(customer.deactivate(reason, by, now))
+      _        <- repo.save(updated)
+    yield updated.toView
+
   override def changeTier(id: CustomerId, newTier: CustomerTier): IO[CustomerError, CustomerView] =
     for
       now      <- Clock.instant
@@ -165,6 +228,31 @@ private[customers] final class CustomerServiceLive(
     for
       customer <- repo.findById(id).someOrFail(CustomerError.NotFound(id))
       updated  <- ZIO.fromEither(customer.withPaymentTerms(terms))
+      _        <- repo.save(updated)
+    yield updated.toView
+
+  override def updateProfile(cmd: UpdateCustomerProfileCmd): IO[CustomerError, CustomerView] =
+    for
+      customer <- repo.findById(cmd.id).someOrFail(CustomerError.NotFound(cmd.id))
+      _        <- ZIO
+                    .when(cmd.contact.email != customer.contact.email) {
+                      repo
+                        .findByEmail(cmd.contact.email)
+                        .flatMap(existing =>
+                          ZIO
+                            .fail(CustomerError.EmailAlreadyRegistered(cmd.contact.email))
+                            .when(existing.exists(_.id != cmd.id))
+                        )
+                    }
+      updated  <- ZIO.fromEither(customer.updateProfile(cmd))
+      _        <- repo.save(updated)
+    yield updated.toView
+
+  override def addNote(id: CustomerId, text: NonEmptyString, by: Option[EmployeeId]): IO[CustomerError, CustomerView] =
+    for
+      now      <- Clock.instant
+      customer <- repo.findById(id).someOrFail(CustomerError.NotFound(id))
+      updated   = customer.addNote(text, by, now)
       _        <- repo.save(updated)
     yield updated.toView
 

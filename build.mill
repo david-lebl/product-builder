@@ -231,6 +231,36 @@ object backend extends Module {
     }
   }
 
+  /** Backoffice / Admin BFF & Order Intake Orchestration Facade (depends ONLY on public context APIs). */
+  object backoffice extends Module {
+    private val dir = backendDir / "backoffice"
+    object jvm extends BackendJvmModule {
+      def baseDir = dir
+      def moduleDeps = Seq(
+        backend.shared.jvm,
+        backend.catalog.`01-c-core`.jvm,
+        backend.pricing.`01-c-core`.jvm,
+        backend.customers.`01-c-core`.jvm,
+        backend.identity.`01-c-core`.jvm,
+        backend.ordering.`01-c-core`.jvm,
+        backend.artwork.`01-c-core`.jvm,
+      )
+      object test extends CoreTests
+    }
+    object js extends BackendJsModule {
+      def baseDir = dir
+      def moduleDeps = Seq(
+        backend.shared.js,
+        backend.catalog.`01-c-core`.js,
+        backend.pricing.`01-c-core`.js,
+        backend.customers.`01-c-core`.js,
+        backend.identity.`01-c-core`.js,
+        backend.ordering.`01-c-core`.js,
+        backend.artwork.`01-c-core`.js,
+      )
+    }
+  }
+
   /** Sample data, in-memory adapters, cross-context ACL bridges & standalone showcase runtime. */
   object sample extends Module {
     private val dir = backendDir / "sample"
@@ -246,6 +276,7 @@ object backend extends Module {
         backend.ordering.`01-c-core`.jvm,
         backend.manufacturing.`01-c-core`.jvm,
         backend.storefront.jvm,
+        backend.backoffice.jvm,
       )
       object test extends CoreTests
     }
@@ -261,6 +292,7 @@ object backend extends Module {
         backend.ordering.`01-c-core`.js,
         backend.manufacturing.`01-c-core`.js,
         backend.storefront.js,
+        backend.backoffice.js,
       )
     }
   }

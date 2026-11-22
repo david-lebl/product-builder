@@ -44,6 +44,21 @@ trait CatalogService:
 
   def configure(cmd: ConfigureProductCmd): IO[CatalogError, ConfigurationResult]
 
+  // ── Catalog & Ruleset Administration ───────────────────────────────────────
+  def getRuleset: UIO[CompatibilityRuleset]
+  def upsertCategory(category: ProductCategory): IO[CatalogError, ProductCatalog]
+  def deleteCategory(id: CategoryId): IO[CatalogError, ProductCatalog]
+  def upsertMaterial(material: Material): IO[CatalogError, ProductCatalog]
+  def deleteMaterial(id: MaterialId): IO[CatalogError, ProductCatalog]
+  def upsertFinish(finish: Finish): IO[CatalogError, ProductCatalog]
+  def deleteFinish(id: FinishId): IO[CatalogError, ProductCatalog]
+  def upsertPrintingMethod(method: PrintingMethod): IO[CatalogError, ProductCatalog]
+  def deletePrintingMethod(id: PrintingMethodId): IO[CatalogError, ProductCatalog]
+  def upsertShowcaseListing(listing: ShowcaseListing): IO[CatalogError, ProductCatalog]
+  def deleteShowcaseListing(categoryId: CategoryId): IO[CatalogError, ProductCatalog]
+  def upsertRule(rule: CompatibilityRule): IO[CatalogError, CompatibilityRuleset]
+  def deleteRule(id: RuleId): IO[CatalogError, CompatibilityRuleset]
+
 object CatalogService:
   def configure(cmd: ConfigureProductCmd): ZIO[CatalogService, CatalogError, ConfigurationResult] =
     ZIO.serviceWithZIO[CatalogService](_.configure(cmd))

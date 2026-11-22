@@ -43,6 +43,19 @@ trait PricingService:
   def redeemPromoCode(codeId: DiscountCodeId): IO[PricingError, Unit]
   def speedMultipliers(currency: Currency): IO[PricingError.PricelistNotFound, List[SpeedMultiplierSummary]]
 
+  // ── Pricing Administration ─────────────────────────────────────────────────
+  def listPricelists: UIO[List[Pricelist]]
+  def savePricelist(pricelist: Pricelist): IO[PricingError, Pricelist]
+  def listAgreements: UIO[List[CustomerPriceAgreement]]
+  def saveAgreement(agreement: CustomerPriceAgreement): IO[PricingError, CustomerPriceAgreement]
+  def deleteAgreement(target: AgreementTarget, currency: Currency): UIO[Unit]
+  def listPromoCodes: UIO[List[PromoCode]]
+  def savePromoCode(promo: PromoCode): IO[PricingError, PromoCode]
+  def setPromoCodeActive(id: DiscountCodeId, active: Boolean): IO[PricingError, PromoCode]
+  def deletePromoCode(id: DiscountCodeId): UIO[Unit]
+  def listCostSheets: UIO[List[ProductionCostSheet]]
+  def saveCostSheet(sheet: ProductionCostSheet): IO[PricingError, ProductionCostSheet]
+
 object PricingService:
   def quote(cmd: PriceQuoteCmd): ZIO[PricingService, PricingError, PriceQuote] =
     ZIO.serviceWithZIO[PricingService](_.quote(cmd))

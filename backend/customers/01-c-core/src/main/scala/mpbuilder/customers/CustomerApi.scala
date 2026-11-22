@@ -51,6 +51,14 @@ final case class CustomerView(
     paymentTerms: PaymentTerms,
     tags: Set[String],
     createdAt: Instant,
+    notes: List[AccountNote] = Nil,
+)
+
+final case class CustomerFilter(
+    status: Option[CustomerStatus] = None,
+    segment: Option[CustomerSegment] = None,
+    tier: Option[CustomerTier] = None,
+    query: Option[String] = None,
 )
 
 final case class RegisterCustomerCmd(
@@ -59,6 +67,14 @@ final case class RegisterCustomerCmd(
     company: Option[CompanyProfile],
     contact: ContactPerson,
     billingAddress: Address,
+)
+
+final case class UpdateCustomerProfileCmd(
+    id: CustomerId,
+    company: Option[CompanyProfile],
+    contact: ContactPerson,
+    billingAddress: Address,
+    tags: Set[String],
 )
 
 enum CustomerIdentifier:
@@ -109,10 +125,14 @@ trait CustomerService:
   def register(cmd: RegisterCustomerCmd): IO[CustomerError, CustomerView]
   def getById(id: CustomerId): IO[CustomerError.NotFound, CustomerView]
   def findByIdentifier(identifier: CustomerIdentifier): IO[CustomerError.NotFoundByIdentifier, CustomerView]
+  def listCustomers(filter: CustomerFilter = CustomerFilter()): UIO[List[CustomerView]]
   def approve(id: CustomerId): IO[CustomerError, CustomerView]
   def suspend(id: CustomerId, reason: NonEmptyString, by: Option[EmployeeId]): IO[CustomerError, CustomerView]
+  def deactivate(id: CustomerId, reason: NonEmptyString, by: Option[EmployeeId]): IO[CustomerError, CustomerView]
   def changeTier(id: CustomerId, newTier: CustomerTier): IO[CustomerError, CustomerView]
   def grantPaymentTerms(id: CustomerId, terms: PaymentTerms): IO[CustomerError, CustomerView]
+  def updateProfile(cmd: UpdateCustomerProfileCmd): IO[CustomerError, CustomerView]
+  def addNote(id: CustomerId, text: NonEmptyString, by: Option[EmployeeId]): IO[CustomerError, CustomerView]
 
 object CustomerService:
   def register(cmd: RegisterCustomerCmd): ZIO[CustomerService, CustomerError, CustomerView] =

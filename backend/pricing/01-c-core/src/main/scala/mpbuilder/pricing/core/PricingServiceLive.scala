@@ -70,6 +70,45 @@ private[pricing] final class PricingServiceLive(
       PricingEngine.speedMultiplierSummary(speed, pricelist, context)
     }
 
+  // ── Pricing Administration ─────────────────────────────────────────────────
+
+  override def listPricelists: UIO[List[Pricelist]] =
+    pricelistRepo.listAll.map(_.sortBy(_.currency.toString))
+
+  override def savePricelist(pricelist: Pricelist): IO[PricingError, Pricelist] =
+    pricelistRepo.save(pricelist).as(pricelist)
+
+  override def listAgreements: UIO[List[CustomerPriceAgreement]] =
+    agreementRepo.listAll
+
+  override def saveAgreement(agreement: CustomerPriceAgreement): IO[PricingError, CustomerPriceAgreement] =
+    agreementRepo.save(agreement).as(agreement)
+
+  override def deleteAgreement(target: AgreementTarget, currency: Currency): UIO[Unit] =
+    agreementRepo.delete(target, currency)
+
+  override def listPromoCodes: UIO[List[PromoCode]] =
+    promoRepo.listAll.map(_.sortBy(_.code.value))
+
+  override def savePromoCode(promo: PromoCode): IO[PricingError, PromoCode] =
+    promoRepo.save(promo).as(promo)
+
+  override def setPromoCodeActive(id: DiscountCodeId, active: Boolean): IO[PricingError, PromoCode] =
+    for
+      promo  <- promoRepo.findById(id).someOrFail(PricingError.PromoCodeNotFound(id.value))
+      updated = promo.copy(isActive = active)
+      _      <- promoRepo.save(updated)
+    yield updated
+
+  override def deletePromoCode(id: DiscountCodeId): UIO[Unit] =
+    promoRepo.delete(id)
+
+  override def listCostSheets: UIO[List[ProductionCostSheet]] =
+    costSheetRepo.listAll.map(_.sortBy(_.currency.toString))
+
+  override def saveCostSheet(sheet: ProductionCostSheet): IO[PricingError, ProductionCostSheet] =
+    costSheetRepo.save(sheet).as(sheet)
+
   private def resolveAgreement(
       customerId: Option[CustomerId],
       customerTier: Option[CustomerTier],

@@ -151,6 +151,7 @@ trait ArtworkService:
   def approve(artworkId: ArtworkId, operatorId: EmployeeId, overrideWarningsOrFailures: Boolean = false): IO[ArtworkError, ArtworkSubmissionView]
   def requestChanges(artworkId: ArtworkId, notes: NonEmptyString): IO[ArtworkError, ArtworkSubmissionView]
   def getById(artworkId: ArtworkId): IO[ArtworkError.NotFound, ArtworkSubmissionView]
+  def listByOwner(owner: ArtworkOwner): UIO[List[ArtworkSubmissionView]]
 
 object ArtworkService:
   def upload(cmd: UploadArtworkCmd): ZIO[ArtworkService, ArtworkError, ArtworkSubmissionView] =
