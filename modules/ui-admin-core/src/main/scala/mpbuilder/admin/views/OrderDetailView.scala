@@ -8,19 +8,22 @@ import mpbuilder.artwork.{ArtworkStatus, CheckOutcome}
 import mpbuilder.ordering.*
 import mpbuilder.shared.*
 import mpbuilder.ui.components.CommonComponents.*
-import mpbuilder.ui.components.ConfirmDialog
+import mpbuilder.ui.components.{ActionMenu, ConfirmDialog, TabBar}
 import mpbuilder.ui.theme.AppTheme.*
 import mpbuilder.ui.theme.AppTheme.Palette.*
 
 /** Order Detail & Manual Intake Workspace:
-  *   - Top-right Corner Action Bar next to headline with `ConfirmDialog` for every state transition
-  *   - Priority & calculated production deadline (plus per-line mixed-speed deadlines)
-  *   - Separate Payment Status card (decoupled from production stage; Mark Paid / Mark Unpaid via ConfirmDialog)
-  *   - Order Lines with full technical specs, expandable Price Breakdown, and inline Edit Line + plain-text spec note
-  *   - Artwork & Preflight Review panel (DPI, bleed, trim, color profile) with Approve, Approve-with-Warning, Request Re-upload, and Reject dialogs
-  *   - Internal staff notes & full chronological status audit trail
+  *   - Single-line detail header: Headline on left, separated clearly-labeled Status Proceed button
+  *     + collapsed `ActionMenu` dropdown (Payment toggle, Put On Hold, Cancel) on right;
+  *     status, payment, priority & deadline badges cleanly underneath
+  *   - Embedded mode (Master-Detail side pane): single-column scrollable layout with compact sub-tabs
+  *     (Items & Summary | Artwork | Customer & Payment | Notes & History)
+  *   - Full-screen mode (`AdminRoute.OrderDetail`): spacious two-column workspace with `← Back` nav
   */
 object OrderDetailView:
+
+  private enum DetailTab:
+    case Items, Artwork, CustomerPayment, NotesHistory
 
   private final case class LineEditDraft(
       lineId: OrderLineId,
@@ -33,6 +36,8 @@ object OrderDetailView:
   def render(state: BackofficeState, embedded: Boolean = false): UI < Sync =
     for
       dialog               <- ConfirmDialog.Handle.make
+      actionMenu           <- ActionMenu.Handle.make
+      detailTabRef         <- Signal.initRef[DetailTab](DetailTab.Items)
       expandedBreakdownRef <- Signal.initRef[Set[OrderLineId]](Set.empty)
       lineEditRef          <- Signal.initRef[Option[LineEditDraft]](None)
       internalNoteRef      <- Signal.initRef("")
@@ -42,11 +47,12 @@ object OrderDetailView:
           .combineLatest(state.selectedOrderArtwork)
           .combineLatest(expandedBreakdownRef)
           .combineLatest(lineEditRef)
+          .combineLatest(detailTabRef)
           .combineLatest(state.auth)
           .combineLatest(state.i18n.language)
 
       UI.fragment(
-        combined.render { case (((((orderOpt, artworks), expandedBreakdowns), lineEditOpt), authOpt), lang) =>
+        combined.render { case ((((((orderOpt, artworks), expandedBreakdowns), lineEditOpt), activeDetailTab), authOpt), lang) =>
           val isCs      = lang == Language.Cs
           val canIntake = state.canIntake(authOpt)
           val canManage = state.canManage(authOpt)
@@ -82,182 +88,212 @@ object OrderDetailView:
                     OrderStatus.Accepted | OrderStatus.OnHold(_) =>
                   true
                 case _ => false)
-              val nextStages: List[(OrderStatus, String, String)] = ord.status match
-                case OrderStatus.Accepted =>
-                  List((OrderStatus.InProduction, "adm-od-stage-inprod", if isCs then "Označit: Ve výrobě" else "Mark In Progress"))
-                case OrderStatus.InProduction =>
-                  List((OrderStatus.ReadyForDispatch, "adm-od-stage-ready", if isCs then "Označit: K expedici" else "Mark Ready for Dispatch"))
-                case OrderStatus.ReadyForDispatch =>
-                  List((OrderStatus.Dispatched, "adm-od-stage-dispatched", if isCs then "Označit: Expedováno" else "Mark Dispatched"))
-                case OrderStatus.Dispatched =>
-                  List((OrderStatus.Completed, "adm-od-stage-completed", if isCs then "Označit: Dokončeno" else "Mark Completed"))
-                case _ => Nil
 
-              div.style(stackMd.width(100.pct))(
-                // Top Header Bar with Headline + Corner Action Bar
-                div.style(rowBetween.flexWrap(FlexWrap.wrap).gap(12.px))(
-                  div.style(rowSm.flexWrap(FlexWrap.wrap))(
-                    if !embedded then
+              // Primary separated Status Proceed button (with explicit stage label)
+              val primaryProceedBtn: UI =
+                if !canIntake then UI.empty
+                else if canAccept then
+                  button
+                    .cssClass("mp-btn mp-btn-primary mp-btn-sm")
+                    .style(Style.whiteSpace(WhiteSpace.noWrap))
+                    .onClick(
+                      dialog.open(
+                        ConfirmDialog.Config(
+                          title = if isCs then "Přijmout objednávku do výroby" else "Accept Order",
+                          message =
+                            if isCs then s"Přijmout objednávku ${ord.orderNumber.value}?${if !ord.isPaid then " (Pozor: platba zatím není uhrazena — výroba může pokračovat nezávisle.)" else ""}"
+                            else s"Accept order ${ord.orderNumber.value} into production?${if !ord.isPaid then " (Note: payment is still unpaid — production can proceed independently.)" else ""}",
+                          confirmLabel = if isCs then "Přijmout" else "Accept Order",
+                          cancelLabel = if isCs then "Zrušit" else "Cancel",
+                          tone = ConfirmDialog.DialogTone.Primary,
+                          reasonLabel = Some(if isCs then "Volitelná poznámka" else "Optional staff note"),
+                          reasonPlaceholder = Some(if isCs then "Např. data zkontrolována, předáno tisku..." else "e.g. Verified and queued for press..."),
+                          reasonRequired = false,
+                          onConfirm = noteOpt => state.acceptOrder(ord.id, noteOpt.getOrElse("")),
+                        )
+                      )
+                    )(if isCs then "Další krok: Přijmout →" else "Next stage: Accept →")
+                else if isOnHold then
+                  button
+                    .cssClass("mp-btn mp-btn-primary mp-btn-sm")
+                    .style(Style.whiteSpace(WhiteSpace.noWrap))
+                    .onClick(
+                      dialog.open(
+                        ConfirmDialog.Config(
+                          title = if isCs then "Obnovit z pozastavení" else "Resume from Hold",
+                          message = if isCs then s"Obnovit objednávku ${ord.orderNumber.value} zpět do zpracování?" else s"Resume order ${ord.orderNumber.value} from hold?",
+                          confirmLabel = if isCs then "Obnovit" else "Resume",
+                          cancelLabel = if isCs then "Zrušit" else "Cancel",
+                          tone = ConfirmDialog.DialogTone.Primary,
+                          reasonLabel = Some(if isCs then "Volitelná poznámka" else "Optional staff note"),
+                          reasonRequired = false,
+                          onConfirm = noteOpt => state.resumeOrderFromHold(ord.id, noteOpt.getOrElse("")),
+                        )
+                      )
+                    )(if isCs then "Obnovit objednávku →" else "Resume Order →")
+                else
+                  val nextStageOpt: Option[(OrderStatus, String, String)] = ord.status match
+                    case OrderStatus.Accepted =>
+                      Some((OrderStatus.InProduction, if isCs then "Další krok: Ve výrobě →" else "Next stage: In Production →", if isCs then "Označit: Ve výrobě" else "Mark In Production"))
+                    case OrderStatus.InProduction =>
+                      Some((OrderStatus.ReadyForDispatch, if isCs then "Další krok: K expedici →" else "Next stage: Ready to Dispatch →", if isCs then "Označit: K expedici" else "Mark Ready for Dispatch"))
+                    case OrderStatus.ReadyForDispatch =>
+                      Some((OrderStatus.Dispatched, if isCs then "Další krok: Expedováno →" else "Next stage: Dispatched →", if isCs then "Označit: Expedováno" else "Mark Dispatched"))
+                    case OrderStatus.Dispatched =>
+                      Some((OrderStatus.Completed, if isCs then "Další krok: Dokončeno →" else "Next stage: Completed →", if isCs then "Označit: Dokončeno" else "Mark Completed"))
+                    case _ => None
+
+                  nextStageOpt match
+                    case Some((target, btnLabel, dialogTitle)) =>
                       button
-                        .cssClass("mp-btn mp-btn-secondary mp-btn-sm")
-                        .onClick(state.navigate(AdminRoute.Orders))(state.i18n.t("adm-od-back"))
-                    else UI.empty,
-                    h1(ord.orderNumber.value).style(
-                      Style.margin(0.px).fontSize(if embedded then 20.px else 24.px).fontWeight(FontWeight.w800).color(ink),
-                    ),
-                    badge(orderStatusLabel(ord.status, lang), orderStatusTone(ord.status)),
-                    paymentStatusBadge(ord.payment.status, lang),
-                    priorityBadge(ord.priority, lang),
-                  ),
-
-                  // Corner Action Bar next to headline (all actions confirm via ConfirmDialog)
-                  if canIntake then
-                    div.cssClass("mp-action-bar")(
-                      if canAccept then
-                        button
-                          .cssClass("mp-btn mp-btn-primary mp-btn-sm")
-                          .onClick(
-                            dialog.open(
-                              ConfirmDialog.Config(
-                                title = if isCs then "Přijmout objednávku do výroby" else "Accept Order",
-                                message =
-                                  if isCs then s"Přijmout objednávku ${ord.orderNumber.value}?${if !ord.isPaid then " (Pozor: platba zatím není uhrazena — výroba může pokračovat nezávisle.)" else ""}"
-                                  else s"Accept order ${ord.orderNumber.value} into production?${if !ord.isPaid then " (Note: payment is still unpaid — production can proceed independently.)" else ""}",
-                                confirmLabel = if isCs then "Přijmout" else "Accept Order",
-                                cancelLabel = if isCs then "Zrušit" else "Cancel",
-                                tone = ConfirmDialog.DialogTone.Primary,
-                                reasonLabel = Some(if isCs then "Volitelná poznámka" else "Optional staff note"),
-                                reasonPlaceholder = Some(if isCs then "Např. data zkontrolována, předáno tisku..." else "e.g. Verified and queued for press..."),
-                                reasonRequired = false,
-                                onConfirm = noteOpt => state.acceptOrder(ord.id, noteOpt.getOrElse("")),
-                              )
+                        .cssClass("mp-btn mp-btn-primary mp-btn-sm")
+                        .style(Style.whiteSpace(WhiteSpace.noWrap))
+                        .onClick(
+                          dialog.open(
+                            ConfirmDialog.Config(
+                              title = dialogTitle,
+                              message =
+                                if isCs then s"Posunout objednávku ${ord.orderNumber.value} do stavu „${orderStatusLabel(target, lang)}“?"
+                                else s"Move order ${ord.orderNumber.value} to stage “${orderStatusLabel(target, lang)}”?",
+                              confirmLabel = dialogTitle,
+                              cancelLabel = if isCs then "Zrušit" else "Cancel",
+                              tone = ConfirmDialog.DialogTone.Primary,
+                              reasonLabel = Some(if isCs then "Volitelná poznámka" else "Optional note"),
+                              reasonRequired = false,
+                              onConfirm = noteOpt => state.advanceOrderStage(ord.id, target, noteOpt.getOrElse("")),
                             )
-                          )(state.i18n.t("adm-od-accept"))
-                      else UI.empty,
+                          )
+                        )(btnLabel)
+                    case None => UI.empty
 
-                      if isOnHold then
-                        button
-                          .cssClass("mp-btn mp-btn-primary mp-btn-sm")
-                          .onClick(
-                            dialog.open(
-                              ConfirmDialog.Config(
-                                title = if isCs then "Obnovit z pozastavení" else "Resume from Hold",
-                                message = if isCs then s"Obnovit objednávku ${ord.orderNumber.value} zpět do zpracování?" else s"Resume order ${ord.orderNumber.value} from hold?",
-                                confirmLabel = if isCs then "Obnovit" else "Resume",
-                                cancelLabel = if isCs then "Zrušit" else "Cancel",
-                                tone = ConfirmDialog.DialogTone.Primary,
-                                reasonLabel = Some(if isCs then "Volitelná poznámka" else "Optional staff note"),
-                                reasonRequired = false,
-                                onConfirm = noteOpt => state.resumeOrderFromHold(ord.id, noteOpt.getOrElse("")),
-                              )
-                            )
-                          )(state.i18n.t("adm-od-resume"))
-                      else UI.empty,
-
-                      UI.fragment(
-                        nextStages.map { case (target, i18nKey, labelText) =>
-                          button
-                            .cssClass("mp-btn mp-btn-primary mp-btn-sm")
-                            .onClick(
-                              dialog.open(
-                                ConfirmDialog.Config(
-                                  title = labelText,
-                                  message =
-                                    if isCs then s"Posunout objednávku ${ord.orderNumber.value} do stavu „${orderStatusLabel(target, lang)}“?"
-                                    else s"Move order ${ord.orderNumber.value} to stage “${orderStatusLabel(target, lang)}”?",
-                                  confirmLabel = labelText,
-                                  cancelLabel = if isCs then "Zrušit" else "Cancel",
-                                  tone = ConfirmDialog.DialogTone.Primary,
-                                  reasonLabel = Some(if isCs then "Volitelná poznámka" else "Optional note"),
-                                  reasonRequired = false,
-                                  onConfirm = noteOpt => state.advanceOrderStage(ord.id, target, noteOpt.getOrElse("")),
-                                )
-                              )
-                            )(state.i18n.t(i18nKey))
-                        }*
-                      ),
-
-                      if canPutOnHold then
-                        button
-                          .cssClass("mp-btn mp-btn-secondary mp-btn-sm")
-                          .style(Style.bg(amberSoft).color(amberInk).border(1.px, amberBorder))
-                          .onClick(
-                            dialog.open(
-                              ConfirmDialog.Config(
-                                title = if isCs then "Pozastavit objednávku" else "Put Order On Hold",
-                                message = if isCs then s"Pozastavit zpracování objednávky ${ord.orderNumber.value}?" else s"Put order ${ord.orderNumber.value} on hold?",
-                                confirmLabel = if isCs then "Pozastavit" else "Put On Hold",
-                                cancelLabel = if isCs then "Zrušit" else "Cancel",
-                                tone = ConfirmDialog.DialogTone.Amber,
-                                reasonLabel = Some(if isCs then "Důvod pozastavení" else "Hold reason"),
-                                reasonPlaceholder = Some(if isCs then "Např. čekání na opravená tisková data..." else "e.g. Waiting for corrected artwork PDF..."),
-                                reasonRequired = true,
-                                reasonErrorText = if isCs then "Zadejte důvod pozastavení." else "Please enter a hold reason.",
-                                onConfirm = reasonOpt => state.putOrderOnHold(ord.id, reasonOpt.getOrElse("")),
-                              )
-                            )
-                          )(state.i18n.t("adm-od-put-hold"))
-                      else UI.empty,
-
-                      if canCancel then
-                        button
-                          .cssClass("mp-btn mp-btn-danger mp-btn-sm")
-                          .onClick(
-                            dialog.open(
-                              ConfirmDialog.Config(
-                                title = if isCs then "Zrušit objednávku" else "Cancel Order",
-                                message = if isCs then s"Opravdu chcete trvale zrušit objednávku ${ord.orderNumber.value}?" else s"Permanently cancel order ${ord.orderNumber.value}?",
-                                confirmLabel = if isCs then "Zrušit objednávku" else "Cancel Order",
-                                cancelLabel = if isCs then "Zpět" else "Back",
-                                tone = ConfirmDialog.DialogTone.Danger,
-                                reasonLabel = Some(if isCs then "Důvod zrušení" else "Cancellation reason"),
-                                reasonPlaceholder = Some(if isCs then "Např. storno na žádost zákazníka..." else "e.g. Cancelled at customer request..."),
-                                reasonRequired = true,
-                                reasonErrorText = if isCs then "Zadejte důvod zrušení." else "Please enter a cancellation reason.",
-                                onConfirm = reasonOpt => state.cancelOrder(ord.id, reasonOpt.getOrElse("")),
-                              )
-                            )
-                          )(state.i18n.t("adm-od-cancel"))
-                      else UI.empty,
+              // Secondary & destructive actions collapsed into ActionMenu dropdown
+              val paymentMenuItem: List[ActionMenu.Item] =
+                if !canManage then Nil
+                else if !ord.isPaid then
+                  List(
+                    ActionMenu.Item(
+                      label = span(state.i18n.t("adm-od-confirm-payment")),
+                      tone = ActionMenu.ItemTone.Primary,
+                      onClick = () =>
+                        dialog.open(
+                          ConfirmDialog.Config(
+                            title = if isCs then "Označit objednávku jako zaplacenou" else "Mark Order as Paid",
+                            message = if isCs then s"Potvrdit úhradu objednávky ${ord.orderNumber.value}?" else s"Mark order ${ord.orderNumber.value} as Paid?",
+                            confirmLabel = if isCs then "Označit jako zaplaceno" else "Mark Paid",
+                            cancelLabel = if isCs then "Zrušit" else "Cancel",
+                            tone = ConfirmDialog.DialogTone.Primary,
+                            reasonLabel = Some(if isCs then "Volitelná poznámka (např. číslo výpisu)" else "Optional note (e.g. bank ref)"),
+                            reasonRequired = false,
+                            onConfirm = noteOpt => state.markOrderPaymentStatus(ord.id, PaymentStatus.Confirmed, noteOpt.getOrElse("")),
+                          )
+                        ),
                     )
-                  else
-                    badge(if isCs then "Pouze čtení (Prepress)" else "Read-only Intake (Prepress)", BadgeTone.Neutral),
-                ),
+                  )
+                else
+                  List(
+                    ActionMenu.Item(
+                      label = span(state.i18n.t("adm-od-mark-unpaid")),
+                      tone = ActionMenu.ItemTone.Amber,
+                      onClick = () =>
+                        dialog.open(
+                          ConfirmDialog.Config(
+                            title = if isCs then "Označit jako nezaplaceno" else "Mark Order as Unpaid",
+                            message = if isCs then s"Vrátit stav platby objednávky ${ord.orderNumber.value} na Nezaplaceno?" else s"Revert payment status of ${ord.orderNumber.value} to Unpaid?",
+                            confirmLabel = if isCs then "Označit nezaplaceno" else "Mark Unpaid",
+                            cancelLabel = if isCs then "Zrušit" else "Cancel",
+                            tone = ConfirmDialog.DialogTone.Amber,
+                            reasonLabel = Some(if isCs then "Důvod změny" else "Reason"),
+                            reasonRequired = false,
+                            onConfirm = noteOpt => state.markOrderPaymentStatus(ord.id, PaymentStatus.Pending, noteOpt.getOrElse("")),
+                          )
+                        ),
+                    )
+                  )
 
-                // OnHold / Cancelled banner if active
-                ord.status match
-                  case OrderStatus.OnHold(reason) =>
-                    alertBanner(BadgeTone.Amber, span(orderStatusLabel(ord.status, lang)), List(reason.value))
-                  case OrderStatus.Cancelled(reason) =>
-                    alertBanner(BadgeTone.Rose, span(orderStatusLabel(ord.status, lang)), List(reason.value))
-                  case _ => UI.empty,
+              val holdMenuItem: List[ActionMenu.Item] =
+                if canIntake && canPutOnHold then
+                  List(
+                    ActionMenu.Item(
+                      label = span(state.i18n.t("adm-od-put-hold")),
+                      tone = ActionMenu.ItemTone.Amber,
+                      dividerBefore = paymentMenuItem.nonEmpty,
+                      onClick = () =>
+                        dialog.open(
+                          ConfirmDialog.Config(
+                            title = if isCs then "Pozastavit objednávku" else "Put Order On Hold",
+                            message = if isCs then s"Pozastavit zpracování objednávky ${ord.orderNumber.value}?" else s"Put order ${ord.orderNumber.value} on hold?",
+                            confirmLabel = if isCs then "Pozastavit" else "Put On Hold",
+                            cancelLabel = if isCs then "Zrušit" else "Cancel",
+                            tone = ConfirmDialog.DialogTone.Amber,
+                            reasonLabel = Some(if isCs then "Důvod pozastavení" else "Hold reason"),
+                            reasonPlaceholder = Some(if isCs then "Např. čekání na opravená tisková data..." else "e.g. Waiting for corrected artwork PDF..."),
+                            reasonRequired = true,
+                            reasonErrorText = if isCs then "Zadejte důvod pozastavení." else "Please enter a hold reason.",
+                            onConfirm = reasonOpt => state.putOrderOnHold(ord.id, reasonOpt.getOrElse("")),
+                          )
+                        ),
+                    )
+                  )
+                else Nil
 
-                // Priority & Calculated Deadline Banner
-                div.cssClass("mp-card").style(Style.padding(14.px, 18.px).gap(8.px))(
+              val cancelMenuItem: List[ActionMenu.Item] =
+                if canIntake && canCancel then
+                  List(
+                    ActionMenu.Item(
+                      label = span(state.i18n.t("adm-od-cancel")),
+                      tone = ActionMenu.ItemTone.Danger,
+                      dividerBefore = holdMenuItem.isEmpty && paymentMenuItem.nonEmpty,
+                      onClick = () =>
+                        dialog.open(
+                          ConfirmDialog.Config(
+                            title = if isCs then "Zrušit objednávku" else "Cancel Order",
+                            message = if isCs then s"Opravdu chcete trvale zrušit objednávku ${ord.orderNumber.value}?" else s"Permanently cancel order ${ord.orderNumber.value}?",
+                            confirmLabel = if isCs then "Zrušit objednávku" else "Cancel Order",
+                            cancelLabel = if isCs then "Zpět" else "Back",
+                            tone = ConfirmDialog.DialogTone.Danger,
+                            reasonLabel = Some(if isCs then "Důvod zrušení" else "Cancellation reason"),
+                            reasonPlaceholder = Some(if isCs then "Např. storno na žádost zákazníka..." else "e.g. Cancelled at customer request..."),
+                            reasonRequired = true,
+                            reasonErrorText = if isCs then "Zadejte důvod zrušení." else "Please enter a cancellation reason.",
+                            onConfirm = reasonOpt => state.cancelOrder(ord.id, reasonOpt.getOrElse("")),
+                          )
+                        ),
+                    )
+                  )
+                else Nil
+
+              val secondaryMenuItems = paymentMenuItem ++ holdMenuItem ++ cancelMenuItem
+
+              // Reusable section blocks (rendered either in compact single-column tabs for embedded Master-Detail
+              // or side-by-side in full-screen OrderDetail route)
+              val statusBanners: UI = ord.status match
+                case OrderStatus.OnHold(reason) =>
+                  alertBanner(BadgeTone.Amber, span(orderStatusLabel(ord.status, lang)), List(reason.value))
+                case OrderStatus.Cancelled(reason) =>
+                  alertBanner(BadgeTone.Rose, span(orderStatusLabel(ord.status, lang)), List(reason.value))
+                case _ => UI.empty
+
+              val summaryStrip: UI =
+                div.style(Style.column.gap(6.px).padding(12.px, 14.px).rounded(12.px).bg(surfaceAlt).border(1.px, Palette.border))(
                   div.style(rowBetween.flexWrap(FlexWrap.wrap))(
                     div.style(rowSm.flexWrap(FlexWrap.wrap))(
-                      span(state.i18n.t("adm-od-priority-deadline")).style(Style.fontWeight(FontWeight.w700).fontSize(14.px).color(ink)),
-                      priorityBadge(ord.priority, lang),
-                      span(s"⏱ ${formatInstant(ord.calculatedDeadline)}").style(Style.fontWeight(FontWeight.w800).fontSize(14.px).color(brand)),
+                      span(state.i18n.t("adm-od-priority-deadline")).style(Style.fontWeight(FontWeight.w700).fontSize(13.px).color(inkSecondary)),
+                      span(s"⏱ ${formatInstant(ord.calculatedDeadline)}").style(Style.fontWeight(FontWeight.w800).fontSize(13.px).color(brand)),
                     ),
                     span(formatMoney(ord.totals.grandTotalGross, ord.totals.currency, lang))
-                      .style(Style.fontSize(20.px).fontWeight(FontWeight.w800).color(ink)),
+                      .style(Style.fontSize(18.px).fontWeight(FontWeight.w800).color(ink)),
                   ),
                   if ord.hasMixedSpeeds then
                     span(state.i18n.t("adm-od-mixed-speeds")).style(Style.fontSize(12.px).fontWeight(FontWeight.w600).color(amberInk))
                   else UI.empty,
-                ),
+                )
 
-                // Main 2-column layout
-                div.cssClass("mp-admin-split")(
-                  // Primary column: Order Lines + Artwork Review
-                  div.cssClass("mp-admin-split-right")(
-                    // 1. Order Lines with Full Spec, Expandable Price Breakdown & Edit Line
-                    div.cssClass("mp-card")(
-                      div.style(rowBetween)(
-                        h2(state.i18n.t("adm-od-lines-card")).style(sectionTitle.margin(0.px)),
-                        badge(ord.lines.size.toString, BadgeTone.Neutral),
-                      ),
+              val linesSection: UI =
+                div.style(stackSm)(
+                  div.style(rowBetween)(
+                    h2(state.i18n.t("adm-od-lines-card")).style(sectionTitle.margin(0.px)),
+                    badge(ord.lines.size.toString, BadgeTone.Neutral),
+                  ),
                       div.style(stackSm)(
                         ord.lines.toList.map { ln =>
                           val showBreakdown = expandedBreakdowns.contains(ln.lineId)
@@ -408,292 +444,376 @@ object OrderDetailView:
                           )
                         }*
                       ),
-                    ),
+                )
 
-                    // 2. Artwork & Preflight Review Panel
-                    div.cssClass("mp-card")(
-                      div.style(rowBetween)(
-                        h2(state.i18n.t("adm-od-artwork-card")).style(sectionTitle.margin(0.px)),
-                        badge(artworks.size.toString, BadgeTone.Neutral),
-                      ),
-                      if artworks.isEmpty then
-                        p(state.i18n.t("adm-od-artwork-empty")).style(mutedText.margin(0.px))
-                      else
-                        div.style(stackSm)(
-                          artworks.map { art =>
-                            val rev = art.latestRevision
-                            val hasIssues = rev.preflight.exists(rep =>
-                              rep.checks.exists(ch => ch.outcome != CheckOutcome.Passed)
-                            )
-                            div.style(Style.column.gap(10.px).padding(14.px).rounded(12.px).bg(surfaceAlt).border(1.px, Palette.border))(
-                              div.style(rowBetween.flexWrap(FlexWrap.wrap))(
-                                div.style(stackXs)(
-                                  span(s"${rev.file.fileName.value} (rev ${rev.revisionNumber}) · ${art.componentKey.value}")
-                                    .style(Style.fontWeight(FontWeight.w700).color(ink)),
-                                  span(
-                                    s"${rev.extractedSpecs.resolutionDpi} DPI · ${formatDimension(rev.extractedSpecs.trimSize)} · ${rev.extractedSpecs.colorSpace} · ${rev.extractedSpecs.pageCount}p",
-                                  ).style(smallText),
-                                ),
-                                artworkStatusBadge(art.status, lang),
-                              ),
-
-                              // Preflight check results (DPI, Bleed, Trim, Color Profile, etc.)
-                              rev.preflight match
-                                case Some(rep) =>
-                                  div.style(stackXs)(
-                                    rep.checks.map { ch =>
-                                      val (tone, detail) = ch.outcome match
-                                        case CheckOutcome.Passed       => (BadgeTone.Emerald, "OK")
-                                        case CheckOutcome.Warning(msg) => (BadgeTone.Amber, msg)
-                                        case CheckOutcome.Failed(msg)  => (BadgeTone.Rose, msg)
-                                      div.style(rowSm.flexWrap(FlexWrap.wrap))(
-                                        badge(ch.kind.toString, tone),
-                                        span(detail).style(Style.fontSize(12.px).color(inkSecondary)),
-                                      )
-                                    }*
-                                  )
-                                case None => UI.empty,
-
-                              // Show existing staff feedback if ChangesRequested or Rejected
-                              art.status match
-                                case ArtworkStatus.ChangesRequested(notes) =>
-                                  alertBanner(BadgeTone.Amber, span(if isCs then "Požadavek na opravu" else "Re-upload Feedback"), List(notes.value))
-                                case ArtworkStatus.Rejected(reason) =>
-                                  alertBanner(BadgeTone.Rose, span(if isCs then "Důvod zamítnutí" else "Rejection Reason"), List(reason.value))
-                                case _ => UI.empty,
-
-                              // Artwork Review Action Bar with ConfirmDialogs
-                              div.cssClass("mp-action-bar")(
-                                if !hasIssues then
-                                  button
-                                    .cssClass("mp-btn mp-btn-primary mp-btn-sm")
-                                    .onClick(
-                                      dialog.open(
-                                        ConfirmDialog.Config(
-                                          title = if isCs then "Schválit tisková data" else "Approve Artwork",
-                                          message = if isCs then s"Schválit soubor „${rev.file.fileName.value}“ pro výrobu?" else s"Approve “${rev.file.fileName.value}” for production?",
-                                          confirmLabel = if isCs then "Schválit" else "Approve",
-                                          cancelLabel = if isCs then "Zrušit" else "Cancel",
-                                          tone = ConfirmDialog.DialogTone.Primary,
-                                          onConfirm = _ => state.approveArtwork(ord.id, art.id, overrideFailures = false),
-                                        )
-                                      )
-                                    )(state.i18n.t("adm-od-artwork-approve"))
-                                else UI.empty,
-                                button
-                                  .cssClass("mp-btn mp-btn-secondary mp-btn-sm")
-                                  .style(if hasIssues then Style.bg(amberSoft).color(amberInk).border(1.px, amberBorder) else Style.empty)
-                                  .onClick(
-                                    dialog.open(
-                                      ConfirmDialog.Config(
-                                        title = if isCs then "Schválit s upozorněním (výjimka)" else "Approve with Warning Confirmation",
-                                        message =
-                                          if isCs then s"Soubor „${rev.file.fileName.value}“ má preflight upozornění/chyby. Potvrďte, že přesto schvalujete data pro tisk."
-                                          else s"“${rev.file.fileName.value}” has preflight warnings or failures. Confirm that you want to override and approve it for press anyway.",
-                                        confirmLabel = if isCs then "Potvrdit a schválit" else "Confirm & Approve",
-                                        cancelLabel = if isCs then "Zrušit" else "Cancel",
-                                        tone = ConfirmDialog.DialogTone.Amber,
-                                        onConfirm = _ => state.approveArtwork(ord.id, art.id, overrideFailures = true),
-                                      )
-                                    )
-                                  )(state.i18n.t("adm-od-artwork-override")),
-                                button
-                                  .cssClass("mp-btn mp-btn-secondary mp-btn-sm")
-                                  .onClick(
-                                    dialog.open(
-                                      ConfirmDialog.Config(
-                                        title = if isCs then "Vyžádat nové nahrání dat" else "Request Artwork Re-upload",
-                                        message = if isCs then s"Zákazník uvidí tuto zprávu u objednávky a bude moci nahrát opravený soubor." else s"The customer will see this feedback on their order and be prompted to re-upload a corrected file.",
-                                        confirmLabel = if isCs then "Odeslat požadavek" else "Request Re-upload",
-                                        cancelLabel = if isCs then "Zrušit" else "Cancel",
-                                        tone = ConfirmDialog.DialogTone.Amber,
-                                        reasonLabel = Some(if isCs then "Instrukce pro zákazníka" else "Feedback for customer"),
-                                        reasonPlaceholder = Some(if isCs then "Např. nahrajte prosím PDF 300 DPI CMYK se spadávkou 3 mm..." else "e.g. Please re-upload at 300 DPI CMYK with 3mm bleed..."),
-                                        reasonRequired = true,
-                                        reasonErrorText = if isCs then "Popište prosím požadované úpravy." else "Please describe the required fixes.",
-                                        onConfirm = msgOpt => state.requestArtworkChanges(ord.id, art.id, msgOpt.getOrElse("")),
-                                      )
-                                    )
-                                  )(state.i18n.t("adm-od-artwork-request-changes")),
-                                button
-                                  .cssClass("mp-btn mp-btn-danger mp-btn-sm")
-                                  .onClick(
-                                    dialog.open(
-                                      ConfirmDialog.Config(
-                                        title = if isCs then "Zamítnout tisková data" else "Reject Artwork",
-                                        message = if isCs then s"Zamítnout soubor „${rev.file.fileName.value}“ jako nepoužitelný pro výrobu?" else s"Reject “${rev.file.fileName.value}” as unsuitable for production?",
-                                        confirmLabel = if isCs then "Zamítnout" else "Reject",
-                                        cancelLabel = if isCs then "Zrušit" else "Cancel",
-                                        tone = ConfirmDialog.DialogTone.Danger,
-                                        reasonLabel = Some(if isCs then "Důvod zamítnutí" else "Rejection reason"),
-                                        reasonPlaceholder = Some(if isCs then "Např. poškozený soubor / nekompatibilní formát..." else "e.g. Corrupted file / incompatible format..."),
-                                        reasonRequired = true,
-                                        reasonErrorText = if isCs then "Zadejte důvod zamítnutí." else "Please enter a rejection reason.",
-                                        onConfirm = rOpt => state.rejectArtwork(ord.id, art.id, rOpt.getOrElse("")),
-                                      )
-                                    )
-                                  )(state.i18n.t("adm-od-artwork-reject")),
-                              ),
-                            )
-                          }*
-                        ),
-                    ),
+              val artworkSection: UI =
+                div.style(stackSm)(
+                  div.style(rowBetween)(
+                    h2(state.i18n.t("adm-od-artwork-card")).style(sectionTitle.margin(0.px)),
+                    badge(artworks.size.toString, BadgeTone.Neutral),
                   ),
-
-                  // Secondary column: Decoupled Payment Card, Customer/Delivery, Totals, Staff Notes, Audit Timeline
-                  div.cssClass("mp-admin-split-left")(
-                    // Decoupled Payment Status Card
-                    div.cssClass("mp-card")(
-                      div.style(rowBetween.flexWrap(FlexWrap.wrap))(
-                        h2(state.i18n.t("adm-od-payment-card")).style(sectionTitle.margin(0.px)),
-                        paymentStatusBadge(ord.payment.status, lang),
-                      ),
-                      span(state.i18n.t("adm-od-payment-b2b-hint")).style(smallText),
-                      infoRow(if isCs then "Platební metoda" else "Payment Method", ord.payment.method.toString),
-                      ord.payment.externalReference.map(r => infoRow(if isCs then "Reference" else "Reference", r)).getOrElse(UI.empty),
-                      ord.payment.confirmedAt.map(t => infoRow(if isCs then "Potvrzeno dne" else "Confirmed At", formatInstant(t))).getOrElse(UI.empty),
-                      if canManage then
-                        div.style(rowWrap)(
-                          if !ord.isPaid then
+                  if artworks.isEmpty then
+                    p(state.i18n.t("adm-od-artwork-empty")).style(mutedText.margin(0.px))
+                  else
+                    div.style(stackSm)(
+                      artworks.map { art =>
+                        val rev = art.latestRevision
+                        val hasIssues = rev.preflight.exists(rep =>
+                          rep.checks.exists(ch => ch.outcome != CheckOutcome.Passed)
+                        )
+                        div.style(Style.column.gap(10.px).padding(14.px).rounded(12.px).bg(surfaceAlt).border(1.px, Palette.border))(
+                          div.style(rowBetween.flexWrap(FlexWrap.wrap))(
+                            div.style(stackXs)(
+                              span(s"${rev.file.fileName.value} (rev ${rev.revisionNumber}) · ${art.componentKey.value}")
+                                .style(Style.fontWeight(FontWeight.w700).color(ink)),
+                              span(
+                                s"${rev.extractedSpecs.resolutionDpi} DPI · ${formatDimension(rev.extractedSpecs.trimSize)} · ${rev.extractedSpecs.colorSpace} · ${rev.extractedSpecs.pageCount}p",
+                              ).style(smallText),
+                            ),
+                            artworkStatusBadge(art.status, lang),
+                          ),
+                          rev.preflight match
+                            case Some(rep) =>
+                              div.style(stackXs)(
+                                rep.checks.map { ch =>
+                                  val (tone, detail) = ch.outcome match
+                                    case CheckOutcome.Passed       => (BadgeTone.Emerald, "OK")
+                                    case CheckOutcome.Warning(msg) => (BadgeTone.Amber, msg)
+                                    case CheckOutcome.Failed(msg)  => (BadgeTone.Rose, msg)
+                                  div.style(rowSm.flexWrap(FlexWrap.wrap))(
+                                    badge(ch.kind.toString, tone),
+                                    span(detail).style(Style.fontSize(12.px).color(inkSecondary)),
+                                  )
+                                }*
+                              )
+                            case None => UI.empty,
+                          art.status match
+                            case ArtworkStatus.ChangesRequested(notes) =>
+                              alertBanner(BadgeTone.Amber, span(if isCs then "Požadavek na opravu" else "Re-upload Feedback"), List(notes.value))
+                            case ArtworkStatus.Rejected(reason) =>
+                              alertBanner(BadgeTone.Rose, span(if isCs then "Důvod zamítnutí" else "Rejection Reason"), List(reason.value))
+                            case _ => UI.empty,
+                          div.cssClass("mp-action-bar")(
+                            if !hasIssues then
+                              button
+                                .cssClass("mp-btn mp-btn-primary mp-btn-sm")
+                                .onClick(
+                                  dialog.open(
+                                    ConfirmDialog.Config(
+                                      title = if isCs then "Schválit tisková data" else "Approve Artwork",
+                                      message = if isCs then s"Schválit soubor „${rev.file.fileName.value}“ pro výrobu?" else s"Approve “${rev.file.fileName.value}” for production?",
+                                      confirmLabel = if isCs then "Schválit" else "Approve",
+                                      cancelLabel = if isCs then "Zrušit" else "Cancel",
+                                      tone = ConfirmDialog.DialogTone.Primary,
+                                      onConfirm = _ => state.approveArtwork(ord.id, art.id, overrideFailures = false),
+                                    )
+                                  )
+                                )(state.i18n.t("adm-od-artwork-approve"))
+                            else UI.empty,
                             button
-                              .cssClass("mp-btn mp-btn-primary mp-btn-sm")
+                              .cssClass("mp-btn mp-btn-secondary mp-btn-sm")
+                              .style(if hasIssues then Style.bg(amberSoft).color(amberInk).border(1.px, amberBorder) else Style.empty)
                               .onClick(
                                 dialog.open(
                                   ConfirmDialog.Config(
-                                    title = if isCs then "Označit objednávku jako zaplacenou" else "Mark Order as Paid",
-                                    message = if isCs then s"Potvrdit úhradu objednávky ${ord.orderNumber.value}?" else s"Mark order ${ord.orderNumber.value} as Paid?",
-                                    confirmLabel = if isCs then "Označit jako zaplaceno" else "Mark Paid",
+                                    title = if isCs then "Schválit s upozorněním (výjimka)" else "Approve with Warning Confirmation",
+                                    message =
+                                      if isCs then s"Soubor „${rev.file.fileName.value}“ má preflight upozornění/chyby. Potvrďte, že přesto schvalujete data pro tisk."
+                                      else s"“${rev.file.fileName.value}” has preflight warnings or failures. Confirm that you want to override and approve it for press anyway.",
+                                    confirmLabel = if isCs then "Potvrdit a schválit" else "Confirm & Approve",
                                     cancelLabel = if isCs then "Zrušit" else "Cancel",
-                                    tone = ConfirmDialog.DialogTone.Primary,
-                                    reasonLabel = Some(if isCs then "Volitelná poznámka (např. číslo výpisu)" else "Optional note (e.g. bank ref)"),
-                                    reasonRequired = false,
-                                    onConfirm = noteOpt => state.markOrderPaymentStatus(ord.id, PaymentStatus.Confirmed, noteOpt.getOrElse("")),
+                                    tone = ConfirmDialog.DialogTone.Amber,
+                                    onConfirm = _ => state.approveArtwork(ord.id, art.id, overrideFailures = true),
                                   )
                                 )
-                              )(state.i18n.t("adm-od-confirm-payment"))
-                          else
+                              )(state.i18n.t("adm-od-artwork-override")),
                             button
                               .cssClass("mp-btn mp-btn-secondary mp-btn-sm")
                               .onClick(
                                 dialog.open(
                                   ConfirmDialog.Config(
-                                    title = if isCs then "Označit jako nezaplaceno" else "Mark Order as Unpaid",
-                                    message = if isCs then s"Vrátit stav platby objednávky ${ord.orderNumber.value} na Nezaplaceno?" else s"Revert payment status of ${ord.orderNumber.value} to Unpaid?",
-                                    confirmLabel = if isCs then "Označit nezaplaceno" else "Mark Unpaid",
+                                    title = if isCs then "Vyžádat nové nahrání dat" else "Request Artwork Re-upload",
+                                    message = if isCs then s"Zákazník uvidí tuto zprávu u objednávky a bude moci nahrát opravený soubor." else s"The customer will see this feedback on their order and be prompted to re-upload a corrected file.",
+                                    confirmLabel = if isCs then "Odeslat požadavek" else "Request Re-upload",
                                     cancelLabel = if isCs then "Zrušit" else "Cancel",
                                     tone = ConfirmDialog.DialogTone.Amber,
-                                    reasonLabel = Some(if isCs then "Důvod změny" else "Reason"),
-                                    reasonRequired = false,
-                                    onConfirm = noteOpt => state.markOrderPaymentStatus(ord.id, PaymentStatus.Pending, noteOpt.getOrElse("")),
+                                    reasonLabel = Some(if isCs then "Instrukce pro zákazníka" else "Feedback for customer"),
+                                    reasonPlaceholder = Some(if isCs then "Např. nahrajte prosím PDF 300 DPI CMYK se spadávkou 3 mm..." else "e.g. Please re-upload at 300 DPI CMYK with 3mm bleed..."),
+                                    reasonRequired = true,
+                                    reasonErrorText = if isCs then "Popište prosím požadované úpravy." else "Please describe the required fixes.",
+                                    onConfirm = msgOpt => state.requestArtworkChanges(ord.id, art.id, msgOpt.getOrElse("")),
                                   )
                                 )
-                              )(state.i18n.t("adm-od-mark-unpaid")),
+                              )(state.i18n.t("adm-od-artwork-request-changes")),
+                            button
+                              .cssClass("mp-btn mp-btn-danger mp-btn-sm")
+                              .onClick(
+                                dialog.open(
+                                  ConfirmDialog.Config(
+                                    title = if isCs then "Zamítnout tisková data" else "Reject Artwork",
+                                    message = if isCs then s"Zamítnout soubor „${rev.file.fileName.value}“ jako nepoužitelný pro výrobu?" else s"Reject “${rev.file.fileName.value}” as unsuitable for production?",
+                                    confirmLabel = if isCs then "Zamítnout" else "Reject",
+                                    cancelLabel = if isCs then "Zrušit" else "Cancel",
+                                    tone = ConfirmDialog.DialogTone.Danger,
+                                    reasonLabel = Some(if isCs then "Důvod zamítnutí" else "Rejection reason"),
+                                    reasonPlaceholder = Some(if isCs then "Např. poškozený soubor / nekompatibilní formát..." else "e.g. Corrupted file / incompatible format..."),
+                                    reasonRequired = true,
+                                    reasonErrorText = if isCs then "Zadejte důvod zamítnutí." else "Please enter a rejection reason.",
+                                    onConfirm = rOpt => state.rejectArtwork(ord.id, art.id, rOpt.getOrElse("")),
+                                  )
+                                )
+                              )(state.i18n.t("adm-od-artwork-reject")),
+                          ),
                         )
-                      else UI.empty,
+                      }*
                     ),
+                )
 
-                    // Customer & Delivery Card
-                    div.cssClass("mp-card")(
-                      h2(state.i18n.t("adm-od-customer-card")).style(sectionTitle.margin(0.px)),
-                      infoRow(if isCs then "Zákazník" else "Customer", s"${ord.customer.fullName.value} (${ord.customer.segment})"),
-                      ord.customer.companyName
-                        .map(cn => infoRow(if isCs then "Firma" else "Company", s"${cn.value}${ord.customer.companyRegNo.map(r => s" · IČO ${r.value}").getOrElse("")}${ord.customer.vatId.map(v => s" · DIČ ${v.value}").getOrElse("")}"))
-                        .getOrElse(UI.empty),
-                      infoRow("Email", ord.customer.email.value),
-                      infoRow(
-                        if isCs then "Fakturační adresa" else "Billing Address",
-                        s"${ord.billingAddress.street.value}, ${ord.billingAddress.postalCode.value} ${ord.billingAddress.city.value}, ${ord.billingAddress.countryCode.value}",
-                      ),
-                      infoRow(
-                        if isCs then "Doručení" else "Delivery",
-                        ord.delivery match
-                          case DeliverySelection.ShopPickup(locId) => s"Shop Pickup (${locId.value})"
-                          case DeliverySelection.Courier(svcId, addr, _, _) =>
-                            s"Courier (${svcId.value}) → ${addr.street.value}, ${addr.city.value}",
-                      ),
-                      ord.customerNote
-                        .map(cn => alertBanner(BadgeTone.Brand, state.i18n.t("adm-od-customer-note"), List(cn)))
-                        .getOrElse(UI.empty),
-                    ),
-
-                    // Totals Card
-                    div.cssClass("mp-card")(
-                      h2(state.i18n.t("adm-od-totals-card")).style(sectionTitle.margin(0.px)),
-                      totalRow(state.i18n.t("adm-od-subtotal"), formatMoney(ord.totals.linesNetTotal, ord.totals.currency, lang)),
-                      if ord.totals.promoDiscountNet.isPositive then
-                        totalRow(
-                          span(s"${ord.appliedPromo.map(_.code.value).getOrElse("Promo")}"),
-                          s"−${formatMoney(ord.totals.promoDiscountNet, ord.totals.currency, lang)}",
-                          emeraldInk,
-                        )
-                      else UI.empty,
-                      totalRow(state.i18n.t("adm-od-shipping"), formatMoney(ord.totals.shippingNet, ord.totals.currency, lang)),
-                      totalRow(state.i18n.t("adm-od-vat"), formatMoney(ord.totals.taxTotal, ord.totals.currency, lang)),
-                      hr.style(dividerStyle),
-                      div.style(rowBetween)(
-                        span(state.i18n.t("adm-od-grand-total")).style(Style.fontWeight(FontWeight.w800).fontSize(15.px).color(ink)),
-                        span(formatMoney(ord.totals.grandTotalGross, ord.totals.currency, lang))
-                          .style(Style.fontWeight(FontWeight.w800).fontSize(18.px).color(brand)),
-                      ),
-                    ),
-
-                    // Internal Staff Notes
-                    div.cssClass("mp-card")(
-                      div.style(rowBetween)(
-                        h2(state.i18n.t("adm-od-notes-card")).style(sectionTitle.margin(0.px)),
-                        badge(ord.internalNotes.size.toString, BadgeTone.Neutral),
-                      ),
-                      if ord.internalNotes.isEmpty then
-                        p(state.i18n.t("adm-od-notes-empty")).style(smallText.margin(0.px))
-                      else
-                        div.style(stackSm)(
-                          ord.internalNotes.map { n =>
-                            div.style(Style.column.gap(3.px).padding(10.px, 12.px).rounded(10.px).bg(surfaceAlt).border(1.px, Palette.border))(
-                              div.style(rowBetween)(
-                                span(n.authorName.map(_.value).getOrElse(n.authorId.value)).style(Style.fontWeight(FontWeight.w700).fontSize(12.px).color(ink)),
-                                span(formatInstant(n.createdAt)).style(smallText),
-                              ),
-                              span(n.text.value).style(Style.fontSize(13.px).color(inkSecondary)),
+              val paymentSection: UI =
+                div.style(stackSm)(
+                  div.style(rowBetween.flexWrap(FlexWrap.wrap))(
+                    h2(state.i18n.t("adm-od-payment-card")).style(sectionTitle.margin(0.px)),
+                    paymentStatusBadge(ord.payment.status, lang),
+                  ),
+                  span(state.i18n.t("adm-od-payment-b2b-hint")).style(smallText),
+                  infoRow(if isCs then "Platební metoda" else "Payment Method", ord.payment.method.toString),
+                  ord.payment.externalReference.map(r => infoRow(if isCs then "Reference" else "Reference", r)).getOrElse(UI.empty),
+                  ord.payment.confirmedAt.map(t => infoRow(if isCs then "Potvrzeno dne" else "Confirmed At", formatInstant(t))).getOrElse(UI.empty),
+                  if canManage then
+                    div.style(rowWrap)(
+                      if !ord.isPaid then
+                        button
+                          .cssClass("mp-btn mp-btn-primary mp-btn-sm")
+                          .onClick(
+                            dialog.open(
+                              ConfirmDialog.Config(
+                                title = if isCs then "Označit objednávku jako zaplacenou" else "Mark Order as Paid",
+                                message = if isCs then s"Potvrdit úhradu objednávky ${ord.orderNumber.value}?" else s"Mark order ${ord.orderNumber.value} as Paid?",
+                                confirmLabel = if isCs then "Označit jako zaplaceno" else "Mark Paid",
+                                cancelLabel = if isCs then "Zrušit" else "Cancel",
+                                tone = ConfirmDialog.DialogTone.Primary,
+                                reasonLabel = Some(if isCs then "Volitelná poznámka (např. číslo výpisu)" else "Optional note (e.g. bank ref)"),
+                                reasonRequired = false,
+                                onConfirm = noteOpt => state.markOrderPaymentStatus(ord.id, PaymentStatus.Confirmed, noteOpt.getOrElse("")),
+                              )
                             )
-                          }*
+                          )(state.i18n.t("adm-od-confirm-payment"))
+                      else
+                        button
+                          .cssClass("mp-btn mp-btn-secondary mp-btn-sm")
+                          .onClick(
+                            dialog.open(
+                              ConfirmDialog.Config(
+                                title = if isCs then "Označit jako nezaplaceno" else "Mark Order as Unpaid",
+                                message = if isCs then s"Vrátit stav platby objednávky ${ord.orderNumber.value} na Nezaplaceno?" else s"Revert payment status of ${ord.orderNumber.value} to Unpaid?",
+                                confirmLabel = if isCs then "Označit nezaplaceno" else "Mark Unpaid",
+                                cancelLabel = if isCs then "Zrušit" else "Cancel",
+                                tone = ConfirmDialog.DialogTone.Amber,
+                                reasonLabel = Some(if isCs then "Důvod změny" else "Reason"),
+                                reasonRequired = false,
+                                onConfirm = noteOpt => state.markOrderPaymentStatus(ord.id, PaymentStatus.Pending, noteOpt.getOrElse("")),
+                              )
+                            )
+                          )(state.i18n.t("adm-od-mark-unpaid")),
+                    )
+                  else UI.empty,
+                )
+
+              val customerSection: UI =
+                div.style(stackSm)(
+                  h2(state.i18n.t("adm-od-customer-card")).style(sectionTitle.margin(0.px)),
+                  infoRow(if isCs then "Zákazník" else "Customer", s"${ord.customer.fullName.value} (${ord.customer.segment})"),
+                  ord.customer.companyName
+                    .map(cn => infoRow(if isCs then "Firma" else "Company", s"${cn.value}${ord.customer.companyRegNo.map(r => s" · IČO ${r.value}").getOrElse("")}${ord.customer.vatId.map(v => s" · DIČ ${v.value}").getOrElse("")}"))
+                    .getOrElse(UI.empty),
+                  infoRow("Email", ord.customer.email.value),
+                  infoRow(
+                    if isCs then "Fakturační adresa" else "Billing Address",
+                    s"${ord.billingAddress.street.value}, ${ord.billingAddress.postalCode.value} ${ord.billingAddress.city.value}, ${ord.billingAddress.countryCode.value}",
+                  ),
+                  infoRow(
+                    if isCs then "Doručení" else "Delivery",
+                    ord.delivery match
+                      case DeliverySelection.ShopPickup(locId) => s"Shop Pickup (${locId.value})"
+                      case DeliverySelection.Courier(svcId, addr, _, _) =>
+                        s"Courier (${svcId.value}) → ${addr.street.value}, ${addr.city.value}",
+                  ),
+                  ord.customerNote
+                    .map(cn => alertBanner(BadgeTone.Brand, state.i18n.t("adm-od-customer-note"), List(cn)))
+                    .getOrElse(UI.empty),
+                )
+
+              val totalsSection: UI =
+                div.style(stackSm)(
+                  h2(state.i18n.t("adm-od-totals-card")).style(sectionTitle.margin(0.px)),
+                  totalRow(state.i18n.t("adm-od-subtotal"), formatMoney(ord.totals.linesNetTotal, ord.totals.currency, lang)),
+                  if ord.totals.promoDiscountNet.isPositive then
+                    totalRow(
+                      span(s"${ord.appliedPromo.map(_.code.value).getOrElse("Promo")}"),
+                      s"−${formatMoney(ord.totals.promoDiscountNet, ord.totals.currency, lang)}",
+                      emeraldInk,
+                    )
+                  else UI.empty,
+                  totalRow(state.i18n.t("adm-od-shipping"), formatMoney(ord.totals.shippingNet, ord.totals.currency, lang)),
+                  totalRow(state.i18n.t("adm-od-vat"), formatMoney(ord.totals.taxTotal, ord.totals.currency, lang)),
+                  hr.style(dividerStyle),
+                  div.style(rowBetween)(
+                    span(state.i18n.t("adm-od-grand-total")).style(Style.fontWeight(FontWeight.w800).fontSize(15.px).color(ink)),
+                    span(formatMoney(ord.totals.grandTotalGross, ord.totals.currency, lang))
+                      .style(Style.fontWeight(FontWeight.w800).fontSize(18.px).color(brand)),
+                  ),
+                )
+
+              val notesSection: UI =
+                div.style(stackSm)(
+                  div.style(rowBetween)(
+                    h2(state.i18n.t("adm-od-notes-card")).style(sectionTitle.margin(0.px)),
+                    badge(ord.internalNotes.size.toString, BadgeTone.Neutral),
+                  ),
+                  if ord.internalNotes.isEmpty then
+                    p(state.i18n.t("adm-od-notes-empty")).style(smallText.margin(0.px))
+                  else
+                    div.style(stackSm)(
+                      ord.internalNotes.map { n =>
+                        div.style(Style.column.gap(3.px).padding(10.px, 12.px).rounded(10.px).bg(surfaceAlt).border(1.px, Palette.border))(
+                          div.style(rowBetween)(
+                            span(n.authorName.map(_.value).getOrElse(n.authorId.value)).style(Style.fontWeight(FontWeight.w700).fontSize(12.px).color(ink)),
+                            span(formatInstant(n.createdAt)).style(smallText),
+                          ),
+                          span(n.text.value).style(Style.fontSize(13.px).color(inkSecondary)),
+                        )
+                      }*
+                    ),
+                  div.style(rowSm)(
+                    input
+                      .cssClass("mp-input")
+                      .placeholder(if isCs then "Interní poznámka pro tým..." else "Write an internal staff note...")
+                      .value(internalNoteRef)
+                      .onInput(v => internalNoteRef.set(v)),
+                    button
+                      .cssClass("mp-btn mp-btn-secondary mp-btn-sm")
+                      .style(Style.flexShrink(0.0))
+                      .onClick(
+                        internalNoteRef.get.flatMap(t => state.addOrderNote(ord.id, t).andThen(internalNoteRef.set("")))
+                      )(state.i18n.t("adm-od-notes-add")),
+                  ),
+                )
+
+              val timelineSection: UI =
+                div.style(stackSm)(
+                  h2(state.i18n.t("adm-od-timeline-card")).style(sectionTitle.margin(0.px)),
+                  div.cssClass("mp-timeline")(
+                    ord.statusHistory.map { ev =>
+                      val actorText = ev.actor match
+                        case OrderActor.System                => "System"
+                        case OrderActor.Customer(_, name)     => s"Customer: ${name.value}"
+                        case OrderActor.Employee(id, nameOpt) => s"Staff: ${nameOpt.map(_.value).getOrElse(id.value)}"
+                      div.style(stackXs)(
+                        div.style(rowSm.flexWrap(FlexWrap.wrap))(
+                          ev.from.map(f => span(s"${orderStatusLabel(f, lang)} → ").style(smallText)).getOrElse(UI.empty),
+                          badge(orderStatusLabel(ev.to, lang), orderStatusTone(ev.to)),
                         ),
-                      div.style(rowSm)(
-                        input
-                          .cssClass("mp-input")
-                          .placeholder(if isCs then "Interní poznámka pro tým..." else "Write an internal staff note...")
-                          .value(internalNoteRef)
-                          .onInput(v => internalNoteRef.set(v)),
+                        div.style(smallText)(s"$actorText · ${formatInstant(ev.occurredAt)}"),
+                        ev.note.map(n => div.style(Style.fontSize(12.px).color(inkSecondary))(s"“$n”")).getOrElse(UI.empty),
+                      )
+                    }*
+                  ),
+                )
+
+              // Single-line Detail Header: Headline + separated Status Proceed button + Actions dropdown;
+              // Status / Payment / Priority badges cleanly below the headline
+              val detailHeader: UI =
+                div.cssClass("mp-detail-head")(
+                  div.cssClass("mp-detail-head-row")(
+                    div.style(rowSm.minWidth(0.px).flexGrow(1.0))(
+                      if !embedded then
                         button
                           .cssClass("mp-btn mp-btn-secondary mp-btn-sm")
                           .style(Style.flexShrink(0.0))
-                          .onClick(
-                            internalNoteRef.get.flatMap(t => state.addOrderNote(ord.id, t).andThen(internalNoteRef.set("")))
-                          )(state.i18n.t("adm-od-notes-add")),
+                          .onClick(state.navigate(AdminRoute.Orders))(state.i18n.t("adm-od-back"))
+                      else UI.empty,
+                      h1(ord.orderNumber.value).style(
+                        Style.margin(0.px).fontSize(if embedded then 19.px else 24.px).fontWeight(FontWeight.w800).color(ink),
                       ),
                     ),
+                    if canIntake || canManage then
+                      div.cssClass("mp-action-bar")(
+                        primaryProceedBtn,
+                        actionMenu.render(
+                          key = s"ord-${ord.id.value}",
+                          buttonLabel = span(if isCs then "Akce" else "Actions"),
+                          items = secondaryMenuItems,
+                        ),
+                      )
+                    else
+                      badge(if isCs then "Pouze čtení (Prepress)" else "Read-only Intake (Prepress)", BadgeTone.Neutral),
+                  ),
+                  div.cssClass("mp-detail-tags-row")(
+                    badge(orderStatusLabel(ord.status, lang), orderStatusTone(ord.status)),
+                    paymentStatusBadge(ord.payment.status, lang),
+                    priorityBadge(ord.priority, lang),
+                    span(s"· ${ord.customer.companyName.map(_.value).getOrElse(ord.customer.fullName.value)}").style(smallText),
+                  ),
+                )
 
-                    // Status Audit Trail Timeline
-                    div.cssClass("mp-card")(
-                      h2(state.i18n.t("adm-od-timeline-card")).style(sectionTitle.margin(0.px)),
-                      div.cssClass("mp-timeline")(
-                        ord.statusHistory.map { ev =>
-                          val actorText = ev.actor match
-                            case OrderActor.System                => "System"
-                            case OrderActor.Customer(_, name)     => s"Customer: ${name.value}"
-                            case OrderActor.Employee(id, nameOpt) => s"Staff: ${nameOpt.map(_.value).getOrElse(id.value)}"
-                          div.style(stackXs)(
-                            div.style(rowSm.flexWrap(FlexWrap.wrap))(
-                              ev.from.map(f => span(s"${orderStatusLabel(f, lang)} → ").style(smallText)).getOrElse(UI.empty),
-                              badge(orderStatusLabel(ev.to, lang), orderStatusTone(ev.to)),
-                            ),
-                            div.style(smallText)(s"$actorText · ${formatInstant(ev.occurredAt)}"),
-                            ev.note.map(n => div.style(Style.fontSize(12.px).color(inkSecondary))(s"“$n”")).getOrElse(UI.empty),
-                          )
-                        }*
-                      ),
+              val embeddedTabs = List(
+                TabBar.TabItem(DetailTab.Items, if isCs then "Položky" else "Items", Some(ord.lines.size)),
+                TabBar.TabItem(DetailTab.Artwork, if isCs then "Tisková data" else "Artwork", Some(artworks.size)),
+                TabBar.TabItem(DetailTab.CustomerPayment, if isCs then "Zákazník a platba" else "Customer & Pay", None),
+                TabBar.TabItem(
+                  DetailTab.NotesHistory,
+                  if isCs then "Poznámky a historie" else "Notes & History",
+                  Some(ord.internalNotes.size + ord.statusHistory.size),
+                ),
+              )
+
+              div.style(stackMd.width(100.pct))(
+                detailHeader,
+                statusBanners,
+                summaryStrip,
+                if embedded then
+                  // Master-Detail side pane: clean single-column scrollable layout with compact sub-tabs
+                  div.style(stackMd)(
+                    TabBar.render[DetailTab](
+                      items = embeddedTabs,
+                      active = activeDetailTab,
+                      onSelect = t => detailTabRef.set(t),
+                      compact = true,
+                    ),
+                    activeDetailTab match
+                      case DetailTab.Items =>
+                        div.style(stackMd)(
+                          linesSection,
+                          div.style(Style.padding(12.px, 0.px, 0.px, 0.px).borderTop(1.px, Palette.border))(totalsSection),
+                        )
+                      case DetailTab.Artwork =>
+                        artworkSection
+                      case DetailTab.CustomerPayment =>
+                        div.style(stackMd)(
+                          paymentSection,
+                          div.style(Style.padding(12.px, 0.px, 0.px, 0.px).borderTop(1.px, Palette.border))(customerSection),
+                        )
+                      case DetailTab.NotesHistory =>
+                        div.style(stackMd)(
+                          notesSection,
+                          div.style(Style.padding(12.px, 0.px, 0.px, 0.px).borderTop(1.px, Palette.border))(timelineSection),
+                        ),
+                  )
+                else
+                  // Full-screen dedicated OrderDetail route: spacious 2-column layout with all cards visible
+                  div.cssClass("mp-admin-split")(
+                    div.cssClass("mp-admin-split-right")(
+                      div.cssClass("mp-card")(linesSection),
+                      div.cssClass("mp-card")(artworkSection),
+                    ),
+                    div.cssClass("mp-admin-split-left")(
+                      div.cssClass("mp-card")(paymentSection),
+                      div.cssClass("mp-card")(customerSection),
+                      div.cssClass("mp-card")(totalsSection),
+                      div.cssClass("mp-card")(notesSection),
+                      div.cssClass("mp-card")(timelineSection),
                     ),
                   ),
-                ),
               )
         },
         dialog.render,

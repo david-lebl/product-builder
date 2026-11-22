@@ -165,9 +165,16 @@ object CatalogManagerView:
       filterGroups = filters,
       detailTitle = Some(pc => pc.name(lang)),
       renderDetail = Some { pc =>
-        div.style(stackSm)(
-          div.style(rowWrap)(
-            badge(s"ID: ${pc.id.value}", BadgeTone.Neutral),
+        div.style(stackMd)(
+          div.cssClass("mp-detail-head")(
+            div.cssClass("mp-detail-head-row")(
+              h3(pc.name(lang)).style(Style.margin(0.px).fontSize(17.px).fontWeight(FontWeight.w800).color(ink)),
+            ),
+            div.cssClass("mp-detail-tags-row")(
+              badge(pc.id.value, BadgeTone.Neutral),
+              badge(s"${pc.components.size} ${if isCs then "komp." else "comp."}", BadgeTone.Brand),
+              badge(s"${pc.presets.size} ${if isCs then "šablon" else "presets"}", BadgeTone.Emerald),
+            ),
             span(s"EN: ${pc.name(Language.En)} · CS: ${pc.name(Language.Cs)}").style(smallText),
           ),
           div.style(stackXs)(
@@ -276,8 +283,19 @@ object CatalogManagerView:
       filterGroups = filters,
       detailTitle = Some(m => m.name(lang)),
       renderDetail = Some { m =>
-        div.style(stackSm)(
-          span(s"EN: ${m.name(Language.En)} · CS: ${m.name(Language.Cs)}").style(smallText),
+        div.style(stackMd)(
+          div.cssClass("mp-detail-head")(
+            div.cssClass("mp-detail-head-row")(
+              h3(m.name(lang)).style(Style.margin(0.px).fontSize(17.px).fontWeight(FontWeight.w800).color(ink)),
+            ),
+            div.cssClass("mp-detail-tags-row")(
+              badge(m.id.value, BadgeTone.Neutral),
+              badge(m.family.toString, BadgeTone.Brand),
+              badge(formatMaterialWeight(m.weight), BadgeTone.Emerald),
+              badge(m.surfaceCoating.toString, BadgeTone.Neutral),
+            ),
+            span(s"EN: ${m.name(Language.En)} · CS: ${m.name(Language.Cs)}").style(smallText),
+          ),
           div.style(rowWrap)(
             span(if isCs then "Vlastnosti:" else "Properties:").style(smallText.fontWeight(FontWeight.w700)),
             UI.fragment(m.properties.toList.sortBy(_.toString).map(p => badge(p.toString, BadgeTone.Neutral))*),
@@ -362,10 +380,21 @@ object CatalogManagerView:
       filterGroups = filters,
       detailTitle = Some(f => f.name(lang)),
       renderDetail = Some { f =>
-        div.style(stackXs)(
-          span(s"EN: ${f.name(Language.En)} · CS: ${f.name(Language.Cs)}").style(smallText),
-          span(s"${if isCs then "Typ" else "Type"}: ${f.finishType} (${finishCategoryLabel(f.finishType.category, lang)})").style(Style.fontSize(13.px).color(ink)),
-          span(s"${if isCs then "Pravidlo stran" else "Side Policy"}: ${f.sidePolicy}").style(smallText),
+        div.style(stackMd)(
+          div.cssClass("mp-detail-head")(
+            div.cssClass("mp-detail-head-row")(
+              h3(f.name(lang)).style(Style.margin(0.px).fontSize(17.px).fontWeight(FontWeight.w800).color(ink)),
+            ),
+            div.cssClass("mp-detail-tags-row")(
+              badge(f.id.value, BadgeTone.Neutral),
+              badge(f.finishType.toString, BadgeTone.Brand),
+              badge(finishCategoryLabel(f.finishType.category, lang), BadgeTone.Neutral),
+            ),
+            span(s"EN: ${f.name(Language.En)} · CS: ${f.name(Language.Cs)}").style(smallText),
+          ),
+          div.style(stackXs)(
+            span(s"${if isCs then "Pravidlo stran" else "Side Policy"}: ${f.sidePolicy}").style(Style.fontSize(13.px).color(ink)),
+          ),
         )
       },
       emptyMessage = if isCs then "Žádná zušlechtění neodpovídají filtru." else "No finishes match the current filter.",
@@ -447,12 +476,18 @@ object CatalogManagerView:
       filterGroups = filters,
       detailTitle = Some(pm => pm.name(lang)),
       renderDetail = Some { pm =>
-        div.style(stackXs)(
-          span(s"EN: ${pm.name(Language.En)} · CS: ${pm.name(Language.Cs)}").style(smallText),
-          div.style(rowWrap)(
-            badge(pm.processType.toString, BadgeTone.Brand),
-            if pm.supportsDoubleSided then badge("Duplex Supported", BadgeTone.Emerald) else badge("Single-Sided Only", BadgeTone.Amber),
-            pm.maxColorsPerSide.map(c => badge(s"Max $c colors/side", BadgeTone.Neutral)).getOrElse(UI.empty),
+        div.style(stackMd)(
+          div.cssClass("mp-detail-head")(
+            div.cssClass("mp-detail-head-row")(
+              h3(pm.name(lang)).style(Style.margin(0.px).fontSize(17.px).fontWeight(FontWeight.w800).color(ink)),
+            ),
+            div.cssClass("mp-detail-tags-row")(
+              badge(pm.id.value, BadgeTone.Neutral),
+              badge(pm.processType.toString, BadgeTone.Brand),
+              if pm.supportsDoubleSided then badge("Duplex Supported", BadgeTone.Emerald) else badge("Single-Sided Only", BadgeTone.Amber),
+              pm.maxColorsPerSide.map(c => badge(s"Max $c colors/side", BadgeTone.Neutral)).getOrElse(UI.empty),
+            ),
+            span(s"EN: ${pm.name(Language.En)} · CS: ${pm.name(Language.Cs)}").style(smallText),
           ),
         )
       },
@@ -517,10 +552,21 @@ object CatalogManagerView:
       filterGroups = filters,
       detailTitle = Some(r => r.id.value),
       renderDetail = Some { r =>
-        div.style(stackXs)(
-          span(s"EN: ${r.reason(Language.En)}").style(Style.fontSize(13.px).color(ink)),
-          span(s"CS: ${r.reason(Language.Cs)}").style(smallText),
-          div.style(Style.padding(8.px, 10.px).rounded(8.px).bg(surface).border(1.px, Palette.border).fontSize(12.px).color(inkSecondary))(
+        div.style(stackMd)(
+          div.cssClass("mp-detail-head")(
+            div.cssClass("mp-detail-head-row")(
+              h3(r.id.value).style(Style.margin(0.px).fontSize(17.px).fontWeight(FontWeight.w800).color(ink)),
+            ),
+            div.cssClass("mp-detail-tags-row")(
+              badge(r.severity.toString, if r.severity == RuleSeverity.Error then BadgeTone.Rose else BadgeTone.Amber),
+              badge(r.scope.toString, BadgeTone.Neutral),
+            ),
+          ),
+          div.style(stackXs)(
+            span(s"EN: ${r.reason(Language.En)}").style(Style.fontSize(13.px).color(ink)),
+            span(s"CS: ${r.reason(Language.Cs)}").style(smallText),
+          ),
+          div.style(Style.padding(10.px, 12.px).rounded(8.px).bg(surface).border(1.px, Palette.border).fontSize(12.px).color(inkSecondary))(
             s"WHEN: ${r.when}  ⟹  MUST HOLD: ${r.mustHold}",
           ),
         )
@@ -596,10 +642,22 @@ object CatalogManagerView:
       filterGroups = filters,
       detailTitle = Some(catName),
       renderDetail = Some { sc =>
-        div.style(stackXs)(
-          span(s"Tagline EN: ${sc.tagline(Language.En)}").style(Style.fontSize(13.px).fontWeight(FontWeight.w600).color(ink)),
-          span(s"Tagline CS: ${sc.tagline(Language.Cs)}").style(smallText),
-          p(sc.detailedDescription(lang)).style(Style.margin(4.px, 0.px, 0.px, 0.px).fontSize(13.px).color(inkSecondary).lineHeight(1.5)),
+        div.style(stackMd)(
+          div.cssClass("mp-detail-head")(
+            div.cssClass("mp-detail-head-row")(
+              h3(catName(sc)).style(Style.margin(0.px).fontSize(17.px).fontWeight(FontWeight.w800).color(ink)),
+            ),
+            div.cssClass("mp-detail-tags-row")(
+              badge(s"#${sc.sortOrder}", BadgeTone.Neutral),
+              badge(catalogGroupLabel(sc.group, lang), BadgeTone.Brand),
+              badge(sc.categoryId.value, BadgeTone.Neutral),
+            ),
+          ),
+          div.style(stackXs)(
+            span(s"Tagline EN: ${sc.tagline(Language.En)}").style(Style.fontSize(13.px).fontWeight(FontWeight.w600).color(ink)),
+            span(s"Tagline CS: ${sc.tagline(Language.Cs)}").style(smallText),
+            p(sc.detailedDescription(lang)).style(Style.margin(4.px, 0.px, 0.px, 0.px).fontSize(13.px).color(inkSecondary).lineHeight(1.5)),
+          ),
         )
       },
       emptyMessage = if isCs then "Žádné karty výlohy neodpovídají filtru." else "No showcase listings match the current filter.",

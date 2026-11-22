@@ -308,8 +308,8 @@ object StorefrontUiSpec extends ZIOSpecDefault:
           )
         }
       },
-      test("DataTable supports full-width -> vertical side-split detail, create-in-detail, checkbox filters (no counts), and multi-select textfield for >5 options") {
-        import mpbuilder.ui.components.DataTable
+      test("DataTable renders Vaadin Master-Detail with external header, resizable splitter, Full View action, create-in-detail, checkbox & multi-select filters, and ActionMenu") {
+        import mpbuilder.ui.components.{ActionMenu, DataTable}
         import kyo.UI.*
         final case class Row(id: String, name: String, smallTag: String, bigTag: String)
         val sampleRows = List(
@@ -335,10 +335,13 @@ object StorefrontUiSpec extends ZIOSpecDefault:
         val css = AppTheme.storefrontStylesheet.render
         ZIOs.run {
           for
-            i18n    <- Translations.init(Language.En)
-            dtState <- DataTable.makeState[String]()
+            i18n     <- Translations.init(Language.En)
+            dtState  <- DataTable.makeState[String]()
+            menu     <- ActionMenu.Handle.make
+            fullRef  <- Signal.initRef[Option[String]](None)
             ui = DataTable.render[Row, String](
                    title = Some(span("Demo Items")),
+                   subtitle = Some(span("A long wrapping description that should stay next to controls")),
                    rows = sampleRows,
                    rowKey = _.id,
                    columns = cols,
@@ -347,11 +350,20 @@ object StorefrontUiSpec extends ZIOSpecDefault:
                    matchesSearch = (r, q) => r.name.toLowerCase.contains(q),
                    filterGroups = filters,
                    renderDetail = Some(r => div(span(s"DETAIL:${r.name}"))),
+                   onOpenFullScreen = Some(r => fullRef.set(Some(r.id))),
                    createConfig = Some(DataTable.CreateConfig(span("+ Add Item"), span("New Demo Item"), _ => div(span("CREATE_FORM_BODY")))),
                  )
-            // 1. Initial unselected state: full-width table, no detail pane, checkbox & multi-select rendered, no counts
+            menuUi = menu.render(
+                       key = "demo-menu",
+                       buttonLabel = span("Actions"),
+                       items = List(
+                         ActionMenu.Item(span("Edit"), () => Kyo.unit, ActionMenu.ItemTone.Primary),
+                         ActionMenu.Item(span("Delete"), () => Kyo.unit, ActionMenu.ItemTone.Danger, dividerBefore = true),
+                       ),
+                     )
+            // 1. Initial unselected state: external header, full-width table, no detail pane or splitter
             htmlInit <- renderHtml(ui, i18n)
-            // 2. Select row r2 -> vertical side-split opens detail pane
+            // 2. Select row r2 -> unified Master-Detail split with draggable splitter, scrollable detail body & Full View button
             _        <- dtState.updateAndGet(_.copy(selectedKey = Some("r2")))
             htmlSel  <- renderHtml(ui, i18n)
             // 3. Create mode -> create form renders in detail pane
@@ -360,16 +372,30 @@ object StorefrontUiSpec extends ZIOSpecDefault:
             // 4. Multi-select checkbox OR filter (One OR Three) + open >5 dropdown
             _        <- dtState.updateAndGet(_.copy(isCreating = false, activeFilters = Map("small" -> Set("One", "Three")), openDropdown = Some("big")))
             htmlFilt <- renderHtml(ui, i18n)
+            // 5. ActionMenu closed -> open -> closed
+            menuClosed <- renderHtml(menuUi, i18n)
+            _          <- menu.toggle("demo-menu")
+            menuOpen   <- renderHtml(menuUi, i18n)
+            _          <- menu.close
+            menuAgain  <- renderHtml(menuUi, i18n)
           yield assertTrue(
+            htmlInit.contains("mp-dt-root"),
             htmlInit.contains("mp-dt-header-top"),
+            htmlInit.contains("mp-dt-title-block"),
+            htmlInit.contains("mp-dt-controls"),
             htmlInit.contains("mp-dt-header-filters"),
             htmlInit.contains("mp-dt-check"),
             htmlInit.contains("mp-dt-ms-wrap"),
             !htmlInit.contains("One (1)"),
             !htmlInit.contains("mp-dt-detail-pane"),
+            !htmlInit.contains("mp-dt-splitter"),
             !htmlInit.contains("mp-dt-list-pane-split"),
             htmlSel.contains("mp-dt-list-pane-split"),
+            htmlSel.contains("mp-dt-splitter"),
+            htmlSel.contains("data-mp-dt-splitter"),
             htmlSel.contains("mp-dt-detail-pane"),
+            htmlSel.contains("mp-dt-detail-body"),
+            htmlSel.contains("Full View"),
             htmlSel.contains("DETAIL:Beta"),
             htmlNew.contains("mp-dt-detail-pane"),
             htmlNew.contains("CREATE_FORM_BODY"),
@@ -377,8 +403,18 @@ object StorefrontUiSpec extends ZIOSpecDefault:
             htmlFilt.contains("Gamma"),
             !htmlFilt.contains("Beta"),
             htmlFilt.contains("mp-dt-ms-menu"),
+            menuClosed.contains("mp-action-menu-wrap"),
+            !menuClosed.contains("mp-action-menu-panel"),
+            menuOpen.contains("mp-action-menu-panel"),
+            menuOpen.contains("mp-action-menu-divider"),
+            menuOpen.contains("mp-action-menu-item-danger"),
+            !menuAgain.contains("mp-action-menu-panel"),
             css.contains(".mp-tab-active"),
-            css.contains(".mp-dt-list-pane-split"),
+            css.contains(".mp-tabs-sm"),
+            css.contains(".mp-dt-splitter"),
+            css.contains(".mp-detail-head-row"),
+            css.contains(".mp-detail-tags-row"),
+            css.contains(".mp-action-menu-panel"),
           )
         }
       },

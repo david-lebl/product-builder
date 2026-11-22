@@ -3,7 +3,7 @@ package mpbuilder.admin.views
 import kyo.*
 import kyo.UI.*
 import kyo.Style.*
-import mpbuilder.admin.state.BackofficeState
+import mpbuilder.admin.state.{AdminRoute, BackofficeState}
 import mpbuilder.ordering.*
 import mpbuilder.shared.{Language, OrderId}
 import mpbuilder.ui.components.CommonComponents.*
@@ -11,13 +11,13 @@ import mpbuilder.ui.components.DataTable
 import mpbuilder.ui.theme.AppTheme.*
 import mpbuilder.ui.theme.AppTheme.Palette.*
 
-/** Order Intake Queue screen powered by universal `DataTable`:
-  *   - Unified table card header with Headline, Search, and Refresh button
+/** Order Intake Queue screen powered by Vaadin-style Master-Detail `DataTable`:
+  *   - External header with wrapping subtitle, Search, and Refresh button
   *   - Multi-select filters: Intake Status (> 5 options → searchable multi-select textfield),
   *     Payment Status & Priority (checkboxes, no counts)
   *   - Priority & calculated production deadline column (with mixed-speed badge)
-  *   - Clicking any row opens the full OrderDetailView in the vertical right side pane
-  *     (or full-screen detail view on mobile devices) — no separate "Open" button needed
+  *   - Clicking any row opens OrderDetailView in the resizable right Master-Detail pane,
+  *     with a Full View button (`AdminRoute.OrderDetail`) for dedicated full-screen workspace
   */
 object OrderIntakeView:
 
@@ -172,7 +172,8 @@ object OrderIntakeView:
           filterGroups = filterGroups,
           onRowSelect = Some(ord => state.selectedOrder.set(Some(ord)).andThen(state.refreshOrderDetail(ord.id))),
           renderDetail = Some(_ => embeddedDetailUI),
-          detailTitle = Some(ord => s"${if isCs then "Objednávka" else "Order"} ${ord.orderNumber.value}"),
+          detailTitle = Some(ord => s"${if isCs then "Objednávka" else "Order"} · ${ord.orderNumber.value}"),
+          onOpenFullScreen = Some(ord => state.navigate(AdminRoute.OrderDetail(ord.id))),
           headerExtra = button.cssClass("mp-btn mp-btn-secondary mp-btn-sm").onClick(state.refreshOrders)(state.i18n.t("adm-refresh")),
           emptyMessage = if isCs then "Aktuálním filtrům neodpovídají žádné objednávky." else "No orders match the current filters.",
           lang = lang,

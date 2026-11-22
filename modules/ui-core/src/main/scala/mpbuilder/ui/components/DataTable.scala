@@ -7,20 +7,24 @@ import mpbuilder.shared.Language
 import mpbuilder.ui.theme.AppTheme.*
 import mpbuilder.ui.theme.AppTheme.Palette.*
 
-/** Universal responsive DataTable component for Storefront & Backoffice views.
+/** Universal responsive Master-Detail DataTable component (Vaadin Master-Detail style)
+  * for Storefront & Backoffice views.
   *
   * Features:
-  *   - Unified table card header: horizontal [Headline | Search | Add / Extra] bar,
-  *     integrated filters strip directly below, followed by the table and pagination footer.
+  *   - External header toolbar above the Master-Detail surface: wrapping headline/subtitle on
+  *     the left (`min-width: 0`) so descriptions wrap instead of pushing Search onto a new line;
+  *     Search, extra controls, and Add button cleanly aligned on the right.
+  *   - Single unified Master-Detail surface container (not two separate cards) with a draggable
+  *     and keyboard-accessible vertical resizable splitter (`mp-dt-splitter`) between Master & Detail.
   *   - Multi-select filters with NO counts:
   *       - `<= multiSelectThreshold` (default 5) options: checkbox toggles
   *       - `> multiSelectThreshold` options: searchable multi-select tag textfield + dropdown checklist
-  *   - Vertical side-split Master-Detail:
-  *       - Desktop (> 960px): 100% width table when nothing is selected; 50/50 side-by-side split
-  *         when a row is selected or when creating a new item.
-  *       - Mobile (<= 960px): hides table and opens the detail/create pane full-width with a Back button.
-  *   - Row click opens/switches detail directly (no dropdown chevron or extra open button needed).
-  *   - Optional `createConfig` opens the new-item form right inside the side detail pane.
+  *   - Responsive Master-Detail:
+  *       - Desktop (> 960px): 100% width table when unselected; resizable side-by-side split
+  *         with independently scrollable single-column detail pane when a row is selected or creating.
+  *       - Mobile (<= 960px): hides table & splitter and opens detail/create pane full-width with Back button.
+  *   - Optional `onOpenFullScreen` adds a `⤢ Full View` navigation button in the detail bar.
+  *   - Optional `createConfig` opens the new-item form directly inside the detail pane.
   */
 object DataTable:
 
@@ -68,6 +72,7 @@ object DataTable:
       pageSize: Int = 10,
       selectedKey: Option[K] = None,
       isCreating: Boolean = false,
+      splitPct: Int = 52,
   )
 
   def makeState[K](
@@ -89,6 +94,7 @@ object DataTable:
       renderDetail: Option[T => UI] = None,
       detailTitle: Option[T => String] = None,
       onRowSelect: Option[T => Unit < Async] = None,
+      onOpenFullScreen: Option[T => Unit < Async] = None,
       createConfig: Option[CreateConfig] = None,
       headerExtra: UI = UI.empty,
       emptyMessage: String = "No items found",
@@ -365,39 +371,42 @@ object DataTable:
 
       val anyFilterActive = st.activeFilters.values.exists(_.nonEmpty)
 
-      val tableCard: UI = div.cssClass("mp-dt-card")(
-        // Unified Header Row 1: Headline | Search | Add button & Extra
-        div.cssClass("mp-dt-header-top")(
-          title match
-            case Some(t) =>
-              div.style(Style.column.gap(2.px))(
-                h2(t).style(Style.margin(0.px).fontSize(18.px).fontWeight(FontWeight.w800).color(ink)),
-                subtitle.map(sub => span(sub).style(smallText)).getOrElse(UI.empty),
-              )
+      // External Header Bar (cleanly outside the Master-Detail surface)
+      // Title/description block has flex: 1 1 0 & min-width: 0 so descriptions wrap cleanly
+      // instead of pushing search/actions to a new line.
+      val topToolbar: UI = div.cssClass("mp-dt-header-top")(
+        title match
+          case Some(t) =>
+            div.cssClass("mp-dt-title-block")(
+              h2(t).style(Style.margin(0.px).fontSize(20.px).fontWeight(FontWeight.w800).color(ink).lineHeight(1.25)),
+              subtitle.map(sub => span(sub).style(smallText.lineHeight(1.4))).getOrElse(UI.empty),
+            )
+          case None => div.cssClass("mp-dt-title-block")(),
+        div.cssClass("mp-dt-controls")(
+          searchInput
+            .cssClass("mp-input")
+            .style(Style.width(230.px).minWidth(160.px).maxWidth(300.px).padding(7.px, 11.px).fontSize(13.px))
+            .value(st.search)
+            .placeholder(searchPlaceholder)
+            .onInput(v => state.updateAndGet(_.copy(search = v, page = 0)).unit),
+          headerExtra,
+          createConfig match
+            case Some(cfg) =>
+              button
+                .cssClass(if showCreatePane then "mp-btn mp-btn-secondary mp-btn-sm" else "mp-btn mp-btn-primary mp-btn-sm")
+                .style(Style.whiteSpace(WhiteSpace.noWrap))
+                .onClick(
+                  state.updateAndGet { cur =>
+                    if cur.isCreating then cur.copy(isCreating = false)
+                    else cur.copy(isCreating = true, selectedKey = None)
+                  }.unit,
+                )(cfg.buttonLabel)
             case None => UI.empty,
-          div.style(Style.row.align(Alignment.center).gap(10.px).flexWrap(FlexWrap.wrap).flexGrow(1.0).justify(Justification.end))(
-            searchInput
-              .cssClass("mp-input")
-              .style(Style.minWidth(190.px).maxWidth(340.px).flexGrow(1.0).padding(7.px, 11.px).fontSize(13.px))
-              .value(st.search)
-              .placeholder(searchPlaceholder)
-              .onInput(v => state.updateAndGet(_.copy(search = v, page = 0)).unit),
-            headerExtra,
-            createConfig match
-              case Some(cfg) =>
-                button
-                  .cssClass(if showCreatePane then "mp-btn mp-btn-secondary mp-btn-sm" else "mp-btn mp-btn-primary mp-btn-sm")
-                  .onClick(
-                    state.updateAndGet { cur =>
-                      if cur.isCreating then cur.copy(isCreating = false)
-                      else cur.copy(isCreating = true, selectedKey = None)
-                    }.unit,
-                  )(cfg.buttonLabel)
-              case None => UI.empty,
-          ),
         ),
+      )
 
-        // Unified Header Row 2: Checkbox & Multi-Select Filters (directly under headline/search/add)
+      val masterPaneContent: UI = UI.fragment(
+        // Integrated Checkbox & Multi-Select Filters Bar at top of master pane
         if filterGroups.nonEmpty then
           div.cssClass("mp-dt-header-filters")(
             UI.fragment(filterGroups.map(renderFilterGroup)*),
@@ -464,50 +473,96 @@ object DataTable:
         else UI.empty,
       )
 
-      // Side Detail / Create Pane (second vertical half on desktop; full-screen detail on mobile)
+      // Draggable & Keyboard-Accessible Resizable Splitter between Master and Detail
+      val splitter: UI =
+        if showDetailPane then
+          div
+            .cssClass("mp-dt-splitter")
+            .role("separator")
+            .tabIndex(0)
+            .aria("orientation", "vertical")
+            .aria("valuenow", st.splitPct.toString)
+            .aria("label", if isCs then "Změnit šířku panelů" else "Resize master and detail panes")
+            .data("mp-dt-splitter", "true")
+            .onKeyDown { ev =>
+              ev.key match
+                case UI.Keyboard.ArrowLeft                 => state.updateAndGet(c => c.copy(splitPct = (c.splitPct - 5).max(28))).unit
+                case UI.Keyboard.ArrowRight                => state.updateAndGet(c => c.copy(splitPct = (c.splitPct + 5).min(72))).unit
+                case UI.Keyboard.Home | UI.Keyboard.Enter  => state.updateAndGet(_.copy(splitPct = 50)).unit
+                case _                                     => Kyo.unit
+            }(
+              div.cssClass("mp-dt-splitter-grip")(),
+            )
+        else UI.empty
+
+      // Integrated Right Detail / Create Pane (scrollable single-column body on desktop; full-screen on mobile)
       val sidePane: UI =
         if showCreatePane then
           createConfig match
             case Some(cfg) =>
-              div.cssClass("mp-dt-detail-pane")(
+              div.cssClass("mp-dt-detail-pane").data("mp-dt-detail", "true")(
                 div.cssClass("mp-dt-detail-header")(
                   div.style(rowSm)(
                     button
                       .cssClass("mp-btn mp-btn-secondary mp-btn-sm mp-dt-mobile-back")
                       .onClick(closeSidePane)(if isCs then "← Zpět" else "← Back"),
-                    h3(cfg.title).style(Style.margin(0.px).fontSize(16.px).fontWeight(FontWeight.w800).color(ink)),
+                    h3(cfg.title).style(Style.margin(0.px).fontSize(15.px).fontWeight(FontWeight.w800).color(ink)),
                   ),
                   button
                     .cssClass("mp-btn mp-btn-ghost mp-btn-sm")
+                    .style(Style.padding(4.px, 8.px))
                     .onClick(closeSidePane)("✕"),
                 ),
-                cfg.renderForm(() => closeSidePane),
+                div.cssClass("mp-dt-detail-body")(
+                  cfg.renderForm(() => closeSidePane),
+                ),
               )
             case None => UI.empty
         else
           (selectedRow, renderDetail) match
             case (Some(row), Some(detailFn)) =>
               val paneHeading = detailTitle.map(_(row)).getOrElse(if isCs then "Detail" else "Detail")
-              div.cssClass("mp-dt-detail-pane")(
+              div.cssClass("mp-dt-detail-pane").data("mp-dt-detail", "true")(
                 div.cssClass("mp-dt-detail-header")(
-                  div.style(rowSm)(
+                  div.style(rowSm.minWidth(0.px))(
                     button
                       .cssClass("mp-btn mp-btn-secondary mp-btn-sm mp-dt-mobile-back")
                       .onClick(closeSidePane)(if isCs then "← Zpět" else "← Back"),
-                    span(paneHeading).style(Style.fontSize(13.px).fontWeight(FontWeight.w700).color(inkMuted)),
+                    span(paneHeading).style(Style.fontSize(12.px).fontWeight(FontWeight.w700).color(inkMuted)),
                   ),
-                  button
-                    .cssClass("mp-btn mp-btn-ghost mp-btn-sm")
-                    .onClick(closeSidePane)("✕"),
+                  div.style(rowXs.flexShrink(0.0))(
+                    onOpenFullScreen match
+                      case Some(openFull) =>
+                        button
+                          .cssClass("mp-btn mp-btn-ghost mp-btn-sm")
+                          .style(Style.padding(4.px, 9.px).fontSize(12.px).whiteSpace(WhiteSpace.noWrap))
+                          .onClick(openFull(row))(if isCs then "⤢ Celá stránka" else "⤢ Full View")
+                      case None => UI.empty,
+                    button
+                      .cssClass("mp-btn mp-btn-ghost mp-btn-sm")
+                      .style(Style.padding(4.px, 8.px))
+                      .onClick(closeSidePane)("✕"),
+                  ),
                 ),
-                detailFn(row),
+                div.cssClass("mp-dt-detail-body")(
+                  detailFn(row),
+                ),
               )
             case _ => UI.empty
 
-      div.cssClass("mp-dt-split")(
-        div.cssClass(if showDetailPane then "mp-dt-list-pane mp-dt-list-pane-split" else "mp-dt-list-pane")(
-          tableCard,
+      val safeSplit = st.splitPct.max(28).min(72)
+
+      div.cssClass("mp-dt-root")(
+        topToolbar,
+        div.cssClass("mp-dt-split").data("mp-dt-split-root", "true")(
+          div
+            .cssClass(if showDetailPane then "mp-dt-list-pane mp-dt-list-pane-split" else "mp-dt-list-pane")
+            .style(if showDetailPane then Style.flexBasis(safeSplit.pct) else Style.empty)
+            .data("mp-dt-master", "true")(
+              masterPaneContent,
+            ),
+          splitter,
+          sidePane,
         ),
-        sidePane,
       )
     }

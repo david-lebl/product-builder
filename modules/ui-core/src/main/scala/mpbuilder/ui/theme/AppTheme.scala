@@ -452,90 +452,244 @@ object AppTheme:
           .fontWeight(FontWeight.w600)
           .shadow(0.px, 8.px, 24.px, 0.px, shadowStrong),
       )
-      // High-Contrast Folder Tab Bar (white rounded active folder tab + strong divider line)
+      // Refined Balanced Tab Bar (full-width bottom divider line clearly scoping content below)
       .rule(
         "mp-tabs",
         Style.row
           .flexWrap(FlexWrap.wrap)
           .align(Alignment.end)
-          .gap(6.px)
+          .gap(4.px)
           .width(100.pct)
-          .padding(0.px, 4.px)
-          .borderBottom(2.px, borderStrong),
+          .borderBottom(1.px, borderStrong),
+      )
+      .rule(
+        "mp-tabs-sm",
+        Style.gap(2.px)
+          .borderBottom(1.px, border),
       )
       .rule(
         "mp-tab",
         Style.row
           .align(Alignment.center)
-          .gap(8.px)
-          .padding(10.px, 16.px)
-          .rounded(10.px, 10.px, 0.px, 0.px)
-          .bg(surfaceAlt)
+          .gap(7.px)
+          .padding(9.px, 15.px)
+          .rounded(8.px, 8.px, 0.px, 0.px)
+          .bg(Color.transparent)
           .color(inkSecondary)
           .fontSize(13.px)
           .fontWeight(FontWeight.w600)
-          .borderTop(1.px, border)
-          .borderLeft(1.px, border)
-          .borderRight(1.px, border)
-          .borderBottom(0.px, Color.transparent)
+          .border(0.px, BorderStyle.none, Color.transparent)
+          .borderBottom(2.px, Color.transparent)
+          .margin(0.px, 0.px, (-1).px, 0.px)
           .cursor(Cursor.pointer)
           .transition(TransitionProperty.all, 140, Easing.easeOut)
-          .hover(Style.bg(surfaceHover).color(ink).borderColor(borderStrong)),
+          .hover(Style.bg(surfaceHover).color(ink)),
+      )
+      .rule(
+        "mp-tab-sm",
+        Style.padding(7.px, 12.px)
+          .fontSize(12.px)
+          .gap(5.px),
       )
       .rule(
         "mp-tab-active",
-        Style.bg(surface)
-          .color(ink)
+        Style.bg(brandSoft)
+          .color(brandDark)
           .fontWeight(FontWeight.w700)
-          .borderTop(2.px, brand)
-          .borderLeft(1.px, borderStrong)
-          .borderRight(1.px, borderStrong)
-          .borderBottom(2.px, surface)
-          .margin(0.px, 0.px, (-2).px, 0.px)
-          .shadow(0.px, (-2).px, 8.px, 0.px, shadowSubtle)
-          .hover(Style.bg(surface).color(ink)),
+          .borderBottom(2.px, brand)
+          .hover(Style.bg(brandSoft).color(brandDark)),
       )
-      // Corner Action Bar
+      // Corner Action Bar & ActionMenu Dropdown
       .rule(
         "mp-action-bar",
         Style.row
           .flexWrap(FlexWrap.wrap)
           .align(Alignment.center)
           .justify(Justification.end)
-          .gap(8.px),
+          .gap(8.px)
+          .flexShrink(0.0),
       )
-      // Universal DataTable — Vertical Side-Split Master-Detail + Unified Table Card
+      .rule(
+        "mp-action-menu-wrap",
+        Style.position(Position.relative)
+          .flexShrink(0.0),
+      )
+      .rule(
+        "mp-action-menu-backdrop",
+        Style.position(Position.fixed)
+          .top(0.px)
+          .left(0.px)
+          .right(0.px)
+          .bottom(0.px)
+          .zIndex(55)
+          .bg(Color.transparent),
+      )
+      .rule(
+        "mp-action-menu-panel",
+        Style.position(Position.absolute)
+          .top(100.pct)
+          .right(0.px)
+          .zIndex(60)
+          .minWidth(190.px)
+          .margin(5.px, 0.px, 0.px, 0.px)
+          .bg(surface)
+          .border(1.px, borderStrong)
+          .rounded(10.px)
+          .padding(5.px)
+          .shadow(0.px, 10.px, 28.px, 0.px, shadowMedium)
+          .column
+          .gap(2.px),
+      )
+      .rule(
+        "mp-action-menu-item",
+        Style.row
+          .align(Alignment.center)
+          .gap(8.px)
+          .width(100.pct)
+          .padding(8.px, 10.px)
+          .rounded(7.px)
+          .bg(Color.transparent)
+          .border(0.px, BorderStyle.none, Color.transparent)
+          .color(ink)
+          .fontSize(13.px)
+          .fontWeight(FontWeight.w600)
+          .cursor(Cursor.pointer)
+          .textAlign(TextAlign.left)
+          .whiteSpace(WhiteSpace.noWrap)
+          .transition(TransitionProperty.all, 110, Easing.easeOut)
+          .hover(Style.bg(surfaceAlt)),
+      )
+      .rule(
+        "mp-action-menu-item-primary",
+        Style.color(brandDark).hover(Style.bg(brandSoft)),
+      )
+      .rule(
+        "mp-action-menu-item-amber",
+        Style.color(amberInk).hover(Style.bg(amberSoft)),
+      )
+      .rule(
+        "mp-action-menu-item-danger",
+        Style.color(roseInk).hover(Style.bg(roseSoft)),
+      )
+      .rule(
+        "mp-action-menu-divider",
+        Style.width(100.pct)
+          .height(1.px)
+          .bg(border)
+          .margin(3.px, 0.px),
+      )
+      // Detail Header Helpers (Headline + Actions on 1 line; Tags cleanly below)
+      .rule(
+        "mp-detail-head",
+        Style.column
+          .gap(8.px)
+          .width(100.pct)
+          .padding(0.px, 0.px, 12.px, 0.px)
+          .borderBottom(1.px, border),
+      )
+      .rule(
+        "mp-detail-head-row",
+        Style.row
+          .align(Alignment.center)
+          .justify(Justification.spaceBetween)
+          .gap(12.px)
+          .width(100.pct),
+      )
+      .rule(
+        "mp-detail-tags-row",
+        Style.row
+          .flexWrap(FlexWrap.wrap)
+          .align(Alignment.center)
+          .gap(6.px)
+          .width(100.pct),
+      )
+      // Universal DataTable — Vaadin-Style Master-Detail Layout with External Header & Resizable Splitter
+      .rule(
+        "mp-dt-root",
+        Style.column
+          .width(100.pct)
+          .gap(12.px),
+      )
+      .rule(
+        "mp-dt-header-top",
+        Style.row
+          .align(Alignment.center)
+          .justify(Justification.spaceBetween)
+          .gap(14.px)
+          .width(100.pct),
+      )
+      .rule(
+        "mp-dt-title-block",
+        Style.column
+          .gap(2.px)
+          .flexGrow(1.0)
+          .flexShrink(1.0)
+          .flexBasis(0.px)
+          .minWidth(0.px),
+      )
+      .rule(
+        "mp-dt-controls",
+        Style.row
+          .align(Alignment.center)
+          .justify(Justification.end)
+          .gap(8.px)
+          .flexShrink(0.0),
+      )
       .rule(
         "mp-dt-split",
         Style.row
           .width(100.pct)
-          .gap(18.px)
-          .align(Alignment.start),
+          .bg(surface)
+          .border(1.px, border)
+          .rounded(14.px)
+          .shadow(0.px, 1.px, 4.px, 0.px, shadowSubtle)
+          .align(Alignment.stretch)
+          .minHeight(440.px),
       )
       .rule(
         "mp-dt-list-pane",
         Style.column
           .flexGrow(1.0)
+          .flexShrink(1.0)
           .flexBasis(0.px)
           .minWidth(0.px)
           .width(100.pct),
       )
       .rule(
         "mp-dt-list-pane-split",
-        Style.flexBasis(50.pct),
+        Style.flexGrow(0.0)
+          .flexShrink(0.0),
+      )
+      .rule(
+        "mp-dt-splitter",
+        Style.row
+          .align(Alignment.center)
+          .justify(Justification.center)
+          .width(10.px)
+          .flexShrink(0.0)
+          .bg(surfaceAlt)
+          .borderLeft(1.px, border)
+          .borderRight(1.px, border)
+          .cursor(Cursor.grab)
+          .transition(TransitionProperty.all, 120, Easing.easeOut)
+          .hover(Style.bg(brandSoft).borderColor(brandBorder)),
+      )
+      .rule(
+        "mp-dt-splitter-grip",
+        Style.width(3.px)
+          .height(34.px)
+          .rounded(999.px)
+          .bg(borderStrong),
       )
       .rule(
         "mp-dt-detail-pane",
         Style.column
           .flexGrow(1.0)
-          .flexBasis(50.pct)
+          .flexShrink(1.0)
+          .flexBasis(0.px)
           .minWidth(0.px)
           .bg(surface)
-          .border(1.px, border)
-          .rounded(14.px)
-          .padding(18.px, 20.px)
-          .gap(14.px)
-          .shadow(0.px, 2.px, 10.px, 0.px, shadowSubtle),
+          .maxHeight(78.vh),
       )
       .rule(
         "mp-dt-detail-header",
@@ -543,41 +697,32 @@ object AppTheme:
           .justify(Justification.spaceBetween)
           .align(Alignment.center)
           .gap(10.px)
-          .padding(0.px, 0.px, 12.px, 0.px)
-          .borderBottom(1.px, border),
+          .padding(9.px, 16.px)
+          .bg(surfaceAlt)
+          .borderBottom(1.px, border)
+          .flexShrink(0.0),
+      )
+      .rule(
+        "mp-dt-detail-body",
+        Style.column
+          .flexGrow(1.0)
+          .minHeight(0.px)
+          .overflowY(Overflow.auto)
+          .padding(18.px, 20.px)
+          .gap(14.px),
       )
       .rule(
         "mp-dt-mobile-back",
         Style.displayNone,
       )
       .rule(
-        "mp-dt-card",
-        Style.column
-          .width(100.pct)
-          .bg(surface)
-          .border(1.px, border)
-          .rounded(14.px)
-          .shadow(0.px, 1.px, 3.px, 0.px, shadowSubtle),
-      )
-      .rule(
-        "mp-dt-header-top",
-        Style.row
-          .flexWrap(FlexWrap.wrap)
-          .justify(Justification.spaceBetween)
-          .align(Alignment.center)
-          .gap(12.px)
-          .padding(14.px, 16.px)
-          .width(100.pct),
-      )
-      .rule(
         "mp-dt-header-filters",
         Style.row
           .flexWrap(FlexWrap.wrap)
           .align(Alignment.center)
-          .gap(12.px)
-          .padding(10.px, 16.px)
+          .gap(10.px)
+          .padding(10.px, 14.px)
           .bg(surfaceAlt)
-          .borderTop(1.px, border)
           .borderBottom(1.px, border)
           .width(100.pct),
       )
@@ -809,9 +954,10 @@ object AppTheme:
           .rule("mp-desktop-nav", Style.displayNone)
           .rule("mp-mobile-only", Style.row.align(Alignment.center).gap(6.px))
           .rule("mp-hero-title", Style.fontSize(28.px))
-          .rule("mp-dt-split", Style.column.gap(14.px))
+          .rule("mp-dt-split", Style.column.minHeight(0.px))
           .rule("mp-dt-list-pane-split", Style.displayNone)
-          .rule("mp-dt-detail-pane", Style.width(100.pct).flexBasis(Length.Auto))
+          .rule("mp-dt-splitter", Style.displayNone)
+          .rule("mp-dt-detail-pane", Style.width(100.pct).flexBasis(Length.Auto).maxHeight(Length.Auto))
           .rule("mp-dt-mobile-back", Style.row.align(Alignment.center).gap(6.px)),
       )
       // Mobile breakpoint (<= 640px)
@@ -826,7 +972,9 @@ object AppTheme:
           .rule("mp-option-card", Style.flexBasis(140.px))
           .rule("mp-option-card-active", Style.flexBasis(140.px))
           .rule("mp-calc-root", Style.padding(12.px).rounded(12.px))
-          .rule("mp-modal", Style.padding(18.px).rounded(14.px)),
+          .rule("mp-modal", Style.padding(18.px).rounded(14.px))
+          .rule("mp-dt-header-top", Style.column.align(Alignment.stretch).gap(10.px))
+          .rule("mp-dt-controls", Style.flexWrap(FlexWrap.wrap).justify(Justification.start).width(100.pct)),
       )
 
   val storefrontStylesheet: Stylesheet =

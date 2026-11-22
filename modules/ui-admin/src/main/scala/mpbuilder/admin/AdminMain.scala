@@ -32,6 +32,66 @@ object AdminMain extends KyoApp:
       BackofficeClient.fromZio(res.getOrThrow)
     }
 
+  /** Installs delegated pointer-drag resizing (plus double-click 50/50 reset) on any
+    * Vaadin-style `[data-mp-dt-splitter]` divider inside a `[data-mp-dt-split-root]` container.
+    */
+  private def installMasterDetailSplitter(): Unit =
+    val styleEl = dom.document.createElement("style")
+    styleEl.textContent = "[data-mp-dt-splitter]{cursor:col-resize;user-select:none;touch-action:none;}"
+    dom.document.head.appendChild(styleEl)
+
+    var activeRoot: dom.HTMLElement   = null
+    var activeMaster: dom.HTMLElement = null
+
+    val onPointerMove: js.Function1[dom.PointerEvent, Unit] = ev =>
+      if activeRoot != null && activeMaster != null then
+        val rect = activeRoot.getBoundingClientRect()
+        if rect.width > 0 then
+          val rawPct = ((ev.clientX - rect.left) / rect.width) * 100.0
+          val clamped = math.max(28.0, math.min(72.0, rawPct))
+          activeMaster.style.setProperty("flex-basis", f"$clamped%.2f%%")
+
+    val onPointerUp: js.Function1[dom.PointerEvent, Unit] = _ =>
+      if activeRoot != null then
+        activeRoot = null
+        activeMaster = null
+        dom.document.body.style.cursor = ""
+        dom.document.body.style.asInstanceOf[js.Dynamic].userSelect = ""
+
+    val onPointerDown: js.Function1[dom.PointerEvent, Unit] = ev =>
+      ev.target match
+        case el: dom.Element =>
+          val splitter = el.closest("[data-mp-dt-splitter]")
+          if splitter != null then
+            val root = splitter.closest("[data-mp-dt-split-root]")
+            if root != null then
+              val master = root.querySelector("[data-mp-dt-master]")
+              if master != null then
+                ev.preventDefault()
+                activeRoot = root.asInstanceOf[dom.HTMLElement]
+                activeMaster = master.asInstanceOf[dom.HTMLElement]
+                dom.document.body.style.cursor = "col-resize"
+                dom.document.body.style.asInstanceOf[js.Dynamic].userSelect = "none"
+        case _ => ()
+
+    val onDblClick: js.Function1[dom.MouseEvent, Unit] = ev =>
+      ev.target match
+        case el: dom.Element =>
+          val splitter = el.closest("[data-mp-dt-splitter]")
+          if splitter != null then
+            val root = splitter.closest("[data-mp-dt-split-root]")
+            if root != null then
+              val master = root.querySelector("[data-mp-dt-master]")
+              if master != null then
+                master.asInstanceOf[dom.HTMLElement].style.setProperty("flex-basis", "50%")
+        case _ => ()
+
+    dom.document.addEventListener("pointerdown", onPointerDown)
+    dom.window.addEventListener("pointermove", onPointerMove)
+    dom.window.addEventListener("pointerup", onPointerUp)
+    dom.window.addEventListener("pointercancel", onPointerUp)
+    dom.document.addEventListener("dblclick", onDblClick)
+
   run {
     val initialLang  = detectInitialLanguage
     val initialRoute = AdminRoute.fromHash(dom.window.location.hash, requireAdminPrefix = false).getOrElse(AdminRoute.Dashboard)
@@ -40,6 +100,7 @@ object AdminMain extends KyoApp:
       client  <- bootBackofficeClient
       appI18n <- AdminTranslations.init(initialLang)
       _       <- UI.runStylesheet(AdminTheme.adminStylesheet)
+      _       <- Sync.defer(installMasterDetailSplitter())
       _ <- I18n.let(appI18n.handle) {
              for
                state <- BackofficeState.init(

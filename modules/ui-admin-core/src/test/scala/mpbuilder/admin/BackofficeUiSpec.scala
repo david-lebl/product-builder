@@ -304,9 +304,16 @@ object BackofficeUiSpec extends ZIOSpecDefault:
             plHtml    <- renderHtml(boUi, i18n)
             _         <- I18n.let(i18n.handle)(boState.setLanguage(Language.Cs))
             plCsHtml  <- renderHtml(boUi, i18n)
+            // 5. Embedded OrderDetailView renders compact inner sub-tabs (mp-tabs-sm)
+            _             <- I18n.let(i18n.handle)(boState.setLanguage(Language.En))
+            _             <- I18n.let(i18n.handle)(boState.navigate(AdminRoute.OrderDetail(ordId)))
+            embOrdUi      <- I18n.let(i18n.handle)(mpbuilder.admin.views.OrderDetailView.render(boState, embedded = true))
+            embOrdHtml    <- renderHtml(embOrdUi, i18n)
           yield assertTrue(
+            ordersHtml.contains("mp-dt-root"),
             ordersHtml.contains("mp-dt-table"),
             ordersHtml.contains("mp-dt-header-top"),
+            ordersHtml.contains("mp-dt-title-block"),
             ordersHtml.contains("mp-dt-header-filters"),
             ordersHtml.contains("mp-dt-ms-wrap"),
             ordersHtml.contains("mp-dt-check"),
@@ -318,10 +325,17 @@ object BackofficeUiSpec extends ZIOSpecDefault:
             ord2Opt.exists(_.isPaid),
             ord2Opt.exists(_.priority == OrderPriority.Urgent),
             ord2Opt.exists(_.lines.head.specNote.contains("Pantone 286 C spot check")),
+            detEnHtml.contains("mp-detail-head-row"),
+            detEnHtml.contains("mp-detail-tags-row"),
             detEnHtml.contains("mp-action-bar"),
+            detEnHtml.contains("mp-action-menu-wrap"),
+            detEnHtml.contains("Next stage:"),
             detEnHtml.contains("Pantone 286 C spot check"),
             detEnHtml.contains("Artwork &amp; Preflight Review"),
             !detEnHtml.contains("‹") && !detEnHtml.contains("›"),
+            embOrdHtml.contains("mp-tabs-sm"),
+            embOrdHtml.contains("mp-detail-head-row"),
+            embOrdHtml.contains("mp-action-menu-wrap"),
             updatedB2b.exists(_.additionalContacts.exists(_.email.value == "klara@printshoppro.cz")),
             updatedB2b.exists(_.auditLog.exists(e => e.action == "ProfileUpdated" && e.actor.isInstanceOf[CustomerActor.Employee])),
             focusTab == "agreements",

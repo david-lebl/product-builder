@@ -8,18 +8,21 @@ import mpbuilder.customers.*
 import mpbuilder.pricing.AgreementTarget
 import mpbuilder.shared.*
 import mpbuilder.ui.components.CommonComponents.*
-import mpbuilder.ui.components.{ConfirmDialog, DataTable}
+import mpbuilder.ui.components.{ActionMenu, ConfirmDialog, DataTable, TabBar}
 import mpbuilder.ui.theme.AppTheme.*
 import mpbuilder.ui.theme.AppTheme.Palette.*
 
 /** Customer Accounts & B2B Approvals Manager:
-  *   - Universal DataTable (search, Status & Tier filters, sorting, pagination, expandable inline detail)
-  *   - Corner Action Bar with ConfirmDialog for Approve, Suspend (with reason), Deactivate (with reason)
-  *   - Editable profile & multiple contact persons for Business/Agency accounts (audited with employee actor)
-  *   - Color-coded CustomerTier badges, Payment Terms editor, Custom Pricing section ("Edit in Pricing →"),
-  *     Order History, Internal Notes, and full Audit Trail
+  *   - Vaadin-style Master-Detail DataTable with resizable splitter & create-in-detail
+  *   - Single-line detail header with collapsed `ActionMenu` dropdown (Approve, Edit, Suspend, Deactivate)
+  *     and status/tier/ID badges cleanly below the headline
+  *   - Single-column scrollable detail pane organized into compact sub-tabs:
+  *     Overview (Profile/Contacts/Addresses/Tier & Terms), Pricing & Orders, and Notes & Audit
   */
 object CustomerManagerView:
+
+  private enum DetailTab:
+    case Overview, PricingOrders, NotesAudit
 
   private final case class ContactDraft(
       firstName: String,
@@ -87,6 +90,8 @@ object CustomerManagerView:
     for
       tableState     <- DataTable.makeState[CustomerId](defaultSort = Some(DataTable.SortSpec("name", ascending = true)), pageSize = 10)
       dialog         <- ConfirmDialog.Handle.make
+      actionMenu     <- ActionMenu.Handle.make
+      detailTabRef   <- Signal.initRef[DetailTab](DetailTab.Overview)
       regIdRef       <- Signal.initRef("")
       regSegRef      <- Signal.initRef[CustomerSegment](CustomerSegment.Business)
       regCompRef     <- Signal.initRef("")
@@ -107,11 +112,12 @@ object CustomerManagerView:
           .combineLatest(state.agreements)
           .combineLatest(state.orders)
           .combineLatest(editDraftRef)
+          .combineLatest(detailTabRef)
           .combineLatest(state.auth)
           .combineLatest(state.i18n.language)
 
       UI.fragment(
-        combined.render { case (((((allCustomers, allAgreements), allOrders), editDraftOpt), authOpt), lang) =>
+        combined.render { case ((((((allCustomers, allAgreements), allOrders), editDraftOpt), activeDetailTab), authOpt), lang) =>
           val isCs      = lang == Language.Cs
           val canManage = state.canManage(authOpt)
 
@@ -195,30 +201,16 @@ object CustomerManagerView:
             val isEditing = editDraftOpt.exists(_.customerId == c.id)
             val title     = c.company.map(_.legalName.value).getOrElse(s"${c.contact.firstName.value} ${c.contact.lastName.value}")
 
-            div.style(stackMd)(
-              // Top bar with customer headline & corner action bar
-              div.style(rowBetween.flexWrap(FlexWrap.wrap))(
-                div.style(stackXs)(
-                  div.style(rowSm.flexWrap(FlexWrap.wrap))(
-                    h2(title).style(sectionTitle.margin(0.px)),
-                    badge(c.id.value, BadgeTone.Neutral),
-                    badge(c.status.toString, statusTone(c.status)),
-                    tierBadge(c.tier),
-                  ),
-                  c.company match
-                    case Some(comp) =>
-                      span(
-                        s"IČO: ${comp.registrationNumber.value}${comp.vatId.map(v => s" · DIČ: ${v.value}").getOrElse("")}",
-                      ).style(smallText)
-                    case None => UI.empty,
-                ),
-                // Action Bar (Approve, Edit, Suspend, Deactivate via ConfirmDialog)
-                if canManage then
-                  div.cssClass("mp-action-bar")(
-                    if c.status == CustomerStatus.PendingApproval || c.status == CustomerStatus.Suspended then
-                      button
-                        .cssClass("mp-btn mp-btn-primary mp-btn-sm")
-                        .onClick(
+            val menuItems: List[ActionMenu.Item] =
+              if !canManage then Nil
+              else
+                val approveItem =
+                  if c.status == CustomerStatus.PendingApproval || c.status == CustomerStatus.Suspended then
+                    List(
+                      ActionMenu.Item(
+                        label = span(state.i18n.t("adm-cust-approve")),
+                        tone = ActionMenu.ItemTone.Primary,
+                        onClick = () =>
                           dialog.open(
                             ConfirmDialog.Config(
                               title = if isCs then "Schválit zákaznický účet" else "Approve Customer Account",
@@ -230,20 +222,34 @@ object CustomerManagerView:
                               tone = ConfirmDialog.DialogTone.Primary,
                               onConfirm = _ => state.approveCustomer(c.id),
                             )
-                          )
-                        )(state.i18n.t("adm-cust-approve"))
-                    else UI.empty,
-                    button
-                      .cssClass(if isEditing then "mp-btn mp-btn-primary mp-btn-sm" else "mp-btn mp-btn-secondary mp-btn-sm")
-                      .onClick(
-                        if isEditing then editDraftRef.set(None)
-                        else editDraftRef.set(Some(EditDraft.fromCustomer(c)))
-                      )(state.i18n.t("adm-cust-edit-profile")),
-                    if c.status == CustomerStatus.Active then
-                      button
-                        .cssClass("mp-btn mp-btn-secondary mp-btn-sm")
-                        .style(Style.bg(amberSoft).color(amberInk).border(1.px, amberBorder))
-                        .onClick(
+                          ),
+                      )
+                    )
+                  else Nil
+
+                val editItem = List(
+                  ActionMenu.Item(
+                    label =
+                      if isEditing then span(if isCs then "Zavřít úpravu profilu" else "Close Profile Editor")
+                      else span(state.i18n.t("adm-cust-edit-profile")),
+                    onClick = () =>
+                      if isEditing then editDraftRef.set(None)
+                      else detailTabRef.set(DetailTab.Overview).andThen(editDraftRef.set(Some(EditDraft.fromCustomer(c)))),
+                  ),
+                  ActionMenu.Item(
+                    label = span(state.i18n.t("adm-cust-edit-in-pricing")),
+                    onClick = () => state.openCustomerPricing(c.id),
+                  ),
+                )
+
+                val suspendItem =
+                  if c.status == CustomerStatus.Active then
+                    List(
+                      ActionMenu.Item(
+                        label = span(state.i18n.t("adm-cust-suspend")),
+                        tone = ActionMenu.ItemTone.Amber,
+                        dividerBefore = true,
+                        onClick = () =>
                           dialog.open(
                             ConfirmDialog.Config(
                               title = if isCs then "Pozastavit zákaznický účet" else "Suspend Customer Account",
@@ -259,13 +265,19 @@ object CustomerManagerView:
                               reasonErrorText = if isCs then "Zadejte důvod pozastavení." else "Please enter a suspension reason.",
                               onConfirm = reasonOpt => state.suspendCustomer(c.id, reasonOpt.getOrElse("")),
                             )
-                          )
-                        )(state.i18n.t("adm-cust-suspend"))
-                    else UI.empty,
-                    if c.status != CustomerStatus.Deactivated then
-                      button
-                        .cssClass("mp-btn mp-btn-danger mp-btn-sm")
-                        .onClick(
+                          ),
+                      )
+                    )
+                  else Nil
+
+                val deactivateItem =
+                  if c.status != CustomerStatus.Deactivated then
+                    List(
+                      ActionMenu.Item(
+                        label = span(state.i18n.t("adm-cust-deactivate")),
+                        tone = ActionMenu.ItemTone.Danger,
+                        dividerBefore = suspendItem.isEmpty,
+                        onClick = () =>
                           dialog.open(
                             ConfirmDialog.Config(
                               title = if isCs then "Deaktivovat zákaznický účet" else "Deactivate Customer Account",
@@ -281,61 +293,110 @@ object CustomerManagerView:
                               reasonErrorText = if isCs then "Zadejte důvod deaktivace." else "Please enter a deactivation reason.",
                               onConfirm = reasonOpt => state.deactivateCustomer(c.id, reasonOpt.getOrElse("")),
                             )
-                          )
-                        )(state.i18n.t("adm-cust-deactivate"))
-                    else UI.empty,
-                  )
-                else UI.empty,
+                          ),
+                      )
+                    )
+                  else Nil
+
+                approveItem ++ editItem ++ suspendItem ++ deactivateItem
+
+            val detailTabs = List(
+              TabBar.TabItem(DetailTab.Overview, if isCs then "Přehled" else "Overview", None),
+              TabBar.TabItem(
+                DetailTab.PricingOrders,
+                if isCs then "Ceny a objednávky" else "Pricing & Orders",
+                Some(customerOrders.size + matchingAgreements.size),
+              ),
+              TabBar.TabItem(
+                DetailTab.NotesAudit,
+                if isCs then "Poznámky a audit" else "Notes & Audit",
+                Some(c.notes.size + c.auditLog.size),
+              ),
+            )
+
+            div.style(stackMd.width(100.pct))(
+              // Detail Header: Row 1 = Headline + single Actions dropdown; Row 2 = Tags below headline
+              div.cssClass("mp-detail-head")(
+                div.cssClass("mp-detail-head-row")(
+                  h2(title).style(Style.margin(0.px).fontSize(19.px).fontWeight(FontWeight.w800).color(ink).minWidth(0.px).flexGrow(1.0)),
+                  actionMenu.render(
+                    key = s"cust-${c.id.value}",
+                    buttonLabel = span(if isCs then "Akce" else "Actions"),
+                    items = menuItems,
+                  ),
+                ),
+                div.cssClass("mp-detail-tags-row")(
+                  badge(c.status.toString, statusTone(c.status)),
+                  tierBadge(c.tier),
+                  badge(c.segment.toString, BadgeTone.Neutral),
+                  badge(c.id.value, BadgeTone.Neutral),
+                ),
+                c.company match
+                  case Some(comp) =>
+                    span(
+                      s"IČO: ${comp.registrationNumber.value}${comp.vatId.map(v => s" · DIČ: ${v.value}").getOrElse("")}",
+                    ).style(smallText)
+                  case None => UI.empty,
               ),
 
-              // Inline Profile & Multi-Contact Editor (when toggled)
-              if isEditing && canManage then
-                editDraftOpt match
-                  case Some(draft) => renderProfileEditor(state, c, draft, editDraftRef, isCs)
-                  case None        => UI.empty
-              else UI.empty,
+              // Compact inner tabs for clean single-column navigation
+              TabBar.render[DetailTab](
+                items = detailTabs,
+                active = activeDetailTab,
+                onSelect = t => detailTabRef.set(t),
+                compact = true,
+              ),
 
-              // Two-column detail body
-              div.cssClass("mp-admin-split")(
-                // Left column: Contacts, Addresses, Tier & Payment Terms
-                div.style(stackMd)(
-                  // Contact Persons Card
-                  div.cssClass("mp-card")(
-                    div.style(rowBetween)(
-                      h3(state.i18n.t("adm-cust-contacts-title")).style(sectionTitle.margin(0.px)),
-                      badge(s"${1 + c.additionalContacts.size}", BadgeTone.Neutral),
-                    ),
-                    // Primary contact
-                    div.style(Style.column.gap(3.px).padding(10.px, 12.px).rounded(10.px).bg(brandSoft).border(1.px, brandBorder))(
-                      div.style(rowBetween.flexWrap(FlexWrap.wrap))(
-                        span(s"${c.contact.firstName.value} ${c.contact.lastName.value}").style(Style.fontWeight(FontWeight.w700).color(ink)),
-                        div.style(rowXs)(
-                          badge(if isCs then "Hlavní kontakt" else "Primary Contact", BadgeTone.Brand),
-                          c.contact.roleTitle.map(r => badge(r.value, BadgeTone.Neutral)).getOrElse(UI.empty),
-                        ),
-                      ),
-                      span(s"${c.contact.email.value}${c.contact.phone.map(p => s" · ${p.value}").getOrElse("")}").style(smallText),
-                    ),
-                    // Additional contacts (B2B / Agency)
-                    if c.additionalContacts.nonEmpty then
-                      div.style(stackXs)(
-                        c.additionalContacts.map { cp =>
-                          div.style(Style.column.gap(3.px).padding(10.px, 12.px).rounded(10.px).bg(surfaceAlt).border(1.px, Palette.border))(
-                            div.style(rowBetween.flexWrap(FlexWrap.wrap))(
-                              span(s"${cp.firstName.value} ${cp.lastName.value}").style(Style.fontWeight(FontWeight.w700).color(ink)),
-                              cp.roleTitle.map(r => badge(r.value, BadgeTone.Neutral)).getOrElse(UI.empty),
-                            ),
-                            span(s"${cp.email.value}${cp.phone.map(p => s" · ${p.value}").getOrElse("")}").style(smallText),
-                          )
-                        }*
-                      )
+              // Single-column scrollable tab content
+              activeDetailTab match
+                case DetailTab.Overview =>
+                  div.style(stackMd)(
+                    // Inline Profile & Multi-Contact Editor (when toggled from Actions menu)
+                    if isEditing && canManage then
+                      editDraftOpt match
+                        case Some(draft) => renderProfileEditor(state, c, draft, editDraftRef, isCs)
+                        case None        => UI.empty
                     else UI.empty,
+
+                    // Contact Persons Section
+                    div.style(stackSm)(
+                      div.style(rowBetween)(
+                        h3(state.i18n.t("adm-cust-contacts-title")).style(sectionTitle.margin(0.px)),
+                        badge(s"${1 + c.additionalContacts.size}", BadgeTone.Neutral),
+                      ),
+                      div.style(Style.column.gap(3.px).padding(10.px, 12.px).rounded(10.px).bg(brandSoft).border(1.px, brandBorder))(
+                        div.style(rowBetween.flexWrap(FlexWrap.wrap))(
+                          span(s"${c.contact.firstName.value} ${c.contact.lastName.value}").style(Style.fontWeight(FontWeight.w700).color(ink)),
+                          div.style(rowXs)(
+                            badge(if isCs then "Hlavní kontakt" else "Primary Contact", BadgeTone.Brand),
+                            c.contact.roleTitle.map(r => badge(r.value, BadgeTone.Neutral)).getOrElse(UI.empty),
+                          ),
+                        ),
+                        span(s"${c.contact.email.value}${c.contact.phone.map(p => s" · ${p.value}").getOrElse("")}").style(smallText),
+                      ),
+                      if c.additionalContacts.nonEmpty then
+                        div.style(stackXs)(
+                          c.additionalContacts.map { cp =>
+                            div.style(Style.column.gap(3.px).padding(10.px, 12.px).rounded(10.px).bg(surfaceAlt).border(1.px, Palette.border))(
+                              div.style(rowBetween.flexWrap(FlexWrap.wrap))(
+                                span(s"${cp.firstName.value} ${cp.lastName.value}").style(Style.fontWeight(FontWeight.w700).color(ink)),
+                                cp.roleTitle.map(r => badge(r.value, BadgeTone.Neutral)).getOrElse(UI.empty),
+                              ),
+                              span(s"${cp.email.value}${cp.phone.map(p => s" · ${p.value}").getOrElse("")}").style(smallText),
+                            )
+                          }*
+                        )
+                      else UI.empty,
+                    ),
+
                     // Billing & Shipping Addresses
-                    div.style(Style.column.gap(4.px).padding(8.px, 0.px, 0.px, 0.px).borderTop(1.px, Palette.border))(
-                      span(if isCs then "Fakturační adresa" else "Billing Address").style(labelStyle),
-                      span(
-                        s"${c.billingAddress.street.value}, ${c.billingAddress.postalCode.value} ${c.billingAddress.city.value}, ${c.billingAddress.countryCode.value}",
-                      ).style(smallText),
+                    div.style(Style.column.gap(8.px).padding(12.px, 0.px, 0.px, 0.px).borderTop(1.px, Palette.border))(
+                      div.style(Style.column.gap(2.px))(
+                        span(if isCs then "Fakturační adresa" else "Billing Address").style(labelStyle),
+                        span(
+                          s"${c.billingAddress.street.value}, ${c.billingAddress.postalCode.value} ${c.billingAddress.city.value}, ${c.billingAddress.countryCode.value}",
+                        ).style(smallText),
+                      ),
                       if c.shippingAddresses.nonEmpty then
                         div.style(stackXs)(
                           span(if isCs then "Doručovací adresy" else "Delivery Addresses").style(labelStyle),
@@ -351,179 +412,182 @@ object CustomerManagerView:
                         )
                       else UI.empty,
                     ),
-                  ),
 
-                  // Tier & Payment Terms (Manager/Admin)
-                  if canManage then
-                    div.cssClass("mp-card")(
-                      div.style(stackXs)(
-                        label(state.i18n.t("adm-cust-tier-label")).style(labelStyle),
-                        div.style(rowWrap)(
-                          CustomerTier.values.toList.map { t =>
+                    // Tier & Payment Terms (Manager/Admin)
+                    if canManage then
+                      div.style(Style.column.gap(12.px).padding(14.px).rounded(12.px).bg(surfaceAlt).border(1.px, Palette.border))(
+                        div.style(stackXs)(
+                          label(state.i18n.t("adm-cust-tier-label")).style(labelStyle),
+                          div.style(rowWrap)(
+                            CustomerTier.values.toList.map { t =>
+                              button
+                                .cssClass(if c.tier == t then "mp-pill-active" else "mp-pill")
+                                .onClick(state.changeCustomerTier(c.id, t))(
+                                  tierBadge(t, compact = true),
+                                )
+                            }*
+                          ),
+                        ),
+                        div.style(Style.column.gap(8.px).padding(10.px, 0.px, 0.px, 0.px).borderTop(1.px, Palette.border))(
+                          label(state.i18n.t("adm-cust-terms-label")).style(labelStyle),
+                          div.style(smallText)(
+                            c.paymentTerms match
+                              case PaymentTerms.PrepaidOnly =>
+                                if isCs then "Aktuálně: Pouze platba předem" else "Current: Prepaid Only"
+                              case PaymentTerms.NetInvoice(d, lim) =>
+                                s"${if isCs then "Aktuálně" else "Current"}: Net-$d · Limit ${formatMoney(lim.amount, lim.currency, lang)}"
+                          ),
+                          div.cssClass("mp-field-row")(
+                            div.cssClass("mp-field")(
+                              label(if isCs then "Splatnost (dny)" else "Due Days").style(smallText),
+                              numberInput.cssClass("mp-input").value(dueDaysRef).onInput(v => dueDaysRef.set(v)),
+                            ),
+                            div.cssClass("mp-field")(
+                              label(if isCs then "Kreditní limit (CZK)" else "Credit Limit (CZK)").style(smallText),
+                              numberInput.cssClass("mp-input").value(creditLimitRef).onInput(v => creditLimitRef.set(v)),
+                            ),
+                          ),
+                          div.style(rowWrap)(
                             button
-                              .cssClass(if c.tier == t then "mp-pill-active" else "mp-pill")
-                              .onClick(state.changeCustomerTier(c.id, t))(
-                                tierBadge(t, compact = true),
-                              )
-                          }*
-                        ),
-                      ),
-                      div.style(Style.column.gap(8.px).padding(10.px, 0.px, 0.px, 0.px).borderTop(1.px, Palette.border))(
-                        label(state.i18n.t("adm-cust-terms-label")).style(labelStyle),
-                        div.style(smallText)(
-                          c.paymentTerms match
-                            case PaymentTerms.PrepaidOnly =>
-                              if isCs then "Aktuálně: Pouze platba předem" else "Current: Prepaid Only"
-                            case PaymentTerms.NetInvoice(d, lim) =>
-                              s"${if isCs then "Aktuálně" else "Current"}: Net-$d · ${if isCs then "Limit" else "Limit"} ${formatMoney(lim.amount, lim.currency, lang)}"
-                        ),
-                        div.cssClass("mp-field-row")(
-                          div.cssClass("mp-field")(
-                            label(if isCs then "Splatnost (dny)" else "Due Days").style(smallText),
-                            numberInput.cssClass("mp-input").value(dueDaysRef).onInput(v => dueDaysRef.set(v)),
-                          ),
-                          div.cssClass("mp-field")(
-                            label(if isCs then "Kreditní limit (CZK)" else "Credit Limit (CZK)").style(smallText),
-                            numberInput.cssClass("mp-input").value(creditLimitRef).onInput(v => creditLimitRef.set(v)),
+                              .cssClass("mp-btn mp-btn-primary mp-btn-sm")
+                              .onClick {
+                                for
+                                  dStr <- dueDaysRef.get.map(_.trim)
+                                  lStr <- creditLimitRef.get.map(_.trim)
+                                  days  = dStr.toIntOption.filter(_ > 0).getOrElse(14)
+                                  lim   = scala.util.Try(BigDecimal(lStr)).getOrElse(BigDecimal(100000)).max(BigDecimal(1))
+                                  _    <- state.grantCustomerPaymentTerms(c.id, PaymentTerms.NetInvoice(days, Price(Money(lim), Currency.CZK)))
+                                yield ()
+                              }(state.i18n.t("adm-cust-save-terms")),
+                            button
+                              .cssClass("mp-btn mp-btn-secondary mp-btn-sm")
+                              .onClick(state.grantCustomerPaymentTerms(c.id, PaymentTerms.PrepaidOnly))(state.i18n.t("adm-cust-terms-prepaid")),
                           ),
                         ),
-                        div.style(rowWrap)(
-                          button
-                            .cssClass("mp-btn mp-btn-primary mp-btn-sm")
-                            .onClick {
-                              for
-                                dStr <- dueDaysRef.get.map(_.trim)
-                                lStr <- creditLimitRef.get.map(_.trim)
-                                days  = dStr.toIntOption.filter(_ > 0).getOrElse(14)
-                                lim   = scala.util.Try(BigDecimal(lStr)).getOrElse(BigDecimal(100000)).max(BigDecimal(1))
-                                _    <- state.grantCustomerPaymentTerms(c.id, PaymentTerms.NetInvoice(days, Price(Money(lim), Currency.CZK)))
-                              yield ()
-                            }(state.i18n.t("adm-cust-save-terms")),
-                          button
-                            .cssClass("mp-btn mp-btn-secondary mp-btn-sm")
-                            .onClick(state.grantCustomerPaymentTerms(c.id, PaymentTerms.PrepaidOnly))(state.i18n.t("adm-cust-terms-prepaid")),
-                        ),
-                      ),
-                    )
-                  else UI.empty,
+                      )
+                    else UI.empty,
+                  )
 
-                  // Internal Account Notes
-                  div.cssClass("mp-card")(
-                    h3(state.i18n.t("adm-cust-notes-title")).style(sectionTitle.margin(0.px)),
-                    div.style(stackXs)(
-                      if c.notes.isEmpty then span(if isCs then "Žádné poznámky." else "No account notes yet.").style(smallText)
+                case DetailTab.PricingOrders =>
+                  div.style(stackMd)(
+                    // Customer Pricing & Agreements
+                    div.style(stackSm)(
+                      div.style(rowBetween.flexWrap(FlexWrap.wrap))(
+                        h3(state.i18n.t("adm-cust-agreements-title")).style(sectionTitle.margin(0.px)),
+                        button
+                          .cssClass("mp-btn mp-btn-secondary mp-btn-sm")
+                          .onClick(state.openCustomerPricing(c.id))(state.i18n.t("adm-cust-edit-in-pricing")),
+                      ),
+                      if matchingAgreements.isEmpty then
+                        span(
+                          if isCs then "Používá standardní veřejný ceník (žádná aktivní smlouva)."
+                          else "Uses standard public pricelist (no active custom agreement).",
+                        ).style(smallText)
                       else
-                        UI.fragment(
-                          c.notes.map { n =>
-                            div.style(Style.column.gap(2.px).padding(8.px, 10.px).rounded(8.px).bg(surfaceAlt))(
-                              span(n.text.value).style(Style.fontSize(13.px).color(ink)),
-                              span(formatInstant(n.createdAt)).style(smallText),
+                        div.style(stackXs)(
+                          matchingAgreements.map { a =>
+                            val scopeBadge = a.target match
+                              case AgreementTarget.SpecificCustomer(_) =>
+                                badge(if isCs then "Individuální smlouva" else "Customer-Specific", BadgeTone.Brand)
+                              case AgreementTarget.TierDefault(t) =>
+                                tierBadge(t, compact = true)
+                            val overrideCount = a.categoryDiscounts.size + a.materialDiscounts.size + a.finishDiscounts.size
+                            div.style(Style.column.gap(4.px).padding(10.px, 12.px).rounded(10.px).bg(surfaceAlt).border(1.px, Palette.border))(
+                              div.style(rowWrap)(
+                                scopeBadge,
+                                badge(a.currency.toString, BadgeTone.Neutral),
+                                a.globalDiscount.map(d => badge(s"${d.value}% ${if isCs then "globální sleva" else "global off"}", BadgeTone.Emerald)).getOrElse(UI.empty),
+                                a.minimumOrderOverride.map(m => badge(s"Min ${formatMoney(m, a.currency, lang)}", BadgeTone.Amber)).getOrElse(UI.empty),
+                                if overrideCount > 0 then badge(s"$overrideCount ${if isCs then "položkových slev" else "scoped overrides"}", BadgeTone.Neutral) else UI.empty,
+                              ),
                             )
                           }*
-                        )
+                        ),
                     ),
-                    div.style(rowSm)(
-                      input
-                        .cssClass("mp-input")
-                        .placeholder(if isCs then "Přidat poznámku k účtu..." else "Add internal account note...")
-                        .value(noteRef)
-                        .onInput(v => noteRef.set(v)),
-                      button
-                        .cssClass("mp-btn mp-btn-secondary mp-btn-sm")
-                        .style(Style.flexShrink(0.0))
-                        .onClick(noteRef.get.flatMap(t => state.addCustomerNote(c.id, t).andThen(noteRef.set(""))))(state.i18n.t("adm-od-notes-add")),
-                    ),
-                  ),
-                ),
 
-                // Right column: Custom Pricing & Agreements, Order History, Audit Trail
-                div.style(stackMd)(
-                  // Customer Pricing & Agreements Card
-                  div.cssClass("mp-card")(
-                    div.style(rowBetween.flexWrap(FlexWrap.wrap))(
-                      h3(state.i18n.t("adm-cust-agreements-title")).style(sectionTitle.margin(0.px)),
-                      button
-                        .cssClass("mp-btn mp-btn-secondary mp-btn-sm")
-                        .onClick(state.openCustomerPricing(c.id))(state.i18n.t("adm-cust-edit-in-pricing")),
+                    // Order History
+                    div.style(Style.column.gap(10.px).padding(12.px, 0.px, 0.px, 0.px).borderTop(1.px, Palette.border))(
+                      div.style(rowBetween)(
+                        h3(state.i18n.t("adm-cust-orders-title")).style(sectionTitle.margin(0.px)),
+                        badge(customerOrders.size.toString, BadgeTone.Neutral),
+                      ),
+                      if customerOrders.isEmpty then
+                        span(if isCs then "Zákazník zatím nemá žádné objednávky." else "No orders placed by this customer yet.").style(smallText)
+                      else
+                        div.style(stackXs)(
+                          customerOrders.map { o =>
+                            div.style(rowBetween.flexWrap(FlexWrap.wrap).padding(10.px, 12.px).rounded(10.px).bg(surfaceAlt).border(1.px, Palette.border))(
+                              div.style(Style.column.gap(4.px))(
+                                span(o.orderNumber.value).style(Style.fontWeight(FontWeight.w700).color(ink)),
+                                div.style(rowXs.flexWrap(FlexWrap.wrap))(
+                                  badge(orderStatusLabel(o.status, lang), orderStatusTone(o.status)),
+                                  paymentStatusBadge(o.payment.status, lang),
+                                ),
+                              ),
+                              div.style(rowSm)(
+                                span(formatMoney(o.totals.grandTotalGross, o.totals.currency, lang)).style(Style.fontWeight(FontWeight.w700)),
+                                button
+                                  .cssClass("mp-btn mp-btn-secondary mp-btn-sm")
+                                  .onClick(state.navigate(AdminRoute.OrderDetail(o.id)))(state.i18n.t("adm-orders-open")),
+                              ),
+                            )
+                          }*
+                        ),
                     ),
-                    if matchingAgreements.isEmpty then
-                      span(
-                        if isCs then "Používá standardní veřejný ceník (žádná aktivní smlouva)."
-                        else "Uses standard public pricelist (no active custom agreement).",
-                      ).style(smallText)
-                    else
+                  )
+
+                case DetailTab.NotesAudit =>
+                  div.style(stackMd)(
+                    // Internal Account Notes
+                    div.style(stackSm)(
+                      h3(state.i18n.t("adm-cust-notes-title")).style(sectionTitle.margin(0.px)),
                       div.style(stackXs)(
-                        matchingAgreements.map { a =>
-                          val scopeBadge = a.target match
-                            case AgreementTarget.SpecificCustomer(_) =>
-                              badge(if isCs then "Individuální smlouva" else "Customer-Specific", BadgeTone.Brand)
-                            case AgreementTarget.TierDefault(t) =>
-                              tierBadge(t, compact = true)
-                          val overrideCount = a.categoryDiscounts.size + a.materialDiscounts.size + a.finishDiscounts.size
-                          div.style(Style.column.gap(4.px).padding(10.px, 12.px).rounded(10.px).bg(surfaceAlt).border(1.px, Palette.border))(
-                            div.style(rowWrap)(
-                              scopeBadge,
-                              badge(a.currency.toString, BadgeTone.Neutral),
-                              a.globalDiscount.map(d => badge(s"${d.value}% ${if isCs then "globální sleva" else "global off"}", BadgeTone.Emerald)).getOrElse(UI.empty),
-                              a.minimumOrderOverride.map(m => badge(s"Min ${formatMoney(m, a.currency, lang)}", BadgeTone.Amber)).getOrElse(UI.empty),
-                              if overrideCount > 0 then badge(s"$overrideCount ${if isCs then "položkových slev" else "scoped overrides"}", BadgeTone.Neutral) else UI.empty,
-                            ),
+                        if c.notes.isEmpty then span(if isCs then "Žádné poznámky." else "No account notes yet.").style(smallText)
+                        else
+                          UI.fragment(
+                            c.notes.map { n =>
+                              div.style(Style.column.gap(2.px).padding(8.px, 10.px).rounded(8.px).bg(surfaceAlt).border(1.px, Palette.border))(
+                                span(n.text.value).style(Style.fontSize(13.px).color(ink)),
+                                span(formatInstant(n.createdAt)).style(smallText),
+                              )
+                            }*
                           )
-                        }*
                       ),
-                  ),
-
-                  // Order History Card
-                  div.cssClass("mp-card")(
-                    div.style(rowBetween)(
-                      h3(state.i18n.t("adm-cust-orders-title")).style(sectionTitle.margin(0.px)),
-                      badge(customerOrders.size.toString, BadgeTone.Neutral),
+                      div.style(rowSm)(
+                        input
+                          .cssClass("mp-input")
+                          .placeholder(if isCs then "Přidat poznámku k účtu..." else "Add internal account note...")
+                          .value(noteRef)
+                          .onInput(v => noteRef.set(v)),
+                        button
+                          .cssClass("mp-btn mp-btn-secondary mp-btn-sm")
+                          .style(Style.flexShrink(0.0))
+                          .onClick(noteRef.get.flatMap(t => state.addCustomerNote(c.id, t).andThen(noteRef.set(""))))(state.i18n.t("adm-od-notes-add")),
+                      ),
                     ),
-                    if customerOrders.isEmpty then
-                      span(if isCs then "Zákazník zatím nemá žádné objednávky." else "No orders placed by this customer yet.").style(smallText)
-                    else
-                      div.style(stackXs)(
-                        customerOrders.map { o =>
-                          div.style(rowBetween.flexWrap(FlexWrap.wrap).padding(10.px, 12.px).rounded(10.px).bg(surfaceAlt).border(1.px, Palette.border))(
-                            div.style(rowSm.flexWrap(FlexWrap.wrap))(
-                              span(o.orderNumber.value).style(Style.fontWeight(FontWeight.w700).color(ink)),
-                              badge(orderStatusLabel(o.status, lang), orderStatusTone(o.status)),
-                              paymentStatusBadge(o.payment.status, lang),
-                            ),
-                            div.style(rowSm)(
-                              span(formatMoney(o.totals.grandTotalGross, o.totals.currency, lang)).style(Style.fontWeight(FontWeight.w700)),
-                              button
-                                .cssClass("mp-btn mp-btn-secondary mp-btn-sm")
-                                .onClick(state.navigate(AdminRoute.OrderDetail(o.id)))(state.i18n.t("adm-orders-open")),
-                            ),
-                          )
-                        }*
-                      ),
-                  ),
 
-                  // Audit Trail Card
-                  div.cssClass("mp-card")(
-                    div.style(rowBetween)(
-                      h3(state.i18n.t("adm-cust-audit-title")).style(sectionTitle.margin(0.px)),
-                      badge(c.auditLog.size.toString, BadgeTone.Neutral),
-                    ),
-                    if c.auditLog.isEmpty then
-                      span(if isCs then "Žádné auditní záznamy." else "No audit entries recorded.").style(smallText)
-                    else
-                      div.cssClass("mp-timeline")(
-                        c.auditLog.reverse.map { entry =>
-                          div.style(stackXs)(
-                            div.style(rowSm.flexWrap(FlexWrap.wrap))(
-                              badge(entry.action, BadgeTone.Neutral),
-                              span(entry.summary).style(Style.fontSize(12.px).fontWeight(FontWeight.w600).color(ink)),
-                            ),
-                            span(s"${actorLabel(entry.actor, lang)} · ${formatInstant(entry.occurredAt)}").style(smallText),
-                          )
-                        }*
+                    // Audit Trail
+                    div.style(Style.column.gap(10.px).padding(12.px, 0.px, 0.px, 0.px).borderTop(1.px, Palette.border))(
+                      div.style(rowBetween)(
+                        h3(state.i18n.t("adm-cust-audit-title")).style(sectionTitle.margin(0.px)),
+                        badge(c.auditLog.size.toString, BadgeTone.Neutral),
                       ),
+                      if c.auditLog.isEmpty then
+                        span(if isCs then "Žádné auditní záznamy." else "No audit entries recorded.").style(smallText)
+                      else
+                        div.cssClass("mp-timeline")(
+                          c.auditLog.reverse.map { entry =>
+                            div.style(stackXs)(
+                              div.style(rowSm.flexWrap(FlexWrap.wrap))(
+                                badge(entry.action, BadgeTone.Neutral),
+                                span(entry.summary).style(Style.fontSize(12.px).fontWeight(FontWeight.w600).color(ink)),
+                              ),
+                              span(s"${actorLabel(entry.actor, lang)} · ${formatInstant(entry.occurredAt)}").style(smallText),
+                            )
+                          }*
+                        ),
+                    ),
                   ),
-                ),
-              ),
             )
 
           DataTable.render[CustomerView, CustomerId](
@@ -547,8 +611,9 @@ object CustomerManagerView:
                     ac.email.value.toLowerCase.contains(q)
                 ),
             filterGroups = filterGroups,
+            onRowSelect = Some(_ => actionMenu.close.andThen(editDraftRef.set(None))),
             renderDetail = Some(renderCustomerDetail),
-            detailTitle = Some(c => c.company.map(_.legalName.value).getOrElse(s"${c.contact.firstName.value} ${c.contact.lastName.value}")),
+            detailTitle = Some(c => s"${if isCs then "Zákazník" else "Customer"} · ${c.id.value}"),
             createConfig =
               if canManage then
                 Some(

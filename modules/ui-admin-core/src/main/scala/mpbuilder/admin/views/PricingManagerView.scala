@@ -9,15 +9,16 @@ import mpbuilder.customers.CustomerView
 import mpbuilder.pricing.*
 import mpbuilder.shared.*
 import mpbuilder.ui.components.CommonComponents.*
-import mpbuilder.ui.components.{ConfirmDialog, DataTable, TabBar}
+import mpbuilder.ui.components.{ActionMenu, ConfirmDialog, DataTable, TabBar}
 import mpbuilder.ui.theme.AppTheme.*
 import mpbuilder.ui.theme.AppTheme.Palette.*
 import java.time.{Instant, LocalDate, ZoneOffset}
 
 /** Pricing, Promo Codes, B2B Agreements, Pricelists, Cost Sheets & Interactive Live Margin Simulator.
   *
-  * Uses underline `TabBar` for distinct subviews, universal `DataTable` for Promo Codes,
-  * B2B Agreements, and Pricelist entries, and `ConfirmDialog` for destructive actions.
+  * Uses refined `TabBar` with full-width bottom rule, Vaadin-style Master-Detail `DataTable` for
+  * Promo Codes, B2B Agreements, and Pricelist entries, `ActionMenu` dropdowns in detail headers,
+  * and `ConfirmDialog` for destructive actions.
   */
 object PricingManagerView:
 
@@ -44,6 +45,7 @@ object PricingManagerView:
   def render(state: BackofficeState): UI < Sync =
     for
       dialog           <- ConfirmDialog.Handle.make
+      actionMenu       <- ActionMenu.Handle.make
       promoTableState  <- DataTable.makeState[DiscountCodeId](defaultSort = None, pageSize = 10)
       agrTableState    <- DataTable.makeState[String](defaultSort = None, pageSize = 10)
       plTableState     <- DataTable.makeState[String](defaultSort = Some(DataTable.SortSpec("id", ascending = true)), pageSize = 25)
@@ -125,7 +127,7 @@ object PricingManagerView:
 
             activeTab match
               case "promos" =>
-                renderPromos(state, promos, promoTableState, dialog, canManage, promoCodeRef, promoKindRef, promoValRef, promoMaxRef, promoExpiresRef, lang)
+                renderPromos(state, promos, promoTableState, dialog, actionMenu, canManage, promoCodeRef, promoKindRef, promoValRef, promoMaxRef, promoExpiresRef, lang)
 
               case "agreements" =>
                 renderAgreements(
@@ -135,6 +137,7 @@ object PricingManagerView:
                   focusCustOpt,
                   agrTableState,
                   dialog,
+                  actionMenu,
                   canManage,
                   agrTargetKindRef,
                   agrTierRef,
@@ -326,6 +329,7 @@ object PricingManagerView:
       promos: List[PromoCode],
       tableState: SignalRef[DataTable.State[DiscountCodeId]],
       dialog: ConfirmDialog.Handle,
+      actionMenu: ActionMenu.Handle,
       canManage: Boolean,
       codeRef: SignalRef[String],
       kindRef: SignalRef[String],
@@ -489,41 +493,55 @@ object PricingManagerView:
           )
         else None,
       renderDetail = Some { p =>
-        div.style(stackSm)(
-          div.style(rowBetween.flexWrap(FlexWrap.wrap))(
-            div.style(rowSm.flexWrap(FlexWrap.wrap))(
-              span(p.code.value).style(Style.fontWeight(FontWeight.w800).fontSize(15.px).color(ink)),
-              badge(p.id.value, BadgeTone.Neutral),
-              promoStatusBadge(p.lifecycleStatus(now), isCs),
+        val promoMenuItems = List(
+          ActionMenu.Item(
+            label = if p.isActive then state.i18n.t("adm-pri-promo-deactivate") else state.i18n.t("adm-pri-promo-activate"),
+            onClick = () => state.togglePromoActive(p.id, !p.isActive),
+            tone = if p.isActive then ActionMenu.ItemTone.Amber else ActionMenu.ItemTone.Primary,
+          ),
+          ActionMenu.Item(
+            label = state.i18n.t("adm-cat-delete"),
+            onClick = () =>
+              dialog.open(
+                ConfirmDialog.Config(
+                  title = if isCs then "Smazat slevový kód" else "Delete Promo Code",
+                  message = if isCs then s"Opravdu chcete smazat slevový kód „${p.code.value}“?" else s"Delete promo code “${p.code.value}”?",
+                  confirmLabel = if isCs then "Smazat" else "Delete",
+                  cancelLabel = if isCs then "Zrušit" else "Cancel",
+                  tone = ConfirmDialog.DialogTone.Danger,
+                  onConfirm = _ => state.deletePromoCode(p.id),
+                )
+              ),
+            tone = ActionMenu.ItemTone.Danger,
+            dividerBefore = true,
+          ),
+        )
+
+        div.style(stackMd)(
+          div.cssClass("mp-detail-head")(
+            div.cssClass("mp-detail-head-row")(
+              h3(p.code.value).style(Style.margin(0.px).fontSize(17.px).fontWeight(FontWeight.w800).color(ink)),
+              if canManage then
+                actionMenu.render(
+                  key = s"promo-${p.id.value}",
+                  buttonLabel = span(if isCs then "Akce" else "Actions"),
+                  items = promoMenuItems,
+                )
+              else UI.empty,
             ),
-            if canManage then
-              div.cssClass("mp-action-bar")(
-                button
-                  .cssClass("mp-btn mp-btn-secondary mp-btn-sm")
-                  .onClick(state.togglePromoActive(p.id, !p.isActive))(
-                    if p.isActive then state.i18n.t("adm-pri-promo-deactivate") else state.i18n.t("adm-pri-promo-activate")
-                  ),
-                button
-                  .cssClass("mp-btn mp-btn-danger mp-btn-sm")
-                  .onClick(
-                    dialog.open(
-                      ConfirmDialog.Config(
-                        title = if isCs then "Smazat slevový kód" else "Delete Promo Code",
-                        message = if isCs then s"Opravdu chcete smazat slevový kód „${p.code.value}“?" else s"Delete promo code “${p.code.value}”?",
-                        confirmLabel = if isCs then "Smazat" else "Delete",
-                        cancelLabel = if isCs then "Zrušit" else "Cancel",
-                        tone = ConfirmDialog.DialogTone.Danger,
-                        onConfirm = _ => state.deletePromoCode(p.id),
-                      )
-                    )
-                  )(state.i18n.t("adm-cat-delete")),
-              )
-            else UI.empty,
+            div.cssClass("mp-detail-tags-row")(
+              badge(benefitLabel(p), BadgeTone.Brand),
+              promoStatusBadge(p.lifecycleStatus(now), isCs),
+              badge(p.id.value, BadgeTone.Neutral),
+            ),
+          ),
+          div.style(stackXs)(
+            span(s"${if isCs then "Vytvořeno" else "Created"}: ${formatInstant(p.createdAt)}").style(smallText),
+            span(s"${if isCs then "Využití" else "Usage"}: ${p.constraints.currentUses} / ${p.constraints.maxUses.map(_.toString).getOrElse("∞")}").style(smallText),
+            p.constraints.validFrom.map(v => span(s"${if isCs then "Platnost od" else "Valid From"}: ${formatInstant(v)}").style(smallText)).getOrElse(UI.empty),
+            p.constraints.validUntil.map(v => span(s"${if isCs then "Platnost do" else "Valid Until"}: ${formatInstant(v)}").style(smallText)).getOrElse(UI.empty),
           ),
           div.style(rowWrap)(
-            span(s"${if isCs then "Vytvořeno" else "Created"}: ${formatInstant(p.createdAt)}").style(smallText),
-            p.constraints.validFrom.map(v => span(s"· ${if isCs then "Od" else "From"}: ${formatInstant(v)}").style(smallText)).getOrElse(UI.empty),
-            p.constraints.validUntil.map(v => span(s"· ${if isCs then "Do" else "Until"}: ${formatInstant(v)}").style(smallText)).getOrElse(UI.empty),
             p.constraints.minimumOrderNet.map(m => badge(s"Min net: ${m.value}", BadgeTone.Amber)).getOrElse(UI.empty),
             if p.constraints.allowedSegments.nonEmpty then badge(s"Segments: ${p.constraints.allowedSegments.mkString(", ")}", BadgeTone.Neutral) else UI.empty,
             if p.constraints.allowedCategories.nonEmpty then badge(s"Categories: ${p.constraints.allowedCategories.map(_.value).mkString(", ")}", BadgeTone.Neutral) else UI.empty,
@@ -541,6 +559,7 @@ object PricingManagerView:
       focusCustOpt: Option[CustomerId],
       tableState: SignalRef[DataTable.State[String]],
       dialog: ConfirmDialog.Handle,
+      actionMenu: ActionMenu.Handle,
       canManage: Boolean,
       targetKindRef: SignalRef[String],
       tierRef: SignalRef[CustomerTier],
@@ -780,39 +799,60 @@ object PricingManagerView:
           val key = agreementKey(a)
           editKeyRef.combineLatest(editDiscRef).combineLatest(editMinRef).render { case ((ekOpt, eDisc), eMin) =>
             val isEditing = ekOpt.contains(key)
-            div.style(stackSm)(
-              div.style(rowBetween.flexWrap(FlexWrap.wrap))(
-                div.style(rowSm.flexWrap(FlexWrap.wrap))(
-                  span(targetDisplay(a.target)).style(Style.fontWeight(FontWeight.w800).fontSize(15.px).color(ink)),
-                  badge(a.currency.toString, BadgeTone.Neutral),
-                ),
-                if canManage then
-                  div.cssClass("mp-action-bar")(
-                    if !isEditing then
-                      button
-                        .cssClass("mp-btn mp-btn-secondary mp-btn-sm")
-                        .onClick(
-                          editKeyRef.set(Some(key))
-                            .andThen(editDiscRef.set(a.globalDiscount.map(_.value.toString).getOrElse("0")))
-                            .andThen(editMinRef.set(a.minimumOrderOverride.map(_.value.toString).getOrElse("")))
-                        )(state.i18n.t("adm-pri-agr-edit-global"))
-                    else UI.empty,
-                    button
-                      .cssClass("mp-btn mp-btn-danger mp-btn-sm")
-                      .onClick(
-                        dialog.open(
-                          ConfirmDialog.Config(
-                            title = if isCs then "Smazat cenovou smlouvu" else "Delete Price Agreement",
-                            message = if isCs then s"Smazat smlouvu pro ${targetDisplay(a.target)} (${a.currency})?" else s"Delete agreement for ${targetDisplay(a.target)} (${a.currency})?",
-                            confirmLabel = if isCs then "Smazat" else "Delete",
-                            cancelLabel = if isCs then "Zrušit" else "Cancel",
-                            tone = ConfirmDialog.DialogTone.Danger,
-                            onConfirm = _ => state.deleteAgreement(a.target, a.currency),
-                          )
-                        )
-                      )(state.i18n.t("adm-cat-delete")),
+            val agrMenuItems: List[ActionMenu.Item] =
+              List(
+                if !isEditing then
+                  Some(
+                    ActionMenu.Item(
+                      label = state.i18n.t("adm-pri-agr-edit-global"),
+                      onClick = () =>
+                        editKeyRef.set(Some(key))
+                          .andThen(editDiscRef.set(a.globalDiscount.map(_.value.toString).getOrElse("0")))
+                          .andThen(editMinRef.set(a.minimumOrderOverride.map(_.value.toString).getOrElse(""))),
+                      tone = ActionMenu.ItemTone.Primary,
+                    )
                   )
-                else UI.empty,
+                else None,
+                Some(
+                  ActionMenu.Item(
+                    label = state.i18n.t("adm-cat-delete"),
+                    onClick = () =>
+                      dialog.open(
+                        ConfirmDialog.Config(
+                          title = if isCs then "Smazat cenovou smlouvu" else "Delete Price Agreement",
+                          message = if isCs then s"Smazat smlouvu pro ${targetDisplay(a.target)} (${a.currency})?" else s"Delete agreement for ${targetDisplay(a.target)} (${a.currency})?",
+                          confirmLabel = if isCs then "Smazat" else "Delete",
+                          cancelLabel = if isCs then "Zrušit" else "Cancel",
+                          tone = ConfirmDialog.DialogTone.Danger,
+                          onConfirm = _ => state.deleteAgreement(a.target, a.currency),
+                        )
+                      ),
+                    tone = ActionMenu.ItemTone.Danger,
+                    dividerBefore = !isEditing,
+                  )
+                ),
+              ).flatten
+
+            div.style(stackMd)(
+              div.cssClass("mp-detail-head")(
+                div.cssClass("mp-detail-head-row")(
+                  h3(targetDisplay(a.target)).style(Style.margin(0.px).fontSize(17.px).fontWeight(FontWeight.w800).color(ink)),
+                  if canManage then
+                    actionMenu.render(
+                      key = s"agr-$key",
+                      buttonLabel = span(if isCs then "Akce" else "Actions"),
+                      items = agrMenuItems,
+                    )
+                  else UI.empty,
+                ),
+                div.cssClass("mp-detail-tags-row")(
+                  a.target match
+                    case AgreementTarget.TierDefault(t) => tierBadge(t)
+                    case AgreementTarget.SpecificCustomer(_) => badge(if isCs then "Zákazník" else "Customer", BadgeTone.Brand),
+                  badge(a.currency.toString, BadgeTone.Neutral),
+                  a.globalDiscount.map(d => badge(s"${if isCs then "Globální" else "Global"} −${d.value}%", BadgeTone.Emerald)).getOrElse(UI.empty),
+                  a.minimumOrderOverride.map(m => badge(s"Min: ${formatMoney(m, a.currency, lang)}", BadgeTone.Amber)).getOrElse(UI.empty),
+                ),
               ),
 
               // Inline Global Discount & Min Order editor
@@ -994,15 +1034,22 @@ object PricingManagerView:
         filterGroups = filterGroups,
         detailTitle = Some(r => s"${r.pricelistId.value} · ${r.entry.id.value}"),
         renderDetail = Some { r =>
-          div.style(stackXs)(
-            div.style(rowWrap)(
-              badge(s"${r.pricelistId.value} v${r.version.value}", BadgeTone.Brand),
-              badge(r.entry.id.value, BadgeTone.Neutral),
-              badge(r.entry.phase.toString, BadgeTone.Neutral),
+          div.style(stackMd)(
+            div.cssClass("mp-detail-head")(
+              div.cssClass("mp-detail-head-row")(
+                h3(r.entry.id.value).style(Style.margin(0.px).fontSize(17.px).fontWeight(FontWeight.w800).color(ink)),
+              ),
+              div.cssClass("mp-detail-tags-row")(
+                badge(s"${r.pricelistId.value} v${r.version.value}", BadgeTone.Brand),
+                badge(r.currency.toString, BadgeTone.Neutral),
+                badge(r.entry.phase.toString, if r.entry.phase == ChargePhase.OneTimeSetup then BadgeTone.Amber else BadgeTone.Neutral),
+              ),
             ),
-            span(s"${if isCs then "Cíl" else "Target"}: ${r.entry.target}").style(Style.fontSize(13.px).color(ink)),
-            span(s"${if isCs then "Rozsah (Scope)" else "Scope"}: ${r.entry.scope}").style(smallText),
-            span(s"${if isCs then "Cenový model" else "Rate Model"}: ${r.entry.rate}").style(Style.fontSize(13.px).fontWeight(FontWeight.w700).color(brand)),
+            div.style(stackXs)(
+              span(s"${if isCs then "Cíl" else "Target"}: ${r.entry.target}").style(Style.fontSize(13.px).color(ink)),
+              span(s"${if isCs then "Rozsah (Scope)" else "Scope"}: ${r.entry.scope}").style(smallText),
+              span(s"${if isCs then "Cenový model" else "Rate Model"}: ${r.entry.rate}").style(Style.fontSize(13.px).fontWeight(FontWeight.w700).color(brand)),
+            ),
           )
         },
         emptyMessage = if isCs then "Žádné sazby neodpovídají filtru." else "No pricelist entries match the current filter.",
