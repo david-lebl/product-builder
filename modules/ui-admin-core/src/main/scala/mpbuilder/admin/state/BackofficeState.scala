@@ -82,6 +82,8 @@ final class BackofficeState(
     val selectedCustomer: SignalRef[Option[CustomerDetailView]],
     val staffMembers: SignalRef[List[StaffMemberView]],
     val deliverySettings: SignalRef[Option[StoreDeliverySettingsView]],
+    val pricingFocusTab: SignalRef[String],
+    val pricingFocusCustomerId: SignalRef[Option[CustomerId]],
     val mobileNavOpen: SignalRef[Boolean],
     val toast: SignalRef[Option[String]],
     val errorBanner: SignalRef[Option[String]],
@@ -258,12 +260,23 @@ final class BackofficeState(
 
   def refreshCustomers: Unit < Async =
     for
-      res <- withToken(tok => client.listCustomers(tok, CustomerFilter()))
-      _   <- res.map(customers.set).getOrElse(Kyo.unit)
-      sel <- selectedCustomer.get
+      res    <- withToken(tok => client.listCustomers(tok, CustomerFilter()))
+      agrOpt <- withToken(client.listAgreements)
+      ordOpt <- withToken(tok => client.listOrders(tok, OrderFilter()))
+      _      <- res.map(customers.set).getOrElse(Kyo.unit)
+      _      <- agrOpt.map(agreements.set).getOrElse(Kyo.unit)
+      _      <- ordOpt.map(orders.set).getOrElse(Kyo.unit)
+      sel    <- selectedCustomer.get
       _ <- sel match
              case Some(d) => selectCustomer(d.customer.id)
              case None    => Kyo.unit
+    yield ()
+
+  def openCustomerPricing(customerId: CustomerId): Unit < Async =
+    for
+      _ <- pricingFocusTab.set("agreements")
+      _ <- pricingFocusCustomerId.set(Some(customerId))
+      _ <- navigate(AdminRoute.Pricing)
     yield ()
 
   def selectCustomer(id: CustomerId): Unit < Async =
@@ -309,6 +322,13 @@ final class BackofficeState(
     val noteOpt = NonEmptyString(noteRaw.trim).toOption
     withToken(tok => client.confirmOrderPayment(tok, orderId, noteOpt)).flatMap(applyOrderUpdate)
 
+  def markOrderPaymentStatus(orderId: OrderId, status: PaymentStatus, noteRaw: String = ""): Unit < Async =
+    val noteOpt = NonEmptyString(noteRaw.trim).toOption
+    withToken(tok => client.markOrderPaymentStatus(tok, orderId, status, noteOpt)).flatMap(applyOrderUpdate)
+
+  def editOrderLine(cmd: EditOrderLineCmd): Unit < Async =
+    withToken(tok => client.editOrderLine(tok, cmd)).flatMap(applyOrderUpdate)
+
   def putOrderOnHold(orderId: OrderId, reasonRaw: String): Unit < Async =
     NonEmptyString(reasonRaw.trim).toEither match
       case Left(_)       => errorBanner.set(Some("Please enter a reason to put this order on hold."))
@@ -351,6 +371,22 @@ final class BackofficeState(
       case Right(notes) =>
         for
           res <- withToken(tok => client.requestArtworkChanges(tok, artworkId, notes))
+          _ <- res match
+                 case Some(_) =>
+                   for
+                     _   <- refreshOrderDetail(orderId)
+                     msg <- i18n.now("adm-toast-saved")
+                     _   <- showToast(msg)
+                   yield ()
+                 case None => Kyo.unit
+        yield ()
+
+  def rejectArtwork(orderId: OrderId, artworkId: ArtworkId, reasonRaw: String): Unit < Async =
+    NonEmptyString(reasonRaw.trim).toEither match
+      case Left(_) => errorBanner.set(Some("Please provide a rejection reason."))
+      case Right(reason) =>
+        for
+          res <- withToken(tok => client.rejectArtwork(tok, artworkId, reason))
           _ <- res match
                  case Some(_) =>
                    for
@@ -592,6 +628,11 @@ final class BackofficeState(
           _.map(_ => afterCustomerMutation(id)).getOrElse(Kyo.unit)
         )
 
+  def updateCustomerProfile(cmd: UpdateCustomerProfileCmd): Unit < Async =
+    withToken(tok => client.updateCustomerProfile(tok, cmd)).flatMap(
+      _.map(_ => afterCustomerMutation(cmd.id)).getOrElse(Kyo.unit)
+    )
+
   // ── Staff & Store Settings Mutations ───────────────────────────────────────
 
   def createStaffMember(cmd: CreateStaffCmd): Unit < Async =
@@ -736,6 +777,8 @@ object BackofficeState:
       selCustRef  <- Signal.initRef[Option[CustomerDetailView]](None)
       staffRef    <- Signal.initRef[List[StaffMemberView]](Nil)
       delivRef    <- Signal.initRef[Option[StoreDeliverySettingsView]](None)
+      priTabRef   <- Signal.initRef("simulator")
+      priCustRef  <- Signal.initRef[Option[CustomerId]](None)
       mobNavRef   <- Signal.initRef(false)
       toastRef    <- Signal.initRef[Option[String]](None)
       errRef      <- Signal.initRef[Option[String]](None)
@@ -763,6 +806,8 @@ object BackofficeState:
       selCustRef,
       staffRef,
       delivRef,
+      priTabRef,
+      priCustRef,
       mobNavRef,
       toastRef,
       errRef,

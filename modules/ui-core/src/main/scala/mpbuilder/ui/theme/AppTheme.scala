@@ -44,6 +44,15 @@ object AppTheme:
     val roseSoft: Color       = hexColor("#FEF2F2")
     val roseBorder: Color     = hexColor("#FECACA")
     val roseInk: Color        = hexColor("#991B1B")
+    val silverBg: Color       = hexColor("#E0F2FE")
+    val silverBorder: Color   = hexColor("#7DD3FC")
+    val silverInk: Color      = hexColor("#0369A1")
+    val goldBg: Color         = hexColor("#FEF3C7")
+    val goldBorder: Color     = hexColor("#FCD34D")
+    val goldInk: Color        = hexColor("#B45309")
+    val platinumBg: Color     = hexColor("#F3E8FF")
+    val platinumBorder: Color = hexColor("#C4B5FD")
+    val platinumInk: Color    = hexColor("#6D28D9")
     val backdrop: Color       = Color.rgba(15, 23, 42, 0.48)
     val glassHeader: Color    = Color.rgba(255, 255, 255, 0.92)
     val shadowSubtle: Color   = Color.rgba(15, 23, 42, 0.06)
@@ -442,6 +451,168 @@ object AppTheme:
           .fontSize(14.px)
           .fontWeight(FontWeight.w600)
           .shadow(0.px, 8.px, 24.px, 0.px, shadowStrong),
+      )
+      // Underline Tab Bar (distinct from rounded filter pills)
+      .rule(
+        "mp-tabs",
+        Style.row
+          .flexWrap(FlexWrap.wrap)
+          .align(Alignment.end)
+          .gap(4.px)
+          .width(100.pct)
+          .borderBottom(2.px, border),
+      )
+      .rule(
+        "mp-tab",
+        Style.row
+          .align(Alignment.center)
+          .gap(8.px)
+          .padding(10.px, 16.px)
+          .bg(Color.transparent)
+          .color(inkSecondary)
+          .fontSize(14.px)
+          .fontWeight(FontWeight.w600)
+          .border(0.px, BorderStyle.none, Color.transparent)
+          .borderBottom(2.px, Color.transparent)
+          .margin(0.px, 0.px, (-2).px, 0.px)
+          .cursor(Cursor.pointer)
+          .transition(TransitionProperty.all, 140, Easing.easeOut)
+          .hover(Style.color(ink).bg(surfaceAlt)),
+      )
+      .rule(
+        "mp-tab-active",
+        Style.color(brand)
+          .fontWeight(FontWeight.w700)
+          .borderBottom(2.px, brand)
+          .bg(brandSoft)
+          .hover(Style.color(brand).bg(brandSoft)),
+      )
+      // Corner Action Bar
+      .rule(
+        "mp-action-bar",
+        Style.row
+          .flexWrap(FlexWrap.wrap)
+          .align(Alignment.center)
+          .justify(Justification.end)
+          .gap(8.px),
+      )
+      // Universal DataTable
+      .rule(
+        "mp-dt-wrap",
+        Style.column.gap(12.px).width(100.pct),
+      )
+      .rule(
+        "mp-dt-toolbar",
+        Style.row
+          .flexWrap(FlexWrap.wrap)
+          .justify(Justification.spaceBetween)
+          .align(Alignment.center)
+          .gap(12.px)
+          .width(100.pct),
+      )
+      .rule(
+        "mp-dt-filter-group",
+        Style.row
+          .flexWrap(FlexWrap.wrap)
+          .align(Alignment.center)
+          .gap(6.px),
+      )
+      .rule(
+        "mp-dt-filter-label",
+        Style.fontSize(11.px)
+          .fontWeight(FontWeight.w800)
+          .color(inkMuted)
+          .textTransform(TextTransform.uppercase)
+          .letterSpacing(0.4.px)
+          .margin(0.px, 4.px, 0.px, 0.px),
+      )
+      .rule(
+        "mp-dt-table-scroll",
+        Style.width(100.pct)
+          .overflowX(Overflow.auto)
+          .bg(surface)
+          .border(1.px, border)
+          .rounded(12.px),
+      )
+      .rule(
+        "mp-dt-table",
+        Style.width(100.pct).fontSize(13.px),
+      )
+      .rule(
+        "mp-dt-th",
+        Style.padding(10.px, 12.px)
+          .bg(surfaceAlt)
+          .color(inkSecondary)
+          .fontSize(11.px)
+          .fontWeight(FontWeight.w700)
+          .textTransform(TextTransform.uppercase)
+          .letterSpacing(0.3.px)
+          .borderBottom(1.px, border),
+      )
+      .rule(
+        "mp-dt-td",
+        Style.padding(11.px, 12.px)
+          .borderBottom(1.px, border)
+          .color(ink),
+      )
+      .rule(
+        "mp-dt-th-btn",
+        Style.row
+          .align(Alignment.center)
+          .gap(4.px)
+          .width(100.pct)
+          .bg(Color.transparent)
+          .border(0.px, BorderStyle.none, Color.transparent)
+          .padding(0.px)
+          .color(inkSecondary)
+          .fontSize(11.px)
+          .fontWeight(FontWeight.w700)
+          .textTransform(TextTransform.uppercase)
+          .letterSpacing(0.3.px)
+          .cursor(Cursor.pointer)
+          .hover(Style.color(brand)),
+      )
+      .rule(
+        "mp-dt-row",
+        Style.cursor(Cursor.pointer)
+          .transition(TransitionProperty.all, 120, Easing.easeOut)
+          .hover(Style.bg(surfaceAlt)),
+      )
+      .rule(
+        "mp-dt-row-selected",
+        Style.bg(brandSoft).hover(Style.bg(brandSoft)),
+      )
+      .rule(
+        "mp-dt-detail-cell",
+        Style.bg(canvas).padding(16.px, 18.px).borderBottom(2.px, brandBorder),
+      )
+      .rule(
+        "mp-dt-pager",
+        Style.row
+          .flexWrap(FlexWrap.wrap)
+          .justify(Justification.spaceBetween)
+          .align(Alignment.center)
+          .gap(10.px)
+          .padding(4.px, 2.px),
+      )
+      // Order Progress Stepper
+      .rule(
+        "mp-stepper",
+        Style.row
+          .align(Alignment.start)
+          .justify(Justification.spaceBetween)
+          .width(100.pct)
+          .gap(4.px)
+          .padding(10.px, 4.px, 6.px, 4.px),
+      )
+      .rule(
+        "mp-stepper-step",
+        Style.column
+          .align(Alignment.center)
+          .gap(6.px)
+          .flexGrow(1.0)
+          .flexBasis(0.px)
+          .textAlign(TextAlign.center),
       )
       // Tablet breakpoint (<= 960px)
       .media(Stylesheet.MediaQuery.maxWidth(960.px))(

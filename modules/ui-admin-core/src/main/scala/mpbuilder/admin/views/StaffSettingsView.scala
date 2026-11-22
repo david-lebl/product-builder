@@ -8,6 +8,7 @@ import mpbuilder.identity.{CreateStaffCmd, EmployeeRole}
 import mpbuilder.ordering.{BankAccountConfig, CourierServiceOption, DeliveryOptionId, ShopPickupLocation}
 import mpbuilder.shared.*
 import mpbuilder.ui.components.CommonComponents.*
+import mpbuilder.ui.components.TabBar
 import mpbuilder.ui.theme.AppTheme.*
 import mpbuilder.ui.theme.AppTheme.Palette.*
 
@@ -51,8 +52,15 @@ object StaffSettingsView:
           .combineLatest(state.i18n.language)
 
       combined.render { case ((((activeTab, staffList), delivOpt), authOpt), lang) =>
+        val isCs      = lang == Language.Cs
         val canManage = state.canManage(authOpt)
         val isAdmin   = state.isAdmin(authOpt)
+
+        val tabs = List(
+          TabBar.TabItem(Tab.Staff, if isCs then "Zaměstnanci" else "Staff Directory", Some(staffList.size)),
+          TabBar.TabItem(Tab.Delivery, if isCs then "Odběr a dopravci" else "Pickup & Couriers", delivOpt.map(_.pickupLocations.size)),
+          TabBar.TabItem(Tab.Bank, if isCs then "Bankovní QR účty" else "Bank QR Accounts", delivOpt.map(_.bankAccounts.size)),
+        )
 
         div.style(stackMd.width(100.pct))(
           div.style(stackXs)(
@@ -60,10 +68,10 @@ object StaffSettingsView:
             p(state.i18n.t("adm-set-subtitle")).style(mutedText.margin(0.px)),
           ),
 
-          div.style(rowWrap)(
-            tabBtn(Tab.Staff, activeTab, tabRef, state.i18n.t("adm-set-tab-staff"), Some(staffList.size)),
-            tabBtn(Tab.Delivery, activeTab, tabRef, state.i18n.t("adm-set-tab-delivery"), delivOpt.map(_.pickupLocations.size)),
-            tabBtn(Tab.Bank, activeTab, tabRef, state.i18n.t("adm-set-tab-bank"), delivOpt.map(_.bankAccounts.size)),
+          TabBar.render[Tab](
+            items = tabs,
+            active = activeTab,
+            onSelect = t => tabRef.set(t),
           ),
 
           activeTab match
@@ -375,14 +383,6 @@ object StaffSettingsView:
                   )
         )
       }
-
-  private def tabBtn(tab: Tab, active: Tab, ref: SignalRef[Tab], lbl: UI, countOpt: Option[Int]): UI =
-    button
-      .cssClass(if tab == active then "mp-pill-active" else "mp-pill")
-      .onClick(ref.set(tab))(
-        span(lbl),
-        countOpt.map(c => span(s"($c)").style(Style.fontSize(11.px).opacity(0.85))).getOrElse(UI.empty),
-      )
 
   private def textField(lbl: String, ph: String, ref: SignalRef[String]): UI =
     div.cssClass("mp-field")(

@@ -4,13 +4,18 @@ import kyo.*
 import kyo.UI.*
 import kyo.Style.*
 import mpbuilder.admin.state.{AdminRoute, BackofficeState}
-import mpbuilder.ordering.{OrderStatus, OrderStatusKind, PaymentStatus}
-import mpbuilder.shared.Language
+import mpbuilder.ordering.*
+import mpbuilder.shared.{Language, OrderId}
 import mpbuilder.ui.components.CommonComponents.*
+import mpbuilder.ui.components.DataTable
 import mpbuilder.ui.theme.AppTheme.*
 import mpbuilder.ui.theme.AppTheme.Palette.*
 
-/** Order Intake Queue screen with status filter pills, live counts, search bar, and responsive order table. */
+/** Order Intake Queue screen powered by universal `DataTable`:
+  *   - Split quick-filter sections: Intake Status, Payment Status, Priority
+  *   - Priority & calculated production deadline column (with mixed-speed badge)
+  *   - Sortable columns, pagination, and expandable quick-summary row with Open Detail link
+  */
 object OrderIntakeView:
 
   private val queueStatuses: List[OrderStatusKind] = List(
@@ -39,143 +44,177 @@ object OrderIntakeView:
       case OrderStatusKind.Cancelled        => OrderStatus.Cancelled(mpbuilder.shared.NonEmptyString.unsafe("cancel"))
     orderStatusLabel(sampleStatus, lang)
 
-  private def paymentTone(ps: PaymentStatus): BadgeTone = ps match
-    case PaymentStatus.Confirmed | PaymentStatus.Authorized => BadgeTone.Emerald
-    case PaymentStatus.Pending                              => BadgeTone.Amber
-    case PaymentStatus.Failed | PaymentStatus.Refunded      => BadgeTone.Rose
+  def render(state: BackofficeState): UI < Sync =
+    for
+      tableState <- DataTable.makeState[OrderId](
+                      defaultSort = Some(DataTable.SortSpec("deadline", ascending = true)),
+                      pageSize = 10,
+                    )
+    yield
+      val combined = state.orders.combineLatest(state.i18n.language)
 
-  def render(state: BackofficeState): UI =
-    val combined =
-      state.orders
-        .combineLatest(state.orderStatusFilter)
-        .combineLatest(state.orderSearch)
-        .combineLatest(state.i18n.language)
+      combined.render { case (allOrders, lang) =>
+        val isCs = lang == Language.Cs
 
-    combined.render { case (((allOrders, statusFilt), queryRaw), lang) =>
-      val q = queryRaw.trim.toLowerCase
-      val filtered = allOrders.filter { ord =>
-        val matchesStatus = statusFilt.forall(_ == ord.status.kind)
-        val matchesQuery =
-          if q.isEmpty then true
-          else
-            ord.orderNumber.value.toLowerCase.contains(q) ||
-              ord.customer.fullName.value.toLowerCase.contains(q) ||
-              ord.customer.email.value.toLowerCase.contains(q) ||
-              ord.customer.companyName.exists(_.value.toLowerCase.contains(q))
-        matchesStatus && matchesQuery
-      }
-
-      div.style(stackMd.width(100.pct))(
-        // Page Header
-        div.style(rowBetween.flexWrap(FlexWrap.wrap))(
-          div.style(stackXs)(
-            h1(state.i18n.t("adm-orders-title")).style(Style.margin(0.px).fontSize(24.px).fontWeight(FontWeight.w800).color(ink)),
-            p(state.i18n.t("adm-orders-subtitle")).style(mutedText.margin(0.px)),
-          ),
-          button.cssClass("mp-btn mp-btn-secondary mp-btn-sm").onClick(state.refreshOrders)(state.i18n.t("adm-refresh")),
-        ),
-
-        // Search + Status Filter Pills
-        div.cssClass("mp-card").style(Style.gap(12.px).padding(16.px))(
-          searchInput
-            .cssClass("mp-input")
-            .placeholder(if lang == Language.Cs then "Hledat číslo objednávky, zákazníka, firmu nebo e-mail..." else "Search order #, customer name, company, or email...")
-            .value(state.orderSearch)
-            .onInput(v => state.orderSearch.set(v)),
-          div.style(rowWrap)(
-            button
-              .cssClass(if statusFilt.isEmpty then "mp-pill-active" else "mp-pill")
-              .onClick(state.orderStatusFilter.set(None))(
-                span(state.i18n.t("adm-orders-filter-all")),
-                span(s"(${allOrders.size})").style(Style.fontSize(11.px).opacity(0.85)),
+        val columns: List[DataTable.Column[OrderView]] = List(
+          DataTable.Column[OrderView](
+            id = "number",
+            header = if isCs then "Číslo obj." else "Order #",
+            sortKey = Some(_.orderNumber.value),
+            cell = ord =>
+              div.style(Style.column.gap(2.px))(
+                span(ord.orderNumber.value).style(Style.fontWeight(FontWeight.w800).color(ink)),
+                span(formatInstant(ord.placedAt)).style(smallText),
               ),
-            UI.fragment(
-              queueStatuses.map { kind =>
-                val cnt    = allOrders.count(_.status.kind == kind)
-                val active = statusFilt.contains(kind)
-                button
-                  .cssClass(if active then "mp-pill-active" else "mp-pill")
-                  .onClick(state.orderStatusFilter.set(Some(kind)))(
-                    span(statusKindLabel(kind, lang)),
-                    span(s"($cnt)").style(Style.fontSize(11.px).opacity(0.85)),
-                  )
-              }*
+          ),
+          DataTable.Column[OrderView](
+            id = "customer",
+            header = if isCs then "Zákazník" else "Customer",
+            sortKey = Some(o => o.customer.companyName.map(_.value).getOrElse(o.customer.fullName.value)),
+            cell = ord =>
+              div.style(Style.column.gap(2.px))(
+                span(ord.customer.companyName.map(_.value).getOrElse(ord.customer.fullName.value))
+                  .style(Style.fontWeight(FontWeight.w600).color(ink)),
+                span(ord.customer.email.value).style(smallText),
+              ),
+          ),
+          DataTable.Column[OrderView](
+            id = "deadline",
+            header = if isCs then "Priorita a termín" else "Priority & Deadline",
+            numericSortKey = Some(o => BigDecimal(o.calculatedDeadline.toEpochMilli)),
+            cell = ord =>
+              div.style(Style.column.gap(3.px))(
+                div.style(rowXs.flexWrap(FlexWrap.wrap))(
+                  priorityBadge(ord.priority, lang),
+                  if ord.hasMixedSpeeds then badge(if isCs then "Smíšené" else "Mixed", BadgeTone.Amber) else UI.empty,
+                ),
+                span(formatInstant(ord.calculatedDeadline)).style(smallText.fontWeight(FontWeight.w600)),
+              ),
+          ),
+          DataTable.Column[OrderView](
+            id = "status",
+            header = if isCs then "Stav příjmu" else "Intake Status",
+            sortKey = Some(o => orderStatusLabel(o.status, lang)),
+            cell = ord => badge(orderStatusLabel(ord.status, lang), orderStatusTone(ord.status)),
+          ),
+          DataTable.Column[OrderView](
+            id = "payment",
+            header = if isCs then "Platba" else "Payment",
+            sortKey = Some(_.payment.status.toString),
+            cell = ord =>
+              div.style(Style.column.gap(2.px))(
+                paymentStatusBadge(ord.payment.status, lang),
+                span(ord.payment.method.toString).style(smallText),
+              ),
+          ),
+          DataTable.Column[OrderView](
+            id = "items",
+            header = if isCs then "Položky" else "Items",
+            numericSortKey = Some(o => BigDecimal(o.lines.size)),
+            cell = ord =>
+              val lineSummary = ord.lines.toList.map(l => s"${l.product.categoryName(lang)} ×${l.runQuantity.value}").mkString(", ")
+              span(lineSummary).style(Style.fontSize(12.px).color(inkSecondary)),
+          ),
+          DataTable.Column[OrderView](
+            id = "total",
+            header = if isCs then "Celkem" else "Total",
+            numericSortKey = Some(_.totals.grandTotalGross.value),
+            alignRight = true,
+            cell = ord =>
+              span(formatMoney(ord.totals.grandTotalGross, ord.totals.currency, lang))
+                .style(Style.fontWeight(FontWeight.w800).color(ink)),
+          ),
+          DataTable.Column[OrderView](
+            id = "action",
+            header = "",
+            alignRight = true,
+            cell = ord =>
+              button
+                .cssClass("mp-btn mp-btn-primary mp-btn-sm")
+                .onClick(state.navigate(AdminRoute.OrderDetail(ord.id)))(state.i18n.t("adm-orders-open")),
+          ),
+        )
+
+        val filterGroups: List[DataTable.FilterGroup[OrderView]] = List(
+          DataTable.FilterGroup[OrderView](
+            id = "status",
+            label = if isCs then "Stav příjmu" else "Intake Status",
+            options = queueStatuses.map { kind =>
+              DataTable.FilterOption[OrderView](kind.toString, statusKindLabel(kind, lang), _.status.kind == kind)
+            },
+          ),
+          DataTable.FilterGroup[OrderView](
+            id = "payment",
+            label = if isCs then "Stav platby" else "Payment Status",
+            options = List(
+              DataTable.FilterOption[OrderView]("Paid", if isCs then "Zaplaceno" else "Paid", _.payment.status == PaymentStatus.Confirmed),
+              DataTable.FilterOption[OrderView]("Unpaid", if isCs then "Nezaplaceno" else "Unpaid", o => o.payment.status == PaymentStatus.Pending || o.payment.status == PaymentStatus.Authorized),
+              DataTable.FilterOption[OrderView]("Failed", if isCs then "Selhalo" else "Failed", _.payment.status == PaymentStatus.Failed),
             ),
           ),
-        ),
+          DataTable.FilterGroup[OrderView](
+            id = "priority",
+            label = if isCs then "Priorita" else "Priority",
+            options = OrderPriority.values.toList.map { pr =>
+              DataTable.FilterOption[OrderView](pr.toString, priorityLabel(pr, lang), _.priority == pr)
+            },
+          ),
+        )
 
-        // Orders Table / Empty State
-        if filtered.isEmpty then
-          div.cssClass("mp-card").style(Style.align(Alignment.center).padding(40.px, 20.px))(
-            p(state.i18n.t("adm-orders-empty")).style(mutedText.margin(0.px)),
-          )
-        else
-          div.cssClass("mp-table-wrap")(
-            UI.table.cssClass("mp-table").style(Style.width(100.pct))(
-              tbody(
-                tr.style(Style.bg(surfaceAlt).borderBottom(1.px, Palette.border))(
-                  thCell(state.i18n.t("adm-orders-col-number")),
-                  thCell(state.i18n.t("adm-orders-col-customer")),
-                  thCell(state.i18n.t("adm-orders-col-status")),
-                  thCell(state.i18n.t("adm-orders-col-payment")),
-                  thCell(state.i18n.t("adm-orders-col-items")),
-                  thCell(state.i18n.t("adm-orders-col-total")),
-                  thCell(state.i18n.t("adm-orders-col-placed")),
-                  thCell(UI.empty),
+        div.style(stackMd.width(100.pct))(
+          // Page Header
+          div.style(rowBetween.flexWrap(FlexWrap.wrap))(
+            div.style(stackXs)(
+              h1(state.i18n.t("adm-orders-title")).style(Style.margin(0.px).fontSize(24.px).fontWeight(FontWeight.w800).color(ink)),
+              p(state.i18n.t("adm-orders-subtitle")).style(mutedText.margin(0.px)),
+            ),
+            button.cssClass("mp-btn mp-btn-secondary mp-btn-sm").onClick(state.refreshOrders)(state.i18n.t("adm-refresh")),
+          ),
+
+          // Universal DataTable with 3 split filter groups & expandable preview
+          DataTable.render[OrderView, OrderId](
+            rows = allOrders,
+            rowKey = _.id,
+            columns = columns,
+            state = tableState,
+            searchPlaceholder = if isCs then "Hledat číslo objednávky, zákazníka, firmu nebo e-mail..." else "Search order #, customer name, company, or email...",
+            matchesSearch = (ord, q) =>
+              ord.orderNumber.value.toLowerCase.contains(q) ||
+                ord.customer.fullName.value.toLowerCase.contains(q) ||
+                ord.customer.email.value.toLowerCase.contains(q) ||
+                ord.customer.companyName.exists(_.value.toLowerCase.contains(q)),
+            filterGroups = filterGroups,
+            renderDetail = Some { ord =>
+              div.style(stackSm)(
+                div.style(rowBetween.flexWrap(FlexWrap.wrap))(
+                  div.style(rowSm.flexWrap(FlexWrap.wrap))(
+                    span(ord.orderNumber.value).style(Style.fontWeight(FontWeight.w800).fontSize(15.px).color(ink)),
+                    priorityBadge(ord.priority, lang),
+                    badge(orderStatusLabel(ord.status, lang), orderStatusTone(ord.status)),
+                    paymentStatusBadge(ord.payment.status, lang),
+                  ),
+                  button
+                    .cssClass("mp-btn mp-btn-primary mp-btn-sm")
+                    .onClick(state.navigate(AdminRoute.OrderDetail(ord.id)))(state.i18n.t("adm-orders-open")),
                 ),
-                UI.fragment(
-                  filtered.map { ord =>
-                    val lineSummary = ord.lines.toList.map(l => s"${l.product.categoryName(lang)} ×${l.runQuantity.value}").mkString(", ")
-                    tr.style(Style.borderBottom(1.px, Palette.border))(
-                      tdCell(
-                        span(ord.orderNumber.value).style(Style.fontWeight(FontWeight.w800).color(ink)),
+                div.style(stackXs)(
+                  ord.lines.toList.map { ln =>
+                    div.style(rowBetween.flexWrap(FlexWrap.wrap).padding(8.px, 10.px).rounded(8.px).bg(surface).border(1.px, Palette.border))(
+                      div.style(rowSm.flexWrap(FlexWrap.wrap))(
+                        span(ln.product.categoryName(lang)).style(Style.fontWeight(FontWeight.w700).fontSize(13.px).color(ink)),
+                        badge(s"${ln.runQuantity.value} pcs × ${ln.copies.value}", BadgeTone.Brand),
+                        badge(speedLabel(ln.speed, lang), BadgeTone.Neutral),
+                        span(s"Due: ${formatInstant(ln.estimatedDeadline(ord.placedAt))}").style(smallText),
                       ),
-                      tdCell(
-                        div.style(Style.column.gap(2.px))(
-                          span(ord.customer.companyName.map(_.value).getOrElse(ord.customer.fullName.value))
-                            .style(Style.fontWeight(FontWeight.w600).color(ink)),
-                          span(ord.customer.email.value).style(smallText),
-                        ),
-                      ),
-                      tdCell(badge(orderStatusLabel(ord.status, lang), orderStatusTone(ord.status))),
-                      tdCell(
-                        div.style(Style.column.gap(2.px))(
-                          badge(ord.payment.status.toString, paymentTone(ord.payment.status)),
-                          span(ord.payment.method.toString).style(smallText),
-                        ),
-                      ),
-                      tdCell(
-                        span(lineSummary).style(Style.fontSize(12.px).color(inkSecondary)),
-                      ),
-                      tdCell(
-                        span(formatMoney(ord.totals.grandTotalGross, ord.totals.currency, lang))
-                          .style(Style.fontWeight(FontWeight.w700).color(ink)),
-                      ),
-                      tdCell(
-                        span(formatInstant(ord.placedAt)).style(smallText),
-                      ),
-                      tdCell(
-                        button
-                          .cssClass("mp-btn mp-btn-primary mp-btn-sm")
-                          .onClick(state.navigate(AdminRoute.OrderDetail(ord.id)))(state.i18n.t("adm-orders-open")),
-                      ),
+                      span(formatMoney(ln.lineGrossTotal, ln.price.currency, lang)).style(Style.fontWeight(FontWeight.w700).fontSize(13.px)),
                     )
                   }*
                 ),
-              ),
-            ),
+                ord.customerNote.map(n => span(s"💬 $n").style(smallText)).getOrElse(UI.empty),
+              )
+            },
+            emptyMessage = if isCs then "Aktuálním filtrům neodpovídají žádné objednávky." else "No orders match the current filters.",
+            lang = lang,
           ),
-      )
-    }
-
-  private def thCell(content: UI): UI =
-    th.style(
-      Style.padding(11.px, 14.px)
-        .textAlign(TextAlign.left)
-        .fontSize(12.px)
-        .fontWeight(FontWeight.w700)
-        .color(inkSecondary),
-    )(content)
-
-  private def tdCell(content: UI): UI =
-    td.style(Style.padding(12.px, 14.px))(content)
+        )
+      }

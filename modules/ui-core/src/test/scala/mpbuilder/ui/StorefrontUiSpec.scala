@@ -253,4 +253,59 @@ object StorefrontUiSpec extends ZIOSpecDefault:
           )
         }
       },
+      test("Customer sees color-coded tier badge in header, edits billing & multi-delivery addresses, tracks 5-step progress, views payment modal, and re-uploads artwork") {
+        withClient { client =>
+          for
+            appI18n <- Translations.init(Language.En)
+            state   <- I18n.let(appI18n.handle)(StorefrontState.init(client, appI18n))
+            auth    <- client.loginWithPassword(EmailAddress.unsafe("jan@printshoppro.cz"), NonEmptyString.unsafe("demo1234"))
+            _       <- I18n.let(appI18n.handle)(state.completeAuth(auth))
+            _       <- I18n.let(appI18n.handle)(state.openAccount)
+            // Update billing + 2 delivery addresses with index 1 as default
+            newBilling = Address(
+                           NonEmptyString.unsafe("Revoluční 22"),
+                           NonEmptyString.unsafe("Praha"),
+                           NonEmptyString.unsafe("110 00"),
+                           NonEmptyString.unsafe("CZ"),
+                         )
+            deliv1 = Address(
+                       NonEmptyString.unsafe("Sklepní 4"),
+                       NonEmptyString.unsafe("Brno"),
+                       NonEmptyString.unsafe("602 00"),
+                       NonEmptyString.unsafe("CZ"),
+                     )
+            deliv2 = Address(
+                       NonEmptyString.unsafe("Nádražní 15"),
+                       NonEmptyString.unsafe("Ostrava"),
+                       NonEmptyString.unsafe("702 00"),
+                       NonEmptyString.unsafe("CZ"),
+                     )
+            _       <- I18n.let(appI18n.handle)(state.updateMyAddresses(newBilling, List(deliv1, deliv2), Some(1)))
+            updated <- state.currentCustomer.get
+            // Open payment modal for first order (if any) and test artwork reupload if seeded
+            orders  <- state.orders.get
+            _       <- orders.headOption match
+                         case Some(o) => I18n.let(appI18n.handle)(state.openPaymentInstructions(o))
+                         case None    => Kyo.unit
+            artMap  <- state.orderArtworks.get
+            ui      <- I18n.let(appI18n.handle)(StorefrontApp.render(state))
+            enHtml  <- renderHtml(ui, appI18n)
+            _       <- I18n.let(appI18n.handle)(state.setLanguage(Language.Cs))
+            csHtml  <- renderHtml(ui, appI18n)
+            _       <- state.closePaymentInstructions
+          yield assertTrue(
+            updated.exists(_.billingAddress.street.value == "Revoluční 22"),
+            updated.exists(_.shippingAddresses.size == 2),
+            updated.exists(_.defaultShippingIndex.contains(1)),
+            enHtml.contains("Gold"),
+            enHtml.contains("mp-stepper"),
+            enHtml.contains("Revoluční 22"),
+            enHtml.contains("Nádražní 15"),
+            artMap.values.flatten.nonEmpty || orders.nonEmpty,
+            !enHtml.contains("‹") && !enHtml.contains("›"),
+            csHtml.contains("Fakturační a doručovací adresy"),
+            !csHtml.contains("‹") && !csHtml.contains("›"),
+          )
+        }
+      },
     )

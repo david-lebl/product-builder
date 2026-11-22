@@ -279,6 +279,23 @@ object Translations:
       |account-orders-empty = You haven't placed any orders in this session yet.
       |account-orders-cta = Start Configuring
       |account-not-signed-in = Sign in to view your B2B profile and order history.
+      |account-addresses-title = Billing & Delivery Addresses
+      |account-edit-addresses = Edit Addresses
+      |account-save-addresses = Save Addresses
+      |account-cancel-edit = Cancel
+      |account-billing-address = Billing Address
+      |account-delivery-addresses = Delivery Addresses
+      |account-default-badge = Default
+      |account-set-default = Set as Default
+      |account-add-delivery = + Add Delivery Address
+      |account-remove-address = Remove
+      |account-addresses-saved = Addresses updated successfully
+      |account-view-payment = View Payment Options
+      |account-payment-modal-title = Payment Options
+      |account-artwork-title = Artwork & Preflight
+      |account-artwork-reupload = Re-upload Corrected File (300 DPI CMYK)
+      |account-artwork-reuploaded = Corrected artwork uploaded and sent for preflight!
+      |account-close = Close
       |
       |# Standalone Calculator
       |calc-title = Instant Print Price Calculator
@@ -530,6 +547,23 @@ object Translations:
       |account-orders-empty = V této relaci jste zatím nevytvořil(a) žádnou objednávku.
       |account-orders-cta = Začít konfigurovat
       |account-not-signed-in = Přihlaste se pro zobrazení B2B profilu a historie objednávek.
+      |account-addresses-title = Fakturační a doručovací adresy
+      |account-edit-addresses = Upravit adresy
+      |account-save-addresses = Uložit adresy
+      |account-cancel-edit = Zrušit
+      |account-billing-address = Fakturační adresa
+      |account-delivery-addresses = Doručovací adresy
+      |account-default-badge = Výchozí
+      |account-set-default = Nastavit jako výchozí
+      |account-add-delivery = + Přidat doručovací adresu
+      |account-remove-address = Odebrat
+      |account-addresses-saved = Adresy byly úspěšně uloženy
+      |account-view-payment = Zobrazit možnosti platby
+      |account-payment-modal-title = Možnosti platby
+      |account-artwork-title = Tisková data a preflight
+      |account-artwork-reupload = Nahrát opravený soubor (300 DPI CMYK)
+      |account-artwork-reuploaded = Opravená tisková data byla nahrána a odeslána na preflight!
+      |account-close = Zavřít
       |
       |# Samostatná kalkulačka
       |calc-title = Online kalkulačka tisku

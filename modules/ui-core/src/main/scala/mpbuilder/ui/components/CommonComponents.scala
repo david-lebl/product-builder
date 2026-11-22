@@ -188,6 +188,195 @@ object CommonComponents:
 
   def tierLabel(t: CustomerTier): String = t.toString
 
+  /** Color-coded customer tier pill (Standard = Slate, Silver = Steel Blue, Gold = Warm Gold, Platinum = Royal Violet). */
+  def tierBadge(t: CustomerTier, compact: Boolean = false): UI =
+    val (bgColor, fgColor, bdColor, icon) = t match
+      case CustomerTier.Standard => (surfaceAlt, inkSecondary, Palette.border, "")
+      case CustomerTier.Silver   => (silverBg, silverInk, silverBorder, "◆ ")
+      case CustomerTier.Gold     => (goldBg, goldInk, goldBorder, "★ ")
+      case CustomerTier.Platinum => (platinumBg, platinumInk, platinumBorder, "✦ ")
+    val padV = if compact then 1.px else 3.px
+    val padH = if compact then 7.px else 9.px
+    val fSz  = if compact then 10.px else 12.px
+    span(s"$icon${tierLabel(t)}").style(
+      Style
+        .display(Display.inlineFlex)
+        .align(Alignment.center)
+        .padding(padV, padH)
+        .rounded(999.px)
+        .bg(bgColor)
+        .color(fgColor)
+        .border(1.px, bdColor)
+        .fontSize(fSz)
+        .fontWeight(FontWeight.w700)
+        .lineHeight(1.2),
+    )
+
+  def priorityLabel(p: OrderPriority, lang: Language): String = (p, lang) match
+    case (OrderPriority.Urgent, Language.Cs)   => "⚡ Urgentní"
+    case (OrderPriority.Urgent, _)             => "⚡ Urgent"
+    case (OrderPriority.Standard, Language.Cs) => "Standardní"
+    case (OrderPriority.Standard, _)           => "Standard"
+    case (OrderPriority.Economy, Language.Cs)  => "Ekonomická"
+    case (OrderPriority.Economy, _)            => "Economy"
+
+  def priorityBadge(p: OrderPriority, lang: Language): UI =
+    val tone = p match
+      case OrderPriority.Urgent   => BadgeTone.Rose
+      case OrderPriority.Standard => BadgeTone.Brand
+      case OrderPriority.Economy  => BadgeTone.Neutral
+    badge(priorityLabel(p, lang), tone)
+
+  def paymentStatusLabel(s: PaymentStatus, lang: Language): String = (s, lang) match
+    case (PaymentStatus.Confirmed, Language.Cs)  => "Zaplaceno"
+    case (PaymentStatus.Confirmed, _)            => "Paid"
+    case (PaymentStatus.Pending, Language.Cs)    => "Nezaplaceno"
+    case (PaymentStatus.Pending, _)              => "Unpaid"
+    case (PaymentStatus.Authorized, Language.Cs) => "Autorizováno"
+    case (PaymentStatus.Authorized, _)           => "Authorized"
+    case (PaymentStatus.Failed, Language.Cs)     => "Platba selhala"
+    case (PaymentStatus.Failed, _)               => "Failed"
+    case (PaymentStatus.Refunded, Language.Cs)   => "Vráceno"
+    case (PaymentStatus.Refunded, _)             => "Refunded"
+
+  def paymentStatusBadge(s: PaymentStatus, lang: Language): UI =
+    val tone = s match
+      case PaymentStatus.Confirmed  => BadgeTone.Emerald
+      case PaymentStatus.Pending    => BadgeTone.Amber
+      case PaymentStatus.Authorized => BadgeTone.Brand
+      case PaymentStatus.Failed     => BadgeTone.Rose
+      case PaymentStatus.Refunded   => BadgeTone.Neutral
+    badge(paymentStatusLabel(s, lang), tone)
+
+  def artworkStatusLabel(s: mpbuilder.artwork.ArtworkStatus, lang: Language): String =
+    import mpbuilder.artwork.ArtworkStatus
+    (s, lang) match
+      case (ArtworkStatus.Uploaded, Language.Cs)            => "Nahráno"
+      case (ArtworkStatus.Uploaded, _)                      => "Uploaded"
+      case (ArtworkStatus.PreflightPassed, Language.Cs)     => "Preflight OK"
+      case (ArtworkStatus.PreflightPassed, _)               => "Preflight Passed"
+      case (ArtworkStatus.PreflightFailed, Language.Cs)     => "Preflight chyby"
+      case (ArtworkStatus.PreflightFailed, _)               => "Preflight Issues"
+      case (ArtworkStatus.ChangesRequested(_), Language.Cs) => "Vyžaduje opravu"
+      case (ArtworkStatus.ChangesRequested(_), _)           => "Re-upload Requested"
+      case (ArtworkStatus.OperatorApproved(_, _), Language.Cs) => "Schváleno"
+      case (ArtworkStatus.OperatorApproved(_, _), _)        => "Approved"
+      case (ArtworkStatus.Rejected(_), Language.Cs)         => "Zamítnuto"
+      case (ArtworkStatus.Rejected(_), _)                   => "Rejected"
+
+  def artworkStatusBadge(s: mpbuilder.artwork.ArtworkStatus, lang: Language): UI =
+    import mpbuilder.artwork.ArtworkStatus
+    val tone = s match
+      case ArtworkStatus.OperatorApproved(_, _) | ArtworkStatus.PreflightPassed => BadgeTone.Emerald
+      case ArtworkStatus.ChangesRequested(_)                                    => BadgeTone.Amber
+      case ArtworkStatus.PreflightFailed | ArtworkStatus.Rejected(_)            => BadgeTone.Rose
+      case ArtworkStatus.Uploaded                                               => BadgeTone.Neutral
+    badge(artworkStatusLabel(s, lang), tone)
+
+  /** Visual 5-step customer-friendly order progress bar:
+    *   0: Placed -> 1: Quality Check -> 2: In Production -> 3: Packaged -> 4: Delivery / Completed
+    */
+  def orderProgressStepper(status: OrderStatus, lang: Language): UI =
+    val isCs = lang == Language.Cs
+    val steps = List(
+      if isCs then "Objednáno" else "Placed",
+      if isCs then "Kontrola dat" else "Quality Check",
+      if isCs then "Ve výrobě" else "In Production",
+      if isCs then "Zabaleno" else "Packaged",
+      if isCs then "Doručení" else "Delivery",
+    )
+
+    val (activeStep, isHold, isCancelled, noteOpt) = status match
+      case OrderStatus.Placed | OrderStatus.AwaitingPayment => (0, false, false, None)
+      case OrderStatus.Confirmed | OrderStatus.Accepted     => (1, false, false, None)
+      case OrderStatus.InProduction                         => (2, false, false, None)
+      case OrderStatus.ReadyForDispatch                     => (3, false, false, None)
+      case OrderStatus.Dispatched | OrderStatus.Completed   => (4, false, false, None)
+      case OrderStatus.OnHold(reason)                       => (1, true, false, Some(reason.value))
+      case OrderStatus.Cancelled(reason)                    => (-1, false, true, Some(reason.value))
+
+    val isFullyComplete = status == OrderStatus.Completed
+
+    div.style(stackSm.width(100.pct))(
+      if isCancelled then
+        div.style(
+          Style.padding(8.px, 12.px).rounded(10.px).bg(roseSoft).color(roseInk).border(1.px, roseBorder).fontSize(12.px).fontWeight(FontWeight.w600),
+        )(
+          s"✕ ${if isCs then "Objednávka zrušena" else "Order cancelled"}${noteOpt.map(r => s": $r").getOrElse("")}",
+        )
+      else
+        div.cssClass("mp-stepper")(
+          steps.zipWithIndex.map { case (lbl, idx) =>
+            val done   = isFullyComplete || idx < activeStep
+            val active = !isFullyComplete && idx == activeStep
+            val dotBg =
+              if done then emerald
+              else if active && isHold then amber
+              else if active then brand
+              else surface
+            val dotBorder =
+              if done then emerald
+              else if active && isHold then amber
+              else if active then brand
+              else borderStrong
+            val dotColor =
+              if done || active then Color.white else inkMuted
+            val dotSymbol =
+              if done then "✓"
+              else if active && isHold then "!"
+              else (idx + 1).toString
+            val textColor =
+              if done then emeraldInk
+              else if active && isHold then amberInk
+              else if active then brand
+              else inkMuted
+
+            div.cssClass("mp-stepper-step")(
+              div.style(
+                Style.row.align(Alignment.center).justify(Justification.center).width(100.pct),
+              )(
+                div.style(
+                  Style
+                    .flexGrow(1.0)
+                    .height(2.px)
+                    .bg(if idx == 0 then Color.transparent else if idx <= activeStep || isFullyComplete then emerald else Palette.border),
+                ),
+                div.style(
+                  Style.row
+                    .align(Alignment.center)
+                    .justify(Justification.center)
+                    .width(24.px)
+                    .height(24.px)
+                    .rounded(999.px)
+                    .bg(dotBg)
+                    .color(dotColor)
+                    .border(2.px, dotBorder)
+                    .fontSize(11.px)
+                    .fontWeight(FontWeight.w800)
+                    .flexShrink(0.0),
+                )(dotSymbol),
+                div.style(
+                  Style
+                    .flexGrow(1.0)
+                    .height(2.px)
+                    .bg(if idx == steps.size - 1 then Color.transparent else if idx < activeStep || isFullyComplete then emerald else Palette.border),
+                ),
+              ),
+              span(lbl).style(
+                Style.fontSize(11.px).fontWeight(if active || done then FontWeight.w700 else FontWeight.w500).color(textColor),
+              ),
+            )
+          }*
+        ),
+      if isHold then
+        div.style(
+          Style.padding(6.px, 10.px).rounded(8.px).bg(amberSoft).color(amberInk).border(1.px, amberBorder).fontSize(12.px).fontWeight(FontWeight.w600),
+        )(
+          s"⏸ ${if isCs then "Pozastaveno" else "On hold"}${noteOpt.map(r => s": $r").getOrElse("")}",
+        )
+      else UI.empty,
+    )
+
   // ── UI Badges & Alerts ─────────────────────────────────────────────────────
 
   enum BadgeTone:

@@ -147,6 +147,35 @@ trait StorefrontClient:
       sessionToken: SessionToken,
   ): List[OrderView] < (Abort[StorefrontError] & Async)
 
+  // ── Customer Self-Service ──────────────────────────────────────────────────
+
+  def updateMyAddresses(
+      sessionToken: SessionToken,
+      billingAddress: Address,
+      shippingAddresses: List[Address],
+      defaultShippingIndex: Option[Int],
+  ): CustomerView < (Abort[StorefrontError] & Async)
+
+  def getOrderPaymentInstructions(
+      sessionToken: SessionToken,
+      orderId: OrderId,
+  ): PaymentInstructions < (Abort[StorefrontError] & Async)
+
+  def listOrderArtworks(
+      sessionToken: SessionToken,
+      orderId: OrderId,
+  ): List[mpbuilder.artwork.ArtworkSubmissionView] < (Abort[StorefrontError] & Async)
+
+  def reuploadOrderArtwork(
+      sessionToken: SessionToken,
+      orderId: OrderId,
+      artworkId: ArtworkId,
+      fileName: NonEmptyString,
+      resolutionDpi: Int = 300,
+      bleedMm: Int = 3,
+      colorSpace: mpbuilder.artwork.ColorSpace = mpbuilder.artwork.ColorSpace.CMYK,
+  ): mpbuilder.artwork.ArtworkSubmissionView < (Abort[StorefrontError] & Async)
+
 object StorefrontClient:
 
   /** Lifts any ZIO `StorefrontFacade` into a pure Kyo `StorefrontClient` using `kyo-zio`. */
@@ -305,3 +334,34 @@ object StorefrontClient:
         sessionToken: SessionToken,
     ): List[OrderView] < (Abort[StorefrontError] & Async) =
       liftIO(facade.listMyOrders(sessionToken))
+
+    override def updateMyAddresses(
+        sessionToken: SessionToken,
+        billingAddress: Address,
+        shippingAddresses: List[Address],
+        defaultShippingIndex: Option[Int],
+    ): CustomerView < (Abort[StorefrontError] & Async) =
+      liftIO(facade.updateMyAddresses(sessionToken, billingAddress, shippingAddresses, defaultShippingIndex))
+
+    override def getOrderPaymentInstructions(
+        sessionToken: SessionToken,
+        orderId: OrderId,
+    ): PaymentInstructions < (Abort[StorefrontError] & Async) =
+      liftIO(facade.getOrderPaymentInstructions(sessionToken, orderId))
+
+    override def listOrderArtworks(
+        sessionToken: SessionToken,
+        orderId: OrderId,
+    ): List[mpbuilder.artwork.ArtworkSubmissionView] < (Abort[StorefrontError] & Async) =
+      liftIO(facade.listOrderArtworks(sessionToken, orderId))
+
+    override def reuploadOrderArtwork(
+        sessionToken: SessionToken,
+        orderId: OrderId,
+        artworkId: ArtworkId,
+        fileName: NonEmptyString,
+        resolutionDpi: Int,
+        bleedMm: Int,
+        colorSpace: mpbuilder.artwork.ColorSpace,
+    ): mpbuilder.artwork.ArtworkSubmissionView < (Abort[StorefrontError] & Async) =
+      liftIO(facade.reuploadOrderArtwork(sessionToken, orderId, artworkId, fileName, resolutionDpi, bleedMm, colorSpace))

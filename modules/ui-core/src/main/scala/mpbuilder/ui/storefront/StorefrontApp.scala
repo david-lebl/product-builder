@@ -18,6 +18,7 @@ object StorefrontApp:
   ): UI < Async =
     for
       catalogUI    <- CatalogView.render(state)
+      accountUI    <- AccountView.render(state)
       cartDrawerUI <- CartDrawer.render(state)
       authModalUI  <- AuthModal.render(state)
     yield
@@ -43,7 +44,7 @@ object StorefrontApp:
                 checkoutOpt match
                   case Some(sess) => CheckoutView.render(state, sess)
                   case None       => catalogUI
-              case AppRoute.Account => AccountView.render(state)
+              case AppRoute.Account => accountUI
           },
         ),
         // Footer
@@ -82,6 +83,7 @@ object StorefrontApp:
         .combineLatest(state.currency)
         .combineLatest(state.i18n.language)
         .combineLatest(state.authSession)
+        .combineLatest(state.currentCustomer)
         .combineLatest(state.cartItemCountSignal)
 
     header.cssClass("mp-header")(
@@ -109,7 +111,7 @@ object StorefrontApp:
           ),
 
         // Desktop Nav & Controls
-        headerSignal.render { case ((((activeRoute, cur), lang), sessOpt), cartCount) =>
+        headerSignal.render { case (((((activeRoute, cur), lang), sessOpt), custOpt), cartCount) =>
           val isCatalog = activeRoute match
             case AppRoute.Catalog | _: AppRoute.ProductDetail => true
             case _                                            => false
@@ -159,13 +161,21 @@ object StorefrontApp:
               }*
             ),
 
-            // Auth button (desktop)
+            // Auth button (desktop) — displays customer name + color-coded tier directly underneath
             div.cssClass("mp-desktop-nav")(
               sessOpt match
                 case Some(sess) =>
                   button
                     .cssClass("mp-btn mp-btn-secondary mp-btn-sm")
-                    .onClick(state.openAccount)(sess.principal.displayName.value)
+                    .style(Style.padding(4.px, 11.px))
+                    .onClick(state.openAccount)(
+                      div.style(Style.column.align(Alignment.start).gap(2.px).lineHeight(1.15))(
+                        span(sess.principal.displayName.value).style(Style.fontSize(12.px).fontWeight(FontWeight.w700).color(ink)),
+                        custOpt match
+                          case Some(c) => tierBadge(c.tier, compact = true)
+                          case None    => UI.empty,
+                      ),
+                    )
                 case None =>
                   button
                     .cssClass("mp-btn mp-btn-secondary mp-btn-sm")
@@ -205,14 +215,19 @@ object StorefrontApp:
       onOpenAdmin: Option[() => Unit < Async],
   ): UI =
     UI.when(state.mobileMenuOpen)(
-      state.currency.combineLatest(state.authSession).render { case (cur, sessOpt) =>
+      state.currency.combineLatest(state.authSession).combineLatest(state.currentCustomer).render { case ((cur, sessOpt), custOpt) =>
         div.cssClass("mp-mobile-menu")(
           div.style(Style.row.flexWrap(FlexWrap.wrap).gap(8.px))(
             button.cssClass("mp-btn mp-btn-secondary mp-btn-sm").onClick(state.openCatalog)(state.i18n.t("nav-catalog")),
             button.cssClass("mp-btn mp-btn-secondary mp-btn-sm").onClick(state.openBuilder())(state.i18n.t("nav-builder")),
             sessOpt match
               case Some(sess) =>
-                button.cssClass("mp-btn mp-btn-secondary mp-btn-sm").onClick(state.openAccount)(sess.principal.displayName.value)
+                button.cssClass("mp-btn mp-btn-secondary mp-btn-sm").onClick(state.openAccount)(
+                  div.style(Style.column.align(Alignment.start).gap(2.px))(
+                    span(sess.principal.displayName.value).style(Style.fontSize(12.px).fontWeight(FontWeight.w700)),
+                    custOpt.fold(UI.empty: UI)(c => tierBadge(c.tier, compact = true)),
+                  ),
+                )
               case None =>
                 button
                   .cssClass("mp-btn mp-btn-primary mp-btn-sm")

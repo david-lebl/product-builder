@@ -75,20 +75,29 @@ object AdminTranslations:
       |adm-orders-subtitle = Review incoming customer orders, verify payments, accept into production, and track manual fulfillment stages.
       |adm-orders-search-placeholder = Search order #, customer name, company, or email...
       |adm-orders-filter-all = All Orders
+      |adm-orders-filter-status = Intake Status
+      |adm-orders-filter-payment = Payment Status
+      |adm-orders-filter-priority = Priority
       |adm-orders-col-number = Order #
       |adm-orders-col-customer = Customer
-      |adm-orders-col-status = Status
+      |adm-orders-col-priority = Priority & Deadline
+      |adm-orders-col-status = Intake Status
       |adm-orders-col-payment = Payment
       |adm-orders-col-items = Items
       |adm-orders-col-total = Total
       |adm-orders-col-placed = Placed
-      |adm-orders-open = Open
-      |adm-orders-empty = No orders match the current filter.
+      |adm-orders-open = Open Detail →
+      |adm-orders-empty = No orders match the current filters.
       |
       |adm-od-back = ← Back to Queue
       |adm-od-actions-title = Intake & Stage Actions
       |adm-od-action-note-placeholder = Optional staff note for this transition...
-      |adm-od-confirm-payment = Confirm Payment
+      |adm-od-confirm-payment = Mark Paid
+      |adm-od-mark-unpaid = Mark Unpaid
+      |adm-od-payment-card = Payment Status (Independent of Production)
+      |adm-od-payment-b2b-hint = Production can proceed before payment is settled (e.g. B2B Net Invoice).
+      |adm-od-priority-deadline = Priority & Target Deadline
+      |adm-od-mixed-speeds = Mixed production speeds across lines — order deadline reflects the fastest item.
       |adm-od-accept = Accept Order
       |adm-od-resume = Resume from Hold
       |adm-od-stage-inprod = Mark In Progress
@@ -100,14 +109,18 @@ object AdminTranslations:
       |adm-od-cancel-reason-placeholder = Cancellation reason...
       |adm-od-cancel = Cancel Order
       |adm-od-customer-card = Customer & Delivery
-      |adm-od-lines-card = Frozen Order Lines & Specifications
+      |adm-od-lines-card = Order Lines & Technical Specifications
+      |adm-od-line-breakdown = Price Breakdown
+      |adm-od-line-edit = Edit Line
+      |adm-od-line-spec-note = Additional Specification Note
       |adm-od-totals-card = Commercial Summary
       |adm-od-artwork-card = Artwork & Preflight Review
       |adm-od-artwork-empty = No artwork files attached to this order yet.
       |adm-od-artwork-approve = Approve Artwork
-      |adm-od-artwork-override = Approve (Override)
-      |adm-od-artwork-request-changes = Request Changes
-      |adm-od-artwork-changes-placeholder = Describe required artwork fixes...
+      |adm-od-artwork-override = Approve with Warning
+      |adm-od-artwork-request-changes = Request Re-upload
+      |adm-od-artwork-reject = Reject Artwork
+      |adm-od-artwork-changes-placeholder = Describe required artwork fixes (DPI, bleed, color profile)...
       |adm-od-notes-card = Internal Staff Notes
       |adm-od-notes-empty = No internal staff notes yet.
       |adm-od-notes-placeholder = Write an internal note visible only to staff...
@@ -121,8 +134,8 @@ object AdminTranslations:
       |adm-od-customer-note = Customer Note
       |
       |# Catalog Manager
-      |adm-cat-title = Catalog & Capabilities Manager
-      |adm-cat-subtitle = Manage product categories, substrates, finishes, printing methods, compatibility rules, and storefront showcase listings.
+      |adm-cat-title = Catalog & Capabilities Inspector
+      |adm-cat-subtitle = Browse product categories, substrates, finishes, printing methods, compatibility rules, and showcase listings.
       |adm-cat-tab-categories = Categories
       |adm-cat-tab-materials = Materials
       |adm-cat-tab-finishes = Finishes
@@ -141,6 +154,7 @@ object AdminTranslations:
       |adm-cat-cancel = Cancel
       |adm-cat-version = Catalog v{ $version }
       |adm-cat-ruleset-version = Ruleset v{ $version }
+      |adm-cat-inspect-note = Click any row to expand full technical attributes and configuration details. Catalog authoring is planned for a dedicated phase.
       |
       |# Pricing & Margin Manager
       |adm-pri-title = Pricing, Promos & Margin Analysis
@@ -161,16 +175,26 @@ object AdminTranslations:
       |adm-pri-promo-create = Create Promo Code
       |adm-pri-promo-activate = Activate
       |adm-pri-promo-deactivate = Pause
+      |adm-pri-promo-filter-lifecycle = Lifecycle
+      |adm-pri-promo-active = Active
+      |adm-pri-promo-expired = Expired
+      |adm-pri-promo-exhausted = Exhausted
+      |adm-pri-promo-inactive = Inactive
       |adm-pri-agr-create = Save Agreement
+      |adm-pri-agr-edit-global = Update Global Terms
+      |adm-pri-agr-scoped-readonly = Category, Material & Finish Overrides (View Only)
       |adm-pri-cost-save = Update Overhead Factor
       |
       |# Customer Manager
       |adm-cust-title = Customer Accounts & B2B Approvals
-      |adm-cust-subtitle = Approve pending B2B registrations, manage pricing tiers, Net-Invoice credit limits, and account notes.
-      |adm-cust-search-placeholder = Search name, email, company, or IČO...
+      |adm-cust-subtitle = Inspect accounts, edit profiles & contact persons, review custom pricing agreements, audit trail, and order history.
+      |adm-cust-search-placeholder = Search name, email, company, IČO, or contact person...
       |adm-cust-filter-all = All
+      |adm-cust-filter-status = Status
+      |adm-cust-filter-tier = Tier
       |adm-cust-register-new = + Register Customer
       |adm-cust-approve = Approve Account
+      |adm-cust-edit-profile = Edit Profile & Contacts
       |adm-cust-suspend = Suspend
       |adm-cust-deactivate = Deactivate
       |adm-cust-tier-label = Pricing Tier
@@ -178,10 +202,15 @@ object AdminTranslations:
       |adm-cust-terms-prepaid = Prepaid Only
       |adm-cust-terms-net = Net Invoice Credit
       |adm-cust-save-terms = Save Payment Terms
+      |adm-cust-contacts-title = Contact Persons
+      |adm-cust-add-contact = + Add Contact Person
+      |adm-cust-main-contact = Primary Contact
       |adm-cust-notes-title = Internal Account Notes
       |adm-cust-orders-title = Order History
-      |adm-cust-agreements-title = Price Agreements
-      |adm-cust-select-hint = Select a customer on the left to inspect profile, credit terms, orders, and notes.
+      |adm-cust-agreements-title = Customer Pricing & Agreements
+      |adm-cust-edit-in-pricing = Edit in Pricing →
+      |adm-cust-audit-title = Audit Trail
+      |adm-cust-select-hint = Click any customer row to expand profile, contacts, custom pricing, audit trail, and orders.
       |
       |# Staff & Store Settings
       |adm-set-title = Staff Directory & Store Settings
@@ -256,20 +285,29 @@ object AdminTranslations:
       |adm-orders-subtitle = Kontrolujte příchozí objednávky, potvrzujte platby, přijímejte zakázky a posouvejte manuální stavy.
       |adm-orders-search-placeholder = Hledat číslo objednávky, zákazníka, firmu nebo e-mail...
       |adm-orders-filter-all = Všechny
+      |adm-orders-filter-status = Stav příjmu
+      |adm-orders-filter-payment = Stav platby
+      |adm-orders-filter-priority = Priorita
       |adm-orders-col-number = Číslo obj.
       |adm-orders-col-customer = Zákazník
-      |adm-orders-col-status = Stav
+      |adm-orders-col-priority = Priorita a termín
+      |adm-orders-col-status = Stav příjmu
       |adm-orders-col-payment = Platba
       |adm-orders-col-items = Položky
       |adm-orders-col-total = Celkem
       |adm-orders-col-placed = Vytvořeno
-      |adm-orders-open = Otevřít
-      |adm-orders-empty = Aktuálnímu filtru neodpovídají žádné objednávky.
+      |adm-orders-open = Otevřít detail →
+      |adm-orders-empty = Aktuálním filtrům neodpovídají žádné objednávky.
       |
       |adm-od-back = ← Zpět na frontu
       |adm-od-actions-title = Akce příjmu a posun stavu
       |adm-od-action-note-placeholder = Volitelná interní poznámka k přechodu stavu...
-      |adm-od-confirm-payment = Potvrdit platbu
+      |adm-od-confirm-payment = Označit jako zaplaceno
+      |adm-od-mark-unpaid = Označit jako nezaplaceno
+      |adm-od-payment-card = Stav platby (nezávisle na výrobě)
+      |adm-od-payment-b2b-hint = Výroba může pokračovat i před uhrazením faktury (např. B2B se splatností).
+      |adm-od-priority-deadline = Priorita a cílový termín
+      |adm-od-mixed-speeds = Smíšené rychlosti výroby u položek — termín objednávky odpovídá nejrychlejší položce.
       |adm-od-accept = Přijmout objednávku
       |adm-od-resume = Obnovit z pozastavení
       |adm-od-stage-inprod = Označit: Ve výrobě
@@ -282,13 +320,17 @@ object AdminTranslations:
       |adm-od-cancel = Zrušit objednávku
       |adm-od-customer-card = Zákazník a doručení
       |adm-od-lines-card = Položky objednávky a technická specifikace
+      |adm-od-line-breakdown = Rozpis ceny
+      |adm-od-line-edit = Upravit položku
+      |adm-od-line-spec-note = Doplňující textová specifikace
       |adm-od-totals-card = Obchodní souhrn
       |adm-od-artwork-card = Tisková data a Preflight
       |adm-od-artwork-empty = K této objednávce zatím nejsou přiložena žádná tisková data.
       |adm-od-artwork-approve = Schválit data
-      |adm-od-artwork-override = Schválit (s výjimkou)
-      |adm-od-artwork-request-changes = Vyžádat opravu
-      |adm-od-artwork-changes-placeholder = Popište požadované opravy tiskových dat...
+      |adm-od-artwork-override = Schválit s upozorněním
+      |adm-od-artwork-request-changes = Vyžádat nové nahrání
+      |adm-od-artwork-reject = Zamítnout data
+      |adm-od-artwork-changes-placeholder = Popište požadované opravy tiskových dat (DPI, spadávka, barevný profil)...
       |adm-od-notes-card = Interní poznámky zaměstnanců
       |adm-od-notes-empty = Zatím žádné interní poznámky.
       |adm-od-notes-placeholder = Napište interní poznámku viditelnou pouze pro tým...
@@ -302,8 +344,8 @@ object AdminTranslations:
       |adm-od-customer-note = Poznámka zákazníka
       |
       |# Správa katalogu
-      |adm-cat-title = Správa katalogu a možností výroby
-      |adm-cat-subtitle = Spravujte produktové kategorie, materiály, zušlechtění, tiskové technologie, pravidla a výlohu e-shopu.
+      |adm-cat-title = Přehled katalogu a možností výroby
+      |adm-cat-subtitle = Prohlížejte produktové kategorie, materiály, zušlechtění, tiskové technologie, pravidla a výlohu e-shopu.
       |adm-cat-tab-categories = Kategorie
       |adm-cat-tab-materials = Materiály
       |adm-cat-tab-finishes = Zušlechtění
@@ -322,6 +364,7 @@ object AdminTranslations:
       |adm-cat-cancel = Zrušit
       |adm-cat-version = Katalog v{ $version }
       |adm-cat-ruleset-version = Pravidla v{ $version }
+      |adm-cat-inspect-note = Kliknutím na řádek zobrazíte kompletní technické parametry. Editor katalogu je plánován v samostatné fázi.
       |
       |# Ceníky a simulátor marže
       |adm-pri-title = Ceníky, slevové kódy a analýza marže
@@ -342,16 +385,26 @@ object AdminTranslations:
       |adm-pri-promo-create = Vytvořit slevový kód
       |adm-pri-promo-activate = Aktivovat
       |adm-pri-promo-deactivate = Pozastavit
+      |adm-pri-promo-filter-lifecycle = Stav kódu
+      |adm-pri-promo-active = Aktivní
+      |adm-pri-promo-expired = Expirované
+      |adm-pri-promo-exhausted = Vyčerpané
+      |adm-pri-promo-inactive = Neaktivní
       |adm-pri-agr-create = Uložit smlouvu
+      |adm-pri-agr-edit-global = Uložit globální podmínky
+      |adm-pri-agr-scoped-readonly = Slevy na kategorie, materiály a zušlechtění (pouze pro čtení)
       |adm-pri-cost-save = Uložit režijní koeficient
       |
       |# Správa zákazníků
       |adm-cust-title = Zákaznické účty a schvalování B2B
-      |adm-cust-subtitle = Schvalujte B2B registrace, spravujte cenové hladiny, fakturační limity a interní poznámky.
-      |adm-cust-search-placeholder = Hledat jméno, e-mail, firmu nebo IČO...
+      |adm-cust-subtitle = Spravujte účty, upravujte údaje a kontaktní osoby, zobrazujte cenové smlouvy, auditní historii a objednávky.
+      |adm-cust-search-placeholder = Hledat jméno, e-mail, firmu, IČO nebo kontaktní osobu...
       |adm-cust-filter-all = Všichni
+      |adm-cust-filter-status = Stav účtu
+      |adm-cust-filter-tier = Cenová hladina
       |adm-cust-register-new = + Registrovat zákazníka
       |adm-cust-approve = Schválit účet
+      |adm-cust-edit-profile = Upravit profil a kontakty
       |adm-cust-suspend = Pozastavit
       |adm-cust-deactivate = Deaktivovat
       |adm-cust-tier-label = Cenová hladina
@@ -359,10 +412,15 @@ object AdminTranslations:
       |adm-cust-terms-prepaid = Pouze platba předem
       |adm-cust-terms-net = Faktura se splatností
       |adm-cust-save-terms = Uložit platební podmínky
+      |adm-cust-contacts-title = Kontaktní osoby
+      |adm-cust-add-contact = + Přidat kontaktní osobu
+      |adm-cust-main-contact = Hlavní kontakt
       |adm-cust-notes-title = Interní poznámky k účtu
       |adm-cust-orders-title = Historie objednávek
-      |adm-cust-agreements-title = Cenové smlouvy
-      |adm-cust-select-hint = Vyberte zákazníka vlevo pro detail účtu, platební podmínky, objednávky a poznámky.
+      |adm-cust-agreements-title = Zákaznické ceny a smlouvy
+      |adm-cust-edit-in-pricing = Upravit v Cenících →
+      |adm-cust-audit-title = Auditní záznamy
+      |adm-cust-select-hint = Kliknutím na zákazníka zobrazíte profil, kontakty, individuální ceny, audit a objednávky.
       |
       |# Zaměstnanci a nastavení obchodu
       |adm-set-title = Zaměstnanci a nastavení obchodu

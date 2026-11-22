@@ -211,17 +211,121 @@ object BackofficeUiSpec extends ZIOSpecDefault:
             _       <- I18n.let(i18n.handle)(boState.navigate(AdminRoute.StaffAndSettings))
             setHtml <- renderHtml(boUi, i18n)
           yield assertTrue(
-            catHtml.contains("Catalog &amp; Capabilities Manager"),
+            catHtml.contains("Catalog &amp; Capabilities Inspector"),
+            catHtml.contains("mp-tabs"),
+            catHtml.contains("mp-dt-table"),
             !catHtml.contains("‹") && !catHtml.contains("›"),
             priHtml.contains("Margin Simulator"),
+            priHtml.contains("mp-tabs"),
             !priHtml.contains("‹") && !priHtml.contains("›"),
             simRes.exists(_.quote.grossTotal.value > 0),
             simRes.exists(_.margin.productionCostNet.value > 0),
             custHtml.contains("Customer Accounts &amp; B2B Approvals"),
+            custHtml.contains("mp-dt-table"),
             !custHtml.contains("‹") && !custHtml.contains("›"),
             setHtml.contains("Staff Directory &amp; Store Settings"),
+            setHtml.contains("mp-tabs"),
             setHtml.contains("admin@printshop.cz"),
             !setHtml.contains("‹") && !setHtml.contains("›"),
+          )
+        }
+      },
+      test("Phase 2B refinements: Order Intake DataTable split filters, priority/deadline, payment toggle, line edit, artwork review, customer contacts/audit & pricing deep-link") {
+        withSharedClients { (_, boClient) =>
+          for
+            i18n    <- AdminTranslations.init(Language.En)
+            boState <- BackofficeState.init(boClient, i18n)
+            _       <- I18n.let(i18n.handle)(boState.login("admin@printshop.cz", "staff1234"))
+            boUi    <- I18n.let(i18n.handle)(BackofficeApp.render(boState))
+
+            // 1. Order Intake queue renders DataTable + split filter sections + Priority & Deadline
+            _          <- I18n.let(i18n.handle)(boState.navigate(AdminRoute.Orders))
+            ordersHtml <- renderHtml(boUi, i18n)
+
+            // 2. Order Detail: decoupled payment toggle, line edit + plain-text spec note, artwork review
+            ordId      = OrderId.unsafe("ord-seed-0901")
+            _         <- I18n.let(i18n.handle)(boState.navigate(AdminRoute.OrderDetail(ordId)))
+            ord1Opt   <- boState.selectedOrder.get
+            ord1      <- Abort.get(ord1Opt.toRight("Expected seeded order ord-seed-0901"))
+            _         <- I18n.let(i18n.handle)(boState.markOrderPaymentStatus(ordId, PaymentStatus.Confirmed, "Wire settled"))
+            _         <- I18n.let(i18n.handle)(
+                           boState.editOrderLine(
+                             EditOrderLineCmd(
+                               orderId = ordId,
+                               lineId = ord1.lines.head.lineId,
+                               speed = Some(ManufacturingSpeed.Express),
+                               specNote = Some(Some("Pantone 286 C spot check")),
+                             )
+                           )
+                         )
+            ord2Opt   <- boState.selectedOrder.get
+            arts      <- boState.selectedOrderArtwork.get
+            _         <- arts.headOption match
+                           case Some(a) => I18n.let(i18n.handle)(boState.requestArtworkChanges(ordId, a.id, "Increase to 300 DPI"))
+                           case None    => Kyo.unit
+            detEnHtml <- renderHtml(boUi, i18n)
+
+            // 3. Customers: multi-contact profile edit + Employee audit entry + Pricing deep-link
+            _         <- I18n.let(i18n.handle)(boState.navigate(AdminRoute.Customers))
+            custs     <- boState.customers.get
+            b2bCust   <- Abort.get(
+                           custs.find(c => c.segment == CustomerSegment.Business || c.segment == CustomerSegment.Agency)
+                             .toRight("Expected B2B customer")
+                         )
+            extraCp    = ContactPerson(
+                           firstName = NonEmptyString.unsafe("Klára"),
+                           lastName = NonEmptyString.unsafe("Benešová"),
+                           email = EmailAddress.unsafe("klara@printshoppro.cz"),
+                           roleTitle = Some(NonEmptyString.unsafe("Production Coordinator")),
+                         )
+            _         <- I18n.let(i18n.handle)(
+                           boState.updateCustomerProfile(
+                             UpdateCustomerProfileCmd(
+                               id = b2bCust.id,
+                               company = b2bCust.company,
+                               contact = b2bCust.contact,
+                               billingAddress = b2bCust.billingAddress,
+                               tags = b2bCust.tags,
+                               additionalContacts = Some(b2bCust.additionalContacts :+ extraCp),
+                             )
+                           )
+                         )
+            custs2    <- boState.customers.get
+            updatedB2b = custs2.find(_.id == b2bCust.id)
+            _         <- I18n.let(i18n.handle)(boState.openCustomerPricing(b2bCust.id))
+            focusTab  <- boState.pricingFocusTab.get
+            focusCid  <- boState.pricingFocusCustomerId.get
+            agrHtml   <- renderHtml(boUi, i18n)
+
+            // 4. Switch to Promo Codes & Pricelists tabs + CS localization check
+            _         <- boState.pricingFocusTab.set("promos")
+            promoHtml <- renderHtml(boUi, i18n)
+            _         <- boState.pricingFocusTab.set("pricelists")
+            plHtml    <- renderHtml(boUi, i18n)
+            _         <- I18n.let(i18n.handle)(boState.setLanguage(Language.Cs))
+            plCsHtml  <- renderHtml(boUi, i18n)
+          yield assertTrue(
+            ordersHtml.contains("mp-dt-table"),
+            ordersHtml.contains("Intake Status"),
+            ordersHtml.contains("Payment Status"),
+            ordersHtml.contains("Priority"),
+            !ordersHtml.contains("‹") && !ordersHtml.contains("›"),
+            ord2Opt.exists(_.isPaid),
+            ord2Opt.exists(_.priority == OrderPriority.Urgent),
+            ord2Opt.exists(_.lines.head.specNote.contains("Pantone 286 C spot check")),
+            detEnHtml.contains("mp-action-bar"),
+            detEnHtml.contains("Pantone 286 C spot check"),
+            detEnHtml.contains("Artwork &amp; Preflight Review"),
+            !detEnHtml.contains("‹") && !detEnHtml.contains("›"),
+            updatedB2b.exists(_.additionalContacts.exists(_.email.value == "klara@printshoppro.cz")),
+            updatedB2b.exists(_.auditLog.exists(e => e.action == "ProfileUpdated" && e.actor.isInstanceOf[CustomerActor.Employee])),
+            focusTab == "agreements",
+            focusCid.contains(b2bCust.id),
+            agrHtml.contains("mp-dt-table"),
+            promoHtml.contains("Lifecycle"),
+            plHtml.contains("mp-dt-table"),
+            !plHtml.contains("‹") && !plHtml.contains("›"),
+            !plCsHtml.contains("‹") && !plCsHtml.contains("›"),
           )
         }
       },

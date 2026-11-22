@@ -39,6 +39,13 @@ trait BackofficeClient:
       note: Option[NonEmptyString] = None,
   ): OrderView < (Abort[BackofficeError] & Async)
   def confirmOrderPayment(token: SessionToken, orderId: OrderId, note: Option[NonEmptyString] = None): OrderView < (Abort[BackofficeError] & Async)
+  def markOrderPaymentStatus(
+      token: SessionToken,
+      orderId: OrderId,
+      status: PaymentStatus,
+      note: Option[NonEmptyString] = None,
+  ): OrderView < (Abort[BackofficeError] & Async)
+  def editOrderLine(token: SessionToken, cmd: EditOrderLineCmd): OrderView < (Abort[BackofficeError] & Async)
   def cancelOrder(token: SessionToken, orderId: OrderId, reason: NonEmptyString): OrderView < (Abort[BackofficeError] & Async)
   def addOrderInternalNote(token: SessionToken, orderId: OrderId, text: NonEmptyString): OrderView < (Abort[BackofficeError] & Async)
 
@@ -53,6 +60,11 @@ trait BackofficeClient:
       token: SessionToken,
       artworkId: ArtworkId,
       notes: NonEmptyString,
+  ): ArtworkSubmissionView < (Abort[BackofficeError] & Async)
+  def rejectArtwork(
+      token: SessionToken,
+      artworkId: ArtworkId,
+      reason: NonEmptyString,
   ): ArtworkSubmissionView < (Abort[BackofficeError] & Async)
 
   // ── 5. Catalog Management ──────────────────────────────────────────────────
@@ -155,6 +167,12 @@ object BackofficeClient:
     override def confirmOrderPayment(token: SessionToken, orderId: OrderId, note: Option[NonEmptyString]) =
       liftIO(facade.confirmOrderPayment(token, orderId, note))
 
+    override def markOrderPaymentStatus(token: SessionToken, orderId: OrderId, status: PaymentStatus, note: Option[NonEmptyString]) =
+      liftIO(facade.markOrderPaymentStatus(token, orderId, status, note))
+
+    override def editOrderLine(token: SessionToken, cmd: EditOrderLineCmd) =
+      liftIO(facade.editOrderLine(token, cmd))
+
     override def cancelOrder(token: SessionToken, orderId: OrderId, reason: NonEmptyString) =
       liftIO(facade.cancelOrder(token, orderId, reason))
 
@@ -169,6 +187,9 @@ object BackofficeClient:
 
     override def requestArtworkChanges(token: SessionToken, artworkId: ArtworkId, notes: NonEmptyString) =
       liftIO(facade.requestArtworkChanges(token, artworkId, notes))
+
+    override def rejectArtwork(token: SessionToken, artworkId: ArtworkId, reason: NonEmptyString) =
+      liftIO(facade.rejectArtwork(token, artworkId, reason))
 
     override def getCatalog(token: SessionToken) =
       liftIO(facade.getCatalog(token))

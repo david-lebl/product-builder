@@ -57,6 +57,8 @@ final class StorefrontState(
     val configurator: ConfiguratorController,
     val presetQuotes: SignalRef[Map[PresetId, QuoteStatus]],
     val orders: SignalRef[List[OrderView]],
+    val orderArtworks: SignalRef[Map[OrderId, List[mpbuilder.artwork.ArtworkSubmissionView]]],
+    val paymentModal: SignalRef[Option[(OrderView, PaymentInstructions)]],
     val cartError: SignalRef[Option[String]],
     val checkoutSession: SignalRef[Option[CheckoutSession]],
     private val idSeq: SignalRef[Long],
@@ -199,6 +201,8 @@ final class StorefrontState(
       _ <- authSession.set(None)
       _ <- currentCustomer.set(None)
       _ <- orders.set(Nil)
+      _ <- orderArtworks.set(Map.empty)
+      _ <- paymentModal.set(None)
       _ <- configurator.recompute
       r <- route.get
       _ <- r match
@@ -212,12 +216,100 @@ final class StorefrontState(
     for
       sessOpt <- authSession.get
       _ <- sessOpt match
-             case None => orders.set(Nil)
+             case None =>
+               orders.set(Nil).andThen(orderArtworks.set(Map.empty))
              case Some(sess) =>
                Abort.run[StorefrontError](client.listMyOrders(sess.token)).flatMap {
-                 case Result.Success(list) => orders.set(list)
-                 case _                    => orders.set(Nil)
+                 case Result.Success(list) =>
+                   for
+                     _ <- orders.set(list)
+                     artPairs <- Kyo.foreach(list) { ord =>
+                                   Abort.run[StorefrontError](client.listOrderArtworks(sess.token, ord.id)).map {
+                                     case Result.Success(arts) => ord.id -> arts
+                                     case _                    => ord.id -> Nil
+                                   }
+                                 }
+                     _ <- orderArtworks.set(artPairs.toMap)
+                   yield ()
+                 case _ =>
+                   orders.set(Nil).andThen(orderArtworks.set(Map.empty))
                }
+    yield ()
+
+  def updateMyAddresses(
+      billingAddress: Address,
+      shippingAddresses: List[Address],
+      defaultShippingIndex: Option[Int],
+  ): Unit < Async =
+    for
+      sessOpt <- authSession.get
+      _ <- sessOpt match
+             case None => Kyo.unit
+             case Some(sess) =>
+               Abort
+                 .run[StorefrontError](
+                   client.updateMyAddresses(sess.token, billingAddress, shippingAddresses, defaultShippingIndex)
+                 )
+                 .flatMap {
+                   case Result.Success(updated) =>
+                     for
+                       _   <- currentCustomer.set(Some(updated))
+                       msg <- i18n.now("account-addresses-saved")
+                       _   <- showToast(msg)
+                     yield ()
+                   case Result.Failure(err) => showToast(err.message)
+                   case Result.Panic(ex)    => showToast(Option(ex.getMessage).getOrElse("Error"))
+                 }
+    yield ()
+
+  def openPaymentInstructions(order: OrderView): Unit < Async =
+    for
+      sessOpt <- authSession.get
+      _ <- sessOpt match
+             case None => Kyo.unit
+             case Some(sess) =>
+               Abort.run[StorefrontError](client.getOrderPaymentInstructions(sess.token, order.id)).flatMap {
+                 case Result.Success(instr) => paymentModal.set(Some((order, instr)))
+                 case Result.Failure(err)   => showToast(err.message)
+                 case Result.Panic(ex)      => showToast(Option(ex.getMessage).getOrElse("Error"))
+               }
+    yield ()
+
+  def closePaymentInstructions: Unit < Sync =
+    paymentModal.set(None)
+
+  def reuploadOrderArtwork(
+      orderId: OrderId,
+      artworkId: ArtworkId,
+      fileName: NonEmptyString,
+  ): Unit < Async =
+    for
+      sessOpt <- authSession.get
+      _ <- sessOpt match
+             case None => Kyo.unit
+             case Some(sess) =>
+               Abort
+                 .run[StorefrontError](
+                   client.reuploadOrderArtwork(
+                     sessionToken = sess.token,
+                     orderId = orderId,
+                     artworkId = artworkId,
+                     fileName = fileName,
+                     resolutionDpi = 300,
+                     bleedMm = 3,
+                     colorSpace = mpbuilder.artwork.ColorSpace.CMYK,
+                   )
+                 )
+                 .flatMap {
+                   case Result.Success(_) =>
+                     for
+                       _   <- refreshOrders
+                       msg <- i18n.now("account-artwork-reuploaded")
+                       _   <- showToast(msg)
+                     yield ()
+                   case Result.Failure(err) => showToast(err.message)
+                   case Result.Panic(ex)    => showToast(Option(ex.getMessage).getOrElse("Error"))
+                 }
     yield ()
 
   // ── Shopping Cart ──────────────────────────────────────────────────────────
@@ -395,6 +487,8 @@ object StorefrontState:
       toastRef    <- Signal.initRef[Option[String]](None)
       presetsRef  <- Signal.initRef(Map.empty[PresetId, QuoteStatus])
       ordersRef   <- Signal.initRef(List.empty[OrderView])
+      artRef      <- Signal.initRef(Map.empty[OrderId, List[mpbuilder.artwork.ArtworkSubmissionView]])
+      payModalRef <- Signal.initRef[Option[(OrderView, PaymentInstructions)]](None)
       cartErrRef  <- Signal.initRef[Option[String]](None)
       checkoutRef <- Signal.initRef[Option[CheckoutSession]](None)
       seqRef      <- Signal.initRef(0L)
@@ -431,6 +525,8 @@ object StorefrontState:
                        ctrl,
                        presetsRef,
                        ordersRef,
+                       artRef,
+                       payModalRef,
                        cartErrRef,
                        checkoutRef,
                        seqRef,

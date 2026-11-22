@@ -5,15 +5,72 @@ import kyo.UI.*
 import kyo.Style.*
 import mpbuilder.admin.state.{AdminRoute, BackofficeState}
 import mpbuilder.customers.*
+import mpbuilder.pricing.AgreementTarget
 import mpbuilder.shared.*
 import mpbuilder.ui.components.CommonComponents.*
+import mpbuilder.ui.components.{ConfirmDialog, DataTable}
 import mpbuilder.ui.theme.AppTheme.*
 import mpbuilder.ui.theme.AppTheme.Palette.*
 
-/** Customer Accounts & B2B Approval Manager:
-  * Filter/search directory, Register new customer, Approve/Suspend/Deactivate, Tier & NetInvoice credit editor, notes & orders.
+/** Customer Accounts & B2B Approvals Manager:
+  *   - Universal DataTable (search, Status & Tier filters, sorting, pagination, expandable inline detail)
+  *   - Corner Action Bar with ConfirmDialog for Approve, Suspend (with reason), Deactivate (with reason)
+  *   - Editable profile & multiple contact persons for Business/Agency accounts (audited with employee actor)
+  *   - Color-coded CustomerTier badges, Payment Terms editor, Custom Pricing section ("Edit in Pricing →"),
+  *     Order History, Internal Notes, and full Audit Trail
   */
 object CustomerManagerView:
+
+  private final case class ContactDraft(
+      firstName: String,
+      lastName: String,
+      email: String,
+      phone: String,
+      roleTitle: String,
+  )
+
+  private final case class EditDraft(
+      customerId: CustomerId,
+      companyName: String,
+      regNo: String,
+      vatId: String,
+      mainFirst: String,
+      mainLast: String,
+      mainEmail: String,
+      mainPhone: String,
+      mainRole: String,
+      additionalContacts: List[ContactDraft],
+      street: String,
+      city: String,
+      postalCode: String,
+      countryCode: String,
+  )
+
+  private object EditDraft:
+    def fromCustomer(c: CustomerView): EditDraft = EditDraft(
+      customerId = c.id,
+      companyName = c.company.map(_.legalName.value).getOrElse(""),
+      regNo = c.company.map(_.registrationNumber.value).getOrElse(""),
+      vatId = c.company.flatMap(_.vatId.map(_.value)).getOrElse(""),
+      mainFirst = c.contact.firstName.value,
+      mainLast = c.contact.lastName.value,
+      mainEmail = c.contact.email.value,
+      mainPhone = c.contact.phone.map(_.value).getOrElse(""),
+      mainRole = c.contact.roleTitle.map(_.value).getOrElse(""),
+      additionalContacts = c.additionalContacts.map { cp =>
+        ContactDraft(
+          firstName = cp.firstName.value,
+          lastName = cp.lastName.value,
+          email = cp.email.value,
+          phone = cp.phone.map(_.value).getOrElse(""),
+          roleTitle = cp.roleTitle.map(_.value).getOrElse(""),
+        )
+      },
+      street = c.billingAddress.street.value,
+      city = c.billingAddress.city.value,
+      postalCode = c.billingAddress.postalCode.value,
+      countryCode = c.billingAddress.countryCode.value,
+    )
 
   private def statusTone(s: CustomerStatus): BadgeTone = s match
     case CustomerStatus.Active          => BadgeTone.Emerald
@@ -21,8 +78,15 @@ object CustomerManagerView:
     case CustomerStatus.Suspended       => BadgeTone.Rose
     case CustomerStatus.Deactivated     => BadgeTone.Neutral
 
+  private def actorLabel(a: CustomerActor, lang: Language): String = a match
+    case CustomerActor.System                    => "System"
+    case CustomerActor.CustomerSelf(_, name)     => s"${if lang == Language.Cs then "Zákazník" else "Customer"}: ${name.value}"
+    case CustomerActor.Employee(id, nameOpt)     => s"${if lang == Language.Cs then "Zaměstnanec" else "Staff"}: ${nameOpt.map(_.value).getOrElse(id.value)}"
+
   def render(state: BackofficeState): UI < Sync =
     for
+      tableState     <- DataTable.makeState[CustomerId](defaultSort = Some(DataTable.SortSpec("name", ascending = true)), pageSize = 10)
+      dialog         <- ConfirmDialog.Handle.make
       showRegRef     <- Signal.initRef(false)
       regIdRef       <- Signal.initRef("")
       regSegRef      <- Signal.initRef[CustomerSegment](CustomerSegment.Business)
@@ -32,374 +96,746 @@ object CustomerManagerView:
       regLastRef     <- Signal.initRef("")
       regEmailRef    <- Signal.initRef("")
       regCityRef     <- Signal.initRef("Prague")
+      // Inline profile & contacts editor
+      editDraftRef   <- Signal.initRef[Option[EditDraft]](None)
       // Detail controls
-      reasonRef      <- Signal.initRef("")
       dueDaysRef     <- Signal.initRef("14")
       creditLimitRef <- Signal.initRef("100000")
       noteRef        <- Signal.initRef("")
     yield
       val combined =
         state.customers
-          .combineLatest(state.customerStatusFilter)
-          .combineLatest(state.customerSearch)
-          .combineLatest(state.selectedCustomer)
+          .combineLatest(state.agreements)
+          .combineLatest(state.orders)
           .combineLatest(showRegRef)
+          .combineLatest(editDraftRef)
           .combineLatest(state.auth)
           .combineLatest(state.i18n.language)
 
-      combined.render { case ((((((allCustomers, statusFilt), queryRaw), detailOpt), showReg), authOpt), lang) =>
-        val canManage = state.canManage(authOpt)
-        val q         = queryRaw.trim.toLowerCase
-        val filtered = allCustomers.filter { c =>
-          val okStatus = statusFilt.forall(_ == c.status)
-          val okQuery =
-            if q.isEmpty then true
-            else
-              c.contact.firstName.value.toLowerCase.contains(q) ||
-                c.contact.lastName.value.toLowerCase.contains(q) ||
-                c.contact.email.value.toLowerCase.contains(q) ||
-                c.company.exists(_.legalName.value.toLowerCase.contains(q)) ||
-                c.company.exists(_.registrationNumber.value.toLowerCase.contains(q))
-          okStatus && okQuery
-        }
+      UI.fragment(
+        combined.render { case ((((((allCustomers, allAgreements), allOrders), showReg), editDraftOpt), authOpt), lang) =>
+          val isCs      = lang == Language.Cs
+          val canManage = state.canManage(authOpt)
 
-        div.style(stackMd.width(100.pct))(
-          // Header
-          div.style(rowBetween.flexWrap(FlexWrap.wrap))(
-            div.style(stackXs)(
-              h1(state.i18n.t("adm-cust-title")).style(Style.margin(0.px).fontSize(24.px).fontWeight(FontWeight.w800).color(ink)),
-              p(state.i18n.t("adm-cust-subtitle")).style(mutedText.margin(0.px)),
+          val columns: List[DataTable.Column[CustomerView]] = List(
+            DataTable.Column[CustomerView](
+              id = "name",
+              header = if isCs then "Zákazník / Firma" else "Customer / Company",
+              sortKey = Some(c => c.company.map(_.legalName.value).getOrElse(s"${c.contact.firstName.value} ${c.contact.lastName.value}")),
+              cell = c =>
+                val title = c.company.map(_.legalName.value).getOrElse(s"${c.contact.firstName.value} ${c.contact.lastName.value}")
+                div.style(Style.column.gap(2.px))(
+                  span(title).style(Style.fontWeight(FontWeight.w700).color(ink)),
+                  span(s"${c.contact.firstName.value} ${c.contact.lastName.value} · ${c.contact.email.value}").style(smallText),
+                ),
             ),
-            if canManage then
-              button
-                .cssClass("mp-btn mp-btn-primary mp-btn-sm")
-                .onClick(showRegRef.updateAndGet(!_).unit)(state.i18n.t("adm-cust-register-new"))
-            else UI.empty,
-          ),
-
-          // Register New Customer collapsible panel
-          if canManage && showReg then
-            div.cssClass("mp-card")(
-              h2(state.i18n.t("adm-cust-register-new")).style(sectionTitle.margin(0.px)),
-              div.cssClass("mp-field-row")(
-                div.cssClass("mp-field")(
-                  label("Segment").style(labelStyle),
-                  regSegRef.render { seg =>
-                    select.cssClass("mp-input").value(seg.toString).onChange(v => CustomerSegment.values.find(_.toString == v).map(regSegRef.set).getOrElse(Kyo.unit))(
-                      CustomerSegment.values.toList.map(s => option.value(s.toString)(s.toString))*
-                    )
-                  },
-                ),
-                div.cssClass("mp-field")(
-                  label("Customer ID (optional)").style(labelStyle),
-                  input.cssClass("mp-input").placeholder("cust-new-studio").value(regIdRef).onInput(v => regIdRef.set(v)),
-                ),
-                div.cssClass("mp-field")(
-                  label("Company Name (B2B)").style(labelStyle),
-                  input.cssClass("mp-input").placeholder("Atelier Nova s.r.o.").value(regCompRef).onInput(v => regCompRef.set(v)),
-                ),
-                div.cssClass("mp-field")(
-                  label("Reg No / IČO").style(labelStyle),
-                  input.cssClass("mp-input").placeholder("28991122").value(regIcoRef).onInput(v => regIcoRef.set(v)),
-                ),
-              ),
-              div.cssClass("mp-field-row")(
-                div.cssClass("mp-field")(
-                  label("First Name").style(labelStyle),
-                  input.cssClass("mp-input").placeholder("Tereza").value(regFirstRef).onInput(v => regFirstRef.set(v)),
-                ),
-                div.cssClass("mp-field")(
-                  label("Last Name").style(labelStyle),
-                  input.cssClass("mp-input").placeholder("Králová").value(regLastRef).onInput(v => regLastRef.set(v)),
-                ),
-                div.cssClass("mp-field")(
-                  label("Email").style(labelStyle),
-                  emailInput.cssClass("mp-input").placeholder("tereza@ateliernova.cz").value(regEmailRef).onInput(v => regEmailRef.set(v)),
-                ),
-                div.cssClass("mp-field")(
-                  label("City").style(labelStyle),
-                  input.cssClass("mp-input").value(regCityRef).onInput(v => regCityRef.set(v)),
-                ),
-              ),
-              div.style(rowSm)(
-                button
-                  .cssClass("mp-btn mp-btn-primary mp-btn-sm")
-                  .onClick {
-                    for
-                      seg   <- regSegRef.get
-                      idRaw <- regIdRef.get.map(_.trim)
-                      comp  <- regCompRef.get.map(_.trim)
-                      ico   <- regIcoRef.get.map(_.trim)
-                      fn    <- regFirstRef.get.map(_.trim)
-                      ln    <- regLastRef.get.map(_.trim)
-                      em    <- regEmailRef.get.map(_.trim)
-                      city  <- regCityRef.get.map(_.trim)
-                      _ <- (EmailAddress(em).toEither, NonEmptyString(fn).toEither, NonEmptyString(ln).toEither) match
-                             case (Left(e), _, _) => state.errorBanner.set(Some(e.mkString(", ")))
-                             case (_, Left(e), _) => state.errorBanner.set(Some(e.mkString(", ")))
-                             case (_, _, Left(e)) => state.errorBanner.set(Some(e.mkString(", ")))
-                             case (Right(email), Right(first), Right(last)) =>
-                               val cid = CustomerId.unsafe(if idRaw.nonEmpty then idRaw else s"cust-${em.takeWhile(_ != '@').toLowerCase}")
-                               val compOpt =
-                                 if comp.nonEmpty then
-                                   Some(
-                                     CompanyProfile(
-                                       legalName = NonEmptyString.unsafe(comp),
-                                       registrationNumber = NonEmptyString.unsafe(if ico.nonEmpty then ico else "00000000"),
-                                       vatId = None,
-                                       contactPerson = NonEmptyString.unsafe(s"${first.value} ${last.value}"),
-                                     )
-                                   )
-                                 else None
-                               val cmd = RegisterCustomerCmd(
-                                 id = cid,
-                                 segment = seg,
-                                 company = compOpt,
-                                 contact = ContactPerson(first, last, email),
-                                 billingAddress = Address(
-                                   street = NonEmptyString.unsafe("Main Street 1"),
-                                   city = NonEmptyString.unsafe(if city.nonEmpty then city else "Prague"),
-                                   postalCode = NonEmptyString.unsafe("110 00"),
-                                    countryCode = NonEmptyString.unsafe("CZ"),
-                                 ),
-                               )
-                               state.registerCustomer(cmd).andThen(showRegRef.set(false)).andThen(regEmailRef.set(""))
-                    yield ()
-                  }(state.i18n.t("adm-cat-save")),
-                button.cssClass("mp-btn mp-btn-ghost mp-btn-sm").onClick(showRegRef.set(false))(state.i18n.t("adm-cat-cancel")),
-              ),
-            )
-          else UI.empty,
-
-          // Filter & Search bar
-          div.cssClass("mp-card").style(Style.gap(10.px).padding(14.px))(
-            searchInput
-              .cssClass("mp-input")
-              .placeholder(if lang == Language.Cs then "Hledat jméno, e-mail, firmu nebo IČO..." else "Search name, email, company, or IČO...")
-              .value(state.customerSearch)
-              .onInput(v => state.customerSearch.set(v)),
-            div.style(rowWrap)(
-              button
-                .cssClass(if statusFilt.isEmpty then "mp-pill-active" else "mp-pill")
-                .onClick(state.customerStatusFilter.set(None))(
-                  span(state.i18n.t("adm-cust-filter-all")),
-                  span(s"(${allCustomers.size})").style(Style.fontSize(11.px).opacity(0.85)),
-                ),
-              UI.fragment(
-                CustomerStatus.values.toList.map { st =>
-                  val cnt = allCustomers.count(_.status == st)
-                  button
-                    .cssClass(if statusFilt.contains(st) then "mp-pill-active" else "mp-pill")
-                    .onClick(state.customerStatusFilter.set(Some(st)))(
-                      span(st.toString),
-                      span(s"($cnt)").style(Style.fontSize(11.px).opacity(0.85)),
-                    )
-                }*
-              ),
+            DataTable.Column[CustomerView](
+              id = "segment",
+              header = if isCs then "Segment" else "Segment",
+              sortKey = Some(_.segment.toString),
+              cell = c => badge(c.segment.toString, BadgeTone.Neutral),
             ),
-          ),
-
-          // Master-Detail split
-          div.cssClass("mp-admin-split")(
-            // Left: Customer List
-            div.cssClass("mp-admin-split-left")(
-              div.style(stackSm)(
-                filtered.map { c =>
-                  val isSelected = detailOpt.exists(_.customer.id == c.id)
-                  val title = c.company.map(_.legalName.value).getOrElse(s"${c.contact.firstName.value} ${c.contact.lastName.value}")
-                  button
-                    .cssClass(if isSelected then "mp-option-card-active" else "mp-option-card")
-                    .style(Style.flexBasis(Length.Auto).width(100.pct))
-                    .onClick(state.selectCustomer(c.id))(
-                      div.style(rowBetween.width(100.pct))(
-                        span(title).style(Style.fontWeight(FontWeight.w700).fontSize(14.px).color(ink)),
-                        badge(c.status.toString, statusTone(c.status)),
-                      ),
-                      div.style(rowWrap)(
-                        badge(c.segment.toString, BadgeTone.Neutral),
-                        badge(tierLabel(c.tier), BadgeTone.Brand),
-                        c.paymentTerms match
-                          case PaymentTerms.NetInvoice(d, _) => badge(s"Net-$d", BadgeTone.Emerald)
-                          case PaymentTerms.PrepaidOnly      => badge("Prepaid", BadgeTone.Neutral),
-                      ),
-                      span(s"${c.contact.firstName.value} ${c.contact.lastName.value} · ${c.contact.email.value}").style(smallText),
-                    )
-                }*
-              ),
+            DataTable.Column[CustomerView](
+              id = "tier",
+              header = if isCs then "Cenová hladina" else "Tier",
+              numericSortKey = Some(c => BigDecimal(c.tier.ordinal)),
+              cell = c => tierBadge(c.tier),
             ),
+            DataTable.Column[CustomerView](
+              id = "status",
+              header = if isCs then "Stav" else "Status",
+              sortKey = Some(_.status.toString),
+              cell = c => badge(c.status.toString, statusTone(c.status)),
+            ),
+            DataTable.Column[CustomerView](
+              id = "terms",
+              header = if isCs then "Platební podmínky" else "Payment Terms",
+              sortKey = Some(_.paymentTerms.toString),
+              cell = c =>
+                c.paymentTerms match
+                  case PaymentTerms.NetInvoice(d, lim) =>
+                    div.style(Style.column.gap(1.px))(
+                      badge(s"Net-$d", BadgeTone.Emerald),
+                      span(formatMoney(lim.amount, lim.currency, lang)).style(smallText),
+                    )
+                  case PaymentTerms.PrepaidOnly =>
+                    badge(if isCs then "Předem" else "Prepaid", BadgeTone.Neutral),
+            ),
+            DataTable.Column[CustomerView](
+              id = "contacts",
+              header = if isCs then "Kontakty" else "Contacts",
+              numericSortKey = Some(c => BigDecimal(1 + c.additionalContacts.size)),
+              alignRight = true,
+              cell = c => span(s"${1 + c.additionalContacts.size}").style(Style.fontWeight(FontWeight.w700).color(inkSecondary)),
+            ),
+          )
 
-            // Right: Selected Customer Detail
-            div.cssClass("mp-admin-split-right")(
-              detailOpt match
-                case None =>
-                  div.cssClass("mp-card").style(Style.align(Alignment.center).padding(48.px, 24.px))(
-                    p(state.i18n.t("adm-cust-select-hint")).style(mutedText.margin(0.px)),
-                  )
+          val filterGroups: List[DataTable.FilterGroup[CustomerView]] = List(
+            DataTable.FilterGroup[CustomerView](
+              id = "status",
+              label = if isCs then "Stav účtu" else "Status",
+              options = CustomerStatus.values.toList.map { st =>
+                DataTable.FilterOption[CustomerView](st.toString, st.toString, _.status == st)
+              },
+            ),
+            DataTable.FilterGroup[CustomerView](
+              id = "tier",
+              label = if isCs then "Cenová hladina" else "Tier",
+              options = CustomerTier.values.toList.map { t =>
+                DataTable.FilterOption[CustomerView](t.toString, t.toString, _.tier == t)
+              },
+            ),
+          )
 
-                case Some(detail) =>
-                  val c = detail.customer
-                  div.style(stackMd)(
-                    // Profile & Status Actions
-                    div.cssClass("mp-card")(
-                      div.style(rowBetween.flexWrap(FlexWrap.wrap))(
-                        div.style(stackXs)(
-                          h2(c.company.map(_.legalName.value).getOrElse(s"${c.contact.firstName.value} ${c.contact.lastName.value}"))
-                            .style(sectionTitle.margin(0.px)),
-                          span(s"${c.contact.firstName.value} ${c.contact.lastName.value} · ${c.contact.email.value}").style(smallText),
-                        ),
-                        div.style(rowXs)(
-                          badge(c.status.toString, statusTone(c.status)),
-                          badge(tierLabel(c.tier), BadgeTone.Brand),
-                        ),
-                      ),
-                      c.company match
-                        case Some(comp) =>
-                          div.style(smallText)(
-                            s"IČO: ${comp.registrationNumber.value}${comp.vatId.map(v => s" · DIČ: ${v.value}").getOrElse("")}"
+          def renderCustomerDetail(c: CustomerView): UI =
+            val customerOrders = allOrders.filter(_.customer.customerId.contains(c.id))
+            val matchingAgreements = allAgreements.filter { a =>
+              a.target match
+                case AgreementTarget.SpecificCustomer(cid) => cid == c.id
+                case AgreementTarget.TierDefault(t)        => t == c.tier
+            }
+            val isEditing = editDraftOpt.exists(_.customerId == c.id)
+            val title     = c.company.map(_.legalName.value).getOrElse(s"${c.contact.firstName.value} ${c.contact.lastName.value}")
+
+            div.style(stackMd)(
+              // Top bar with customer headline & corner action bar
+              div.style(rowBetween.flexWrap(FlexWrap.wrap))(
+                div.style(stackXs)(
+                  div.style(rowSm.flexWrap(FlexWrap.wrap))(
+                    h2(title).style(sectionTitle.margin(0.px)),
+                    badge(c.id.value, BadgeTone.Neutral),
+                    badge(c.status.toString, statusTone(c.status)),
+                    tierBadge(c.tier),
+                  ),
+                  c.company match
+                    case Some(comp) =>
+                      span(
+                        s"IČO: ${comp.registrationNumber.value}${comp.vatId.map(v => s" · DIČ: ${v.value}").getOrElse("")}",
+                      ).style(smallText)
+                    case None => UI.empty,
+                ),
+                // Action Bar (Approve, Edit, Suspend, Deactivate via ConfirmDialog)
+                if canManage then
+                  div.cssClass("mp-action-bar")(
+                    if c.status == CustomerStatus.PendingApproval || c.status == CustomerStatus.Suspended then
+                      button
+                        .cssClass("mp-btn mp-btn-primary mp-btn-sm")
+                        .onClick(
+                          dialog.open(
+                            ConfirmDialog.Config(
+                              title = if isCs then "Schválit zákaznický účet" else "Approve Customer Account",
+                              message =
+                                if isCs then s"Opravdu chcete schválit a aktivovat účet „$title“?"
+                                else s"Approve and activate customer account “$title”?",
+                              confirmLabel = if isCs then "Schválit" else "Approve",
+                              cancelLabel = if isCs then "Zrušit" else "Cancel",
+                              tone = ConfirmDialog.DialogTone.Primary,
+                              onConfirm = _ => state.approveCustomer(c.id),
+                            )
                           )
-                        case None => UI.empty,
-                      div.style(smallText)(
-                        s"${c.billingAddress.street.value}, ${c.billingAddress.postalCode.value} ${c.billingAddress.city.value}, ${c.billingAddress.countryCode.value}"
+                        )(state.i18n.t("adm-cust-approve"))
+                    else UI.empty,
+                    button
+                      .cssClass(if isEditing then "mp-btn mp-btn-primary mp-btn-sm" else "mp-btn mp-btn-secondary mp-btn-sm")
+                      .onClick(
+                        if isEditing then editDraftRef.set(None)
+                        else editDraftRef.set(Some(EditDraft.fromCustomer(c)))
+                      )(state.i18n.t("adm-cust-edit-profile")),
+                    if c.status == CustomerStatus.Active then
+                      button
+                        .cssClass("mp-btn mp-btn-secondary mp-btn-sm")
+                        .style(Style.bg(amberSoft).color(amberInk).border(1.px, amberBorder))
+                        .onClick(
+                          dialog.open(
+                            ConfirmDialog.Config(
+                              title = if isCs then "Pozastavit zákaznický účet" else "Suspend Customer Account",
+                              message =
+                                if isCs then s"Pozastavit účet „$title“? Tato akce bude zaznamenána v auditu."
+                                else s"Suspend account “$title”? This action will be recorded in the audit log.",
+                              confirmLabel = if isCs then "Pozastavit účet" else "Suspend Account",
+                              cancelLabel = if isCs then "Zrušit" else "Cancel",
+                              tone = ConfirmDialog.DialogTone.Amber,
+                              reasonLabel = Some(if isCs then "Důvod pozastavení" else "Suspension reason"),
+                              reasonPlaceholder = Some(if isCs then "Např. neuhrazené faktury po splatnosti..." else "e.g. Overdue invoices..."),
+                              reasonRequired = true,
+                              reasonErrorText = if isCs then "Zadejte důvod pozastavení." else "Please enter a suspension reason.",
+                              onConfirm = reasonOpt => state.suspendCustomer(c.id, reasonOpt.getOrElse("")),
+                            )
+                          )
+                        )(state.i18n.t("adm-cust-suspend"))
+                    else UI.empty,
+                    if c.status != CustomerStatus.Deactivated then
+                      button
+                        .cssClass("mp-btn mp-btn-danger mp-btn-sm")
+                        .onClick(
+                          dialog.open(
+                            ConfirmDialog.Config(
+                              title = if isCs then "Deaktivovat zákaznický účet" else "Deactivate Customer Account",
+                              message =
+                                if isCs then s"Trvale deaktivovat účet „$title“? Tato akce je nevratná a bude zaznamenána v auditu."
+                                else s"Permanently deactivate account “$title”? This will be recorded in the audit log.",
+                              confirmLabel = if isCs then "Deaktivovat" else "Deactivate",
+                              cancelLabel = if isCs then "Zrušit" else "Cancel",
+                              tone = ConfirmDialog.DialogTone.Danger,
+                              reasonLabel = Some(if isCs then "Důvod deaktivace" else "Deactivation reason"),
+                              reasonPlaceholder = Some(if isCs then "Např. ukončení spolupráce..." else "e.g. Account closed at customer request..."),
+                              reasonRequired = true,
+                              reasonErrorText = if isCs then "Zadejte důvod deaktivace." else "Please enter a deactivation reason.",
+                              onConfirm = reasonOpt => state.deactivateCustomer(c.id, reasonOpt.getOrElse("")),
+                            )
+                          )
+                        )(state.i18n.t("adm-cust-deactivate"))
+                    else UI.empty,
+                  )
+                else UI.empty,
+              ),
+
+              // Inline Profile & Multi-Contact Editor (when toggled)
+              if isEditing && canManage then
+                editDraftOpt match
+                  case Some(draft) => renderProfileEditor(state, c, draft, editDraftRef, isCs)
+                  case None        => UI.empty
+              else UI.empty,
+
+              // Two-column detail body
+              div.cssClass("mp-admin-split")(
+                // Left column: Contacts, Addresses, Tier & Payment Terms
+                div.style(stackMd)(
+                  // Contact Persons Card
+                  div.cssClass("mp-card")(
+                    div.style(rowBetween)(
+                      h3(state.i18n.t("adm-cust-contacts-title")).style(sectionTitle.margin(0.px)),
+                      badge(s"${1 + c.additionalContacts.size}", BadgeTone.Neutral),
+                    ),
+                    // Primary contact
+                    div.style(Style.column.gap(3.px).padding(10.px, 12.px).rounded(10.px).bg(brandSoft).border(1.px, brandBorder))(
+                      div.style(rowBetween.flexWrap(FlexWrap.wrap))(
+                        span(s"${c.contact.firstName.value} ${c.contact.lastName.value}").style(Style.fontWeight(FontWeight.w700).color(ink)),
+                        div.style(rowXs)(
+                          badge(if isCs then "Hlavní kontakt" else "Primary Contact", BadgeTone.Brand),
+                          c.contact.roleTitle.map(r => badge(r.value, BadgeTone.Neutral)).getOrElse(UI.empty),
+                        ),
                       ),
-
-                      // Lifecycle Actions (Manager/Admin)
-                      if canManage then
-                        div.style(Style.column.gap(10.px).padding(10.px, 0.px, 0.px, 0.px).borderTop(1.px, Palette.border))(
-                          div.style(rowWrap)(
-                            if c.status == CustomerStatus.PendingApproval || c.status == CustomerStatus.Suspended then
-                              button
-                                .cssClass("mp-btn mp-btn-primary mp-btn-sm")
-                                .onClick(state.approveCustomer(c.id))(state.i18n.t("adm-cust-approve"))
-                            else UI.empty,
-                          ),
-                          div.style(rowSm)(
-                            input
-                              .cssClass("mp-input")
-                              .placeholder(if lang == Language.Cs then "Důvod pozastavení / deaktivace..." else "Reason for suspend / deactivate...")
-                              .value(reasonRef)
-                              .onInput(v => reasonRef.set(v)),
-                            if c.status == CustomerStatus.Active then
-                              button
-                                .cssClass("mp-btn mp-btn-secondary mp-btn-sm")
-                                .style(Style.flexShrink(0.0))
-                                .onClick(reasonRef.get.flatMap(r => state.suspendCustomer(c.id, r).andThen(reasonRef.set(""))))(state.i18n.t("adm-cust-suspend"))
-                            else UI.empty,
-                            if c.status != CustomerStatus.Deactivated then
-                              button
-                                .cssClass("mp-btn mp-btn-danger mp-btn-sm")
-                                .style(Style.flexShrink(0.0))
-                                .onClick(reasonRef.get.flatMap(r => state.deactivateCustomer(c.id, r).andThen(reasonRef.set(""))))(state.i18n.t("adm-cust-deactivate"))
-                            else UI.empty,
-                          ),
-
-                          // Tier selector
-                          div.style(stackXs)(
-                            label(state.i18n.t("adm-cust-tier-label")).style(labelStyle),
-                            div.style(rowWrap)(
-                              CustomerTier.values.toList.map { t =>
-                                button
-                                  .cssClass(if c.tier == t then "mp-pill-active" else "mp-pill")
-                                  .onClick(state.changeCustomerTier(c.id, t))(t.toString)
-                              }*
+                      span(s"${c.contact.email.value}${c.contact.phone.map(p => s" · ${p.value}").getOrElse("")}").style(smallText),
+                    ),
+                    // Additional contacts (B2B / Agency)
+                    if c.additionalContacts.nonEmpty then
+                      div.style(stackXs)(
+                        c.additionalContacts.map { cp =>
+                          div.style(Style.column.gap(3.px).padding(10.px, 12.px).rounded(10.px).bg(surfaceAlt).border(1.px, Palette.border))(
+                            div.style(rowBetween.flexWrap(FlexWrap.wrap))(
+                              span(s"${cp.firstName.value} ${cp.lastName.value}").style(Style.fontWeight(FontWeight.w700).color(ink)),
+                              cp.roleTitle.map(r => badge(r.value, BadgeTone.Neutral)).getOrElse(UI.empty),
                             ),
-                          ),
-
-                          // Payment Terms editor
-                          div.style(stackXs)(
-                            label(state.i18n.t("adm-cust-terms-label")).style(labelStyle),
-                            div.style(smallText)(
-                              c.paymentTerms match
-                                case PaymentTerms.PrepaidOnly => "Current: Prepaid Only"
-                                case PaymentTerms.NetInvoice(d, lim) =>
-                                  s"Current: Net-$d · Limit ${formatMoney(lim.amount, lim.currency, lang)}"
-                            ),
-                            div.cssClass("mp-field-row")(
-                              div.cssClass("mp-field")(
-                                label("Due Days").style(smallText),
-                                numberInput.cssClass("mp-input").value(dueDaysRef).onInput(v => dueDaysRef.set(v)),
-                              ),
-                              div.cssClass("mp-field")(
-                                label("Credit Limit (CZK)").style(smallText),
-                                numberInput.cssClass("mp-input").value(creditLimitRef).onInput(v => creditLimitRef.set(v)),
-                              ),
-                            ),
-                            div.style(rowWrap)(
-                              button
-                                .cssClass("mp-btn mp-btn-primary mp-btn-sm")
-                                .onClick {
-                                  for
-                                    dStr <- dueDaysRef.get.map(_.trim)
-                                    lStr <- creditLimitRef.get.map(_.trim)
-                                    days  = dStr.toIntOption.filter(_ > 0).getOrElse(14)
-                                    lim   = scala.util.Try(BigDecimal(lStr)).getOrElse(BigDecimal(100000)).max(BigDecimal(1))
-                                    _    <- state.grantCustomerPaymentTerms(c.id, PaymentTerms.NetInvoice(days, Price(Money(lim), Currency.CZK)))
-                                  yield ()
-                                }(state.i18n.t("adm-cust-save-terms")),
-                              button
-                                .cssClass("mp-btn mp-btn-secondary mp-btn-sm")
-                                .onClick(state.grantCustomerPaymentTerms(c.id, PaymentTerms.PrepaidOnly))(state.i18n.t("adm-cust-terms-prepaid")),
-                            ),
+                            span(s"${cp.email.value}${cp.phone.map(p => s" · ${p.value}").getOrElse("")}").style(smallText),
+                          )
+                        }*
+                      )
+                    else UI.empty,
+                    // Billing & Shipping Addresses
+                    div.style(Style.column.gap(4.px).padding(8.px, 0.px, 0.px, 0.px).borderTop(1.px, Palette.border))(
+                      span(if isCs then "Fakturační adresa" else "Billing Address").style(labelStyle),
+                      span(
+                        s"${c.billingAddress.street.value}, ${c.billingAddress.postalCode.value} ${c.billingAddress.city.value}, ${c.billingAddress.countryCode.value}",
+                      ).style(smallText),
+                      if c.shippingAddresses.nonEmpty then
+                        div.style(stackXs)(
+                          span(if isCs then "Doručovací adresy" else "Delivery Addresses").style(labelStyle),
+                          UI.fragment(
+                            c.shippingAddresses.zipWithIndex.map { case (addr, idx) =>
+                              val isDef = c.defaultShippingIndex.getOrElse(0) == idx
+                              div.style(rowXs.flexWrap(FlexWrap.wrap))(
+                                span(s"${addr.street.value}, ${addr.postalCode.value} ${addr.city.value}, ${addr.countryCode.value}").style(smallText),
+                                if isDef then badge(if isCs then "Výchozí" else "Default", BadgeTone.Emerald) else UI.empty,
+                              )
+                            }*
                           ),
                         )
                       else UI.empty,
                     ),
+                  ),
 
-                    // Notes card
+                  // Tier & Payment Terms (Manager/Admin)
+                  if canManage then
                     div.cssClass("mp-card")(
-                      h3(state.i18n.t("adm-cust-notes-title")).style(sectionTitle.margin(0.px)),
                       div.style(stackXs)(
-                        if c.notes.isEmpty then span(if lang == Language.Cs then "Žádné poznámky." else "No account notes yet.").style(smallText)
-                        else
-                          UI.fragment(
-                            c.notes.map { n =>
-                              div.style(Style.column.gap(2.px).padding(8.px, 10.px).rounded(8.px).bg(surfaceAlt))(
-                                span(n.text.value).style(Style.fontSize(13.px).color(ink)),
-                                span(formatInstant(n.createdAt)).style(smallText),
+                        label(state.i18n.t("adm-cust-tier-label")).style(labelStyle),
+                        div.style(rowWrap)(
+                          CustomerTier.values.toList.map { t =>
+                            button
+                              .cssClass(if c.tier == t then "mp-pill-active" else "mp-pill")
+                              .onClick(state.changeCustomerTier(c.id, t))(
+                                tierBadge(t, compact = true),
                               )
-                            }*
-                          )
-                      ),
-                      div.style(rowSm)(
-                        input
-                          .cssClass("mp-input")
-                          .placeholder(if lang == Language.Cs then "Přidat poznámku k účtu..." else "Add internal account note...")
-                          .value(noteRef)
-                          .onInput(v => noteRef.set(v)),
-                        button
-                          .cssClass("mp-btn mp-btn-secondary mp-btn-sm")
-                          .style(Style.flexShrink(0.0))
-                          .onClick(noteRef.get.flatMap(t => state.addCustomerNote(c.id, t).andThen(noteRef.set(""))))(state.i18n.t("adm-od-notes-add")),
-                      ),
-                    ),
-
-                    // Customer Orders
-                    div.cssClass("mp-card")(
-                      div.style(rowBetween)(
-                        h3(state.i18n.t("adm-cust-orders-title")).style(sectionTitle.margin(0.px)),
-                        badge(detail.orders.size.toString, BadgeTone.Neutral),
-                      ),
-                      if detail.orders.isEmpty then
-                        span(if lang == Language.Cs then "Zákazník zatím nemá žádné objednávky." else "No orders placed by this customer yet.").style(smallText)
-                      else
-                        div.style(stackXs)(
-                          detail.orders.map { o =>
-                            div.style(rowBetween.flexWrap(FlexWrap.wrap).padding(10.px, 12.px).rounded(10.px).bg(surfaceAlt).border(1.px, Palette.border))(
-                              div.style(rowSm)(
-                                span(o.orderNumber.value).style(Style.fontWeight(FontWeight.w700).color(ink)),
-                                badge(orderStatusLabel(o.status, lang), orderStatusTone(o.status)),
-                              ),
-                              div.style(rowSm)(
-                                span(formatMoney(o.totals.grandTotalGross, o.totals.currency, lang)).style(Style.fontWeight(FontWeight.w700)),
-                                button
-                                  .cssClass("mp-btn mp-btn-secondary mp-btn-sm")
-                                  .onClick(state.navigate(AdminRoute.OrderDetail(o.id)))(state.i18n.t("adm-orders-open")),
-                              ),
-                            )
                           }*
                         ),
+                      ),
+                      div.style(Style.column.gap(8.px).padding(10.px, 0.px, 0.px, 0.px).borderTop(1.px, Palette.border))(
+                        label(state.i18n.t("adm-cust-terms-label")).style(labelStyle),
+                        div.style(smallText)(
+                          c.paymentTerms match
+                            case PaymentTerms.PrepaidOnly =>
+                              if isCs then "Aktuálně: Pouze platba předem" else "Current: Prepaid Only"
+                            case PaymentTerms.NetInvoice(d, lim) =>
+                              s"${if isCs then "Aktuálně" else "Current"}: Net-$d · ${if isCs then "Limit" else "Limit"} ${formatMoney(lim.amount, lim.currency, lang)}"
+                        ),
+                        div.cssClass("mp-field-row")(
+                          div.cssClass("mp-field")(
+                            label(if isCs then "Splatnost (dny)" else "Due Days").style(smallText),
+                            numberInput.cssClass("mp-input").value(dueDaysRef).onInput(v => dueDaysRef.set(v)),
+                          ),
+                          div.cssClass("mp-field")(
+                            label(if isCs then "Kreditní limit (CZK)" else "Credit Limit (CZK)").style(smallText),
+                            numberInput.cssClass("mp-input").value(creditLimitRef).onInput(v => creditLimitRef.set(v)),
+                          ),
+                        ),
+                        div.style(rowWrap)(
+                          button
+                            .cssClass("mp-btn mp-btn-primary mp-btn-sm")
+                            .onClick {
+                              for
+                                dStr <- dueDaysRef.get.map(_.trim)
+                                lStr <- creditLimitRef.get.map(_.trim)
+                                days  = dStr.toIntOption.filter(_ > 0).getOrElse(14)
+                                lim   = scala.util.Try(BigDecimal(lStr)).getOrElse(BigDecimal(100000)).max(BigDecimal(1))
+                                _    <- state.grantCustomerPaymentTerms(c.id, PaymentTerms.NetInvoice(days, Price(Money(lim), Currency.CZK)))
+                              yield ()
+                            }(state.i18n.t("adm-cust-save-terms")),
+                          button
+                            .cssClass("mp-btn mp-btn-secondary mp-btn-sm")
+                            .onClick(state.grantCustomerPaymentTerms(c.id, PaymentTerms.PrepaidOnly))(state.i18n.t("adm-cust-terms-prepaid")),
+                        ),
+                      ),
+                    )
+                  else UI.empty,
+
+                  // Internal Account Notes
+                  div.cssClass("mp-card")(
+                    h3(state.i18n.t("adm-cust-notes-title")).style(sectionTitle.margin(0.px)),
+                    div.style(stackXs)(
+                      if c.notes.isEmpty then span(if isCs then "Žádné poznámky." else "No account notes yet.").style(smallText)
+                      else
+                        UI.fragment(
+                          c.notes.map { n =>
+                            div.style(Style.column.gap(2.px).padding(8.px, 10.px).rounded(8.px).bg(surfaceAlt))(
+                              span(n.text.value).style(Style.fontSize(13.px).color(ink)),
+                              span(formatInstant(n.createdAt)).style(smallText),
+                            )
+                          }*
+                        )
                     ),
-                  )
+                    div.style(rowSm)(
+                      input
+                        .cssClass("mp-input")
+                        .placeholder(if isCs then "Přidat poznámku k účtu..." else "Add internal account note...")
+                        .value(noteRef)
+                        .onInput(v => noteRef.set(v)),
+                      button
+                        .cssClass("mp-btn mp-btn-secondary mp-btn-sm")
+                        .style(Style.flexShrink(0.0))
+                        .onClick(noteRef.get.flatMap(t => state.addCustomerNote(c.id, t).andThen(noteRef.set(""))))(state.i18n.t("adm-od-notes-add")),
+                    ),
+                  ),
+                ),
+
+                // Right column: Custom Pricing & Agreements, Order History, Audit Trail
+                div.style(stackMd)(
+                  // Customer Pricing & Agreements Card
+                  div.cssClass("mp-card")(
+                    div.style(rowBetween.flexWrap(FlexWrap.wrap))(
+                      h3(state.i18n.t("adm-cust-agreements-title")).style(sectionTitle.margin(0.px)),
+                      button
+                        .cssClass("mp-btn mp-btn-secondary mp-btn-sm")
+                        .onClick(state.openCustomerPricing(c.id))(state.i18n.t("adm-cust-edit-in-pricing")),
+                    ),
+                    if matchingAgreements.isEmpty then
+                      span(
+                        if isCs then "Používá standardní veřejný ceník (žádná aktivní smlouva)."
+                        else "Uses standard public pricelist (no active custom agreement).",
+                      ).style(smallText)
+                    else
+                      div.style(stackXs)(
+                        matchingAgreements.map { a =>
+                          val scopeBadge = a.target match
+                            case AgreementTarget.SpecificCustomer(_) =>
+                              badge(if isCs then "Individuální smlouva" else "Customer-Specific", BadgeTone.Brand)
+                            case AgreementTarget.TierDefault(t) =>
+                              tierBadge(t, compact = true)
+                          val overrideCount = a.categoryDiscounts.size + a.materialDiscounts.size + a.finishDiscounts.size
+                          div.style(Style.column.gap(4.px).padding(10.px, 12.px).rounded(10.px).bg(surfaceAlt).border(1.px, Palette.border))(
+                            div.style(rowWrap)(
+                              scopeBadge,
+                              badge(a.currency.toString, BadgeTone.Neutral),
+                              a.globalDiscount.map(d => badge(s"${d.value}% ${if isCs then "globální sleva" else "global off"}", BadgeTone.Emerald)).getOrElse(UI.empty),
+                              a.minimumOrderOverride.map(m => badge(s"Min ${formatMoney(m, a.currency, lang)}", BadgeTone.Amber)).getOrElse(UI.empty),
+                              if overrideCount > 0 then badge(s"$overrideCount ${if isCs then "položkových slev" else "scoped overrides"}", BadgeTone.Neutral) else UI.empty,
+                            ),
+                          )
+                        }*
+                      ),
+                  ),
+
+                  // Order History Card
+                  div.cssClass("mp-card")(
+                    div.style(rowBetween)(
+                      h3(state.i18n.t("adm-cust-orders-title")).style(sectionTitle.margin(0.px)),
+                      badge(customerOrders.size.toString, BadgeTone.Neutral),
+                    ),
+                    if customerOrders.isEmpty then
+                      span(if isCs then "Zákazník zatím nemá žádné objednávky." else "No orders placed by this customer yet.").style(smallText)
+                    else
+                      div.style(stackXs)(
+                        customerOrders.map { o =>
+                          div.style(rowBetween.flexWrap(FlexWrap.wrap).padding(10.px, 12.px).rounded(10.px).bg(surfaceAlt).border(1.px, Palette.border))(
+                            div.style(rowSm.flexWrap(FlexWrap.wrap))(
+                              span(o.orderNumber.value).style(Style.fontWeight(FontWeight.w700).color(ink)),
+                              badge(orderStatusLabel(o.status, lang), orderStatusTone(o.status)),
+                              paymentStatusBadge(o.payment.status, lang),
+                            ),
+                            div.style(rowSm)(
+                              span(formatMoney(o.totals.grandTotalGross, o.totals.currency, lang)).style(Style.fontWeight(FontWeight.w700)),
+                              button
+                                .cssClass("mp-btn mp-btn-secondary mp-btn-sm")
+                                .onClick(state.navigate(AdminRoute.OrderDetail(o.id)))(state.i18n.t("adm-orders-open")),
+                            ),
+                          )
+                        }*
+                      ),
+                  ),
+
+                  // Audit Trail Card
+                  div.cssClass("mp-card")(
+                    div.style(rowBetween)(
+                      h3(state.i18n.t("adm-cust-audit-title")).style(sectionTitle.margin(0.px)),
+                      badge(c.auditLog.size.toString, BadgeTone.Neutral),
+                    ),
+                    if c.auditLog.isEmpty then
+                      span(if isCs then "Žádné auditní záznamy." else "No audit entries recorded.").style(smallText)
+                    else
+                      div.cssClass("mp-timeline")(
+                        c.auditLog.reverse.map { entry =>
+                          div.style(stackXs)(
+                            div.style(rowSm.flexWrap(FlexWrap.wrap))(
+                              badge(entry.action, BadgeTone.Neutral),
+                              span(entry.summary).style(Style.fontSize(12.px).fontWeight(FontWeight.w600).color(ink)),
+                            ),
+                            span(s"${actorLabel(entry.actor, lang)} · ${formatInstant(entry.occurredAt)}").style(smallText),
+                          )
+                        }*
+                      ),
+                  ),
+                ),
+              ),
+            )
+
+          div.style(stackMd.width(100.pct))(
+            // Header
+            div.style(rowBetween.flexWrap(FlexWrap.wrap))(
+              div.style(stackXs)(
+                h1(state.i18n.t("adm-cust-title")).style(Style.margin(0.px).fontSize(24.px).fontWeight(FontWeight.w800).color(ink)),
+                p(state.i18n.t("adm-cust-subtitle")).style(mutedText.margin(0.px)),
+              ),
+              if canManage then
+                button
+                  .cssClass("mp-btn mp-btn-primary mp-btn-sm")
+                  .onClick(showRegRef.updateAndGet(!_).unit)(state.i18n.t("adm-cust-register-new"))
+              else UI.empty,
             ),
+
+            // Register New Customer collapsible panel
+            if canManage && showReg then
+              renderRegisterPanel(state, regIdRef, regSegRef, regCompRef, regIcoRef, regFirstRef, regLastRef, regEmailRef, regCityRef, showRegRef)
+            else UI.empty,
+
+            // Universal DataTable with expandable detail
+            DataTable.render[CustomerView, CustomerId](
+              rows = allCustomers,
+              rowKey = _.id,
+              columns = columns,
+              state = tableState,
+              searchPlaceholder = if isCs then "Hledat jméno, e-mail, firmu, IČO nebo kontaktní osobu..." else "Search name, email, company, IČO, or contact person...",
+              matchesSearch = (c, q) =>
+                c.contact.firstName.value.toLowerCase.contains(q) ||
+                  c.contact.lastName.value.toLowerCase.contains(q) ||
+                  c.contact.email.value.toLowerCase.contains(q) ||
+                  c.id.value.toLowerCase.contains(q) ||
+                  c.company.exists(_.legalName.value.toLowerCase.contains(q)) ||
+                  c.company.exists(_.registrationNumber.value.toLowerCase.contains(q)) ||
+                  c.additionalContacts.exists(ac =>
+                    ac.firstName.value.toLowerCase.contains(q) ||
+                      ac.lastName.value.toLowerCase.contains(q) ||
+                      ac.email.value.toLowerCase.contains(q)
+                  ),
+              filterGroups = filterGroups,
+              renderDetail = Some(renderCustomerDetail),
+              emptyMessage = if isCs then "Aktuálním filtrům neodpovídají žádní zákazníci." else "No customers match the current filters.",
+              lang = lang,
+            ),
+          )
+        },
+        dialog.render,
+      )
+
+  private def renderProfileEditor(
+      state: BackofficeState,
+      c: CustomerView,
+      draft: EditDraft,
+      draftRef: SignalRef[Option[EditDraft]],
+      isCs: Boolean,
+  ): UI =
+    val supportsMultiContacts = c.segment == CustomerSegment.Business || c.segment == CustomerSegment.Agency
+
+    def update(f: EditDraft => EditDraft): Unit < Async =
+      draftRef.set(Some(f(draft)))
+
+    div.cssClass("mp-card").style(Style.border(1.px, brandBorder))(
+      h3(state.i18n.t("adm-cust-edit-profile")).style(sectionTitle.margin(0.px)),
+      if supportsMultiContacts then
+        div.cssClass("mp-field-row")(
+          editField(if isCs then "Název firmy" else "Company Name", draft.companyName, v => update(_.copy(companyName = v))),
+          editField("IČO / Reg. No", draft.regNo, v => update(_.copy(regNo = v))),
+          editField("DIČ / VAT ID", draft.vatId, v => update(_.copy(vatId = v))),
+        )
+      else UI.empty,
+
+      // Main Contact Person
+      span(if isCs then "Hlavní kontaktní osoba" else "Primary Contact Person").style(labelStyle),
+      div.cssClass("mp-field-row")(
+        editField(if isCs then "Jméno" else "First Name", draft.mainFirst, v => update(_.copy(mainFirst = v))),
+        editField(if isCs then "Příjmení" else "Last Name", draft.mainLast, v => update(_.copy(mainLast = v))),
+        editField("Email", draft.mainEmail, v => update(_.copy(mainEmail = v))),
+        editField(if isCs then "Telefon" else "Phone", draft.mainPhone, v => update(_.copy(mainPhone = v))),
+        editField(if isCs then "Pozice / Role" else "Role / Title", draft.mainRole, v => update(_.copy(mainRole = v))),
+      ),
+
+      // Additional Contact Persons (Business / Agency only)
+      if supportsMultiContacts then
+        div.style(stackSm)(
+          div.style(rowBetween)(
+            span(if isCs then "Další kontaktní osoby" else "Additional Contact Persons").style(labelStyle),
+            button
+              .cssClass("mp-btn mp-btn-secondary mp-btn-sm")
+              .onClick(
+                update(d => d.copy(additionalContacts = d.additionalContacts :+ ContactDraft("", "", "", "", "")))
+              )(state.i18n.t("adm-cust-add-contact")),
+          ),
+          UI.fragment(
+            draft.additionalContacts.zipWithIndex.map { case (cp, idx) =>
+              def updateCp(f: ContactDraft => ContactDraft): Unit < Async =
+                update(d => d.copy(additionalContacts = d.additionalContacts.updated(idx, f(cp))))
+              div.style(Style.column.gap(8.px).padding(10.px).rounded(10.px).bg(surfaceAlt).border(1.px, Palette.border))(
+                div.style(rowBetween)(
+                  span(s"#${idx + 1}").style(smallText.fontWeight(FontWeight.w700)),
+                  button
+                    .cssClass("mp-btn mp-btn-danger mp-btn-sm")
+                    .onClick(
+                      update(d => d.copy(additionalContacts = d.additionalContacts.patch(idx, Nil, 1)))
+                    )(state.i18n.t("adm-cat-delete")),
+                ),
+                div.cssClass("mp-field-row")(
+                  editField(if isCs then "Jméno" else "First Name", cp.firstName, v => updateCp(_.copy(firstName = v))),
+                  editField(if isCs then "Příjmení" else "Last Name", cp.lastName, v => updateCp(_.copy(lastName = v))),
+                  editField("Email", cp.email, v => updateCp(_.copy(email = v))),
+                  editField(if isCs then "Telefon" else "Phone", cp.phone, v => updateCp(_.copy(phone = v))),
+                  editField(if isCs then "Role" else "Role", cp.roleTitle, v => updateCp(_.copy(roleTitle = v))),
+                ),
+              )
+            }*
           ),
         )
-      }
+      else UI.empty,
+
+      // Billing Address
+      span(if isCs then "Fakturační adresa" else "Billing Address").style(labelStyle),
+      div.cssClass("mp-field-row")(
+        editField(if isCs then "Ulice" else "Street", draft.street, v => update(_.copy(street = v))),
+        editField(if isCs then "Město" else "City", draft.city, v => update(_.copy(city = v))),
+        editField(if isCs then "PSČ" else "Postal Code", draft.postalCode, v => update(_.copy(postalCode = v))),
+        editField(if isCs then "Země" else "Country", draft.countryCode, v => update(_.copy(countryCode = v))),
+      ),
+
+      div.style(rowSm)(
+        button
+          .cssClass("mp-btn mp-btn-primary mp-btn-sm")
+          .onClick {
+            val validatedMain =
+              (
+                NonEmptyString(draft.mainFirst.trim).toEither,
+                NonEmptyString(draft.mainLast.trim).toEither,
+                EmailAddress(draft.mainEmail.trim).toEither,
+              )
+            validatedMain match
+              case (Left(e), _, _) => state.errorBanner.set(Some(e.mkString(", ")))
+              case (_, Left(e), _) => state.errorBanner.set(Some(e.mkString(", ")))
+              case (_, _, Left(e)) => state.errorBanner.set(Some(e.mkString(", ")))
+              case (Right(fn), Right(ln), Right(em)) =>
+                val mainContact = ContactPerson(
+                  firstName = fn,
+                  lastName = ln,
+                  email = em,
+                  phone = Option.when(draft.mainPhone.trim.nonEmpty)(NonEmptyString.unsafe(draft.mainPhone.trim)),
+                  roleTitle = Option.when(draft.mainRole.trim.nonEmpty)(NonEmptyString.unsafe(draft.mainRole.trim)),
+                )
+                val parsedExtras: Either[String, List[ContactPerson]] =
+                  draft.additionalContacts.foldLeft[Either[String, List[ContactPerson]]](Right(Nil)) { (acc, cp) =>
+                    acc.flatMap { list =>
+                      (NonEmptyString(cp.firstName.trim).toEither, NonEmptyString(cp.lastName.trim).toEither, EmailAddress(cp.email.trim).toEither) match
+                        case (Right(cfn), Right(cln), Right(cem)) =>
+                          Right(
+                            list :+ ContactPerson(
+                              firstName = cfn,
+                              lastName = cln,
+                              email = cem,
+                              phone = Option.when(cp.phone.trim.nonEmpty)(NonEmptyString.unsafe(cp.phone.trim)),
+                              roleTitle = Option.when(cp.roleTitle.trim.nonEmpty)(NonEmptyString.unsafe(cp.roleTitle.trim)),
+                            )
+                          )
+                        case _ =>
+                          Left(if isCs then "Každý další kontakt vyžaduje platné jméno, příjmení a e-mail." else "Every additional contact requires valid first name, last name, and email.")
+                    }
+                  }
+                parsedExtras match
+                  case Left(err) => state.errorBanner.set(Some(err))
+                  case Right(extras) =>
+                    val companyOpt =
+                      if supportsMultiContacts then
+                        Some(
+                          CompanyProfile(
+                            legalName = NonEmptyString.unsafe(if draft.companyName.trim.nonEmpty then draft.companyName.trim else s"${fn.value} ${ln.value}"),
+                            registrationNumber = NonEmptyString.unsafe(if draft.regNo.trim.nonEmpty then draft.regNo.trim else "00000000"),
+                            vatId = Option.when(draft.vatId.trim.nonEmpty)(NonEmptyString.unsafe(draft.vatId.trim)),
+                            contactPerson = NonEmptyString.unsafe(s"${fn.value} ${ln.value}"),
+                          )
+                        )
+                      else None
+                    val billing = Address(
+                      street = NonEmptyString.unsafe(if draft.street.trim.nonEmpty then draft.street.trim else c.billingAddress.street.value),
+                      city = NonEmptyString.unsafe(if draft.city.trim.nonEmpty then draft.city.trim else c.billingAddress.city.value),
+                      postalCode = NonEmptyString.unsafe(if draft.postalCode.trim.nonEmpty then draft.postalCode.trim else c.billingAddress.postalCode.value),
+                      countryCode = NonEmptyString.unsafe(if draft.countryCode.trim.nonEmpty then draft.countryCode.trim else c.billingAddress.countryCode.value),
+                    )
+                    val cmd = UpdateCustomerProfileCmd(
+                      id = c.id,
+                      company = companyOpt,
+                      contact = mainContact,
+                      billingAddress = billing,
+                      tags = c.tags,
+                      additionalContacts = if supportsMultiContacts then Some(extras) else None,
+                    )
+                    state.updateCustomerProfile(cmd).andThen(draftRef.set(None))
+          }(state.i18n.t("adm-cat-save")),
+        button.cssClass("mp-btn mp-btn-ghost mp-btn-sm").onClick(draftRef.set(None))(state.i18n.t("adm-cat-cancel")),
+      ),
+    )
+
+  private def editField(lbl: String, current: String, onChange: String => Unit < Async): UI =
+    div.cssClass("mp-field")(
+      label(lbl).style(smallText.fontWeight(FontWeight.w600)),
+      input.cssClass("mp-input").value(current).onInput(onChange),
+    )
+
+  private def renderRegisterPanel(
+      state: BackofficeState,
+      regIdRef: SignalRef[String],
+      regSegRef: SignalRef[CustomerSegment],
+      regCompRef: SignalRef[String],
+      regIcoRef: SignalRef[String],
+      regFirstRef: SignalRef[String],
+      regLastRef: SignalRef[String],
+      regEmailRef: SignalRef[String],
+      regCityRef: SignalRef[String],
+      showRegRef: SignalRef[Boolean],
+  ): UI =
+    div.cssClass("mp-card")(
+      h2(state.i18n.t("adm-cust-register-new")).style(sectionTitle.margin(0.px)),
+      div.cssClass("mp-field-row")(
+        div.cssClass("mp-field")(
+          label("Segment").style(labelStyle),
+          regSegRef.render { seg =>
+            select
+              .cssClass("mp-input")
+              .value(seg.toString)
+              .onChange(v => CustomerSegment.values.find(_.toString == v).map(regSegRef.set).getOrElse(Kyo.unit))(
+                CustomerSegment.values.toList.map(s => option.value(s.toString)(s.toString))*
+              )
+          },
+        ),
+        div.cssClass("mp-field")(
+          label("Customer ID (optional)").style(labelStyle),
+          input.cssClass("mp-input").placeholder("cust-new-studio").value(regIdRef).onInput(v => regIdRef.set(v)),
+        ),
+        div.cssClass("mp-field")(
+          label("Company Name (B2B)").style(labelStyle),
+          input.cssClass("mp-input").placeholder("Atelier Nova s.r.o.").value(regCompRef).onInput(v => regCompRef.set(v)),
+        ),
+        div.cssClass("mp-field")(
+          label("Reg No / IČO").style(labelStyle),
+          input.cssClass("mp-input").placeholder("28991122").value(regIcoRef).onInput(v => regIcoRef.set(v)),
+        ),
+      ),
+      div.cssClass("mp-field-row")(
+        div.cssClass("mp-field")(
+          label("First Name").style(labelStyle),
+          input.cssClass("mp-input").placeholder("Tereza").value(regFirstRef).onInput(v => regFirstRef.set(v)),
+        ),
+        div.cssClass("mp-field")(
+          label("Last Name").style(labelStyle),
+          input.cssClass("mp-input").placeholder("Králová").value(regLastRef).onInput(v => regLastRef.set(v)),
+        ),
+        div.cssClass("mp-field")(
+          label("Email").style(labelStyle),
+          emailInput.cssClass("mp-input").placeholder("tereza@ateliernova.cz").value(regEmailRef).onInput(v => regEmailRef.set(v)),
+        ),
+        div.cssClass("mp-field")(
+          label("City").style(labelStyle),
+          input.cssClass("mp-input").value(regCityRef).onInput(v => regCityRef.set(v)),
+        ),
+      ),
+      div.style(rowSm)(
+        button
+          .cssClass("mp-btn mp-btn-primary mp-btn-sm")
+          .onClick {
+            for
+              seg   <- regSegRef.get
+              idRaw <- regIdRef.get.map(_.trim)
+              comp  <- regCompRef.get.map(_.trim)
+              ico   <- regIcoRef.get.map(_.trim)
+              fn    <- regFirstRef.get.map(_.trim)
+              ln    <- regLastRef.get.map(_.trim)
+              em    <- regEmailRef.get.map(_.trim)
+              city  <- regCityRef.get.map(_.trim)
+              _ <- (EmailAddress(em).toEither, NonEmptyString(fn).toEither, NonEmptyString(ln).toEither) match
+                     case (Left(e), _, _) => state.errorBanner.set(Some(e.mkString(", ")))
+                     case (_, Left(e), _) => state.errorBanner.set(Some(e.mkString(", ")))
+                     case (_, _, Left(e)) => state.errorBanner.set(Some(e.mkString(", ")))
+                     case (Right(email), Right(first), Right(last)) =>
+                       val cid = CustomerId.unsafe(if idRaw.nonEmpty then idRaw else s"cust-${em.takeWhile(_ != '@').toLowerCase}")
+                       val compOpt =
+                         if comp.nonEmpty then
+                           Some(
+                             CompanyProfile(
+                               legalName = NonEmptyString.unsafe(comp),
+                               registrationNumber = NonEmptyString.unsafe(if ico.nonEmpty then ico else "00000000"),
+                               vatId = None,
+                               contactPerson = NonEmptyString.unsafe(s"${first.value} ${last.value}"),
+                             )
+                           )
+                         else None
+                       val cmd = RegisterCustomerCmd(
+                         id = cid,
+                         segment = seg,
+                         company = compOpt,
+                         contact = ContactPerson(first, last, email),
+                         billingAddress = Address(
+                           street = NonEmptyString.unsafe("Main Street 1"),
+                           city = NonEmptyString.unsafe(if city.nonEmpty then city else "Prague"),
+                           postalCode = NonEmptyString.unsafe("110 00"),
+                           countryCode = NonEmptyString.unsafe("CZ"),
+                         ),
+                       )
+                       state.registerCustomer(cmd).andThen(showRegRef.set(false)).andThen(regEmailRef.set(""))
+            yield ()
+          }(state.i18n.t("adm-cat-save")),
+        button.cssClass("mp-btn mp-btn-ghost mp-btn-sm").onClick(showRegRef.set(false))(state.i18n.t("adm-cat-cancel")),
+      ),
+    )

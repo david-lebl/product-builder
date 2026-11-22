@@ -86,11 +86,11 @@ object CustomerDomainSpec extends ZIOSpecDefault:
         now,
       ).toOption.get
 
-      val pendingFail = b2b.withPaymentTerms(net30)
-      val indivFail   = indiv.withPaymentTerms(net30)
-      val activeB2b   = b2b.approve.toOption.get
-      val granted     = activeB2b.withPaymentTerms(net30)
-      val suspended   = granted.toOption.get.suspend(NonEmptyString.unsafe("Overdue invoice"), None, now)
+      val pendingFail = b2b.withPaymentTerms(net30, CustomerActor.System, now)
+      val indivFail   = indiv.withPaymentTerms(net30, CustomerActor.System, now)
+      val activeB2b   = b2b.approve(CustomerActor.System, now).toOption.get
+      val granted     = activeB2b.withPaymentTerms(net30, CustomerActor.System, now)
+      val suspended   = granted.toOption.get.suspend(NonEmptyString.unsafe("Overdue invoice"), None, None, now)
 
       assertTrue(
         pendingFail.isLeft,

@@ -20,6 +20,7 @@ object BackofficeApp:
   ): UI < Sync =
     for
       loginUI        <- AdminLoginView.render(state, onBackToStorefront)
+      orderIntakeUI  <- OrderIntakeView.render(state)
       orderDetailUI  <- OrderDetailView.render(state)
       catalogMgrUI   <- CatalogManagerView.render(state)
       pricingMgrUI   <- PricingManagerView.render(state)
@@ -55,7 +56,7 @@ object BackofficeApp:
                   // Routed View
                   state.route.render {
                     case AdminRoute.Dashboard        => DashboardView.render(state)
-                    case AdminRoute.Orders           => OrderIntakeView.render(state)
+                    case AdminRoute.Orders           => orderIntakeUI
                     case AdminRoute.OrderDetail(_)   => orderDetailUI
                     case AdminRoute.Catalog          => catalogMgrUI
                     case AdminRoute.Pricing          => pricingMgrUI
