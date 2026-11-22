@@ -348,4 +348,67 @@ object BackofficeUiSpec extends ZIOSpecDefault:
           )
         }
       },
+      test("Artwork management in Backoffice: OrderDetail preview/download/copy-link/revisions/staff-upload and Customer Detail Artworks tab (EN & CS)") {
+        import mpbuilder.customers.sample.SampleCustomers
+        import mpbuilder.ui.components.ArtworkComponents
+
+        withSharedClients { (_, boClient) =>
+          for
+            i18n   <- AdminTranslations.init(Language.En)
+            bo     <- BackofficeState.init(boClient, i18n, AdminRoute.Dashboard)
+            boUi   <- I18n.let(i18n.handle)(BackofficeApp.render(bo, onBackToStorefront = None))
+            _      <- I18n.let(i18n.handle)(bo.login("admin@printshop.cz", "staff1234"))
+
+            // 1. Open seeded order ord-seed-0902 in OrderDetail -> verify thumbnail, preview, download, copy-link, rerun preflight, staff upload dropzone
+            ord2Id  = OrderId.unsafe("ord-seed-0902")
+            _      <- I18n.let(i18n.handle)(bo.navigate(AdminRoute.OrderDetail(ord2Id)))
+            odEn0  <- renderHtml(boUi, i18n)
+            arts0  <- bo.selectedOrderArtwork.get
+            art0    = arts0.head
+
+            // 2. Staff uploads a prepress-fixed revision and opens the artwork preview lightbox modal
+            fixFile = ArtworkComponents.demoPrintReadyFile(art0.componentKey, art0.latestRevision.extractedSpecs.trimSize)
+            _      <- I18n.let(i18n.handle)(bo.uploadStaffArtworkRevision(ord2Id, art0.id, art0.latestRevision.extractedSpecs.trimSize, fixFile))
+            arts1  <- bo.selectedOrderArtwork.get
+            updated = arts1.find(_.id == art0.id).get
+            _      <- bo.artworkPreview.open(updated, contextTitle = Some("Order #0902 · Main"))
+            prevHtml <- renderHtml(boUi, i18n)
+            _      <- bo.artworkPreview.close
+
+            // 3. Re-run preflight cleanly via state
+            _      <- I18n.let(i18n.handle)(bo.rerunArtworkPreflight(ord2Id, art0.id))
+            arts2  <- bo.selectedOrderArtwork.get
+            rerun   = arts2.find(_.id == art0.id).get
+
+            // 4. Open Customers -> select Print Shop Pro -> verify CustomerDetail loads artworks with order link & createdAt
+            _      <- I18n.let(i18n.handle)(bo.navigate(AdminRoute.Customers))
+            _      <- I18n.let(i18n.handle)(bo.selectCustomer(SampleCustomers.printShopProId))
+            selDet <- bo.selectedCustomer.get
+            custEn <- renderHtml(boUi, i18n)
+            _      <- I18n.let(i18n.handle)(bo.setLanguage(Language.Cs))
+            custCs <- renderHtml(boUi, i18n)
+            _      <- I18n.let(i18n.handle)(bo.navigate(AdminRoute.OrderDetail(ord2Id)))
+            odCs   <- renderHtml(boUi, i18n)
+          yield assertTrue(
+            odEn0.contains("mp-art-thumb"),
+            odEn0.contains("data-mp-download-url"),
+            odEn0.contains("data-mp-copy-url"),
+            odEn0.contains("Upload Prepress Fix"),
+            odEn0.contains("Revision History ("),
+            odEn0.contains("Re-run Preflight"),
+            odEn0.contains("Preview"),
+            updated.revisionCount == art0.revisionCount + 1,
+            rerun.revisionCount == updated.revisionCount,
+            rerun.latestRevision.preflight.isDefined,
+            prevHtml.contains("mp-art-preview-modal"),
+            prevHtml.contains("Order #0902 · Main"),
+            selDet.exists(_.artworks.nonEmpty),
+            selDet.exists(_.artworks.exists(_.orderId == ord2Id)),
+            !odEn0.contains("‹") && !odEn0.contains("›"),
+            !odCs.contains("‹") && !odCs.contains("›"),
+            !custEn.contains("‹") && !custEn.contains("›"),
+            !custCs.contains("‹") && !custCs.contains("›"),
+          )
+        }
+      },
     )

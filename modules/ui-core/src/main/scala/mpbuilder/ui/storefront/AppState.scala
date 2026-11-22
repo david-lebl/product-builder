@@ -1,12 +1,14 @@
 package mpbuilder.ui.storefront
 
 import kyo.*
+import mpbuilder.artwork.*
 import mpbuilder.catalog.*
 import mpbuilder.customers.*
 import mpbuilder.identity.*
 import mpbuilder.ordering.*
 import mpbuilder.shared.*
 import mpbuilder.storefront.*
+import mpbuilder.ui.components.{ArtworkComponents, BrowserPickedFile}
 import mpbuilder.ui.configurator.*
 import mpbuilder.ui.i18n.AppI18n
 import mpbuilder.ui.port.StorefrontClient
@@ -59,6 +61,7 @@ final class StorefrontState(
     val orders: SignalRef[List[OrderView]],
     val orderArtworks: SignalRef[Map[OrderId, List[mpbuilder.artwork.ArtworkSubmissionView]]],
     val paymentModal: SignalRef[Option[(OrderView, PaymentInstructions)]],
+    val artworkPreview: ArtworkComponents.PreviewModal.Handle,
     val cartError: SignalRef[Option[String]],
     val checkoutSession: SignalRef[Option[CheckoutSession]],
     private val idSeq: SignalRef[Long],
@@ -312,6 +315,68 @@ final class StorefrontState(
                  }
     yield ()
 
+  def uploadOrderLineArtwork(
+      orderId: OrderId,
+      lineIndex: Int,
+      componentKey: ComponentKey,
+      expectedTrim: Dimension2D,
+      expectedPages: Option[Int],
+      file: BrowserPickedFile,
+  ): Unit < Async =
+    for
+      sessOpt <- authSession.get
+      _ <- sessOpt match
+             case None => Kyo.unit
+             case Some(sess) =>
+               val payload = ArtworkComponents.toUploadPayload(file, expectedTrim, expectedPages)
+               Abort
+                 .run[StorefrontError](
+                   client.uploadOrderLineArtwork(sess.token, orderId, lineIndex, componentKey, payload)
+                 )
+                 .flatMap {
+                   case Result.Success(_) =>
+                     for
+                       _   <- refreshOrders
+                       msg <- i18n.now("account-artwork-uploaded")
+                       _   <- showToast(msg)
+                     yield ()
+                   case Result.Failure(err) => showToast(err.message)
+                   case Result.Panic(ex)    => showToast(Option(ex.getMessage).getOrElse("Error"))
+                 }
+    yield ()
+
+  def reuploadOrderArtworkFile(
+      orderId: OrderId,
+      artworkId: ArtworkId,
+      expectedTrim: Dimension2D,
+      expectedPages: Option[Int],
+      file: BrowserPickedFile,
+  ): Unit < Async =
+    for
+      sessOpt <- authSession.get
+      _ <- sessOpt match
+             case None => Kyo.unit
+             case Some(sess) =>
+               val payload = ArtworkComponents.toUploadPayload(file, expectedTrim, expectedPages)
+               Abort
+                 .run[StorefrontError](
+                   client.reuploadOrderArtworkPayload(sess.token, orderId, artworkId, payload)
+                 )
+                 .flatMap {
+                   case Result.Success(_) =>
+                     for
+                       _   <- refreshOrders
+                       msg <- i18n.now("account-artwork-reuploaded")
+                       _   <- showToast(msg)
+                     yield ()
+                   case Result.Failure(err) => showToast(err.message)
+                   case Result.Panic(ex)    => showToast(Option(ex.getMessage).getOrElse("Error"))
+                 }
+    yield ()
+
+  def notifyLinkCopied(url: String): Unit < Async =
+    i18n.now("cfg-artwork-link-copied").flatMap(showToast)
+
   // ── Shopping Cart ──────────────────────────────────────────────────────────
 
   private def ensureCartId: CartId < (Abort[StorefrontError] & Async) =
@@ -334,16 +399,18 @@ final class StorefrontState(
       cmd <- configurator.buildConfigureCmd(d)
       cur <- currency.get
       tok <- authSession.get.map(_.map(_.token))
+      artIds = d.artworks.view.mapValues(_.id).toMap
       res <- Abort.run[StorefrontError] {
                for
                  cid     <- ensureCartId
-                 updated <- client.addConfiguredProductToCart(cid, cmd, cur, d.speed, Quantity.one, tok)
+                 updated <- client.addConfiguredProductToCart(cid, cmd, cur, d.speed, Quantity.one, tok, artIds)
                yield updated
              }
       _ <- res match
              case Result.Success(updated) =>
                for
                  _   <- cart.set(Some(updated))
+                 _   <- configurator.clearDraftArtworks
                  _   <- cartDrawerOpen.set(true)
                  msg <- i18n.now("cfg-added-toast")
                  _   <- showToast(msg)
@@ -362,7 +429,11 @@ final class StorefrontState(
         val draft = ConfiguratorController.draftFromPreset(cat, preset)
         addDraftToCart(draft)
 
-  def startQuickOrder(res: ProductBuilderQuoteResult, speed: ManufacturingSpeed): Unit < Async =
+  def startQuickOrder(
+      res: ProductBuilderQuoteResult,
+      speed: ManufacturingSpeed,
+      artworkIds: Map[ComponentKey, ArtworkId] = Map.empty,
+  ): Unit < Async =
     for
       seq <- idSeq.updateAndGet(_ + 1)
       line = StorefrontTranslators.toCartLine(
@@ -371,7 +442,9 @@ final class StorefrontState(
                speed = speed,
                quote = res.pricing.effectiveQuote,
                copies = Quantity.one,
+               artworkIds = artworkIds,
              )
+      _ <- configurator.clearDraftArtworks
       _ <- navigate(AppRoute.Checkout(CheckoutSource.QuickSingleLine(line)))
     yield ()
 
@@ -489,6 +562,7 @@ object StorefrontState:
       ordersRef   <- Signal.initRef(List.empty[OrderView])
       artRef      <- Signal.initRef(Map.empty[OrderId, List[mpbuilder.artwork.ArtworkSubmissionView]])
       payModalRef <- Signal.initRef[Option[(OrderView, PaymentInstructions)]](None)
+      artPrevH    <- ArtworkComponents.PreviewModal.Handle.make
       cartErrRef  <- Signal.initRef[Option[String]](None)
       checkoutRef <- Signal.initRef[Option[CheckoutSession]](None)
       seqRef      <- Signal.initRef(0L)
@@ -527,6 +601,7 @@ object StorefrontState:
                        ordersRef,
                        artRef,
                        payModalRef,
+                       artPrevH,
                        cartErrRef,
                        checkoutRef,
                        seqRef,

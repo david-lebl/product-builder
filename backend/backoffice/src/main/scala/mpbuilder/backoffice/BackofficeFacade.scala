@@ -68,6 +68,24 @@ trait BackofficeFacade:
       artworkId: ArtworkId,
       reason: NonEmptyString,
   ): IO[BackofficeError, ArtworkSubmissionView]
+  def uploadStaffArtworkRevision(
+      token: SessionToken,
+      orderId: OrderId,
+      artworkId: ArtworkId,
+      payload: StaffArtworkUploadPayload,
+  ): IO[BackofficeError, ArtworkSubmissionView]
+  def uploadStaffOrderLineArtwork(
+      token: SessionToken,
+      orderId: OrderId,
+      lineIndex: Int,
+      componentKey: ComponentKey,
+      payload: StaffArtworkUploadPayload,
+  ): IO[BackofficeError, ArtworkSubmissionView]
+  def rerunArtworkPreflight(
+      token: SessionToken,
+      orderId: OrderId,
+      artworkId: ArtworkId,
+  ): IO[BackofficeError, ArtworkSubmissionView]
 
   // ── 5. Catalog Management ──────────────────────────────────────────────────
   def getCatalog(token: SessionToken): IO[BackofficeError, ProductCatalog]
@@ -393,6 +411,145 @@ final class BackofficeFacadeLive(
                .mapError(BackofficeError.ArtworkFailure.apply)
     yield res
 
+  override def uploadStaffArtworkRevision(
+      token: SessionToken,
+      orderId: OrderId,
+      artworkId: ArtworkId,
+      payload: StaffArtworkUploadPayload,
+  ): IO[BackofficeError, ArtworkSubmissionView] =
+    for
+      _        <- authorize(token, AnyStaffRoles)
+      order    <- orderService.getOrder(orderId).mapError(BackofficeError.OrderFailure.apply)
+      existing <- artworkService.getById(artworkId).mapError(BackofficeError.ArtworkFailure.apply)
+      lineOpt   = existing.owner match
+                    case ArtworkOwner.OrderLineRef(_, idx) => order.lines.lift(idx)
+                    case _                                 => None
+      compOpt   = lineOpt.flatMap(_.product.components.find(_.key == existing.componentKey)).orElse(lineOpt.map(_.product.components.head))
+      trimSize  = compOpt.map(_.finishedSize).getOrElse(existing.latestRevision.extractedSpecs.trimSize)
+      pageCnt   = payload.pageCount.getOrElse(existing.latestRevision.extractedSpecs.pageCount)
+      req       = preflightRequirementFor(trimSize, pageCnt)
+      revNum    = existing.revisionCount + 1
+      updated  <- artworkService
+                    .uploadRevision(
+                      UploadRevisionCmd(
+                        artworkId = artworkId,
+                        file = AssetFileMetadata(
+                          fileName = payload.fileName,
+                          mimeType = payload.mimeType,
+                          sizeBytes = payload.sizeBytes.max(1L),
+                          storageKey = NonEmptyString.unsafe(s"uploads/${orderId.value}/${artworkId.value}-v$revNum-${sanitizeFileSegment(payload.fileName.value)}"),
+                          downloadUrl = payload.downloadUrl,
+                          previewUrl = payload.previewUrl.orElse(payload.downloadUrl),
+                        ),
+                        extractedSpecs = ExtractedFileSpecs(
+                          resolutionDpi = payload.resolutionDpi,
+                          trimSize = trimSize,
+                          bleed = NonNegativeMm.unsafe(payload.bleedMm.max(0)),
+                          colorSpace = payload.colorSpace,
+                          pageCount = pageCnt,
+                          fontsEmbedded = payload.fontsEmbedded,
+                        ),
+                        requirement = Some(req),
+                      )
+                    )
+                    .mapError(BackofficeError.ArtworkFailure.apply)
+    yield updated
+
+  override def uploadStaffOrderLineArtwork(
+      token: SessionToken,
+      orderId: OrderId,
+      lineIndex: Int,
+      componentKey: ComponentKey,
+      payload: StaffArtworkUploadPayload,
+  ): IO[BackofficeError, ArtworkSubmissionView] =
+    for
+      _     <- authorize(token, AnyStaffRoles)
+      order <- orderService.getOrder(orderId).mapError(BackofficeError.OrderFailure.apply)
+      line  <- ZIO
+                 .fromOption(order.lines.lift(lineIndex))
+                 .orElseFail(BackofficeError.OrderFailure(OrderError.OrderLineNotFound(orderId, OrderLineId.unsafe(s"index-$lineIndex"))))
+      existingList <- artworkService.listByOwner(ArtworkOwner.OrderLineRef(orderId, lineIndex))
+      existingOpt   = existingList.find(_.componentKey == componentKey)
+      res <- existingOpt match
+               case Some(existing) if !existing.status.isInstanceOf[ArtworkStatus.OperatorApproved] =>
+                 uploadStaffArtworkRevision(token, orderId, existing.id, payload)
+               case _ =>
+                 val comp     = line.product.components.find(_.key == componentKey).getOrElse(line.product.components.head)
+                 val trimSize = comp.finishedSize
+                 val pageCnt  = payload.pageCount.getOrElse(defaultPageCountFor(comp))
+                 val req      = preflightRequirementFor(trimSize, pageCnt)
+                 for
+                   now   <- Clock.instant
+                   rnd   <- Random.nextIntBetween(1000, 9999)
+                   artId  = ArtworkId.unsafe(s"art-staff-${now.toEpochMilli}-$rnd")
+                   view  <- artworkService
+                              .upload(
+                                UploadArtworkCmd(
+                                  artworkId = artId,
+                                  owner = ArtworkOwner.OrderLineRef(orderId, lineIndex),
+                                  componentKey = componentKey,
+                                  file = AssetFileMetadata(
+                                    fileName = payload.fileName,
+                                    mimeType = payload.mimeType,
+                                    sizeBytes = payload.sizeBytes.max(1L),
+                                    storageKey = NonEmptyString.unsafe(s"uploads/${orderId.value}/${artId.value}-${sanitizeFileSegment(payload.fileName.value)}"),
+                                    downloadUrl = payload.downloadUrl,
+                                    previewUrl = payload.previewUrl.orElse(payload.downloadUrl),
+                                  ),
+                                  extractedSpecs = ExtractedFileSpecs(
+                                    resolutionDpi = payload.resolutionDpi,
+                                    trimSize = trimSize,
+                                    bleed = NonNegativeMm.unsafe(payload.bleedMm.max(0)),
+                                    colorSpace = payload.colorSpace,
+                                    pageCount = pageCnt,
+                                    fontsEmbedded = payload.fontsEmbedded,
+                                  ),
+                                  requirement = Some(req),
+                                )
+                              )
+                              .mapError(BackofficeError.ArtworkFailure.apply)
+                   _ <- orderService.attachArtwork(orderId, lineIndex, componentKey, artId).mapError(BackofficeError.OrderFailure.apply)
+                 yield view
+    yield res
+
+  override def rerunArtworkPreflight(
+      token: SessionToken,
+      orderId: OrderId,
+      artworkId: ArtworkId,
+  ): IO[BackofficeError, ArtworkSubmissionView] =
+    for
+      _        <- authorize(token, AnyStaffRoles)
+      order    <- orderService.getOrder(orderId).mapError(BackofficeError.OrderFailure.apply)
+      existing <- artworkService.getById(artworkId).mapError(BackofficeError.ArtworkFailure.apply)
+      lineOpt   = existing.owner match
+                    case ArtworkOwner.OrderLineRef(_, idx) => order.lines.lift(idx)
+                    case _                                 => None
+      compOpt   = lineOpt.flatMap(_.product.components.find(_.key == existing.componentKey)).orElse(lineOpt.map(_.product.components.head))
+      trimSize  = compOpt.map(_.finishedSize).getOrElse(existing.latestRevision.extractedSpecs.trimSize)
+      pageCnt   = compOpt.map(defaultPageCountFor).getOrElse(existing.latestRevision.extractedSpecs.pageCount)
+      req       = preflightRequirementFor(trimSize, pageCnt)
+      updated  <- artworkService.runPreflight(artworkId, req).mapError(BackofficeError.ArtworkFailure.apply)
+    yield updated
+
+  private def defaultPageCountFor(comp: ComponentSnapshot): Int =
+    comp.inkNotation match
+      case Some(n) if n.endsWith("/0") => 1
+      case Some(_)                     => 2
+      case None                        => 1
+
+  private def preflightRequirementFor(trimSize: Dimension2D, pageCount: Int): PreflightRequirement =
+    val isLargeFormat = trimSize.width.value >= BigDecimal(400) || trimSize.height.value >= BigDecimal(400)
+    PreflightRequirement(
+      expectedTrimSize = trimSize,
+      requiredBleed = NonNegativeMm.unsafe(3),
+      minResolutionDpi = if isLargeFormat then 150 else 300,
+      expectedPageCount = Some(pageCount),
+    )
+
+  private def sanitizeFileSegment(raw: String): String =
+    val cleaned = raw.trim.replaceAll("[^a-zA-Z0-9._-]+", "-")
+    if cleaned.nonEmpty then cleaned else "artwork.pdf"
+
   // ── 5. Catalog Management ──────────────────────────────────────────────────
 
   override def getCatalog(token: SessionToken): IO[BackofficeError, ProductCatalog] =
@@ -562,7 +719,26 @@ final class BackofficeFacadeLive(
       agreements <- pricingService.listAgreements.map(
                       _.filter(_.target == AgreementTarget.SpecificCustomer(id))
                     )
-    yield CustomerDetailView(customer, orders, agreements)
+      artLists   <- ZIO.foreach(orders) { ord =>
+                      ZIO
+                        .foreach(ord.lines.toList.zipWithIndex) { case (line, idx) =>
+                          artworkService.listByOwner(ArtworkOwner.OrderLineRef(ord.id, idx)).map { arts =>
+                            arts.map { art =>
+                              CustomerArtworkEntry(
+                                artwork = art,
+                                orderId = ord.id,
+                                orderNumber = ord.orderNumber,
+                                orderStatus = ord.status,
+                                lineIndex = idx,
+                                productName = line.product.categoryName,
+                              )
+                            }
+                          }
+                        }
+                        .map(_.flatten)
+                    }
+      allArtworks = artLists.flatten.sortBy(_.artwork.createdAt)(using Ordering[java.time.Instant].reverse)
+    yield CustomerDetailView(customer, orders, agreements, allArtworks)
 
   override def registerCustomer(
       token: SessionToken,

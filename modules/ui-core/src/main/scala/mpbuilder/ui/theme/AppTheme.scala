@@ -946,6 +946,54 @@ object AppTheme:
           .flexBasis(0.px)
           .textAlign(TextAlign.center),
       )
+      // Artwork Drag & Drop Upload Zones, Thumbnails & Lightbox Preview
+      .rule(
+        "mp-dropzone",
+        Style.column
+          .align(Alignment.center)
+          .justify(Justification.center)
+          .width(100.pct)
+          .padding(18.px, 16.px)
+          .rounded(12.px)
+          .bg(surfaceAlt)
+          .border(2.px, BorderStyle.dashed, borderStrong)
+          .cursor(Cursor.pointer)
+          .transition(TransitionProperty.all, 140, Easing.easeOut)
+          .hover(Style.borderColor(brand).bg(brandSoft)),
+      )
+      .rule(
+        "mp-dropzone-compact",
+        Style.padding(11.px, 12.px)
+          .rounded(10.px),
+      )
+      .rule(
+        "mp-dropzone-active",
+        Style.borderColor(brand)
+          .bg(brandSoft)
+          .shadow(0.px, 0.px, 0.px, 3.px, brandBorder),
+      )
+      .rule(
+        "mp-art-thumb",
+        Style.transition(TransitionProperty.all, 140, Easing.easeOut)
+          .hover(Style.borderColor(brand).shadow(0.px, 2.px, 8.px, 0.px, shadowSubtle)),
+      )
+      .rule(
+        "mp-art-preview-modal",
+        Style.maxWidth(780.px)
+          .width(100.pct),
+      )
+      .rule(
+        "mp-art-preview-frame",
+        Style.row
+          .align(Alignment.center)
+          .justify(Justification.center)
+          .width(100.pct)
+          .minHeight(240.px)
+          .padding(16.px)
+          .rounded(12.px)
+          .bg(canvas)
+          .border(1.px, border),
+      )
       // Tablet breakpoint (<= 960px)
       .media(Stylesheet.MediaQuery.maxWidth(960.px))(
         Stylesheet

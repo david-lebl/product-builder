@@ -239,6 +239,11 @@ enum OrderStatus:
     case Completed | Cancelled(_) => true
     case _                        => false
 
+  /** Customers may upload or replace print artwork freely while the order has not yet been accepted. */
+  def allowsCustomerArtworkUpload: Boolean = this match
+    case Placed | AwaitingPayment | Confirmed => true
+    case _                                    => false
+
 enum OrderStatusKind:
   case Placed, AwaitingPayment, Confirmed, Accepted, InProduction, ReadyForDispatch, Dispatched, Completed, OnHold, Cancelled
 
@@ -560,6 +565,12 @@ trait OrderService:
       by: EmployeeId,
       byName: Option[NonEmptyString] = None,
       text: NonEmptyString,
+  ): IO[OrderError, OrderView]
+  def attachArtwork(
+      orderId: OrderId,
+      lineIndex: Int,
+      componentKey: ComponentKey,
+      artworkId: ArtworkId,
   ): IO[OrderError, OrderView]
 
 object OrderService:

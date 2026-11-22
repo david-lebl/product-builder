@@ -66,6 +66,24 @@ trait BackofficeClient:
       artworkId: ArtworkId,
       reason: NonEmptyString,
   ): ArtworkSubmissionView < (Abort[BackofficeError] & Async)
+  def uploadStaffArtworkRevision(
+      token: SessionToken,
+      orderId: OrderId,
+      artworkId: ArtworkId,
+      payload: StaffArtworkUploadPayload,
+  ): ArtworkSubmissionView < (Abort[BackofficeError] & Async)
+  def uploadStaffOrderLineArtwork(
+      token: SessionToken,
+      orderId: OrderId,
+      lineIndex: Int,
+      componentKey: ComponentKey,
+      payload: StaffArtworkUploadPayload,
+  ): ArtworkSubmissionView < (Abort[BackofficeError] & Async)
+  def rerunArtworkPreflight(
+      token: SessionToken,
+      orderId: OrderId,
+      artworkId: ArtworkId,
+  ): ArtworkSubmissionView < (Abort[BackofficeError] & Async)
 
   // ── 5. Catalog Management ──────────────────────────────────────────────────
   def getCatalog(token: SessionToken): ProductCatalog < (Abort[BackofficeError] & Async)
@@ -190,6 +208,26 @@ object BackofficeClient:
 
     override def rejectArtwork(token: SessionToken, artworkId: ArtworkId, reason: NonEmptyString) =
       liftIO(facade.rejectArtwork(token, artworkId, reason))
+
+    override def uploadStaffArtworkRevision(
+        token: SessionToken,
+        orderId: OrderId,
+        artworkId: ArtworkId,
+        payload: StaffArtworkUploadPayload,
+    ) =
+      liftIO(facade.uploadStaffArtworkRevision(token, orderId, artworkId, payload))
+
+    override def uploadStaffOrderLineArtwork(
+        token: SessionToken,
+        orderId: OrderId,
+        lineIndex: Int,
+        componentKey: ComponentKey,
+        payload: StaffArtworkUploadPayload,
+    ) =
+      liftIO(facade.uploadStaffOrderLineArtwork(token, orderId, lineIndex, componentKey, payload))
+
+    override def rerunArtworkPreflight(token: SessionToken, orderId: OrderId, artworkId: ArtworkId) =
+      liftIO(facade.rerunArtworkPreflight(token, orderId, artworkId))
 
     override def getCatalog(token: SessionToken) =
       liftIO(facade.getCatalog(token))

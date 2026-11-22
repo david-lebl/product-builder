@@ -52,6 +52,8 @@ object ArtworkDomainSpec extends ZIOSpecDefault:
             ref.get.map(_.get(id))
           override def save(submission: ArtworkSubmission): UIO[Unit] =
             ref.update(_ + (submission.id -> submission))
+          override def delete(id: ArtworkId): UIO[Unit] =
+            ref.update(_ - id)
       }
     }
 
@@ -103,6 +105,9 @@ object ArtworkDomainSpec extends ZIOSpecDefault:
           chg.status.isInstanceOf[ArtworkStatus.ChangesRequested],
           v2.status == ArtworkStatus.PreflightPassed,
           v2.revisionCount == 2,
+          v2.allRevisions.size == 2,
+          v2.allRevisions.map(_.revisionNumber) == List(1, 2),
+          v2.createdAt == v1.latestRevision.uploadedAt,
           v2.latestRevision.revisionNumber == 2,
           approved.status.isInstanceOf[ArtworkStatus.OperatorApproved],
           noMoreRev.isLeft,
@@ -113,4 +118,33 @@ object ArtworkDomainSpec extends ZIOSpecDefault:
         )
       }.provide(serviceLayer)
     },
+    test("URL metadata, reassignOwner (Draft -> OrderLine), and deleteDraft guard work cleanly") {
+      val draftId1  = ArtworkId.unsafe("art-draft-1")
+      val draftId2  = ArtworkId.unsafe("art-draft-2")
+      val draftOwn  = ArtworkOwner.DraftSession(NonEmptyString.unsafe("sess-42"))
+      val lineOwner = ArtworkOwner.OrderLineRef(OrderId.unsafe("ord-42"), lineIndex = 0)
+      val fileWithUrls = goodFile.copy(
+        downloadUrl = Some(NonEmptyString.unsafe("https://cdn.printcraft.demo/flyer-v1.pdf")),
+        previewUrl = Some(NonEmptyString.unsafe("data:image/svg+xml;base64,PHN2Zz48L3N2Zz4=")),
+      )
+
+      for
+        svc        <- ZIO.service[ArtworkService]
+        u1         <- svc.upload(UploadArtworkCmd(draftId1, draftOwn, ComponentKey.Main, 1, fileWithUrls, goodSpecs, Some(a5Req)))
+        u2         <- svc.upload(UploadArtworkCmd(draftId2, draftOwn, ComponentKey.Main, 1, goodFile, goodSpecs, Some(a5Req)))
+        // Delete draft2 succeeds
+        _          <- svc.deleteDraft(draftId2)
+        afterDel   <- svc.getById(draftId2).either
+        // Reassign draft1 to OrderLineRef succeeds
+        reassigned <- svc.reassignOwner(draftId1, lineOwner)
+        // Deleting an order-owned artwork fails with CannotDeleteNonDraft
+        delBlocked <- svc.deleteDraft(draftId1).either
+      yield assertTrue(
+        u1.latestRevision.file.shareableUrl == "https://cdn.printcraft.demo/flyer-v1.pdf",
+        u2.latestRevision.file.shareableUrl == "https://assets.printcraft.demo/s3://artworks/flyer-v1.pdf",
+        afterDel == Left(ArtworkError.NotFound(draftId2)),
+        reassigned.owner == lineOwner,
+        delBlocked == Left(ArtworkError.CannotDeleteNonDraft(draftId1, lineOwner)),
+      )
+    }.provide(serviceLayer),
   )

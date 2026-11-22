@@ -277,4 +277,145 @@ object StorefrontFacadeSpec extends ZIOSpecDefault:
         history.map(_.id).toSet == Set(confirm1.order.id, confirm2.order.id),
       )
     }.provide(SampleShowcaseRuntime.layer(seedSampleOrders = false)),
+
+    test("draft artwork flows through cart & checkout to order line; post-checkout upload locks once accepted unless changes are requested") {
+      import mpbuilder.artwork.*
+      import mpbuilder.backoffice.*
+
+      for
+        _        <- TestClock.setTime(validNow)
+        sf       <- ZIO.service[StorefrontFacade]
+        bo       <- ZIO.service[BackofficeFacade]
+        auth     <- sf.loginWithPassword(EmailAddress.unsafe("jan@printshoppro.cz"), SampleIdentity.demoCustomerPassword)
+        tok       = auth.session.token
+        customer  = auth.customer.get
+        empAuth  <- bo.loginStaff(SampleIdentity.adminEmployeePrincipal.email, SampleIdentity.demoEmployeePassword)
+        empTok    = empAuth.session.token
+
+        // 1. Upload draft artwork during product configuration
+        draftSess = NonEmptyString.unsafe("draft-sess-test-1")
+        draftArt <- sf.uploadDraftArtwork(
+                      sessionId = draftSess,
+                      componentKey = ComponentKey.Main,
+                      expectedTrimSize = Dimension2D.A5,
+                      expectedPageCount = Some(2),
+                      payload = ArtworkUploadPayload(
+                        fileName = NonEmptyString.unsafe("flyers-draft-press.pdf"),
+                        mimeType = NonEmptyString.unsafe("application/pdf"),
+                        sizeBytes = 1_850_000L,
+                        downloadUrl = Some(NonEmptyString.unsafe("https://cdn.printcraft.demo/flyers-draft-press.pdf")),
+                        previewUrl = Some(NonEmptyString.unsafe("data:image/svg+xml;base64,PHN2Zz48L3N2Zz4=")),
+                        resolutionDpi = 300,
+                        bleedMm = 3,
+                        colorSpace = ColorSpace.CMYK,
+                        pageCount = Some(2),
+                      ),
+                    )
+
+        // 2. Add two items to cart: line 0 with draft artwork, line 1 without artwork yet
+        cartId    = CartId.unsafe("cart-artwork-e2e")
+        _        <- sf.createCart(cartId, Currency.CZK)
+        _        <- sf.addConfiguredProductToCart(
+                      cartId = cartId,
+                      cmd = flyersCmd(500),
+                      currency = Currency.CZK,
+                      speed = ManufacturingSpeed.Standard,
+                      copies = Quantity.unsafe(1),
+                      sessionToken = Some(tok),
+                      artworkIds = Map(ComponentKey.Main -> draftArt.id),
+                    )
+        _        <- sf.addConfiguredProductToCart(
+                      cartId = cartId,
+                      cmd = flyersCmd(1000),
+                      currency = Currency.CZK,
+                      speed = ManufacturingSpeed.Standard,
+                      copies = Quantity.unsafe(1),
+                      sessionToken = Some(tok),
+                      artworkIds = Map.empty,
+                    )
+
+        // 3. Submit checkout -> draft artwork owner reassigned to OrderLineRef(order.id, 0)
+        custSnap = OrderCustomerSnapshot(
+                     customerId = Some(customer.id),
+                     segment = customer.segment,
+                     fullName = NonEmptyString.unsafe(s"${customer.contact.firstName.value} ${customer.contact.lastName.value}"),
+                     email = customer.contact.email,
+                     phone = customer.contact.phone,
+                     companyName = customer.company.map(_.legalName),
+                   )
+        confirm  <- sf.submitCheckout(
+                      SubmitCheckoutCmd(
+                        sessionToken = Some(tok),
+                        source = CheckoutSource.FromCart(cartId),
+                        customer = custSnap,
+                        billingAddress = customer.billingAddress,
+                        deliveryChoice = DeliveryOptionChoice.ShopPickup(SampleDeliveryCatalog.shopPragueId),
+                        paymentMethod = PaymentMethod.InvoiceOnAccount,
+                      )
+                    )
+        orderId   = confirm.order.id
+        arts1    <- sf.listOrderArtworks(tok, orderId)
+
+        // 4. Before acceptance (order is Confirmed), customer uploads missing artwork to line 1 -> succeeds
+        line1Art <- sf.uploadOrderLineArtwork(
+                      sessionToken = tok,
+                      orderId = orderId,
+                      lineIndex = 1,
+                      componentKey = ComponentKey.Main,
+                      payload = ArtworkUploadPayload(
+                        fileName = NonEmptyString.unsafe("line2-artwork.pdf"),
+                        mimeType = NonEmptyString.unsafe("application/pdf"),
+                        sizeBytes = 900_000L,
+                        resolutionDpi = 300,
+                        bleedMm = 3,
+                        colorSpace = ColorSpace.CMYK,
+                        pageCount = Some(1),
+                      ),
+                    )
+
+        // 5. Staff accepts the order -> subsequent customer new-upload is blocked with OrderAlreadyAcceptedForArtwork
+        _        <- bo.acceptOrder(empTok, orderId, Some(NonEmptyString.unsafe("Accepted for prepress")))
+        blocked  <- sf
+                      .uploadOrderLineArtwork(
+                        sessionToken = tok,
+                        orderId = orderId,
+                        lineIndex = 1,
+                        componentKey = ComponentKey.Main,
+                        payload = ArtworkUploadPayload(
+                          fileName = NonEmptyString.unsafe("late-upload.pdf"),
+                          mimeType = NonEmptyString.unsafe("application/pdf"),
+                          sizeBytes = 500_000L,
+                        ),
+                      )
+                      .either
+
+        // 6. Staff requests changes on line1Art -> customer reuploadOrderArtworkPayload succeeds even after acceptance!
+        _        <- bo.requestArtworkChanges(empTok, line1Art.id, NonEmptyString.unsafe("Please outline fonts"))
+        fixedArt <- sf.reuploadOrderArtworkPayload(
+                      sessionToken = tok,
+                      orderId = orderId,
+                      artworkId = line1Art.id,
+                      payload = ArtworkUploadPayload(
+                        fileName = NonEmptyString.unsafe("line2-artwork-v2.pdf"),
+                        mimeType = NonEmptyString.unsafe("application/pdf"),
+                        sizeBytes = 1_100_000L,
+                        downloadUrl = Some(NonEmptyString.unsafe("https://cdn.printcraft.demo/line2-artwork-v2.pdf")),
+                        resolutionDpi = 300,
+                        bleedMm = 3,
+                        colorSpace = ColorSpace.CMYK,
+                        pageCount = Some(1),
+                      ),
+                    )
+      yield assertTrue(
+        draftArt.owner == ArtworkOwner.DraftSession(draftSess),
+        arts1.size == 1,
+        arts1.head.id == draftArt.id,
+        arts1.head.owner == ArtworkOwner.OrderLineRef(orderId, 0),
+        confirm.order.lines.head.artworkIds == Map(ComponentKey.Main -> draftArt.id),
+        line1Art.owner == ArtworkOwner.OrderLineRef(orderId, 1),
+        blocked == Left(StorefrontError.OrderAlreadyAcceptedForArtwork(orderId, OrderStatus.Accepted)),
+        fixedArt.revisionCount == 2,
+        fixedArt.latestRevision.file.fileName.value == "line2-artwork-v2.pdf",
+      )
+    }.provide(SampleShowcaseRuntime.layer(seedSampleOrders = false)),
   )

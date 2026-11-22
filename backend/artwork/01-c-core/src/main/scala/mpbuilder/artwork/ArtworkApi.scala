@@ -19,7 +19,13 @@ final case class AssetFileMetadata(
     sizeBytes: Long,
     storageKey: NonEmptyString,
     checksumSha256: Option[NonEmptyString] = None,
-)
+    downloadUrl: Option[NonEmptyString] = None,
+    previewUrl: Option[NonEmptyString] = None,
+):
+  /** Shareable/copyable URL representing future cloud blob / S3 presigned link or active in-memory URL. */
+  def shareableUrl: String =
+    downloadUrl.map(_.value).filter(u => u.startsWith("http://") || u.startsWith("https://") || u.startsWith("blob:"))
+      .getOrElse(s"https://assets.printcraft.demo/${storageKey.value}")
 
 final case class ExtractedFileSpecs(
     resolutionDpi: Int,
@@ -87,7 +93,11 @@ final case class ArtworkSubmissionView(
     status: ArtworkStatus,
     latestRevision: ArtworkRevision,
     revisionCount: Int,
-)
+    revisions: List[ArtworkRevision] = Nil,
+    createdAt: Instant = Instant.EPOCH,
+):
+  def allRevisions: List[ArtworkRevision] =
+    if revisions.nonEmpty then revisions else List(latestRevision)
 
 final case class UploadArtworkCmd(
     artworkId: ArtworkId,
@@ -117,6 +127,8 @@ enum ArtworkError(val message: String):
       extends ArtworkError(s"Artwork '${id.value}' has failed preflight checks and cannot be approved without override")
   case AlreadyFinalized(id: ArtworkId, status: ArtworkStatus)
       extends ArtworkError(s"Artwork '${id.value}' is already finalized in status $status")
+  case CannotDeleteNonDraft(id: ArtworkId, owner: ArtworkOwner)
+      extends ArtworkError(s"Artwork '${id.value}' belongs to $owner and cannot be deleted as a draft")
 
 // ── Domain Events ────────────────────────────────────────────────────────────
 
@@ -151,6 +163,8 @@ trait ArtworkService:
   def approve(artworkId: ArtworkId, operatorId: EmployeeId, overrideWarningsOrFailures: Boolean = false): IO[ArtworkError, ArtworkSubmissionView]
   def requestChanges(artworkId: ArtworkId, notes: NonEmptyString): IO[ArtworkError, ArtworkSubmissionView]
   def reject(artworkId: ArtworkId, operatorId: EmployeeId, reason: NonEmptyString): IO[ArtworkError, ArtworkSubmissionView]
+  def reassignOwner(artworkId: ArtworkId, newOwner: ArtworkOwner): IO[ArtworkError, ArtworkSubmissionView]
+  def deleteDraft(artworkId: ArtworkId): IO[ArtworkError, Unit]
   def getById(artworkId: ArtworkId): IO[ArtworkError.NotFound, ArtworkSubmissionView]
   def listByOwner(owner: ArtworkOwner): UIO[List[ArtworkSubmissionView]]
 

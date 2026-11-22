@@ -86,6 +86,7 @@ trait StorefrontFacade:
       speed: ManufacturingSpeed = ManufacturingSpeed.Standard,
       copies: Quantity = Quantity.one,
       sessionToken: Option[SessionToken] = None,
+      artworkIds: Map[ComponentKey, ArtworkId] = Map.empty,
   ): IO[StorefrontError, CartView]
 
   def updateCartLineCopies(cartId: CartId, lineId: OrderLineId, copies: Quantity): IO[StorefrontError, CartView]
@@ -122,7 +123,7 @@ trait StorefrontFacade:
 
   def listMyOrders(sessionToken: SessionToken): IO[StorefrontError, List[OrderView]]
 
-  // ── Customer Self-Service (Addresses, Payment Re-view, Artwork Re-upload) ──
+  // ── Customer Self-Service (Addresses, Payment Re-view, Artwork Upload/Re-upload) ──
 
   def updateMyAddresses(
       sessionToken: SessionToken,
@@ -136,10 +137,35 @@ trait StorefrontFacade:
       orderId: OrderId,
   ): IO[StorefrontError, PaymentInstructions]
 
+  def uploadDraftArtwork(
+      sessionId: NonEmptyString,
+      componentKey: ComponentKey,
+      expectedTrimSize: Dimension2D,
+      expectedPageCount: Option[Int] = None,
+      payload: ArtworkUploadPayload,
+  ): IO[StorefrontError, ArtworkSubmissionView]
+
+  def deleteDraftArtwork(artworkId: ArtworkId): IO[StorefrontError, Unit]
+
   def listOrderArtworks(
       sessionToken: SessionToken,
       orderId: OrderId,
   ): IO[StorefrontError, List[ArtworkSubmissionView]]
+
+  def uploadOrderLineArtwork(
+      sessionToken: SessionToken,
+      orderId: OrderId,
+      lineIndex: Int,
+      componentKey: ComponentKey,
+      payload: ArtworkUploadPayload,
+  ): IO[StorefrontError, ArtworkSubmissionView]
+
+  def reuploadOrderArtworkPayload(
+      sessionToken: SessionToken,
+      orderId: OrderId,
+      artworkId: ArtworkId,
+      payload: ArtworkUploadPayload,
+  ): IO[StorefrontError, ArtworkSubmissionView]
 
   def reuploadOrderArtwork(
       sessionToken: SessionToken,
@@ -307,11 +333,19 @@ final class StorefrontFacadeLive(
       speed: ManufacturingSpeed,
       copies: Quantity,
       sessionToken: Option[SessionToken],
+      artworkIds: Map[ComponentKey, ArtworkId],
   ): IO[StorefrontError, CartView] =
     for
       quoted <- configureAndQuote(cmd, currency, speed, sessionToken, promoCode = None)
       lineId <- nextLineId
-      line    = StorefrontTranslators.toCartLine(lineId, quoted.configuration.product, speed, quoted.pricing.effectiveQuote, copies)
+      line    = StorefrontTranslators.toCartLine(
+                  lineId = lineId,
+                  product = quoted.configuration.product,
+                  speed = speed,
+                  quote = quoted.pricing.effectiveQuote,
+                  copies = copies,
+                  artworkIds = artworkIds,
+                )
       cart   <- cartService.addLine(cartId, line).mapError(StorefrontError.OrderFailure.apply)
     yield cart
 
@@ -472,6 +506,14 @@ final class StorefrontFacadeLive(
                                              )
                                            )
                                            .mapError(StorefrontError.OrderFailure.apply)
+      // Transfer any draft artworks attached during configuration to their permanent OrderLineRef owners
+      _                               <- ZIO.foreachDiscard(nonEmptyLines.toList.zipWithIndex) { case (line, lineIdx) =>
+                                           ZIO.foreachDiscard(line.artworkIds.values.toList) { artId =>
+                                             artworkService
+                                               .reassignOwner(artId, ArtworkOwner.OrderLineRef(order.id, lineIdx))
+                                               .mapError(StorefrontError.ArtworkFailure.apply)
+                                           }
+                                         }
       _                               <- ZIO.foreachDiscard(effectivePromoOpt)(p =>
                                            pricingService.redeemPromoCode(p.codeId).mapError(StorefrontError.PricingFailure.apply)
                                          )
@@ -536,6 +578,50 @@ final class StorefrontFacadeLive(
                   )
     yield instr
 
+  override def uploadDraftArtwork(
+      sessionId: NonEmptyString,
+      componentKey: ComponentKey,
+      expectedTrimSize: Dimension2D,
+      expectedPageCount: Option[Int],
+      payload: ArtworkUploadPayload,
+  ): IO[StorefrontError, ArtworkSubmissionView] =
+    val trimSize = payload.trimSizeOverride.getOrElse(expectedTrimSize)
+    val pageCnt  = payload.pageCount.orElse(expectedPageCount).getOrElse(1)
+    val req      = buildPreflightRequirement(expectedTrimSize, expectedPageCount)
+    for
+      artId <- nextArtworkId
+      view  <- artworkService
+                 .upload(
+                   UploadArtworkCmd(
+                     artworkId = artId,
+                     owner = ArtworkOwner.DraftSession(sessionId),
+                     componentKey = componentKey,
+                     file = AssetFileMetadata(
+                       fileName = payload.fileName,
+                       mimeType = payload.mimeType,
+                       sizeBytes = payload.sizeBytes.max(1L),
+                       storageKey = NonEmptyString.unsafe(s"drafts/${sessionId.value}/${artId.value}-${sanitizeFileSegment(payload.fileName.value)}"),
+                       downloadUrl = payload.downloadUrl,
+                       previewUrl = payload.previewUrl.orElse(payload.downloadUrl),
+                     ),
+                     extractedSpecs = ExtractedFileSpecs(
+                       resolutionDpi = payload.resolutionDpi,
+                       trimSize = trimSize,
+                       bleed = NonNegativeMm.unsafe(payload.bleedMm.max(0)),
+                       colorSpace = payload.colorSpace,
+                       pageCount = pageCnt,
+                       fontsEmbedded = payload.fontsEmbedded,
+                       hasUnflattenedTransparency = payload.hasUnflattenedTransparency,
+                     ),
+                     requirement = Some(req),
+                   )
+                 )
+                 .mapError(StorefrontError.ArtworkFailure.apply)
+    yield view
+
+  override def deleteDraftArtwork(artworkId: ArtworkId): IO[StorefrontError, Unit] =
+    artworkService.deleteDraft(artworkId).mapError(StorefrontError.ArtworkFailure.apply)
+
   override def listOrderArtworks(
       sessionToken: SessionToken,
       orderId: OrderId,
@@ -548,6 +634,120 @@ final class StorefrontFacadeLive(
                   }
     yield byIdx.flatten
 
+  override def uploadOrderLineArtwork(
+      sessionToken: SessionToken,
+      orderId: OrderId,
+      lineIndex: Int,
+      componentKey: ComponentKey,
+      payload: ArtworkUploadPayload,
+  ): IO[StorefrontError, ArtworkSubmissionView] =
+    for
+      customer <- currentCustomer(sessionToken)
+      order    <- loadOwnedOrder(customer.id, orderId)
+      _        <- ZIO
+                    .fail(StorefrontError.OrderAlreadyAcceptedForArtwork(orderId, order.status))
+                    .unless(order.status.allowsCustomerArtworkUpload)
+      line     <- ZIO
+                    .fromOption(order.lines.lift(lineIndex))
+                    .orElseFail(StorefrontError.OrderFailure(OrderError.OrderLineNotFound(orderId, OrderLineId.unsafe(s"index-$lineIndex"))))
+      existingList <- artworkService.listByOwner(ArtworkOwner.OrderLineRef(orderId, lineIndex))
+      existingOpt   = existingList.find(_.componentKey == componentKey)
+      res <- existingOpt match
+               case Some(existing) =>
+                 reuploadOrderArtworkPayload(sessionToken, orderId, existing.id, payload)
+               case None =>
+                 val comp     = line.product.components.find(_.key == componentKey).getOrElse(line.product.components.head)
+                 val expPages = defaultPageCountFor(comp)
+                 val trimSize = payload.trimSizeOverride.getOrElse(comp.finishedSize)
+                 val pageCnt  = payload.pageCount.getOrElse(expPages)
+                 val req      = buildPreflightRequirement(comp.finishedSize, Some(expPages))
+                 for
+                   artId <- nextArtworkId
+                   view  <- artworkService
+                              .upload(
+                                UploadArtworkCmd(
+                                  artworkId = artId,
+                                  owner = ArtworkOwner.OrderLineRef(orderId, lineIndex),
+                                  componentKey = componentKey,
+                                  file = AssetFileMetadata(
+                                    fileName = payload.fileName,
+                                    mimeType = payload.mimeType,
+                                    sizeBytes = payload.sizeBytes.max(1L),
+                                    storageKey = NonEmptyString.unsafe(s"uploads/${orderId.value}/${artId.value}-${sanitizeFileSegment(payload.fileName.value)}"),
+                                    downloadUrl = payload.downloadUrl,
+                                    previewUrl = payload.previewUrl.orElse(payload.downloadUrl),
+                                  ),
+                                  extractedSpecs = ExtractedFileSpecs(
+                                    resolutionDpi = payload.resolutionDpi,
+                                    trimSize = trimSize,
+                                    bleed = NonNegativeMm.unsafe(payload.bleedMm.max(0)),
+                                    colorSpace = payload.colorSpace,
+                                    pageCount = pageCnt,
+                                    fontsEmbedded = payload.fontsEmbedded,
+                                    hasUnflattenedTransparency = payload.hasUnflattenedTransparency,
+                                  ),
+                                  requirement = Some(req),
+                                )
+                              )
+                              .mapError(StorefrontError.ArtworkFailure.apply)
+                   _ <- orderService.attachArtwork(orderId, lineIndex, componentKey, artId).mapError(StorefrontError.OrderFailure.apply)
+                 yield view
+    yield res
+
+  override def reuploadOrderArtworkPayload(
+      sessionToken: SessionToken,
+      orderId: OrderId,
+      artworkId: ArtworkId,
+      payload: ArtworkUploadPayload,
+  ): IO[StorefrontError, ArtworkSubmissionView] =
+    for
+      customer <- currentCustomer(sessionToken)
+      order    <- loadOwnedOrder(customer.id, orderId)
+      existing <- artworkService.getById(artworkId).mapError(StorefrontError.ArtworkFailure.apply)
+      _        <- existing.owner match
+                    case ArtworkOwner.OrderLineRef(oid, _) if oid == orderId => ZIO.unit
+                    case _ => ZIO.fail(StorefrontError.OrderNotOwned(orderId))
+      needsRevision = existing.status match
+                        case ArtworkStatus.ChangesRequested(_) | ArtworkStatus.PreflightFailed => true
+                        case _                                                                 => false
+      canUpload = order.status.allowsCustomerArtworkUpload || (!order.status.isTerminal && needsRevision)
+      _        <- ZIO.fail(StorefrontError.OrderAlreadyAcceptedForArtwork(orderId, order.status)).unless(canUpload)
+      lineOpt   = existing.owner match
+                    case ArtworkOwner.OrderLineRef(_, idx) => order.lines.lift(idx)
+                    case _                                 => None
+      compOpt   = lineOpt.flatMap(_.product.components.find(_.key == existing.componentKey)).orElse(lineOpt.map(_.product.components.head))
+      expTrim   = compOpt.map(_.finishedSize).getOrElse(existing.latestRevision.extractedSpecs.trimSize)
+      trimSize  = payload.trimSizeOverride.getOrElse(expTrim)
+      pageCnt   = payload.pageCount.getOrElse(existing.latestRevision.extractedSpecs.pageCount)
+      req       = buildPreflightRequirement(expTrim, Some(existing.latestRevision.extractedSpecs.pageCount))
+      revNum    = existing.revisionCount + 1
+      updated  <- artworkService
+                    .uploadRevision(
+                      UploadRevisionCmd(
+                        artworkId = artworkId,
+                        file = AssetFileMetadata(
+                          fileName = payload.fileName,
+                          mimeType = payload.mimeType,
+                          sizeBytes = payload.sizeBytes.max(1L),
+                          storageKey = NonEmptyString.unsafe(s"uploads/${orderId.value}/${artworkId.value}-v$revNum-${sanitizeFileSegment(payload.fileName.value)}"),
+                          downloadUrl = payload.downloadUrl,
+                          previewUrl = payload.previewUrl.orElse(payload.downloadUrl),
+                        ),
+                        extractedSpecs = ExtractedFileSpecs(
+                          resolutionDpi = payload.resolutionDpi,
+                          trimSize = trimSize,
+                          bleed = NonNegativeMm.unsafe(payload.bleedMm.max(0)),
+                          colorSpace = payload.colorSpace,
+                          pageCount = pageCnt,
+                          fontsEmbedded = payload.fontsEmbedded,
+                          hasUnflattenedTransparency = payload.hasUnflattenedTransparency,
+                        ),
+                        requirement = Some(req),
+                      )
+                    )
+                    .mapError(StorefrontError.ArtworkFailure.apply)
+    yield updated
+
   override def reuploadOrderArtwork(
       sessionToken: SessionToken,
       orderId: OrderId,
@@ -557,48 +757,18 @@ final class StorefrontFacadeLive(
       bleedMm: Int,
       colorSpace: ColorSpace,
   ): IO[StorefrontError, ArtworkSubmissionView] =
-    for
-      customer <- currentCustomer(sessionToken)
-      order    <- loadOwnedOrder(customer.id, orderId)
-      existing <- artworkService.getById(artworkId).mapError(StorefrontError.ArtworkFailure.apply)
-      _        <- existing.owner match
-                    case ArtworkOwner.OrderLineRef(oid, _) if oid == orderId => ZIO.unit
-                    case _ => ZIO.fail(StorefrontError.OrderNotOwned(orderId))
-      lineOpt   = existing.owner match
-                    case ArtworkOwner.OrderLineRef(_, idx) => order.lines.lift(idx)
-                    case _                                 => None
-      trimSize  = lineOpt.map(_.product.components.head.finishedSize).getOrElse(existing.latestRevision.extractedSpecs.trimSize)
-      pageCnt   = existing.latestRevision.extractedSpecs.pageCount
-      req       = PreflightRequirement(
-                    expectedTrimSize = trimSize,
-                    requiredBleed = NonNegativeMm.unsafe(3),
-                    minResolutionDpi = 300,
-                    expectedPageCount = Some(pageCnt),
-                  )
-      revNum    = existing.revisionCount + 1
-      updated  <- artworkService
-                    .uploadRevision(
-                      UploadRevisionCmd(
-                        artworkId = artworkId,
-                        file = AssetFileMetadata(
-                          fileName = fileName,
-                          mimeType = NonEmptyString.unsafe("application/pdf"),
-                          sizeBytes = 6_400_000L,
-                          storageKey = NonEmptyString.unsafe(s"uploads/${orderId.value}/${artworkId.value}-v$revNum.pdf"),
-                        ),
-                        extractedSpecs = ExtractedFileSpecs(
-                          resolutionDpi = resolutionDpi,
-                          trimSize = trimSize,
-                          bleed = NonNegativeMm.unsafe(bleedMm.max(0)),
-                          colorSpace = colorSpace,
-                          pageCount = pageCnt,
-                          fontsEmbedded = true,
-                        ),
-                        requirement = Some(req),
-                      )
-                    )
-                    .mapError(StorefrontError.ArtworkFailure.apply)
-    yield updated
+    reuploadOrderArtworkPayload(
+      sessionToken = sessionToken,
+      orderId = orderId,
+      artworkId = artworkId,
+      payload = ArtworkUploadPayload(
+        fileName = fileName,
+        resolutionDpi = resolutionDpi,
+        bleedMm = bleedMm,
+        colorSpace = colorSpace,
+        sizeBytes = 6_400_000L,
+      ),
+    )
 
   // ── Private Helpers ────────────────────────────────────────────────────────
 
@@ -743,6 +913,31 @@ final class StorefrontFacadeLive(
       n   <- seqCounter.updateAndGet(_ + 1)
       year = now.atZone(ZoneOffset.UTC).getYear
     yield OrderNumber.unsafe(f"ORD-$year-$n%04d")
+
+  private def nextArtworkId: UIO[ArtworkId] =
+    seqCounter.updateAndGet(_ + 1).map(n => ArtworkId.unsafe(s"art-$n"))
+
+  private def buildPreflightRequirement(
+      expectedTrimSize: Dimension2D,
+      expectedPageCount: Option[Int],
+  ): PreflightRequirement =
+    val isLargeFormat = expectedTrimSize.width.value >= BigDecimal(400) || expectedTrimSize.height.value >= BigDecimal(400)
+    PreflightRequirement(
+      expectedTrimSize = expectedTrimSize,
+      requiredBleed = NonNegativeMm.unsafe(3),
+      minResolutionDpi = if isLargeFormat then 150 else 300,
+      expectedPageCount = expectedPageCount,
+    )
+
+  private def defaultPageCountFor(comp: ComponentSnapshot): Int =
+    comp.inkNotation match
+      case Some(n) if n.endsWith("/0") => 1
+      case Some(_)                     => 2
+      case None                        => 1
+
+  private def sanitizeFileSegment(raw: String): String =
+    val cleaned = raw.trim.replaceAll("[^a-zA-Z0-9._-]+", "-")
+    if cleaned.nonEmpty then cleaned else "artwork.pdf"
 
 object StorefrontFacade:
   val layer: ZLayer[

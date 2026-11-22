@@ -25,8 +25,31 @@ enum StorefrontError(val message: String):
       extends StorefrontError("Authenticated principal is not a customer account")
   case OrderNotOwned(orderId: OrderId)
       extends StorefrontError(s"Order '${orderId.value}' does not belong to the signed-in customer")
+  case OrderAlreadyAcceptedForArtwork(orderId: OrderId, status: OrderStatus)
+      extends StorefrontError(s"Artwork uploads are locked for order '${orderId.value}' because it is already in status $status")
   case PaymentMethodNotAllowed(method: PaymentMethod, reason: String)
       extends StorefrontError(s"Payment method $method is not allowed: $reason")
+
+// ── Artwork Upload Payload (In-Memory / URL-Backed) ──────────────────────────
+
+/** Transport-neutral file payload for customer artwork upload (draft or order line).
+  * Carries URL references (`downloadUrl`, `previewUrl`) rather than binary blobs so the
+  * same contract works both in-memory (browser object/data URLs) and with future AWS S3 presigned URLs.
+  */
+final case class ArtworkUploadPayload(
+    fileName: NonEmptyString,
+    mimeType: NonEmptyString = NonEmptyString.unsafe("application/pdf"),
+    sizeBytes: Long = 2_400_000L,
+    downloadUrl: Option[NonEmptyString] = None,
+    previewUrl: Option[NonEmptyString] = None,
+    resolutionDpi: Int = 300,
+    bleedMm: Int = 3,
+    colorSpace: ColorSpace = ColorSpace.CMYK,
+    pageCount: Option[Int] = None,
+    fontsEmbedded: Boolean = true,
+    hasUnflattenedTransparency: Boolean = false,
+    trimSizeOverride: Option[Dimension2D] = None,
+)
 
 // ── Product Builder & Dual-Pricing Models ────────────────────────────────────
 

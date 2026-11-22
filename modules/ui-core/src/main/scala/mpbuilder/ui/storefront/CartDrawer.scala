@@ -91,6 +91,13 @@ object CartDrawer:
               badge(speedLabel(line.speed, lang), BadgeTone.Brand),
               firstComp.inkNotation.map(ink => badge(ink, BadgeTone.Neutral)).getOrElse(UI.empty),
               line.totalWeightGrams.map(w => badge(formatWeight(w), BadgeTone.Neutral)).getOrElse(UI.empty),
+              if line.artworkIds.nonEmpty then
+                reactiveBadge(
+                  state.i18n.t("cfg-artwork-attached-badge", Dict("count" -> line.artworkIds.size.toString)),
+                  BadgeTone.Emerald,
+                )
+              else
+                reactiveBadge(state.i18n.t("cfg-artwork-none-badge"), BadgeTone.Neutral),
             ),
             div.style(rowBetween)(
               div.style(Style.row.align(Alignment.center).gap(6.px))(

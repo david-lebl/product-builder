@@ -4,11 +4,12 @@ import kyo.*
 import kyo.UI.*
 import kyo.Style.*
 import mpbuilder.admin.state.{AdminRoute, BackofficeState}
+import mpbuilder.backoffice.CustomerArtworkEntry
 import mpbuilder.customers.*
 import mpbuilder.pricing.AgreementTarget
 import mpbuilder.shared.*
 import mpbuilder.ui.components.CommonComponents.*
-import mpbuilder.ui.components.{ActionMenu, ConfirmDialog, DataTable, TabBar}
+import mpbuilder.ui.components.{ActionMenu, ArtworkComponents, ConfirmDialog, DataTable, TabBar}
 import mpbuilder.ui.theme.AppTheme.*
 import mpbuilder.ui.theme.AppTheme.Palette.*
 
@@ -17,12 +18,12 @@ import mpbuilder.ui.theme.AppTheme.Palette.*
   *   - Single-line detail header with collapsed `ActionMenu` dropdown (Approve, Edit, Suspend, Deactivate)
   *     and status/tier/ID badges cleanly below the headline
   *   - Single-column scrollable detail pane organized into compact sub-tabs:
-  *     Overview (Profile/Contacts/Addresses/Tier & Terms), Pricing & Orders, and Notes & Audit
+  *     Overview (Profile/Contacts/Addresses/Tier & Terms), Pricing & Orders, Artworks, and Notes & Audit
   */
 object CustomerManagerView:
 
   private enum DetailTab:
-    case Overview, PricingOrders, NotesAudit
+    case Overview, PricingOrders, Artworks, NotesAudit
 
   private final case class ContactDraft(
       firstName: String,
@@ -111,13 +112,14 @@ object CustomerManagerView:
         state.customers
           .combineLatest(state.agreements)
           .combineLatest(state.orders)
+          .combineLatest(state.selectedCustomer)
           .combineLatest(editDraftRef)
           .combineLatest(detailTabRef)
           .combineLatest(state.auth)
           .combineLatest(state.i18n.language)
 
       UI.fragment(
-        combined.render { case ((((((allCustomers, allAgreements), allOrders), editDraftOpt), activeDetailTab), authOpt), lang) =>
+        combined.render { case (((((((allCustomers, allAgreements), allOrders), selectedDetailOpt), editDraftOpt), activeDetailTab), authOpt), lang) =>
           val isCs      = lang == Language.Cs
           val canManage = state.canManage(authOpt)
 
@@ -300,12 +302,20 @@ object CustomerManagerView:
 
                 approveItem ++ editItem ++ suspendItem ++ deactivateItem
 
+            val customerArtworks: List[CustomerArtworkEntry] =
+              selectedDetailOpt.filter(_.customer.id == c.id).map(_.artworks).getOrElse(Nil)
+
             val detailTabs = List(
               TabBar.TabItem(DetailTab.Overview, if isCs then "Přehled" else "Overview", None),
               TabBar.TabItem(
                 DetailTab.PricingOrders,
                 if isCs then "Ceny a objednávky" else "Pricing & Orders",
                 Some(customerOrders.size + matchingAgreements.size),
+              ),
+              TabBar.TabItem(
+                DetailTab.Artworks,
+                if isCs then "Tisková data" else "Artworks",
+                Some(customerArtworks.size),
               ),
               TabBar.TabItem(
                 DetailTab.NotesAudit,
@@ -536,6 +546,83 @@ object CustomerManagerView:
                     ),
                   )
 
+                case DetailTab.Artworks =>
+                  div.style(stackSm)(
+                    div.style(rowBetween)(
+                      h3(state.i18n.t("adm-cust-artworks-title")).style(sectionTitle.margin(0.px)),
+                      badge(customerArtworks.size.toString, BadgeTone.Neutral),
+                    ),
+                    if customerArtworks.isEmpty then
+                      p(state.i18n.t("adm-cust-artworks-empty")).style(mutedText.margin(0.px))
+                    else
+                      div.style(stackSm)(
+                        customerArtworks.map { entry =>
+                          val art      = entry.artwork
+                          val rev      = art.latestRevision
+                          val ctxTitle = Some(s"${entry.orderNumber.value} · ${entry.productName(lang)}")
+
+                          div.style(
+                            Style.column
+                              .gap(8.px)
+                              .padding(12.px)
+                              .rounded(12.px)
+                              .bg(surfaceAlt)
+                              .border(1.px, Palette.border),
+                          )(
+                            div.style(rowBetween.flexWrap(FlexWrap.wrap))(
+                              div.style(Style.row.align(Alignment.center).gap(12.px).minWidth(0.px).flexGrow(1.0))(
+                                ArtworkComponents.renderThumbnail(
+                                  rev,
+                                  sizePx = 52,
+                                  onClick = Some(() => state.artworkPreview.open(art, contextTitle = ctxTitle)),
+                                ),
+                                div.style(stackXs.minWidth(0.px))(
+                                  div.style(rowXs.flexWrap(FlexWrap.wrap))(
+                                    span(rev.file.fileName.value).style(Style.fontSize(13.px).fontWeight(FontWeight.w700).color(ink)),
+                                    artworkStatusBadge(art.status, lang),
+                                    badge(s"v${art.revisionCount}", BadgeTone.Neutral),
+                                  ),
+                                  div.style(rowXs.flexWrap(FlexWrap.wrap))(
+                                    button
+                                      .cssClass("mp-btn mp-btn-ghost mp-btn-sm")
+                                      .style(Style.padding(1.px, 6.px).color(brand).fontWeight(FontWeight.w700))
+                                      .onClick(state.navigate(AdminRoute.OrderDetail(entry.orderId)))(
+                                        entry.orderNumber.value,
+                                      ),
+                                    span(s"· #${entry.lineIndex + 1} ${entry.productName(lang)} (${art.componentKey.value})")
+                                      .style(smallText.fontWeight(FontWeight.w600).color(inkSecondary)),
+                                  ),
+                                  div.style(rowXs.flexWrap(FlexWrap.wrap))(
+                                    span(s"${ArtworkComponents.formatFileSize(rev.file.sizeBytes)} · ${rev.extractedSpecs.resolutionDpi} DPI · ${rev.extractedSpecs.colorSpace}")
+                                      .style(smallText),
+                                    span(s"· ${if isCs then "Vytvořeno" else "Created"}: ${formatInstant(art.createdAt)}")
+                                      .style(smallText),
+                                  ),
+                                ),
+                              ),
+                              div.style(rowXs.flexWrap(FlexWrap.wrap))(
+                                button
+                                  .cssClass("mp-btn mp-btn-secondary mp-btn-sm")
+                                  .onClick(state.artworkPreview.open(art, contextTitle = ctxTitle))(
+                                    state.i18n.t("adm-od-artwork-preview"),
+                                  ),
+                                ArtworkComponents.downloadButton(rev, lang),
+                                ArtworkComponents.copyLinkButton(
+                                  rev,
+                                  lang,
+                                  onCopied = () => state.notifyLinkCopied(rev.file.shareableUrl),
+                                ),
+                              ),
+                            ),
+                            div.style(Style.row.align(Alignment.center).gap(6.px).flexWrap(FlexWrap.wrap).padding(6.px, 0.px, 0.px, 0.px).borderTop(1.px, Palette.border))(
+                              span(if isCs then "URL:" else "URL:").style(smallText.fontWeight(FontWeight.w700)),
+                              code(rev.file.shareableUrl).style(Style.fontSize(11.px).color(inkMuted).fontFamily(FontFamily.Monospace)),
+                            ),
+                          )
+                        }*
+                      ),
+                  )
+
                 case DetailTab.NotesAudit =>
                   div.style(stackMd)(
                     // Internal Account Notes
@@ -611,7 +698,7 @@ object CustomerManagerView:
                     ac.email.value.toLowerCase.contains(q)
                 ),
             filterGroups = filterGroups,
-            onRowSelect = Some(_ => actionMenu.close.andThen(editDraftRef.set(None))),
+            onRowSelect = Some(c => actionMenu.close.andThen(editDraftRef.set(None)).andThen(state.selectCustomer(c.id))),
             renderDetail = Some(renderCustomerDetail),
             detailTitle = Some(c => s"${if isCs then "Zákazník" else "Customer"} · ${c.id.value}"),
             createConfig =

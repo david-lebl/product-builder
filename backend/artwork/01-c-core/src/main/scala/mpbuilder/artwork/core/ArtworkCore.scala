@@ -166,6 +166,9 @@ private[artwork] final case class ArtworkSubmission(
       case _ =>
         Right(copy(status = ArtworkStatus.Rejected(reason)))
 
+  def withOwner(newOwner: ArtworkOwner): ArtworkSubmission =
+    copy(owner = newOwner)
+
   def toView: ArtworkSubmissionView =
     ArtworkSubmissionView(
       id = id,
@@ -175,6 +178,8 @@ private[artwork] final case class ArtworkSubmission(
       status = status,
       latestRevision = latest,
       revisionCount = revisions.size,
+      revisions = revisions.toList,
+      createdAt = revisions.head.uploadedAt,
     )
 
 private[artwork] object ArtworkSubmission:
@@ -194,6 +199,7 @@ private[artwork] trait ArtworkRepository:
   def findById(id: ArtworkId): UIO[Option[ArtworkSubmission]]
   def findByOwner(owner: ArtworkOwner): UIO[List[ArtworkSubmission]] = ZIO.succeed(Nil)
   def save(submission: ArtworkSubmission): UIO[Unit]
+  def delete(id: ArtworkId): UIO[Unit] = ZIO.unit
 
 private[artwork] final class ArtworkServiceLive(
     repo: ArtworkRepository,
@@ -255,6 +261,21 @@ private[artwork] final class ArtworkServiceLive(
       _   <- repo.save(upd)
       _   <- eventBus.publish(ArtworkChangesRequested(upd.id, upd.owner, reason, now))
     yield upd.toView
+
+  override def reassignOwner(artworkId: ArtworkId, newOwner: ArtworkOwner): IO[ArtworkError, ArtworkSubmissionView] =
+    for
+      sub <- repo.findById(artworkId).someOrFail(ArtworkError.NotFound(artworkId))
+      upd  = sub.withOwner(newOwner)
+      _   <- repo.save(upd)
+    yield upd.toView
+
+  override def deleteDraft(artworkId: ArtworkId): IO[ArtworkError, Unit] =
+    for
+      sub <- repo.findById(artworkId).someOrFail(ArtworkError.NotFound(artworkId))
+      _ <- sub.owner match
+             case _: ArtworkOwner.DraftSession => repo.delete(artworkId)
+             case other                        => ZIO.fail(ArtworkError.CannotDeleteNonDraft(artworkId, other))
+    yield ()
 
   override def getById(artworkId: ArtworkId): IO[ArtworkError.NotFound, ArtworkSubmissionView] =
     repo.findById(artworkId).someOrFail(new ArtworkError.NotFound(artworkId)).map(_.toView)

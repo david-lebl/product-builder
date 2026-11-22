@@ -24,7 +24,11 @@ object StorefrontApp:
     yield
       val builderHost = ConfiguratorHost.Storefront(
         onAddToCart = (draft, _) => state.addDraftToCart(draft),
-        onQuickOrder = (draft, quoteRes) => state.startQuickOrder(quoteRes, draft.speed),
+        onQuickOrder = (draft, quoteRes) => state.startQuickOrder(quoteRes, draft.speed, draft.artworks.view.mapValues(_.id).toMap),
+        onPreviewArtwork = (art, ctx) => state.artworkPreview.open(art, contextTitle = ctx),
+        onLinkCopied = url => state.notifyLinkCopied(url),
+        onArtworkUploaded = () => state.i18n.now("cfg-artwork-uploaded-toast").flatMap(state.showToast),
+        onArtworkRemoved = () => state.i18n.now("cfg-artwork-removed-toast").flatMap(state.showToast),
       )
 
       val builderUI: UI = ConfiguratorView.render(state.configurator, builderHost, showHeader = true)
@@ -71,6 +75,7 @@ object StorefrontApp:
         // Overlays
         cartDrawerUI,
         authModalUI,
+        state.artworkPreview.render(state.i18n.language, url => state.notifyLinkCopied(url)),
         renderToast(state),
       )
 

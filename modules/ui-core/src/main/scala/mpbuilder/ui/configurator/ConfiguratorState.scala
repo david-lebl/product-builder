@@ -1,10 +1,12 @@
 package mpbuilder.ui.configurator
 
 import kyo.*
+import mpbuilder.artwork.*
 import mpbuilder.catalog.*
 import mpbuilder.identity.SessionToken
 import mpbuilder.shared.*
 import mpbuilder.storefront.*
+import mpbuilder.ui.components.{ArtworkComponents, BrowserPickedFile}
 import mpbuilder.ui.i18n.AppI18n
 import mpbuilder.ui.port.StorefrontClient
 import zio.NonEmptyChunk
@@ -26,6 +28,7 @@ final case class DraftConfig(
     components: List[DraftComponent],
     specs: ProductSpecs,
     speed: ManufacturingSpeed,
+    artworks: Map[ComponentKey, ArtworkSubmissionView] = Map.empty,
 )
 
 enum QuoteStatus:
@@ -45,6 +48,7 @@ final class ConfiguratorController(
     val compatibleFinishesMap: SignalRef[Map[ComponentKey, List[Finish]]],
     val finishLimitsMap: SignalRef[Map[ComponentKey, Map[FinishType, BigDecimal]]],
     private val seqRef: SignalRef[Long],
+    val draftSessionId: NonEmptyString = NonEmptyString.unsafe("draft-session-ui"),
 ):
 
   def currentCategory(d: DraftConfig): Option[ProductCategory] =
@@ -134,6 +138,49 @@ final class ConfiguratorController(
       _ <- draft.updateAndGet(_.copy(speed = speed))
       _ <- recompute
     yield ()
+
+  def uploadDraftArtwork(
+      key: ComponentKey,
+      file: BrowserPickedFile,
+  ): Option[ArtworkSubmissionView] < Async =
+    for
+      d   <- draft.get
+      tok <- sessionToken.current
+      expectedTrim = d.specs.dimensions.finishedBoundingBox
+      expectedPages = d.specs.binding.map(_.totalPages)
+      payload = ArtworkComponents.toUploadPayload(file, expectedTrim, expectedPages)
+      // Delete previous draft artwork for this component if replacing
+      _ <- d.artworks.get(key) match
+             case Some(prev) => Abort.run[StorefrontError](client.deleteDraftArtwork(prev.id)).unit
+             case None       => Kyo.unit
+      res <- Abort.run[StorefrontError](
+               client.uploadDraftArtwork(
+                 sessionId = draftSessionId,
+                 componentKey = key,
+                 expectedTrim = expectedTrim,
+                 expectedPages = expectedPages,
+                 payload = payload,
+                 sessionToken = tok,
+               )
+             )
+      out <- res match
+               case Result.Success(view) =>
+                 draft.updateAndGet(cur => cur.copy(artworks = cur.artworks.updated(key, view))).map(_ => Some(view))
+               case _ =>
+                 Kyo.lift(None)
+    yield out
+
+  def removeDraftArtwork(key: ComponentKey): Unit < Async =
+    for
+      d <- draft.get
+      _ <- d.artworks.get(key) match
+             case Some(existing) => Abort.run[StorefrontError](client.deleteDraftArtwork(existing.id)).unit
+             case None           => Kyo.unit
+      _ <- draft.updateAndGet(cur => cur.copy(artworks = cur.artworks - key)).unit
+    yield ()
+
+  def clearDraftArtworks: Unit < Sync =
+    draft.updateAndGet(_.copy(artworks = Map.empty)).unit
 
   def buildConfigureCmd(d: DraftConfig): ConfigureProductCmd < Sync =
     seqRef.updateAndGet(_ + 1).map { seq =>

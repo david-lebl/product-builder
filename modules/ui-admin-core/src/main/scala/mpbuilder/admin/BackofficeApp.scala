@@ -70,6 +70,7 @@ object BackofficeApp:
 
       UI.fragment(
         shellUI,
+        state.artworkPreview.render(state.i18n.language, url => state.notifyLinkCopied(url)),
         renderToast(state),
       )
 

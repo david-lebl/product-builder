@@ -3,10 +3,11 @@ package mpbuilder.ui.configurator
 import kyo.*
 import kyo.UI.*
 import kyo.Style.*
+import mpbuilder.artwork.*
 import mpbuilder.catalog.*
 import mpbuilder.shared.*
 import mpbuilder.storefront.*
-import mpbuilder.ui.components.CommonComponents
+import mpbuilder.ui.components.{ArtworkComponents, BrowserPickedFile, CommonComponents}
 import mpbuilder.ui.components.CommonComponents.*
 import mpbuilder.ui.theme.AppTheme.*
 import mpbuilder.ui.theme.AppTheme.Palette.*
@@ -15,6 +16,10 @@ enum ConfiguratorHost:
   case Storefront(
       onAddToCart: (DraftConfig, ProductBuilderQuoteResult) => Unit < Async,
       onQuickOrder: (DraftConfig, ProductBuilderQuoteResult) => Unit < Async,
+      onPreviewArtwork: (ArtworkSubmissionView, Option[String]) => Unit < Sync = (_, _) => Kyo.unit,
+      onLinkCopied: String => Unit < Async = _ => Kyo.unit,
+      onArtworkUploaded: () => Unit < Async = () => Kyo.unit,
+      onArtworkRemoved: () => Unit < Async = () => Kyo.unit,
   )
   case Calculator(
       orderEmail: Option[String],
@@ -61,7 +66,7 @@ object ConfiguratorView:
         )
       else UI.empty,
       div.cssClass("mp-split-layout")(
-        // Left: 4-step configuration form
+        // Left: 5-step configuration & artwork form
         div.cssClass("mp-split-main")(
           combined.render { case (((d, lang), finMap), limMap) =>
             ctrl.currentCategory(d) match
@@ -73,6 +78,11 @@ object ConfiguratorView:
                   renderComponentsCard(ctrl, cat, d, finMap, limMap, lang),
                   renderSpecsCard(ctrl, cat, d, lang),
                   renderSpeedCard(ctrl, d, host, lang),
+                  host match
+                    case sf: ConfiguratorHost.Storefront =>
+                      renderArtworkCard(ctrl, cat, d, sf, lang)
+                    case _: ConfiguratorHost.Calculator =>
+                      UI.empty,
                 )
           },
         ),
@@ -808,6 +818,145 @@ object ConfiguratorView:
       },
     )
 
+  // ── Step 5: Print Artwork Upload (Storefront Mode) ─────────────────────────
+
+  private def renderArtworkCard(
+      ctrl: ConfiguratorController,
+      cat: ProductCategory,
+      d: DraftConfig,
+      sf: ConfiguratorHost.Storefront,
+      lang: Language,
+  ): UI =
+    val isCs          = lang == Language.Cs
+    val expectedTrim  = d.specs.dimensions.finishedBoundingBox
+    val printableComps = d.components.filter(c => cat.templateFor(c.key).forall(_.printable))
+
+    if printableComps.isEmpty then UI.empty
+    else
+      div.cssClass("mp-card")(
+        div.style(rowBetween.flexWrap(FlexWrap.wrap))(
+          div.style(stackXs)(
+            h2(ctrl.i18n.t("cfg-section-artwork")).style(sectionTitle.margin(0.px)),
+            p(ctrl.i18n.t("cfg-artwork-subtitle")).style(smallText.margin(0.px)),
+          ),
+          if d.artworks.nonEmpty then
+            reactiveBadge(ctrl.i18n.t("cfg-artwork-attached-badge", Dict("count" -> d.artworks.size.toString)), BadgeTone.Emerald)
+          else
+            badge(if isCs then "Volitelné" else "Optional", BadgeTone.Neutral),
+        ),
+        div.style(stackMd)(
+          printableComps.map { comp =>
+            val compLabel = cat.templateFor(comp.key).map(_.label(lang)).getOrElse(comp.key.value)
+            val zoneId    = s"cfg-art-${d.categoryId.value}-${comp.key.value}"
+            val onPick: BrowserPickedFile => Unit < Async = file =>
+              ctrl.uploadDraftArtwork(comp.key, file).flatMap {
+                case Some(_) => sf.onArtworkUploaded()
+                case None    => Kyo.unit
+              }
+
+            div.style(stackSm.padding(12.px).rounded(12.px).bg(surfaceAlt).border(1.px, Palette.border))(
+              if printableComps.size > 1 then
+                div.style(rowBetween)(
+                  span(compLabel).style(Style.fontSize(13.px).fontWeight(FontWeight.w700).color(ink)),
+                  badge(formatDimension(expectedTrim), BadgeTone.Neutral),
+                )
+              else UI.empty,
+
+              d.artworks.get(comp.key) match
+                case Some(art) =>
+                  val rev = art.latestRevision
+                  val issues = rev.preflight.toList.flatMap(_.checks).collect {
+                    case ch if ch.outcome.isInstanceOf[CheckOutcome.Failed]  => ("rose", ch.kind.toString, ch.outcome.asInstanceOf[CheckOutcome.Failed].detail)
+                    case ch if ch.outcome.isInstanceOf[CheckOutcome.Warning] => ("amber", ch.kind.toString, ch.outcome.asInstanceOf[CheckOutcome.Warning].detail)
+                  }
+                  div.style(stackSm)(
+                    div.style(
+                      Style.row
+                        .align(Alignment.center)
+                        .justify(Justification.spaceBetween)
+                        .gap(12.px)
+                        .flexWrap(FlexWrap.wrap)
+                        .padding(10.px, 12.px)
+                        .rounded(10.px)
+                        .bg(surface)
+                        .border(1.px, Palette.border),
+                    )(
+                      div.style(Style.row.align(Alignment.center).gap(12.px).minWidth(0.px).flexGrow(1.0))(
+                        ArtworkComponents.renderThumbnail(
+                          rev,
+                          sizePx = 56,
+                          onClick = Some(() => sf.onPreviewArtwork(art, Some(s"${cat.name(lang)} · $compLabel"))),
+                        ),
+                        div.style(stackXs.minWidth(0.px))(
+                          div.style(rowXs.flexWrap(FlexWrap.wrap))(
+                            span(rev.file.fileName.value).style(Style.fontSize(13.px).fontWeight(FontWeight.w700).color(ink)),
+                            artworkStatusBadge(art.status, lang),
+                          ),
+                          div.style(rowXs.flexWrap(FlexWrap.wrap))(
+                            span(ArtworkComponents.formatFileSize(rev.file.sizeBytes)).style(smallText),
+                            badge(s"${rev.extractedSpecs.resolutionDpi} DPI", BadgeTone.Neutral),
+                            badge(rev.extractedSpecs.colorSpace.toString, BadgeTone.Brand),
+                            badge(s"${rev.extractedSpecs.bleed.value} mm ${if isCs then "spad." else "bleed"}", BadgeTone.Neutral),
+                          ),
+                        ),
+                      ),
+                      div.style(rowXs.flexWrap(FlexWrap.wrap))(
+                        button
+                          .cssClass("mp-btn mp-btn-secondary mp-btn-sm")
+                          .onClick(sf.onPreviewArtwork(art, Some(s"${cat.name(lang)} · $compLabel")))(
+                            ctrl.i18n.t("cfg-artwork-preview"),
+                          ),
+                        ArtworkComponents.downloadButton(rev, lang),
+                        ArtworkComponents.copyLinkButton(rev, lang, onCopied = () => sf.onLinkCopied(rev.file.shareableUrl)),
+                        button
+                          .cssClass("mp-btn mp-btn-danger mp-btn-sm")
+                          .onClick(ctrl.removeDraftArtwork(comp.key).andThen(sf.onArtworkRemoved()))(
+                            ctrl.i18n.t("cfg-artwork-remove"),
+                          ),
+                      ),
+                    ),
+                    if issues.nonEmpty then
+                      div.style(stackXs)(
+                        issues.map { case (tone, kind, msg) =>
+                          div.style(
+                            Style
+                              .padding(6.px, 10.px)
+                              .rounded(8.px)
+                              .bg(if tone == "rose" then roseSoft else amberSoft)
+                              .color(if tone == "rose" then roseInk else amberInk)
+                              .border(1.px, if tone == "rose" then roseBorder else amberBorder)
+                              .fontSize(12.px),
+                          )(s"⚠ $kind: $msg")
+                        }*
+                      )
+                    else UI.empty,
+                    ArtworkComponents.dropZone(
+                      zoneId = zoneId,
+                      expectedTrim = expectedTrim,
+                      componentKey = comp.key,
+                      lang = lang,
+                      onFilePicked = onPick,
+                      titleOpt = Some(if isCs then "Přetáhněte jiný soubor pro nahrazení" else "Drop another file to replace"),
+                      compact = true,
+                      showDemoQuickAttach = true,
+                    ),
+                  )
+
+                case None =>
+                  ArtworkComponents.dropZone(
+                    zoneId = zoneId,
+                    expectedTrim = expectedTrim,
+                    componentKey = comp.key,
+                    lang = lang,
+                    onFilePicked = onPick,
+                    compact = false,
+                    showDemoQuickAttach = true,
+                  ),
+            )
+          }*
+        ),
+      )
+
   // ── Sticky Right Sidebar: Live Quote, B2B Savings, Breakdown & CTAs ────────
 
   private def renderQuoteSidebar(
@@ -892,19 +1041,27 @@ object ConfiguratorView:
                 )
               case _ => UI.empty,
 
-            // Volume multiplier badge
-            if q.volumeMultiplier != BigDecimal(1) then
-              div.style(Style.row.gap(6.px))(
-                badge(
-                  s"${if lang == Language.Cs then "Množstevní koef." else "Volume mult."}: ${q.volumeMultiplier}×",
-                  BadgeTone.Brand,
-                ),
+            // Volume multiplier & attached artwork badges
+            if q.volumeMultiplier != BigDecimal(1) || d.artworks.nonEmpty then
+              div.style(Style.row.flexWrap(FlexWrap.wrap).gap(6.px))(
+                if q.volumeMultiplier != BigDecimal(1) then
+                  badge(
+                    s"${if lang == Language.Cs then "Množstevní koef." else "Volume mult."}: ${q.volumeMultiplier}×",
+                    BadgeTone.Brand,
+                  )
+                else UI.empty,
+                if d.artworks.nonEmpty then
+                  reactiveBadge(
+                    ctrl.i18n.t("cfg-artwork-attached-badge", Dict("count" -> d.artworks.size.toString)),
+                    BadgeTone.Emerald,
+                  )
+                else UI.empty,
               )
             else UI.empty,
 
             // Host-specific CTA buttons
             host match
-              case ConfiguratorHost.Storefront(onAddToCart, onQuickOrder) =>
+              case ConfiguratorHost.Storefront(onAddToCart, onQuickOrder, _, _, _, _) =>
                 div.style(Style.column.gap(8.px))(
                   button
                     .cssClass("mp-btn mp-btn-primary mp-btn-lg")

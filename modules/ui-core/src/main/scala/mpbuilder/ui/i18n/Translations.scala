@@ -101,6 +101,16 @@ object Translations:
       |cfg-section-components = 2. Material, Print & Finishes
       |cfg-section-specs = 3. Specifications & Quantity
       |cfg-section-speed = 4. Production Speed
+      |cfg-section-artwork = 5. Print Artwork (Optional)
+      |cfg-artwork-subtitle = Drag & drop your print files now to run automatic preflight, or attach them later in Order History before acceptance.
+      |cfg-artwork-attached-badge = ✓ { $count } artwork attached
+      |cfg-artwork-none-badge = No artwork yet — upload after order
+      |cfg-artwork-preview = Preview
+      |cfg-artwork-remove = Remove
+      |cfg-artwork-replace = Replace file
+      |cfg-artwork-uploaded-toast = Print artwork attached and checked
+      |cfg-artwork-removed-toast = Draft artwork removed
+      |cfg-artwork-link-copied = Artwork URL copied to clipboard
       |cfg-category-label = Product Category
       |cfg-presets-label = Quick-Start Presets
       |cfg-component-material = Substrate / Material
@@ -295,6 +305,11 @@ object Translations:
       |account-artwork-title = Artwork & Preflight
       |account-artwork-reupload = Re-upload Corrected File (300 DPI CMYK)
       |account-artwork-reuploaded = Corrected artwork uploaded and sent for preflight!
+      |account-artwork-uploaded = Print artwork uploaded and checked!
+      |account-artwork-upload-prompt = Upload print artwork for { $component }
+      |account-artwork-replace-prompt = Replace artwork for { $component }
+      |account-artwork-locked = Artwork uploads locked — order has already been accepted
+      |account-artwork-no-files = No artwork attached to this item yet.
       |account-close = Close
       |
       |# Standalone Calculator
@@ -369,6 +384,16 @@ object Translations:
       |cfg-section-components = 2. Materiál, tisk a dokončení
       |cfg-section-specs = 3. Rozměry, náklad a vazba
       |cfg-section-speed = 4. Rychlost výroby
+      |cfg-section-artwork = 5. Tisková data (volitelné)
+      |cfg-artwork-subtitle = Přetáhněte tisková data rovnou pro automatický preflight, nebo je nahrajte později v historii objednávek před přijetím zakázky.
+      |cfg-artwork-attached-badge = ✓ Přiloženo souborů: { $count }
+      |cfg-artwork-none-badge = Zatím bez tiskových dat — lze nahrát po objednání
+      |cfg-artwork-preview = Náhled
+      |cfg-artwork-remove = Odebrat
+      |cfg-artwork-replace = Nahradit soubor
+      |cfg-artwork-uploaded-toast = Tisková data byla přiložena a zkontrolována
+      |cfg-artwork-removed-toast = Rozpracovaný soubor odebrán
+      |cfg-artwork-link-copied = Odkaz na soubor zkopírován do schránky
       |cfg-category-label = Kategorie produktu
       |cfg-presets-label = Rychlé šablony
       |cfg-component-material = Materiál / substrát
@@ -563,6 +588,11 @@ object Translations:
       |account-artwork-title = Tisková data a preflight
       |account-artwork-reupload = Nahrát opravený soubor (300 DPI CMYK)
       |account-artwork-reuploaded = Opravená tisková data byla nahrána a odeslána na preflight!
+      |account-artwork-uploaded = Tisková data byla nahrána a zkontrolována!
+      |account-artwork-upload-prompt = Nahrát tisková data pro { $component }
+      |account-artwork-replace-prompt = Nahradit soubor pro { $component }
+      |account-artwork-locked = Nahrávání tiskových dat uzamčeno — objednávka již byla přijata
+      |account-artwork-no-files = K této položce zatím nejsou přiložena žádná tisková data.
       |account-close = Zavřít
       |
       |# Samostatná kalkulačka

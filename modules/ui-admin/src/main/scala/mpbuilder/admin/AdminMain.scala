@@ -8,6 +8,7 @@ import mpbuilder.admin.theme.AdminTheme
 import mpbuilder.backoffice.BackofficeFacade
 import mpbuilder.sample.SampleShowcaseRuntime
 import mpbuilder.shared.Language
+import mpbuilder.ui.components.{BrowserPickedFile, FileDropRegistry}
 import org.scalajs.dom
 import scala.scalajs.js
 
@@ -92,6 +93,138 @@ object AdminMain extends KyoApp:
     dom.window.addEventListener("pointercancel", onPointerUp)
     dom.document.addEventListener("dblclick", onDblClick)
 
+  private def installArtworkFileBridge(appI18n: mpbuilder.ui.i18n.AppI18n): Unit =
+    import kyo.AllowUnsafe.embrace.danger
+
+    def inferMime(file: dom.File): String =
+      val raw = Option(file.`type`).map(_.trim).filter(_.nonEmpty)
+      raw.getOrElse {
+        val lower = file.name.toLowerCase
+        if lower.endsWith(".pdf") then "application/pdf"
+        else if lower.endsWith(".png") then "image/png"
+        else if lower.endsWith(".jpg") || lower.endsWith(".jpeg") then "image/jpeg"
+        else if lower.endsWith(".svg") then "image/svg+xml"
+        else if lower.endsWith(".tif") || lower.endsWith(".tiff") then "image/tiff"
+        else "application/octet-stream"
+      }
+
+    def dispatchPicked(zoneId: String, picked: BrowserPickedFile): Unit =
+      val eff = I18n.let(appI18n.handle)(FileDropRegistry.dispatch(zoneId, picked))
+      val _   = Sync.Unsafe.evalOrThrow(Fiber.initUnscoped(eff))
+
+    def processFile(zoneId: String, file: dom.File): Unit =
+      val mime    = inferMime(file)
+      val blobUrl = dom.URL.createObjectURL(file)
+      val size    = file.size.toLong.max(1L)
+      if mime.startsWith("image/") then
+        val reader = new dom.FileReader()
+        reader.onload = _ =>
+          val dataUrl = Option(reader.result).map(_.toString).filter(_.nonEmpty).getOrElse(blobUrl)
+          val probe   = new dom.Image()
+          probe.onload = _ =>
+            dispatchPicked(
+              zoneId,
+              BrowserPickedFile(
+                fileName = file.name,
+                mimeType = mime,
+                sizeBytes = size,
+                downloadUrl = blobUrl,
+                previewUrl = Some(dataUrl),
+                pixelWidth = Option.when(probe.naturalWidth > 0)(probe.naturalWidth),
+                pixelHeight = Option.when(probe.naturalHeight > 0)(probe.naturalHeight),
+              ),
+            )
+          probe.addEventListener(
+            "error",
+            (_: dom.Event) =>
+              dispatchPicked(zoneId, BrowserPickedFile(file.name, mime, size, blobUrl, Some(dataUrl))),
+          )
+          probe.src = dataUrl
+        reader.onerror = _ =>
+          dispatchPicked(zoneId, BrowserPickedFile(file.name, mime, size, blobUrl, Some(blobUrl)))
+        reader.readAsDataURL(file)
+      else
+        dispatchPicked(zoneId, BrowserPickedFile(file.name, mime, size, blobUrl, Some(blobUrl)))
+
+    def activeDropZone(target: dom.EventTarget): Option[(dom.Element, String)] =
+      target match
+        case el: dom.Element =>
+          val zone = el.closest("[data-mp-dropzone]")
+          if zone != null && zone.getAttribute("data-mp-dropzone-disabled") != "true" then
+            Option(zone.getAttribute("data-mp-dropzone")).filter(_.nonEmpty).map(id => (zone, id))
+          else None
+        case _ => None
+
+    val onDragOver: js.Function1[dom.DragEvent, Unit] = ev =>
+      activeDropZone(ev.target).foreach { case (zone, _) =>
+        ev.preventDefault()
+        zone.classList.add("mp-dropzone-active")
+      }
+
+    val onDragLeave: js.Function1[dom.DragEvent, Unit] = ev =>
+      activeDropZone(ev.target).foreach { case (zone, _) =>
+        zone.classList.remove("mp-dropzone-active")
+      }
+
+    val onDrop: js.Function1[dom.DragEvent, Unit] = ev =>
+      activeDropZone(ev.target).foreach { case (zone, zoneId) =>
+        ev.preventDefault()
+        zone.classList.remove("mp-dropzone-active")
+        val files = ev.dataTransfer.files
+        if files != null && files.length > 0 then
+          processFile(zoneId, files(0))
+      }
+
+    val onClick: js.Function1[dom.MouseEvent, Unit] = ev =>
+      ev.target match
+        case el: dom.Element =>
+          val dlBtn = el.closest("[data-mp-download-url]")
+          if dlBtn != null then
+            val url  = dlBtn.getAttribute("data-mp-download-url")
+            val name = Option(dlBtn.getAttribute("data-mp-download-name")).filter(_.nonEmpty).getOrElse("artwork.pdf")
+            if url != null && url.nonEmpty then
+              val a = dom.document.createElement("a").asInstanceOf[dom.HTMLAnchorElement]
+              a.href = url
+              a.setAttribute("download", name)
+              a.style.display = "none"
+              dom.document.body.appendChild(a)
+              a.click()
+              dom.document.body.removeChild(a)
+
+          val copyBtn = el.closest("[data-mp-copy-url]")
+          if copyBtn != null then
+            val url = copyBtn.getAttribute("data-mp-copy-url")
+            if url != null && url.nonEmpty then
+              try
+                val clip = dom.window.navigator.asInstanceOf[js.Dynamic].clipboard
+                if !js.isUndefined(clip) && clip != null then
+                  val _ = clip.writeText(url)
+                else
+                  val ta = dom.document.createElement("textarea").asInstanceOf[dom.HTMLTextAreaElement]
+                  ta.value = url
+                  dom.document.body.appendChild(ta)
+                  ta.select()
+                  dom.document.execCommand("copy")
+                  dom.document.body.removeChild(ta)
+              catch case _: Throwable => ()
+
+          activeDropZone(el).foreach { case (_, zoneId) =>
+            val input = dom.document.createElement("input").asInstanceOf[dom.HTMLInputElement]
+            input.`type` = "file"
+            input.accept = ".pdf,.png,.jpg,.jpeg,.svg,.tif,.tiff,.ai,.eps"
+            input.onchange = _ =>
+              if input.files != null && input.files.length > 0 then
+                processFile(zoneId, input.files(0))
+            input.click()
+          }
+        case _ => ()
+
+    dom.document.addEventListener("dragenter", onDragOver)
+    dom.document.addEventListener("dragover", onDragOver)
+    dom.document.addEventListener("dragleave", onDragLeave)
+    dom.document.addEventListener("drop", onDrop)
+    dom.document.addEventListener("click", onClick)
+
   run {
     val initialLang  = detectInitialLanguage
     val initialRoute = AdminRoute.fromHash(dom.window.location.hash, requireAdminPrefix = false).getOrElse(AdminRoute.Dashboard)
@@ -101,6 +234,7 @@ object AdminMain extends KyoApp:
       appI18n <- AdminTranslations.init(initialLang)
       _       <- UI.runStylesheet(AdminTheme.adminStylesheet)
       _       <- Sync.defer(installMasterDetailSplitter())
+      _       <- Sync.defer(installArtworkFileBridge(appI18n))
       _ <- I18n.let(appI18n.handle) {
              for
                state <- BackofficeState.init(

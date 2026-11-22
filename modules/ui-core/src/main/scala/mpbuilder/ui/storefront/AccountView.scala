@@ -366,64 +366,170 @@ object AccountView:
         orderProgressStepper(order.status, lang),
       ),
 
-      // Order Lines
-      div.style(Style.column.gap(6.px).padding(8.px, 0.px, 0.px, 0.px).borderTop(1.px, Palette.border))(
-        order.lines.toList.map { ln =>
-          div.style(rowBetween.fontSize(13.px))(
-            span(
-              s"${ln.copies.value}× ${ln.product.categoryName(lang)} (${ln.runQuantity.value} pcs, ${speedLabel(ln.speed, lang)})",
-            ).style(Style.color(inkSecondary)),
-            span(formatMoney(ln.lineGrossTotal, ln.price.currency, lang)).style(Style.fontWeight(FontWeight.w600)),
-          )
-        }*
-      ),
-
-      // Artwork & Preflight status + Re-upload action when changes requested
-      if artworks.nonEmpty then
-        div.style(Style.column.gap(8.px).padding(10.px, 12.px).rounded(10.px).bg(surface).border(1.px, Palette.border))(
+      // Order Lines & Per-Line Print Artwork (upload/replace before acceptance or on changes requested)
+      div.style(Style.column.gap(10.px).padding(10.px, 0.px, 0.px, 0.px).borderTop(1.px, Palette.border))(
+        div.style(rowBetween.flexWrap(FlexWrap.wrap))(
           span(state.i18n.t("account-artwork-title")).style(smallText.fontWeight(FontWeight.w800)),
-          div.style(stackSm)(
-            artworks.map { art =>
-              val needsReupload = art.status match
-                case ArtworkStatus.ChangesRequested(_) | ArtworkStatus.PreflightFailed => true
-                case _                                                                 => false
-              val noteOpt = art.status match
-                case ArtworkStatus.ChangesRequested(n) => Some(n.value)
-                case ArtworkStatus.Rejected(r)         => Some(r.value)
-                case _                                 => None
+          if !order.status.allowsCustomerArtworkUpload then
+            badge(
+              s"🔒 ${if isCs then "Objednávka přijata — nahrávání uzamčeno" else "Order accepted — uploads locked"}",
+              BadgeTone.Neutral,
+            )
+          else UI.empty,
+        ),
+        div.style(stackSm)(
+          order.lines.toList.zipWithIndex.map { case (ln, lineIdx) =>
+            val lineArts = artworks.filter { a =>
+              a.owner match
+                case ArtworkOwner.OrderLineRef(oid, idx) => oid == order.id && idx == lineIdx
+                case _                                   => false
+            }
+            val artsByComp = lineArts.map(a => a.componentKey -> a).toMap
+            val printableComps = ln.product.components.toList.filter(_.printingMethodId.isDefined)
+            val fallbackComps  = if printableComps.nonEmpty then printableComps else ln.product.components.toList.take(1)
 
-              div.style(stackXs)(
-                div.style(rowBetween.flexWrap(FlexWrap.wrap))(
-                  div.style(rowXs.flexWrap(FlexWrap.wrap))(
-                    span(s"${art.latestRevision.file.fileName.value} (v${art.revisionCount})")
-                      .style(Style.fontSize(13.px).fontWeight(FontWeight.w600).color(ink)),
-                    artworkStatusBadge(art.status, lang),
-                  ),
-                  if needsReupload then
-                    button
-                      .cssClass("mp-btn mp-btn-primary mp-btn-sm")
-                      .onClick(
-                        state.reuploadOrderArtwork(
-                          order.id,
-                          art.id,
-                          NonEmptyString.unsafe(
-                            s"${art.latestRevision.file.fileName.value.stripSuffix(".pdf")}-v${art.revisionCount + 1}-cmyk.pdf"
-                          ),
-                        )
-                      )(state.i18n.t("account-artwork-reupload"))
-                  else UI.empty,
+            div.style(Style.column.gap(8.px).padding(12.px).rounded(10.px).bg(surface).border(1.px, Palette.border))(
+              div.style(rowBetween.flexWrap(FlexWrap.wrap))(
+                div.style(stackXs)(
+                  span(
+                    s"${ln.copies.value}× ${ln.product.categoryName(lang)} (${ln.runQuantity.value} pcs, ${speedLabel(ln.speed, lang)})",
+                  ).style(Style.fontSize(13.px).fontWeight(FontWeight.w700).color(ink)),
+                  span(
+                    ln.product.components.toList
+                      .map(c => s"${c.materialName(lang)} · ${formatDimension(c.finishedSize)}")
+                      .mkString(" / "),
+                  ).style(smallText),
                 ),
-                noteOpt match
-                  case Some(msg) =>
-                    div.style(
-                      Style.padding(6.px, 10.px).rounded(8.px).bg(amberSoft).color(amberInk).border(1.px, amberBorder).fontSize(12.px),
-                    )(s"⚠ $msg")
-                  case None => UI.empty,
-              )
-            }*
-          ),
-        )
-      else UI.empty,
+                span(formatMoney(ln.lineGrossTotal, ln.price.currency, lang)).style(Style.fontWeight(FontWeight.w700).fontSize(14.px)),
+              ),
+
+              // Component artwork slots for this order line
+              div.style(stackSm)(
+                fallbackComps.map { comp =>
+                  val expectedTrim  = comp.finishedSize
+                  val expectedPages = None
+                  artsByComp.get(comp.key) match
+                    case Some(art) =>
+                      val rev = art.latestRevision
+                      val needsReupload = art.status match
+                        case ArtworkStatus.ChangesRequested(_) | ArtworkStatus.PreflightFailed => true
+                        case _                                                                 => false
+                      val canUploadOrReplace = order.status.allowsCustomerArtworkUpload || needsReupload
+                      val noteOpt = art.status match
+                        case ArtworkStatus.ChangesRequested(n) => Some(n.value)
+                        case ArtworkStatus.Rejected(r)         => Some(r.value)
+                        case _                                 => None
+                      val ctxTitle = Some(s"${order.orderNumber.value} · ${ln.product.categoryName(lang)}")
+
+                      div.style(stackSm.padding(10.px).rounded(10.px).bg(surfaceAlt).border(1.px, Palette.border))(
+                        div.style(rowBetween.flexWrap(FlexWrap.wrap))(
+                          div.style(Style.row.align(Alignment.center).gap(10.px).minWidth(0.px).flexGrow(1.0))(
+                            mpbuilder.ui.components.ArtworkComponents.renderThumbnail(
+                              rev,
+                              sizePx = 48,
+                              onClick = Some(() => state.artworkPreview.open(art, contextTitle = ctxTitle)),
+                            ),
+                            div.style(stackXs.minWidth(0.px))(
+                              div.style(rowXs.flexWrap(FlexWrap.wrap))(
+                                span(s"${rev.file.fileName.value} (v${art.revisionCount})")
+                                  .style(Style.fontSize(13.px).fontWeight(FontWeight.w700).color(ink)),
+                                artworkStatusBadge(art.status, lang),
+                              ),
+                              div.style(rowXs.flexWrap(FlexWrap.wrap))(
+                                span(mpbuilder.ui.components.ArtworkComponents.formatFileSize(rev.file.sizeBytes)).style(smallText),
+                                badge(s"${rev.extractedSpecs.resolutionDpi} DPI", BadgeTone.Neutral),
+                                badge(rev.extractedSpecs.colorSpace.toString, BadgeTone.Brand),
+                                span(formatInstant(rev.uploadedAt)).style(smallText),
+                              ),
+                            ),
+                          ),
+                          div.style(rowXs.flexWrap(FlexWrap.wrap))(
+                            button
+                              .cssClass("mp-btn mp-btn-secondary mp-btn-sm")
+                              .onClick(state.artworkPreview.open(art, contextTitle = ctxTitle))(
+                                state.i18n.t("cfg-artwork-preview"),
+                              ),
+                            mpbuilder.ui.components.ArtworkComponents.downloadButton(rev, lang),
+                            mpbuilder.ui.components.ArtworkComponents.copyLinkButton(
+                              rev,
+                              lang,
+                              onCopied = () => state.notifyLinkCopied(rev.file.shareableUrl),
+                            ),
+                            if needsReupload then
+                              button
+                                .cssClass("mp-btn mp-btn-primary mp-btn-sm")
+                                .onClick(
+                                  state.reuploadOrderArtwork(
+                                    order.id,
+                                    art.id,
+                                    NonEmptyString.unsafe(
+                                      s"${rev.file.fileName.value.stripSuffix(".pdf")}-v${art.revisionCount + 1}-cmyk.pdf"
+                                    ),
+                                  )
+                                )(state.i18n.t("account-artwork-reupload"))
+                            else UI.empty,
+                          ),
+                        ),
+                        noteOpt match
+                          case Some(msg) =>
+                            div.style(
+                              Style.padding(6.px, 10.px).rounded(8.px).bg(amberSoft).color(amberInk).border(1.px, amberBorder).fontSize(12.px),
+                            )(s"⚠ $msg")
+                          case None => UI.empty,
+                        if canUploadOrReplace then
+                          mpbuilder.ui.components.ArtworkComponents.dropZone(
+                            zoneId = s"acct-replace-${order.id.value}-$lineIdx-${comp.key.value}",
+                            expectedTrim = expectedTrim,
+                            componentKey = comp.key,
+                            lang = lang,
+                            onFilePicked = file =>
+                              state.reuploadOrderArtworkFile(order.id, art.id, expectedTrim, expectedPages, file),
+                            titleOpt = Some(
+                              if isCs then s"Nahradit tisková data (${comp.key.value}) — přetáhněte soubor"
+                              else s"Replace artwork (${comp.key.value}) — drag & drop or browse"
+                            ),
+                            compact = true,
+                            showDemoQuickAttach = true,
+                          )
+                        else UI.empty,
+                      )
+
+                    case None =>
+                      if order.status.allowsCustomerArtworkUpload then
+                        mpbuilder.ui.components.ArtworkComponents.dropZone(
+                          zoneId = s"acct-upload-${order.id.value}-$lineIdx-${comp.key.value}",
+                          expectedTrim = expectedTrim,
+                          componentKey = comp.key,
+                          lang = lang,
+                          onFilePicked = file =>
+                            state.uploadOrderLineArtwork(order.id, lineIdx, comp.key, expectedTrim, expectedPages, file),
+                          titleOpt = Some(
+                            if isCs then s"Nahrát tisková data pro ${comp.key.value} — přetáhněte nebo klikněte"
+                            else s"Upload print artwork for ${comp.key.value} — drag & drop or browse"
+                          ),
+                          compact = true,
+                          showDemoQuickAttach = true,
+                        )
+                      else
+                        div.style(
+                          Style.row
+                            .align(Alignment.center)
+                            .gap(8.px)
+                            .padding(8.px, 10.px)
+                            .rounded(8.px)
+                            .bg(surfaceAlt)
+                            .border(1.px, Palette.border)
+                            .fontSize(12.px)
+                            .color(inkMuted),
+                        )(
+                          span(state.i18n.t("account-artwork-no-files")),
+                        )
+                }*
+              ),
+            )
+          }*
+        ),
+      ),
     )
 
   private def renderPaymentModal(

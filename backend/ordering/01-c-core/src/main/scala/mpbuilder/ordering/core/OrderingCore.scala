@@ -325,6 +325,16 @@ private[ordering] final case class Order(
   def addNote(authorId: EmployeeId, authorName: Option[NonEmptyString], text: NonEmptyString, now: Instant): Order =
     copy(internalNotes = internalNotes :+ OrderInternalNote(authorId, authorName, text, now))
 
+  def attachArtwork(lineIndex: Int, componentKey: ComponentKey, artworkId: ArtworkId): Either[OrderError, Order] =
+    if lineIndex < 0 || lineIndex >= lines.size then
+      Left(OrderError.OrderLineNotFound(id, OrderLineId.unsafe(s"index-$lineIndex")))
+    else
+      val updatedLines = lines.zipWithIndex.map { case (line, idx) =>
+        if idx == lineIndex then line.copy(artworkIds = line.artworkIds + (componentKey -> artworkId))
+        else line
+      }
+      Right(copy(lines = updatedLines))
+
   def toView: OrderView =
     OrderView(
       id = id,
@@ -854,6 +864,18 @@ private[ordering] final class OrderServiceLive(
       now     <- Clock.instant
       order   <- repo.findById(orderId).someOrFail(OrderError.OrderNotFound(orderId))
       updated  = order.addNote(by, byName, text, now)
+      _       <- repo.save(updated)
+    yield updated.toView
+
+  override def attachArtwork(
+      orderId: OrderId,
+      lineIndex: Int,
+      componentKey: ComponentKey,
+      artworkId: ArtworkId,
+  ): IO[OrderError, OrderView] =
+    for
+      order   <- repo.findById(orderId).someOrFail(OrderError.OrderNotFound(orderId))
+      updated <- ZIO.fromEither(order.attachArtwork(lineIndex, componentKey, artworkId))
       _       <- repo.save(updated)
     yield updated.toView
 

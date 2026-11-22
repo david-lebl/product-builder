@@ -97,6 +97,7 @@ trait StorefrontClient:
       speed: ManufacturingSpeed = ManufacturingSpeed.Standard,
       copies: Quantity = Quantity.one,
       sessionToken: Option[SessionToken] = None,
+      artworkIds: Map[ComponentKey, ArtworkId] = Map.empty,
   ): CartView < (Abort[StorefrontError] & Async)
 
   def updateCartLineCopies(
@@ -147,7 +148,7 @@ trait StorefrontClient:
       sessionToken: SessionToken,
   ): List[OrderView] < (Abort[StorefrontError] & Async)
 
-  // ── Customer Self-Service ──────────────────────────────────────────────────
+  // ── Customer Self-Service & Artwork Management ─────────────────────────────
 
   def updateMyAddresses(
       sessionToken: SessionToken,
@@ -165,6 +166,34 @@ trait StorefrontClient:
       sessionToken: SessionToken,
       orderId: OrderId,
   ): List[mpbuilder.artwork.ArtworkSubmissionView] < (Abort[StorefrontError] & Async)
+
+  def uploadDraftArtwork(
+      sessionId: NonEmptyString,
+      componentKey: ComponentKey,
+      expectedTrim: Dimension2D,
+      expectedPages: Option[Int],
+      payload: ArtworkUploadPayload,
+      sessionToken: Option[SessionToken] = None,
+  ): mpbuilder.artwork.ArtworkSubmissionView < (Abort[StorefrontError] & Async)
+
+  def deleteDraftArtwork(
+      artworkId: ArtworkId,
+  ): Unit < (Abort[StorefrontError] & Async)
+
+  def uploadOrderLineArtwork(
+      sessionToken: SessionToken,
+      orderId: OrderId,
+      lineIndex: Int,
+      componentKey: ComponentKey,
+      payload: ArtworkUploadPayload,
+  ): mpbuilder.artwork.ArtworkSubmissionView < (Abort[StorefrontError] & Async)
+
+  def reuploadOrderArtworkPayload(
+      sessionToken: SessionToken,
+      orderId: OrderId,
+      artworkId: ArtworkId,
+      payload: ArtworkUploadPayload,
+  ): mpbuilder.artwork.ArtworkSubmissionView < (Abort[StorefrontError] & Async)
 
   def reuploadOrderArtwork(
       sessionToken: SessionToken,
@@ -276,8 +305,9 @@ object StorefrontClient:
         speed: ManufacturingSpeed,
         copies: Quantity,
         sessionToken: Option[SessionToken],
+        artworkIds: Map[ComponentKey, ArtworkId],
     ): CartView < (Abort[StorefrontError] & Async) =
-      liftIO(facade.addConfiguredProductToCart(cartId, cmd, currency, speed, copies, sessionToken))
+      liftIO(facade.addConfiguredProductToCart(cartId, cmd, currency, speed, copies, sessionToken, artworkIds))
 
     override def updateCartLineCopies(
         cartId: CartId,
@@ -354,6 +384,38 @@ object StorefrontClient:
         orderId: OrderId,
     ): List[mpbuilder.artwork.ArtworkSubmissionView] < (Abort[StorefrontError] & Async) =
       liftIO(facade.listOrderArtworks(sessionToken, orderId))
+
+    override def uploadDraftArtwork(
+        sessionId: NonEmptyString,
+        componentKey: ComponentKey,
+        expectedTrim: Dimension2D,
+        expectedPages: Option[Int],
+        payload: ArtworkUploadPayload,
+        sessionToken: Option[SessionToken],
+    ): mpbuilder.artwork.ArtworkSubmissionView < (Abort[StorefrontError] & Async) =
+      liftIO(facade.uploadDraftArtwork(sessionId, componentKey, expectedTrim, expectedPages, payload))
+
+    override def deleteDraftArtwork(
+        artworkId: ArtworkId,
+    ): Unit < (Abort[StorefrontError] & Async) =
+      liftIO(facade.deleteDraftArtwork(artworkId))
+
+    override def uploadOrderLineArtwork(
+        sessionToken: SessionToken,
+        orderId: OrderId,
+        lineIndex: Int,
+        componentKey: ComponentKey,
+        payload: ArtworkUploadPayload,
+    ): mpbuilder.artwork.ArtworkSubmissionView < (Abort[StorefrontError] & Async) =
+      liftIO(facade.uploadOrderLineArtwork(sessionToken, orderId, lineIndex, componentKey, payload))
+
+    override def reuploadOrderArtworkPayload(
+        sessionToken: SessionToken,
+        orderId: OrderId,
+        artworkId: ArtworkId,
+        payload: ArtworkUploadPayload,
+    ): mpbuilder.artwork.ArtworkSubmissionView < (Abort[StorefrontError] & Async) =
+      liftIO(facade.reuploadOrderArtworkPayload(sessionToken, orderId, artworkId, payload))
 
     override def reuploadOrderArtwork(
         sessionToken: SessionToken,

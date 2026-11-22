@@ -121,6 +121,15 @@ object AdminTranslations:
       |adm-od-artwork-request-changes = Request Re-upload
       |adm-od-artwork-reject = Reject Artwork
       |adm-od-artwork-changes-placeholder = Describe required artwork fixes (DPI, bleed, color profile)...
+      |adm-od-artwork-preview = Preview
+      |adm-od-artwork-rerun-preflight = Re-run Preflight
+      |adm-od-artwork-revisions = Revision History ({ $count })
+      |adm-od-artwork-upload-fix = Upload Prepress Fix / New Revision
+      |adm-od-artwork-upload-missing = Upload Artwork for Line #{ $line } ({ $component })
+      |adm-od-artwork-missing-badge = Missing artwork
+      |adm-od-artwork-uploaded-toast = Staff artwork uploaded and preflighted.
+      |adm-od-artwork-preflight-toast = Preflight re-run completed.
+      |adm-od-artwork-link-copied = Artwork URL copied to clipboard.
       |adm-od-notes-card = Internal Staff Notes
       |adm-od-notes-empty = No internal staff notes yet.
       |adm-od-notes-placeholder = Write an internal note visible only to staff...
@@ -210,7 +219,12 @@ object AdminTranslations:
       |adm-cust-agreements-title = Customer Pricing & Agreements
       |adm-cust-edit-in-pricing = Edit in Pricing →
       |adm-cust-audit-title = Audit Trail
-      |adm-cust-select-hint = Click any customer row to expand profile, contacts, custom pricing, audit trail, and orders.
+      |adm-cust-artworks-title = Print Artworks & Files
+      |adm-cust-artworks-empty = No artwork files have been uploaded by this customer yet.
+      |adm-cust-artworks-col-order = Order
+      |adm-cust-artworks-col-item = Product & Component
+      |adm-cust-artworks-col-created = Uploaded
+      |adm-cust-select-hint = Click any customer row to expand profile, contacts, custom pricing, audit trail, artworks, and orders.
       |
       |# Staff & Store Settings
       |adm-set-title = Staff Directory & Store Settings
@@ -331,6 +345,15 @@ object AdminTranslations:
       |adm-od-artwork-request-changes = Vyžádat nové nahrání
       |adm-od-artwork-reject = Zamítnout data
       |adm-od-artwork-changes-placeholder = Popište požadované opravy tiskových dat (DPI, spadávka, barevný profil)...
+      |adm-od-artwork-preview = Náhled
+      |adm-od-artwork-rerun-preflight = Znovu spustit preflight
+      |adm-od-artwork-revisions = Historie revizí ({ $count })
+      |adm-od-artwork-upload-fix = Nahrát opravená data / novou revizi
+      |adm-od-artwork-upload-missing = Nahrát data pro položku #{ $line } ({ $component })
+      |adm-od-artwork-missing-badge = Chybí tisková data
+      |adm-od-artwork-uploaded-toast = Tisková data byla nahrána a zkontrolována.
+      |adm-od-artwork-preflight-toast = Kontrola preflight dokončena.
+      |adm-od-artwork-link-copied = Odkaz na soubor zkopírován do schránky.
       |adm-od-notes-card = Interní poznámky zaměstnanců
       |adm-od-notes-empty = Zatím žádné interní poznámky.
       |adm-od-notes-placeholder = Napište interní poznámku viditelnou pouze pro tým...
@@ -420,7 +443,12 @@ object AdminTranslations:
       |adm-cust-agreements-title = Zákaznické ceny a smlouvy
       |adm-cust-edit-in-pricing = Upravit v Cenících →
       |adm-cust-audit-title = Auditní záznamy
-      |adm-cust-select-hint = Kliknutím na zákazníka zobrazíte profil, kontakty, individuální ceny, audit a objednávky.
+      |adm-cust-artworks-title = Tisková data a soubory
+      |adm-cust-artworks-empty = Tento zákazník zatím nenahrál žádná tisková data.
+      |adm-cust-artworks-col-order = Objednávka
+      |adm-cust-artworks-col-item = Produkt a komponenta
+      |adm-cust-artworks-col-created = Nahráno
+      |adm-cust-select-hint = Kliknutím na zákazníka zobrazíte profil, kontakty, individuální ceny, audit, tisková data a objednávky.
       |
       |# Zaměstnanci a nastavení obchodu
       |adm-set-title = Zaměstnanci a nastavení obchodu

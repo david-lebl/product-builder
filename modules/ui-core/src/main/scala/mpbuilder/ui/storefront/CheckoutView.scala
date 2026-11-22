@@ -424,10 +424,21 @@ object CheckoutView:
                       div.style(Style.column.gap(12.px))(
                         div.style(Style.column.gap(8.px))(
                           prev.lines.map { ln =>
-                            div.style(rowBetween.fontSize(13.px))(
-                              span(s"${ln.copies.value}× ${ln.product.categoryName(lang)} (${ln.runQuantity.value} pcs)")
-                                .style(Style.color(inkSecondary)),
-                              span(formatMoney(ln.lineNetTotal, pCur, lang)).style(Style.fontWeight(FontWeight.w600)),
+                            div.style(Style.column.gap(4.px))(
+                              div.style(rowBetween.fontSize(13.px))(
+                                span(s"${ln.copies.value}× ${ln.product.categoryName(lang)} (${ln.runQuantity.value} pcs)")
+                                  .style(Style.color(inkSecondary)),
+                                span(formatMoney(ln.lineNetTotal, pCur, lang)).style(Style.fontWeight(FontWeight.w600)),
+                              ),
+                              div.style(Style.row.flexWrap(FlexWrap.wrap).gap(4.px))(
+                                if ln.artworkIds.nonEmpty then
+                                  reactiveBadge(
+                                    state.i18n.t("cfg-artwork-attached-badge", Dict("count" -> ln.artworkIds.size.toString)),
+                                    BadgeTone.Emerald,
+                                  )
+                                else
+                                  reactiveBadge(state.i18n.t("cfg-artwork-none-badge"), BadgeTone.Neutral),
+                              ),
                             )
                           }*
                         ),

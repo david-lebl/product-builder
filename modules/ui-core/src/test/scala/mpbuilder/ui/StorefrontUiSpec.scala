@@ -418,4 +418,59 @@ object StorefrontUiSpec extends ZIOSpecDefault:
           )
         }
       },
+      test("Artwork management UI: configurator drag&drop upload, preview modal, cart/checkout badges, and AccountView upload/lock (EN & CS)") {
+        import mpbuilder.ui.components.{ArtworkComponents, BrowserPickedFile}
+
+        withClient { client =>
+          for
+            i18n   <- Translations.init(Language.En)
+            state  <- StorefrontState.init(client, i18n, Currency.CZK, AppRoute.Builder(Some(CategoryId.unsafe("flyers")), None))
+            appUi  <- I18n.let(i18n.handle)(StorefrontApp.render(state))
+            // 1. Configurator renders dropzone for artwork upload
+            cfgHtml0 <- renderHtml(appUi, i18n)
+            // 2. Upload press-ready draft artwork in configurator
+            demoFile = ArtworkComponents.demoPrintReadyFile(ComponentKey.Main, Dimension2D.A5)
+            artOpt  <- I18n.let(i18n.handle)(state.configurator.uploadDraftArtwork(ComponentKey.Main, demoFile))
+            artView  = artOpt.get
+            cfgHtml1 <- renderHtml(appUi, i18n)
+            // 3. Open lightbox artwork preview modal
+            _       <- state.artworkPreview.open(artView, contextTitle = Some("Flyers · Main"))
+            prevHtml <- renderHtml(appUi, i18n)
+            _       <- state.artworkPreview.close
+            // 4. Add configured item with attached artwork to cart -> badge appears in cart drawer & checkout
+            _       <- I18n.let(i18n.handle)(state.addDraftToCart)
+            _       <- state.cartDrawerOpen.set(true)
+            cartHtml <- renderHtml(appUi, i18n)
+            _       <- state.cartDrawerOpen.set(false)
+            // 5. Login as Print Shop Pro -> AccountView shows seeded artworks, Preview/Download/Copy Link, and upload dropzone for non-accepted orders
+            auth    <- client.loginWithPassword(EmailAddress.unsafe("jan@printshoppro.cz"), NonEmptyString.unsafe("demo1234"))
+            _       <- I18n.let(i18n.handle)(state.completeAuth(auth))
+            _       <- I18n.let(i18n.handle)(state.openAccount)
+            acctEn  <- renderHtml(appUi, i18n)
+            _       <- I18n.let(i18n.handle)(state.setLanguage(Language.Cs))
+            acctCs  <- renderHtml(appUi, i18n)
+            // 6. Verify artwork CSS rules emitted
+            css      = AppTheme.storefrontStylesheet.render
+          yield assertTrue(
+            cfgHtml0.contains("mp-dropzone"),
+            cfgHtml0.contains("data-mp-dropzone"),
+            cfgHtml1.contains(demoFile.fileName),
+            cfgHtml1.contains("mp-art-thumb"),
+            cfgHtml1.contains("data-mp-download-url"),
+            cfgHtml1.contains("data-mp-copy-url"),
+            prevHtml.contains("mp-art-preview-modal"),
+            prevHtml.contains("mp-art-preview-frame"),
+            prevHtml.contains("Flyers · Main"),
+            cartHtml.contains("1 artwork attached"),
+            acctEn.contains("data-mp-download-url"),
+            acctEn.contains("data-mp-copy-url"),
+            acctEn.contains("mp-art-thumb"),
+            !cfgHtml1.contains("‹") && !cfgHtml1.contains("›"),
+            !acctEn.contains("‹") && !acctEn.contains("›"),
+            !acctCs.contains("‹") && !acctCs.contains("›"),
+            css.contains(".mp-dropzone"),
+            css.contains(".mp-art-preview-modal"),
+          )
+        }
+      },
     )

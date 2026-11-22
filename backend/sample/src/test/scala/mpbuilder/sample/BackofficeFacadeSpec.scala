@@ -438,4 +438,73 @@ object BackofficeFacadeSpec extends ZIOSpecDefault:
         art1.status == ArtworkStatus.PreflightPassed,
       )
     }.provide(SampleShowcaseRuntime.layer()),
+
+    test("Staff artwork management: upload revision, upload missing order-line artwork, rerun preflight, and customer detail artworks tab data") {
+      for
+        bo       <- ZIO.service[BackofficeFacade]
+        auth     <- bo.loginStaff(adminEmail, staffPass)
+        tok       = auth.session.token
+
+        // 1. Seeded customer Print Shop Pro has aggregated artworks across their seeded orders with URLs & createdAt
+        custDet  <- bo.getCustomerDetail(tok, SampleCustomers.printShopProId)
+        ord2Id    = OrderId.unsafe("ord-seed-0902")
+        arts0    <- bo.listOrderArtwork(tok, ord2Id)
+        art0      = arts0.head
+
+        // 2. Staff uploads a prepress-fixed revision onto existing artwork -> increments revision & passes preflight
+        fixedRev <- bo.uploadStaffArtworkRevision(
+                      token = tok,
+                      orderId = ord2Id,
+                      artworkId = art0.id,
+                      payload = StaffArtworkUploadPayload(
+                        fileName = NonEmptyString.unsafe("prepress-fixed-v3.pdf"),
+                        mimeType = NonEmptyString.unsafe("application/pdf"),
+                        sizeBytes = 3_200_000L,
+                        downloadUrl = Some(NonEmptyString.unsafe("https://assets.printcraft.demo/prepress-fixed-v3.pdf")),
+                        previewUrl = Some(NonEmptyString.unsafe("data:image/svg+xml;base64,PHN2Zz48L3N2Zz4=")),
+                        resolutionDpi = 300,
+                        bleedMm = 3,
+                        colorSpace = ColorSpace.CMYK,
+                        pageCount = Some(art0.latestRevision.extractedSpecs.pageCount),
+                        fontsEmbedded = true,
+                      ),
+                    )
+
+        // 3. Re-run preflight creates a fresh re-evaluated revision cleanly
+        rerun    <- bo.rerunArtworkPreflight(tok, ord2Id, art0.id)
+
+        // 4. Staff uploads a new artwork directly onto an order line component
+        added    <- bo.uploadStaffOrderLineArtwork(
+                      token = tok,
+                      orderId = ord2Id,
+                      lineIndex = 0,
+                      componentKey = ComponentKey.Cover,
+                      payload = StaffArtworkUploadPayload(
+                        fileName = NonEmptyString.unsafe("cover-spot-uv.pdf"),
+                        mimeType = NonEmptyString.unsafe("application/pdf"),
+                        sizeBytes = 1_500_000L,
+                        downloadUrl = Some(NonEmptyString.unsafe("https://assets.printcraft.demo/cover-spot-uv.pdf")),
+                        resolutionDpi = 300,
+                        bleedMm = 3,
+                        colorSpace = ColorSpace.CMYK,
+                        pageCount = Some(2),
+                      ),
+                    )
+
+        // 5. Customer detail artworks list now includes the newly uploaded cover artwork
+        custDet2 <- bo.getCustomerDetail(tok, SampleCustomers.printShopProId)
+      yield assertTrue(
+        custDet.artworks.nonEmpty,
+        custDet.artworks.forall(e => e.orderNumber.value.nonEmpty && e.artwork.latestRevision.file.shareableUrl.startsWith("https://")),
+        custDet.artworks.forall(e => e.artwork.createdAt != java.time.Instant.EPOCH),
+        fixedRev.revisionCount == art0.revisionCount + 1,
+        fixedRev.allRevisions.size == fixedRev.revisionCount,
+        fixedRev.status == ArtworkStatus.PreflightPassed,
+        rerun.revisionCount == fixedRev.revisionCount,
+        rerun.latestRevision.preflight.exists(_.isCleanPass),
+        rerun.status == ArtworkStatus.PreflightPassed,
+        added.componentKey == ComponentKey.Cover,
+        custDet2.artworks.exists(_.artwork.id == added.id),
+      )
+    }.provide(SampleShowcaseRuntime.layer()),
   )

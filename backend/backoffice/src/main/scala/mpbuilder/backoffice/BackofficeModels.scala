@@ -54,10 +54,33 @@ final case class BackofficeDashboardSummary(
     pendingCustomers: List[CustomerView],
 )
 
+final case class CustomerArtworkEntry(
+    artwork: ArtworkSubmissionView,
+    orderId: OrderId,
+    orderNumber: OrderNumber,
+    orderStatus: OrderStatus,
+    lineIndex: Int,
+    productName: LocalizedString,
+)
+
+final case class StaffArtworkUploadPayload(
+    fileName: NonEmptyString,
+    mimeType: NonEmptyString = NonEmptyString.unsafe("application/pdf"),
+    sizeBytes: Long = 2_400_000L,
+    downloadUrl: Option[NonEmptyString] = None,
+    previewUrl: Option[NonEmptyString] = None,
+    resolutionDpi: Int = 300,
+    bleedMm: Int = 3,
+    colorSpace: ColorSpace = ColorSpace.CMYK,
+    pageCount: Option[Int] = None,
+    fontsEmbedded: Boolean = true,
+)
+
 final case class CustomerDetailView(
     customer: CustomerView,
     orders: List[OrderView],
     agreements: List[CustomerPriceAgreement],
+    artworks: List[CustomerArtworkEntry] = Nil,
 )
 
 final case class MarginSimulationCmd(

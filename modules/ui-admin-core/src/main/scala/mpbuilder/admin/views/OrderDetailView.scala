@@ -4,11 +4,11 @@ import kyo.*
 import kyo.UI.*
 import kyo.Style.*
 import mpbuilder.admin.state.{AdminRoute, BackofficeState}
-import mpbuilder.artwork.{ArtworkStatus, CheckOutcome}
+import mpbuilder.artwork.{ArtworkOwner, ArtworkStatus, CheckOutcome}
 import mpbuilder.ordering.*
 import mpbuilder.shared.*
 import mpbuilder.ui.components.CommonComponents.*
-import mpbuilder.ui.components.{ActionMenu, ConfirmDialog, TabBar}
+import mpbuilder.ui.components.{ActionMenu, ArtworkComponents, ConfirmDialog, TabBar}
 import mpbuilder.ui.theme.AppTheme.*
 import mpbuilder.ui.theme.AppTheme.Palette.*
 
@@ -39,6 +39,8 @@ object OrderDetailView:
       actionMenu           <- ActionMenu.Handle.make
       detailTabRef         <- Signal.initRef[DetailTab](DetailTab.Items)
       expandedBreakdownRef <- Signal.initRef[Set[OrderLineId]](Set.empty)
+      expandedRevisionsRef <- Signal.initRef[Set[ArtworkId]](Set.empty)
+      uploadFixTargetRef   <- Signal.initRef[Option[ArtworkId]](None)
       lineEditRef          <- Signal.initRef[Option[LineEditDraft]](None)
       internalNoteRef      <- Signal.initRef("")
     yield
@@ -46,13 +48,15 @@ object OrderDetailView:
         state.selectedOrder
           .combineLatest(state.selectedOrderArtwork)
           .combineLatest(expandedBreakdownRef)
+          .combineLatest(expandedRevisionsRef)
+          .combineLatest(uploadFixTargetRef)
           .combineLatest(lineEditRef)
           .combineLatest(detailTabRef)
           .combineLatest(state.auth)
           .combineLatest(state.i18n.language)
 
       UI.fragment(
-        combined.render { case ((((((orderOpt, artworks), expandedBreakdowns), lineEditOpt), activeDetailTab), authOpt), lang) =>
+        combined.render { case ((((((((orderOpt, artworks), expandedBreakdowns), expandedRevs), uploadFixTarget), lineEditOpt), activeDetailTab), authOpt), lang) =>
           val isCs      = lang == Language.Cs
           val canIntake = state.canIntake(authOpt)
           val canManage = state.canManage(authOpt)
@@ -295,17 +299,30 @@ object OrderDetailView:
                     badge(ord.lines.size.toString, BadgeTone.Neutral),
                   ),
                       div.style(stackSm)(
-                        ord.lines.toList.map { ln =>
+                        ord.lines.toList.zipWithIndex.map { case (ln, lineIdx) =>
                           val showBreakdown = expandedBreakdowns.contains(ln.lineId)
                           val isEditingLine = lineEditOpt.exists(_.lineId == ln.lineId)
+                          val lineArts = artworks.filter { a =>
+                            a.owner match
+                              case ArtworkOwner.OrderLineRef(oid, idx) => oid == ord.id && idx == lineIdx
+                              case _                                   => false
+                          }
+                          val lineArtworkBadge: UI =
+                            if lineArts.isEmpty then
+                              reactiveBadge(state.i18n.t("adm-od-artwork-missing-badge"), BadgeTone.Rose)
+                            else if lineArts.forall(_.status.isInstanceOf[ArtworkStatus.OperatorApproved]) then
+                              badge(if isCs then s"✓ Data schválena (${lineArts.size})" else s"✓ Artwork Approved (${lineArts.size})", BadgeTone.Emerald)
+                            else
+                              badge(if isCs then s"⚠ Data ke kontrole (${lineArts.size})" else s"⚠ Artwork Review (${lineArts.size})", BadgeTone.Amber)
 
                           div.style(Style.column.gap(10.px).padding(14.px).rounded(12.px).bg(surfaceAlt).border(1.px, Palette.border))(
                             // Line header
                             div.style(rowBetween.flexWrap(FlexWrap.wrap))(
                               div.style(rowSm.flexWrap(FlexWrap.wrap))(
-                                span(ln.product.categoryName(lang)).style(Style.fontWeight(FontWeight.w800).fontSize(15.px).color(ink)),
+                                span(s"#${lineIdx + 1} ${ln.product.categoryName(lang)}").style(Style.fontWeight(FontWeight.w800).fontSize(15.px).color(ink)),
                                 badge(s"${ln.runQuantity.value} pcs × ${ln.copies.value}", BadgeTone.Brand),
                                 badge(speedLabel(ln.speed, lang), if ln.speed == ManufacturingSpeed.Express then BadgeTone.Rose else BadgeTone.Neutral),
+                                lineArtworkBadge,
                                 span(s"⏱ ${formatInstant(ln.estimatedDeadline(ord.placedAt))}").style(smallText),
                               ),
                               div.style(rowSm)(
@@ -446,11 +463,33 @@ object OrderDetailView:
                       ),
                 )
 
+              // Identify printable line/component slots that are still missing artwork
+              val missingArtworkSlots: List[(Int, OrderLine, ComponentSnapshot)] =
+                ord.lines.toList.zipWithIndex.flatMap { case (ln, lineIdx) =>
+                  val printable = ln.product.components.toList.filter(_.printingMethodId.isDefined)
+                  val comps     = if printable.nonEmpty then printable else ln.product.components.toList.take(1)
+                  comps.filterNot { comp =>
+                    artworks.exists { a =>
+                      a.componentKey == comp.key && (a.owner match
+                        case ArtworkOwner.OrderLineRef(oid, idx) => oid == ord.id && idx == lineIdx
+                        case _                                   => false)
+                    }
+                  }.map(comp => (lineIdx, ln, comp))
+                }
+
               val artworkSection: UI =
                 div.style(stackSm)(
                   div.style(rowBetween)(
                     h2(state.i18n.t("adm-od-artwork-card")).style(sectionTitle.margin(0.px)),
-                    badge(artworks.size.toString, BadgeTone.Neutral),
+                    div.style(rowXs)(
+                      badge(artworks.size.toString, BadgeTone.Neutral),
+                      if missingArtworkSlots.nonEmpty then
+                        badge(
+                          if isCs then s"Chybí: ${missingArtworkSlots.size}" else s"Missing: ${missingArtworkSlots.size}",
+                          BadgeTone.Rose,
+                        )
+                      else UI.empty,
+                    ),
                   ),
                   if artworks.isEmpty then
                     p(state.i18n.t("adm-od-artwork-empty")).style(mutedText.margin(0.px))
@@ -461,17 +500,52 @@ object OrderDetailView:
                         val hasIssues = rev.preflight.exists(rep =>
                           rep.checks.exists(ch => ch.outcome != CheckOutcome.Passed)
                         )
+                        val lineContext: String = art.owner match
+                          case ArtworkOwner.OrderLineRef(_, idx) if idx >= 0 && idx < ord.lines.size =>
+                            s"#${idx + 1} ${ord.lines(idx).product.categoryName(lang)}"
+                          case _ => ord.orderNumber.value
+                        val ctxTitle       = Some(s"${ord.orderNumber.value} · $lineContext")
+                        val showRevs       = expandedRevs.contains(art.id)
+                        val showUploadFix  = uploadFixTarget.contains(art.id)
+
                         div.style(Style.column.gap(10.px).padding(14.px).rounded(12.px).bg(surfaceAlt).border(1.px, Palette.border))(
+                          // Header with thumbnail, file details, status badge, and quick file actions
                           div.style(rowBetween.flexWrap(FlexWrap.wrap))(
-                            div.style(stackXs)(
-                              span(s"${rev.file.fileName.value} (rev ${rev.revisionNumber}) · ${art.componentKey.value}")
-                                .style(Style.fontWeight(FontWeight.w700).color(ink)),
-                              span(
-                                s"${rev.extractedSpecs.resolutionDpi} DPI · ${formatDimension(rev.extractedSpecs.trimSize)} · ${rev.extractedSpecs.colorSpace} · ${rev.extractedSpecs.pageCount}p",
-                              ).style(smallText),
+                            div.style(Style.row.align(Alignment.center).gap(12.px).minWidth(0.px).flexGrow(1.0))(
+                              ArtworkComponents.renderThumbnail(
+                                rev,
+                                sizePx = 56,
+                                onClick = Some(() => state.artworkPreview.open(art, contextTitle = ctxTitle)),
+                              ),
+                              div.style(stackXs.minWidth(0.px))(
+                                div.style(rowXs.flexWrap(FlexWrap.wrap))(
+                                  span(s"${rev.file.fileName.value} (v${rev.revisionNumber})")
+                                    .style(Style.fontWeight(FontWeight.w700).fontSize(14.px).color(ink)),
+                                  artworkStatusBadge(art.status, lang),
+                                ),
+                                span(s"$lineContext · ${art.componentKey.value} · ${ArtworkComponents.formatFileSize(rev.file.sizeBytes)} · ${formatInstant(rev.uploadedAt)}")
+                                  .style(smallText),
+                                div.style(rowXs.flexWrap(FlexWrap.wrap))(
+                                  badge(s"${rev.extractedSpecs.resolutionDpi} DPI", BadgeTone.Neutral),
+                                  badge(formatDimension(rev.extractedSpecs.trimSize), BadgeTone.Neutral),
+                                  badge(rev.extractedSpecs.colorSpace.toString, BadgeTone.Brand),
+                                  badge(s"${rev.extractedSpecs.bleed.value} mm ${if isCs then "spad." else "bleed"}", BadgeTone.Neutral),
+                                  badge(s"${rev.extractedSpecs.pageCount}p", BadgeTone.Neutral),
+                                ),
+                              ),
                             ),
-                            artworkStatusBadge(art.status, lang),
+                            div.style(rowXs.flexWrap(FlexWrap.wrap))(
+                              button
+                                .cssClass("mp-btn mp-btn-secondary mp-btn-sm")
+                                .onClick(state.artworkPreview.open(art, contextTitle = ctxTitle))(
+                                  state.i18n.t("adm-od-artwork-preview"),
+                                ),
+                              ArtworkComponents.downloadButton(rev, lang),
+                              ArtworkComponents.copyLinkButton(rev, lang, onCopied = () => state.notifyLinkCopied(rev.file.shareableUrl)),
+                            ),
                           ),
+
+                          // Preflight checks
                           rev.preflight match
                             case Some(rep) =>
                               div.style(stackXs)(
@@ -487,12 +561,15 @@ object OrderDetailView:
                                 }*
                               )
                             case None => UI.empty,
+
                           art.status match
                             case ArtworkStatus.ChangesRequested(notes) =>
                               alertBanner(BadgeTone.Amber, span(if isCs then "Požadavek na opravu" else "Re-upload Feedback"), List(notes.value))
                             case ArtworkStatus.Rejected(reason) =>
                               alertBanner(BadgeTone.Rose, span(if isCs then "Důvod zamítnutí" else "Rejection Reason"), List(reason.value))
                             case _ => UI.empty,
+
+                          // Staff review & prepress utility actions
                           div.cssClass("mp-action-bar")(
                             if !hasIssues then
                               button
@@ -563,10 +640,103 @@ object OrderDetailView:
                                   )
                                 )
                               )(state.i18n.t("adm-od-artwork-reject")),
+                            if canIntake then
+                              button
+                                .cssClass("mp-btn mp-btn-ghost mp-btn-sm")
+                                .onClick(state.rerunArtworkPreflight(ord.id, art.id))(
+                                  state.i18n.t("adm-od-artwork-rerun-preflight"),
+                                )
+                            else UI.empty,
+                            if canIntake then
+                              button
+                                .cssClass(if showUploadFix then "mp-btn mp-btn-primary mp-btn-sm" else "mp-btn mp-btn-ghost mp-btn-sm")
+                                .onClick(uploadFixTargetRef.set(if showUploadFix then None else Some(art.id)))(
+                                  state.i18n.t("adm-od-artwork-upload-fix"),
+                                )
+                            else UI.empty,
+                            button
+                              .cssClass("mp-btn mp-btn-ghost mp-btn-sm")
+                              .onClick(
+                                expandedRevisionsRef.updateAndGet(cur => if cur.contains(art.id) then cur - art.id else cur + art.id).unit
+                              )(
+                                s"${if showRevs then "▾" else "▸"} ",
+                                state.i18n.t("adm-od-artwork-revisions", Dict("count" -> art.allRevisions.size.toString)),
+                              ),
                           ),
+
+                          // Staff Prepress Fix / New Revision Drag & Drop Zone
+                          if showUploadFix && canIntake then
+                            div.style(Style.padding(10.px).rounded(10.px).bg(surface).border(1.px, brandBorder))(
+                              ArtworkComponents.dropZone(
+                                zoneId = s"staff-fix-${ord.id.value}-${art.id.value}",
+                                expectedTrim = rev.extractedSpecs.trimSize,
+                                componentKey = art.componentKey,
+                                lang = lang,
+                                onFilePicked = file =>
+                                  state.uploadStaffArtworkRevision(ord.id, art.id, rev.extractedSpecs.trimSize, file).andThen(uploadFixTargetRef.set(None)),
+                                titleOpt = Some(
+                                  if isCs then "Přetáhněte opravený tiskový soubor (nová revize)"
+                                  else "Drop prepress-fixed artwork file (uploads as new revision)"
+                                ),
+                                compact = true,
+                                showDemoQuickAttach = true,
+                              ),
+                            )
+                          else UI.empty,
+
+                          // Collapsible Full Revision History
+                          if showRevs then
+                            div.style(Style.column.gap(6.px).padding(10.px).rounded(10.px).bg(surface).border(1.px, Palette.border))(
+                              art.allRevisions.reverse.map { r =>
+                                div.style(rowBetween.flexWrap(FlexWrap.wrap).padding(6.px, 8.px).rounded(8.px).bg(surfaceAlt))(
+                                  div.style(rowXs.flexWrap(FlexWrap.wrap))(
+                                    badge(s"v${r.revisionNumber}", if r.revisionNumber == rev.revisionNumber then BadgeTone.Brand else BadgeTone.Neutral),
+                                    span(r.file.fileName.value).style(Style.fontSize(12.px).fontWeight(FontWeight.w600).color(ink)),
+                                    span(s"${ArtworkComponents.formatFileSize(r.file.sizeBytes)} · ${formatInstant(r.uploadedAt)}").style(smallText),
+                                  ),
+                                  div.style(rowXs)(
+                                    button
+                                      .cssClass("mp-btn mp-btn-ghost mp-btn-sm")
+                                      .onClick(state.artworkPreview.open(art, revisionNumber = Some(r.revisionNumber), contextTitle = ctxTitle))(
+                                        state.i18n.t("adm-od-artwork-preview"),
+                                      ),
+                                    ArtworkComponents.downloadButton(r, lang),
+                                  ),
+                                )
+                              }*
+                            )
+                          else UI.empty,
                         )
                       }*
                     ),
+
+                  // Missing Artwork Slots — allow staff to attach artwork directly to any line
+                  if missingArtworkSlots.nonEmpty && canIntake then
+                    div.style(stackSm.padding(10.px, 0.px, 0.px, 0.px).borderTop(1.px, Palette.border))(
+                      missingArtworkSlots.map { case (lineIdx, ln, comp) =>
+                        div.style(stackXs.padding(12.px).rounded(10.px).bg(surfaceAlt).border(1.px, Palette.border))(
+                          div.style(rowBetween.flexWrap(FlexWrap.wrap))(
+                            span(s"#${lineIdx + 1} ${ln.product.categoryName(lang)} · ${comp.key.value}").style(Style.fontSize(13.px).fontWeight(FontWeight.w700).color(ink)),
+                            reactiveBadge(state.i18n.t("adm-od-artwork-missing-badge"), BadgeTone.Rose),
+                          ),
+                          ArtworkComponents.dropZone(
+                            zoneId = s"staff-missing-${ord.id.value}-$lineIdx-${comp.key.value}",
+                            expectedTrim = comp.finishedSize,
+                            componentKey = comp.key,
+                            lang = lang,
+                            onFilePicked = file =>
+                              state.uploadStaffOrderLineArtwork(ord.id, lineIdx, comp.key, comp.finishedSize, file),
+                            titleOpt = Some(
+                              if isCs then s"Nahrát data pro #${lineIdx + 1} ${ln.product.categoryName(lang)} (${comp.key.value})"
+                              else s"Upload artwork for #${lineIdx + 1} ${ln.product.categoryName(lang)} (${comp.key.value})"
+                            ),
+                            compact = true,
+                            showDemoQuickAttach = true,
+                          ),
+                        )
+                      }*
+                    )
+                  else UI.empty,
                 )
 
               val paymentSection: UI =

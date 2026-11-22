@@ -10,6 +10,7 @@ import mpbuilder.identity.*
 import mpbuilder.ordering.*
 import mpbuilder.pricing.*
 import mpbuilder.shared.*
+import mpbuilder.ui.components.{ArtworkComponents, BrowserPickedFile}
 import mpbuilder.ui.i18n.AppI18n
 
 enum AdminRoute:
@@ -70,6 +71,7 @@ final class BackofficeState(
     val orderSearch: SignalRef[String],
     val selectedOrder: SignalRef[Option[OrderView]],
     val selectedOrderArtwork: SignalRef[List[ArtworkSubmissionView]],
+    val artworkPreview: ArtworkComponents.PreviewModal.Handle,
     val catalog: SignalRef[Option[ProductCatalog]],
     val ruleset: SignalRef[Option[CompatibilityRuleset]],
     val pricelists: SignalRef[List[Pricelist]],
@@ -396,6 +398,76 @@ final class BackofficeState(
                    yield ()
                  case None => Kyo.unit
         yield ()
+
+  private def toStaffPayload(file: BrowserPickedFile, expectedTrim: Dimension2D): StaffArtworkUploadPayload =
+    val sf = ArtworkComponents.toUploadPayload(file, expectedTrim, None)
+    StaffArtworkUploadPayload(
+      fileName = sf.fileName,
+      mimeType = sf.mimeType,
+      sizeBytes = sf.sizeBytes,
+      downloadUrl = sf.downloadUrl,
+      previewUrl = sf.previewUrl,
+      resolutionDpi = sf.resolutionDpi,
+      bleedMm = sf.bleedMm,
+      colorSpace = sf.colorSpace,
+      pageCount = sf.pageCount,
+      fontsEmbedded = sf.fontsEmbedded,
+    )
+
+  def uploadStaffArtworkRevision(
+      orderId: OrderId,
+      artworkId: ArtworkId,
+      expectedTrim: Dimension2D,
+      file: BrowserPickedFile,
+  ): Unit < Async =
+    val payload = toStaffPayload(file, expectedTrim)
+    for
+      res <- withToken(tok => client.uploadStaffArtworkRevision(tok, orderId, artworkId, payload))
+      _ <- res match
+             case Some(_) =>
+               for
+                 _   <- refreshOrderDetail(orderId)
+                 msg <- i18n.now("adm-od-artwork-uploaded-toast")
+                 _   <- showToast(msg)
+               yield ()
+             case None => Kyo.unit
+    yield ()
+
+  def uploadStaffOrderLineArtwork(
+      orderId: OrderId,
+      lineIndex: Int,
+      componentKey: ComponentKey,
+      expectedTrim: Dimension2D,
+      file: BrowserPickedFile,
+  ): Unit < Async =
+    val payload = toStaffPayload(file, expectedTrim)
+    for
+      res <- withToken(tok => client.uploadStaffOrderLineArtwork(tok, orderId, lineIndex, componentKey, payload))
+      _ <- res match
+             case Some(_) =>
+               for
+                 _   <- refreshOrderDetail(orderId)
+                 msg <- i18n.now("adm-od-artwork-uploaded-toast")
+                 _   <- showToast(msg)
+               yield ()
+             case None => Kyo.unit
+    yield ()
+
+  def rerunArtworkPreflight(orderId: OrderId, artworkId: ArtworkId): Unit < Async =
+    for
+      res <- withToken(tok => client.rerunArtworkPreflight(tok, orderId, artworkId))
+      _ <- res match
+             case Some(_) =>
+               for
+                 _   <- refreshOrderDetail(orderId)
+                 msg <- i18n.now("adm-od-artwork-preflight-toast")
+                 _   <- showToast(msg)
+               yield ()
+             case None => Kyo.unit
+    yield ()
+
+  def notifyLinkCopied(url: String): Unit < Async =
+    i18n.now("adm-od-artwork-link-copied").flatMap(showToast)
 
   // ── Catalog Mutations ──────────────────────────────────────────────────────
 
@@ -765,6 +837,7 @@ object BackofficeState:
       ordSearch   <- Signal.initRef("")
       selOrdRef   <- Signal.initRef[Option[OrderView]](None)
       selArtRef   <- Signal.initRef[List[ArtworkSubmissionView]](Nil)
+      artPrevH    <- ArtworkComponents.PreviewModal.Handle.make
       catRef      <- Signal.initRef[Option[ProductCatalog]](None)
       rulesRef    <- Signal.initRef[Option[CompatibilityRuleset]](None)
       plRef       <- Signal.initRef[List[Pricelist]](Nil)
@@ -794,6 +867,7 @@ object BackofficeState:
       ordSearch,
       selOrdRef,
       selArtRef,
+      artPrevH,
       catRef,
       rulesRef,
       plRef,
