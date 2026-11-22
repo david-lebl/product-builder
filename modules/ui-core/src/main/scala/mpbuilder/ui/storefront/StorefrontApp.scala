@@ -161,16 +161,16 @@ object StorefrontApp:
               }*
             ),
 
-            // Auth button (desktop) — displays customer name + color-coded tier directly underneath
+            // Auth button (desktop) — displays customer name + color-coded tier horizontally next to it
             div.cssClass("mp-desktop-nav")(
               sessOpt match
                 case Some(sess) =>
                   button
                     .cssClass("mp-btn mp-btn-secondary mp-btn-sm")
-                    .style(Style.padding(4.px, 11.px))
+                    .style(Style.padding(5.px, 11.px))
                     .onClick(state.openAccount)(
-                      div.style(Style.column.align(Alignment.start).gap(2.px).lineHeight(1.15))(
-                        span(sess.principal.displayName.value).style(Style.fontSize(12.px).fontWeight(FontWeight.w700).color(ink)),
+                      div.style(Style.row.align(Alignment.center).gap(6.px))(
+                        span(sess.principal.displayName.value).style(Style.fontSize(13.px).fontWeight(FontWeight.w700).color(ink)),
                         custOpt match
                           case Some(c) => tierBadge(c.tier, compact = true)
                           case None    => UI.empty,
@@ -223,7 +223,7 @@ object StorefrontApp:
             sessOpt match
               case Some(sess) =>
                 button.cssClass("mp-btn mp-btn-secondary mp-btn-sm").onClick(state.openAccount)(
-                  div.style(Style.column.align(Alignment.start).gap(2.px))(
+                  div.style(Style.row.align(Alignment.center).gap(6.px))(
                     span(sess.principal.displayName.value).style(Style.fontSize(12.px).fontWeight(FontWeight.w700)),
                     custOpt.fold(UI.empty: UI)(c => tierBadge(c.tier, compact = true)),
                   ),

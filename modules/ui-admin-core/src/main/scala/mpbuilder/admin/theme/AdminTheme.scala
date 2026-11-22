@@ -111,7 +111,7 @@ object AdminTheme:
         "mp-admin-content",
         Style.column
           .width(100.pct)
-          .maxWidth(1380.px)
+          .maxWidth(1560.px)
           .padding(24.px)
           .gap(20.px)
           .flexGrow(1.0),

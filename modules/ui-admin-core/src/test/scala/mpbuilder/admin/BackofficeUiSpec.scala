@@ -306,6 +306,11 @@ object BackofficeUiSpec extends ZIOSpecDefault:
             plCsHtml  <- renderHtml(boUi, i18n)
           yield assertTrue(
             ordersHtml.contains("mp-dt-table"),
+            ordersHtml.contains("mp-dt-header-top"),
+            ordersHtml.contains("mp-dt-header-filters"),
+            ordersHtml.contains("mp-dt-ms-wrap"),
+            ordersHtml.contains("mp-dt-check"),
+            !ordersHtml.contains(">Open<"),
             ordersHtml.contains("Intake Status"),
             ordersHtml.contains("Payment Status"),
             ordersHtml.contains("Priority"),

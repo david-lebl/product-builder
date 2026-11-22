@@ -3,7 +3,7 @@ package mpbuilder.admin.views
 import kyo.*
 import kyo.UI.*
 import kyo.Style.*
-import mpbuilder.admin.state.{AdminRoute, BackofficeState}
+import mpbuilder.admin.state.BackofficeState
 import mpbuilder.ordering.*
 import mpbuilder.shared.{Language, OrderId}
 import mpbuilder.ui.components.CommonComponents.*
@@ -12,9 +12,12 @@ import mpbuilder.ui.theme.AppTheme.*
 import mpbuilder.ui.theme.AppTheme.Palette.*
 
 /** Order Intake Queue screen powered by universal `DataTable`:
-  *   - Split quick-filter sections: Intake Status, Payment Status, Priority
+  *   - Unified table card header with Headline, Search, and Refresh button
+  *   - Multi-select filters: Intake Status (> 5 options → searchable multi-select textfield),
+  *     Payment Status & Priority (checkboxes, no counts)
   *   - Priority & calculated production deadline column (with mixed-speed badge)
-  *   - Sortable columns, pagination, and expandable quick-summary row with Open Detail link
+  *   - Clicking any row opens the full OrderDetailView in the vertical right side pane
+  *     (or full-screen detail view on mobile devices) — no separate "Open" button needed
   */
 object OrderIntakeView:
 
@@ -46,10 +49,11 @@ object OrderIntakeView:
 
   def render(state: BackofficeState): UI < Sync =
     for
-      tableState <- DataTable.makeState[OrderId](
-                      defaultSort = Some(DataTable.SortSpec("deadline", ascending = true)),
-                      pageSize = 10,
-                    )
+      tableState       <- DataTable.makeState[OrderId](
+                            defaultSort = Some(DataTable.SortSpec("deadline", ascending = true)),
+                            pageSize = 10,
+                          )
+      embeddedDetailUI <- OrderDetailView.render(state, embedded = true)
     yield
       val combined = state.orders.combineLatest(state.i18n.language)
 
@@ -124,15 +128,6 @@ object OrderIntakeView:
               span(formatMoney(ord.totals.grandTotalGross, ord.totals.currency, lang))
                 .style(Style.fontWeight(FontWeight.w800).color(ink)),
           ),
-          DataTable.Column[OrderView](
-            id = "action",
-            header = "",
-            alignRight = true,
-            cell = ord =>
-              button
-                .cssClass("mp-btn mp-btn-primary mp-btn-sm")
-                .onClick(state.navigate(AdminRoute.OrderDetail(ord.id)))(state.i18n.t("adm-orders-open")),
-          ),
         )
 
         val filterGroups: List[DataTable.FilterGroup[OrderView]] = List(
@@ -161,60 +156,25 @@ object OrderIntakeView:
           ),
         )
 
-        div.style(stackMd.width(100.pct))(
-          // Page Header
-          div.style(rowBetween.flexWrap(FlexWrap.wrap))(
-            div.style(stackXs)(
-              h1(state.i18n.t("adm-orders-title")).style(Style.margin(0.px).fontSize(24.px).fontWeight(FontWeight.w800).color(ink)),
-              p(state.i18n.t("adm-orders-subtitle")).style(mutedText.margin(0.px)),
-            ),
-            button.cssClass("mp-btn mp-btn-secondary mp-btn-sm").onClick(state.refreshOrders)(state.i18n.t("adm-refresh")),
-          ),
-
-          // Universal DataTable with 3 split filter groups & expandable preview
-          DataTable.render[OrderView, OrderId](
-            rows = allOrders,
-            rowKey = _.id,
-            columns = columns,
-            state = tableState,
-            searchPlaceholder = if isCs then "Hledat číslo objednávky, zákazníka, firmu nebo e-mail..." else "Search order #, customer name, company, or email...",
-            matchesSearch = (ord, q) =>
-              ord.orderNumber.value.toLowerCase.contains(q) ||
-                ord.customer.fullName.value.toLowerCase.contains(q) ||
-                ord.customer.email.value.toLowerCase.contains(q) ||
-                ord.customer.companyName.exists(_.value.toLowerCase.contains(q)),
-            filterGroups = filterGroups,
-            renderDetail = Some { ord =>
-              div.style(stackSm)(
-                div.style(rowBetween.flexWrap(FlexWrap.wrap))(
-                  div.style(rowSm.flexWrap(FlexWrap.wrap))(
-                    span(ord.orderNumber.value).style(Style.fontWeight(FontWeight.w800).fontSize(15.px).color(ink)),
-                    priorityBadge(ord.priority, lang),
-                    badge(orderStatusLabel(ord.status, lang), orderStatusTone(ord.status)),
-                    paymentStatusBadge(ord.payment.status, lang),
-                  ),
-                  button
-                    .cssClass("mp-btn mp-btn-primary mp-btn-sm")
-                    .onClick(state.navigate(AdminRoute.OrderDetail(ord.id)))(state.i18n.t("adm-orders-open")),
-                ),
-                div.style(stackXs)(
-                  ord.lines.toList.map { ln =>
-                    div.style(rowBetween.flexWrap(FlexWrap.wrap).padding(8.px, 10.px).rounded(8.px).bg(surface).border(1.px, Palette.border))(
-                      div.style(rowSm.flexWrap(FlexWrap.wrap))(
-                        span(ln.product.categoryName(lang)).style(Style.fontWeight(FontWeight.w700).fontSize(13.px).color(ink)),
-                        badge(s"${ln.runQuantity.value} pcs × ${ln.copies.value}", BadgeTone.Brand),
-                        badge(speedLabel(ln.speed, lang), BadgeTone.Neutral),
-                        span(s"Due: ${formatInstant(ln.estimatedDeadline(ord.placedAt))}").style(smallText),
-                      ),
-                      span(formatMoney(ln.lineGrossTotal, ln.price.currency, lang)).style(Style.fontWeight(FontWeight.w700).fontSize(13.px)),
-                    )
-                  }*
-                ),
-                ord.customerNote.map(n => span(s"💬 $n").style(smallText)).getOrElse(UI.empty),
-              )
-            },
-            emptyMessage = if isCs then "Aktuálním filtrům neodpovídají žádné objednávky." else "No orders match the current filters.",
-            lang = lang,
-          ),
+        DataTable.render[OrderView, OrderId](
+          title = Some(span(state.i18n.t("adm-orders-title"))),
+          subtitle = Some(span(state.i18n.t("adm-orders-subtitle"))),
+          rows = allOrders,
+          rowKey = _.id,
+          columns = columns,
+          state = tableState,
+          searchPlaceholder = if isCs then "Hledat číslo objednávky, zákazníka, firmu nebo e-mail..." else "Search order #, customer name, company, or email...",
+          matchesSearch = (ord, q) =>
+            ord.orderNumber.value.toLowerCase.contains(q) ||
+              ord.customer.fullName.value.toLowerCase.contains(q) ||
+              ord.customer.email.value.toLowerCase.contains(q) ||
+              ord.customer.companyName.exists(_.value.toLowerCase.contains(q)),
+          filterGroups = filterGroups,
+          onRowSelect = Some(ord => state.selectedOrder.set(Some(ord)).andThen(state.refreshOrderDetail(ord.id))),
+          renderDetail = Some(_ => embeddedDetailUI),
+          detailTitle = Some(ord => s"${if isCs then "Objednávka" else "Order"} ${ord.orderNumber.value}"),
+          headerExtra = button.cssClass("mp-btn mp-btn-secondary mp-btn-sm").onClick(state.refreshOrders)(state.i18n.t("adm-refresh")),
+          emptyMessage = if isCs then "Aktuálním filtrům neodpovídají žádné objednávky." else "No orders match the current filters.",
+          lang = lang,
         )
       }

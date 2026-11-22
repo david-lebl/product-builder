@@ -87,7 +87,6 @@ object CustomerManagerView:
     for
       tableState     <- DataTable.makeState[CustomerId](defaultSort = Some(DataTable.SortSpec("name", ascending = true)), pageSize = 10)
       dialog         <- ConfirmDialog.Handle.make
-      showRegRef     <- Signal.initRef(false)
       regIdRef       <- Signal.initRef("")
       regSegRef      <- Signal.initRef[CustomerSegment](CustomerSegment.Business)
       regCompRef     <- Signal.initRef("")
@@ -107,13 +106,12 @@ object CustomerManagerView:
         state.customers
           .combineLatest(state.agreements)
           .combineLatest(state.orders)
-          .combineLatest(showRegRef)
           .combineLatest(editDraftRef)
           .combineLatest(state.auth)
           .combineLatest(state.i18n.language)
 
       UI.fragment(
-        combined.render { case ((((((allCustomers, allAgreements), allOrders), showReg), editDraftOpt), authOpt), lang) =>
+        combined.render { case (((((allCustomers, allAgreements), allOrders), editDraftOpt), authOpt), lang) =>
           val isCs      = lang == Language.Cs
           val canManage = state.canManage(authOpt)
 
@@ -528,49 +526,42 @@ object CustomerManagerView:
               ),
             )
 
-          div.style(stackMd.width(100.pct))(
-            // Header
-            div.style(rowBetween.flexWrap(FlexWrap.wrap))(
-              div.style(stackXs)(
-                h1(state.i18n.t("adm-cust-title")).style(Style.margin(0.px).fontSize(24.px).fontWeight(FontWeight.w800).color(ink)),
-                p(state.i18n.t("adm-cust-subtitle")).style(mutedText.margin(0.px)),
-              ),
+          DataTable.render[CustomerView, CustomerId](
+            title = Some(span(state.i18n.t("adm-cust-title"))),
+            subtitle = Some(span(state.i18n.t("adm-cust-subtitle"))),
+            rows = allCustomers,
+            rowKey = _.id,
+            columns = columns,
+            state = tableState,
+            searchPlaceholder = if isCs then "Hledat jméno, e-mail, firmu, IČO nebo kontaktní osobu..." else "Search name, email, company, IČO, or contact person...",
+            matchesSearch = (c, q) =>
+              c.contact.firstName.value.toLowerCase.contains(q) ||
+                c.contact.lastName.value.toLowerCase.contains(q) ||
+                c.contact.email.value.toLowerCase.contains(q) ||
+                c.id.value.toLowerCase.contains(q) ||
+                c.company.exists(_.legalName.value.toLowerCase.contains(q)) ||
+                c.company.exists(_.registrationNumber.value.toLowerCase.contains(q)) ||
+                c.additionalContacts.exists(ac =>
+                  ac.firstName.value.toLowerCase.contains(q) ||
+                    ac.lastName.value.toLowerCase.contains(q) ||
+                    ac.email.value.toLowerCase.contains(q)
+                ),
+            filterGroups = filterGroups,
+            renderDetail = Some(renderCustomerDetail),
+            detailTitle = Some(c => c.company.map(_.legalName.value).getOrElse(s"${c.contact.firstName.value} ${c.contact.lastName.value}")),
+            createConfig =
               if canManage then
-                button
-                  .cssClass("mp-btn mp-btn-primary mp-btn-sm")
-                  .onClick(showRegRef.updateAndGet(!_).unit)(state.i18n.t("adm-cust-register-new"))
-              else UI.empty,
-            ),
-
-            // Register New Customer collapsible panel
-            if canManage && showReg then
-              renderRegisterPanel(state, regIdRef, regSegRef, regCompRef, regIcoRef, regFirstRef, regLastRef, regEmailRef, regCityRef, showRegRef)
-            else UI.empty,
-
-            // Universal DataTable with expandable detail
-            DataTable.render[CustomerView, CustomerId](
-              rows = allCustomers,
-              rowKey = _.id,
-              columns = columns,
-              state = tableState,
-              searchPlaceholder = if isCs then "Hledat jméno, e-mail, firmu, IČO nebo kontaktní osobu..." else "Search name, email, company, IČO, or contact person...",
-              matchesSearch = (c, q) =>
-                c.contact.firstName.value.toLowerCase.contains(q) ||
-                  c.contact.lastName.value.toLowerCase.contains(q) ||
-                  c.contact.email.value.toLowerCase.contains(q) ||
-                  c.id.value.toLowerCase.contains(q) ||
-                  c.company.exists(_.legalName.value.toLowerCase.contains(q)) ||
-                  c.company.exists(_.registrationNumber.value.toLowerCase.contains(q)) ||
-                  c.additionalContacts.exists(ac =>
-                    ac.firstName.value.toLowerCase.contains(q) ||
-                      ac.lastName.value.toLowerCase.contains(q) ||
-                      ac.email.value.toLowerCase.contains(q)
-                  ),
-              filterGroups = filterGroups,
-              renderDetail = Some(renderCustomerDetail),
-              emptyMessage = if isCs then "Aktuálním filtrům neodpovídají žádní zákazníci." else "No customers match the current filters.",
-              lang = lang,
-            ),
+                Some(
+                  DataTable.CreateConfig(
+                    buttonLabel = span(state.i18n.t("adm-cust-register-new")),
+                    title = span(state.i18n.t("adm-cust-register-new")),
+                    renderForm = closeCreate =>
+                      renderRegisterPanel(state, regIdRef, regSegRef, regCompRef, regIcoRef, regFirstRef, regLastRef, regEmailRef, regCityRef, closeCreate),
+                  )
+                )
+              else None,
+            emptyMessage = if isCs then "Aktuálním filtrům neodpovídají žádní zákazníci." else "No customers match the current filters.",
+            lang = lang,
           )
         },
         dialog.render,
@@ -744,10 +735,9 @@ object CustomerManagerView:
       regLastRef: SignalRef[String],
       regEmailRef: SignalRef[String],
       regCityRef: SignalRef[String],
-      showRegRef: SignalRef[Boolean],
+      onClose: () => Unit < Async,
   ): UI =
-    div.cssClass("mp-card")(
-      h2(state.i18n.t("adm-cust-register-new")).style(sectionTitle.margin(0.px)),
+    div.style(stackMd)(
       div.cssClass("mp-field-row")(
         div.cssClass("mp-field")(
           label("Segment").style(labelStyle),
@@ -833,9 +823,9 @@ object CustomerManagerView:
                            countryCode = NonEmptyString.unsafe("CZ"),
                          ),
                        )
-                       state.registerCustomer(cmd).andThen(showRegRef.set(false)).andThen(regEmailRef.set(""))
+                       state.registerCustomer(cmd).andThen(onClose()).andThen(regEmailRef.set(""))
             yield ()
           }(state.i18n.t("adm-cat-save")),
-        button.cssClass("mp-btn mp-btn-ghost mp-btn-sm").onClick(showRegRef.set(false))(state.i18n.t("adm-cat-cancel")),
+        button.cssClass("mp-btn mp-btn-ghost mp-btn-sm").onClick(onClose())(state.i18n.t("adm-cat-cancel")),
       ),
     )

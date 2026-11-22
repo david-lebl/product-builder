@@ -5,8 +5,10 @@ import kyo.UI.*
 import kyo.Style.*
 import mpbuilder.ui.theme.AppTheme.Palette.*
 
-/** Reusable underline tab bar for switching between distinct subviews
-  * (visually distinct from rounded `.mp-pill` filter chips).
+/** High-contrast folder-style tab bar for switching between distinct subviews.
+  *
+  * Active tab renders as a crisp white rounded folder tab seamlessly bridging
+  * across the strong horizontal divider line beneath the tab strip.
   */
 object TabBar:
 
@@ -36,8 +38,8 @@ object TabBar:
                     .rounded(999.px)
                     .fontSize(11.px)
                     .fontWeight(FontWeight.w700)
-                    .bg(if isActive then brand else surfaceAlt)
-                    .color(if isActive then Color.white else inkSecondary),
+                    .bg(if isActive then brandSoft else mpbuilder.ui.theme.AppTheme.Palette.border)
+                    .color(if isActive then brand else inkSecondary),
                 )
               case None => UI.empty,
           )

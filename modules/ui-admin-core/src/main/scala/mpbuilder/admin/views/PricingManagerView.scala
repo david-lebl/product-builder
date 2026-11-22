@@ -395,134 +395,143 @@ object PricingManagerView:
       )
     )
 
-    div.style(stackMd)(
-      if canManage then
-        div.cssClass("mp-card")(
-          h2(state.i18n.t("adm-pri-promo-create")).style(sectionTitle.margin(0.px)),
-          div.cssClass("mp-field-row")(
-            div.cssClass("mp-field")(
-              label(if isCs then "Kód" else "Code").style(labelStyle),
-              input.cssClass("mp-input").placeholder("SPRING20").value(codeRef).onInput(v => codeRef.set(v)),
-            ),
-            div.cssClass("mp-field")(
-              label(if isCs then "Typ slevy" else "Benefit").style(labelStyle),
-              kindRef.render { k =>
-                select.cssClass("mp-input").value(k).onChange(v => kindRef.set(v))(
-                  option.value("percent")(if isCs then "Procentuální sleva (%)" else "Percentage Off (%)"),
-                  option.value("fixed")(if isCs then "Pevná částka (CZK)" else "Fixed Amount (CZK)"),
-                  option.value("freeDelivery")(if isCs then "Doprava zdarma" else "Free Delivery"),
-                )
-              },
-            ),
-            div.cssClass("mp-field")(
-              label(if isCs then "Hodnota" else "Value").style(labelStyle),
-              numberInput.cssClass("mp-input").value(valRef).onInput(v => valRef.set(v)),
-            ),
-            div.cssClass("mp-field")(
-              label(if isCs then "Max. použití" else "Max Uses").style(labelStyle),
-              numberInput.cssClass("mp-input").placeholder(if isCs then "Neomezeno" else "Unlimited").value(maxRef).onInput(v => maxRef.set(v)),
-            ),
-            div.cssClass("mp-field")(
-              label(if isCs then "Platnost do (YYYY-MM-DD)" else "Expires (YYYY-MM-DD)").style(labelStyle),
-              input.cssClass("mp-input").placeholder("2026-12-31").value(expiresRef).onInput(v => expiresRef.set(v)),
-            ),
-          ),
-          div.style(rowSm)(
-            button
-              .cssClass("mp-btn mp-btn-primary mp-btn-sm")
-              .onClick {
-                for
-                  rawCode <- codeRef.get.map(_.trim.toUpperCase)
-                  kind    <- kindRef.get
-                  vStr    <- valRef.get.map(_.trim)
-                  mStr    <- maxRef.get.map(_.trim)
-                  expStr  <- expiresRef.get.map(_.trim)
-                  _ <-
-                    if rawCode.isEmpty then state.errorBanner.set(Some("Promo code must not be empty."))
-                    else
-                      val validUntilOpt: Option[Instant] =
-                        if expStr.isEmpty then None
-                        else
-                          scala.util.Try(LocalDate.parse(expStr).atTime(23, 59, 59).toInstant(ZoneOffset.UTC)).toOption
-                      if expStr.nonEmpty && validUntilOpt.isEmpty then
-                        state.errorBanner.set(Some("Expiration date must use YYYY-MM-DD format (e.g. 2026-12-31)."))
-                      else
-                        val num = scala.util.Try(BigDecimal(vStr)).getOrElse(BigDecimal(10))
-                        val benefit = kind match
-                          case "fixed"        => PromoBenefit.FixedAmountOff(Price(Money(num), Currency.CZK))
-                          case "freeDelivery" => PromoBenefit.FreeDelivery
-                          case _              => PromoBenefit.PercentageOff(Percentage.unsafe(num.min(BigDecimal(90)).max(BigDecimal(1))))
-                        val promo = PromoCode(
-                          id = DiscountCodeId.unsafe(s"promo-${rawCode.toLowerCase}"),
-                          code = NonEmptyString.unsafe(rawCode),
-                          benefit = benefit,
-                          constraints = PromoConstraints(
-                            validUntil = validUntilOpt,
-                            maxUses = mStr.toIntOption.filter(_ > 0),
-                          ),
-                          isActive = true,
+    DataTable.render[PromoCode, DiscountCodeId](
+      title = Some(span(if isCs then "Slevové kódy" else "Promo Codes")),
+      rows = promos,
+      rowKey = _.id,
+      columns = columns,
+      state = tableState,
+      searchPlaceholder = if isCs then "Hledat kód nebo typ slevy..." else "Search promo code or benefit...",
+      matchesSearch = (p, q) =>
+        p.code.value.toLowerCase.contains(q) || p.id.value.toLowerCase.contains(q) || benefitLabel(p).toLowerCase.contains(q),
+      filterGroups = filterGroups,
+      detailTitle = Some(p => p.code.value),
+      createConfig =
+        if canManage then
+          Some(
+            DataTable.CreateConfig(
+              buttonLabel = UI.fragment(span("+ "), state.i18n.t("adm-pri-promo-create")),
+              title = span(state.i18n.t("adm-pri-promo-create")),
+              renderForm = onClose =>
+                div.style(stackMd)(
+                  div.cssClass("mp-field-row")(
+                    div.cssClass("mp-field")(
+                      label(if isCs then "Kód" else "Code").style(labelStyle),
+                      input.cssClass("mp-input").placeholder("SPRING20").value(codeRef).onInput(v => codeRef.set(v)),
+                    ),
+                    div.cssClass("mp-field")(
+                      label(if isCs then "Typ slevy" else "Benefit").style(labelStyle),
+                      kindRef.render { k =>
+                        select.cssClass("mp-input").value(k).onChange(v => kindRef.set(v))(
+                          option.value("percent")(if isCs then "Procentuální sleva (%)" else "Percentage Off (%)"),
+                          option.value("fixed")(if isCs then "Pevná částka (CZK)" else "Fixed Amount (CZK)"),
+                          option.value("freeDelivery")(if isCs then "Doprava zdarma" else "Free Delivery"),
                         )
-                        state.savePromoCode(promo).andThen(codeRef.set("")).andThen(expiresRef.set(""))
-                yield ()
-              }(state.i18n.t("adm-pri-promo-create")),
+                      },
+                    ),
+                  ),
+                  div.cssClass("mp-field-row")(
+                    div.cssClass("mp-field")(
+                      label(if isCs then "Hodnota" else "Value").style(labelStyle),
+                      numberInput.cssClass("mp-input").value(valRef).onInput(v => valRef.set(v)),
+                    ),
+                    div.cssClass("mp-field")(
+                      label(if isCs then "Max. použití" else "Max Uses").style(labelStyle),
+                      numberInput.cssClass("mp-input").placeholder(if isCs then "Neomezeno" else "Unlimited").value(maxRef).onInput(v => maxRef.set(v)),
+                    ),
+                    div.cssClass("mp-field")(
+                      label(if isCs then "Platnost do (YYYY-MM-DD)" else "Expires (YYYY-MM-DD)").style(labelStyle),
+                      input.cssClass("mp-input").placeholder("2026-12-31").value(expiresRef).onInput(v => expiresRef.set(v)),
+                    ),
+                  ),
+                  div.style(rowSm)(
+                    button
+                      .cssClass("mp-btn mp-btn-primary mp-btn-sm")
+                      .onClick {
+                        for
+                          rawCode <- codeRef.get.map(_.trim.toUpperCase)
+                          kind    <- kindRef.get
+                          vStr    <- valRef.get.map(_.trim)
+                          mStr    <- maxRef.get.map(_.trim)
+                          expStr  <- expiresRef.get.map(_.trim)
+                          _ <-
+                            if rawCode.isEmpty then state.errorBanner.set(Some("Promo code must not be empty."))
+                            else
+                              val validUntilOpt: Option[Instant] =
+                                if expStr.isEmpty then None
+                                else
+                                  scala.util.Try(LocalDate.parse(expStr).atTime(23, 59, 59).toInstant(ZoneOffset.UTC)).toOption
+                              if expStr.nonEmpty && validUntilOpt.isEmpty then
+                                state.errorBanner.set(Some("Expiration date must use YYYY-MM-DD format (e.g. 2026-12-31)."))
+                              else
+                                val num = scala.util.Try(BigDecimal(vStr)).getOrElse(BigDecimal(10))
+                                val benefit = kind match
+                                  case "fixed"        => PromoBenefit.FixedAmountOff(Price(Money(num), Currency.CZK))
+                                  case "freeDelivery" => PromoBenefit.FreeDelivery
+                                  case _              => PromoBenefit.PercentageOff(Percentage.unsafe(num.min(BigDecimal(90)).max(BigDecimal(1))))
+                                val promo = PromoCode(
+                                  id = DiscountCodeId.unsafe(s"promo-${rawCode.toLowerCase}"),
+                                  code = NonEmptyString.unsafe(rawCode),
+                                  benefit = benefit,
+                                  constraints = PromoConstraints(
+                                    validUntil = validUntilOpt,
+                                    maxUses = mStr.toIntOption.filter(_ > 0),
+                                  ),
+                                  isActive = true,
+                                )
+                                state.savePromoCode(promo).andThen(codeRef.set("")).andThen(expiresRef.set("")).andThen(onClose())
+                        yield ()
+                      }(state.i18n.t("adm-pri-promo-create")),
+                    button.cssClass("mp-btn mp-btn-ghost mp-btn-sm").onClick(onClose())(state.i18n.t("adm-cat-cancel")),
+                  ),
+                ),
+            )
+          )
+        else None,
+      renderDetail = Some { p =>
+        div.style(stackSm)(
+          div.style(rowBetween.flexWrap(FlexWrap.wrap))(
+            div.style(rowSm.flexWrap(FlexWrap.wrap))(
+              span(p.code.value).style(Style.fontWeight(FontWeight.w800).fontSize(15.px).color(ink)),
+              badge(p.id.value, BadgeTone.Neutral),
+              promoStatusBadge(p.lifecycleStatus(now), isCs),
+            ),
+            if canManage then
+              div.cssClass("mp-action-bar")(
+                button
+                  .cssClass("mp-btn mp-btn-secondary mp-btn-sm")
+                  .onClick(state.togglePromoActive(p.id, !p.isActive))(
+                    if p.isActive then state.i18n.t("adm-pri-promo-deactivate") else state.i18n.t("adm-pri-promo-activate")
+                  ),
+                button
+                  .cssClass("mp-btn mp-btn-danger mp-btn-sm")
+                  .onClick(
+                    dialog.open(
+                      ConfirmDialog.Config(
+                        title = if isCs then "Smazat slevový kód" else "Delete Promo Code",
+                        message = if isCs then s"Opravdu chcete smazat slevový kód „${p.code.value}“?" else s"Delete promo code “${p.code.value}”?",
+                        confirmLabel = if isCs then "Smazat" else "Delete",
+                        cancelLabel = if isCs then "Zrušit" else "Cancel",
+                        tone = ConfirmDialog.DialogTone.Danger,
+                        onConfirm = _ => state.deletePromoCode(p.id),
+                      )
+                    )
+                  )(state.i18n.t("adm-cat-delete")),
+              )
+            else UI.empty,
+          ),
+          div.style(rowWrap)(
+            span(s"${if isCs then "Vytvořeno" else "Created"}: ${formatInstant(p.createdAt)}").style(smallText),
+            p.constraints.validFrom.map(v => span(s"· ${if isCs then "Od" else "From"}: ${formatInstant(v)}").style(smallText)).getOrElse(UI.empty),
+            p.constraints.validUntil.map(v => span(s"· ${if isCs then "Do" else "Until"}: ${formatInstant(v)}").style(smallText)).getOrElse(UI.empty),
+            p.constraints.minimumOrderNet.map(m => badge(s"Min net: ${m.value}", BadgeTone.Amber)).getOrElse(UI.empty),
+            if p.constraints.allowedSegments.nonEmpty then badge(s"Segments: ${p.constraints.allowedSegments.mkString(", ")}", BadgeTone.Neutral) else UI.empty,
+            if p.constraints.allowedCategories.nonEmpty then badge(s"Categories: ${p.constraints.allowedCategories.map(_.value).mkString(", ")}", BadgeTone.Neutral) else UI.empty,
           ),
         )
-      else UI.empty,
-
-      DataTable.render[PromoCode, DiscountCodeId](
-        rows = promos,
-        rowKey = _.id,
-        columns = columns,
-        state = tableState,
-        searchPlaceholder = if isCs then "Hledat kód nebo typ slevy..." else "Search promo code or benefit...",
-        matchesSearch = (p, q) =>
-          p.code.value.toLowerCase.contains(q) || p.id.value.toLowerCase.contains(q) || benefitLabel(p).toLowerCase.contains(q),
-        filterGroups = filterGroups,
-        renderDetail = Some { p =>
-          div.style(stackSm)(
-            div.style(rowBetween.flexWrap(FlexWrap.wrap))(
-              div.style(rowSm.flexWrap(FlexWrap.wrap))(
-                span(p.code.value).style(Style.fontWeight(FontWeight.w800).fontSize(15.px).color(ink)),
-                badge(p.id.value, BadgeTone.Neutral),
-                promoStatusBadge(p.lifecycleStatus(now), isCs),
-              ),
-              if canManage then
-                div.cssClass("mp-action-bar")(
-                  button
-                    .cssClass("mp-btn mp-btn-secondary mp-btn-sm")
-                    .onClick(state.togglePromoActive(p.id, !p.isActive))(
-                      if p.isActive then state.i18n.t("adm-pri-promo-deactivate") else state.i18n.t("adm-pri-promo-activate")
-                    ),
-                  button
-                    .cssClass("mp-btn mp-btn-danger mp-btn-sm")
-                    .onClick(
-                      dialog.open(
-                        ConfirmDialog.Config(
-                          title = if isCs then "Smazat slevový kód" else "Delete Promo Code",
-                          message = if isCs then s"Opravdu chcete smazat slevový kód „${p.code.value}“?" else s"Delete promo code “${p.code.value}”?",
-                          confirmLabel = if isCs then "Smazat" else "Delete",
-                          cancelLabel = if isCs then "Zrušit" else "Cancel",
-                          tone = ConfirmDialog.DialogTone.Danger,
-                          onConfirm = _ => state.deletePromoCode(p.id),
-                        )
-                      )
-                    )(state.i18n.t("adm-cat-delete")),
-                )
-              else UI.empty,
-            ),
-            div.style(rowWrap)(
-              span(s"${if isCs then "Vytvořeno" else "Created"}: ${formatInstant(p.createdAt)}").style(smallText),
-              p.constraints.validFrom.map(v => span(s"· ${if isCs then "Od" else "From"}: ${formatInstant(v)}").style(smallText)).getOrElse(UI.empty),
-              p.constraints.validUntil.map(v => span(s"· ${if isCs then "Do" else "Until"}: ${formatInstant(v)}").style(smallText)).getOrElse(UI.empty),
-              p.constraints.minimumOrderNet.map(m => badge(s"Min net: ${m.value}", BadgeTone.Amber)).getOrElse(UI.empty),
-              if p.constraints.allowedSegments.nonEmpty then badge(s"Segments: ${p.constraints.allowedSegments.mkString(", ")}", BadgeTone.Neutral) else UI.empty,
-              if p.constraints.allowedCategories.nonEmpty then badge(s"Categories: ${p.constraints.allowedCategories.map(_.value).mkString(", ")}", BadgeTone.Neutral) else UI.empty,
-            ),
-          )
-        },
-        emptyMessage = if isCs then "Žádné slevové kódy neodpovídají filtru." else "No promo codes match the current filter.",
-        lang = lang,
-      ),
+      },
+      emptyMessage = if isCs then "Žádné slevové kódy neodpovídají filtru." else "No promo codes match the current filter.",
+      lang = lang,
     )
 
   private def renderAgreements(
@@ -646,106 +655,9 @@ object PricingManagerView:
           )
         case None => UI.empty,
 
-      // Create / Upsert Agreement card
-      if canManage then
-        div.cssClass("mp-card")(
-          h2(state.i18n.t("adm-pri-agr-create")).style(sectionTitle.margin(0.px)),
-          targetKindRef.render { kind =>
-            div.cssClass("mp-field-row")(
-              div.cssClass("mp-field")(
-                label(if isCs then "Typ cíle" else "Target Kind").style(labelStyle),
-                select.cssClass("mp-input").value(kind).onChange(v => targetKindRef.set(v))(
-                  option.value("tier")(if isCs then "Cenová hladina (Tier)" else "Customer Tier"),
-                  option.value("customer")(if isCs then "Konkrétní zákazník" else "Specific Customer"),
-                ),
-              ),
-              if kind == "customer" then
-                div.cssClass("mp-field")(
-                  label(if isCs then "Zákazník" else "Customer").style(labelStyle),
-                  custIdRef.render { selCid =>
-                    val effectiveCid =
-                      if selCid.nonEmpty then selCid
-                      else focusCustOpt.map(_.value).orElse(customers.headOption.map(_.id.value)).getOrElse("")
-                    select.cssClass("mp-input").value(effectiveCid).onChange(v => custIdRef.set(v))(
-                      customers.map { c =>
-                        val nm = c.company.map(_.legalName.value).getOrElse(s"${c.contact.firstName.value} ${c.contact.lastName.value}")
-                        option.value(c.id.value)(s"$nm (${c.id.value})")
-                      }*
-                    )
-                  },
-                )
-              else
-                div.cssClass("mp-field")(
-                  label(if isCs then "Cenová hladina" else "Target Tier").style(labelStyle),
-                  tierRef.render { t =>
-                    select
-                      .cssClass("mp-input")
-                      .value(t.toString)
-                      .onChange(v => CustomerTier.values.find(_.toString == v).map(tierRef.set).getOrElse(Kyo.unit))(
-                        CustomerTier.values.toList.map(x => option.value(x.toString)(x.toString))*
-                      )
-                  },
-                ),
-              div.cssClass("mp-field")(
-                label(if isCs then "Měna" else "Currency").style(labelStyle),
-                curRef.render { c =>
-                  select
-                    .cssClass("mp-input")
-                    .value(c.toString)
-                    .onChange(v => Currency.values.find(_.toString == v).map(curRef.set).getOrElse(Kyo.unit))(
-                      List(Currency.CZK, Currency.USD).map(x => option.value(x.toString)(x.toString))*
-                    )
-                },
-              ),
-              div.cssClass("mp-field")(
-                label(if isCs then "Globální sleva (%)" else "Global Discount (%)").style(labelStyle),
-                numberInput.cssClass("mp-input").value(discRef).onInput(v => discRef.set(v)),
-              ),
-              div.cssClass("mp-field")(
-                label(if isCs then "Min. obj. bez DPH (volit.)" else "Min Order Net (opt.)").style(labelStyle),
-                numberInput.cssClass("mp-input").placeholder("—").value(minOrdRef).onInput(v => minOrdRef.set(v)),
-              ),
-            )
-          },
-          div.style(rowSm)(
-            button
-              .cssClass("mp-btn mp-btn-primary mp-btn-sm")
-              .onClick {
-                for
-                  kind <- targetKindRef.get
-                  tier <- tierRef.get
-                  cidS <- custIdRef.get.map(_.trim)
-                  cur  <- curRef.get
-                  dStr <- discRef.get.map(_.trim)
-                  mStr <- minOrdRef.get.map(_.trim)
-                  pct   = scala.util.Try(BigDecimal(dStr)).getOrElse(BigDecimal(10)).min(BigDecimal(80)).max(BigDecimal(0))
-                  minO  = scala.util.Try(BigDecimal(mStr)).toOption.filter(_ > 0).map(Money.apply)
-                  target =
-                    if kind == "customer" then
-                      val chosen =
-                        if cidS.nonEmpty then cidS
-                        else focusCustOpt.map(_.value).orElse(customers.headOption.map(_.id.value)).getOrElse("cust-unknown")
-                      AgreementTarget.SpecificCustomer(CustomerId.unsafe(chosen))
-                    else AgreementTarget.TierDefault(tier)
-                  existing = agreements.find(x => x.target == target && x.currency == cur)
-                  agr = existing match
-                    case Some(ex) => ex.copy(globalDiscount = Some(Percentage.unsafe(pct)), minimumOrderOverride = minO)
-                    case None =>
-                      CustomerPriceAgreement(
-                        target = target,
-                        currency = cur,
-                        globalDiscount = Some(Percentage.unsafe(pct)),
-                        minimumOrderOverride = minO,
-                      )
-                  _ <- state.saveAgreement(agr)
-                yield ()
-              }(state.i18n.t("adm-pri-agr-create")),
-          ),
-        )
-      else UI.empty,
-
-      // Agreements Universal DataTable
+      // Agreements Universal DataTable (side-split detail & create-in-detail)
       DataTable.render[CustomerPriceAgreement, String](
+        title = Some(span(if isCs then "B2B cenové smlouvy" else "B2B Price Agreements")),
         rows = visibleAgreements,
         rowKey = agreementKey,
         columns = columns,
@@ -754,6 +666,116 @@ object PricingManagerView:
         matchesSearch = (a, q) =>
           targetDisplay(a.target).toLowerCase.contains(q) || a.currency.toString.toLowerCase.contains(q),
         filterGroups = filterGroups,
+        detailTitle = Some(a => s"${targetDisplay(a.target)} (${a.currency})"),
+        createConfig =
+          if canManage then
+            Some(
+              DataTable.CreateConfig(
+                buttonLabel = UI.fragment(span("+ "), state.i18n.t("adm-pri-agr-create")),
+                title = span(state.i18n.t("adm-pri-agr-create")),
+                renderForm = onClose =>
+                  div.style(stackMd)(
+                    targetKindRef.render { kind =>
+                      div.style(stackSm)(
+                        div.cssClass("mp-field-row")(
+                          div.cssClass("mp-field")(
+                            label(if isCs then "Typ cíle" else "Target Kind").style(labelStyle),
+                            select.cssClass("mp-input").value(kind).onChange(v => targetKindRef.set(v))(
+                              option.value("tier")(if isCs then "Cenová hladina (Tier)" else "Customer Tier"),
+                              option.value("customer")(if isCs then "Konkrétní zákazník" else "Specific Customer"),
+                            ),
+                          ),
+                          if kind == "customer" then
+                            div.cssClass("mp-field")(
+                              label(if isCs then "Zákazník" else "Customer").style(labelStyle),
+                              custIdRef.render { selCid =>
+                                val effectiveCid =
+                                  if selCid.nonEmpty then selCid
+                                  else focusCustOpt.map(_.value).orElse(customers.headOption.map(_.id.value)).getOrElse("")
+                                select.cssClass("mp-input").value(effectiveCid).onChange(v => custIdRef.set(v))(
+                                  customers.map { c =>
+                                    val nm = c.company.map(_.legalName.value).getOrElse(s"${c.contact.firstName.value} ${c.contact.lastName.value}")
+                                    option.value(c.id.value)(s"$nm (${c.id.value})")
+                                  }*
+                                )
+                              },
+                            )
+                          else
+                            div.cssClass("mp-field")(
+                              label(if isCs then "Cenová hladina" else "Target Tier").style(labelStyle),
+                              tierRef.render { t =>
+                                select
+                                  .cssClass("mp-input")
+                                  .value(t.toString)
+                                  .onChange(v => CustomerTier.values.find(_.toString == v).map(tierRef.set).getOrElse(Kyo.unit))(
+                                    CustomerTier.values.toList.map(x => option.value(x.toString)(x.toString))*
+                                  )
+                              },
+                            ),
+                        ),
+                        div.cssClass("mp-field-row")(
+                          div.cssClass("mp-field")(
+                            label(if isCs then "Měna" else "Currency").style(labelStyle),
+                            curRef.render { c =>
+                              select
+                                .cssClass("mp-input")
+                                .value(c.toString)
+                                .onChange(v => Currency.values.find(_.toString == v).map(curRef.set).getOrElse(Kyo.unit))(
+                                  List(Currency.CZK, Currency.USD).map(x => option.value(x.toString)(x.toString))*
+                                )
+                            },
+                          ),
+                          div.cssClass("mp-field")(
+                            label(if isCs then "Globální sleva (%)" else "Global Discount (%)").style(labelStyle),
+                            numberInput.cssClass("mp-input").value(discRef).onInput(v => discRef.set(v)),
+                          ),
+                          div.cssClass("mp-field")(
+                            label(if isCs then "Min. obj. bez DPH (volit.)" else "Min Order Net (opt.)").style(labelStyle),
+                            numberInput.cssClass("mp-input").placeholder("—").value(minOrdRef).onInput(v => minOrdRef.set(v)),
+                          ),
+                        ),
+                      )
+                    },
+                    div.style(rowSm)(
+                      button
+                        .cssClass("mp-btn mp-btn-primary mp-btn-sm")
+                        .onClick {
+                          for
+                            kind <- targetKindRef.get
+                            tier <- tierRef.get
+                            cidS <- custIdRef.get.map(_.trim)
+                            cur  <- curRef.get
+                            dStr <- discRef.get.map(_.trim)
+                            mStr <- minOrdRef.get.map(_.trim)
+                            pct   = scala.util.Try(BigDecimal(dStr)).getOrElse(BigDecimal(10)).min(BigDecimal(80)).max(BigDecimal(0))
+                            minO  = scala.util.Try(BigDecimal(mStr)).toOption.filter(_ > 0).map(Money.apply)
+                            target =
+                              if kind == "customer" then
+                                val chosen =
+                                  if cidS.nonEmpty then cidS
+                                  else focusCustOpt.map(_.value).orElse(customers.headOption.map(_.id.value)).getOrElse("cust-unknown")
+                                AgreementTarget.SpecificCustomer(CustomerId.unsafe(chosen))
+                              else AgreementTarget.TierDefault(tier)
+                            existing = agreements.find(x => x.target == target && x.currency == cur)
+                            agr = existing match
+                              case Some(ex) => ex.copy(globalDiscount = Some(Percentage.unsafe(pct)), minimumOrderOverride = minO)
+                              case None =>
+                                CustomerPriceAgreement(
+                                  target = target,
+                                  currency = cur,
+                                  globalDiscount = Some(Percentage.unsafe(pct)),
+                                  minimumOrderOverride = minO,
+                                )
+                            _ <- state.saveAgreement(agr)
+                            _ <- onClose()
+                          yield ()
+                        }(state.i18n.t("adm-pri-agr-create")),
+                      button.cssClass("mp-btn mp-btn-ghost mp-btn-sm").onClick(onClose())(state.i18n.t("adm-cat-cancel")),
+                    ),
+                  ),
+              )
+            )
+          else None,
         renderDetail = Some { a =>
           val key = agreementKey(a)
           editKeyRef.combineLatest(editDiscRef).combineLatest(editMinRef).render { case ((ekOpt, eDisc), eMin) =>
@@ -958,6 +980,7 @@ object PricingManagerView:
 
       // Full Pricelist Rate Entries DataTable
       DataTable.render[PricelistEntryRow, String](
+        title = Some(span(if isCs then "Položky ceníků" else "Pricelist Rate Entries")),
         rows = allRows,
         rowKey = _.rowId,
         columns = columns,
@@ -969,6 +992,7 @@ object PricingManagerView:
             r.entry.rate.toString.toLowerCase.contains(q) ||
             r.pricelistId.value.toLowerCase.contains(q),
         filterGroups = filterGroups,
+        detailTitle = Some(r => s"${r.pricelistId.value} · ${r.entry.id.value}"),
         renderDetail = Some { r =>
           div.style(stackXs)(
             div.style(rowWrap)(

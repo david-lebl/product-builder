@@ -452,15 +452,16 @@ object AppTheme:
           .fontWeight(FontWeight.w600)
           .shadow(0.px, 8.px, 24.px, 0.px, shadowStrong),
       )
-      // Underline Tab Bar (distinct from rounded filter pills)
+      // High-Contrast Folder Tab Bar (white rounded active folder tab + strong divider line)
       .rule(
         "mp-tabs",
         Style.row
           .flexWrap(FlexWrap.wrap)
           .align(Alignment.end)
-          .gap(4.px)
+          .gap(6.px)
           .width(100.pct)
-          .borderBottom(2.px, border),
+          .padding(0.px, 4.px)
+          .borderBottom(2.px, borderStrong),
       )
       .rule(
         "mp-tab",
@@ -468,24 +469,31 @@ object AppTheme:
           .align(Alignment.center)
           .gap(8.px)
           .padding(10.px, 16.px)
-          .bg(Color.transparent)
+          .rounded(10.px, 10.px, 0.px, 0.px)
+          .bg(surfaceAlt)
           .color(inkSecondary)
-          .fontSize(14.px)
+          .fontSize(13.px)
           .fontWeight(FontWeight.w600)
-          .border(0.px, BorderStyle.none, Color.transparent)
-          .borderBottom(2.px, Color.transparent)
-          .margin(0.px, 0.px, (-2).px, 0.px)
+          .borderTop(1.px, border)
+          .borderLeft(1.px, border)
+          .borderRight(1.px, border)
+          .borderBottom(0.px, Color.transparent)
           .cursor(Cursor.pointer)
           .transition(TransitionProperty.all, 140, Easing.easeOut)
-          .hover(Style.color(ink).bg(surfaceAlt)),
+          .hover(Style.bg(surfaceHover).color(ink).borderColor(borderStrong)),
       )
       .rule(
         "mp-tab-active",
-        Style.color(brand)
+        Style.bg(surface)
+          .color(ink)
           .fontWeight(FontWeight.w700)
-          .borderBottom(2.px, brand)
-          .bg(brandSoft)
-          .hover(Style.color(brand).bg(brandSoft)),
+          .borderTop(2.px, brand)
+          .borderLeft(1.px, borderStrong)
+          .borderRight(1.px, borderStrong)
+          .borderBottom(2.px, surface)
+          .margin(0.px, 0.px, (-2).px, 0.px)
+          .shadow(0.px, (-2).px, 8.px, 0.px, shadowSubtle)
+          .hover(Style.bg(surface).color(ink)),
       )
       // Corner Action Bar
       .rule(
@@ -496,18 +504,81 @@ object AppTheme:
           .justify(Justification.end)
           .gap(8.px),
       )
-      // Universal DataTable
+      // Universal DataTable — Vertical Side-Split Master-Detail + Unified Table Card
       .rule(
-        "mp-dt-wrap",
-        Style.column.gap(12.px).width(100.pct),
+        "mp-dt-split",
+        Style.row
+          .width(100.pct)
+          .gap(18.px)
+          .align(Alignment.start),
       )
       .rule(
-        "mp-dt-toolbar",
+        "mp-dt-list-pane",
+        Style.column
+          .flexGrow(1.0)
+          .flexBasis(0.px)
+          .minWidth(0.px)
+          .width(100.pct),
+      )
+      .rule(
+        "mp-dt-list-pane-split",
+        Style.flexBasis(50.pct),
+      )
+      .rule(
+        "mp-dt-detail-pane",
+        Style.column
+          .flexGrow(1.0)
+          .flexBasis(50.pct)
+          .minWidth(0.px)
+          .bg(surface)
+          .border(1.px, border)
+          .rounded(14.px)
+          .padding(18.px, 20.px)
+          .gap(14.px)
+          .shadow(0.px, 2.px, 10.px, 0.px, shadowSubtle),
+      )
+      .rule(
+        "mp-dt-detail-header",
+        Style.row
+          .justify(Justification.spaceBetween)
+          .align(Alignment.center)
+          .gap(10.px)
+          .padding(0.px, 0.px, 12.px, 0.px)
+          .borderBottom(1.px, border),
+      )
+      .rule(
+        "mp-dt-mobile-back",
+        Style.displayNone,
+      )
+      .rule(
+        "mp-dt-card",
+        Style.column
+          .width(100.pct)
+          .bg(surface)
+          .border(1.px, border)
+          .rounded(14.px)
+          .shadow(0.px, 1.px, 3.px, 0.px, shadowSubtle),
+      )
+      .rule(
+        "mp-dt-header-top",
         Style.row
           .flexWrap(FlexWrap.wrap)
           .justify(Justification.spaceBetween)
           .align(Alignment.center)
           .gap(12.px)
+          .padding(14.px, 16.px)
+          .width(100.pct),
+      )
+      .rule(
+        "mp-dt-header-filters",
+        Style.row
+          .flexWrap(FlexWrap.wrap)
+          .align(Alignment.center)
+          .gap(12.px)
+          .padding(10.px, 16.px)
+          .bg(surfaceAlt)
+          .borderTop(1.px, border)
+          .borderBottom(1.px, border)
           .width(100.pct),
       )
       .rule(
@@ -524,19 +595,138 @@ object AppTheme:
           .color(inkMuted)
           .textTransform(TextTransform.uppercase)
           .letterSpacing(0.4.px)
-          .margin(0.px, 4.px, 0.px, 0.px),
+          .margin(0.px, 2.px, 0.px, 0.px),
+      )
+      .rule(
+        "mp-dt-check",
+        Style.row
+          .align(Alignment.center)
+          .gap(6.px)
+          .padding(4.px, 9.px)
+          .rounded(7.px)
+          .bg(surface)
+          .border(1.px, borderStrong)
+          .color(inkSecondary)
+          .fontSize(12.px)
+          .fontWeight(FontWeight.w600)
+          .cursor(Cursor.pointer)
+          .transition(TransitionProperty.all, 120, Easing.easeOut)
+          .hover(Style.borderColor(brandBorder).color(ink)),
+      )
+      .rule(
+        "mp-dt-check-active",
+        Style.bg(brandSoft)
+          .borderColor(brand)
+          .color(brandDark)
+          .fontWeight(FontWeight.w700)
+          .hover(Style.bg(brandSoft).borderColor(brand)),
+      )
+      .rule(
+        "mp-dt-check-box",
+        Style.row
+          .align(Alignment.center)
+          .justify(Justification.center)
+          .width(14.px)
+          .height(14.px)
+          .rounded(4.px)
+          .border(1.px, borderStrong)
+          .bg(surface)
+          .fontSize(10.px)
+          .fontWeight(FontWeight.w800)
+          .lineHeight(1.0)
+          .flexShrink(0.0),
+      )
+      .rule(
+        "mp-dt-check-box-checked",
+        Style.bg(brand).borderColor(brand).color(Color.white),
+      )
+      .rule(
+        "mp-dt-ms-wrap",
+        Style.position(Position.relative)
+          .minWidth(210.px)
+          .maxWidth(340.px)
+          .flexGrow(1.0),
+      )
+      .rule(
+        "mp-dt-ms-box",
+        Style.row
+          .flexWrap(FlexWrap.wrap)
+          .align(Alignment.center)
+          .gap(4.px)
+          .padding(4.px, 8.px)
+          .rounded(8.px)
+          .bg(surface)
+          .border(1.px, borderStrong)
+          .minHeight(34.px),
+      )
+      .rule(
+        "mp-dt-ms-tag",
+        Style.row
+          .align(Alignment.center)
+          .gap(4.px)
+          .padding(2.px, 7.px)
+          .rounded(6.px)
+          .bg(brandSoft)
+          .color(brandDark)
+          .border(1.px, brandBorder)
+          .fontSize(11.px)
+          .fontWeight(FontWeight.w700),
+      )
+      .rule(
+        "mp-dt-ms-input",
+        Style.border(0.px, BorderStyle.none, Color.transparent)
+          .bg(Color.transparent)
+          .color(ink)
+          .fontSize(12.px)
+          .flexGrow(1.0)
+          .minWidth(85.px)
+          .padding(3.px, 4.px),
+      )
+      .rule(
+        "mp-dt-ms-menu",
+        Style.position(Position.absolute)
+          .top(100.pct)
+          .left(0.px)
+          .right(0.px)
+          .zIndex(45)
+          .margin(4.px, 0.px, 0.px, 0.px)
+          .bg(surface)
+          .border(1.px, borderStrong)
+          .rounded(10.px)
+          .padding(6.px)
+          .shadow(0.px, 10.px, 28.px, 0.px, shadowMedium)
+          .column
+          .gap(2.px)
+          .maxHeight(240.px)
+          .overflowY(Overflow.auto),
+      )
+      .rule(
+        "mp-dt-ms-option",
+        Style.row
+          .align(Alignment.center)
+          .gap(8.px)
+          .width(100.pct)
+          .padding(6.px, 8.px)
+          .rounded(7.px)
+          .bg(Color.transparent)
+          .border(0.px, BorderStyle.none, Color.transparent)
+          .color(ink)
+          .fontSize(12.px)
+          .fontWeight(FontWeight.w600)
+          .cursor(Cursor.pointer)
+          .textAlign(TextAlign.left)
+          .hover(Style.bg(surfaceAlt)),
       )
       .rule(
         "mp-dt-table-scroll",
         Style.width(100.pct)
-          .overflowX(Overflow.auto)
-          .bg(surface)
-          .border(1.px, border)
-          .rounded(12.px),
+          .overflowX(Overflow.auto),
       )
       .rule(
         "mp-dt-table",
-        Style.width(100.pct).fontSize(13.px),
+        Style.width(100.pct)
+          .borderCollapse(BorderCollapse.collapse)
+          .fontSize(13.px),
       )
       .rule(
         "mp-dt-th",
@@ -583,17 +773,14 @@ object AppTheme:
         Style.bg(brandSoft).hover(Style.bg(brandSoft)),
       )
       .rule(
-        "mp-dt-detail-cell",
-        Style.bg(canvas).padding(16.px, 18.px).borderBottom(2.px, brandBorder),
-      )
-      .rule(
         "mp-dt-pager",
         Style.row
           .flexWrap(FlexWrap.wrap)
           .justify(Justification.spaceBetween)
           .align(Alignment.center)
           .gap(10.px)
-          .padding(4.px, 2.px),
+          .padding(10.px, 16.px)
+          .borderTop(1.px, border),
       )
       // Order Progress Stepper
       .rule(
@@ -621,7 +808,11 @@ object AppTheme:
           .rule("mp-split-aside", Style.width(100.pct).position(Position.relative).top(0.px))
           .rule("mp-desktop-nav", Style.displayNone)
           .rule("mp-mobile-only", Style.row.align(Alignment.center).gap(6.px))
-          .rule("mp-hero-title", Style.fontSize(28.px)),
+          .rule("mp-hero-title", Style.fontSize(28.px))
+          .rule("mp-dt-split", Style.column.gap(14.px))
+          .rule("mp-dt-list-pane-split", Style.displayNone)
+          .rule("mp-dt-detail-pane", Style.width(100.pct).flexBasis(Length.Auto))
+          .rule("mp-dt-mobile-back", Style.row.align(Alignment.center).gap(6.px)),
       )
       // Mobile breakpoint (<= 640px)
       .media(Stylesheet.MediaQuery.maxWidth(640.px))(

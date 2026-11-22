@@ -308,4 +308,78 @@ object StorefrontUiSpec extends ZIOSpecDefault:
           )
         }
       },
+      test("DataTable supports full-width -> vertical side-split detail, create-in-detail, checkbox filters (no counts), and multi-select textfield for >5 options") {
+        import mpbuilder.ui.components.DataTable
+        import kyo.UI.*
+        final case class Row(id: String, name: String, smallTag: String, bigTag: String)
+        val sampleRows = List(
+          Row("r1", "Alpha", "One", "G1"),
+          Row("r2", "Beta", "Two", "G2"),
+          Row("r3", "Gamma", "Three", "G6"),
+        )
+        val cols = List(
+          DataTable.Column[Row]("name", "Name", r => span(r.name), sortKey = Some(_.name)),
+        )
+        val filters = List(
+          DataTable.FilterGroup[Row](
+            id = "small",
+            label = "Small",
+            options = List("One", "Two", "Three").map(v => DataTable.FilterOption(v, v, _.smallTag == v)),
+          ),
+          DataTable.FilterGroup[Row](
+            id = "big",
+            label = "Many",
+            options = List("G1", "G2", "G3", "G4", "G5", "G6").map(v => DataTable.FilterOption(v, v, _.bigTag == v)),
+          ),
+        )
+        val css = AppTheme.storefrontStylesheet.render
+        ZIOs.run {
+          for
+            i18n    <- Translations.init(Language.En)
+            dtState <- DataTable.makeState[String]()
+            ui = DataTable.render[Row, String](
+                   title = Some(span("Demo Items")),
+                   rows = sampleRows,
+                   rowKey = _.id,
+                   columns = cols,
+                   state = dtState,
+                   searchPlaceholder = "Search...",
+                   matchesSearch = (r, q) => r.name.toLowerCase.contains(q),
+                   filterGroups = filters,
+                   renderDetail = Some(r => div(span(s"DETAIL:${r.name}"))),
+                   createConfig = Some(DataTable.CreateConfig(span("+ Add Item"), span("New Demo Item"), _ => div(span("CREATE_FORM_BODY")))),
+                 )
+            // 1. Initial unselected state: full-width table, no detail pane, checkbox & multi-select rendered, no counts
+            htmlInit <- renderHtml(ui, i18n)
+            // 2. Select row r2 -> vertical side-split opens detail pane
+            _        <- dtState.updateAndGet(_.copy(selectedKey = Some("r2")))
+            htmlSel  <- renderHtml(ui, i18n)
+            // 3. Create mode -> create form renders in detail pane
+            _        <- dtState.updateAndGet(_.copy(selectedKey = None, isCreating = true))
+            htmlNew  <- renderHtml(ui, i18n)
+            // 4. Multi-select checkbox OR filter (One OR Three) + open >5 dropdown
+            _        <- dtState.updateAndGet(_.copy(isCreating = false, activeFilters = Map("small" -> Set("One", "Three")), openDropdown = Some("big")))
+            htmlFilt <- renderHtml(ui, i18n)
+          yield assertTrue(
+            htmlInit.contains("mp-dt-header-top"),
+            htmlInit.contains("mp-dt-header-filters"),
+            htmlInit.contains("mp-dt-check"),
+            htmlInit.contains("mp-dt-ms-wrap"),
+            !htmlInit.contains("One (1)"),
+            !htmlInit.contains("mp-dt-detail-pane"),
+            !htmlInit.contains("mp-dt-list-pane-split"),
+            htmlSel.contains("mp-dt-list-pane-split"),
+            htmlSel.contains("mp-dt-detail-pane"),
+            htmlSel.contains("DETAIL:Beta"),
+            htmlNew.contains("mp-dt-detail-pane"),
+            htmlNew.contains("CREATE_FORM_BODY"),
+            htmlFilt.contains("Alpha"),
+            htmlFilt.contains("Gamma"),
+            !htmlFilt.contains("Beta"),
+            htmlFilt.contains("mp-dt-ms-menu"),
+            css.contains(".mp-tab-active"),
+            css.contains(".mp-dt-list-pane-split"),
+          )
+        }
+      },
     )

@@ -152,6 +152,7 @@ object CatalogManagerView:
     )
 
     DataTable.render[ProductCategory, CategoryId](
+      title = Some(span(if isCs then "Kategorie produktů" else "Product Categories")),
       rows = rows,
       rowKey = _.id,
       columns = columns,
@@ -162,6 +163,7 @@ object CatalogManagerView:
           pc.name(Language.En).toLowerCase.contains(q) ||
           pc.name(Language.Cs).toLowerCase.contains(q),
       filterGroups = filters,
+      detailTitle = Some(pc => pc.name(lang)),
       renderDetail = Some { pc =>
         div.style(stackSm)(
           div.style(rowWrap)(
@@ -259,6 +261,7 @@ object CatalogManagerView:
     )
 
     DataTable.render[Material, MaterialId](
+      title = Some(span(if isCs then "Materiály a substráty" else "Materials & Substrates")),
       rows = rows,
       rowKey = _.id,
       columns = columns,
@@ -271,6 +274,7 @@ object CatalogManagerView:
           m.family.toString.toLowerCase.contains(q) ||
           m.surfaceCoating.toString.toLowerCase.contains(q),
       filterGroups = filters,
+      detailTitle = Some(m => m.name(lang)),
       renderDetail = Some { m =>
         div.style(stackSm)(
           span(s"EN: ${m.name(Language.En)} · CS: ${m.name(Language.Cs)}").style(smallText),
@@ -344,6 +348,7 @@ object CatalogManagerView:
     )
 
     DataTable.render[Finish, FinishId](
+      title = Some(span(if isCs then "Zušlechtění" else "Finishes")),
       rows = rows,
       rowKey = _.id,
       columns = columns,
@@ -355,6 +360,7 @@ object CatalogManagerView:
           f.name(Language.Cs).toLowerCase.contains(q) ||
           f.finishType.toString.toLowerCase.contains(q),
       filterGroups = filters,
+      detailTitle = Some(f => f.name(lang)),
       renderDetail = Some { f =>
         div.style(stackXs)(
           span(s"EN: ${f.name(Language.En)} · CS: ${f.name(Language.Cs)}").style(smallText),
@@ -427,6 +433,7 @@ object CatalogManagerView:
     )
 
     DataTable.render[PrintingMethod, PrintingMethodId](
+      title = Some(span(if isCs then "Tiskové metody" else "Print Methods")),
       rows = rows,
       rowKey = _.id,
       columns = columns,
@@ -438,6 +445,7 @@ object CatalogManagerView:
           pm.name(Language.Cs).toLowerCase.contains(q) ||
           pm.processType.toString.toLowerCase.contains(q),
       filterGroups = filters,
+      detailTitle = Some(pm => pm.name(lang)),
       renderDetail = Some { pm =>
         div.style(stackXs)(
           span(s"EN: ${pm.name(Language.En)} · CS: ${pm.name(Language.Cs)}").style(smallText),
@@ -495,6 +503,7 @@ object CatalogManagerView:
     )
 
     DataTable.render[CompatibilityRule, RuleId](
+      title = Some(span(if isCs then "Pravidla kompatibility" else "Compatibility Rules")),
       rows = rules,
       rowKey = _.id,
       columns = columns,
@@ -506,6 +515,7 @@ object CatalogManagerView:
           r.reason(Language.Cs).toLowerCase.contains(q) ||
           r.scope.toString.toLowerCase.contains(q),
       filterGroups = filters,
+      detailTitle = Some(r => r.id.value),
       renderDetail = Some { r =>
         div.style(stackXs)(
           span(s"EN: ${r.reason(Language.En)}").style(Style.fontSize(13.px).color(ink)),
@@ -572,6 +582,7 @@ object CatalogManagerView:
     )
 
     DataTable.render[ShowcaseListing, CategoryId](
+      title = Some(span(if isCs then "Výloha e-shopu" else "Storefront Showcase")),
       rows = rows,
       rowKey = _.categoryId,
       columns = columns,
@@ -583,6 +594,7 @@ object CatalogManagerView:
           sc.tagline(Language.En).toLowerCase.contains(q) ||
           sc.tagline(Language.Cs).toLowerCase.contains(q),
       filterGroups = filters,
+      detailTitle = Some(catName),
       renderDetail = Some { sc =>
         div.style(stackXs)(
           span(s"Tagline EN: ${sc.tagline(Language.En)}").style(Style.fontSize(13.px).fontWeight(FontWeight.w600).color(ink)),

@@ -30,7 +30,7 @@ object OrderDetailView:
       specNote: String,
   )
 
-  def render(state: BackofficeState): UI < Sync =
+  def render(state: BackofficeState, embedded: Boolean = false): UI < Sync =
     for
       dialog               <- ConfirmDialog.Handle.make
       expandedBreakdownRef <- Signal.initRef[Set[OrderLineId]](Set.empty)
@@ -55,8 +55,10 @@ object OrderDetailView:
             case None =>
               div.cssClass("mp-card")(
                 div.style(rowBetween)(
-                  span(if isCs then "Objednávka nebyla nalezena." else "Order not found.").style(mutedText),
-                  button.cssClass("mp-btn mp-btn-secondary mp-btn-sm").onClick(state.navigate(AdminRoute.Orders))(state.i18n.t("adm-od-back")),
+                  span(if isCs then "Načítání objednávky..." else "Loading order...").style(mutedText),
+                  if !embedded then
+                    button.cssClass("mp-btn mp-btn-secondary mp-btn-sm").onClick(state.navigate(AdminRoute.Orders))(state.i18n.t("adm-od-back"))
+                  else UI.empty,
                 ),
               )
 
@@ -95,10 +97,14 @@ object OrderDetailView:
                 // Top Header Bar with Headline + Corner Action Bar
                 div.style(rowBetween.flexWrap(FlexWrap.wrap).gap(12.px))(
                   div.style(rowSm.flexWrap(FlexWrap.wrap))(
-                    button
-                      .cssClass("mp-btn mp-btn-secondary mp-btn-sm")
-                      .onClick(state.navigate(AdminRoute.Orders))(state.i18n.t("adm-od-back")),
-                    h1(ord.orderNumber.value).style(Style.margin(0.px).fontSize(24.px).fontWeight(FontWeight.w800).color(ink)),
+                    if !embedded then
+                      button
+                        .cssClass("mp-btn mp-btn-secondary mp-btn-sm")
+                        .onClick(state.navigate(AdminRoute.Orders))(state.i18n.t("adm-od-back"))
+                    else UI.empty,
+                    h1(ord.orderNumber.value).style(
+                      Style.margin(0.px).fontSize(if embedded then 20.px else 24.px).fontWeight(FontWeight.w800).color(ink),
+                    ),
                     badge(orderStatusLabel(ord.status, lang), orderStatusTone(ord.status)),
                     paymentStatusBadge(ord.payment.status, lang),
                     priorityBadge(ord.priority, lang),
