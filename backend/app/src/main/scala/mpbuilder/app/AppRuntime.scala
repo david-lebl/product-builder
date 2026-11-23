@@ -1,5 +1,6 @@
 package mpbuilder.app
 
+import com.augustnagro.magnum.*
 import mpbuilder.artwork.ArtworkService
 import mpbuilder.artwork.db.ArtworkDb
 import mpbuilder.artwork.wiring.ArtworkWiring
@@ -17,18 +18,25 @@ import mpbuilder.manufacturing.ManufacturingService
 import mpbuilder.manufacturing.sample.ManufacturingSampleLayer
 import mpbuilder.ordering.db.OrderingDb
 import mpbuilder.ordering.wiring.OrderingWiring
+import mpbuilder.platform.blob.LocalFileBlobStorage
 import mpbuilder.platform.db.*
 import mpbuilder.pricing.PricingService
 import mpbuilder.pricing.db.PricingDb
 import mpbuilder.pricing.sample.*
-import mpbuilder.sample.DomainBridges
+import mpbuilder.sample.{DomainBridges, SampleShowcaseRuntime}
 import mpbuilder.shared.*
 import mpbuilder.storefront.StorefrontFacade
 import zio.*
 
-/** Phase 3 composition: every bounded context on PostgreSQL (manufacturing stays in-memory) + DB seeder.
-  * The HTTP server and the memory/postgres runtime switch arrive in Phase 4.
-  */
+/** What the HTTP server needs from either storage mode. */
+final case class AppRuntime(
+    storefront: StorefrontFacade,
+    backoffice: BackofficeFacade,
+    blobs: BlobStorage,
+    storageLabel: String,
+    readiness: IO[String, Unit],
+)
+
 object AppRuntime:
 
   /** Every context's migration set (manufacturing stays in-memory until its own chapter). */
@@ -40,6 +48,18 @@ object AppRuntime:
     OrderingDb.migrations,
     ArtworkDb.migrations,
   )
+
+  // ── Mode A: in-memory sample runtime behind HTTP (zero-DB API dev) ─────────
+
+  def memory(cfg: AppConfig): ZLayer[Any, Nothing, AppRuntime] =
+    val blobs = ZLayer.fromZIO(BlobStorage.inMemory(publicBaseUrl = Some(cfg.blobPublicBaseUrl)))
+    SampleShowcaseRuntime.layer(blobStorage = blobs) >>> ZLayer.fromZIO(
+      for
+        sf <- ZIO.service[StorefrontFacade]
+        bo <- ZIO.service[BackofficeFacade]
+        bs <- ZIO.service[BlobStorage]
+      yield AppRuntime(sf, bo, bs, "memory", ZIO.unit)
+    )
 
   // ── Mode B: PostgreSQL persistence ─────────────────────────────────────────
 
@@ -86,3 +106,22 @@ object AppRuntime:
                        s"artwork=$artwork newCredentials=$logins"
                    )
     yield ()
+
+  def postgres(cfg: AppConfig, dbConfig: DbConfig): ZLayer[Any, Throwable, AppRuntime] =
+    val blobLayer = LocalFileBlobStorage.layer(cfg.blobDir, Some(cfg.blobPublicBaseUrl))
+    postgresServices(dbConfig, blobLayer) >>> ZLayer.fromZIO(
+      for
+        _  <- ZIO.when(cfg.seed)(seedIfEmpty)
+        db <- ZIO.service[Database]
+        sf <- ZIO.service[StorefrontFacade]
+        bo <- ZIO.service[BackofficeFacade]
+        bs <- ZIO.service[BlobStorage]
+        ready = db.transactor.connect(sql"SELECT 1".query[Int].run()).unit.mapError(e => s"database unavailable: ${e.getMessage}")
+      yield AppRuntime(sf, bo, bs, "postgres", ready)
+    )
+
+  def fromConfig(cfg: AppConfig): ZLayer[Any, Throwable, AppRuntime] =
+    (cfg.storage, cfg.db) match
+      case (StorageMode.Postgres, Some(db)) => postgres(cfg, db)
+      case (StorageMode.Postgres, None)     => ZLayer.fail(new IllegalArgumentException("PostgreSQL mode requires DATABASE_URL"))
+      case (StorageMode.Memory, _)          => memory(cfg)

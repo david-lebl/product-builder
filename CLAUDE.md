@@ -7,7 +7,7 @@ This file provides guidance to AI assistants and developers when working with co
 - **JDK 25** (required by `io.getkyo:kyo-ui:1.0.0-RC7`, which targets JVM class file version 69.0)
 - **Scala 3.9.0**, **Scala.js 1.22.0**, **Mill 1.1.3**
 - **Kyo 1.0.0-RC7** (`kyo-ui`, `kyo-i18n`, `kyo-zio`) + **ZIO 2.1.26** + **ZIO Prelude 1.0.0-RC39**
-- **Persistence**: Magnum 2.0.0 (`magnumzio`) + HikariCP + Flyway + PostgreSQL 17, jsoniter-scala codecs
+- **Persistence & API**: Magnum 2.0.0 (`magnumzio`) + HikariCP + Flyway + PostgreSQL 17, jsoniter-scala codecs, Tapir 1.14 + ZIO HTTP, sttp client4
 - **Docker** must be running for the `02-o-db`, `platform` and `app` test suites (Testcontainers)
 
 ## Build & Test Commands
@@ -28,10 +28,13 @@ This project uses **Mill** (`build.mill`).
 ./mill ui-admin-core.jvm.test
 ./mill 'backend.pricing.01-c-core.jvm.test'
 
-# Persistence contract tests (in-memory vs PostgreSQL via Testcontainers) & facades-on-PostgreSQL test
+# Persistence contract tests (in-memory vs PostgreSQL via Testcontainers) & live HTTP E2E
 ./mill 'backend.ordering.02-o-db.test'
 ./mill backend.app.test
-docker compose up -d postgres   # local PostgreSQL 17
+
+# Run the API server (Swagger UI at http://localhost:8080/docs)
+./mill backend.app.run --storage=memory
+docker compose up -d postgres && DATABASE_URL=jdbc:postgresql://localhost:5432/printcraft ./mill backend.app.run --storage=postgres
 
 # Build Scala.js bundles
 ./mill ui.fastLinkJS             # Dev Unified Storefront + #/admin SPA → out/ui/fastLinkJS.dest/main.js
@@ -60,10 +63,13 @@ All backend modules cross-compile to both `.jvm` and `.js` so the static fronten
 - **`backend/identity/01-c-core`** — Identity, Authentication (Password + Passwordless OTP), Sessions & Staff Directory Management.
 - **`backend/storefront`** — Storefront BFF / Application Orchestration Facade (`StorefrontFacade`). Depends only on public context APIs.
 - **`backend/backoffice`** — Role-based Staff Backoffice & Order Intake BFF (`BackofficeFacade`). Enforces `Operator` / `Prepress` / `Manager` / `Admin` RBAC across all contexts. Depends only on public context APIs.
-- **`backend/json`** (JVM + JS) — jsoniter-scala codecs for all public domain types (JSONB rows); opaque types decode through smart constructors.
+- **`backend/json`** (JVM + JS) — jsoniter-scala codecs for all public domain types (JSONB rows + HTTP wire); opaque types decode through smart constructors.
 - **`backend/platform`** (JVM) — Magnum `Database` (HikariCP), per-context Flyway migrations (schema per context), `PostgresIdSequence`, `LocalFileBlobStorage`.
 - **`backend/<context>/02-o-db`** (JVM) — PostgreSQL repository adapters + migrations for identity, customers, catalog, pricing, ordering, artwork (manufacturing stays in-memory).
-- **`backend/app`** (JVM) — Composition root: per-context Postgres wiring in `mpbuilder.<ctx>.wiring`, `AppRuntime.postgresServices`, idempotent DB seeder.
+- **`backend/api-kernel`** (JVM + JS) — Transport kernel shared by both BFF APIs (`mpbuilder.api`): bearer auth, opaque path codecs, typed error envelope, OpenAPI schemas, `/healthz`, `/readyz`, `/api/v1/blobs/**`.
+- **`backend/storefront/01-i-tapir-api`** & **`backend/backoffice/01-i-tapir-api`** (JVM + JS) — Each BFF's pure Tapir contracts (`/api/v1/storefront`, `/api/v1/admin`), request DTOs & codecs (`mpbuilder.<bff>.http.api`).
+- **`backend/storefront/02-i-http`** & **`backend/backoffice/02-i-http`** (JVM) — Tapir server routes binding each contract to its facade (`mpbuilder.<bff>.http`).
+- **`backend/app`** (JVM) — Composition root `mpbuilder.app.Main` (`--storage=memory|postgres`), per-context Postgres wiring in `mpbuilder.<ctx>.wiring`, idempotent DB seeder, HTTP server assembly (`mpbuilder.app.http`: ZIO HTTP, Swagger UI, CORS).
 - **`backend/sample`** — Sample showcase data (15 products, 5 groups, demo B2B accounts, 4 seeded demo orders, demo staff accounts, promo codes), in-memory adapters, ACL bridges, and `SampleShowcaseRuntime`.
 
 ### Frontend (`modules/`)
@@ -77,6 +83,7 @@ All backend modules cross-compile to both `.jvm` and `.js` so the static fronten
   - JVM UI test suite in `modules/ui-admin-core/src/test/scala/mpbuilder/admin/BackofficeUiSpec.scala` covering RBAC, EN/CS i18n, and unified Storefront → Backoffice E2E order flow.
 - **`modules/ui`** (`ui`) — Unified Static Scala.js Demo SPA (`mpbuilder.ui.Main`) hosting BOTH Storefront (`#/catalog`, `#/builder`, ...) and Staff Backoffice (`#/admin/...`) over ONE shared in-memory `SampleShowcaseRuntime` so Storefront orders land immediately in Staff Order Intake.
 - **`modules/ui-admin`** (`ui-admin`) — Standalone deployable Scala.js Backoffice SPA (`mpbuilder.admin.AdminMain`, deployed to `_site/admin/`).
+- **`modules/ui-http-client`** (`ui-http-client.jvm`, `ui-http-client.js`) — `HttpStorefrontFacade` / `HttpBackofficeFacade` implementing the facade traits over the Tapir contracts; `HttpClients.storefront/backoffice(baseUrl)`. SPAs switch to it when `window.__API_BASE_URL__` is set (calculator: `apiBaseUrl` mount option).
 - **`modules/ui-calculator`** (`ui-calculator`) — Standalone embeddable Scala.js widget (`mpbuilder.calculator.CalculatorWidget`) exporting global `MPCalculator.mount(selector, config)` without a main initializer.
 
 ## Domain & UI Conventions
@@ -111,6 +118,8 @@ All backend modules cross-compile to both `.jvm` and `.js` so the static fronten
 | Standalone Admin SPA | `modules/ui-admin/src/main/scala/mpbuilder/admin/AdminMain.scala` |
 | JSON codecs | `backend/json/src/main/scala/mpbuilder/json/` |
 | DB platform & migrations | `backend/platform/src/main/scala/mpbuilder/platform/`, `backend/*/02-o-db/src/main/resources/db/migration/` |
+| HTTP contracts / routes / server | `backend/{storefront,backoffice}/01-i-tapir-api/`, `backend/{storefront,backoffice}/02-i-http/`, `backend/api-kernel/`, `backend/app/…/mpbuilder/app/http/` |
+| HTTP clients | `modules/ui-http-client/src/main/scala/mpbuilder/httpclient/` |
 | Calculator JS export | `modules/ui-calculator/src/main/scala/mpbuilder/calculator/CalculatorWidget.scala` |
 
 ## Documentation Knowledge Base

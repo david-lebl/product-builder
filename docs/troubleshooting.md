@@ -326,15 +326,27 @@ That weighs (0,0,0) — exactly like the `*` selector it replaces — so it beha
 
 ---
 
-### `Conflicting definitions: given_JsonValueCodec_NonEmptyChunk`
+### `Conflicting definitions: given_JsonValueCodec_List` (or `_NonEmptyChunk`)
 
-**Symptom:** Several `given JsonValueCodec[NonEmptyChunk[X]] = …` in one object fail to compile.
+**Symptom:** Several `given JsonValueCodec[List[X]] = …` / `given JsonValueCodec[NonEmptyChunk[X]] = …` in one object fail to compile.
 
-**Cause:** Anonymous givens are named after the outer type constructor only, so `NonEmptyChunk[A]` and `NonEmptyChunk[B]` both become `given_JsonValueCodec_NonEmptyChunk`.
+**Cause:** Anonymous givens are named after the outer type constructor only, so `List[A]` and `List[B]` both become `given_JsonValueCodec_List`.
 
-**Solution:** Name them: `given necOrderLine: JsonValueCodec[NonEmptyChunk[OrderLine]] = …`.
+**Solution:** Name them: `given listOrderView: JsonValueCodec[List[OrderView]] = …`, `given necOrderLine: JsonValueCodec[NonEmptyChunk[OrderLine]] = …`.
 
-**Files:** `backend/json/src/main/scala/mpbuilder/json/*Codecs.scala`
+**Files:** `backend/json/src/main/scala/mpbuilder/json/*Codecs.scala`, `backend/{storefront,backoffice}/01-i-tapir-api/…/http/api/*ApiCodecs.scala`, `backend/api-kernel/src/main/scala/mpbuilder/api/ApiKernelCodecs.scala`
+
+---
+
+### Tapir schema derivation: "Could not find Schema", then "Class too large"
+
+**Symptom:** `sttp.tapir.generic.auto` derivation of domain bodies reports `Could not find Schema for type …` deep inside the catalog tree; raising `-Xmax-inlines` makes it compile in ~2 minutes and then fails emitting with `Class too large` / `Method too large`.
+
+**Cause:** Magnolia inlines the entire catalog/pricing/order ADT tree per endpoint. It hits the inline limit first, then JVM class-file limits; the generated code would also bloat the Scala.js client bundle.
+
+**Solution:** Bodies use lightweight named schemas (`ApiSupport.body[T]`, `jsonList[T]`, `ApiSchemas.named`). The jsoniter codecs are the source of truth for body structure. Opaque types still need explicit schemas (`ApiSchemas`), including ones from other contexts, e.g. `manufacturing.WorkflowId` / `StepId` reached via `ManufacturingError`.
+
+**Files:** `backend/api-kernel/src/main/scala/mpbuilder/api/ApiSchemas.scala`, `backend/api-kernel/src/main/scala/mpbuilder/api/ApiSupport.scala`
 
 ---
 
@@ -348,3 +360,20 @@ That weighs (0,0,0) — exactly like the `*` selector it replaces — so it beha
 
 **Files:** `backend/shared/src/main/scala/mpbuilder/shared/BlobStorage.scala` (`IdSequence`), `backend/platform/src/main/scala/mpbuilder/platform/db/PostgresIdSequence.scala`
 
+---
+
+### Frontend on another origin can't load data from the API (CORS preflight 405)
+
+**Symptom:** The SPA served from e.g. `http://localhost:3000` with `window.__API_BASE_URL__ = "http://localhost:8080"` renders the catalog, but quotes, cart, login and all admin calls fail. Chrome reports *"Response to preflight request doesn't pass access control check: It does not have HTTP ok status"*, and `OPTIONS` requests return **405**.
+
+**Cause:** Browsers send an `OPTIONS` preflight before every cross-origin JSON `POST`/`PUT`/`DELETE` and every request with an `Authorization` header. zio-http's `Middleware.cors` added CORS headers but did not answer the preflight; Tapir saw no `OPTIONS` endpoint and rejected it with 405. Plain `GET`s (catalog, showcases) skip the preflight, so curl and the first screen looked fine. The JVM E2E client never sends preflights either.
+
+**Solution:** CORS is handled by Tapir's `CORSInterceptor` (`HttpServer.corsConfig`), which answers preflights for every endpoint with 204. `PlatformE2ESpec` now asserts a 2xx preflight for storefront and admin endpoints. If you change CORS handling, verify with:
+
+```bash
+curl -i -X OPTIONS localhost:8080/api/v1/storefront/builder/quote \
+  -H "Origin: http://localhost:3000" -H "Access-Control-Request-Method: POST" \
+  -H "Access-Control-Request-Headers: content-type,authorization"
+```
+
+**Files:** `backend/app/src/main/scala/mpbuilder/app/http/HttpServer.scala`, `backend/app/src/test/scala/mpbuilder/app/PlatformE2ESpec.scala`

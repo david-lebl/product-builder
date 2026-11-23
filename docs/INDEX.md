@@ -53,7 +53,8 @@ How-to guides for developers working with the codebase.
 | Document | Description |
 |----------|-------------|
 | [ui-guide.md](ui-guide.md) | Build, run, and test instructions (Mill) |
-| [backend-persistence.md](backend-persistence.md) | PostgreSQL persistence (Magnum + Flyway, schema per context, JSONB aggregates), DB seeder, contract tests, and artwork `BlobStorage` |
+| [running-the-platform.md](running-the-platform.md) | How to run the API server (`--storage=memory\|postgres`), demo logins, pointing the SPAs/calculator at it, server options, and tests |
+| [backend-persistence-and-http-api.md](backend-persistence-and-http-api.md) | PostgreSQL persistence (Magnum + Flyway, schema per context), Tapir HTTP API & Swagger, `--storage=memory\|postgres`, HTTP client wiring (`window.__API_BASE_URL__`), and artwork `BlobStorage` |
 | [adding-new-product-guide.md](adding-new-product-guide.md) | Step-by-step guide for adding new products to the catalog |
 | [../CLAUDE.md](../CLAUDE.md) | AI assistant guidance — architecture, build commands, coding conventions |
 
@@ -78,6 +79,7 @@ Session-by-session work logs documenting what was done, decisions made, and issu
 | Document | Description |
 |----------|-------------|
 | [changelog/README.md](changelog/README.md) | Changelog format, template, and log entries index |
+| [changelog/2026-11-23-phase4-http-api.md](changelog/2026-11-23-phase4-http-api.md) | Roadmap Phase 4 — per-BFF Tapir HTTP API, ZIO HTTP server (`--storage=memory\|postgres`), HTTP clients & frontend mode switch |
 | [changelog/2026-11-23-phase3-postgres-persistence.md](changelog/2026-11-23-phase3-postgres-persistence.md) | Roadmap Phase 3 + 5.1 storage — PostgreSQL persistence (Magnum + Flyway), DB seeder, contract tests, artwork BlobStorage |
 | [changelog/2026-05-03-printing-method-setup-fee.md](changelog/2026-05-03-printing-method-setup-fee.md) | Add PrintingMethodSetupFee pricing rule; update all three sample pricelists and affected tests |
 | [changelog/2026-05-03-dtg-sublimation-uv-mug-pricing-fix.md](changelog/2026-05-03-dtg-sublimation-uv-mug-pricing-fix.md) | Fix missing ink config prices for DTG, sublimation, and UV flatbed on mugs in pricelistCzkSheet |

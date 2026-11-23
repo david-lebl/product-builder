@@ -24,7 +24,19 @@ object AdminMain extends KyoApp:
     val raw = saved.orElse(Option(dom.window.navigator.language)).getOrElse("en").toLowerCase
     if raw.startsWith("cs") then Language.Cs else Language.En
 
+  /** Mode B (network API) when the host page sets `window.__API_BASE_URL__`; otherwise Mode A (static in-memory). */
+  private def apiBaseUrl: Option[String] =
+    try
+      val v = dom.window.asInstanceOf[scala.scalajs.js.Dynamic].selectDynamic("__API_BASE_URL__")
+      if scala.scalajs.js.isUndefined(v) || v == null then None else Option(v.toString.trim).filter(_.nonEmpty)
+    catch case _: Throwable => None
+
   private def bootBackofficeClient: BackofficeClient < Async =
+    apiBaseUrl match
+      case Some(base) => Sync.defer(mpbuilder.httpclient.HttpClients.backoffice(base))
+      case None       => bootInMemoryBackofficeClient
+
+  private def bootInMemoryBackofficeClient: BackofficeClient < Async =
     val bootZio: zio.UIO[BackofficeFacade] =
       zio.ZIO.scoped {
         SampleShowcaseRuntime.layer().build.map(_.get[BackofficeFacade])

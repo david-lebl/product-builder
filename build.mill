@@ -12,6 +12,8 @@ val kyoVersion      = "1.0.0-RC7"
 val javaTimeJsVer   = "2.7.0"
 val magnumVersion   = "2.0.0"
 val jsoniterVersion = "2.38.6"
+val tapirVersion    = "1.14.1"
+val sttpClientVer   = "4.1.0"
 val flywayVersion   = "11.3.4"
 val hikariVersion   = "6.2.1"
 val postgresVersion = "42.7.5"
@@ -44,6 +46,12 @@ val backendTestDeps = Seq(
 val jsonDeps = Seq(
   mvn"com.github.plokhotnyuk.jsoniter-scala::jsoniter-scala-core::${jsoniterVersion}",
   mvn"com.github.plokhotnyuk.jsoniter-scala::jsoniter-scala-macros::${jsoniterVersion}",
+)
+
+// Pure Tapir endpoint contracts (cross-compiled).
+val tapirApiDeps = Seq(
+  mvn"com.softwaremill.sttp.tapir::tapir-core::${tapirVersion}",
+  mvn"com.softwaremill.sttp.tapir::tapir-jsoniter-scala::${tapirVersion}",
 )
 
 // JVM-only database infrastructure (Magnum + HikariCP + Flyway + PostgreSQL).
@@ -321,6 +329,30 @@ object backend extends Module {
         backend.manufacturing.`01-c-core`.js,
       )
     }
+
+    /** `01-i-tapir-api`: pure Tapir contracts + wire DTOs/codecs for the storefront BFF (JVM + JS). */
+    object `01-i-tapir-api` extends Module {
+      private val apiDir = dir / "01-i-tapir-api"
+      object jvm extends BackendJvmModule {
+        def baseDir    = apiDir
+        def moduleDeps = Seq(backend.`api-kernel`.jvm, backend.storefront.jvm)
+        def mvnDeps    = backendCoreDeps ++ jsonDeps ++ tapirApiDeps
+      }
+      object js extends BackendJsModule {
+        def baseDir    = apiDir
+        def moduleDeps = Seq(backend.`api-kernel`.js, backend.storefront.js)
+        def mvnDeps    = backendCoreDeps ++ backendJsExtraDeps ++ jsonDeps ++ tapirApiDeps
+      }
+    }
+
+    /** `02-i-http`: inbound Tapir server routes binding the contracts to the facade (JVM). */
+    object `02-i-http` extends BackendJvmModule {
+      def baseDir    = dir / "02-i-http"
+      def moduleDeps = Seq(backend.storefront.`01-i-tapir-api`.jvm)
+      def mvnDeps = backendCoreDeps ++ jsonDeps ++ tapirApiDeps ++ Seq(
+        mvn"com.softwaremill.sttp.tapir::tapir-zio::${tapirVersion}",
+      )
+    }
   }
 
   /** Backoffice / Admin BFF & Order Intake Orchestration Facade (depends ONLY on public context APIs). */
@@ -349,6 +381,30 @@ object backend extends Module {
         backend.identity.`01-c-core`.js,
         backend.ordering.`01-c-core`.js,
         backend.artwork.`01-c-core`.js,
+      )
+    }
+
+    /** `01-i-tapir-api`: pure Tapir contracts + wire DTOs/codecs for the backoffice BFF (JVM + JS). */
+    object `01-i-tapir-api` extends Module {
+      private val apiDir = dir / "01-i-tapir-api"
+      object jvm extends BackendJvmModule {
+        def baseDir    = apiDir
+        def moduleDeps = Seq(backend.`api-kernel`.jvm, backend.backoffice.jvm)
+        def mvnDeps    = backendCoreDeps ++ jsonDeps ++ tapirApiDeps
+      }
+      object js extends BackendJsModule {
+        def baseDir    = apiDir
+        def moduleDeps = Seq(backend.`api-kernel`.js, backend.backoffice.js)
+        def mvnDeps    = backendCoreDeps ++ backendJsExtraDeps ++ jsonDeps ++ tapirApiDeps
+      }
+    }
+
+    /** `02-i-http`: inbound Tapir server routes binding the contracts to the facade (JVM). */
+    object `02-i-http` extends BackendJvmModule {
+      def baseDir    = dir / "02-i-http"
+      def moduleDeps = Seq(backend.backoffice.`01-i-tapir-api`.jvm)
+      def mvnDeps = backendCoreDeps ++ jsonDeps ++ tapirApiDeps ++ Seq(
+        mvn"com.softwaremill.sttp.tapir::tapir-zio::${tapirVersion}",
       )
     }
   }
@@ -436,10 +492,28 @@ object backend extends Module {
     }
   }
 
-  /** Composition root (JVM): per-context PostgreSQL wiring & DB seeder (HTTP server arrives in Phase 4). */
+  /** Cross-compiled transport kernel shared by every BFF contract: bearer auth, opaque path codecs,
+    * typed error envelope, OpenAPI schemas, health & blob endpoints. */
+  object `api-kernel` extends Module {
+    private val dir = backendDir / "api-kernel"
+    object jvm extends BackendJvmModule {
+      def baseDir    = dir
+      def moduleDeps = Seq(backend.json.jvm)
+      def mvnDeps    = backendCoreDeps ++ jsonDeps ++ tapirApiDeps
+    }
+    object js extends BackendJsModule {
+      def baseDir    = dir
+      def moduleDeps = Seq(backend.json.js)
+      def mvnDeps    = backendCoreDeps ++ backendJsExtraDeps ++ jsonDeps ++ tapirApiDeps
+    }
+  }
+
+  /** Composition root (JVM): `--storage=postgres|memory`, per-context Postgres wiring, DB seeder & server Main. */
   object app extends BackendJvmModule {
     def baseDir = backendDir / "app"
     def moduleDeps = Seq(
+      backend.storefront.`02-i-http`,
+      backend.backoffice.`02-i-http`,
       backend.platform,
       backend.sample.jvm,
       backend.catalog.`02-o-db`,
@@ -449,13 +523,17 @@ object backend extends Module {
       backend.ordering.`02-o-db`,
       backend.artwork.`02-o-db`,
     )
-    def mvnDeps = backendCoreDeps ++ dbDeps
+    def mvnDeps = backendCoreDeps ++ dbDeps ++ Seq(
+      mvn"com.softwaremill.sttp.tapir::tapir-zio-http-server::${tapirVersion}",
+      mvn"com.softwaremill.sttp.tapir::tapir-swagger-ui-bundle::${tapirVersion}",
+      mvn"org.slf4j:slf4j-simple:2.0.17",
+    )
+    def mainClass = Some("mpbuilder.app.Main")
     object test extends CoreTests {
       def mvnDeps    = backendTestDeps :+ mvn"org.testcontainers:testcontainers-postgresql:${tcVersion}"
-      def moduleDeps = super.moduleDeps ++ Seq(backend.platform.test)
+      def moduleDeps = super.moduleDeps ++ Seq(`ui-http-client`.jvm, backend.platform.test)
     }
   }
-
 }
 
 // ---------------------------------------------------------------------------
@@ -571,7 +649,7 @@ object ui extends ScalaJSModule {
   def sources                         = Task.Sources(rootDir / "modules" / "ui" / "src" / "main" / "scala")
   def resources                       = Task.Sources(rootDir / "modules" / "ui" / "src" / "main" / "resources")
   def scalaJSUseMainModuleInitializer = true
-  def moduleDeps                      = Seq(`ui-core`.js, `ui-admin-core`.js, backend.sample.js)
+  def moduleDeps                      = Seq(`ui-core`.js, `ui-admin-core`.js, `ui-http-client`.js, backend.sample.js)
   def mvnDeps                         = kyoUiDeps
 }
 
@@ -587,7 +665,7 @@ object `ui-admin` extends ScalaJSModule {
   def sources                         = Task.Sources(rootDir / "modules" / "ui-admin" / "src" / "main" / "scala")
   def resources                       = Task.Sources(rootDir / "modules" / "ui-admin" / "src" / "main" / "resources")
   def scalaJSUseMainModuleInitializer = true
-  def moduleDeps                      = Seq(`ui-admin-core`.js, backend.sample.js)
+  def moduleDeps                      = Seq(`ui-admin-core`.js, `ui-http-client`.js, backend.sample.js)
   def mvnDeps                         = kyoUiDeps
 }
 
@@ -603,6 +681,36 @@ object `ui-calculator` extends ScalaJSModule {
   def sources                       = Task.Sources(rootDir / "modules" / "ui-calculator" / "src" / "main" / "scala")
   def resources                     = Task.Sources(rootDir / "modules" / "ui-calculator" / "src" / "main" / "resources")
   def scalaJSUseMainModuleInitializer = false
-  def moduleDeps                    = Seq(`ui-core`.js, backend.sample.js)
+  def moduleDeps                    = Seq(`ui-core`.js, `ui-http-client`.js, backend.sample.js)
   def mvnDeps                       = kyoUiDeps
+}
+
+// ---------------------------------------------------------------------------
+// UI HTTP Client — Cross-compiled HTTP adapters implementing `StorefrontFacade` /
+// `BackofficeFacade` over the Tapir contracts (sttp client4). Lifted into the pure
+// Kyo `StorefrontClient` / `BackofficeClient` ports via the existing `fromZio`.
+// ---------------------------------------------------------------------------
+
+object `ui-http-client` extends Module {
+  private val dir = rootDir / "modules" / "ui-http-client"
+  private val clientDeps = Seq(
+    mvn"com.softwaremill.sttp.tapir::tapir-sttp-client4::${tapirVersion}",
+  )
+
+  object jvm extends ScalaModule {
+    def scalaVersion  = scala3Version
+    def scalacOptions = commonScalacOptions
+    def sources       = Task.Sources(dir / "src" / "main" / "scala")
+    def moduleDeps    = Seq(backend.storefront.`01-i-tapir-api`.jvm, backend.backoffice.`01-i-tapir-api`.jvm, `ui-core`.jvm, `ui-admin-core`.jvm)
+    def mvnDeps       = kyoUiDeps ++ tapirApiDeps ++ clientDeps
+  }
+
+  object js extends ScalaJSModule {
+    def scalaVersion   = scala3Version
+    def scalaJSVersion = build.scalaJsVersion
+    def scalacOptions  = commonScalacOptions
+    def sources        = Task.Sources(dir / "src" / "main" / "scala")
+    def moduleDeps     = Seq(backend.storefront.`01-i-tapir-api`.js, backend.backoffice.`01-i-tapir-api`.js, `ui-core`.js, `ui-admin-core`.js)
+    def mvnDeps        = kyoUiDeps ++ tapirApiDeps ++ clientDeps
+  }
 }

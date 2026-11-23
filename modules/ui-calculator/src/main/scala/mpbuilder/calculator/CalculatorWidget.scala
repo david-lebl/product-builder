@@ -22,8 +22,14 @@ import scala.scalajs.js.annotation.{JSExport, JSExportTopLevel}
   *     lang: "cs",          // "en" | "cs" (optional)
   *     currency: "CZK",     // "CZK" | "USD" (optional)
   *     category: "cat-business-cards", // optional CategoryId
-  *     orderEmail: "orders@printshop.example" // optional
+  *     orderEmail: "orders@printshop.example", // optional
+  *     apiBaseUrl: "https://api.printshop.example" // optional — live pricing over HTTP
   *   })
+  * }}}
+  *
+  * Without `apiBaseUrl` (and without a global `window.__API_BASE_URL__`) the widget prices
+  * fully client-side with the bundled in-memory sample runtime.
+  * {{{
   * }}}
   */
 @JSExportTopLevel("MPCalculator")
@@ -61,6 +67,18 @@ object CalculatorWidget:
           orderEmail = email,
         )
 
+  /** `apiBaseUrl` mount option, falling back to a page-wide `window.__API_BASE_URL__`. */
+  private def apiBaseUrl(raw: js.UndefOr[js.Dynamic]): Option[String] =
+    def clean(v: js.Dynamic): Option[String] =
+      if js.isUndefined(v) || v == null then None else Option(v.toString.trim).filter(_.nonEmpty)
+    raw.toOption.flatMap(cfg => clean(cfg.selectDynamic("apiBaseUrl")))
+      .orElse(clean(dom.window.asInstanceOf[js.Dynamic].selectDynamic("__API_BASE_URL__")))
+
+  private def bootClient(raw: js.UndefOr[js.Dynamic]): StorefrontClient < Async =
+    apiBaseUrl(raw) match
+      case Some(base) => Sync.defer(mpbuilder.httpclient.HttpClients.storefront(base))
+      case None       => bootSampleClient
+
   private def bootSampleClient: StorefrontClient < Async =
     val bootZio: zio.UIO[(StorefrontFacade, InMemoryOtpInbox)] =
       zio.ZIO.scoped {
@@ -96,7 +114,7 @@ object CalculatorWidget:
     val program: Unit < Async =
       Scope.run {
         for
-          client  <- bootSampleClient
+          client  <- bootClient(config)
           appI18n <- Translations.init(parsed.initialLanguage)
           _ <- {
                  if !stylesheetInjected then

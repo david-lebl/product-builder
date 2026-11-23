@@ -156,7 +156,7 @@ flowchart LR
 
 ### Phase 3 — Backend Persistence *(PostgreSQL + Flyway, JVM)* — ✅ Implemented (2026-11-23)
 
-> **Status:** Done with **Magnum 2** (`magnumzio`) + HikariCP + Flyway, a PostgreSQL schema per context, JSONB aggregates with indexed key columns, an append-only order audit table, a DB seeder, and in-memory ⇄ Postgres contract tests (Testcontainers). See [docs/backend-persistence.md](../docs/backend-persistence.md).
+> **Status:** Done with **Magnum 2** (`magnumzio`) + HikariCP + Flyway, a PostgreSQL schema per context, JSONB aggregates with indexed key columns, an append-only order audit table, a DB seeder, and in-memory ⇄ Postgres contract tests (Testcontainers). See [docs/backend-persistence-and-http-api.md](../docs/backend-persistence-and-http-api.md).
 **Goal**: Swap in-memory storage for durable relational persistence following [guides/scala_3_modulith_boilerplate.md](file:///Users/davidlebl/dev/product-builder/guides/scala_3_modulith_boilerplate.md), without touching any domain core or UI view.
 
 1. **`backend/platform` (JVM)**:
@@ -170,7 +170,9 @@ flowchart LR
 
 ---
 
-### Phase 4 — Network API & Live Frontend Wiring *(Tapir + ZIO HTTP)*
+### Phase 4 — Network API & Live Frontend Wiring *(Tapir + ZIO HTTP)* — ✅ Implemented (2026-11-23)
+
+> **Status:** Done. 100 Tapir endpoints owned by each BFF (`backend/{storefront,backoffice}/01-i-tapir-api` + `02-i-http`, shared `backend/api-kernel`, jsoniter-scala codecs), mounted by `backend/app` (`--storage=memory|postgres`, Swagger UI at `/docs`), and `modules/ui-http-client` selected at boot via `window.__API_BASE_URL__`. OpenAPI bodies are documented by type name rather than fully derived (see doc §5). Live HTTP E2E tests cover both storage modes, including a server restart.
 **Goal**: Expose Storefront and Backoffice over HTTP/JSON and connect the Kyo UI frontends to the live server while keeping static in-memory mode available.
 
 1. **Shared Cross-Compiled API Contracts (`01-i-tapir-api`, JVM + JS)**:
@@ -191,7 +193,7 @@ flowchart LR
 ### Phase 5 — Artwork Upload & Visual Editor PoC *(Isolated `modules/ui-editor`)*
 **Goal**: Let customers either upload print files (with automated preflight) or open a simple browser-based Visual Editor PoC to design artwork that attaches to their cart/order line and shows up in Staff Order Intake.
 
-1. **Artwork Integration (In-Memory + Local/Stub Blob Store)** — ✅ Storage side implemented (2026-11-23): `BlobStorage` port in `backend/shared` (in-memory + `LocalFileBlobStorage`), `BlobIngest` with SHA-256 checksums in both facades (HTTP download endpoint follows with Phase 4):
+1. **Artwork Integration (In-Memory + Local/Stub Blob Store)** — ✅ Implemented (2026-11-23): `BlobStorage` port in `backend/shared` (in-memory + `LocalFileBlobStorage`), `BlobIngest` with SHA-256 checksums in both facades, `GET /api/v1/blobs/**`:
    - Define a tiny `BlobStoragePort` (`put(bytes, mime) -> storageKey`, `get(storageKey)`) with an **In-Memory** adapter (for static demo) and **Local Filesystem** adapter (for JVM dev; S3/R2 later).
    - Wire `ArtworkService` into `StorefrontFacade` (upload/attach to cart line, run preflight against catalog specs) and `BackofficeFacade` (view artwork preview + preflight report, approve or request changes during Order Intake).
 2. **Isolated `modules/ui-editor` PoC**:
