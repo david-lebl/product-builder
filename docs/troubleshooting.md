@@ -377,3 +377,21 @@ curl -i -X OPTIONS localhost:8080/api/v1/storefront/builder/quote \
 ```
 
 **Files:** `backend/app/src/main/scala/mpbuilder/app/http/HttpServer.scala`, `backend/app/src/test/scala/mpbuilder/app/PlatformE2ESpec.scala`
+
+---
+
+### Mill compile fails with `UnsupportedClassVersionError` (class file version 69.0)
+
+**Symptom:** `./mill __.compile` fails in `ui-core.jvm.compile` (or any Kyo module) with
+*"kyo/Frame$package$Frame$ has been compiled by a more recent version of the Java Runtime (class file version 69.0), this version of the Java Runtime only recognizes class file versions up to 61.0"*.
+
+**Cause:** Kyo 1.0.0-RC7 targets JDK 25, but the shell's default `java` (and therefore the Mill daemon) is an older JDK (here 17). Kyo macros run inside the compiler and can't load the class files.
+
+**Solution:** Point `JAVA_HOME`/`PATH` at a JDK 25, then restart the daemon so it picks it up:
+
+```bash
+export JAVA_HOME=~/.sdkman/candidates/java/25.0.1-tem PATH=$JAVA_HOME/bin:$PATH   # or: sdk use java 25.0.1-tem
+./mill shutdown && ./mill __.compile
+```
+
+**Files:** `build.mill`

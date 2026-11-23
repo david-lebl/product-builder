@@ -79,6 +79,7 @@ Session-by-session work logs documenting what was done, decisions made, and issu
 | Document | Description |
 |----------|-------------|
 | [changelog/README.md](changelog/README.md) | Changelog format, template, and log entries index |
+| [changelog/2026-11-23-quick-order-server-pricing.md](changelog/2026-11-23-quick-order-server-pricing.md) | Bugfix — quick-order checkout sends a configuration (`QuickOrderItem`) and is re-priced server-side instead of trusting a client price |
 | [changelog/2026-11-23-phase4-http-api.md](changelog/2026-11-23-phase4-http-api.md) | Roadmap Phase 4 — per-BFF Tapir HTTP API, ZIO HTTP server (`--storage=memory\|postgres`), HTTP clients & frontend mode switch |
 | [changelog/2026-11-23-phase3-postgres-persistence.md](changelog/2026-11-23-phase3-postgres-persistence.md) | Roadmap Phase 3 + 5.1 storage — PostgreSQL persistence (Magnum + Flyway), DB seeder, contract tests, artwork BlobStorage |
 | [changelog/2026-05-03-printing-method-setup-fee.md](changelog/2026-05-03-printing-method-setup-fee.md) | Add PrintingMethodSetupFee pricing rule; update all three sample pricelists and affected tests |

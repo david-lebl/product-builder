@@ -429,24 +429,27 @@ final class StorefrontState(
         val draft = ConfiguratorController.draftFromPreset(cat, preset)
         addDraftToCart(draft)
 
-  def startQuickOrder(
-      res: ProductBuilderQuoteResult,
-      speed: ManufacturingSpeed,
-      artworkIds: Map[ComponentKey, ArtworkId] = Map.empty,
-  ): Unit < Async =
+  /** Starts a "buy now" checkout. Sends only the configuration; the backend re-prices it on every checkout call. */
+  def startQuickOrder(d: DraftConfig): Unit < Async =
     for
-      seq <- idSeq.updateAndGet(_ + 1)
-      line = StorefrontTranslators.toCartLine(
-               lineId = OrderLineId.unsafe(s"quick-line-$seq"),
-               product = res.configuration.product,
-               speed = speed,
-               quote = res.pricing.effectiveQuote,
+      cmd <- configurator.buildConfigureCmd(d)
+      cur <- currency.get
+      item = QuickOrderItem(
+               cmd = cmd,
+               currency = cur,
+               speed = d.speed,
                copies = Quantity.one,
-               artworkIds = artworkIds,
+               artworkIds = d.artworks.view.mapValues(_.id).toMap,
              )
       _ <- configurator.clearDraftArtworks
-      _ <- navigate(AppRoute.Checkout(CheckoutSource.QuickSingleLine(line)))
+      _ <- navigate(AppRoute.Checkout(CheckoutSource.QuickSingleLine(item)))
     yield ()
+
+  def startPresetQuickOrder(categoryId: CategoryId, presetId: PresetId): Unit < Async =
+    catalog.categories.get(categoryId).flatMap(_.presets.find(_.id == presetId)) match
+      case None => Kyo.unit
+      case Some(preset) =>
+        startQuickOrder(ConfiguratorController.draftFromPreset(catalog.categories(categoryId), preset))
 
   def startCartCheckout: Unit < Async =
     cart.get.flatMap {

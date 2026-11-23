@@ -143,11 +143,11 @@ object ProductDetailView:
             .style(Style.flexGrow(1.0))
             .onClick(state.addPresetToCart(cat.id, preset.id))(state.i18n.t("detail-add-cart")),
           quoteStatus match
-            case QuoteStatus.Ready(res) =>
+            case QuoteStatus.Ready(_) =>
               button
                 .cssClass("mp-btn mp-btn-secondary mp-btn-sm")
                 .style(Style.flexGrow(1.0))
-                .onClick(state.startQuickOrder(res, ManufacturingSpeed.Standard))(state.i18n.t("detail-quick-order"))
+                .onClick(state.startPresetQuickOrder(cat.id, preset.id))(state.i18n.t("detail-quick-order"))
             case _ => UI.empty,
         ),
         button

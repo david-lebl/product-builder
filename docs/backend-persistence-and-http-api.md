@@ -123,6 +123,10 @@ PostgreSQL** (Testcontainers, `postgres:17-alpine`), e.g.
   else 400. Clients decode the typed error back, so UI error handling is identical in both modes.
 * **Auth** is `Authorization: Bearer <SessionToken>`; optional on storefront pricing/cart/checkout
   endpoints (enables B2B pricing & prefill), required on `/me/**` and all `/admin/**` except login.
+* **Prices are never accepted from the client.** Requests carry configurations (`ConfigureProductCmd`)
+  and IDs; the server prices them. Cart lines are priced at add-to-cart time; a quick-order checkout
+  (`CheckoutSource.QuickSingleLine(QuickOrderItem)`) is re-configured and re-priced on every
+  options / preview / submit call.
 * **OpenAPI** documents every path, parameter, tag and summary; request/response bodies are
   documented by domain type name. Fully-derived field schemas for the catalog/pricing/order trees
   exceed JVM class-size limits and would bloat the Scala.js bundle — the codecs are the source of

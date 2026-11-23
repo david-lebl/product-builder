@@ -212,23 +212,22 @@ object StorefrontFacadeSpec extends ZIOSpecDefault:
         _        <- facade.addConfiguredProductToCart(cartId, flyersCmd(500), Currency.CZK, sessionToken = Some(token))
 
         // Quick single-item checkout with single-use promo code ONEUSE (does NOT clear cart-corp-1!)
-        quickQ   <- facade.pricePreset(
-                      SampleCatalog.businessCardsId,
-                      PresetId.unsafe("preset-bc-basic"),
+        catalog  <- facade.getCatalog
+        bcCat     = catalog.categories(SampleCatalog.businessCardsId)
+        quickItem = QuickOrderItem(
+                      StorefrontTranslators.presetToConfigureCmd(
+                        ConfigurationId.unsafe("cfg-quick-1"),
+                        bcCat.id,
+                        bcCat.presets.find(_.id == PresetId.unsafe("preset-bc-basic")).get,
+                      ),
                       Currency.CZK,
-                      sessionToken = Some(token),
                     )
-        quickLine = StorefrontTranslators.toCartLine(
-                      OrderLineId.unsafe("quick-1"),
-                      quickQ.configuration.product,
-                      ManufacturingSpeed.Standard,
-                      quickQ.pricing.effectiveQuote,
-                    )
-        opts     <- facade.getCheckoutOptions(CheckoutSource.QuickSingleLine(quickLine), Currency.CZK, Some(token))
+        serverQ  <- facade.configureAndQuote(quickItem.cmd, Currency.CZK, ManufacturingSpeed.Standard, Some(token), None)
+        opts     <- facade.getCheckoutOptions(CheckoutSource.QuickSingleLine(quickItem), Currency.CZK, Some(token))
         confirm1 <- facade.submitCheckout(
                       SubmitCheckoutCmd(
                         sessionToken = Some(token),
-                        source = CheckoutSource.QuickSingleLine(quickLine),
+                        source = CheckoutSource.QuickSingleLine(quickItem),
                         customer = custSnap,
                         billingAddress = customer.billingAddress,
                         deliveryChoice = DeliveryOptionChoice.ShopPickup(SampleDeliveryCatalog.shopPragueId),
@@ -268,6 +267,9 @@ object StorefrontFacadeSpec extends ZIOSpecDefault:
         opts.prefill.invoiceApproved,
         opts.prefill.invoiceDueDays == Some(14),
         confirm1.order.status == OrderStatus.Confirmed,
+        // Quick-order line is priced server-side from the configuration, not taken from the client
+        confirm1.order.lines.head.price.copy(quoteId = serverQ.pricing.effectiveQuote.quoteId) ==
+          StorefrontTranslators.toLinePriceSnapshot(serverQ.pricing.effectiveQuote),
         confirm1.order.totals.promoDiscountNet.isPositive,
         confirm1.paymentInstructions == PaymentInstructions.InvoiceScheduled(14, NonEmptyString.unsafe(confirm1.order.orderNumber.value)),
         cartStillFull.lines.size == 1,

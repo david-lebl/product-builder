@@ -95,11 +95,11 @@ object PlatformE2ESpec extends ZIOSpecDefault:
       dlUrl     = draft.latestRevision.file.downloadUrl.map(_.value).getOrElse("")
       blob     <- httpGet(c.baseUrl + dlUrl)
       // ── Checkout as guest
-      line      = StorefrontTranslators.toCartLine(OrderLineId.unsafe(s"line-$tag"), quote.configuration.product, ManufacturingSpeed.Standard, quote.pricing.effectiveQuote)
+      item      = QuickOrderItem(cmd, Currency.CZK)
       confirm  <- c.sf.submitCheckout(
                     SubmitCheckoutCmd(
                       sessionToken = None,
-                      source = CheckoutSource.QuickSingleLine(line),
+                      source = CheckoutSource.QuickSingleLine(item),
                       customer = OrderCustomerSnapshot(
                         customerId = None,
                         segment = CustomerSegment.Individual,

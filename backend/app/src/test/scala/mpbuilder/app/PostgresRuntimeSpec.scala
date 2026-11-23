@@ -51,11 +51,11 @@ object PostgresRuntimeSpec extends ZIOSpecDefault:
                      downloadUrl = Some(NonEmptyString.unsafe(DataUrl.encode("application/pdf", pdf))),
                    ),
                  )
-      line     = StorefrontTranslators.toCartLine(OrderLineId.unsafe("line-pg"), quote.configuration.product, ManufacturingSpeed.Standard, quote.pricing.effectiveQuote)
+      item     = QuickOrderItem(cmd, Currency.CZK)
       confirm <- sf.submitCheckout(
                    SubmitCheckoutCmd(
                      sessionToken = None,
-                     source = CheckoutSource.QuickSingleLine(line),
+                     source = CheckoutSource.QuickSingleLine(item),
                      customer = OrderCustomerSnapshot(
                        customerId = None,
                        segment = CustomerSegment.Individual,

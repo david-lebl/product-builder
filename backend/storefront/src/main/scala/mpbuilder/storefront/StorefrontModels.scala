@@ -97,10 +97,22 @@ final case class AuthResult(
 
 // ── Checkout & Order History Models ──────────────────────────────────────────
 
+/** A single "buy now" item. Carries only the configuration — never a price.
+  * The facade re-configures and re-prices it server-side on every options / preview / submit call,
+  * so a client cannot tamper with the line price or product snapshot.
+  */
+final case class QuickOrderItem(
+    cmd: ConfigureProductCmd,
+    currency: Currency,
+    speed: ManufacturingSpeed = ManufacturingSpeed.Standard,
+    copies: Quantity = Quantity.one,
+    artworkIds: Map[ComponentKey, ArtworkId] = Map.empty,
+)
+
 /** Checkout either consumes a shopping cart (clearing it on submit) or orders a single quick item. */
 enum CheckoutSource:
   case FromCart(cartId: CartId)
-  case QuickSingleLine(line: CartLine)
+  case QuickSingleLine(item: QuickOrderItem)
 
 final case class CheckoutPrefill(
     customer: Option[CustomerView],

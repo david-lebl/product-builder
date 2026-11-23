@@ -389,7 +389,7 @@ final class StorefrontFacadeLive(
   ): IO[StorefrontError, CheckoutOptionsView] =
     for
       customerOpt                     <- resolveOptionalCustomer(sessionToken)
-      loaded                          <- loadCheckoutLines(source)
+      loaded                          <- loadCheckoutLines(source, sessionToken, ZIO.succeed(quickPreviewLineId))
       (lines, existingPromoOpt)        = loaded
       effectivePromoOpt               <- resolveEffectivePromo(promoCode, existingPromoOpt, lines, currency, customerOpt)
       itemsNet                         = lines.map(_.lineNetTotal).foldLeft(Money.zero)(_ + _).rounded
@@ -422,7 +422,7 @@ final class StorefrontFacadeLive(
   ): IO[StorefrontError, CheckoutPreview] =
     for
       customerOpt               <- resolveOptionalCustomer(sessionToken)
-      loaded                    <- loadCheckoutLines(source)
+      loaded                    <- loadCheckoutLines(source, sessionToken, ZIO.succeed(quickPreviewLineId))
       (lines, existingPromoOpt)  = loaded
       effectivePromoOpt         <- resolveEffectivePromo(promoCode, existingPromoOpt, lines, currency, customerOpt)
       itemsNet                   = lines.map(_.lineNetTotal).foldLeft(Money.zero)(_ + _).rounded
@@ -458,7 +458,7 @@ final class StorefrontFacadeLive(
   override def submitCheckout(cmd: SubmitCheckoutCmd): IO[StorefrontError, CheckoutConfirmation] =
     for
       customerOpt                     <- resolveOptionalCustomer(cmd.sessionToken)
-      loaded                          <- loadCheckoutLines(cmd.source)
+      loaded                          <- loadCheckoutLines(cmd.source, cmd.sessionToken, nextLineId)
       (lines, existingPromoOpt)        = loaded
       nonEmptyLines                   <- ZIO
                                            .fromOption(NonEmptyChunk.fromIterableOption(lines))
@@ -821,12 +821,37 @@ final class StorefrontFacadeLive(
                      }
     yield options
 
-  private def loadCheckoutLines(source: CheckoutSource): IO[StorefrontError, (List[CartLine], Option[AppliedPromoSnapshot])] =
+  /** Line ID used for quick-order lines in options / preview, so repeated previews don't consume the ID sequence. */
+  private val quickPreviewLineId: OrderLineId = OrderLineId.unsafe("quick-preview")
+
+  /** Loads the lines to check out. Cart lines carry the server-side price snapshot taken at add-to-cart time;
+    * a quick-order item is always re-configured and re-priced here — the client never supplies a price.
+    */
+  private def loadCheckoutLines(
+      source: CheckoutSource,
+      sessionToken: Option[SessionToken],
+      quickLineId: UIO[OrderLineId],
+  ): IO[StorefrontError, (List[CartLine], Option[AppliedPromoSnapshot])] =
     source match
       case CheckoutSource.FromCart(cartId) =>
         cartService.getCart(cartId).mapError(StorefrontError.OrderFailure.apply).map(c => (c.lines, c.appliedPromo))
-      case CheckoutSource.QuickSingleLine(line) =>
-        ZIO.succeed((List(line), None))
+      case CheckoutSource.QuickSingleLine(item) =>
+        for
+          quoted <- configureAndQuote(item.cmd, item.currency, item.speed, sessionToken, promoCode = None)
+          lineId <- quickLineId
+        yield (
+          List(
+            StorefrontTranslators.toCartLine(
+              lineId = lineId,
+              product = quoted.configuration.product,
+              speed = item.speed,
+              quote = quoted.pricing.effectiveQuote,
+              copies = item.copies,
+              artworkIds = item.artworkIds,
+            )
+          ),
+          None,
+        )
 
   private def resolveEffectivePromo(
       promoCodeOverride: Option[String],

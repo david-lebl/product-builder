@@ -118,16 +118,18 @@ object BackofficeFacadeSpec extends ZIOSpecDefault:
                       sessionToken = None,
                       lang = Language.En,
                     )
-        line     = StorefrontTranslators.toCartLine(
-                     lineId = OrderLineId.unsafe("line-e2e-1"),
-                     product = quoteRes.configuration.product,
-                     speed = ManufacturingSpeed.Standard,
-                     quote = quoteRes.pricing.effectiveQuote,
+        item     = QuickOrderItem(
+                     cmd = StorefrontTranslators.presetToConfigureCmd(
+                       ConfigurationId.unsafe("cfg-e2e-intake"),
+                       bcCat.id,
+                       preset,
+                     ),
+                     currency = Currency.CZK,
                    )
         confirm <- sf.submitCheckout(
                      SubmitCheckoutCmd(
                        sessionToken = None,
-                       source = CheckoutSource.QuickSingleLine(line),
+                       source = CheckoutSource.QuickSingleLine(item),
                        customer = OrderCustomerSnapshot(
                          customerId = None,
                          segment = CustomerSegment.Individual,

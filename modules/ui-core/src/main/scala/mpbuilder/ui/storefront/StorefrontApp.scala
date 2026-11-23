@@ -24,7 +24,7 @@ object StorefrontApp:
     yield
       val builderHost = ConfiguratorHost.Storefront(
         onAddToCart = (draft, _) => state.addDraftToCart(draft),
-        onQuickOrder = (draft, quoteRes) => state.startQuickOrder(quoteRes, draft.speed, draft.artworks.view.mapValues(_.id).toMap),
+        onQuickOrder = (draft, _) => state.startQuickOrder(draft),
         onPreviewArtwork = (art, ctx) => state.artworkPreview.open(art, contextTitle = ctx),
         onLinkCopied = url => state.notifyLinkCopied(url),
         onArtworkUploaded = () => state.i18n.now("cfg-artwork-uploaded-toast").flatMap(state.showToast),
