@@ -40,7 +40,7 @@ Implementation plans and future feature designs.
 
 | Document | Description |
 |----------|-------------|
-| [../PLAN.md](../PLAN.md) | Project goals, completed phases, and roadmap |
+| [../PLAN.md](../PLAN.md) | Goals, guiding decisions, and phase status overview (details in the platform roadmap) |
 | [manufacturing-implementation-plan.md](manufacturing-implementation-plan.md) | Manufacturing system phases 1–8 implementation plan |
 | [customer-portal-plan.md](customer-portal-plan.md) | Customer-facing order tracking portal (5 use cases, 12 future features) |
 | [customer-management-plan.md](customer-management-plan.md) | Customer account management feature plan |
