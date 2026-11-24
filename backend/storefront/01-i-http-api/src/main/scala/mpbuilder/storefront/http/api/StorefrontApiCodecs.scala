@@ -16,6 +16,7 @@ object StorefrontApiCodecs:
   export mpbuilder.api.ApiKernelCodecs.given
 
   given Schema[StorefrontError]            = Schema.derived
+  given Schema[ExchangeRateQuote]          = Schema.derived
   given Schema[ArtworkUploadPayload]       = Schema.derived
   given Schema[ProductBuilderQuoteResult]  = Schema.derived
   given Schema[AuthResult]                 = Schema.derived

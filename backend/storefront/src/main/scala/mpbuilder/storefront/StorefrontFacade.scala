@@ -28,6 +28,7 @@ trait StorefrontFacade:
 
   def getCatalog: ProductCatalog < Async
   def listShowcaseListings: List[ShowcaseListing] < Async
+  def getExchangeRate(from: Currency, to: Currency): ExchangeRateQuote < (Async & Abort[StorefrontError])
 
   def compatibleFinishes(
       categoryId: CategoryId,
@@ -189,6 +190,7 @@ final class StorefrontFacadeLive(
     manufacturingService: ManufacturingService,
     idSequence: IdSequence,
     blobStorage: BlobStorage,
+    currencyConversion: CurrencyConversionService = CurrencyConversionService.make(),
 ) extends StorefrontFacade:
 
   override def getCatalog: ProductCatalog < Async =
@@ -196,6 +198,9 @@ final class StorefrontFacadeLive(
 
   override def listShowcaseListings: List[ShowcaseListing] < Async =
     catalogService.getCatalog.map(_.showcases.values.toList.sortBy(_.sortOrder))
+
+  override def getExchangeRate(from: Currency, to: Currency): ExchangeRateQuote < (Async & Abort[StorefrontError]) =
+    currencyConversion.getExchangeRate(from, to)
 
   override def compatibleFinishes(
       categoryId: CategoryId,
@@ -226,6 +231,7 @@ final class StorefrontFacadeLive(
       promoCode: Option[String],
       lang: Language,
   ): ProductBuilderQuoteResult < (Async & Abort[StorefrontError]) =
+    val pricingCurrency = if currency == Currency.EUR then Currency.CZK else currency
     for
       customerOpt  <- resolveOptionalCustomer(sessionToken)
       catalog      <- catalogService.getCatalog
@@ -237,7 +243,7 @@ final class StorefrontFacadeLive(
                           PriceQuoteCmd(
                             quoteId = effectiveQId,
                             subject = subject,
-                            currency = currency,
+                            currency = pricingCurrency,
                             customerId = customerOpt.map(_.id),
                             customerTier = customerOpt.map(_.tier),
                             customerSegment = customerOpt.map(_.segment),
@@ -255,16 +261,18 @@ final class StorefrontFacadeLive(
                                            PriceQuoteCmd(
                                              quoteId = baseQId,
                                              subject = subject,
-                                             currency = currency,
+                                             currency = pricingCurrency,
                                              promoCode = promoCode,
                                            )
                                          )
                                          .mapAbort(StorefrontError.PricingFailure.apply)
                           yield Some(baseQ)
       dualPricing   = buildDualPriceQuote(effectiveQ, walkInQOpt)
-      speedOpts    <- evaluateSpeedOptions(cfgRes.product, currency)
+      speedOpts    <- evaluateSpeedOptions(cfgRes.product, pricingCurrency)
       localized     = ChargeFormatter.formatQuote(effectiveQ, catalog, lang)
-    yield ProductBuilderQuoteResult(cfgRes, dualPricing, speedOpts, localized)
+      rawResult     = ProductBuilderQuoteResult(cfgRes, dualPricing, speedOpts, localized)
+      converted    <- currencyConversion.convertQuoteResult(rawResult, currency)
+    yield converted
 
   override def pricePreset(
       categoryId: CategoryId,
@@ -973,5 +981,8 @@ object StorefrontFacade:
       manufacturing: ManufacturingService,
       idSequence: IdSequence,
       blobs: BlobStorage,
+      currencyConversion: CurrencyConversionService = CurrencyConversionService.make(),
   ): StorefrontFacade =
-    new StorefrontFacadeLive(catalog, pricing, customers, identity, artwork, carts, checkoutOptions, orders, manufacturing, idSequence, blobs)
+    new StorefrontFacadeLive(
+      catalog, pricing, customers, identity, artwork, carts, checkoutOptions, orders, manufacturing, idSequence, blobs, currencyConversion,
+    )

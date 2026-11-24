@@ -20,6 +20,7 @@ trait StorefrontClient:
 
   def getCatalog: ProductCatalog < Async
   def listShowcaseListings: List[ShowcaseListing] < Async
+  def getExchangeRate(from: Currency, to: Currency): ExchangeRateQuote < (Abort[StorefrontError] & Async)
 
   def compatibleFinishes(
       categoryId: CategoryId,
@@ -220,6 +221,9 @@ object StorefrontClient:
 
     override def listShowcaseListings: List[ShowcaseListing] < Async =
       facade.listShowcaseListings
+
+    override def getExchangeRate(from: Currency, to: Currency): ExchangeRateQuote < (Abort[StorefrontError] & Async) =
+      facade.getExchangeRate(from, to)
 
     override def compatibleFinishes(
         categoryId: CategoryId,

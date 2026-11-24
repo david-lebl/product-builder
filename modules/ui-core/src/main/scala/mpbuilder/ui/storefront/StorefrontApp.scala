@@ -93,7 +93,6 @@ object StorefrontApp:
   ): UI =
     val headerSignal =
       state.route
-        .combineLatest(state.currency)
         .combineLatest(state.i18n.language)
         .combineLatest(state.authSession)
         .combineLatest(state.currentCustomer)
@@ -118,7 +117,7 @@ object StorefrontApp:
           ),
 
         // Navigation & Controls
-        headerSignal.render { case (((((activeRoute, cur), lang), sessOpt), custOpt), cartCount) =>
+        headerSignal.render { case ((((activeRoute, lang), sessOpt), custOpt), cartCount) =>
           val isCatalog = activeRoute match
             case AppRoute.Catalog | _: AppRoute.ProductDetail => true
             case _                                            => false
@@ -137,12 +136,6 @@ object StorefrontApp:
             ),
 
             div.cssClass("mp-desktop-nav").style(Style.gap(8.px))(
-              Controls.segmented[Currency](
-                List(Currency.CZK, Currency.USD).map(c => c -> (span(c.toString): UI)),
-                cur,
-                c => state.setCurrency(c),
-                ariaLabel = if isCs then "Měna" else "Currency",
-              ),
               Controls.languageSwitch(state.i18n, l => state.setLanguage(l)),
             ),
 
@@ -206,7 +199,7 @@ object StorefrontApp:
         .onClick(state.mobileMenuOpen.set(false).andThen(action))(Icons(icon, 18), labelNode)
 
     UI.when(state.mobileMenuOpen)(
-      state.currency.combineLatest(state.authSession).combineLatest(state.currentCustomer).render { case ((cur, sessOpt), custOpt) =>
+      state.authSession.combineLatest(state.currentCustomer).render { case (sessOpt, custOpt) =>
         div.cssClass("mp-mobile-menu").style(Style.animation("mp-drop-in", 160, Easing.easeOut))(
           sessOpt match
             case Some(sess) =>
@@ -234,14 +227,6 @@ object StorefrontApp:
               case None            => UI.empty,
           ),
           div.style(Style.row.gap(8.px).align(Alignment.center).padding(10.px, 0.px, 0.px, 0.px).borderTop(1.px, Palette.border))(
-            div.style(Style.flexGrow(1.0).minWidth(0.px))(
-              Controls.segmented[Currency](
-                List(Currency.CZK, Currency.USD).map(c => c -> (span(c.toString): UI)),
-                cur,
-                c => state.setCurrency(c),
-                fullWidth = true,
-              ),
-            ),
             Controls.languageSwitch(state.i18n, l => state.setLanguage(l)),
           ),
           Controls.themeSegmented(state.theme, state.i18n),

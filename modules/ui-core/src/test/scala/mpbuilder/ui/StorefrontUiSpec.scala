@@ -512,4 +512,37 @@ class StorefrontUiSpec extends Test[Any]:
           }
         }
       }
+
+      "Header removes CZK/USD switch and Live Price Summary switches between CZK and EUR via backend storefront conversion" in {
+        withClient { client =>
+          for
+            appI18n   <- Translations.init(Language.En)
+            state     <- I18n.let(appI18n.handle)(StorefrontState.init(client, appI18n, initialRoute = AppRoute.Builder()))
+            appUi     <- I18n.let(appI18n.handle)(StorefrontApp.render(state))
+            czkHtml   <- renderHtml(appUi, appI18n)
+            czkQuote  <- state.configurator.quoteStatus.get
+            _         <- I18n.let(appI18n.handle)(state.configurator.setDisplayCurrency(Currency.EUR))
+            eurQuote  <- state.configurator.quoteStatus.get
+            eurHtml   <- renderHtml(appUi, appI18n)
+            storeCur  <- state.currency.get
+          yield {
+            val czkReady = czkQuote match
+              case QuoteStatus.Ready(r) => Some(r)
+              case _                    => None
+            val eurReady = eurQuote match
+              case QuoteStatus.Ready(r) => Some(r)
+              case _                    => None
+            assert(!czkHtml.contains("USD"))
+            assert(czkHtml.contains("Live Price Summary"))
+            assert(czkHtml.contains("CZK"))
+            assert(czkHtml.contains("EUR"))
+            assert(czkReady.exists(_.pricing.effectiveQuote.currency == Currency.CZK))
+            assert(eurReady.exists(_.pricing.effectiveQuote.currency == Currency.EUR))
+            assert(eurReady.exists(e => czkReady.exists(c => e.pricing.effectiveQuote.netTotal.value < c.pricing.effectiveQuote.netTotal.value)))
+            assert(eurHtml.contains("€"))
+            assert(storeCur == Currency.CZK)
+            assert(!eurHtml.contains("‹") && !eurHtml.contains("›"))
+          }
+        }
+      }
   }
