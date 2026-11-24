@@ -6,7 +6,7 @@ A domain-driven print-shop platform: customers configure and price print product
 with automated preflight and place orders; staff accept, review and progress those orders and manage
 the catalog, pricing, customers and store settings in a role-based backoffice.
 
-**🌐 Live demo (runs fully in the browser, no backend):**
+**🌐 Live Demo (runs fully in the browser, no backend):** [https://david-lebl.github.io/product-builder/](https://david-lebl.github.io/product-builder/)
 
 | App | URL |
 |---|---|
@@ -17,6 +17,14 @@ the catalog, pricing, customers and store settings in a role-based backoffice.
 Orders placed in the storefront land immediately in Staff Order Intake: both run on one shared
 in-memory runtime. Demo staff login: `admin@printshop.cz` / `staff1234`; demo customer:
 `jan@printshoppro.cz` / `demo1234`.
+
+| Storefront Catalog | Product Configurator |
+|:---:|:---:|
+| ![Storefront Catalog](docs/screenshots/storefront-catalog.png) | ![Product Configurator](docs/screenshots/product-configurator.png) |
+
+| Staff Backoffice | Embeddable Price Calculator |
+|:---:|:---:|
+| ![Staff Backoffice](docs/screenshots/staff-backoffice.png) | ![Embeddable Price Calculator](docs/screenshots/price-calculator.png) |
 
 ## What It Does
 
