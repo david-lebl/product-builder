@@ -295,7 +295,7 @@ object ArtworkComponents:
       .cssClass(if compact then "mp-btn mp-btn-secondary mp-btn-sm" else "mp-btn mp-btn-secondary")
       .data("mp-download-url", url)
       .data("mp-download-name", rev.file.fileName.value)
-    val label = if isCs then "⬇ Stáhnout" else "⬇ Download"
+    val label: UI = UI.fragment(Icons(Icons.Icon.Download, 15), span(if isCs then "Stáhnout" else "Download"))
     onDownloadFeedback match
       case Some(cb) => btn.onClick(cb())(label)
       case None     => btn(label)
@@ -311,7 +311,7 @@ object ArtworkComponents:
     button
       .cssClass(if compact then "mp-btn mp-btn-ghost mp-btn-sm" else "mp-btn mp-btn-ghost")
       .data("mp-copy-url", url)
-      .onClick(onCopied())(if isCs then "🔗 Kopírovat odkaz" else "🔗 Copy Link")
+      .onClick(onCopied())(Icons(Icons.Icon.Link, 15), span(if isCs then "Kopírovat odkaz" else "Copy Link"))
 
   /** Interactive Drag & Drop + Click-to-Browse Upload Zone (with optional quick demo buttons). */
   def dropZone(
@@ -482,7 +482,7 @@ object ArtworkComponents:
                         s"${art.componentKey.value} · ${formatFileSize(rev.file.sizeBytes)} · ${formatInstant(rev.uploadedAt)}",
                     ).style(smallText),
                   ),
-                  button.cssClass("mp-btn mp-btn-ghost mp-btn-sm").onClick(close)("✕"),
+                  button.cssClass("mp-icon-btn mp-icon-btn-sm").aria("label", "Close").onClick(close)(Icons(Icons.Icon.Close, 16)),
                 ),
 
                 // Revision selector bar (when multiple revisions exist)

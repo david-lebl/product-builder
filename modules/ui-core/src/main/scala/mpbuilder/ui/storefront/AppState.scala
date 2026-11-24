@@ -67,6 +67,7 @@ final class StorefrontState(
     private val idSeq: SignalRef[Long],
     val onRouteChange: AppRoute => Unit < Sync,
     val onLanguagePersist: Language => Unit < Sync,
+    val theme: mpbuilder.ui.theme.ThemeController,
 ):
 
   def sessionTokenSignal: Signal[Option[SessionToken]] =
@@ -548,8 +549,10 @@ object StorefrontState:
       initialRoute: AppRoute = AppRoute.Catalog,
       onRouteChange: AppRoute => Unit < Sync = _ => Kyo.unit,
       onLanguagePersist: Language => Unit < Sync = _ => Kyo.unit,
+      theme: Option[mpbuilder.ui.theme.ThemeController] = None,
   ): StorefrontState < Async =
     for
+      themeCtl    <- theme.fold(mpbuilder.ui.theme.ThemeController.init())(t => Sync.defer(t))
       catalog     <- client.getCatalog
       listings    <- client.listShowcaseListings
       routeRef    <- Signal.initRef[AppRoute](initialRoute)
@@ -610,6 +613,7 @@ object StorefrontState:
                        seqRef,
                        onRouteChange,
                        onLanguagePersist,
+                       themeCtl,
                      )
       _ <- initialRoute match
              case AppRoute.ProductDetail(catId) => state.refreshPresetQuotes(catId)

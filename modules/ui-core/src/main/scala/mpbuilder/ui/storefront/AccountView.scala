@@ -7,6 +7,7 @@ import mpbuilder.artwork.*
 import mpbuilder.customers.*
 import mpbuilder.ordering.*
 import mpbuilder.shared.*
+import mpbuilder.ui.components.Icons
 import mpbuilder.ui.components.CommonComponents.*
 import mpbuilder.ui.theme.AppTheme.*
 import mpbuilder.ui.theme.AppTheme.Palette.*
@@ -341,7 +342,7 @@ object AccountView:
           span(order.orderNumber.value).style(Style.fontWeight(FontWeight.w800).fontSize(15.px).color(ink)),
           badge(orderStatusLabel(order.status, lang), statusTone),
           paymentStatusBadge(order.payment.status, lang),
-          badge(order.payment.method.toString, BadgeTone.Neutral),
+          badge(paymentMethodLabel(order.payment.method, lang), BadgeTone.Neutral),
         ),
         div.style(Style.row.align(Alignment.center).gap(10.px).flexWrap(FlexWrap.wrap))(
           if !order.isPaid && !order.status.isTerminal then
@@ -545,7 +546,7 @@ object AccountView:
             h3(state.i18n.t("account-payment-modal-title")).style(Style.margin(0.px).fontSize(18.px).fontWeight(FontWeight.w800).color(ink)),
             span(s"${order.orderNumber.value} · ${formatMoney(order.totals.grandTotalGross, order.totals.currency, lang)}").style(mutedText),
           ),
-          button.cssClass("mp-btn mp-btn-ghost mp-btn-sm").onClick(state.closePaymentInstructions)("✕"),
+          button.cssClass("mp-icon-btn mp-icon-btn-sm").aria("label", "Close").onClick(state.closePaymentInstructions)(Icons(Icons.Icon.Close, 16)),
         ),
         instr match
           case PaymentInstructions.BankTransferQR(iban, bicOpt, holder, vs, amount, cur, qrPayload) =>

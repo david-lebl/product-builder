@@ -239,6 +239,14 @@ object CommonComponents:
     case (PaymentStatus.Refunded, Language.Cs)   => "Vráceno"
     case (PaymentStatus.Refunded, _)             => "Refunded"
 
+  def paymentMethodLabel(m: PaymentMethod, lang: Language): String = (m, lang) match
+    case (PaymentMethod.BankTransferQR, Language.Cs)   => "Bankovní převod (QR)"
+    case (PaymentMethod.BankTransferQR, _)             => "Bank transfer (QR)"
+    case (PaymentMethod.Card, Language.Cs)             => "Platební karta"
+    case (PaymentMethod.Card, _)                       => "Card"
+    case (PaymentMethod.InvoiceOnAccount, Language.Cs) => "Faktura na účet"
+    case (PaymentMethod.InvoiceOnAccount, _)           => "Invoice on account"
+
   def paymentStatusBadge(s: PaymentStatus, lang: Language): UI =
     val tone = s match
       case PaymentStatus.Confirmed  => BadgeTone.Emerald
@@ -444,61 +452,45 @@ object CommonComponents:
       UI.fragment(lines.map(msg => div.style(Style.lineHeight(1.4))(s"• $msg"))*),
     )
 
-  // ── Typed SVG Category Icons ───────────────────────────────────────────────
+  // ── Catalog Group Glyphs ───────────────────────────────────────────────────
 
-  def groupIcon(group: CatalogGroup): UI =
-    val accent = group match
-      case CatalogGroup.Sheet       => brand
-      case CatalogGroup.LargeFormat => emerald
-      case CatalogGroup.Bound       => Color.hex("#7C3AED").getOrElse(Color.purple)
-      case CatalogGroup.Specialty   => amber
-      case CatalogGroup.Promotional => Color.hex("#0284C7").getOrElse(Color.blue)
+  /** Accent (foreground) and soft (tint) colors per catalog group; theme-aware via CSS variables. */
+  def groupAccent(group: CatalogGroup): (Color, Color) = group match
+    case CatalogGroup.Sheet       => (brand, brandSoft)
+    case CatalogGroup.LargeFormat => (emerald, emeraldSoft)
+    case CatalogGroup.Bound       => (violet, violetSoft)
+    case CatalogGroup.Specialty   => (amber, amberSoft)
+    case CatalogGroup.Promotional => (sky, skySoft)
 
-    val shapes = group match
-      case CatalogGroup.Sheet =>
-        Seq(
-          Svg.rect.x(6).y(4).width(14).height(18).rx(2).fill(Svg.Paint.None).stroke(Svg.Paint.Color(accent)).strokeWidth(1.8),
-          Svg.line.x1(9).y1(9).x2(17).y2(9).stroke(Svg.Paint.Color(accent)).strokeWidth(1.6).strokeLinecap(Svg.StrokeLinecap.Round),
-          Svg.line.x1(9).y1(13).x2(17).y2(13).stroke(Svg.Paint.Color(accent)).strokeWidth(1.6).strokeLinecap(Svg.StrokeLinecap.Round),
-          Svg.line.x1(9).y1(17).x2(14).y2(17).stroke(Svg.Paint.Color(accent)).strokeWidth(1.6).strokeLinecap(Svg.StrokeLinecap.Round),
-        )
-      case CatalogGroup.LargeFormat =>
-        Seq(
-          Svg.rect.x(3).y(5).width(20).height(13).rx(2).fill(Svg.Paint.None).stroke(Svg.Paint.Color(accent)).strokeWidth(1.8),
-          Svg.circle.cx(8.5).cy(10).r(1.6).fill(Svg.Paint.Color(accent)),
-          Svg.path.d(Svg.PathData.from(5, 16).lineTo(11, 11).lineTo(15, 14).lineTo(18, 11.5).lineTo(21, 16)).fill(Svg.Paint.None).stroke(Svg.Paint.Color(accent)).strokeWidth(1.6),
-        )
-      case CatalogGroup.Bound =>
-        Seq(
-          Svg.rect.x(5).y(4).width(16).height(18).rx(2).fill(Svg.Paint.None).stroke(Svg.Paint.Color(accent)).strokeWidth(1.8),
-          Svg.line.x1(9).y1(4).x2(9).y2(22).stroke(Svg.Paint.Color(accent)).strokeWidth(1.8),
-          Svg.line.x1(12).y1(9).x2(18).y2(9).stroke(Svg.Paint.Color(accent)).strokeWidth(1.5).strokeLinecap(Svg.StrokeLinecap.Round),
-        )
-      case CatalogGroup.Specialty =>
-        Seq(
-          Svg.path.d(Svg.PathData.from(13, 3).lineTo(22, 8).lineTo(22, 18).lineTo(13, 23).lineTo(4, 18).lineTo(4, 8).close).fill(Svg.Paint.None).stroke(Svg.Paint.Color(accent)).strokeWidth(1.8),
-          Svg.path.d(Svg.PathData.from(4, 8).lineTo(13, 13).lineTo(22, 8)).fill(Svg.Paint.None).stroke(Svg.Paint.Color(accent)).strokeWidth(1.6),
-          Svg.line.x1(13).y1(13).x2(13).y2(23).stroke(Svg.Paint.Color(accent)).strokeWidth(1.6),
-        )
-      case CatalogGroup.Promotional =>
-        Seq(
-          Svg.circle.cx(13).cy(13).r(8.5).fill(Svg.Paint.None).stroke(Svg.Paint.Color(accent)).strokeWidth(1.8),
-          Svg.path.d(Svg.PathData.from(13, 7.5).lineTo(14.7, 11).lineTo(18.5, 11.5).lineTo(15.7, 14.2).lineTo(16.4, 18).lineTo(13, 16.1).lineTo(9.6, 18).lineTo(10.3, 14.2).lineTo(7.5, 11.5).lineTo(11.3, 11).close).fill(Svg.Paint.Color(accent)),
-        )
+  def groupGlyph(group: CatalogGroup): Icons.Icon = group match
+    case CatalogGroup.Sheet       => Icons.Icon.FileText
+    case CatalogGroup.LargeFormat => Icons.Icon.Image
+    case CatalogGroup.Bound       => Icons.Icon.Book
+    case CatalogGroup.Specialty   => Icons.Icon.Box
+    case CatalogGroup.Promotional => Icons.Icon.Star
 
+  /** Tinted rounded tile holding the group glyph (product lists, detail headers). */
+  def groupIcon(group: CatalogGroup, size: Int = 42): UI =
+    val (accent, soft) = groupAccent(group)
     div.style(
       Style.row
         .align(Alignment.center)
         .justify(Justification.center)
-        .width(42.px)
-        .height(42.px)
-        .rounded(12.px)
-        .bg(surfaceAlt)
-        .border(1.px, Palette.border)
+        .width(size.px)
+        .height(size.px)
+        .rounded((size * 0.3).toInt.px)
+        .bg(soft)
+        .color(accent)
         .flexShrink(0.0),
-    )(
-      Svg.svg.width(26).height(26).viewBox(Svg.ViewBox(0, 0, 26, 26))(shapes*),
-    )
+    )(Icons(groupGlyph(group), (size * 0.5).toInt))
+
+  // ── Pluralization ──────────────────────────────────────────────────────────
+
+  /** Picks `<base>-one` / `<base>-few` / `<base>-count` following EN & CS plural rules (CS: 1 | 2–4 | 0, 5+). */
+  def pluralKey(base: String, count: Int, lang: Language): String =
+    if count == 1 then s"$base-one"
+    else if lang == Language.Cs && count >= 2 && count <= 4 then s"$base-few"
+    else s"$base-count"
 
   /** Crisp deterministic QR-style vector visual rendered with typed `kyo.Svg` for SPD 1.0 bank transfer payload. */
   def qrCodeVisual(payload: String, sizePx: Int = 152): UI =
@@ -535,7 +527,7 @@ object CommonComponents:
       .y(r * cell)
       .width(cell + 0.3)
       .height(cell + 0.3)
-      .fill(Svg.Paint.Color(ink))
+      .fill(Svg.Paint.Color(Color.hex("#0F172A").getOrElse(Color.black)))
 
     div.style(
       Style.padding(10.px)

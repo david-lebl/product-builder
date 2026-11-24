@@ -50,7 +50,7 @@ object ActionMenu:
               .style(Style.whiteSpace(WhiteSpace.noWrap))
               .onClick(toggle(key))(
                 buttonLabel,
-                span(if isOpen then "▴" else "▾").style(Style.fontSize(10.px).margin(0.px, 0.px, 0.px, 2.px)),
+                span.style(Style.row.transition(TransitionProperty.all, 140, Easing.easeOut).opacity(0.75))(Icons(if isOpen then Icons.Icon.ChevronDown else Icons.Icon.ChevronDown, 14)),
               ),
             if isOpen then
               div.cssClass("mp-action-menu-panel")(

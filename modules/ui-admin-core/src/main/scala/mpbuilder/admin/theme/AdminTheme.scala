@@ -17,13 +17,14 @@ object AdminTheme:
     private def hexColor(raw: String, fallback: Color = Color.slate): Color =
       Color.hex(raw).getOrElse(fallback)
 
-    val sidebarBg: Color          = hexColor("#0F172A")
-    val sidebarHover: Color       = hexColor("#1E293B")
-    val sidebarActive: Color      = hexColor("#312E81")
-    val sidebarBorder: Color      = hexColor("#1E293B")
-    val sidebarText: Color        = hexColor("#CBD5E1")
+    val sidebarBg: Color          = hexColor("#0E1424")
+    val sidebarHover: Color       = Color.rgba(148, 163, 184, 0.10)
+    val sidebarActive: Color      = Color.rgba(129, 140, 248, 0.18)
+    val sidebarBorder: Color      = Color.rgba(148, 163, 184, 0.12)
+    val sidebarText: Color        = hexColor("#B6C0CF")
     val sidebarTextActive: Color  = Color.white
-    val sidebarMuted: Color       = hexColor("#94A3B8")
+    val sidebarMuted: Color       = hexColor("#7D8AA0")
+    val sidebarAccent: Color      = hexColor("#A5B4FC")
 
   import AdminPalette.*
 
@@ -36,28 +37,32 @@ object AdminTheme:
           .width(100.pct)
           .bg(canvas)
           .color(ink)
-          .fontFamily(FontFamily.SystemUi)
+          .fontFamily(AppTheme.fontStack)
           .fontSize(14.px)
           .lineHeight(1.5),
       )
       .rule(
         "mp-admin-sidebar",
         Style.column
+          .position(Position.sticky)
+          .top(0.px)
+          .height(100.vh)
+          .overflowY(Overflow.auto)
           .width(256.px)
           .flexShrink(0.0)
           .bg(sidebarBg)
           .color(sidebarText)
-          .padding(20.px, 14.px)
-          .gap(16.px)
+          .padding(18.px, 12.px)
+          .gap(18.px)
           .borderRight(1.px, sidebarBorder),
       )
       .rule(
         "mp-admin-nav-btn",
         Style.row
           .align(Alignment.center)
-          .justify(Justification.spaceBetween)
+          .gap(11.px)
           .width(100.pct)
-          .padding(10.px, 12.px)
+          .padding(9.px, 12.px)
           .rounded(10.px)
           .bg(Color.transparent)
           .color(sidebarText)
@@ -73,17 +78,18 @@ object AdminTheme:
         "mp-admin-nav-btn-active",
         Style.row
           .align(Alignment.center)
-          .justify(Justification.spaceBetween)
+          .gap(11.px)
           .width(100.pct)
-          .padding(10.px, 12.px)
+          .padding(9.px, 12.px)
           .rounded(10.px)
           .bg(sidebarActive)
           .color(sidebarTextActive)
           .fontSize(14.px)
           .fontWeight(FontWeight.w700)
           .cursor(Cursor.pointer)
-          .border(1.px, brand)
-          .textAlign(TextAlign.left),
+          .border(1.px, Color.rgba(129, 140, 248, 0.35))
+          .textAlign(TextAlign.left)
+          .shadow(0.px, 0.px, 0.px, 0.px, Color.transparent),
       )
       .rule(
         "mp-admin-workspace",
@@ -100,9 +106,10 @@ object AdminTheme:
           .top(0.px)
           .zIndex(35)
           .width(100.pct)
+          .minHeight(60.px)
           .bg(glassHeader)
           .borderBottom(1.px, AppTheme.Palette.border)
-          .padding(12.px, 24.px)
+          .padding(10.px, 24.px)
           .align(Alignment.center)
           .justify(Justification.spaceBetween)
           .gap(12.px),
@@ -112,18 +119,20 @@ object AdminTheme:
         Style.column
           .width(100.pct)
           .maxWidth(1560.px)
-          .padding(24.px)
-          .gap(20.px)
-          .flexGrow(1.0),
+          .padding(28.px)
+          .gap(22.px)
+          .flexGrow(1.0)
+          .animation("mp-fade-in", 180, Easing.easeOut),
       )
       .rule(
         "mp-admin-mobile-nav",
         Style.column
           .width(100.pct)
-          .bg(sidebarBg)
-          .color(sidebarText)
-          .padding(12.px, 16.px)
-          .gap(8.px),
+          .bg(surface)
+          .borderBottom(1.px, AppTheme.Palette.border)
+          .padding(10.px, 12.px)
+          .gap(2.px)
+          .animation("mp-drop-in", 160, Easing.easeOut),
       )
       // KPI Grid
       .rule(
@@ -136,14 +145,20 @@ object AdminTheme:
       .rule(
         "mp-kpi-card",
         Style.column
+          .align(Alignment.stretch)
           .bg(surface)
+          .color(ink)
           .border(1.px, AppTheme.Palette.border)
-          .rounded(14.px)
+          .rounded(16.px)
           .padding(16.px, 18.px)
-          .gap(6.px)
+          .gap(10.px)
           .flexGrow(1.0)
-          .flexBasis(175.px)
-          .shadow(0.px, 1.px, 3.px, 0.px, shadowSubtle),
+          .flexBasis(160.px)
+          .textAlign(TextAlign.left)
+          .cursor(Cursor.pointer)
+          .shadow(0.px, 1.px, 2.px, 0.px, shadowSubtle)
+          .transition(TransitionProperty.all, 160, Easing.easeOut)
+          .hover(Style.borderColor(brandBorder).translate(0.px, (-2).px).shadow(0.px, 12.px, 24.px, (-10).px, shadowMedium)),
       )
       // Responsive Table Wrapper
       .rule(
@@ -152,7 +167,7 @@ object AdminTheme:
           .overflowX(Overflow.auto)
           .bg(surface)
           .border(1.px, AppTheme.Palette.border)
-          .rounded(14.px),
+          .rounded(16.px),
       )
       .rule(
         "mp-table",
@@ -189,21 +204,24 @@ object AdminTheme:
           .minHeight(100.vh)
           .width(100.pct)
           .bg(canvas)
+          .color(ink)
+          .fontFamily(AppTheme.fontStack)
           .align(Alignment.center)
           .justify(Justification.center)
-          .padding(24.px),
+          .padding(32.px, 24.px),
       )
       .rule(
         "mp-admin-login-card",
         Style.column
-          .width(500.px)
+          .width(480.px)
           .maxWidth(100.pct)
           .bg(surface)
           .border(1.px, AppTheme.Palette.border)
-          .rounded(18.px)
-          .padding(28.px)
+          .rounded(22.px)
+          .padding(32.px)
           .gap(18.px)
-          .shadow(0.px, 12.px, 36.px, 0.px, shadowMedium),
+          .animation("mp-rise-in", 260, Easing.easeOut)
+          .shadow(0.px, 24.px, 60.px, (-16).px, shadowStrong),
       )
       // Timeline
       .rule(
@@ -213,6 +231,97 @@ object AdminTheme:
           .padding(4.px, 0.px, 4.px, 14.px)
           .borderLeft(2.px, brandBorder),
       )
+      // KPI anatomy
+      .rule(
+        "mp-kpi-icon",
+        Style.row
+          .align(Alignment.center)
+          .justify(Justification.center)
+          .width(34.px)
+          .height(34.px)
+          .rounded(10.px)
+          .flexShrink(0.0),
+      )
+      .rule(
+        "mp-kpi-value",
+        Style.fontSize(28.px)
+          .fontWeight(FontWeight.w800)
+          .letterSpacing((-0.6).px)
+          .lineHeight(1.05)
+          .color(ink),
+      )
+      // Sidebar sections & profile
+      .rule(
+        "mp-admin-nav-label",
+        Style.padding(0.px, 12.px)
+          .margin(6.px, 0.px, 2.px, 0.px)
+          .fontSize(11.px)
+          .fontWeight(FontWeight.w700)
+          .letterSpacing(0.8.px)
+          .textTransform(TextTransform.uppercase)
+          .color(sidebarMuted),
+      )
+      .rule(
+        "mp-admin-nav-count",
+        Style.row
+          .align(Alignment.center)
+          .justify(Justification.center)
+          .minWidth(20.px)
+          .height(20.px)
+          .padding(0.px, 6.px)
+          .margin(0.px, 0.px, 0.px, Length.Auto)
+          .rounded(999.px)
+          .bg(amber)
+          .color(Color.white)
+          .fontSize(11.px)
+          .fontWeight(FontWeight.w800)
+          .lineHeight(1.0),
+      )
+      .rule(
+        "mp-admin-profile",
+        Style.column
+          .gap(10.px)
+          .padding(12.px)
+          .rounded(14.px)
+          .bg(Color.rgba(148, 163, 184, 0.07))
+          .border(1.px, sidebarBorder),
+      )
+      .rule(
+        "mp-admin-side-btn",
+        Style.row
+          .align(Alignment.center)
+          .justify(Justification.center)
+          .gap(8.px)
+          .flexGrow(1.0)
+          .padding(8.px, 10.px)
+          .rounded(9.px)
+          .bg(sidebarHover)
+          .color(sidebarText)
+          .border(1.px, sidebarBorder)
+          .fontSize(13.px)
+          .fontWeight(FontWeight.w600)
+          .cursor(Cursor.pointer)
+          .transition(TransitionProperty.all, 140, Easing.easeOut)
+          .hover(Style.bg(Color.rgba(148, 163, 184, 0.18)).color(Color.white)),
+      )
+      // Dashboard order rows
+      .rule(
+        "mp-list-row",
+        Style.row
+          .flexWrap(FlexWrap.wrap)
+          .justify(Justification.spaceBetween)
+          .align(Alignment.center)
+          .gap(12.px)
+          .padding(12.px, 14.px)
+          .rounded(12.px)
+          .bg(surface)
+          .border(1.px, AppTheme.Palette.border)
+          .transition(TransitionProperty.all, 140, Easing.easeOut)
+          .hover(Style.borderColor(brandBorder).bg(surfaceAlt)),
+      )
+      .rule(Selector.cls("mp-admin-nav-btn").pseudo("focus-visible"), AppTheme.focusVisibleRing)
+      .rule(Selector.cls("mp-admin-nav-btn-active").pseudo("focus-visible"), AppTheme.focusVisibleRing)
+      .rule(Selector.cls("mp-kpi-card").pseudo("focus-visible"), AppTheme.focusVisibleRing)
       // Tablet breakpoint (<= 960px)
       .media(Stylesheet.MediaQuery.maxWidth(960.px))(
         Stylesheet
@@ -228,7 +337,8 @@ object AdminTheme:
         Stylesheet
           .rule("mp-kpi-card", Style.flexBasis(140.px).padding(12.px, 14.px))
           .rule("mp-admin-login-card", Style.padding(20.px).rounded(14.px))
-          .rule("mp-admin-content", Style.padding(12.px)),
+          .rule("mp-admin-content", Style.padding(14.px, 12.px))
+          .rule("mp-kpi-value", Style.fontSize(22.px)),
       )
 
   val adminStylesheet: Stylesheet =

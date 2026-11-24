@@ -5,6 +5,8 @@ import kyo.UI.*
 import kyo.Style.*
 import mpbuilder.admin.state.BackofficeState
 import mpbuilder.shared.Language
+import mpbuilder.ui.components.{Controls, Icons}
+import mpbuilder.ui.components.Icons.Icon
 import mpbuilder.ui.components.CommonComponents.*
 import mpbuilder.ui.theme.AppTheme.*
 import mpbuilder.ui.theme.AppTheme.Palette.*
@@ -51,37 +53,20 @@ object AdminLoginView:
         div.style(Style.row.width(500.px).maxWidth(100.pct).justify(Justification.spaceBetween).align(Alignment.center).margin(0.px, 0.px, 14.px, 0.px))(
           onBackToStorefront match
             case Some(goBack) =>
-              button.cssClass("mp-btn mp-btn-secondary mp-btn-sm").onClick(goBack())(state.i18n.t("adm-back-to-storefront"))
+              button.cssClass("mp-btn mp-btn-secondary mp-btn-sm").onClick(goBack())(Icons(Icon.ArrowLeft, 15), span(state.i18n.t("adm-back-to-storefront")))
             case None => div(),
-          state.i18n.language.render { lang =>
-            div.style(Style.row.gap(2.px).padding(3.px).rounded(10.px).bg(surface).border(1.px, Palette.border))(
-              List(Language.En -> "EN", Language.Cs -> "CS").map { case (l, code) =>
-                button
-                  .cssClass(if lang == l then "mp-btn mp-btn-primary mp-btn-sm" else "mp-btn mp-btn-ghost mp-btn-sm")
-                  .style(Style.padding(4.px, 9.px).fontSize(12.px))
-                  .onClick(state.setLanguage(l))(code)
-              }*
-            )
-          },
+          div.style(rowSm)(
+            Controls.languageSwitch(state.i18n, l => state.setLanguage(l)),
+            Controls.themeToggle(state.theme, state.i18n, outlined = true),
+          ),
         ),
 
         div.cssClass("mp-admin-login-card")(
           // Header
-          div.style(Style.row.align(Alignment.center).gap(12.px))(
-            div.style(
-              Style.width(42.px)
-                .height(42.px)
-                .rounded(12.px)
-                .bgGradient(GradientDirection.toBottomRight, (brandDark, 0.pct), (brand, 100.pct))
-                .color(Color.white)
-                .row
-                .align(Alignment.center)
-                .justify(Justification.center)
-                .fontWeight(FontWeight.w800)
-                .fontSize(18.px),
-            )("P"),
+          div.style(Style.row.align(Alignment.center).gap(14.px))(
+            div.cssClass("mp-logo-mark").style(Style.width(46.px).height(46.px).rounded(14.px))(Icons(Icon.Printer, 24)),
             div.style(Style.column.gap(2.px))(
-              h1(state.i18n.t("adm-login-title")).style(Style.margin(0.px).fontSize(20.px).fontWeight(FontWeight.w800).color(ink)),
+              h1(state.i18n.t("adm-login-title")).style(Style.margin(0.px).fontSize(21.px).fontWeight(FontWeight.w800).letterSpacing((-0.3).px).color(ink)),
               span(state.i18n.t("brand-name")).style(smallText),
             ),
           ),
@@ -90,8 +75,11 @@ object AdminLoginView:
 
           // Error Banner
           errorRef.render {
-            case Some(err) => alertBanner(BadgeTone.Rose, span("Login Failed"), List(err))
-            case None      => UI.empty
+            case Some(err) =>
+              state.i18n.language.render { lang =>
+                alertBanner(BadgeTone.Rose, span(if lang == Language.Cs then "Přihlášení se nezdařilo" else "Sign-in failed"), List(err))
+              }: UI
+            case None      => UI.empty: UI
           },
 
           // Credentials Form
@@ -117,8 +105,8 @@ object AdminLoginView:
               .cssClass("mp-btn mp-btn-primary mp-btn-lg")
               .disabled(isBusy)
               .onClick(submitLogin)(
-                if isBusy then state.i18n.t("adm-login-signing-in")
-                else state.i18n.t("adm-login-submit")
+                if isBusy then span(state.i18n.t("adm-login-signing-in"))
+                else UI.fragment(Icons(Icon.Lock, 16), span(state.i18n.t("adm-login-submit")))
               )
           },
 
@@ -138,14 +126,19 @@ object AdminLoginView:
                       .andThen(passwordRef.set("staff1234"))
                       .andThen(errorRef.set(None))
                   )(
-                    div.style(rowBetween.width(100.pct))(
-                      span(staff.label).style(Style.fontWeight(FontWeight.w700).fontSize(13.px).color(ink)),
-                      div.style(Style.row.gap(4.px).flexWrap(FlexWrap.wrap))(
-                        staff.roles.map(r => badge(r, staff.tone))*
+                    div.style(Style.row.align(Alignment.start).gap(12.px).width(100.pct))(
+                      Controls.avatar(staff.label),
+                      div.style(Style.column.gap(3.px).flexGrow(1.0).minWidth(0.px))(
+                        div.style(rowBetween.width(100.pct).flexWrap(FlexWrap.wrap).gap(6.px))(
+                          span(staff.label).style(Style.fontWeight(FontWeight.w700).fontSize(13.px).color(ink)),
+                          div.style(Style.row.gap(4.px).flexWrap(FlexWrap.wrap))(
+                            staff.roles.map(r => badge(r, staff.tone))*
+                          ),
+                        ),
+                        span(staff.email).style(smallText),
+                        span(state.i18n.t(staff.roleKey)).style(Style.fontSize(12.px).color(inkSecondary)),
                       ),
                     ),
-                    span(staff.email).style(smallText),
-                    span(state.i18n.t(staff.roleKey)).style(Style.fontSize(12.px).color(inkSecondary)),
                   )
               }*
             ),

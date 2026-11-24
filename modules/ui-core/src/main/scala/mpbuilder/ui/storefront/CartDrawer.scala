@@ -5,6 +5,7 @@ import kyo.UI.*
 import kyo.Style.*
 import mpbuilder.ordering.*
 import mpbuilder.shared.*
+import mpbuilder.ui.components.Icons
 import mpbuilder.ui.components.CommonComponents.*
 import mpbuilder.ui.theme.AppTheme.*
 import mpbuilder.ui.theme.AppTheme.Palette.*
@@ -32,10 +33,14 @@ object CartDrawer:
                 .borderBottom(1.px, Palette.border)
                 .bg(surface),
             )(
-              h2(state.i18n.t("cart-title")).style(sectionTitle.margin(0.px)),
+              div.style(rowSm)(
+                span.style(Style.row.color(brand))(Icons(Icons.Icon.Cart, 20)),
+                h2(state.i18n.t("cart-title")).style(sectionTitle.margin(0.px)),
+              ),
               button
-                .cssClass("mp-btn mp-btn-ghost mp-btn-sm")
-                .onClick(state.cartDrawerOpen.set(false))(state.i18n.t("nav-close")),
+                .cssClass("mp-icon-btn mp-icon-btn-sm")
+                .aria("label", "Close")
+                .onClick(state.cartDrawerOpen.set(false))(Icons(Icons.Icon.Close, 17)),
             ),
 
             // Drawer Body

@@ -67,7 +67,7 @@ object ConfirmDialog:
                 div.cssClass("mp-modal")(
                   div.style(rowBetween)(
                     h3(cfg.title).style(Style.margin(0.px).fontSize(18.px).fontWeight(FontWeight.w800).color(ink)),
-                    button.cssClass("mp-btn mp-btn-ghost mp-btn-sm").onClick(close)("✕"),
+                    button.cssClass("mp-icon-btn mp-icon-btn-sm").aria("label", "Close").onClick(close)(Icons(Icons.Icon.Close, 16)),
                   ),
                   p(cfg.message).style(Style.margin(0.px).fontSize(14.px).color(inkSecondary).lineHeight(1.5)),
                   cfg.reasonLabel match

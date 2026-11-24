@@ -1,5 +1,6 @@
 package mpbuilder.admin
 
+import mpbuilder.ui.theme.{AppTheme, ThemeController, ThemeMode}
 import kyo.*
 import mpbuilder.admin.i18n.AdminTranslations
 import mpbuilder.admin.port.BackofficeClient
@@ -48,6 +49,23 @@ object AdminMain extends KyoApp:
   /** Installs delegated pointer-drag resizing (plus double-click 50/50 reset) on any
     * Vaadin-style `[data-mp-dt-splitter]` divider inside a `[data-mp-dt-split-root]` container.
     */
+  private def detectThemeMode: ThemeMode =
+    try Option(dom.window.localStorage.getItem(AppTheme.ThemeStorageKey)).map(ThemeMode.fromCode).getOrElse(ThemeMode.System)
+    catch case _: Throwable => ThemeMode.System
+
+  /** Applies the theme to `<html data-theme>` (matching `AppTheme.themeStylesheet`) and persists the choice. */
+  private def applyTheme(mode: ThemeMode): Unit < Sync =
+    Sync.defer {
+      dom.document.documentElement.setAttribute("data-theme", mode.code)
+      try dom.window.localStorage.setItem(AppTheme.ThemeStorageKey, mode.code)
+      catch case _: Throwable => ()
+    }
+
+  private def installDocumentCss(): Unit =
+    val styleEl = dom.document.createElement("style")
+    styleEl.textContent = AppTheme.documentCss
+    dom.document.head.appendChild(styleEl)
+
   private def installMasterDetailSplitter(): Unit =
     val styleEl = dom.document.createElement("style")
     styleEl.textContent = "[data-mp-dt-splitter]{cursor:col-resize;user-select:none;touch-action:none;}"
@@ -245,6 +263,8 @@ object AdminMain extends KyoApp:
       client  <- bootBackofficeClient
       appI18n <- AdminTranslations.init(initialLang)
       _       <- UI.runStylesheet(AdminTheme.adminStylesheet)
+      _       <- Sync.defer(installDocumentCss())
+      themeCtl <- ThemeController.init(detectThemeMode, applyTheme)
       _       <- Sync.defer(installMasterDetailSplitter())
       _       <- Sync.defer(installArtworkFileBridge(appI18n))
       _ <- I18n.let(appI18n.handle) {
@@ -264,6 +284,7 @@ object AdminMain extends KyoApp:
                               try dom.window.localStorage.setItem(LangStorageKey, lang.code)
                               catch case _: Throwable => ()
                             },
+                          theme = Some(themeCtl),
                         )
                _ <- Sync.defer {
                       import kyo.AllowUnsafe.embrace.danger

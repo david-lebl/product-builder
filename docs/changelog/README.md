@@ -46,6 +46,7 @@ Brief description of what was accomplished in this session.
 
 | Date | Title | PR | Type |
 |------|-------|----|------|
+| 2026-11-24 | [UI Visual & UX Modernization](2026-11-24-ui-visual-ux-modernization.md) | t3/optimise-ui-visual-ux | feature |
 | 2026-11-23 | [Quick Order Re-priced on the Server](2026-11-23-quick-order-server-pricing.md) | rewrite/backend-core | bugfix |
 | 2026-11-23 | [HTTP API, Server & Frontend Network Wiring (Phase 4)](2026-11-23-phase4-http-api.md) | feat/phase4-http-api | feature |
 | 2026-11-23 | [PostgreSQL Persistence & Artwork Blob Storage (Phase 3)](2026-11-23-phase3-postgres-persistence.md) | feat/phase3-postgres-persistence | feature |
