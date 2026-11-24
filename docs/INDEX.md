@@ -54,6 +54,7 @@ How-to guides for developers working with the codebase.
 | Document | Description |
 |----------|-------------|
 | [ui-guide.md](ui-guide.md) | Build, run, and test instructions (Mill) |
+| [local-development.md](local-development.md) | Local development script (`scripts/dev.sh`) for frontend, backend, and PostgreSQL combinations |
 | [ui-design-system.md](ui-design-system.md) | UI design system — theme tokens, light/dark/system mode, icons, shared controls, responsive rules |
 | [running-the-platform.md](running-the-platform.md) | How to run the API server (`--storage=memory\|postgres`), demo logins, pointing the SPAs/calculator at it, server options, and tests |
 | [backend-persistence-and-http-api.md](backend-persistence-and-http-api.md) | PostgreSQL persistence (kyo-sql, schema per context, migration runner), kyo-http API (OpenAPI & Swagger), `--storage=memory\|postgres`, HTTP client wiring (`window.__API_BASE_URL__`), artwork `BlobStorage`, and Kyo coding conventions |
