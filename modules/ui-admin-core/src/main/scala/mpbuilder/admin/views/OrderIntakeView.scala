@@ -50,7 +50,7 @@ object OrderIntakeView:
   def render(state: BackofficeState): UI < Sync =
     for
       tableState       <- DataTable.makeState[OrderId](
-                            defaultSort = Some(DataTable.SortSpec("deadline", ascending = true)),
+                            defaultSort = Some(DataTable.SortSpec("number", ascending = false)),
                             pageSize = 10,
                           )
       embeddedDetailUI <- OrderDetailView.render(state, embedded = true)

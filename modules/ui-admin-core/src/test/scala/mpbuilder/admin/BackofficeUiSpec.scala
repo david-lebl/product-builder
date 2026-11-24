@@ -308,6 +308,12 @@ class BackofficeUiSpec extends Test[Any]:
           yield {
             assert(ordersHtml.contains("mp-dt-root"))
             assert(ordersHtml.contains("mp-dt-table"))
+            assert(ordersHtml.contains("Order # ↓"))
+            assert(
+              ordersHtml.indexOf("ORD-2026-0904") < ordersHtml.indexOf("ORD-2026-0903") &&
+                ordersHtml.indexOf("ORD-2026-0903") < ordersHtml.indexOf("ORD-2026-0902") &&
+                ordersHtml.indexOf("ORD-2026-0902") < ordersHtml.indexOf("ORD-2026-0901"),
+            )
             assert(ordersHtml.contains("mp-dt-header-top"))
             assert(ordersHtml.contains("mp-dt-title-block"))
             assert(ordersHtml.contains("mp-dt-header-filters"))
