@@ -197,7 +197,11 @@ final class StorefrontFacadeLive(
     catalogService.getCatalog
 
   override def listShowcaseListings: List[ShowcaseListing] < Async =
-    catalogService.getCatalog.map(_.showcases.values.toList.sortBy(_.sortOrder))
+    catalogService.getCatalog.map { cat =>
+      cat.showcases.values.toList
+        .filter(sc => sc.enabled && cat.categories.get(sc.categoryId).exists(_.enabled))
+        .sortBy(_.sortOrder)
+    }
 
   override def getExchangeRate(from: Currency, to: Currency): ExchangeRateQuote < (Async & Abort[StorefrontError]) =
     currencyConversion.getExchangeRate(from, to)

@@ -521,4 +521,74 @@ class CatalogDomainSpec extends Test[Any]:
           case Left(CatalogError.ConfigurationValidationFailed(errs)) => errs.size >= 3
           case _                                                      => false)
     }
+
+    "enforces enabled/disabled availability on categories, materials, finishes, printing methods, and rules" in {
+      val baseCmd = ConfigureProductCmd(
+        configurationId = ConfigurationId.unsafe("cfg-avail"),
+        categoryId = brochureCatId,
+        components = NonEmptyChunk(
+          ComponentSelection(
+            key = ComponentKey.Main,
+            materialId = art300.id,
+            printingMethodId = Some(digitalMethod.id),
+            inkConfiguration = Some(InkConfiguration.cmyk4_0),
+            finishes = List(FinishSelection(matteLam.id)),
+          )
+        ),
+        specs = ProductSpecs(
+          dimensions = ProductDimensions.Folded2D(Dimension2D.DL, FoldType.Tri),
+          quantity = Quantity.unsafe(100),
+        ),
+      )
+
+      val disabledCatCatalog = catalog.copy(
+        categories = catalog.categories.updated(brochureCatId, catalog.categories(brochureCatId).copy(enabled = false))
+      )
+      val disabledMatCatalog = catalog.copy(
+        materials = catalog.materials.updated(art300.id, art300.copy(enabled = false))
+      )
+      val disabledFinCatalog = catalog.copy(
+        finishes = catalog.finishes.updated(matteLam.id, matteLam.copy(enabled = false))
+      )
+      val disabledPmCatalog = catalog.copy(
+        printingMethods = catalog.printingMethods.updated(digitalMethod.id, digitalMethod.copy(enabled = false))
+      )
+      val disabledRuleset = ruleset.copy(rules = ruleset.rules.map(_.copy(enabled = false)))
+
+      val bothLamCmd = baseCmd.copy(
+        components = NonEmptyChunk(
+          ComponentSelection(
+            key = ComponentKey.Main,
+            materialId = art300.id,
+            printingMethodId = Some(digitalMethod.id),
+            inkConfiguration = Some(InkConfiguration.cmyk4_0),
+            finishes = List(FinishSelection(matteLam.id), FinishSelection(glossLam.id)),
+          )
+        )
+      )
+
+      val finDisabledSvc = CatalogServiceLive.make(new CatalogRepository:
+        override def loadCatalog: ProductCatalog < Async                    = disabledFinCatalog
+        override def loadRuleset: CompatibilityRuleset < Async              = ruleset
+        override def saveCatalog(c: ProductCatalog): Unit < Async           = Kyo.unit
+        override def saveRuleset(rs: CompatibilityRuleset): Unit < Async    = Kyo.unit
+      )
+
+      val catErr = ConfigurationEngine.configure(baseCmd, disabledCatCatalog, ruleset).toEither
+      val matErr = ConfigurationEngine.configure(baseCmd, disabledMatCatalog, ruleset).toEither
+      val finErr = ConfigurationEngine.configure(baseCmd, disabledFinCatalog, ruleset).toEither
+      val pmErr  = ConfigurationEngine.configure(baseCmd, disabledPmCatalog, ruleset).toEither
+      val ruleOffRes = ConfigurationEngine.configure(bothLamCmd, catalog, disabledRuleset).toEither
+
+      for compatFins <- finDisabledSvc.compatibleFinishes(brochureCatId, ComponentKey.Main, art300.id, Some(digitalMethod.id))
+      yield {
+        assert(catErr == Left(NonEmptyChunk.single(CatalogError.CategoryDisabled(brochureCatId))))
+        assert(matErr == Left(NonEmptyChunk.single(CatalogError.MaterialDisabled(art300.id))))
+        assert(finErr == Left(NonEmptyChunk.single(CatalogError.FinishDisabled(matteLam.id))))
+        assert(pmErr == Left(NonEmptyChunk.single(CatalogError.PrintingMethodDisabled(digitalMethod.id))))
+        assert(!compatFins.exists(_.id == matteLam.id))
+        assert(compatFins.exists(_.id == glossLam.id))
+        assert(ruleOffRes.isRight)
+      }
+    }
   }

@@ -30,9 +30,10 @@ private[catalog] object RuleEngine:
       specs: ProductSpecs,
   ): EvaluationOutcome =
     val applicable = ruleset.rules.filter { rule =>
-      rule.scope match
-        case RuleScope.Global            => true
-        case RuleScope.Category(catId)   => catId == categoryId
+      rule.enabled && (rule.scope match
+        case RuleScope.Global          => true
+        case RuleScope.Category(catId) => catId == categoryId
+      )
     }
 
     val (errs, warns) = applicable.foldLeft((List.empty[CatalogError.RuleViolation], List.empty[ConfigurationWarning])) {
@@ -91,6 +92,7 @@ private[catalog] object RuleEngine:
     )
 
     val applicableErrorRules = ruleset.rules.filter { rule =>
+      rule.enabled &&
       rule.severity == RuleSeverity.Error &&
       (rule.scope == RuleScope.Global || rule.scope == RuleScope.Category(categoryId)) &&
       !mentionsSpec(rule.when) && !mentionsSpec(rule.mustHold) &&
@@ -131,6 +133,7 @@ private[catalog] object RuleEngine:
     )
 
     val applicableErrorRules = ruleset.rules.filter { rule =>
+      rule.enabled &&
       rule.severity == RuleSeverity.Error &&
       (rule.scope == RuleScope.Global || rule.scope == RuleScope.Category(categoryId)) &&
       !mentionsSpec(rule.when) &&

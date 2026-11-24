@@ -15,19 +15,33 @@ object ProductDetailView:
 
   def render(state: StorefrontState, categoryId: CategoryId): UI =
     val combined =
-      state.presetQuotes
+      state.catalogRef
+        .combineLatest(state.presetQuotes)
         .combineLatest(state.currency)
         .combineLatest(state.i18n.language)
 
-    combined.render { case ((quotesMap, cur), lang) =>
-      state.catalog.categories.get(categoryId) match
+    combined.render { case (((catalog, quotesMap), cur), lang) =>
+      catalog.categories.get(categoryId) match
         case None =>
           div.cssClass("mp-card")(
             alertBanner(BadgeTone.Rose, span("Not Found"), List(s"Category '${categoryId.value}' not found")),
             button.cssClass("mp-btn mp-btn-secondary").onClick(state.openCatalog)(state.i18n.t("detail-back")),
           )
+        case Some(cat) if !cat.enabled =>
+          div.cssClass("mp-card")(
+            alertBanner(
+              BadgeTone.Amber,
+              span(if lang == Language.Cs then "Produkt je dočasně nedostupný" else "Product Temporarily Unavailable"),
+              List(
+                if lang == Language.Cs then s"Kategorie „${cat.name(lang)}“ je momentálně zakázána."
+                else s"Category “${cat.name(lang)}” is currently disabled."
+              ),
+            ),
+            button.cssClass("mp-btn mp-btn-secondary").onClick(state.openCatalog)(state.i18n.t("detail-back")),
+          )
         case Some(cat) =>
-          val listingOpt = state.catalog.showcases.get(categoryId)
+          val listingOpt       = catalog.showcases.get(categoryId)
+          val availablePresets = cat.presets.filter(mpbuilder.ui.configurator.ConfiguratorController.isPresetAvailable(_, catalog))
           div.style(Style.column.gap(22.px).width(100.pct))(
             // Back breadcrumb
             div.style(Style.row.align(Alignment.center).gap(8.px))(
@@ -61,8 +75,9 @@ object ProductDetailView:
                 span(state.i18n.t("detail-components-label")).style(smallText.fontWeight(FontWeight.w700)),
                 UI.fragment(
                   cat.components.toList.map { tpl =>
+                    val activeMatCount = tpl.allowedMaterialIds.count(id => catalog.materials.get(id).exists(_.enabled))
                     badge(
-                      s"${tpl.label(lang)} (${tpl.allowedMaterialIds.size} materials)",
+                      s"${tpl.label(lang)} ($activeMatCount materials)",
                       BadgeTone.Neutral,
                     )
                   }*
@@ -71,14 +86,14 @@ object ProductDetailView:
             ),
 
             // Live-Priced Presets Grid
-            if cat.presets.nonEmpty then
+            if availablePresets.nonEmpty then
               div.style(Style.column.gap(14.px))(
                 div.style(Style.column.gap(4.px))(
                   h2(state.i18n.t("detail-presets-title")).style(sectionTitle.margin(0.px)),
                   p(state.i18n.t("detail-presets-subtitle")).style(mutedText.margin(0.px)),
                 ),
                 div.cssClass("mp-card-grid")(
-                  cat.presets.map { preset =>
+                  availablePresets.map { preset =>
                     val quoteStatus = quotesMap.getOrElse(preset.id, QuoteStatus.Loading)
                     renderPresetCard(state, cat, preset, quoteStatus, cur, lang)
                   }*

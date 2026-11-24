@@ -44,8 +44,8 @@ object AppRoute:
 /** Reactive storefront coordinator holding navigation, currency, auth, cart, configurator & account state. */
 final class StorefrontState(
     val client: StorefrontClient,
-    val catalog: ProductCatalog,
-    val listings: List[ShowcaseListing],
+    val catalogRef: SignalRef[ProductCatalog],
+    val listingsRef: SignalRef[List[ShowcaseListing]],
     val i18n: AppI18n,
     val route: SignalRef[AppRoute],
     val currency: SignalRef[Currency],
@@ -138,46 +138,62 @@ final class StorefrontState(
              yield ()
     yield ()
 
-  // ── Live Preset Quotes (Product Detail View) ───────────────────────────────
+  // ── Live Catalog & Preset Quotes (Product Detail View) ─────────────────────
+
+  def refreshCatalog: Unit < Async =
+    for
+      cat  <- client.getCatalog
+      list <- client.listShowcaseListings
+      _    <- catalogRef.set(cat)
+      _    <- listingsRef.set(list.sortBy(_.sortOrder))
+      _    <- configurator.updateCatalog(cat)
+      r    <- route.get
+      _ <- r match
+             case AppRoute.ProductDetail(catId) => refreshPresetQuotes(catId)
+             case _                             => Kyo.unit
+    yield ()
 
   def refreshPresetQuotes(categoryId: CategoryId): Unit < Async =
-    catalog.categories.get(categoryId) match
-      case None => Kyo.unit
-      case Some(cat) =>
-        for
-          cur  <- currency.get
-          tok  <- authSession.get.map(_.map(_.token))
-          lang <- i18n.currentLanguage
-          _    <- presetQuotes.set(cat.presets.map(p => p.id -> QuoteStatus.Loading).toMap)
-          results <- Kyo.foreach(cat.presets) { preset =>
-                       Abort
-                         .run[StorefrontError](
-                           client.pricePreset(
-                             categoryId = categoryId,
-                             presetId = preset.id,
-                             currency = cur,
-                             speed = ManufacturingSpeed.Standard,
-                             specsOverride = None,
-                             sessionToken = tok,
-                             lang = lang,
+    catalogRef.get.flatMap { catalog =>
+      catalog.categories.get(categoryId).filter(_.enabled) match
+        case None => presetQuotes.set(Map.empty)
+        case Some(cat) =>
+          val availablePresets = cat.presets.filter(ConfiguratorController.isPresetAvailable(_, catalog))
+          for
+            cur  <- currency.get
+            tok  <- authSession.get.map(_.map(_.token))
+            lang <- i18n.currentLanguage
+            _    <- presetQuotes.set(availablePresets.map(p => p.id -> QuoteStatus.Loading).toMap)
+            results <- Kyo.foreach(availablePresets) { preset =>
+                         Abort
+                           .run[StorefrontError](
+                             client.pricePreset(
+                               categoryId = categoryId,
+                               presetId = preset.id,
+                               currency = cur,
+                               speed = ManufacturingSpeed.Standard,
+                               specsOverride = None,
+                               sessionToken = tok,
+                               lang = lang,
+                             )
                            )
-                         )
-                         .map {
-                           case Result.Success(q)   => preset.id -> QuoteStatus.Ready(q)
-                           case Result.Failure(err) => preset.id -> QuoteStatus.Failed(err)
-                           case Result.Panic(ex) =>
-                             preset.id -> QuoteStatus.Failed(
-                               StorefrontError.CatalogFailure(
-                                 CatalogError.RuleViolation(
-                                   RuleId.unsafe("preset-quote"),
-                                   LocalizedString(Option(ex.getMessage).getOrElse("Error")),
+                           .map {
+                             case Result.Success(q)   => preset.id -> QuoteStatus.Ready(q)
+                             case Result.Failure(err) => preset.id -> QuoteStatus.Failed(err)
+                             case Result.Panic(ex) =>
+                               preset.id -> QuoteStatus.Failed(
+                                 StorefrontError.CatalogFailure(
+                                   CatalogError.RuleViolation(
+                                     RuleId.unsafe("preset-quote"),
+                                     LocalizedString(Option(ex.getMessage).getOrElse("Error")),
+                                   )
                                  )
                                )
-                             )
-                         }
-                     }
-          _ <- presetQuotes.set(results.toMap)
-        yield ()
+                           }
+                       }
+            _ <- presetQuotes.set(results.toMap)
+          yield ()
+    }
 
   // ── Auth & Account ─────────────────────────────────────────────────────────
 
@@ -423,12 +439,16 @@ final class StorefrontState(
     yield ()
 
   def addPresetToCart(categoryId: CategoryId, presetId: PresetId): Unit < Async =
-    catalog.categories.get(categoryId).flatMap(_.presets.find(_.id == presetId)) match
-      case None => Kyo.unit
-      case Some(preset) =>
-        val cat   = catalog.categories(categoryId)
-        val draft = ConfiguratorController.draftFromPreset(cat, preset)
-        addDraftToCart(draft)
+    catalogRef.get.flatMap { catalog =>
+      catalog.categories
+        .get(categoryId)
+        .filter(_.enabled)
+        .flatMap(cat => cat.presets.find(p => p.id == presetId && ConfiguratorController.isPresetAvailable(p, catalog)).map(cat -> _)) match
+        case None => Kyo.unit
+        case Some((cat, preset)) =>
+          val draft = ConfiguratorController.draftFromPreset(cat, preset)
+          addDraftToCart(draft)
+    }
 
   /** Starts a "buy now" checkout. Sends only the configuration; the backend re-prices it on every checkout call. */
   def startQuickOrder(d: DraftConfig): Unit < Async =
@@ -447,10 +467,15 @@ final class StorefrontState(
     yield ()
 
   def startPresetQuickOrder(categoryId: CategoryId, presetId: PresetId): Unit < Async =
-    catalog.categories.get(categoryId).flatMap(_.presets.find(_.id == presetId)) match
-      case None => Kyo.unit
-      case Some(preset) =>
-        startQuickOrder(ConfiguratorController.draftFromPreset(catalog.categories(categoryId), preset))
+    catalogRef.get.flatMap { catalog =>
+      catalog.categories
+        .get(categoryId)
+        .filter(_.enabled)
+        .flatMap(cat => cat.presets.find(p => p.id == presetId && ConfiguratorController.isPresetAvailable(p, catalog)).map(cat -> _)) match
+        case None => Kyo.unit
+        case Some((cat, preset)) =>
+          startQuickOrder(ConfiguratorController.draftFromPreset(cat, preset))
+    }
 
   def startCartCheckout: Unit < Async =
     cart.get.flatMap {
@@ -555,6 +580,8 @@ object StorefrontState:
       themeCtl    <- theme.fold(mpbuilder.ui.theme.ThemeController.init())(t => Sync.defer(t))
       catalog     <- client.getCatalog
       listings    <- client.listShowcaseListings
+      catalogRef  <- Signal.initRef(catalog)
+      listingsRef <- Signal.initRef(listings.sortBy(_.sortOrder))
       routeRef    <- Signal.initRef[AppRoute](initialRoute)
       curRef      <- Signal.initRef[Currency](initialCurrency)
       authRef     <- Signal.initRef[Option[AuthSession]](None)
@@ -590,8 +617,8 @@ object StorefrontState:
                      )
       state        = new StorefrontState(
                        client,
-                       catalog,
-                       listings.sortBy(_.sortOrder),
+                       catalogRef,
+                       listingsRef,
                        i18n,
                        routeRef,
                        curRef,

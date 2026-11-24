@@ -18,8 +18,9 @@ private[catalog] object ConfigurationEngine:
   ): Validation[CatalogError, ConfigurationResult] =
     val categoryV: Validation[CatalogError, ProductCategory] =
       catalog.categories.get(cmd.categoryId) match
-        case Some(c) => Validation.succeed(c)
-        case None    => Validation.fail(CatalogError.CategoryNotFound(cmd.categoryId))
+        case Some(c) if c.enabled => Validation.succeed(c)
+        case Some(_)              => Validation.fail(CatalogError.CategoryDisabled(cmd.categoryId))
+        case None                 => Validation.fail(CatalogError.CategoryNotFound(cmd.categoryId))
 
     categoryV.flatMap { category =>
       val duplicateCheck = checkNoDuplicates(cmd.components)
@@ -120,6 +121,8 @@ private[catalog] object ConfigurationEngine:
         val materialV: Validation[CatalogError, Material] =
           catalog.materials.get(sel.materialId) match
             case None => Validation.fail(CatalogError.MaterialNotFound(sel.materialId))
+            case Some(mat) if !mat.enabled =>
+              Validation.fail(CatalogError.MaterialDisabled(mat.id))
             case Some(mat) =>
               if template.allowedMaterialIds.contains(mat.id) then Validation.succeed(mat)
               else Validation.fail(CatalogError.MaterialNotAllowed(category.id, sel.key, mat.id))
@@ -158,6 +161,7 @@ private[catalog] object ConfigurationEngine:
         case (Some(pmId), Some(ink)) =>
           catalog.printingMethods.get(pmId) match
             case None => Validation.fail(CatalogError.PrintingMethodNotFound(pmId))
+            case Some(pm) if !pm.enabled => Validation.fail(CatalogError.PrintingMethodDisabled(pm.id))
             case Some(pm) =>
               val allowedMethods = template.allowedPrintingMethodIds.getOrElse(category.allowedPrintingMethodIds)
               val methodAllowedV =
@@ -198,6 +202,7 @@ private[catalog] object ConfigurationEngine:
     ) { (accV, fs) =>
       val finV = catalog.finishes.get(fs.finishId) match
         case None => Validation.fail(CatalogError.FinishNotFound(fs.finishId))
+        case Some(finish) if !finish.enabled => Validation.fail(CatalogError.FinishDisabled(finish.id))
         case Some(finish) =>
           val allowedV =
             if template.allowedFinishIds.contains(finish.id) then Validation.unit

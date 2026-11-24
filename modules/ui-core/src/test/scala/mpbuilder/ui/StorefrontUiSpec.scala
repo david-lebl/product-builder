@@ -86,8 +86,9 @@ class StorefrontUiSpec extends Test[Any]:
             enHtml  <- renderHtml(ui, appI18n)
             _       <- I18n.let(appI18n.handle)(state.setLanguage(Language.Cs))
             csHtml  <- renderHtml(ui, appI18n)
+            listings <- state.listingsRef.get
           yield {
-            assert(state.listings.size == 15)
+            assert(listings.size == 15)
             assert(enHtml.contains("PrintCraft Studio"))
             assert(enHtml.contains("Business Cards"))
             assert(enHtml.contains("https://images.unsplash.com/photo-1628891439478-c613e85af7d6"))
@@ -104,9 +105,11 @@ class StorefrontUiSpec extends Test[Any]:
         withClient { client =>
           for
             appI18n <- Translations.init(Language.En)
-            state   <- I18n.let(appI18n.handle)(StorefrontState.init(client, appI18n))
-            catId    = state.listings.head.categoryId
-            cat      = state.catalog.categories(catId)
+            state    <- I18n.let(appI18n.handle)(StorefrontState.init(client, appI18n))
+            listings <- state.listingsRef.get
+            catalog  <- state.catalogRef.get
+            catId     = listings.head.categoryId
+            cat       = catalog.categories(catId)
             _       <- I18n.let(appI18n.handle)(state.openProductDetail(catId))
             quotes  <- state.presetQuotes.get
             ui      <- I18n.let(appI18n.handle)(StorefrontApp.render(state))
