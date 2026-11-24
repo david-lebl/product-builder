@@ -90,6 +90,8 @@ class StorefrontUiSpec extends Test[Any]:
             assert(state.listings.size == 15)
             assert(enHtml.contains("PrintCraft Studio"))
             assert(enHtml.contains("Business Cards"))
+            assert(enHtml.contains("https://images.unsplash.com/photo-1628891439478-c613e85af7d6"))
+            assert(enHtml.contains("mp-product-img"))
             assert(!enHtml.contains("‹") && !enHtml.contains("›"))
             assert(csHtml.contains("Vizitky"))
             assert(csHtml.contains("Košík"))

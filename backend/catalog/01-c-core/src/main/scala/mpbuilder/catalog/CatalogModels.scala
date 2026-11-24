@@ -387,6 +387,7 @@ final case class ShowcaseListing(
     tagline: LocalizedString,
     detailedDescription: LocalizedString,
     sortOrder: Int = 0,
+    imageUrl: Option[String] = None,
 )
 
 final case class ProductCatalog(

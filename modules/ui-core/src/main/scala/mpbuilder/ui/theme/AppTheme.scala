@@ -1327,6 +1327,12 @@ object AppTheme:
           .borderBottom(1.px, border),
       )
       .rule(
+        "mp-product-visual-img",
+        Style.height(176.px)
+          .padding(0.px)
+          .bg(surfaceAlt),
+      )
+      .rule(
         "mp-product-glyph",
         Style.row
           .align(Alignment.center)
@@ -1464,6 +1470,7 @@ object AppTheme:
           .rule("mp-page-title", Style.fontSize(22.px))
           .rule("mp-toast", Style.left(12.px).right(12.px).bottom(12.px).maxWidth(Length.Auto))
           .rule("mp-product-visual", Style.height(88.px))
+          .rule("mp-product-visual-img", Style.height(148.px))
           .rule("mp-drawer", Style.width(100.pct).borderLeft(1.px, Color.transparent))
           .rule("mp-header-inner", Style.padding(10.px, 14.px).gap(8.px))
           .rule("mp-hero", Style.padding(28.px, 20.px).rounded(18.px))
@@ -1506,7 +1513,8 @@ object AppTheme:
       |.mp-hero{position:relative;isolation:isolate}
       |.mp-hero::before{content:"";position:absolute;width:520px;height:520px;right:-140px;top:-220px;border-radius:50%;background:radial-gradient(closest-side,rgba(255,255,255,.22),rgba(255,255,255,0));z-index:-1;pointer-events:none}
       |.mp-hero::after{content:"";position:absolute;inset:0;background-image:radial-gradient(rgba(255,255,255,.14) 1px,transparent 1px);background-size:18px 18px;-webkit-mask-image:linear-gradient(to left,#000,transparent 70%);mask-image:linear-gradient(to left,#000,transparent 70%);z-index:-1;pointer-events:none}
-      |.mp-product-visual::after{content:"";position:absolute;inset:0;background-image:radial-gradient(currentColor 1px,transparent 1px);background-size:14px 14px;opacity:.12;-webkit-mask-image:linear-gradient(to left,#000,transparent 75%);mask-image:linear-gradient(to left,#000,transparent 75%);pointer-events:none}
+      |.mp-product-visual:not(.mp-product-visual-img)::after{content:"";position:absolute;inset:0;background-image:radial-gradient(currentColor 1px,transparent 1px);background-size:14px 14px;opacity:.12;-webkit-mask-image:linear-gradient(to left,#000,transparent 75%);mask-image:linear-gradient(to left,#000,transparent 75%);pointer-events:none}
+      |.mp-product-img{width:100%;height:100%;object-fit:cover;display:block}
       |table,.mp-num,.mp-kpi-card,.mp-dt-table{font-variant-numeric:tabular-nums}
       |.mp-icon svg{display:block;overflow:visible}
       |*{scrollbar-width:thin;scrollbar-color:var(--mp-border-strong) transparent}
