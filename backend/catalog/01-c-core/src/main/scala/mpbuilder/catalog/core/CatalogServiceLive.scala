@@ -49,7 +49,7 @@ private[catalog] final class CatalogServiceLive(
                       case FinishSidePolicy.NotApplicable    => None
                     SelectedFinish(f, side, None)
                   }
-      candidates = template.allowedFinishIds.toList.flatMap(catalog.finishes.get)
+      candidates = template.allowedFinishIds.toList.flatMap(catalog.finishes.get).filter(_.enabled)
     yield candidates.filter { fin =>
       alreadySelectedFinishIds.contains(fin.id) ||
       RuleEngine.isCandidateFinishCompatible(ruleset, categoryId, componentKey, material, pmOpt, existing, fin)

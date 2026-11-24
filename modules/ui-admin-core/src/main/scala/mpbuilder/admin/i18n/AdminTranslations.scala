@@ -163,7 +163,14 @@ object AdminTranslations:
       |adm-cat-cancel = Cancel
       |adm-cat-version = Catalog v{ $version }
       |adm-cat-ruleset-version = Ruleset v{ $version }
-      |adm-cat-inspect-note = Click any row to expand full technical attributes and configuration details. Catalog authoring is planned for a dedicated phase.
+      |adm-cat-inspect-note = Click any row to inspect technical attributes and toggle availability (Manager/Admin). Full catalog authoring is planned for a future phase.
+      |adm-cat-status = Availability
+      |adm-cat-enabled = Enabled
+      |adm-cat-disabled = Disabled
+      |adm-cat-enable = Enable
+      |adm-cat-disable = Disable
+      |adm-cat-category-disabled-hint = Parent product category is disabled — this showcase panel is hidden on the storefront.
+      |adm-cat-rule-disabled-hint = This rule is disabled and skipped during product configuration validation.
       |
       |# Pricing & Margin Manager
       |adm-pri-title = Pricing, Promos & Margin Analysis
@@ -387,7 +394,14 @@ object AdminTranslations:
       |adm-cat-cancel = Zrušit
       |adm-cat-version = Katalog v{ $version }
       |adm-cat-ruleset-version = Pravidla v{ $version }
-      |adm-cat-inspect-note = Kliknutím na řádek zobrazíte kompletní technické parametry. Editor katalogu je plánován v samostatné fázi.
+      |adm-cat-inspect-note = Kliknutím na řádek zobrazíte technické parametry a přepnete dostupnost položky (Manager/Admin). Plný editor katalogu je plánován v další fázi.
+      |adm-cat-status = Dostupnost
+      |adm-cat-enabled = Aktivní
+      |adm-cat-disabled = Neaktivní
+      |adm-cat-enable = Povolit
+      |adm-cat-disable = Zakázat
+      |adm-cat-category-disabled-hint = Nadřazená produktová kategorie je zakázána — tento panel výlohy se v e-shopu nezobrazuje.
+      |adm-cat-rule-disabled-hint = Toto pravidlo je zakázáno a při validaci konfigurace produktu se přeskakuje.
       |
       |# Ceníky a simulátor marže
       |adm-pri-title = Ceníky, slevové kódy a analýza marže

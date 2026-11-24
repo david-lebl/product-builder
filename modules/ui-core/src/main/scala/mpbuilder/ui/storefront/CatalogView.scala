@@ -19,11 +19,22 @@ object CatalogView:
       searchRef <- Signal.initRef("")
       groupRef  <- Signal.initRef[Option[CatalogGroup]](None)
     yield
-      val combined = searchRef.combineLatest(groupRef).combineLatest(state.i18n.language)
+      val combined =
+        searchRef
+          .combineLatest(groupRef)
+          .combineLatest(state.catalogRef)
+          .combineLatest(state.listingsRef)
+          .combineLatest(state.i18n.language)
 
-      def filteredListings(query: String, groupOpt: Option[CatalogGroup], lang: Language): List[ShowcaseListing] =
+      def filteredListings(
+          catalog: ProductCatalog,
+          listings: List[ShowcaseListing],
+          query: String,
+          groupOpt: Option[CatalogGroup],
+          lang: Language,
+      ): List[ShowcaseListing] =
         val q = query.trim.toLowerCase
-        state.listings.filter(l => groupOpt.forall(_ == l.group) && matches(state, l, q, lang))
+        listings.filter(l => groupOpt.forall(_ == l.group) && matches(catalog, l, q, lang))
 
       def heroFeature(icon: Icon, key: String): UI =
         span.style(
@@ -97,13 +108,13 @@ object CatalogView:
                   .placeholder(ph)
               },
             ),
-            combined.render { case ((query, groupOpt), lang) =>
-              val n = filteredListings(query, groupOpt, lang).size
+            combined.render { case ((((query, groupOpt), catalog), listings), lang) =>
+              val n = filteredListings(catalog, listings, query, groupOpt, lang).size
               span(state.i18n.t("catalog-results-count", Dict("count" -> n.toString))).style(smallText.fontWeight(FontWeight.w600))
             },
           ),
-          groupRef.combineLatest(state.i18n.language).render { case (activeGroup, lang) =>
-            def countFor(g: Option[CatalogGroup]): Int = state.listings.count(l => g.forall(_ == l.group))
+          groupRef.combineLatest(state.listingsRef).combineLatest(state.i18n.language).render { case ((activeGroup, listings), lang) =>
+            def countFor(g: Option[CatalogGroup]): Int = listings.count(l => g.forall(_ == l.group))
             def pillCount(n: Int, active: Boolean): UI =
               span(n.toString).style(
                 Style.padding(1.px, 7.px)
@@ -140,8 +151,8 @@ object CatalogView:
         ),
 
         // Product Card Grid
-        combined.render { case ((query, groupOpt), lang) =>
-          val filtered = filteredListings(query, groupOpt, lang)
+        combined.render { case ((((query, groupOpt), catalog), listings), lang) =>
+          val filtered = filteredListings(catalog, listings, query, groupOpt, lang)
 
           if filtered.isEmpty then
             Controls.emptyState(
@@ -155,7 +166,7 @@ object CatalogView:
           else
             div.cssClass("mp-card-grid")(
               filtered.map { listing =>
-                val catOpt         = state.catalog.categories.get(listing.categoryId)
+                val catOpt         = catalog.categories.get(listing.categoryId)
                 val title          = catOpt.map(_.name(lang)).getOrElse(listing.categoryId.value)
                 val presetCount    = catOpt.map(_.presets.size).getOrElse(0)
                 val compCount      = catOpt.map(_.components.size).getOrElse(1)
@@ -234,10 +245,10 @@ object CatalogView:
         },
       )
 
-  private def matches(state: StorefrontState, listing: ShowcaseListing, q: String, lang: Language): Boolean =
+  private def matches(catalog: ProductCatalog, listing: ShowcaseListing, q: String, lang: Language): Boolean =
     if q.isEmpty then true
     else
-      val catOpt     = state.catalog.categories.get(listing.categoryId)
+      val catOpt     = catalog.categories.get(listing.categoryId)
       val nameHit    = catOpt.exists(c => c.name(lang).toLowerCase.contains(q) || c.name(Language.En).toLowerCase.contains(q))
       val taglineHit = listing.tagline(lang).toLowerCase.contains(q) || listing.detailedDescription(lang).toLowerCase.contains(q)
       val groupHit   = catalogGroupLabel(listing.group, lang).toLowerCase.contains(q)

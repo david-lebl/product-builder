@@ -49,6 +49,7 @@ object ConfiguratorView:
   ): UI =
     val combined =
       ctrl.draft
+        .combineLatest(ctrl.catalogRef)
         .combineLatest(ctrl.i18n.language)
         .combineLatest(ctrl.compatibleFinishesMap)
         .combineLatest(ctrl.finishLimitsMap)
@@ -69,14 +70,18 @@ object ConfiguratorView:
       div.cssClass("mp-split-layout")(
         // Left: 5-step configuration & artwork form
         div.cssClass("mp-split-main")(
-          combined.render { case (((d, lang), finMap), limMap) =>
-            ctrl.currentCategory(d) match
+          combined.render { case ((((d, catalog), lang), finMap), limMap) =>
+            ctrl.currentCategory(d, catalog) match
               case None =>
-                alertBanner(BadgeTone.Rose, span("Error"), List(s"Unknown category: ${d.categoryId.value}"))
+                alertBanner(
+                  BadgeTone.Rose,
+                  span(if lang == Language.Cs then "Produkt není dostupný" else "Product Unavailable"),
+                  List(if lang == Language.Cs then "Žádná aktivní kategorie produktu není momentálně k dispozici." else "No active product category is currently available."),
+                )
               case Some(cat) =>
                 div.style(Style.column.gap(20.px))(
-                  renderProductAndPresetCard(ctrl, cat, d, lang),
-                  renderComponentsCard(ctrl, cat, d, finMap, limMap, lang),
+                  renderProductAndPresetCard(ctrl, catalog, cat, d, lang),
+                  renderComponentsCard(ctrl, catalog, cat, d, finMap, limMap, lang),
                   renderSpecsCard(ctrl, cat, d, lang),
                   renderSpeedCard(ctrl, d, host, lang),
                   host match
@@ -100,20 +105,25 @@ object ConfiguratorView:
 
   private def renderProductAndPresetCard(
       ctrl: ConfiguratorController,
+      catalog: ProductCatalog,
       cat: ProductCategory,
       d: DraftConfig,
       lang: Language,
   ): UI =
     val orderedCategories: List[ProductCategory] =
-      val showcases = ctrl.catalog.showcases
-      ctrl.catalog.categories.values.toList.sortBy { c =>
-        showcases.get(c.id).map(_.sortOrder).getOrElse(999)
-      }
+      val showcases = catalog.showcases
+      catalog.categories.values.toList
+        .filter(_.enabled)
+        .sortBy { c =>
+          showcases.get(c.id).map(_.sortOrder).getOrElse(999)
+        }
+
+    val availablePresets = cat.presets.filter(ConfiguratorController.isPresetAvailable(_, catalog))
 
     div.cssClass("mp-card")(
       div.style(rowBetween)(
         h2(ctrl.i18n.t("cfg-section-product")).style(sectionTitle.margin(0.px)),
-        ctrl.catalog.showcases.get(cat.id).map(sc => badge(catalogGroupLabel(sc.group, lang), BadgeTone.Brand)).getOrElse(UI.empty),
+        catalog.showcases.get(cat.id).map(sc => badge(catalogGroupLabel(sc.group, lang), BadgeTone.Brand)).getOrElse(UI.empty),
       ),
       div.cssClass("mp-field")(
         label.style(labelStyle)(ctrl.i18n.t("cfg-category-label")),
@@ -127,11 +137,11 @@ object ConfiguratorView:
           ),
       ),
       cat.description.map(desc => p(desc(lang)).style(mutedText.margin(0.px))).getOrElse(UI.empty),
-      if cat.presets.nonEmpty then
+      if availablePresets.nonEmpty then
         div.style(Style.column.gap(8.px))(
           label.style(labelStyle)(ctrl.i18n.t("cfg-presets-label")),
           div.cssClass("mp-option-grid")(
-            cat.presets.map { preset =>
+            availablePresets.map { preset =>
               val isActive = d.activePresetId.contains(preset.id)
               val cls      = if isActive then "mp-option-card-active" else "mp-option-card"
               button
@@ -156,6 +166,7 @@ object ConfiguratorView:
 
   private def renderComponentsCard(
       ctrl: ConfiguratorController,
+      catalog: ProductCatalog,
       cat: ProductCategory,
       d: DraftConfig,
       finMap: Map[ComponentKey, List[Finish]],
@@ -182,11 +193,12 @@ object ConfiguratorView:
         case None => UI.empty
         case Some(comp) =>
           val tplOpt = cat.templateFor(comp.key)
-          renderComponentEditor(ctrl, cat, tplOpt, comp, finMap.getOrElse(comp.key, Nil), limMap.getOrElse(comp.key, Map.empty), lang),
+          renderComponentEditor(ctrl, catalog, cat, tplOpt, comp, finMap.getOrElse(comp.key, Nil), limMap.getOrElse(comp.key, Map.empty), lang),
     )
 
   private def renderComponentEditor(
       ctrl: ConfiguratorController,
+      catalog: ProductCatalog,
       cat: ProductCategory,
       tplOpt: Option[ComponentTemplate],
       comp: DraftComponent,
@@ -195,8 +207,8 @@ object ConfiguratorView:
       lang: Language,
   ): UI =
     val allowedMaterials: List[Material] =
-      val ids = tplOpt.map(_.allowedMaterialIds).getOrElse(ctrl.catalog.materials.keySet)
-      ids.toList.flatMap(ctrl.catalog.materials.get).sortBy(_.name(lang))
+      val ids = tplOpt.map(_.allowedMaterialIds).getOrElse(catalog.materials.keySet)
+      ids.toList.flatMap(catalog.materials.get).filter(_.enabled).sortBy(_.name(lang))
 
     val isPrintable = tplOpt.forall(_.printable)
 
@@ -204,10 +216,10 @@ object ConfiguratorView:
       if !isPrintable then Nil
       else
         val ids = tplOpt.flatMap(_.allowedPrintingMethodIds).getOrElse(cat.allowedPrintingMethodIds)
-        val pool = if ids.nonEmpty then ids else ctrl.catalog.printingMethods.keySet
-        pool.toList.flatMap(ctrl.catalog.printingMethods.get).sortBy(_.name(lang))
+        val pool = if ids.nonEmpty then ids else catalog.printingMethods.keySet
+        pool.toList.flatMap(catalog.printingMethods.get).filter(_.enabled).sortBy(_.name(lang))
 
-    val activeMethod = comp.printingMethodId.flatMap(ctrl.catalog.printingMethods.get)
+    val activeMethod = comp.printingMethodId.flatMap(catalog.printingMethods.get).filter(_.enabled)
 
     div.style(Style.column.gap(18.px))(
       // Material selector

@@ -322,6 +322,7 @@ object Main extends KyoApp:
                                   dom.window.location.hash = target
                               },
                             onLanguagePersist = persistLanguage,
+                            onDataMutated = () => sfState.refreshCatalog,
                             theme = Some(themeCtl),
                           )
                openAdmin: (() => Unit < Async) = () =>
@@ -333,10 +334,10 @@ object Main extends KyoApp:
                backToStorefront: (() => Unit < Async) = () =>
                  for
                    _ <- modeRef.set(AppMode.Storefront)
+                   _ <- sfState.refreshCatalog
                    r <- sfState.route.get
                    _ <- sfState.navigate(r, syncHash = true)
                    _ <- sfState.refreshOrders
-                   _ <- sfState.configurator.recompute
                  yield ()
                _ <- Sync.defer {
                       import kyo.AllowUnsafe.embrace.danger

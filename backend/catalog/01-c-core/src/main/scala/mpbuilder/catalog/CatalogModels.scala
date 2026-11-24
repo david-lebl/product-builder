@@ -82,6 +82,7 @@ final case class Material(
     stockFormats: NonEmptyChunk[MediaFormat],
     properties: Set[MaterialProperty] = Set.empty,
     description: Option[LocalizedString] = None,
+    enabled: Boolean = true,
 )
 
 // ── Printing Methods & Proper Ink Configuration ──────────────────────────────
@@ -168,6 +169,7 @@ final case class PrintingMethod(
     supportsDoubleSided: Boolean,
     supportedSpecialInks: Set[SpecialInk] = Set.empty,
     description: Option[LocalizedString] = None,
+    enabled: Boolean = true,
 )
 
 // ── Finishes & Schema-Validated Parameters ───────────────────────────────────
@@ -241,6 +243,7 @@ final case class Finish(
     sidePolicy: FinishSidePolicy,
     paramSchema: FinishParamSchema = FinishParamSchema.NoParams,
     description: Option[LocalizedString] = None,
+    enabled: Boolean = true,
 )
 
 final case class FinishSelection(
@@ -372,6 +375,7 @@ final case class ProductCategory(
     allowedPrintingMethodIds: Set[PrintingMethodId] = Set.empty,
     presets: List[CategoryPreset] = List.empty,
     description: Option[LocalizedString] = None,
+    enabled: Boolean = true,
 ):
   def templateFor(key: ComponentKey): Option[ComponentTemplate] =
     components.find(_.key == key)
@@ -388,6 +392,7 @@ final case class ShowcaseListing(
     detailedDescription: LocalizedString,
     sortOrder: Int = 0,
     imageUrl: Option[String] = None,
+    enabled: Boolean = true,
 )
 
 final case class ProductCatalog(
@@ -487,6 +492,7 @@ final case class CompatibilityRule(
     when: ConfigPredicate,
     mustHold: ConfigPredicate,
     reason: LocalizedString,
+    enabled: Boolean = true,
 )
 
 final case class CompatibilityRuleset(

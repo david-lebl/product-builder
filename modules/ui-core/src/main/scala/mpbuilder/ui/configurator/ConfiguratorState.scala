@@ -38,7 +38,7 @@ enum QuoteStatus:
 /** Reactive controller driving the shared Product Configurator (for both Storefront SPA and Calculator Widget). */
 final class ConfiguratorController(
     val client: StorefrontClient,
-    val catalog: ProductCatalog,
+    val catalogRef: SignalRef[ProductCatalog],
     val i18n: AppI18n,
     val currency: Signal[Currency],
     val sessionToken: Signal[Option[SessionToken]],
@@ -50,25 +50,70 @@ final class ConfiguratorController(
     val draftSessionId: NonEmptyString = NonEmptyString.unsafe("draft-session-ui"),
 ):
 
-  def currentCategory(d: DraftConfig): Option[ProductCategory] =
-    catalog.categories.get(d.categoryId)
+  def currentCategory(d: DraftConfig, catalog: ProductCatalog): Option[ProductCategory] =
+    catalog.categories.get(d.categoryId).filter(_.enabled)
+
+  def updateCatalog(next: ProductCatalog): Unit < Async =
+    for
+      _ <- catalogRef.set(next)
+      d <- draft.get
+      adjusted =
+        next.categories.get(d.categoryId).filter(_.enabled) match
+          case None =>
+            ConfiguratorController
+              .firstEnabledCategory(next)
+              .map(cat => ConfiguratorController.initialDraftForCategory(cat, next))
+              .getOrElse(d)
+          case Some(cat) =>
+            val updatedComps = d.components.map { comp =>
+              val tplOpt = cat.templateFor(comp.key)
+              val nextMatId =
+                if next.materials.get(comp.materialId).exists(_.enabled) then comp.materialId
+                else
+                  tplOpt
+                    .map(_.allowedMaterialIds)
+                    .getOrElse(next.materials.keySet)
+                    .find(id => next.materials.get(id).exists(_.enabled))
+                    .getOrElse(comp.materialId)
+              val nextPmId =
+                if tplOpt.forall(_.printable) then
+                  comp.printingMethodId.filter(id => next.printingMethods.get(id).exists(_.enabled)).orElse {
+                    val allowed = tplOpt.flatMap(_.allowedPrintingMethodIds).getOrElse(cat.allowedPrintingMethodIds)
+                    val pool    = if allowed.nonEmpty then allowed else next.printingMethods.keySet
+                    pool.find(id => next.printingMethods.get(id).exists(_.enabled))
+                  }
+                else None
+              val nextFinishes = comp.finishes.filter(f => next.finishes.get(f.finishId).exists(_.enabled))
+              comp.copy(materialId = nextMatId, printingMethodId = nextPmId, finishes = nextFinishes)
+            }
+            val nextPreset = d.activePresetId.filter(pid =>
+              cat.presets.find(_.id == pid).exists(ConfiguratorController.isPresetAvailable(_, next))
+            )
+            d.copy(activePresetId = nextPreset, components = updatedComps)
+      _ <- if adjusted != d then draft.set(adjusted) else Kyo.unit
+      _ <- recompute
+    yield ()
 
   def selectCategory(catId: CategoryId): Unit < Async =
-    catalog.categories.get(catId) match
-      case None => Kyo.unit
-      case Some(cat) =>
-        val next = ConfiguratorController.initialDraftForCategory(cat, catalog)
-        draft.set(next).andThen(recompute)
+    catalogRef.get.flatMap { catalog =>
+      catalog.categories.get(catId).filter(_.enabled) match
+        case None => Kyo.unit
+        case Some(cat) =>
+          val next = ConfiguratorController.initialDraftForCategory(cat, catalog)
+          draft.set(next).andThen(recompute)
+    }
 
   def applyPreset(catId: CategoryId, presetId: PresetId): Unit < Async =
-    catalog.categories.get(catId) match
-      case None => Kyo.unit
-      case Some(cat) =>
-        cat.presets.find(_.id == presetId) match
-          case None => selectCategory(catId)
-          case Some(preset) =>
-            val next = ConfiguratorController.draftFromPreset(cat, preset)
-            draft.set(next).andThen(recompute)
+    catalogRef.get.flatMap { catalog =>
+      catalog.categories.get(catId).filter(_.enabled) match
+        case None => Kyo.unit
+        case Some(cat) =>
+          cat.presets.find(p => p.id == presetId && ConfiguratorController.isPresetAvailable(p, catalog)) match
+            case None => selectCategory(catId)
+            case Some(preset) =>
+              val next = ConfiguratorController.draftFromPreset(cat, preset)
+              draft.set(next).andThen(recompute)
+    }
 
   def selectComponentTab(key: ComponentKey): Unit < Sync =
     draft.updateAndGet(_.copy(activeComponentKey = key)).unit
@@ -88,16 +133,18 @@ final class ConfiguratorController(
     updateComponent(key)(c => c.copy(materialId = materialId))
 
   def updatePrintingMethod(key: ComponentKey, methodId: PrintingMethodId): Unit < Async =
-    val methodOpt = catalog.printingMethods.get(methodId)
-    updateComponent(key) { c =>
-      val adjustedInk = (c.inkConfiguration, methodOpt) match
-        case (Some(ink), Some(m)) if !m.supportsDoubleSided && ink.isDoubleSided =>
-          Some(ink.copy(back = SideInk.blank))
-        case (None, Some(_)) =>
-          Some(InkConfiguration.cmyk4_0)
-        case (existing, _) =>
-          existing
-      c.copy(printingMethodId = Some(methodId), inkConfiguration = adjustedInk)
+    catalogRef.get.flatMap { catalog =>
+      val methodOpt = catalog.printingMethods.get(methodId)
+      updateComponent(key) { c =>
+        val adjustedInk = (c.inkConfiguration, methodOpt) match
+          case (Some(ink), Some(m)) if !m.supportsDoubleSided && ink.isDoubleSided =>
+            Some(ink.copy(back = SideInk.blank))
+          case (None, Some(_)) =>
+            Some(InkConfiguration.cmyk4_0)
+          case (existing, _) =>
+            existing
+        c.copy(printingMethodId = Some(methodId), inkConfiguration = adjustedInk)
+      }
     }
 
   def updateInk(key: ComponentKey, ink: InkConfiguration): Unit < Async =
@@ -182,7 +229,10 @@ final class ConfiguratorController(
     draft.updateAndGet(_.copy(artworks = Map.empty)).unit
 
   def buildConfigureCmd(d: DraftConfig): ConfigureProductCmd < Sync =
-    seqRef.updateAndGet(_ + 1).map { seq =>
+    for
+      catalog <- catalogRef.get
+      seq     <- seqRef.updateAndGet(_ + 1)
+    yield
       val nonEmptyComps = NonEmptyChunk.fromIterableOption(
         d.components.map { c =>
           ComponentSelection(
@@ -195,7 +245,10 @@ final class ConfiguratorController(
         }
       ).getOrElse(
         NonEmptyChunk.single(
-          ComponentSelection(ComponentKey.Main, catalog.materials.keys.head)
+          ComponentSelection(
+            ComponentKey.Main,
+            catalog.materials.values.find(_.enabled).map(_.id).getOrElse(catalog.materials.keys.head),
+          )
         )
       )
       ConfigureProductCmd(
@@ -204,7 +257,6 @@ final class ConfiguratorController(
         components = nonEmptyComps,
         specs = d.specs,
       )
-    }
 
   /** Refreshes compatible finishes, parameter limits, and live dual-price quote via `StorefrontClient`. */
   def recompute: Unit < Async =
@@ -283,6 +335,21 @@ final class ConfiguratorController(
 
 object ConfiguratorController:
 
+  def firstEnabledCategory(catalog: ProductCatalog): Option[ProductCategory] =
+    catalog.showcases.values.toList
+      .filter(_.enabled)
+      .sortBy(_.sortOrder)
+      .flatMap(s => catalog.categories.get(s.categoryId).filter(_.enabled))
+      .headOption
+      .orElse(catalog.categories.values.find(_.enabled))
+
+  def isPresetAvailable(preset: CategoryPreset, catalog: ProductCatalog): Boolean =
+    preset.components.forall { cp =>
+      catalog.materials.get(cp.materialId).exists(_.enabled) &&
+      cp.printingMethodId.forall(id => catalog.printingMethods.get(id).exists(_.enabled)) &&
+      cp.finishes.forall(f => catalog.finishes.get(f.finishId).exists(_.enabled))
+    }
+
   def init(
       client: StorefrontClient,
       catalog: ProductCatalog,
@@ -295,16 +362,18 @@ object ConfiguratorController:
     val defaultCat =
       initialCategoryId
         .flatMap(catalog.categories.get)
-        .orElse(catalog.showcases.values.toList.sortBy(_.sortOrder).headOption.flatMap(s => catalog.categories.get(s.categoryId)))
+        .filter(_.enabled)
+        .orElse(firstEnabledCategory(catalog))
         .orElse(catalog.categories.values.headOption)
         .get
 
     val initDraft = initialPresetId
-      .flatMap(pid => defaultCat.presets.find(_.id == pid))
+      .flatMap(pid => defaultCat.presets.find(p => p.id == pid && isPresetAvailable(p, catalog)))
       .map(p => draftFromPreset(defaultCat, p))
       .getOrElse(initialDraftForCategory(defaultCat, catalog))
 
     for
+      catalogRef <- Signal.initRef(catalog)
       draftRef   <- Signal.initRef(initDraft)
       quoteRef   <- Signal.initRef[QuoteStatus](QuoteStatus.Loading)
       finMapRef  <- Signal.initRef(Map.empty[ComponentKey, List[Finish]])
@@ -312,7 +381,7 @@ object ConfiguratorController:
       seqRef     <- Signal.initRef(0L)
       ctrl        = new ConfiguratorController(
                       client,
-                      catalog,
+                      catalogRef,
                       i18n,
                       currency,
                       sessionToken,
@@ -345,17 +414,21 @@ object ConfiguratorController:
     )
 
   def initialDraftForCategory(cat: ProductCategory, catalog: ProductCatalog): DraftConfig =
-    cat.presets.headOption match
+    cat.presets.find(isPresetAvailable(_, catalog)) match
       case Some(preset) => draftFromPreset(cat, preset)
       case None =>
         val comps = cat.components.toList.map { tpl =>
-          val matId = tpl.allowedMaterialIds.headOption.getOrElse(catalog.materials.keys.head)
+          val matId = tpl.allowedMaterialIds
+            .find(id => catalog.materials.get(id).exists(_.enabled))
+            .orElse(tpl.allowedMaterialIds.headOption)
+            .getOrElse(catalog.materials.keys.head)
           val pmOpt =
             if tpl.printable then
-              tpl.allowedPrintingMethodIds
-                .flatMap(_.headOption)
-                .orElse(cat.allowedPrintingMethodIds.headOption)
-                .orElse(catalog.printingMethods.keys.headOption)
+              val allowed = tpl.allowedPrintingMethodIds.getOrElse(cat.allowedPrintingMethodIds)
+              val pool    = if allowed.nonEmpty then allowed else catalog.printingMethods.keySet
+              pool
+                .find(id => catalog.printingMethods.get(id).exists(_.enabled))
+                .orElse(pool.headOption)
             else None
           val inkOpt = if tpl.printable then Some(InkConfiguration.cmyk4_0) else None
           DraftComponent(tpl.key, matId, pmOpt, inkOpt, Nil)

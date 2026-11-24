@@ -414,4 +414,72 @@ class BackofficeUiSpec extends Test[Any]:
           }
         }
       }
+
+      "Catalog availability toggles across categories, showcases, materials, finishes, print methods, and rules reflect live on Storefront (EN & CS)" in {
+        withSharedClients { (sfClient, boClient) =>
+          for
+            i18n    <- AdminTranslations.init(Language.En)
+            sfState <- I18n.let(i18n.handle)(StorefrontState.init(sfClient, i18n))
+            boState <- BackofficeState.init(boClient, i18n, AdminRoute.Catalog, onDataMutated = () => sfState.refreshCatalog)
+            boUi    <- I18n.let(i18n.handle)(BackofficeApp.render(boState, onBackToStorefront = None))
+            _       <- I18n.let(i18n.handle)(boState.login("manager@printshop.cz", "staff1234"))
+            _       <- I18n.let(i18n.handle)(boState.navigate(AdminRoute.Catalog))
+            cat0    <- boState.catalog.get.flatMap(opt => Abort.get(opt.toRight("Expected catalog")))
+            rs0     <- boState.ruleset.get.flatMap(opt => Abort.get(opt.toRight("Expected ruleset")))
+            list0   <- sfState.listingsRef.get
+
+            // 1. Disable a showcase listing -> disappears from storefront listings while category stays enabled
+            scTarget = cat0.showcases.values.head
+            _       <- I18n.let(i18n.handle)(boState.upsertShowcaseListing(scTarget.copy(enabled = false)))
+            list1   <- sfState.listingsRef.get
+
+            // 2. Disable another product category -> its showcase also disappears from storefront listings
+            catTarget = cat0.categories.values.find(_.id != scTarget.categoryId).get
+            _       <- I18n.let(i18n.handle)(boState.upsertCategory(catTarget.copy(enabled = false)))
+            list2   <- sfState.listingsRef.get
+
+            // 3. Disable a material, finish, printing method, and rule
+            matTarget = cat0.materials.values.head
+            finTarget = cat0.finishes.values.head
+            pmTarget  = cat0.printingMethods.values.head
+            ruleTarget = rs0.rules.head
+            _       <- I18n.let(i18n.handle)(boState.upsertMaterial(matTarget.copy(enabled = false)))
+            _       <- I18n.let(i18n.handle)(boState.upsertFinish(finTarget.copy(enabled = false)))
+            _       <- I18n.let(i18n.handle)(boState.upsertPrintingMethod(pmTarget.copy(enabled = false)))
+            _       <- I18n.let(i18n.handle)(boState.upsertRule(ruleTarget.copy(enabled = false)))
+
+            cat1    <- boState.catalog.get.flatMap(opt => Abort.get(opt.toRight("Expected updated catalog")))
+            rs1     <- boState.ruleset.get.flatMap(opt => Abort.get(opt.toRight("Expected updated ruleset")))
+            enHtml  <- renderHtml(boUi, i18n)
+            _       <- I18n.let(i18n.handle)(boState.setLanguage(Language.Cs))
+            csHtml  <- renderHtml(boUi, i18n)
+
+            // 4. Re-enable showcase & category -> restored on storefront
+            _       <- I18n.let(i18n.handle)(boState.upsertShowcaseListing(scTarget.copy(enabled = true)))
+            _       <- I18n.let(i18n.handle)(boState.upsertCategory(catTarget.copy(enabled = true)))
+            list3   <- sfState.listingsRef.get
+          yield {
+            assert(list0.size == 15)
+            assert(list1.size == 14)
+            assert(!list1.exists(_.categoryId == scTarget.categoryId))
+            assert(list2.size == 13)
+            assert(!list2.exists(_.categoryId == catTarget.id))
+            assert(!cat1.categories(catTarget.id).enabled)
+            assert(!cat1.materials(matTarget.id).enabled)
+            assert(!cat1.finishes(finTarget.id).enabled)
+            assert(!cat1.printingMethods(pmTarget.id).enabled)
+            assert(!cat1.showcases(scTarget.categoryId).enabled)
+            assert(!rs1.rules.find(_.id == ruleTarget.id).get.enabled)
+            assert(list3.size == 15)
+            assert(enHtml.contains("Enabled"))
+            assert(enHtml.contains("Disabled"))
+            assert(enHtml.contains("Availability"))
+            assert(!enHtml.contains("‹") && !enHtml.contains("›"))
+            assert(csHtml.contains("Aktivní"))
+            assert(csHtml.contains("Neaktivní"))
+            assert(csHtml.contains("Dostupnost"))
+            assert(!csHtml.contains("‹") && !csHtml.contains("›"))
+          }
+        }
+      }
   }

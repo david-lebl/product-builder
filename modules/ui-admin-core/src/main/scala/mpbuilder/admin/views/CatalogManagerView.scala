@@ -11,34 +11,75 @@ import mpbuilder.ui.components.{DataTable, TabBar}
 import mpbuilder.ui.theme.AppTheme.*
 import mpbuilder.ui.theme.AppTheme.Palette.*
 
-/** Tabbed Catalog & Capabilities Inspector:
+/** Tabbed Catalog & Capabilities Manager:
   *   - Underline `TabBar` across all 6 catalog facets
   *   - Universal `DataTable` on every tab with search, quick filters, sorting, pagination,
-  *     and full expandable row detail (read-only browse/inspect; catalog authoring planned for a later phase)
+  *     and full expandable row detail with Manager/Admin availability toggles
   */
 object CatalogManagerView:
 
   private enum Tab:
     case Categories, Materials, Finishes, Methods, Rules, Showcases
 
+  private def availabilityBadge(enabled: Boolean, isCs: Boolean): UI =
+    badge(
+      if enabled then (if isCs then "Aktivní" else "Enabled")
+      else (if isCs then "Neaktivní" else "Disabled"),
+      if enabled then BadgeTone.Emerald else BadgeTone.Rose,
+    )
+
+  private def availabilityColumn[T](enabledOf: T => Boolean, isCs: Boolean): DataTable.Column[T] =
+    DataTable.Column[T](
+      id = "status",
+      header = if isCs then "Stav" else "Status",
+      sortKey = Some(item => if enabledOf(item) then "0-enabled" else "1-disabled"),
+      cell = item => availabilityBadge(enabledOf(item), isCs),
+    )
+
+  private def availabilityFilter[T](enabledOf: T => Boolean, isCs: Boolean): DataTable.FilterGroup[T] =
+    DataTable.FilterGroup[T](
+      id = "availability",
+      label = if isCs then "Dostupnost" else "Availability",
+      options = List(
+        DataTable.FilterOption("enabled", if isCs then "Aktivní" else "Enabled", enabledOf),
+        DataTable.FilterOption("disabled", if isCs then "Neaktivní" else "Disabled", item => !enabledOf(item)),
+      ),
+    )
+
+  private def availabilityToggleButton(
+      state: BackofficeState,
+      enabled: Boolean,
+      canManage: Boolean,
+      onToggle: () => Unit < Async,
+  ): UI =
+    if !canManage then UI.empty
+    else
+      button
+        .cssClass(if enabled then "mp-btn mp-btn-danger mp-btn-sm" else "mp-btn mp-btn-primary mp-btn-sm")
+        .onClick(onToggle())(
+          if enabled then state.i18n.t("adm-cat-disable") else state.i18n.t("adm-cat-enable")
+        )
+
   def render(state: BackofficeState): UI < Sync =
     for
-      tabRef      <- Signal.initRef[Tab](Tab.Categories)
-      catTable    <- DataTable.makeState[CategoryId](defaultSort = Some(DataTable.SortSpec("name", ascending = true)), pageSize = 10)
-      matTable    <- DataTable.makeState[MaterialId](defaultSort = Some(DataTable.SortSpec("name", ascending = true)), pageSize = 10)
-      finTable    <- DataTable.makeState[FinishId](defaultSort = Some(DataTable.SortSpec("name", ascending = true)), pageSize = 10)
-      pmTable     <- DataTable.makeState[PrintingMethodId](defaultSort = Some(DataTable.SortSpec("name", ascending = true)), pageSize = 10)
-      ruleTable   <- DataTable.makeState[RuleId](defaultSort = Some(DataTable.SortSpec("id", ascending = true)), pageSize = 10)
-      scTable     <- DataTable.makeState[CategoryId](defaultSort = Some(DataTable.SortSpec("sortOrder", ascending = true)), pageSize = 25)
+      tabRef    <- Signal.initRef[Tab](Tab.Categories)
+      catTable  <- DataTable.makeState[CategoryId](defaultSort = Some(DataTable.SortSpec("name", ascending = true)), pageSize = 10)
+      matTable  <- DataTable.makeState[MaterialId](defaultSort = Some(DataTable.SortSpec("name", ascending = true)), pageSize = 10)
+      finTable  <- DataTable.makeState[FinishId](defaultSort = Some(DataTable.SortSpec("name", ascending = true)), pageSize = 10)
+      pmTable   <- DataTable.makeState[PrintingMethodId](defaultSort = Some(DataTable.SortSpec("name", ascending = true)), pageSize = 10)
+      ruleTable <- DataTable.makeState[RuleId](defaultSort = Some(DataTable.SortSpec("id", ascending = true)), pageSize = 10)
+      scTable   <- DataTable.makeState[CategoryId](defaultSort = Some(DataTable.SortSpec("sortOrder", ascending = true)), pageSize = 25)
     yield
       val combined =
         tabRef
           .combineLatest(state.catalog)
           .combineLatest(state.ruleset)
+          .combineLatest(state.auth)
           .combineLatest(state.i18n.language)
 
-      combined.render { case (((activeTab, catOpt), rulesOpt), lang) =>
-        val isCs = lang == Language.Cs
+      combined.render { case ((((activeTab, catOpt), rulesOpt), authOpt), lang) =>
+        val isCs      = lang == Language.Cs
+        val canManage = state.canManage(authOpt)
 
         val tabs = List(
           TabBar.TabItem(Tab.Categories, if isCs then "Kategorie" else "Categories", catOpt.map(_.categories.size)),
@@ -79,28 +120,30 @@ object CatalogManagerView:
               div.cssClass("mp-card")(span(if isCs then "Načítání katalogu..." else "Loading catalog...").style(mutedText))
 
             case (Some(cat), Tab.Categories) =>
-              renderCategoriesTable(cat, catTable, lang)
+              renderCategoriesTable(state, cat, catTable, canManage, lang)
 
             case (Some(cat), Tab.Materials) =>
-              renderMaterialsTable(cat, matTable, lang)
+              renderMaterialsTable(state, cat, matTable, canManage, lang)
 
             case (Some(cat), Tab.Finishes) =>
-              renderFinishesTable(cat, finTable, lang)
+              renderFinishesTable(state, cat, finTable, canManage, lang)
 
             case (Some(cat), Tab.Methods) =>
-              renderMethodsTable(cat, pmTable, lang)
+              renderMethodsTable(state, cat, pmTable, canManage, lang)
 
             case (Some(_), Tab.Rules) =>
-              renderRulesTable(rulesOpt.map(_.rules).getOrElse(Nil), ruleTable, lang)
+              renderRulesTable(state, rulesOpt.map(_.rules).getOrElse(Nil), ruleTable, canManage, lang)
 
             case (Some(cat), Tab.Showcases) =>
-              renderShowcasesTable(cat, scTable, lang)
+              renderShowcasesTable(state, cat, scTable, canManage, lang)
         )
       }
 
   private def renderCategoriesTable(
+      state: BackofficeState,
       cat: ProductCatalog,
       tableState: SignalRef[DataTable.State[CategoryId]],
+      canManage: Boolean,
       lang: Language,
   ): UI =
     val isCs = lang == Language.Cs
@@ -117,6 +160,7 @@ object CatalogManagerView:
             span(pc.id.value).style(smallText),
           ),
       ),
+      availabilityColumn[ProductCategory](_.enabled, isCs),
       DataTable.Column[ProductCategory](
         id = "components",
         header = if isCs then "Komponenty" else "Components",
@@ -141,6 +185,7 @@ object CatalogManagerView:
     )
 
     val filters = List(
+      availabilityFilter[ProductCategory](_.enabled, isCs),
       DataTable.FilterGroup[ProductCategory](
         id = "presets",
         label = if isCs then "Šablony" else "Presets",
@@ -148,7 +193,7 @@ object CatalogManagerView:
           DataTable.FilterOption("hasPresets", if isCs then "Se šablonami" else "With Presets", _.presets.nonEmpty),
           DataTable.FilterOption("multiComp", if isCs then "Vícekomponentní" else "Multi-Component", _.components.size > 1),
         ),
-      )
+      ),
     )
 
     DataTable.render[ProductCategory, CategoryId](
@@ -169,8 +214,15 @@ object CatalogManagerView:
           div.cssClass("mp-detail-head")(
             div.cssClass("mp-detail-head-row")(
               h3(pc.name(lang)).style(Style.margin(0.px).fontSize(17.px).fontWeight(FontWeight.w800).color(ink)),
+              availabilityToggleButton(
+                state = state,
+                enabled = pc.enabled,
+                canManage = canManage,
+                onToggle = () => state.upsertCategory(pc.copy(enabled = !pc.enabled)),
+              ),
             ),
             div.cssClass("mp-detail-tags-row")(
+              availabilityBadge(pc.enabled, isCs),
               badge(pc.id.value, BadgeTone.Neutral),
               badge(s"${pc.components.size} ${if isCs then "komp." else "comp."}", BadgeTone.Brand),
               badge(s"${pc.presets.size} ${if isCs then "šablon" else "presets"}", BadgeTone.Emerald),
@@ -214,8 +266,10 @@ object CatalogManagerView:
     )
 
   private def renderMaterialsTable(
+      state: BackofficeState,
       cat: ProductCatalog,
       tableState: SignalRef[DataTable.State[MaterialId]],
+      canManage: Boolean,
       lang: Language,
   ): UI =
     val isCs = lang == Language.Cs
@@ -232,6 +286,7 @@ object CatalogManagerView:
             span(m.id.value).style(smallText),
           ),
       ),
+      availabilityColumn[Material](_.enabled, isCs),
       DataTable.Column[Material](
         id = "family",
         header = if isCs then "Skupina" else "Family",
@@ -260,11 +315,12 @@ object CatalogManagerView:
     )
 
     val filters = List(
+      availabilityFilter[Material](_.enabled, isCs),
       DataTable.FilterGroup[Material](
         id = "family",
         label = if isCs then "Skupina" else "Family",
         options = MaterialFamily.values.toList.map(f => DataTable.FilterOption(f.toString, f.toString, _.family == f)),
-      )
+      ),
     )
 
     DataTable.render[Material, MaterialId](
@@ -287,8 +343,15 @@ object CatalogManagerView:
           div.cssClass("mp-detail-head")(
             div.cssClass("mp-detail-head-row")(
               h3(m.name(lang)).style(Style.margin(0.px).fontSize(17.px).fontWeight(FontWeight.w800).color(ink)),
+              availabilityToggleButton(
+                state = state,
+                enabled = m.enabled,
+                canManage = canManage,
+                onToggle = () => state.upsertMaterial(m.copy(enabled = !m.enabled)),
+              ),
             ),
             div.cssClass("mp-detail-tags-row")(
+              availabilityBadge(m.enabled, isCs),
               badge(m.id.value, BadgeTone.Neutral),
               badge(m.family.toString, BadgeTone.Brand),
               badge(formatMaterialWeight(m.weight), BadgeTone.Emerald),
@@ -317,8 +380,10 @@ object CatalogManagerView:
     )
 
   private def renderFinishesTable(
+      state: BackofficeState,
       cat: ProductCatalog,
       tableState: SignalRef[DataTable.State[FinishId]],
+      canManage: Boolean,
       lang: Language,
   ): UI =
     val isCs = lang == Language.Cs
@@ -335,6 +400,7 @@ object CatalogManagerView:
             span(f.id.value).style(smallText),
           ),
       ),
+      availabilityColumn[Finish](_.enabled, isCs),
       DataTable.Column[Finish](
         id = "type",
         header = if isCs then "Typ" else "Finish Type",
@@ -356,13 +422,14 @@ object CatalogManagerView:
     )
 
     val filters = List(
+      availabilityFilter[Finish](_.enabled, isCs),
       DataTable.FilterGroup[Finish](
         id = "category",
         label = if isCs then "Kategorie" else "Category",
         options = FinishCategory.values.toList.map(fc =>
           DataTable.FilterOption(fc.toString, finishCategoryLabel(fc, lang), _.finishType.category == fc)
         ),
-      )
+      ),
     )
 
     DataTable.render[Finish, FinishId](
@@ -384,8 +451,15 @@ object CatalogManagerView:
           div.cssClass("mp-detail-head")(
             div.cssClass("mp-detail-head-row")(
               h3(f.name(lang)).style(Style.margin(0.px).fontSize(17.px).fontWeight(FontWeight.w800).color(ink)),
+              availabilityToggleButton(
+                state = state,
+                enabled = f.enabled,
+                canManage = canManage,
+                onToggle = () => state.upsertFinish(f.copy(enabled = !f.enabled)),
+              ),
             ),
             div.cssClass("mp-detail-tags-row")(
+              availabilityBadge(f.enabled, isCs),
               badge(f.id.value, BadgeTone.Neutral),
               badge(f.finishType.toString, BadgeTone.Brand),
               badge(finishCategoryLabel(f.finishType.category, lang), BadgeTone.Neutral),
@@ -402,8 +476,10 @@ object CatalogManagerView:
     )
 
   private def renderMethodsTable(
+      state: BackofficeState,
       cat: ProductCatalog,
       tableState: SignalRef[DataTable.State[PrintingMethodId]],
+      canManage: Boolean,
       lang: Language,
   ): UI =
     val isCs = lang == Language.Cs
@@ -420,6 +496,7 @@ object CatalogManagerView:
             span(pm.id.value).style(smallText),
           ),
       ),
+      availabilityColumn[PrintingMethod](_.enabled, isCs),
       DataTable.Column[PrintingMethod](
         id = "process",
         header = if isCs then "Technologie" else "Process Type",
@@ -444,6 +521,7 @@ object CatalogManagerView:
     )
 
     val filters = List(
+      availabilityFilter[PrintingMethod](_.enabled, isCs),
       DataTable.FilterGroup[PrintingMethod](
         id = "process",
         label = if isCs then "Technologie" else "Process",
@@ -480,8 +558,15 @@ object CatalogManagerView:
           div.cssClass("mp-detail-head")(
             div.cssClass("mp-detail-head-row")(
               h3(pm.name(lang)).style(Style.margin(0.px).fontSize(17.px).fontWeight(FontWeight.w800).color(ink)),
+              availabilityToggleButton(
+                state = state,
+                enabled = pm.enabled,
+                canManage = canManage,
+                onToggle = () => state.upsertPrintingMethod(pm.copy(enabled = !pm.enabled)),
+              ),
             ),
             div.cssClass("mp-detail-tags-row")(
+              availabilityBadge(pm.enabled, isCs),
               badge(pm.id.value, BadgeTone.Neutral),
               badge(pm.processType.toString, BadgeTone.Brand),
               if pm.supportsDoubleSided then badge("Duplex Supported", BadgeTone.Emerald) else badge("Single-Sided Only", BadgeTone.Amber),
@@ -496,8 +581,10 @@ object CatalogManagerView:
     )
 
   private def renderRulesTable(
+      state: BackofficeState,
       rules: List[CompatibilityRule],
       tableState: SignalRef[DataTable.State[RuleId]],
+      canManage: Boolean,
       lang: Language,
   ): UI =
     val isCs = lang == Language.Cs
@@ -509,6 +596,7 @@ object CatalogManagerView:
         sortKey = Some(_.id.value),
         cell = r => span(r.id.value).style(Style.fontWeight(FontWeight.w700).color(ink)),
       ),
+      availabilityColumn[CompatibilityRule](_.enabled, isCs),
       DataTable.Column[CompatibilityRule](
         id = "severity",
         header = if isCs then "Závažnost" else "Severity",
@@ -530,11 +618,12 @@ object CatalogManagerView:
     )
 
     val filters = List(
+      availabilityFilter[CompatibilityRule](_.enabled, isCs),
       DataTable.FilterGroup[CompatibilityRule](
         id = "severity",
         label = if isCs then "Závažnost" else "Severity",
         options = RuleSeverity.values.toList.map(s => DataTable.FilterOption(s.toString, s.toString, _.severity == s)),
-      )
+      ),
     )
 
     DataTable.render[CompatibilityRule, RuleId](
@@ -556,12 +645,24 @@ object CatalogManagerView:
           div.cssClass("mp-detail-head")(
             div.cssClass("mp-detail-head-row")(
               h3(r.id.value).style(Style.margin(0.px).fontSize(17.px).fontWeight(FontWeight.w800).color(ink)),
+              availabilityToggleButton(
+                state = state,
+                enabled = r.enabled,
+                canManage = canManage,
+                onToggle = () => state.upsertRule(r.copy(enabled = !r.enabled)),
+              ),
             ),
             div.cssClass("mp-detail-tags-row")(
+              availabilityBadge(r.enabled, isCs),
               badge(r.severity.toString, if r.severity == RuleSeverity.Error then BadgeTone.Rose else BadgeTone.Amber),
               badge(r.scope.toString, BadgeTone.Neutral),
             ),
           ),
+          if !r.enabled then
+            div.style(Style.padding(8.px, 12.px).rounded(8.px).bg(amberSoft).border(1.px, amberBorder).fontSize(12.px).color(amberInk))(
+              state.i18n.t("adm-cat-rule-disabled-hint"),
+            )
+          else UI.empty,
           div.style(stackXs)(
             span(s"EN: ${r.reason(Language.En)}").style(Style.fontSize(13.px).color(ink)),
             span(s"CS: ${r.reason(Language.Cs)}").style(smallText),
@@ -576,8 +677,10 @@ object CatalogManagerView:
     )
 
   private def renderShowcasesTable(
+      state: BackofficeState,
       cat: ProductCatalog,
       tableState: SignalRef[DataTable.State[CategoryId]],
+      canManage: Boolean,
       lang: Language,
   ): UI =
     val isCs = lang == Language.Cs
@@ -603,6 +706,7 @@ object CatalogManagerView:
             span(sc.categoryId.value).style(smallText),
           ),
       ),
+      availabilityColumn[ShowcaseListing](_.enabled, isCs),
       DataTable.Column[ShowcaseListing](
         id = "group",
         header = if isCs then "Sekce" else "Group",
@@ -618,13 +722,14 @@ object CatalogManagerView:
     )
 
     val filters = List(
+      availabilityFilter[ShowcaseListing](_.enabled, isCs),
       DataTable.FilterGroup[ShowcaseListing](
         id = "group",
         label = if isCs then "Sekce výlohy" else "Catalog Group",
         options = CatalogGroup.values.toList.map(g =>
           DataTable.FilterOption(g.toString, catalogGroupLabel(g, lang), _.group == g)
         ),
-      )
+      ),
     )
 
     DataTable.render[ShowcaseListing, CategoryId](
@@ -642,17 +747,30 @@ object CatalogManagerView:
       filterGroups = filters,
       detailTitle = Some(catName),
       renderDetail = Some { sc =>
+        val parentDisabled = cat.categories.get(sc.categoryId).exists(!_.enabled)
         div.style(stackMd)(
           div.cssClass("mp-detail-head")(
             div.cssClass("mp-detail-head-row")(
               h3(catName(sc)).style(Style.margin(0.px).fontSize(17.px).fontWeight(FontWeight.w800).color(ink)),
+              availabilityToggleButton(
+                state = state,
+                enabled = sc.enabled,
+                canManage = canManage,
+                onToggle = () => state.upsertShowcaseListing(sc.copy(enabled = !sc.enabled)),
+              ),
             ),
             div.cssClass("mp-detail-tags-row")(
+              availabilityBadge(sc.enabled, isCs),
               badge(s"#${sc.sortOrder}", BadgeTone.Neutral),
               badge(catalogGroupLabel(sc.group, lang), BadgeTone.Brand),
               badge(sc.categoryId.value, BadgeTone.Neutral),
             ),
           ),
+          if parentDisabled then
+            div.style(Style.padding(8.px, 12.px).rounded(8.px).bg(amberSoft).border(1.px, amberBorder).fontSize(12.px).color(amberInk))(
+              state.i18n.t("adm-cat-category-disabled-hint"),
+            )
+          else UI.empty,
           div.style(stackXs)(
             span(s"Tagline EN: ${sc.tagline(Language.En)}").style(Style.fontSize(13.px).fontWeight(FontWeight.w600).color(ink)),
             span(s"Tagline CS: ${sc.tagline(Language.Cs)}").style(smallText),
