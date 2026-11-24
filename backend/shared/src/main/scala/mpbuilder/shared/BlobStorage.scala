@@ -32,7 +32,8 @@ enum BlobError(val message: String):
   *
   * Adapters:
   *   - [[BlobStorage.inMemory]] — cross-platform `Ref`-backed store (static browser demo & tests)
-  *   - `mpbuilder.platform.blob.LocalFileBlobStorage` — JVM local filesystem (dev server); S3/R2 later
+  *   - `mpbuilder.platform.blob.LocalFileBlobStorage` — JVM local filesystem (dev server)
+  *   - `mpbuilder.platform.blob.GcsBlobStorage` — Google Cloud Storage (JSON API v1)
   */
 trait BlobStorage:
   def put(key: String, bytes: Chunk[Byte], mimeType: String)(using Frame): StoredBlob < (Async & Abort[BlobError])

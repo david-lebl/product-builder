@@ -63,7 +63,7 @@ All backend modules cross-compile to both `.jvm` and `.js` so the static fronten
 - **`backend/storefront`** — Storefront BFF / Application Orchestration Facade (`StorefrontFacade`). Depends only on public context APIs.
 - **`backend/backoffice`** — Role-based Staff Backoffice & Order Intake BFF (`BackofficeFacade`). Enforces `Operator` / `Prepress` / `Manager` / `Admin` RBAC across all contexts. Depends only on public context APIs.
 - **`backend/json`** (JVM + JS) — kyo-schema `Schema`s for all public domain types (JSONB rows + HTTP wire); opaque types decode through smart constructors (`JsonSupport.validated`).
-- **`backend/platform`** (JVM) — kyo-sql `Database` (pool), `Migrations` (schema per context, `<schema>.schema_migrations`, advisory-locked), `PostgresIdSequence`, `LocalFileBlobStorage`, `KeyedDoc` rows.
+- **`backend/platform`** (JVM) — kyo-sql `Database` (pool), `Migrations` (schema per context, `<schema>.schema_migrations`, advisory-locked), `PostgresIdSequence`, `LocalFileBlobStorage`, `GcsBlobStorage`, `KeyedDoc` rows.
 - **`backend/<context>/02-o-db`** (JVM) — kyo-sql PostgreSQL repository adapters (typed JSONB via `Sql.jsonColumn`) + migrations for identity, customers, catalog, pricing, ordering, artwork (manufacturing stays in-memory).
 - **`backend/api-kernel`** (JVM + JS) — Transport kernel shared by both BFF APIs (`mpbuilder.api`): `ApiError` envelope, `ApiConventions.statusOf`, `HealthStatus`; JVM-only `src/main/scala-jvm` adds `ApiServer` kyo-http helpers (bearer extraction, opaque path codecs, `.doc`).
 - **`backend/storefront/01-i-http-api`** & **`backend/backoffice/01-i-http-api`** (JVM + JS) — Each BFF's wire DTOs, schemas & URL layout (`StorefrontApi` / `BackofficeApi`, `mpbuilder.<bff>.http.api`).
