@@ -161,23 +161,42 @@ object CatalogView:
                 val compCount      = catOpt.map(_.components.size).getOrElse(1)
                 val (accent, soft) = groupAccent(listing.group)
 
+                val groupBadgeStyle =
+                  Style.padding(4.px, 10.px)
+                    .rounded(999.px)
+                    .bg(surface)
+                    .border(1.px, Palette.border)
+                    .color(accent)
+                    .fontSize(12.px)
+                    .fontWeight(FontWeight.w700)
+                    .zIndex(1)
+
+                val visualHeader = listing.imageUrl match
+                  case Some(url) =>
+                    div
+                      .cssClass("mp-product-visual mp-product-visual-img")(
+                        img(UI.ImgSrc.Path(url), title).cssClass("mp-product-img"),
+                        span(catalogGroupLabel(listing.group, lang)).style(
+                          groupBadgeStyle
+                            .position(Position.absolute)
+                            .top(12.px)
+                            .right(12.px)
+                            .shadow(0.px, 2.px, 8.px, (-2).px, shadowMedium),
+                        ),
+                      )
+                  case None =>
+                    div
+                      .cssClass("mp-product-visual")
+                      .style(Style.bgGradient(GradientDirection.toBottomRight, (soft, 0.pct), (surface, 100.pct)).color(accent))(
+                        div.cssClass("mp-product-glyph").style(Style.color(accent))(Icons(groupGlyph(listing.group), 26, 1.8)),
+                        span(catalogGroupLabel(listing.group, lang)).style(
+                          groupBadgeStyle
+                            .position(Position.relative),
+                        ),
+                      )
+
                 div.cssClass("mp-card-product")(
-                  div
-                    .cssClass("mp-product-visual")
-                    .style(Style.bgGradient(GradientDirection.toBottomRight, (soft, 0.pct), (surface, 100.pct)).color(accent))(
-                      div.cssClass("mp-product-glyph").style(Style.color(accent))(Icons(groupGlyph(listing.group), 26, 1.8)),
-                      span(catalogGroupLabel(listing.group, lang)).style(
-                        Style.padding(4.px, 10.px)
-                          .rounded(999.px)
-                          .bg(surface)
-                          .border(1.px, Palette.border)
-                          .color(accent)
-                          .fontSize(12.px)
-                          .fontWeight(FontWeight.w700)
-                          .position(Position.relative)
-                          .zIndex(1),
-                      ),
-                    ),
+                  visualHeader,
                   div.cssClass("mp-product-body")(
                     h3(title).style(Style.margin(0.px).fontSize(17.px).fontWeight(FontWeight.w700).letterSpacing((-0.2).px).color(ink)),
                     p(listing.tagline(lang)).style(mutedText.margin(0.px).flexGrow(1.0)),
