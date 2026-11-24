@@ -404,18 +404,12 @@ object ConfiguratorView:
           ),
           div.style(Style.row.gap(8.px).align(Alignment.center))(
             span(ctrl.i18n.t("cfg-param-radius")).style(smallText.fontWeight(FontWeight.w600)),
-            numberInput
-              .cssClass("mp-input")
-              .style(Style.width(84.px).padding(5.px, 8.px))
-              .value(curRad.toString)
-              .min(minR.toDouble)
-              .max(maxR.toDouble)
-              .onChange { v =>
-                v.toIntOption match
-                  case Some(r) if r >= minR && r <= maxR =>
-                    ctrl.updateFinishParams(compKey, finish.id, FinishParams.RoundCorners(curCount, r))
-                  case _ => Kyo.unit
-              },
+            bindIntInput(
+              numberInput.cssClass("mp-input").style(Style.width(84.px).padding(5.px, 8.px)),
+              current = curRad,
+              minVal = minR,
+              maxVal = maxR,
+            )(r => ctrl.updateFinishParams(compKey, finish.id, FinishParams.RoundCorners(curCount, r))),
           ),
         )
 
@@ -458,18 +452,12 @@ object ConfiguratorView:
           case _                                 => math.max(minP, 50)
         div.style(Style.row.gap(8.px).align(Alignment.center))(
           span(ctrl.i18n.t("cfg-param-pitch")).style(smallText.fontWeight(FontWeight.w600)),
-          numberInput
-            .cssClass("mp-input")
-            .style(Style.width(90.px).padding(5.px, 8.px))
-            .value(curP.toString)
-            .min(minP.toDouble)
-            .max(effMax.toDouble)
-            .onChange { v =>
-              v.toIntOption match
-                case Some(p) if p >= minP && p <= effMax =>
-                  ctrl.updateFinishParams(compKey, finish.id, FinishParams.Perforation(p))
-                case _ => Kyo.unit
-            },
+          bindIntInput(
+            numberInput.cssClass("mp-input").style(Style.width(90.px).padding(5.px, 8.px)),
+            current = curP,
+            minVal = minP,
+            maxVal = effMax,
+          )(p => ctrl.updateFinishParams(compKey, finish.id, FinishParams.Perforation(p))),
         )
 
       case FinishParamSchema.LinearLengthSchema(minM, maxM) =>
@@ -479,19 +467,13 @@ object ConfiguratorView:
           case _                                  => minM.max(BigDecimal(1))
         div.style(Style.row.gap(8.px).align(Alignment.center))(
           span(ctrl.i18n.t("cfg-param-length")).style(smallText.fontWeight(FontWeight.w600)),
-          numberInput
-            .cssClass("mp-input")
-            .style(Style.width(90.px).padding(5.px, 8.px))
-            .value(curM.toString)
-            .min(minM.toDouble)
-            .max(effMax.toDouble)
-            .step(0.5)
-            .onChange { v =>
-              scala.util.Try(BigDecimal(v)).toOption match
-                case Some(m) if m >= minM && m <= effMax =>
-                  ctrl.updateFinishParams(compKey, finish.id, FinishParams.LinearLength(m))
-                case _ => Kyo.unit
-            },
+          bindDecimalInput(
+            numberInput.cssClass("mp-input").style(Style.width(90.px).padding(5.px, 8.px)).step(0.5),
+            current = curM,
+            minAttr = minM.toDouble,
+            maxAttr = effMax.toDouble,
+            accept = m => m >= minM && m <= effMax,
+          )(m => ctrl.updateFinishParams(compKey, finish.id, FinishParams.LinearLength(m))),
         )
 
       case FinishParamSchema.CreaseCountSchema(minC, maxC) =>
@@ -501,18 +483,12 @@ object ConfiguratorView:
           case _                             => minC
         div.style(Style.row.gap(8.px).align(Alignment.center))(
           span(ctrl.i18n.t("cfg-param-creases")).style(smallText.fontWeight(FontWeight.w600)),
-          numberInput
-            .cssClass("mp-input")
-            .style(Style.width(84.px).padding(5.px, 8.px))
-            .value(curC.toString)
-            .min(minC.toDouble)
-            .max(effMax.toDouble)
-            .onChange { v =>
-              v.toIntOption match
-                case Some(c) if c >= minC && c <= effMax =>
-                  ctrl.updateFinishParams(compKey, finish.id, FinishParams.Scoring(c))
-                case _ => Kyo.unit
-            },
+          bindIntInput(
+            numberInput.cssClass("mp-input").style(Style.width(84.px).padding(5.px, 8.px)),
+            current = curC,
+            minVal = minC,
+            maxVal = effMax,
+          )(c => ctrl.updateFinishParams(compKey, finish.id, FinishParams.Scoring(c))),
           span(ctrl.i18n.t("cfg-param-max-hint", Dict("max" -> effMax.toString))).style(smallText),
         )
 
@@ -535,40 +511,41 @@ object ConfiguratorView:
       div.style(Style.column.gap(8.px))(
         label.style(labelStyle)(ctrl.i18n.t("cfg-quantity-label")),
         div.style(Style.row.flexWrap(FlexWrap.wrap).gap(6.px))(
-          standardQuantities.map { q =>
-            val active = specs.quantity.value == q
-            button
-              .cssClass(if active then "mp-pill-active" else "mp-pill")
-              .style(Style.padding(6.px, 12.px))
-              .onClick(ctrl.updateSpecs(_.copy(quantity = Quantity.unsafe(q))))(q.toString)
-          }*
+          UI.fragment(
+            standardQuantities.map { q =>
+              val active = specs.quantity.value == q
+              button
+                .cssClass(if active then "mp-pill-active" else "mp-pill")
+                .style(Style.padding(6.px, 12.px))
+                .onClick(ctrl.updateSpecs(_.copy(quantity = Quantity.unsafe(q))))(q.toString)
+            }*
+          ),
+          if !standardQuantities.contains(specs.quantity.value) then
+            span
+              .cssClass("mp-pill-active")
+              .style(Style.padding(6.px, 12.px).cursor(Cursor.defaultCursor))(
+                ctrl.i18n.t("cfg-custom-option"),
+              )
+          else UI.empty,
         ),
         div.cssClass("mp-field-row")(
           div.cssClass("mp-field")(
             label.style(smallText.fontWeight(FontWeight.w600))(ctrl.i18n.t("cfg-quantity-label")),
-            numberInput
-              .cssClass("mp-input")
-              .value(specs.quantity.value.toString)
-              .min(1.0)
-              .max(1000000.0)
-              .onChange { v =>
-                v.toIntOption.filter(_ >= 1) match
-                  case Some(q) => ctrl.updateSpecs(_.copy(quantity = Quantity.unsafe(q)))
-                  case None    => Kyo.unit
-              },
+            bindIntInput(
+              numberInput.cssClass("mp-input"),
+              current = specs.quantity.value,
+              minVal = 1,
+              maxVal = 1000000,
+            )(q => ctrl.updateSpecs(_.copy(quantity = Quantity.unsafe(q)))),
           ),
           div.cssClass("mp-field")(
             label.style(smallText.fontWeight(FontWeight.w600))(ctrl.i18n.t("cfg-versions-label")),
-            numberInput
-              .cssClass("mp-input")
-              .value(specs.versionCount.value.toString)
-              .min(1.0)
-              .max(50.0)
-              .onChange { v =>
-                v.toIntOption.filter(n => n >= 1 && n <= 50) match
-                  case Some(vc) => ctrl.updateSpecs(_.copy(versionCount = VersionCount.unsafe(vc)))
-                  case None     => Kyo.unit
-              },
+            bindIntInput(
+              numberInput.cssClass("mp-input"),
+              current = specs.versionCount.value,
+              minVal = 1,
+              maxVal = 50,
+            )(vc => ctrl.updateSpecs(_.copy(versionCount = VersionCount.unsafe(vc)))),
             span(ctrl.i18n.t("cfg-versions-hint")).style(smallText),
           ),
         ),
@@ -611,17 +588,12 @@ object ConfiguratorView:
           div.cssClass("mp-field-row")(
             div.cssClass("mp-field")(
               label.style(smallText.fontWeight(FontWeight.w600))(ctrl.i18n.t("cfg-binding-pages")),
-              numberInput
-                .cssClass("mp-input")
-                .value(curBind.totalPages.toString)
-                .min(4.0)
-                .max(1000.0)
-                .step(4.0)
-                .onChange { v =>
-                  v.toIntOption.filter(_ >= 4) match
-                    case Some(p) => ctrl.updateSpecs(_.copy(binding = Some(curBind.copy(totalPages = p))))
-                    case None    => Kyo.unit
-                },
+              bindIntInput(
+                numberInput.cssClass("mp-input").step(4.0),
+                current = curBind.totalPages,
+                minVal = 4,
+                maxVal = 1000,
+              )(p => ctrl.updateSpecs(_.copy(binding = Some(curBind.copy(totalPages = p))))),
             ),
             div.style(Style.row.align(Alignment.center).gap(8.px).padding(18.px, 0.px, 0.px, 0.px))(
               checkbox
@@ -659,16 +631,26 @@ object ConfiguratorView:
   ): UI =
     dims match
       case ProductDimensions.Flat2D(size) =>
+        val isCustomSize = !standardSizes.exists(_._2 == size)
         div.style(Style.column.gap(8.px))(
           label.style(labelStyle)(ctrl.i18n.t("cfg-dimensions-label")),
           div.style(Style.row.flexWrap(FlexWrap.wrap).gap(6.px))(
-            standardSizes.map { case (lbl, dim) =>
-              val active = size == dim
-              button
-                .cssClass(if active then "mp-pill-active" else "mp-pill")
-                .style(Style.padding(5.px, 10.px).fontSize(12.px))
-                .onClick(ctrl.updateSpecs(_.copy(dimensions = ProductDimensions.Flat2D(dim))))(lbl)
-            }*
+            UI.fragment(
+              standardSizes.map { case (lbl, dim) =>
+                val active = size == dim
+                button
+                  .cssClass(if active then "mp-pill-active" else "mp-pill")
+                  .style(Style.padding(5.px, 10.px).fontSize(12.px))
+                  .onClick(ctrl.updateSpecs(_.copy(dimensions = ProductDimensions.Flat2D(dim))))(lbl)
+              }*
+            ),
+            if isCustomSize then
+              span
+                .cssClass("mp-pill-active")
+                .style(Style.padding(5.px, 10.px).fontSize(12.px).cursor(Cursor.defaultCursor))(
+                  ctrl.i18n.t("cfg-custom-option"),
+                )
+            else UI.empty,
           ),
           div.cssClass("mp-field-row")(
             mmInputField(ctrl.i18n.t("cfg-width-mm"), size.width.value) { w =>
@@ -681,16 +663,27 @@ object ConfiguratorView:
         )
 
       case ProductDimensions.Folded2D(size, foldType) =>
+        val foldedSizes  = standardSizes.filter(e => e._1.startsWith("A") || e._1 == "DL")
+        val isCustomSize = !foldedSizes.exists(_._2 == size)
         div.style(Style.column.gap(10.px))(
           label.style(labelStyle)(ctrl.i18n.t("cfg-dimensions-label")),
           div.style(Style.row.flexWrap(FlexWrap.wrap).gap(6.px))(
-            standardSizes.filter(e => e._1.startsWith("A") || e._1 == "DL").map { case (lbl, dim) =>
-              val active = size == dim
-              button
-                .cssClass(if active then "mp-pill-active" else "mp-pill")
-                .style(Style.padding(5.px, 10.px).fontSize(12.px))
-                .onClick(ctrl.updateSpecs(_.copy(dimensions = ProductDimensions.Folded2D(dim, foldType))))(lbl)
-            }*
+            UI.fragment(
+              foldedSizes.map { case (lbl, dim) =>
+                val active = size == dim
+                button
+                  .cssClass(if active then "mp-pill-active" else "mp-pill")
+                  .style(Style.padding(5.px, 10.px).fontSize(12.px))
+                  .onClick(ctrl.updateSpecs(_.copy(dimensions = ProductDimensions.Folded2D(dim, foldType))))(lbl)
+              }*
+            ),
+            if isCustomSize then
+              span
+                .cssClass("mp-pill-active")
+                .style(Style.padding(5.px, 10.px).fontSize(12.px).cursor(Cursor.defaultCursor))(
+                  ctrl.i18n.t("cfg-custom-option"),
+                )
+            else UI.empty,
           ),
           div.cssClass("mp-field-row")(
             mmInputField(ctrl.i18n.t("cfg-width-mm"), size.width.value) { w =>
@@ -755,22 +748,67 @@ object ConfiguratorView:
           ),
         )
 
+  private def bindIntInput(
+      inp: UI.Ast.NumberInput,
+      current: Int,
+      minVal: Int,
+      maxVal: Int,
+  )(onValid: Int => Unit < Async): UI =
+    def applyInt(n: Int): Unit < Async =
+      if n >= minVal && n <= maxVal && n != current then onValid(n)
+      else Kyo.unit
+    inp
+      .value(current.toString)
+      .min(minVal.toDouble)
+      .max(maxVal.toDouble)
+      .onInput { v =>
+        v.trim.toIntOption match
+          case Some(n) => applyInt(n)
+          case None    => Kyo.unit
+      }
+      .onChangeNumeric { d =>
+        if d.isFinite && d.isWhole then applyInt(d.toInt)
+        else Kyo.unit
+      }
+
+  private def bindDecimalInput(
+      inp: UI.Ast.NumberInput,
+      current: BigDecimal,
+      minAttr: Double,
+      maxAttr: Double,
+      accept: BigDecimal => Boolean,
+  )(onValid: BigDecimal => Unit < Async): UI =
+    def applyBd(bd: BigDecimal): Unit < Async =
+      if accept(bd) && bd != current then onValid(bd)
+      else Kyo.unit
+    inp
+      .value(current.bigDecimal.stripTrailingZeros.toPlainString)
+      .min(minAttr)
+      .max(maxAttr)
+      .onInput { raw =>
+        scala.util.Try(BigDecimal(raw.trim)).toOption match
+          case Some(bd) => applyBd(bd)
+          case None     => Kyo.unit
+      }
+      .onChangeNumeric { d =>
+        if d.isFinite then applyBd(BigDecimal(d))
+        else Kyo.unit
+      }
+
   private def mmInputField(lbl: Signal[String], value: BigDecimal)(onValid: PositiveMm => Unit < Async): UI =
     div.cssClass("mp-field")(
       label.style(smallText.fontWeight(FontWeight.w600))(lbl),
-      numberInput
-        .cssClass("mp-input")
-        .value(value.bigDecimal.stripTrailingZeros.toPlainString)
-        .min(10.0)
-        .max(10000.0)
-        .onChange { raw =>
-          scala.util.Try(BigDecimal(raw)).toOption match
-            case Some(bd) if bd > BigDecimal(0) =>
-              PositiveMm(bd).toOption match
-                case Some(mm) => onValid(mm)
-                case None     => Kyo.unit
-            case _ => Kyo.unit
-        },
+      bindDecimalInput(
+        numberInput.cssClass("mp-input"),
+        current = value,
+        minAttr = 10.0,
+        maxAttr = 10000.0,
+        accept = _ > BigDecimal(0),
+      ) { bd =>
+        PositiveMm(bd).toOption match
+          case Some(mm) => onValid(mm)
+          case None     => Kyo.unit
+      },
     )
 
   // ── Step 4: Production Speed Tiers ─────────────────────────────────────────

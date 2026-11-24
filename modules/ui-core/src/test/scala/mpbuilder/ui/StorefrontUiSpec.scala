@@ -469,4 +469,47 @@ class StorefrontUiSpec extends Test[Any]:
           }
         }
       }
+
+      "Configurator numeric inputs wire input & numeric-change handlers and highlight Custom pill for manual quantity/dimensions" in {
+        withClient { client =>
+          for
+            i18n    <- Translations.init(Language.En)
+            state   <- I18n.let(i18n.handle)(StorefrontState.init(client, i18n, Currency.CZK, AppRoute.Builder(Some(CategoryId.unsafe("cat-flyers")), None)))
+            appUi   <- I18n.let(i18n.handle)(StorefrontApp.render(state))
+            // 1. Standard preset values (A5, 250 or 100 pcs): preset pills active, no Custom pill yet
+            _       <- I18n.let(i18n.handle)(state.configurator.updateSpecs(_.copy(
+                         dimensions = ProductDimensions.Flat2D(Dimension2D.A5),
+                         quantity = Quantity.unsafe(100),
+                       )))
+            stdHtml <- renderHtml(appUi, i18n)
+            // 2. Manual custom quantity & dimensions: preset pills unselected, Custom pill highlighted
+            _       <- I18n.let(i18n.handle)(state.configurator.updateSpecs(_.copy(
+                         dimensions = ProductDimensions.Flat2D(Dimension2D(PositiveMm.unsafe(120), PositiveMm.unsafe(77))),
+                         quantity = Quantity.unsafe(333),
+                       )))
+            enHtml  <- renderHtml(appUi, i18n)
+            _       <- I18n.let(i18n.handle)(state.setLanguage(Language.Cs))
+            csHtml  <- renderHtml(appUi, i18n)
+            qStatus <- state.configurator.quoteStatus.get
+          yield {
+            // Number inputs must bind `input` event (not only dead `onChange`) so manual typing works in Kyo UI
+            assert(stdHtml.contains("type=\"number\""))
+            assert(stdHtml.contains("input"))
+            assert(!stdHtml.contains(">Custom</span>"))
+            // Custom values render active Custom / Vlastní pill and update input values
+            assert(enHtml.contains("value=\"333\""))
+            assert(enHtml.contains("value=\"120\""))
+            assert(enHtml.contains("value=\"77\""))
+            assert(enHtml.contains("mp-pill-active"))
+            assert(enHtml.contains("Custom"))
+            assert(!enHtml.contains("‹") && !enHtml.contains("›"))
+            assert(csHtml.contains("Vlastní"))
+            assert(!csHtml.contains("‹") && !csHtml.contains("›"))
+            assert(qStatus match
+              case QuoteStatus.Ready(res) => res.pricing.effectiveQuote.quantity.value == 333
+              case _                      => false
+            )
+          }
+        }
+      }
   }
