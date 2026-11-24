@@ -142,6 +142,7 @@ object Translations:
       |cfg-param-max-hint = max { $max }
       |cfg-dimensions-label = Dimensions
       |cfg-size-presets = Standard Sizes
+      |cfg-custom-option = Custom
       |cfg-width-mm = Width (mm)
       |cfg-height-mm = Height (mm)
       |cfg-length-mm = Length (mm)
@@ -434,6 +435,7 @@ object Translations:
       |cfg-param-max-hint = max { $max }
       |cfg-dimensions-label = Rozměry
       |cfg-size-presets = Standardní formáty
+      |cfg-custom-option = Vlastní
       |cfg-width-mm = Šířka (mm)
       |cfg-height-mm = Výška (mm)
       |cfg-length-mm = Délka (mm)
