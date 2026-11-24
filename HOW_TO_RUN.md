@@ -1,11 +1,11 @@
 # Local Development Guide
 
-This guide covers the local development script [`scripts/dev.sh`](../scripts/dev.sh) for building and running every supported combination of the PrintCraft Studio frontend, backend API, and PostgreSQL database.
+This guide covers the local development script [`scripts/dev.sh`](scripts/dev.sh) for building and running every supported combination of the PrintCraft Studio frontend, backend API, and PostgreSQL database.
 
 ## Prerequisites
 
-- **JDK 25** (matching [`.sdkmanrc`](../.sdkmanrc)) — `scripts/dev.sh` automatically detects JDK 25 from SDKMAN or `java_home` if your default shell uses another JDK
-- **Mill 1.1.3** (via the bundled [`./mill`](../mill) wrapper)
+- **JDK 25** (matching [`.sdkmanrc`](.sdkmanrc)) — `scripts/dev.sh` automatically detects JDK 25 from SDKMAN or `java_home` if your default shell uses another JDK
+- **Mill 1.1.3** (via the bundled [`./mill`](mill) wrapper)
 - **Python 3** (used to serve static frontend bundles and inject `window.__API_BASE_URL__`)
 - **Docker** (or Podman with Compose) — only required for PostgreSQL modes (`fullstack`, `backend-db`, `db-*`) and DB test suites
 
@@ -114,6 +114,6 @@ Press `Ctrl+C` to stop the frontend and backend servers (PostgreSQL keeps runnin
 
 ## See Also
 
-- [running-the-platform.md](running-the-platform.md) — Manual Mill commands, server flags, and test container details
-- [backend-persistence-and-http-api.md](backend-persistence-and-http-api.md) — Persistence, migrations, and HTTP API architecture
-- [ui-guide.md](ui-guide.md) — Frontend build and test details
+- [docs/running-the-platform.md](docs/running-the-platform.md) — Manual Mill commands, server flags, and test container details
+- [docs/backend-persistence-and-http-api.md](docs/backend-persistence-and-http-api.md) — Persistence, migrations, and HTTP API architecture
+- [docs/ui-guide.md](docs/ui-guide.md) — Frontend build and test details

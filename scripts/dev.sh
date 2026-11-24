@@ -163,7 +163,7 @@ build_frontend() {
   local targets=()
   case "$APP" in
     all)
-      targets=("ui.$link_task" "ui-admin.$link_task" "ui-calculator.$link_task")
+      targets=("ui.$link_task" "+" "ui-admin.$link_task" "+" "ui-calculator.$link_task")
       ;;
     ui)
       targets=("ui.$link_task")
