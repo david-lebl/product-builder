@@ -58,11 +58,6 @@ object CalculatorView:
       def switchLanguage(lang: Language): Unit < Async =
         i18n.setLanguage(lang).andThen(ctrl.recompute)
 
-      def switchCurrency(cur: Currency): Unit < Async =
-        currencyRef.set(cur).andThen(ctrl.recompute)
-
-      val controlsSignal = currencyRef.combineLatest(i18n.language)
-
       div.cssClass("mp-calc-root")(
         // Top Widget Header
         div.style(Style.row.flexWrap(FlexWrap.wrap).justify(Justification.spaceBetween).align(Alignment.center).gap(12.px))(
@@ -70,16 +65,8 @@ object CalculatorView:
             h2(i18n.t("calc-title")).style(Style.margin(0.px).fontSize(20.px).fontWeight(FontWeight.w800).color(ink)),
             span(i18n.t("brand-name")).style(smallText),
           ),
-          controlsSignal.render { case (cur, lang) =>
+          i18n.language.render { lang =>
             div.style(Style.row.align(Alignment.center).gap(8.px).flexWrap(FlexWrap.wrap))(
-              div.style(Style.row.gap(2.px).padding(3.px).rounded(10.px).bg(surface).border(1.px, Palette.border))(
-                List(Currency.CZK, Currency.USD).map { c =>
-                  button
-                    .cssClass(if cur == c then "mp-btn mp-btn-primary mp-btn-sm" else "mp-btn mp-btn-ghost mp-btn-sm")
-                    .style(Style.padding(4.px, 9.px).fontSize(12.px))
-                    .onClick(switchCurrency(c))(c.toString)
-                }*
-              ),
               div.style(Style.row.gap(2.px).padding(3.px).rounded(10.px).bg(surface).border(1.px, Palette.border))(
                 List(Language.En -> "EN", Language.Cs -> "CS").map { case (l, code) =>
                   button
@@ -102,14 +89,13 @@ object CalculatorView:
 
         // Email Order Modal
         emailModal
-          .combineLatest(currencyRef)
           .combineLatest(i18n.language)
           .combineLatest(copiedRef)
-          .render[UI] { case (((modalOpt, cur), lang), copied) =>
+          .render[UI] { case ((modalOpt, lang), copied) =>
             modalOpt match
               case None => UI.empty
               case Some((draft, quoteRes)) =>
-                val summaryText = formatEmailSummary(catalog, draft, quoteRes, cur, lang)
+                val summaryText = formatEmailSummary(catalog, draft, quoteRes, quoteRes.pricing.effectiveQuote.currency, lang)
                 val catName     = catalog.categories.get(draft.categoryId).map(_.name(lang)).getOrElse(draft.categoryId.value)
                 val subject     = if lang == Language.Cs then s"Poptávka tisku: $catName (${draft.specs.quantity.value} ks)" else s"Print Quote Request: $catName (${draft.specs.quantity.value} pcs)"
 

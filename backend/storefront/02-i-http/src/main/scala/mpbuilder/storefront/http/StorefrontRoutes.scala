@@ -39,6 +39,10 @@ final class StorefrontRoutes private[storefront] (facade: StorefrontFacade):
     HttpRoute.getRaw(base / "showcases").response(_.bodyJson[List[ShowcaseListing]]).apiErrors
       .doc(Tags.Catalog, "Showcase listings (sorted)")
       .handler(_ => ok(facade.listShowcaseListings)),
+    HttpRoute.getRaw(base / "currency" / "rate" / Capture[Currency]("from") / Capture[Currency]("to"))
+      .response(_.bodyJson[ExchangeRateQuote]).apiErrors
+      .doc(Tags.Catalog, "Exchange rate between two currencies")
+      .handler(req => ok(facade.getExchangeRate(req.fields.from, req.fields.to))),
     HttpRoute.postRaw(base / "builder" / "compatible-finishes").request(_.bodyJson[CompatibleFinishesRequest])
       .response(_.bodyJson[List[Finish]]).apiErrors
       .doc(Tags.Catalog, "Finishes compatible with the selected component material/method")
@@ -252,6 +256,7 @@ object StorefrontRoutes:
   private given HttpCodec[OrderId]     = opaqueCodec(OrderId(_), _.value)
   private given HttpCodec[OrderLineId] = opaqueCodec(OrderLineId(_), _.value)
   private given HttpCodec[ArtworkId]   = opaqueCodec(ArtworkId(_), _.value)
+  private given HttpCodec[Currency]    = enumCodec(Currency.values)
 
   /** Public constructor for composition roots: routes over any `StorefrontFacade`. */
   def apply(facade: StorefrontFacade): StorefrontRoutes = new StorefrontRoutes(facade)

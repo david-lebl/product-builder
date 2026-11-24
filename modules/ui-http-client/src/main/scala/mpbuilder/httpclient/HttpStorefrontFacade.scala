@@ -29,6 +29,8 @@ final class HttpStorefrontFacade(transport: HttpTransport, baseUrl: String) exte
 
   override def getCatalog: ProductCatalog < Async                  = orPanic(http.call[ProductCatalog]("GET", path("catalog")))
   override def listShowcaseListings: List[ShowcaseListing] < Async = orPanic(http.call[List[ShowcaseListing]]("GET", path("showcases")))
+  override def getExchangeRate(from: Currency, to: Currency): ExchangeRateQuote < (Async & Abort[StorefrontError]) =
+    http.call[ExchangeRateQuote]("GET", path("currency", "rate", seg(from.toString), seg(to.toString)))
 
   override def compatibleFinishes(
       categoryId: CategoryId,

@@ -1,7 +1,7 @@
 # Running the Platform (API Server, PostgreSQL & Frontend)
 
 How to run the backend API server in its two storage modes and how to point the Scala.js frontends at it.
-For one-command local development scripts covering all combinations, see [local-development.md](local-development.md).
+For one-command local development scripts covering all combinations, see [HOW_TO_RUN.md](../HOW_TO_RUN.md).
 For the architecture behind it, see [backend-persistence-and-http-api.md](backend-persistence-and-http-api.md).
 
 ## 1. API server without a database (quickest)

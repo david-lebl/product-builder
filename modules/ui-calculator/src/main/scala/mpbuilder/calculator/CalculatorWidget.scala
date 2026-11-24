@@ -20,7 +20,7 @@ import scala.scalajs.js.annotation.{JSExport, JSExportTopLevel}
   * {{{
   *   MPCalculator.mount("#calculator-root", {
   *     lang: "cs",          // "en" | "cs" (optional)
-  *     currency: "CZK",     // "CZK" | "USD" (optional)
+  *     currency: "CZK",     // "CZK" | "EUR" (optional)
   *     category: "cat-business-cards", // optional CategoryId
   *     orderEmail: "orders@printshop.example", // optional
   *     apiBaseUrl: "https://api.printshop.example" // optional — live pricing over HTTP
@@ -52,9 +52,7 @@ object CalculatorWidget:
           case _          => Language.En
 
         val currency = strField("currency").map(_.toUpperCase) match
-          case Some("USD") => Currency.USD
           case Some("EUR") => Currency.EUR
-          case Some("GBP") => Currency.GBP
           case _           => Currency.CZK
 
         val category = strField("category").map(CategoryId.unsafe)

@@ -101,6 +101,8 @@ PostgreSQL schema per context**, each with its own migrations.
 
 ## Getting Started
 
+> Quick start: see **[HOW_TO_RUN.md](HOW_TO_RUN.md)** for the one-command [`scripts/dev.sh`](scripts/dev.sh) runner covering all frontend, backend, and PostgreSQL combinations.
+
 **Prerequisites:** JDK 25 (e.g. `sdk env` with the bundled `.sdkmanrc`), Mill 1.1.3 (`./mill` wrapper
 included), and Docker (or Podman) for PostgreSQL and the database tests.
 
@@ -137,6 +139,7 @@ server options and demo logins.
 
 ## Documentation
 
+- **[HOW_TO_RUN.md](HOW_TO_RUN.md)**: one-command local development guide (`scripts/dev.sh`)
 - **[docs/INDEX.md](docs/INDEX.md)**: master index of all documentation (start here)
 - **[PLAN.md](PLAN.md)**: goals and roadmap status; details in [docs_roadmap/platform_roadmap.md](docs_roadmap/platform_roadmap.md)
 - **[docs/backend-persistence-and-http-api.md](docs/backend-persistence-and-http-api.md)**: persistence, HTTP API and blob storage design

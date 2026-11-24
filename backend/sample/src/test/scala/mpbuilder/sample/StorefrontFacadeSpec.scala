@@ -416,4 +416,36 @@ class StorefrontFacadeSpec extends Test[Any]:
         assert(fixedArt.latestRevision.file.fileName.value == "line2-artwork-v2.pdf")
       }
     }.provideRuntime(seedSampleOrders = false).atTime(validNow)
+
+    "Storefront currency conversion computes EUR quotes from CZK pricelist via ExchangeRateProvider adapter" in {
+      for
+        facade      <- Env.get[StorefrontFacade]
+        rateCzkEur  <- facade.getExchangeRate(Currency.CZK, Currency.EUR)
+        rateEurCzk  <- facade.getExchangeRate(Currency.EUR, Currency.CZK)
+        unsupported <- facade.getExchangeRate(Currency.CZK, Currency.GBP).either
+        czkQuote    <- facade.configureAndQuote(flyersCmd(500), Currency.CZK)
+        eurQuote    <- facade.configureAndQuote(flyersCmd(500), Currency.EUR)
+        // Custom adapter test (e.g. future external rate provider returning 1 EUR = 20 CZK)
+        customSvc    = CurrencyConversionService.make(ExchangeRateProvider.hardcoded(BigDecimal("20.00")))
+        customEur   <- customSvc.convertQuoteResult(czkQuote, Currency.EUR)
+      yield {
+        assert(rateCzkEur.rate == BigDecimal("0.04"))
+        assert(rateEurCzk.rate == BigDecimal("25.00"))
+        assert(unsupported == Left(StorefrontError.UnsupportedCurrencyConversion(Currency.CZK, Currency.GBP)))
+        assert(czkQuote.pricing.effectiveQuote.currency == Currency.CZK)
+        assert(eurQuote.pricing.effectiveQuote.currency == Currency.EUR)
+        assert(eurQuote.pricing.effectiveQuote.netTotal == (czkQuote.pricing.effectiveQuote.netTotal * rateCzkEur.rate).rounded)
+        assert(
+          eurQuote.pricing.effectiveQuote.grossTotal ==
+            (eurQuote.pricing.effectiveQuote.netTotal + eurQuote.pricing.effectiveQuote.tax.taxAmount).rounded
+        )
+        assert(eurQuote.localizedBreakdown.size == czkQuote.localizedBreakdown.size)
+        assert(
+          eurQuote.localizedBreakdown.head.total ==
+            (czkQuote.localizedBreakdown.head.total * rateCzkEur.rate).rounded
+        )
+        assert(customEur.pricing.effectiveQuote.currency == Currency.EUR)
+        assert(customEur.pricing.effectiveQuote.netTotal == (czkQuote.pricing.effectiveQuote.netTotal * BigDecimal("0.05")).rounded)
+      }
+    }.provideRuntime(seedSampleOrders = false).atTime(validNow)
   }

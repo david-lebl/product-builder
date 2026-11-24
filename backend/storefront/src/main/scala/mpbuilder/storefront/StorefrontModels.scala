@@ -30,6 +30,15 @@ enum StorefrontError(val message: String):
       extends StorefrontError(s"Artwork uploads are locked for order '${orderId.value}' because it is already in status $status")
   case PaymentMethodNotAllowed(method: PaymentMethod, reason: String)
       extends StorefrontError(s"Payment method $method is not allowed: $reason")
+  case UnsupportedCurrencyConversion(from: Currency, to: Currency)
+      extends StorefrontError(s"Currency conversion from $from to $to is not supported")
+
+/** Exchange rate quote returned by the storefront currency conversion service. */
+final case class ExchangeRateQuote(
+    from: Currency,
+    to: Currency,
+    rate: BigDecimal,
+)
 
 // ── Artwork Upload Payload (In-Memory / URL-Backed) ──────────────────────────
 
