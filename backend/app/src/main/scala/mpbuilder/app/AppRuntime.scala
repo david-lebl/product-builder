@@ -14,7 +14,7 @@ import mpbuilder.identity.wiring.IdentityWiring
 import mpbuilder.manufacturing.sample.ManufacturingSampleWiring
 import mpbuilder.ordering.db.OrderingDb
 import mpbuilder.ordering.wiring.OrderingWiring
-import mpbuilder.platform.blob.LocalFileBlobStorage
+import mpbuilder.platform.blob.{GcsBlobStorage, LocalFileBlobStorage}
 import mpbuilder.platform.db.*
 import mpbuilder.pricing.db.PricingDb
 import mpbuilder.pricing.sample.*
@@ -43,10 +43,19 @@ object AppRuntime:
     ArtworkDb.migrations,
   )
 
+  private def makeBlobStorage(cfg: AppConfig)(using Frame): BlobStorage < Sync =
+    cfg.blobStorage match
+      case BlobStorageConfig.Memory =>
+        BlobStorage.inMemory(publicBaseUrl = Some(cfg.blobPublicBaseUrl))
+      case BlobStorageConfig.Local(dir) =>
+        new LocalFileBlobStorage(dir, Some(cfg.blobPublicBaseUrl))
+      case BlobStorageConfig.Gcs(gcs) =>
+        GcsBlobStorage.make(gcs.copy(publicBaseUrl = gcs.publicBaseUrl.orElse(Some(cfg.blobPublicBaseUrl))))
+
   // ── Mode A: in-memory sample runtime behind HTTP (zero-DB API dev) ─────────
 
   def memory(cfg: AppConfig)(using Frame): AppRuntime < Async =
-    SampleShowcaseRuntime.make(blobStorage = BlobStorage.inMemory(publicBaseUrl = Some(cfg.blobPublicBaseUrl))).map { rt =>
+    SampleShowcaseRuntime.make(blobStorage = makeBlobStorage(cfg)).map { rt =>
       AppRuntime(rt.storefront, rt.backoffice, rt.blobs, "memory", () => ())
     }
 
@@ -109,9 +118,10 @@ object AppRuntime:
 
   def postgres(cfg: AppConfig, dbConfig: DbConfig)(using Frame): AppRuntime < (Async & Scope & Abort[DbError]) =
     for
-      db  <- Database.init(dbConfig, migrationSets)
-      svc <- postgresServices(db, new LocalFileBlobStorage(cfg.blobDir, Some(cfg.blobPublicBaseUrl)))
-      _   <- Effects.when(cfg.seed)(seedIfEmpty(db, svc.identity))
+      db    <- Database.init(dbConfig, migrationSets)
+      blobs <- makeBlobStorage(cfg)
+      svc   <- postgresServices(db, blobs)
+      _     <- Effects.when(cfg.seed)(seedIfEmpty(db, svc.identity))
     yield AppRuntime(
       svc.storefront,
       svc.backoffice,

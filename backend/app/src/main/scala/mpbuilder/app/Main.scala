@@ -9,7 +9,7 @@ object Main extends KyoApp:
   run {
     for
       cfg    <- AppConfig.load(args)
-      _      <- Log.info(s"Starting with storage=${cfg.storage}, port=${cfg.http.port}")
+      _      <- Log.info(s"Starting with storage=${cfg.storage}, blobs=${cfg.blobStorage.label}, port=${cfg.http.port}")
       rt     <- AppRuntime.fromConfig(cfg)
       server <- ApiHttpServer.start(
                   ApiHttpServer.handlers(rt.storefront, rt.backoffice, rt.blobs, rt.storageLabel, rt.readiness()),

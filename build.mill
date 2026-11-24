@@ -469,11 +469,11 @@ object backend extends Module {
     }
   }
 
-  /** Bottom infrastructure (JVM): kyo-sql PostgreSQL pool, schema migrations, local blob storage. */
+  /** Bottom infrastructure (JVM): kyo-sql PostgreSQL pool, schema migrations, local & GCS blob storage. */
   object platform extends BackendJvmModule {
     def baseDir    = backendDir / "platform"
     def moduleDeps = Seq(backend.shared.jvm)
-    def mvnDeps    = backendCoreDeps ++ dbDeps
+    def mvnDeps    = backendCoreDeps ++ dbDeps ++ jsonDeps
     object test extends CoreTests {
       def mvnDeps = backendTestDeps ++ dbTestDeps
     }

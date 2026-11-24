@@ -149,7 +149,7 @@ class PlatformE2ESpec extends Test[Any]:
   private def tmpBlobDir = Files.createTempDirectory("e2e-blobs-")
 
   private def appCfg(storage: StorageMode, db: Option[DbConfig]) =
-    AppConfig(storage, HttpConfig(), db, tmpBlobDir, "/api/v1/blobs", seed = true)
+    AppConfig(storage, HttpConfig(), db, BlobStorageConfig.Local(tmpBlobDir), "/api/v1/blobs", seed = true)
 
   "Platform E2E over HTTP" - {
     "memory mode: storefront checkout lands in backoffice intake (typed errors, RBAC, blobs)".timeout(5.minutes) in {

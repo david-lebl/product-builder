@@ -29,17 +29,18 @@ final case class DbConfig(
 object DbConfig:
   /** Reads `DATABASE_URL`, `DATABASE_USER`, `DATABASE_PASSWORD`, `DATABASE_POOL_SIZE`. */
   def fromEnv(using Frame): DbConfig < (Sync & Abort[String]) =
-    Sync.defer(sys.env).map { env =>
-      env.get("DATABASE_URL").filter(_.trim.nonEmpty) match
-        case None => Abort.fail("DATABASE_URL is not set (e.g. postgresql://localhost:5432/printcraft)")
-        case Some(url) =>
-          DbConfig(
-            url = url,
-            user = env.getOrElse("DATABASE_USER", "printcraft"),
-            password = env.getOrElse("DATABASE_PASSWORD", "printcraft"),
-            maxPoolSize = env.get("DATABASE_POOL_SIZE").flatMap(_.toIntOption).getOrElse(10),
-          )
-    }
+    Sync.defer(sys.env).map(fromMap)
+
+  def fromMap(env: Map[String, String])(using Frame): DbConfig < Abort[String] =
+    env.get("DATABASE_URL").filter(_.trim.nonEmpty) match
+      case None => Abort.fail("DATABASE_URL is not set (e.g. postgresql://localhost:5432/printcraft)")
+      case Some(url) =>
+        DbConfig(
+          url = url,
+          user = env.getOrElse("DATABASE_USER", "printcraft"),
+          password = env.getOrElse("DATABASE_PASSWORD", "printcraft"),
+          maxPoolSize = env.get("DATABASE_POOL_SIZE").flatMap(_.toIntOption).getOrElse(10),
+        )
 
 /** Infrastructure-level database errors (confined to platform & `02-o-db` adapters). */
 enum DbError(val message: String):

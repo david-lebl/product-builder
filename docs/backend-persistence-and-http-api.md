@@ -72,8 +72,10 @@ DATABASE_URL=postgresql://localhost:5432/printcraft ./mill backend.app.run --sto
 | Storage | `--storage=memory\|postgres` | `STORAGE` | `memory` |
 | Bind | `--host`, `--port` | `HOST`, `PORT` | `0.0.0.0`, `8080` |
 | CORS origin | `--cors=https://shop.example` | `CORS_ORIGINS` | `*` (or exactly one origin) |
+| Blob backend | `--blob-storage=memory\|local\|gcs` | `BLOB_STORAGE` | `memory` (in memory mode) / `local` (in postgres mode) |
 | Blob directory | `--blob-dir` | `BLOB_DIR` | `./data/blobs` |
 | Blob URL prefix | `--blob-public-base-url` | `BLOB_PUBLIC_BASE_URL` | `/api/v1/blobs` |
+| GCS bucket / prefix / endpoint / creds | `--gcs-bucket`, `--gcs-prefix`, `--gcs-endpoint`, `--gcs-credentials` | `GCS_BUCKET`, `GCS_KEY_PREFIX`, `GCS_ENDPOINT`, `GCS_CREDENTIALS_FILE` / `GOOGLE_APPLICATION_CREDENTIALS`, `GCS_ACCESS_TOKEN` | endpoint `https://storage.googleapis.com`; ADC (or anonymous for custom emulator endpoint) |
 | Skip seeding | `--no-seed` | — | seeding on |
 | Database | — | `DATABASE_URL` (`postgresql://host:port/db`; a legacy `jdbc:postgresql://…` URL is accepted), `DATABASE_USER`, `DATABASE_PASSWORD`, `DATABASE_POOL_SIZE` | user/pass `printcraft` |
 
@@ -156,8 +158,10 @@ server instead (CI, or a Docker VM that cannot forward published ports).
 ## 6. Artwork blob storage (Phase 5.1)
 
 * `mpbuilder.shared.BlobStorage` port (`put` / `get` / `delete`, `A < (Async & Abort[BlobError])`) with a
-  cross-platform in-memory adapter and the JVM `LocalFileBlobStorage` (atomic writes, `.meta` sidecar,
-  strict key validation against path traversal). S3/R2 adapters only need to implement the same trait.
+  cross-platform in-memory adapter, the JVM `LocalFileBlobStorage` (atomic writes, `.meta` sidecar,
+  strict key validation against path traversal), and `GcsBlobStorage` (Google Cloud Storage JSON API v1
+  over non-blocking `java.net.http.HttpClient`, with ADC / service-account RS256 JWT / authorized-user /
+  metadata-server OAuth2 auth, token caching + 401 refresh, transient retries, and optional `keyPrefix`).
 * Both facades route every artwork upload through `BlobIngest`: inline `data:` URLs are decoded and
   stored under the artwork's storage key (preview under `<key>.preview`), `sizeBytes` and the
   **SHA-256 checksum** (pure cross-platform implementation) are recorded on `AssetFileMetadata`.
