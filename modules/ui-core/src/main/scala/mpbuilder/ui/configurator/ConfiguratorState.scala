@@ -41,6 +41,7 @@ final class ConfiguratorController(
     val catalog: ProductCatalog,
     val i18n: AppI18n,
     val currency: Signal[Currency],
+    val displayCurrency: SignalRef[Currency],
     val sessionToken: Signal[Option[SessionToken]],
     val draft: SignalRef[DraftConfig],
     val quoteStatus: SignalRef[QuoteStatus],
@@ -49,6 +50,13 @@ final class ConfiguratorController(
     private val seqRef: SignalRef[Long],
     val draftSessionId: NonEmptyString = NonEmptyString.unsafe("draft-session-ui"),
 ):
+
+  def setDisplayCurrency(cur: Currency): Unit < Async =
+    for
+      prev <- displayCurrency.get
+      _ <- if prev == cur then Kyo.unit
+           else displayCurrency.set(cur).andThen(recompute)
+    yield ()
 
   def currentCategory(d: DraftConfig): Option[ProductCategory] =
     catalog.categories.get(d.categoryId)
@@ -210,7 +218,7 @@ final class ConfiguratorController(
   def recompute: Unit < Async =
     for
       d     <- draft.get
-      cur   <- currency.current
+      cur   <- displayCurrency.get
       tok   <- sessionToken.current
       lang  <- i18n.currentLanguage
       _     <- refreshComponentCapabilities(d)
@@ -305,6 +313,8 @@ object ConfiguratorController:
       .getOrElse(initialDraftForCategory(defaultCat, catalog))
 
     for
+      initCur    <- currency.current
+      dispCurRef <- Signal.initRef[Currency](if initCur == Currency.EUR then Currency.EUR else Currency.CZK)
       draftRef   <- Signal.initRef(initDraft)
       quoteRef   <- Signal.initRef[QuoteStatus](QuoteStatus.Loading)
       finMapRef  <- Signal.initRef(Map.empty[ComponentKey, List[Finish]])
@@ -315,6 +325,7 @@ object ConfiguratorController:
                       catalog,
                       i18n,
                       currency,
+                      dispCurRef,
                       sessionToken,
                       draftRef,
                       quoteRef,

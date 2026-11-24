@@ -7,7 +7,7 @@ import mpbuilder.artwork.*
 import mpbuilder.catalog.*
 import mpbuilder.shared.*
 import mpbuilder.storefront.*
-import mpbuilder.ui.components.{ArtworkComponents, BrowserPickedFile, CommonComponents}
+import mpbuilder.ui.components.{ArtworkComponents, BrowserPickedFile, CommonComponents, Controls}
 import mpbuilder.ui.components.Icons
 import mpbuilder.ui.components.CommonComponents.*
 import mpbuilder.ui.theme.AppTheme.*
@@ -56,7 +56,7 @@ object ConfiguratorView:
     val quoteCombined =
       ctrl.quoteStatus
         .combineLatest(ctrl.draft)
-        .combineLatest(ctrl.currency)
+        .combineLatest(ctrl.displayCurrency)
         .combineLatest(ctrl.i18n.language)
 
     div.style(Style.column.gap(20.px).width(100.pct))(
@@ -1021,7 +1021,12 @@ object ConfiguratorView:
     div.cssClass("mp-card").style(Style.gap(16.px))(
       div.style(rowBetween)(
         h2(ctrl.i18n.t("cfg-quote-title")).style(sectionTitle.margin(0.px)),
-        badge(currency.toString, BadgeTone.Neutral),
+        Controls.segmented[Currency](
+          List(Currency.CZK, Currency.EUR).map(c => c -> (span(c.toString): UI)),
+          currency,
+          c => ctrl.setDisplayCurrency(c),
+          ariaLabel = if lang == Language.Cs then "Měna" else "Currency",
+        ),
       ),
       status match
         case QuoteStatus.Loading =>
@@ -1037,9 +1042,10 @@ object ConfiguratorView:
           alertBanner(BadgeTone.Rose, span(ctrl.i18n.t("cfg-errors-title")), messages)
 
         case QuoteStatus.Ready(res) =>
-          val q      = res.pricing.effectiveQuote
+          val q       = res.pricing.effectiveQuote
+          val qCur    = q.currency
           val unitNet = Money((q.netTotal.value / BigDecimal(q.quantity.value.max(1)))).rounded
-          val vatPct = q.tax.rate.value.bigDecimal.stripTrailingZeros.toPlainString
+          val vatPct  = q.tax.rate.value.bigDecimal.stripTrailingZeros.toPlainString
 
           div.style(Style.column.gap(14.px))(
             // Headline price block
@@ -1049,24 +1055,24 @@ object ConfiguratorView:
                 case Some(walkIn) =>
                   div.style(rowBetween)(
                     span(ctrl.i18n.t("cfg-quote-walkin")).style(smallText),
-                    span(formatMoney(walkIn.grossTotal, currency, lang)).style(smallText.strikethrough),
+                    span(formatMoney(walkIn.grossTotal, qCur, lang)).style(smallText.strikethrough),
                   )
                 case None => UI.empty,
               div.style(rowBetween)(
                 span(ctrl.i18n.t("cfg-quote-gross")).style(Style.fontSize(13.px).fontWeight(FontWeight.w600).color(inkSecondary)),
-                span(formatMoney(q.grossTotal, currency, lang)).style(Style.fontSize(26.px).fontWeight(FontWeight.w800).color(ink)),
+                span(formatMoney(q.grossTotal, qCur, lang)).style(Style.fontSize(26.px).fontWeight(FontWeight.w800).color(ink)),
               ),
               div.style(rowBetween)(
                 span(ctrl.i18n.t("cfg-quote-net")).style(smallText),
-                span(formatMoney(q.netTotal, currency, lang)).style(Style.fontSize(13.px).fontWeight(FontWeight.w600).color(inkSecondary)),
+                span(formatMoney(q.netTotal, qCur, lang)).style(Style.fontSize(13.px).fontWeight(FontWeight.w600).color(inkSecondary)),
               ),
               div.style(rowBetween)(
                 span(ctrl.i18n.t("cfg-quote-vat", Dict("rate" -> vatPct))).style(smallText),
-                span(formatMoney(q.tax.taxAmount, currency, lang)).style(smallText),
+                span(formatMoney(q.tax.taxAmount, qCur, lang)).style(smallText),
               ),
               div.style(rowBetween)(
                 span(ctrl.i18n.t("cfg-quote-unit")).style(smallText),
-                span(formatMoney(unitNet, currency, lang)).style(Style.fontSize(13.px).fontWeight(FontWeight.w700).color(brand)),
+                span(formatMoney(unitNet, qCur, lang)).style(Style.fontSize(13.px).fontWeight(FontWeight.w700).color(brand)),
               ),
             ),
 
@@ -1085,7 +1091,7 @@ object ConfiguratorView:
                   ctrl.i18n.t(
                     "cfg-quote-savings",
                     Dict(
-                      "amount" -> formatMoney(sav, currency, lang),
+                      "amount" -> formatMoney(sav, qCur, lang),
                       "pct"    -> pct.setScale(1, BigDecimal.RoundingMode.HALF_UP).toString,
                     ),
                   ),
@@ -1148,7 +1154,7 @@ object ConfiguratorView:
                   res.localizedBreakdown.map { line =>
                     div.style(rowBetween.fontSize(12.px))(
                       span(line.label).style(Style.color(inkSecondary)),
-                      span(formatMoney(line.total, currency, lang)).style(Style.fontWeight(FontWeight.w600).color(ink)),
+                      span(formatMoney(line.total, qCur, lang)).style(Style.fontWeight(FontWeight.w600).color(ink)),
                     )
                   }*
                 ),
