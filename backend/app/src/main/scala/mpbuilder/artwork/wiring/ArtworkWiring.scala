@@ -2,11 +2,11 @@ package mpbuilder.artwork
 package wiring
 
 import db.ArtworkDb
-import mpbuilder.artwork.sample.ArtworkSampleLayer
+import kyo.*
+import mpbuilder.artwork.sample.ArtworkSampleWiring
 import mpbuilder.platform.db.Database
-import zio.*
 
 object ArtworkWiring:
   /** Seeds the demo artwork submissions attached to the seeded demo orders. */
-  val seedIfEmpty: URIO[Database, Boolean] =
-    ArtworkDb.seedIfEmpty(ArtworkSampleLayer.seedArtworks.values.toList.sortBy(_.id.value))
+  def seedIfEmpty(db: Database): Boolean < Async =
+    ArtworkDb.seedIfEmpty(db, ArtworkSampleWiring.seedArtworks.values.toList.sortBy(_.id.value))

@@ -2,11 +2,11 @@ package mpbuilder.customers
 
 import mpbuilder.customers.core.*
 import mpbuilder.shared.*
-import zio.*
-import zio.test.*
+import kyo.*
+import kyo.test.*
 import java.time.Instant
 
-object CustomerDomainSpec extends ZIOSpecDefault:
+class CustomerDomainSpec extends Test[Any]:
 
   private val now = Instant.parse("2026-03-10T10:00:00Z")
 
@@ -30,29 +30,29 @@ object CustomerDomainSpec extends ZIOSpecDefault:
     email = EmailAddress.unsafe(email),
   )
 
-  private def inMemoryRepoLayer: ULayer[CustomerRepository] =
-    ZLayer.fromZIO {
-      Ref.make(Map.empty[CustomerId, Customer]).map { ref =>
+  private def inMemoryRepo: CustomerRepository < Sync =
+    AtomicRef.init(Map.empty[CustomerId, Customer]).map { ref =>
         new CustomerRepository:
-          override def findById(id: CustomerId): UIO[Option[Customer]] =
+          override def findById(id: CustomerId): Option[Customer] < Async =
             ref.get.map(_.get(id))
-          override def findByEmail(email: EmailAddress): UIO[Option[Customer]] =
+          override def findByEmail(email: EmailAddress): Option[Customer] < Async =
             ref.get.map(_.values.find(_.contact.email == email))
-          override def findByRegistrationNumber(regNo: NonEmptyString): UIO[Option[Customer]] =
+          override def findByRegistrationNumber(regNo: NonEmptyString): Option[Customer] < Async =
             ref.get.map(_.values.find(_.company.exists(_.registrationNumber == regNo)))
-          override def findByVatId(vatId: NonEmptyString): UIO[Option[Customer]] =
+          override def findByVatId(vatId: NonEmptyString): Option[Customer] < Async =
             ref.get.map(_.values.find(_.company.flatMap(_.vatId).contains(vatId)))
-          override def save(customer: Customer): UIO[Unit] =
+          override def save(customer: Customer): Unit < Async =
             ref.update(_ + (customer.id -> customer))
-      }
     }
 
-  private def serviceLayer: ULayer[CustomerService & EventBus] =
-    val busLayer = EventBus.live
-    busLayer ++ ((inMemoryRepoLayer ++ busLayer) >>> CustomerServiceLive.layer)
+  private def services: (CustomerService, EventBus) < Sync =
+    for
+      bus  <- EventBus.init
+      repo <- inMemoryRepo
+    yield (CustomerServiceLive.make(repo, bus), bus)
 
-  def spec = suite("CustomerDomainSpec")(
-    test("B2B registration requires CompanyProfile and starts in PendingApproval; Individual starts Active") {
+  "CustomerDomainSpec" - {
+    "B2B registration requires CompanyProfile and starts in PendingApproval; Individual starts Active" in {
       val b2bNoCompany = RegisterCustomerCmd(
         id = CustomerId.unsafe("c-bad-b2b"),
         segment = CustomerSegment.Business,
@@ -69,13 +69,12 @@ object CustomerDomainSpec extends ZIOSpecDefault:
         billingAddress = sampleAddress,
       )
 
-      assertTrue(
-        Customer.register(b2bNoCompany, now) == Left(CustomerError.CompanyProfileRequired(CustomerSegment.Business)),
-        Customer.register(b2bOk, now).map(_.status) == Right(CustomerStatus.PendingApproval),
-        Customer.register(indiv, now).map(_.status) == Right(CustomerStatus.Active),
-      )
-    },
-    test("NetInvoice terms are blocked for Individual or PendingApproval, granted to Active Business, and revoked on Suspend") {
+      assert(Customer.register(b2bNoCompany, now) == Left(CustomerError.CompanyProfileRequired(CustomerSegment.Business)))
+      assert(Customer.register(b2bOk, now).map(_.status) == Right(CustomerStatus.PendingApproval))
+      assert(Customer.register(indiv, now).map(_.status) == Right(CustomerStatus.Active))
+    }
+
+    "NetInvoice terms are blocked for Individual or PendingApproval, granted to Active Business, and revoked on Suspend" in {
       val net30 = PaymentTerms.NetInvoice(dueDays = 30, creditLimit = Price(Money(50000), Currency.CZK))
       val b2b   = Customer.register(
         RegisterCustomerCmd(CustomerId.unsafe("c-b2b"), CustomerSegment.Business, Some(sampleCompany), contact("b2b@co.cz"), sampleAddress),
@@ -92,19 +91,17 @@ object CustomerDomainSpec extends ZIOSpecDefault:
       val granted     = activeB2b.withPaymentTerms(net30, CustomerActor.System, now)
       val suspended   = granted.toOption.get.suspend(NonEmptyString.unsafe("Overdue invoice"), None, None, now)
 
-      assertTrue(
-        pendingFail.isLeft,
-        indivFail.isLeft,
-        granted.map(_.paymentTerms) == Right(net30),
-        suspended.map(_.status) == Right(CustomerStatus.Suspended),
-        suspended.map(_.paymentTerms) == Right(PaymentTerms.PrepaidOnly),
-      )
-    },
-    test("CustomerServiceLive enforces duplicate email check, supports Email/IČO/DIČ lookup, and emits domain events") {
-      ZIO.scoped {
+      assert(pendingFail.isLeft)
+      assert(indivFail.isLeft)
+      assert(granted.map(_.paymentTerms) == Right(net30))
+      assert(suspended.map(_.status) == Right(CustomerStatus.Suspended))
+      assert(suspended.map(_.paymentTerms) == Right(PaymentTerms.PrepaidOnly))
+    }
+
+    "CustomerServiceLive enforces duplicate email check, supports Email/IČO/DIČ lookup, and emits domain events" in {
+      locally {
         for
-          svc     <- ZIO.service[CustomerService]
-          bus     <- ZIO.service[EventBus]
+          (svc, bus) <- services
           queue   <- bus.subscribe
           cmd      = RegisterCustomerCmd(
                        CustomerId.unsafe("c-1"),
@@ -120,19 +117,20 @@ object CustomerDomainSpec extends ZIOSpecDefault:
           byDic   <- svc.findByIdentifier(CustomerIdentifier.VatId(sampleCompany.vatId.get))
           missing <- svc.findByIdentifier(CustomerIdentifier.CompanyRegNo(NonEmptyString.unsafe("99999999"))).either
           v2      <- svc.approve(v1.id)
-          ev1     <- queue.take
-          ev2     <- queue.take
-        yield assertTrue(
-          v1.status == CustomerStatus.PendingApproval,
-          dup == Left(CustomerError.EmailAlreadyRegistered(cmd.contact.email)),
-          byEmail.id == v1.id,
-          byIco.id == v1.id,
-          byDic.id == v1.id,
-          missing.isLeft,
-          v2.status == CustomerStatus.Active,
-          ev1.isInstanceOf[CustomerRegistered],
-          ev2.isInstanceOf[CustomerApproved],
-        )
-      }.provide(serviceLayer)
-    },
-  )
+          events  <- queue.drain
+          ev1      = events(0)
+          ev2      = events(1)
+        yield {
+          assert(v1.status == CustomerStatus.PendingApproval)
+          assert(dup == Left(CustomerError.EmailAlreadyRegistered(cmd.contact.email)))
+          assert(byEmail.id == v1.id)
+          assert(byIco.id == v1.id)
+          assert(byDic.id == v1.id)
+          assert(missing.isLeft)
+          assert(v2.status == CustomerStatus.Active)
+          assert(ev1.isInstanceOf[CustomerRegistered])
+          assert(ev2.isInstanceOf[CustomerApproved])
+        }
+      }
+    }
+  }

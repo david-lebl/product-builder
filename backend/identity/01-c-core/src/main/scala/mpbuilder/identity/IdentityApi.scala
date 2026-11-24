@@ -1,8 +1,7 @@
 package mpbuilder.identity
 
 import mpbuilder.shared.*
-import zio.*
-import zio.prelude.Validation
+import kyo.*
 import java.time.Instant
 
 // ── Context-local Opaque Types ───────────────────────────────────────────────
@@ -152,29 +151,16 @@ final case class UserLoggedOut(
 // ── Public Inbound Port (Module API) ─────────────────────────────────────────
 
 trait IdentityService:
-  def registerPasswordCredential(cmd: RegisterPasswordCmd): IO[IdentityError, Unit]
-  def loginWithPassword(email: EmailAddress, rawPassword: NonEmptyString): IO[IdentityError, AuthSession]
-  def requestCustomerOtp(identifier: LoginIdentifier): IO[IdentityError, OtpChallengeView]
-  def verifyOtp(challengeId: OtpChallengeId, code: OtpCode): IO[IdentityError, AuthSession]
-  def validateSession(token: SessionToken): IO[IdentityError, AuthSession]
-  def logout(token: SessionToken): UIO[Unit]
+  def registerPasswordCredential(cmd: RegisterPasswordCmd): Unit < (Async & Abort[IdentityError])
+  def loginWithPassword(email: EmailAddress, rawPassword: NonEmptyString): AuthSession < (Async & Abort[IdentityError])
+  def requestCustomerOtp(identifier: LoginIdentifier): OtpChallengeView < (Async & Abort[IdentityError])
+  def verifyOtp(challengeId: OtpChallengeId, code: OtpCode): AuthSession < (Async & Abort[IdentityError])
+  def validateSession(token: SessionToken): AuthSession < (Async & Abort[IdentityError])
+  def logout(token: SessionToken): Unit < Async
 
   // ── Staff directory management ─────────────────────────────────────────────
-  def listStaffMembers: UIO[List[StaffMemberView]]
-  def createStaffMember(cmd: CreateStaffCmd): IO[IdentityError, StaffMemberView]
-  def updateStaffRoles(employeeId: EmployeeId, roles: Set[EmployeeRole]): IO[IdentityError, StaffMemberView]
-  def setStaffActive(employeeId: EmployeeId, isActive: Boolean): IO[IdentityError, StaffMemberView]
-  def resetPassword(email: EmailAddress, newRawPassword: NonEmptyString): IO[IdentityError, Unit]
-
-object IdentityService:
-  def loginWithPassword(email: EmailAddress, rawPassword: NonEmptyString): ZIO[IdentityService, IdentityError, AuthSession] =
-    ZIO.serviceWithZIO[IdentityService](_.loginWithPassword(email, rawPassword))
-
-  def requestCustomerOtp(identifier: LoginIdentifier): ZIO[IdentityService, IdentityError, OtpChallengeView] =
-    ZIO.serviceWithZIO[IdentityService](_.requestCustomerOtp(identifier))
-
-  def verifyOtp(challengeId: OtpChallengeId, code: OtpCode): ZIO[IdentityService, IdentityError, AuthSession] =
-    ZIO.serviceWithZIO[IdentityService](_.verifyOtp(challengeId, code))
-
-  def validateSession(token: SessionToken): ZIO[IdentityService, IdentityError, AuthSession] =
-    ZIO.serviceWithZIO[IdentityService](_.validateSession(token))
+  def listStaffMembers: List[StaffMemberView] < Async
+  def createStaffMember(cmd: CreateStaffCmd): StaffMemberView < (Async & Abort[IdentityError])
+  def updateStaffRoles(employeeId: EmployeeId, roles: Set[EmployeeRole]): StaffMemberView < (Async & Abort[IdentityError])
+  def setStaffActive(employeeId: EmployeeId, isActive: Boolean): StaffMemberView < (Async & Abort[IdentityError])
+  def resetPassword(email: EmailAddress, newRawPassword: NonEmptyString): Unit < (Async & Abort[IdentityError])

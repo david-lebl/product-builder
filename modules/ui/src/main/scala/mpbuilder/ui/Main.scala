@@ -53,17 +53,10 @@ object Main extends KyoApp:
       case None => bootInMemoryClients
 
   private def bootInMemoryClients: (StorefrontClient, BackofficeClient) < Async =
-    val bootZio: zio.UIO[(StorefrontFacade, BackofficeFacade, InMemoryOtpInbox)] =
-      zio.ZIO.scoped {
-        SampleShowcaseRuntime.layer().build.map { env =>
-          (env.get[StorefrontFacade], env.get[BackofficeFacade], env.get[InMemoryOtpInbox])
-        }
-      }
-    Abort.run[Nothing](ZIOs.get(bootZio)).map { res =>
-      val (sfFacade, boFacade, otpInbox) = res.getOrThrow
+    SampleShowcaseRuntime.make().map { rt =>
       (
-        StorefrontClient.fromZio(sfFacade, otpInbox.codeFor),
-        BackofficeClient.fromZio(boFacade),
+        StorefrontClient.fromFacade(rt.storefront, rt.otpInbox.codeFor),
+        BackofficeClient.fromFacade(rt.backoffice),
       )
     }
 

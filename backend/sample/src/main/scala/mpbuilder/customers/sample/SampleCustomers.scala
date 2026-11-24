@@ -3,7 +3,7 @@ package mpbuilder.customers.sample
 import mpbuilder.customers.*
 import mpbuilder.customers.core.{Customer, CustomerRepository, CustomerServiceLive}
 import mpbuilder.shared.*
-import zio.*
+import kyo.*
 import java.time.Instant
 
 /** All 10 sample customer accounts replicated from legacy `SampleCustomers`
@@ -330,40 +330,41 @@ object SampleCustomers:
   val allViews: List[CustomerView] = all.map(_.toView)
 
 final class InMemoryCustomerRepository(
-    ref: Ref[Map[CustomerId, Customer]],
+    ref: AtomicRef[Map[CustomerId, Customer]],
 ) extends CustomerRepository:
 
-  override def findById(id: CustomerId): UIO[Option[Customer]] =
+  override def findById(id: CustomerId): Option[Customer] < Async =
     ref.get.map(_.get(id))
 
-  override def findByEmail(email: EmailAddress): UIO[Option[Customer]] =
+  override def findByEmail(email: EmailAddress): Option[Customer] < Async =
     ref.get.map(_.values.find(_.contact.email == email))
 
-  override def findByRegistrationNumber(regNo: NonEmptyString): UIO[Option[Customer]] =
+  override def findByRegistrationNumber(regNo: NonEmptyString): Option[Customer] < Async =
     val normalized = regNo.value.trim.replaceAll("\\s+", "")
     ref.get.map(_.values.find(_.company.exists(_.registrationNumber.value.trim.replaceAll("\\s+", "") == normalized)))
 
-  override def findByVatId(vatId: NonEmptyString): UIO[Option[Customer]] =
+  override def findByVatId(vatId: NonEmptyString): Option[Customer] < Async =
     val normalized = vatId.value.trim.replaceAll("\\s+", "").toUpperCase
     ref.get.map(_.values.find(_.company.flatMap(_.vatId).exists(_.value.trim.replaceAll("\\s+", "").toUpperCase == normalized)))
 
-  override def save(customer: Customer): UIO[Unit] =
+  override def save(customer: Customer): Unit < Async =
     ref.update(_ + (customer.id -> customer))
 
-  override def listAll: UIO[List[Customer]] =
+  override def listAll: List[Customer] < Async =
     ref.get.map(_.values.toList.sortBy(_.id.value))
 
-  def listAllViews: UIO[List[CustomerView]] =
+  def listAllViews: List[CustomerView] < Async =
     listAll.map(_.map(_.toView))
 
-object CustomerSampleLayer:
+object CustomerSampleWiring:
 
-  def repositoryLayer(
+  def repository(
       initial: List[Customer] = SampleCustomers.all,
-  ): ULayer[InMemoryCustomerRepository] =
-    ZLayer.fromZIO(Ref.make(initial.map(c => c.id -> c).toMap).map(new InMemoryCustomerRepository(_)))
+  ): InMemoryCustomerRepository < Sync =
+    AtomicRef.init(initial.map(c => c.id -> c).toMap).map(new InMemoryCustomerRepository(_))
 
-  def live(
+  def service(
+      eventBus: EventBus,
       initial: List[Customer] = SampleCustomers.all,
-  ): ZLayer[EventBus, Nothing, CustomerService] =
-    (repositoryLayer(initial) ++ ZLayer.service[EventBus]) >>> CustomerServiceLive.layer
+  ): CustomerService < Sync =
+    repository(initial).map(CustomerServiceLive.make(_, eventBus))

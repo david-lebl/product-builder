@@ -2,7 +2,7 @@ package mpbuilder.customers
 package core
 
 import mpbuilder.shared.*
-import zio.*
+import kyo.*
 import java.time.Instant
 
 /** Internal Customer aggregate (compile-time isolated via `private[customers]`).
@@ -234,41 +234,41 @@ private[customers] object Customer:
       )
 
 private[customers] trait CustomerRepository:
-  def findById(id: CustomerId): UIO[Option[Customer]]
-  def findByEmail(email: EmailAddress): UIO[Option[Customer]]
-  def findByRegistrationNumber(regNo: NonEmptyString): UIO[Option[Customer]]
-  def findByVatId(vatId: NonEmptyString): UIO[Option[Customer]]
-  def listAll: UIO[List[Customer]] = ZIO.succeed(Nil)
-  def save(customer: Customer): UIO[Unit]
+  def findById(id: CustomerId): Option[Customer] < Async
+  def findByEmail(email: EmailAddress): Option[Customer] < Async
+  def findByRegistrationNumber(regNo: NonEmptyString): Option[Customer] < Async
+  def findByVatId(vatId: NonEmptyString): Option[Customer] < Async
+  def listAll: List[Customer] < Async = Kyo.lift(Nil)
+  def save(customer: Customer): Unit < Async
 
 private[customers] final class CustomerServiceLive(
     repo: CustomerRepository,
     eventBus: EventBus,
 ) extends CustomerService:
 
-  override def register(cmd: RegisterCustomerCmd): IO[CustomerError, CustomerView] =
+  override def register(cmd: RegisterCustomerCmd): CustomerView < (Async & Abort[CustomerError]) =
     for
-      now      <- Clock.instant
+      now      <- Effects.now
       existing <- repo.findByEmail(cmd.contact.email)
-      _        <- ZIO.fail(CustomerError.EmailAlreadyRegistered(cmd.contact.email)).when(existing.isDefined)
-      customer <- ZIO.fromEither(Customer.register(cmd, now))
+      _        <- Effects.failWhen(existing.isDefined)(CustomerError.EmailAlreadyRegistered(cmd.contact.email))
+      customer <- (Customer.register(cmd, now)).orAbort
       _        <- repo.save(customer)
       _        <- eventBus.publish(CustomerRegistered(customer.id, customer.segment, customer.tier, now))
     yield customer.toView
 
-  override def getById(id: CustomerId): IO[CustomerError.NotFound, CustomerView] =
+  override def getById(id: CustomerId): CustomerView < (Async & Abort[CustomerError.NotFound]) =
     repo.findById(id).someOrFail(new CustomerError.NotFound(id)).map(_.toView)
 
   override def findByIdentifier(
       identifier: CustomerIdentifier,
-  ): IO[CustomerError.NotFoundByIdentifier, CustomerView] =
+  ): CustomerView < (Async & Abort[CustomerError.NotFoundByIdentifier]) =
     val lookup = identifier match
       case CustomerIdentifier.Email(email)       => repo.findByEmail(email)
       case CustomerIdentifier.CompanyRegNo(regNo) => repo.findByRegistrationNumber(regNo)
       case CustomerIdentifier.VatId(vatId)       => repo.findByVatId(vatId)
     lookup.someOrFail(new CustomerError.NotFoundByIdentifier(identifier)).map(_.toView)
 
-  override def listCustomers(filter: CustomerFilter = CustomerFilter()): UIO[List[CustomerView]] =
+  override def listCustomers(filter: CustomerFilter = CustomerFilter()): List[CustomerView] < Async =
     repo.listAll.map { all =>
       val q = filter.query.map(_.trim.toLowerCase).filter(_.nonEmpty)
       all
@@ -296,11 +296,11 @@ private[customers] final class CustomerServiceLive(
         .map(_.toView)
     }
 
-  override def approve(id: CustomerId, actor: CustomerActor = CustomerActor.System): IO[CustomerError, CustomerView] =
+  override def approve(id: CustomerId, actor: CustomerActor = CustomerActor.System): CustomerView < (Async & Abort[CustomerError]) =
     for
-      now      <- Clock.instant
+      now      <- Effects.now
       customer <- repo.findById(id).someOrFail(CustomerError.NotFound(id))
-      updated  <- ZIO.fromEither(customer.approve(actor, now))
+      updated  <- (customer.approve(actor, now)).orAbort
       _        <- repo.save(updated)
       _        <- eventBus.publish(CustomerApproved(updated.id, now))
     yield updated.toView
@@ -310,11 +310,11 @@ private[customers] final class CustomerServiceLive(
       reason: NonEmptyString,
       by: Option[EmployeeId],
       byName: Option[NonEmptyString] = None,
-  ): IO[CustomerError, CustomerView] =
+  ): CustomerView < (Async & Abort[CustomerError]) =
     for
-      now      <- Clock.instant
+      now      <- Effects.now
       customer <- repo.findById(id).someOrFail(CustomerError.NotFound(id))
-      updated  <- ZIO.fromEither(customer.suspend(reason, by, byName, now))
+      updated  <- (customer.suspend(reason, by, byName, now)).orAbort
       _        <- repo.save(updated)
     yield updated.toView
 
@@ -323,11 +323,11 @@ private[customers] final class CustomerServiceLive(
       reason: NonEmptyString,
       by: Option[EmployeeId],
       byName: Option[NonEmptyString] = None,
-  ): IO[CustomerError, CustomerView] =
+  ): CustomerView < (Async & Abort[CustomerError]) =
     for
-      now      <- Clock.instant
+      now      <- Effects.now
       customer <- repo.findById(id).someOrFail(CustomerError.NotFound(id))
-      updated  <- ZIO.fromEither(customer.deactivate(reason, by, byName, now))
+      updated  <- (customer.deactivate(reason, by, byName, now)).orAbort
       _        <- repo.save(updated)
     yield updated.toView
 
@@ -335,9 +335,9 @@ private[customers] final class CustomerServiceLive(
       id: CustomerId,
       newTier: CustomerTier,
       actor: CustomerActor = CustomerActor.System,
-  ): IO[CustomerError, CustomerView] =
+  ): CustomerView < (Async & Abort[CustomerError]) =
     for
-      now      <- Clock.instant
+      now      <- Effects.now
       customer <- repo.findById(id).someOrFail(CustomerError.NotFound(id))
       prev      = customer.tier
       updated   = customer.withTier(newTier, actor, now)
@@ -349,35 +349,32 @@ private[customers] final class CustomerServiceLive(
       id: CustomerId,
       terms: PaymentTerms,
       actor: CustomerActor = CustomerActor.System,
-  ): IO[CustomerError, CustomerView] =
+  ): CustomerView < (Async & Abort[CustomerError]) =
     for
-      now      <- Clock.instant
+      now      <- Effects.now
       customer <- repo.findById(id).someOrFail(CustomerError.NotFound(id))
-      updated  <- ZIO.fromEither(customer.withPaymentTerms(terms, actor, now))
+      updated  <- (customer.withPaymentTerms(terms, actor, now)).orAbort
       _        <- repo.save(updated)
     yield updated.toView
 
-  override def updateProfile(cmd: UpdateCustomerProfileCmd): IO[CustomerError, CustomerView] =
+  override def updateProfile(cmd: UpdateCustomerProfileCmd): CustomerView < (Async & Abort[CustomerError]) =
     for
-      now      <- Clock.instant
+      now      <- Effects.now
       customer <- repo.findById(cmd.id).someOrFail(CustomerError.NotFound(cmd.id))
-      _        <- ZIO
-                    .when(cmd.contact.email != customer.contact.email) {
+      _        <- Effects.when(cmd.contact.email != customer.contact.email) {
                       repo
                         .findByEmail(cmd.contact.email)
                         .flatMap(existing =>
-                          ZIO
-                            .fail(CustomerError.EmailAlreadyRegistered(cmd.contact.email))
-                            .when(existing.exists(_.id != cmd.id))
+                          Effects.failWhen(existing.exists(_.id != cmd.id))(CustomerError.EmailAlreadyRegistered(cmd.contact.email))
                         )
                     }
-      updated  <- ZIO.fromEither(customer.updateProfile(cmd, now))
+      updated  <- (customer.updateProfile(cmd, now)).orAbort
       _        <- repo.save(updated)
     yield updated.toView
 
-  override def updateAddresses(cmd: UpdateCustomerAddressesCmd): IO[CustomerError, CustomerView] =
+  override def updateAddresses(cmd: UpdateCustomerAddressesCmd): CustomerView < (Async & Abort[CustomerError]) =
     for
-      now      <- Clock.instant
+      now      <- Effects.now
       customer <- repo.findById(cmd.id).someOrFail(CustomerError.NotFound(cmd.id))
       updated   = customer.updateAddresses(cmd, now)
       _        <- repo.save(updated)
@@ -388,14 +385,13 @@ private[customers] final class CustomerServiceLive(
       text: NonEmptyString,
       by: Option[EmployeeId],
       byName: Option[NonEmptyString] = None,
-  ): IO[CustomerError, CustomerView] =
+  ): CustomerView < (Async & Abort[CustomerError]) =
     for
-      now      <- Clock.instant
+      now      <- Effects.now
       customer <- repo.findById(id).someOrFail(CustomerError.NotFound(id))
       updated   = customer.addNote(text, by, byName, now)
       _        <- repo.save(updated)
     yield updated.toView
 
 private[customers] object CustomerServiceLive:
-  val layer: ZLayer[CustomerRepository & EventBus, Nothing, CustomerService] =
-    ZLayer.fromFunction(CustomerServiceLive.apply)
+  def make(repo: CustomerRepository, eventBus: EventBus): CustomerService = CustomerServiceLive(repo, eventBus)

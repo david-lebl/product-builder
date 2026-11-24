@@ -2,7 +2,7 @@ package mpbuilder.manufacturing
 package core
 
 import mpbuilder.shared.*
-import zio.*
+import kyo.*
 import java.time.Instant
 
 /** Pure DAG workflow generator.
@@ -242,7 +242,7 @@ private[manufacturing] object WorkflowEngine:
         if s.id == stepId then s.copy(status = StepStatus.Failed, notes = reason.value)
         else if s.dependsOn.contains(stepId) then s.copy(dependsOn = (s.dependsOn - stepId) + reworkId)
         else s
-      } :+ reworkStep
+      }.appended(reworkStep)
       wf.copy(steps = updated, status = WorkflowStatus.OnHold)
 
   private def unlockReadySteps(steps: NonEmptyChunk[WorkflowStep]): NonEmptyChunk[WorkflowStep] =
@@ -277,15 +277,15 @@ private[manufacturing] final case class ProductionJob(
     ProductionJobView(id, orderId, speed, priority, workflows, fulfilment, deadline, createdAt)
 
 private[manufacturing] trait ProductionJobRepository:
-  def findById(id: JobId): UIO[Option[ProductionJob]]
-  def listActive: UIO[List[ProductionJob]]
-  def save(job: ProductionJob): UIO[Unit]
+  def findById(id: JobId): Option[ProductionJob] < Async
+  def listActive: List[ProductionJob] < Async
+  def save(job: ProductionJob): Unit < Async
 
 private[manufacturing] trait ShopResourceRepository:
-  def findEmployee(id: EmployeeId): UIO[Option[Employee]]
-  def findMachine(id: MachineId): UIO[Option[Machine]]
-  def listMachines: UIO[List[Machine]]
-  def findSpeedPolicy(categoryId: CategoryId, speed: ManufacturingSpeed): UIO[Option[SpeedAvailabilityPolicy]]
+  def findEmployee(id: EmployeeId): Option[Employee] < Async
+  def findMachine(id: MachineId): Option[Machine] < Async
+  def listMachines: List[Machine] < Async
+  def findSpeedPolicy(categoryId: CategoryId, speed: ManufacturingSpeed): Option[SpeedAvailabilityPolicy] < Async
 
 private[manufacturing] final class ManufacturingServiceLive(
     jobRepo: ProductionJobRepository,
@@ -297,9 +297,9 @@ private[manufacturing] final class ManufacturingServiceLive(
       jobId: JobId,
       specs: NonEmptyChunk[ProductionSpec],
       deadline: Option[Instant],
-  ): IO[ManufacturingError, ProductionJobView] =
+  ): ProductionJobView < (Async & Abort[ManufacturingError]) =
     for
-      now <- Clock.instant
+      now <- Effects.now
       wfs  = specs.zipWithIndex.map { case (spec, idx) =>
                WorkflowGenerator.generate(spec, WorkflowId.unsafe(s"${jobId.value}-wf-$idx"), deadline, now)
              }
@@ -324,16 +324,16 @@ private[manufacturing] final class ManufacturingServiceLive(
       stepId: StepId,
       employeeId: EmployeeId,
       machineId: Option[MachineId],
-  ): IO[ManufacturingError, ProductionJobView] =
+  ): ProductionJobView < (Async & Abort[ManufacturingError]) =
     for
-      now     <- Clock.instant
+      now     <- Effects.now
       job     <- jobRepo.findById(jobId).someOrFail(ManufacturingError.JobNotFound(jobId))
-      wf      <- ZIO.fromOption(job.workflows.find(_.id == workflowId)).orElseFail(ManufacturingError.WorkflowNotFound(workflowId))
+      wf      <- (job.workflows.find(_.id == workflowId)).orFail(ManufacturingError.WorkflowNotFound(workflowId))
       emp     <- resourceRepo.findEmployee(employeeId).someOrFail(ManufacturingError.EmployeeInactive(employeeId))
-      machOpt <- ZIO.foreach(machineId)(mid =>
+      machOpt <- Effects.traverse(machineId)(mid =>
                    resourceRepo.findMachine(mid).someOrFail(ManufacturingError.MachineUnavailable(mid, MachineStatus.Offline))
                  )
-      updWf   <- ZIO.fromEither(WorkflowEngine.claimStep(wf, stepId, emp, machOpt, now))
+      updWf   <- (WorkflowEngine.claimStep(wf, stepId, emp, machOpt, now)).orAbort
       updJob   = job.copy(workflows = job.workflows.map(w => if w.id == workflowId then updWf else w))
       _       <- jobRepo.save(updJob)
     yield updJob.toView
@@ -343,13 +343,13 @@ private[manufacturing] final class ManufacturingServiceLive(
       workflowId: WorkflowId,
       stepId: StepId,
       notes: String,
-  ): IO[ManufacturingError, ProductionJobView] =
+  ): ProductionJobView < (Async & Abort[ManufacturingError]) =
     for
-      now    <- Clock.instant
+      now    <- Effects.now
       job    <- jobRepo.findById(jobId).someOrFail(ManufacturingError.JobNotFound(jobId))
-      wf     <- ZIO.fromOption(job.workflows.find(_.id == workflowId)).orElseFail(ManufacturingError.WorkflowNotFound(workflowId))
-      step   <- ZIO.fromOption(wf.steps.find(_.id == stepId)).orElseFail(ManufacturingError.StepNotFound(stepId))
-      updWf  <- ZIO.fromEither(WorkflowEngine.completeStep(wf, stepId, notes, now))
+      wf     <- (job.workflows.find(_.id == workflowId)).orFail(ManufacturingError.WorkflowNotFound(workflowId))
+      step   <- (wf.steps.find(_.id == stepId)).orFail(ManufacturingError.StepNotFound(stepId))
+      updWf  <- (WorkflowEngine.completeStep(wf, stepId, notes, now)).orAbort
       updJob  = job.copy(workflows = job.workflows.map(w => if w.id == workflowId then updWf else w))
       _      <- jobRepo.save(updJob)
       _      <- eventBus.publish(WorkflowStepCompleted(job.id, workflowId, stepId, step.stationType, now))
@@ -361,18 +361,18 @@ private[manufacturing] final class ManufacturingServiceLive(
       workflowId: WorkflowId,
       stepId: StepId,
       reason: NonEmptyString,
-  ): IO[ManufacturingError, ProductionJobView] =
+  ): ProductionJobView < (Async & Abort[ManufacturingError]) =
     for
       job   <- jobRepo.findById(jobId).someOrFail(ManufacturingError.JobNotFound(jobId))
-      wf    <- ZIO.fromOption(job.workflows.find(_.id == workflowId)).orElseFail(ManufacturingError.WorkflowNotFound(workflowId))
-      updWf <- ZIO.fromEither(WorkflowEngine.failAndScheduleRework(wf, stepId, reason))
+      wf    <- (job.workflows.find(_.id == workflowId)).orFail(ManufacturingError.WorkflowNotFound(workflowId))
+      updWf <- (WorkflowEngine.failAndScheduleRework(wf, stepId, reason)).orAbort
       updJob = job.copy(workflows = job.workflows.map(w => if w.id == workflowId then updWf else w))
       _     <- jobRepo.save(updJob)
     yield updJob.toView
 
-  override def currentCapacity: UIO[CapacitySnapshot] =
+  override def currentCapacity: CapacitySnapshot < Async =
     for
-      now      <- Clock.instant
+      now      <- Effects.now
       jobs     <- jobRepo.listActive
       machines <- resourceRepo.listMachines
       allSteps  = jobs.flatMap(_.workflows.toList).flatMap(_.steps.toList)
@@ -398,22 +398,22 @@ private[manufacturing] final class ManufacturingServiceLive(
       componentCount: Int,
       materialIds: Set[MaterialId],
       finishingOps: Set[FinishingOperation],
-  ): IO[ManufacturingError.SpeedTierUnavailable, Unit] =
+  ): Unit < (Async & Abort[ManufacturingError.SpeedTierUnavailable]) =
     resourceRepo.findSpeedPolicy(categoryId, speed).flatMap {
-      case None => ZIO.unit
+      case None => Kyo.unit
       case Some(p) if !p.enabled =>
-        ZIO.fail(ManufacturingError.SpeedTierUnavailable(categoryId, speed, s"$speed tier is disabled for this category"))
+        Abort.fail(ManufacturingError.SpeedTierUnavailable(categoryId, speed, s"$speed tier is disabled for this category"))
       case Some(p) if p.maxQuantity.exists(quantity.value > _) =>
-        ZIO.fail(ManufacturingError.SpeedTierUnavailable(categoryId, speed, s"Quantity ${quantity.value} exceeds max ${p.maxQuantity.get}"))
+        Abort.fail(ManufacturingError.SpeedTierUnavailable(categoryId, speed, s"Quantity ${quantity.value} exceeds max ${p.maxQuantity.get}"))
       case Some(p) if p.maxComponents.exists(componentCount > _) =>
-        ZIO.fail(ManufacturingError.SpeedTierUnavailable(categoryId, speed, s"Component count $componentCount exceeds max ${p.maxComponents.get}"))
+        Abort.fail(ManufacturingError.SpeedTierUnavailable(categoryId, speed, s"Component count $componentCount exceeds max ${p.maxComponents.get}"))
       case Some(p) if (p.blockedMaterialIds intersect materialIds).nonEmpty =>
-        ZIO.fail(ManufacturingError.SpeedTierUnavailable(categoryId, speed, "Selected material is not eligible for this speed tier"))
+        Abort.fail(ManufacturingError.SpeedTierUnavailable(categoryId, speed, "Selected material is not eligible for this speed tier"))
       case Some(p) if (p.blockedFinishOps intersect finishingOps).nonEmpty =>
-        ZIO.fail(ManufacturingError.SpeedTierUnavailable(categoryId, speed, "Selected finishing operation cannot be rushed"))
-      case Some(_) => ZIO.unit
+        Abort.fail(ManufacturingError.SpeedTierUnavailable(categoryId, speed, "Selected finishing operation cannot be rushed"))
+      case Some(_) => Kyo.unit
     }
 
 private[manufacturing] object ManufacturingServiceLive:
-  val layer: ZLayer[ProductionJobRepository & ShopResourceRepository & EventBus, Nothing, ManufacturingService] =
-    ZLayer.fromFunction(ManufacturingServiceLive.apply)
+  def make(jobs: ProductionJobRepository, resources: ShopResourceRepository, eventBus: EventBus): ManufacturingService =
+    ManufacturingServiceLive(jobs, resources, eventBus)

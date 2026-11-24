@@ -2,7 +2,6 @@ package mpbuilder.catalog
 package core
 
 import mpbuilder.shared.*
-import zio.prelude.{AssociativeBothCovariantOps, Validation}
 
 /** Single canonical compatibility rule evaluator.
   *

@@ -2,42 +2,41 @@ package mpbuilder.catalog.sample
 
 import mpbuilder.catalog.*
 import mpbuilder.catalog.core.{CatalogRepository, CatalogServiceLive}
-import zio.*
+import kyo.*
+import mpbuilder.shared.*
 
-/** Mutable in-memory `CatalogRepository` backed by ZIO `Ref`, suitable for
+/** Mutable in-memory `CatalogRepository` backed by Kyo `AtomicRef`, suitable for
   * unit tests AND backend-less UI showcases (supports live admin edits).
   */
 final class InMemoryCatalogRepository(
-    catalogRef: Ref[ProductCatalog],
-    rulesetRef: Ref[CompatibilityRuleset],
+    catalogRef: AtomicRef[ProductCatalog],
+    rulesetRef: AtomicRef[CompatibilityRuleset],
 ) extends CatalogRepository:
 
-  override def loadCatalog: UIO[ProductCatalog]              = catalogRef.get
-  override def loadRuleset: UIO[CompatibilityRuleset]        = rulesetRef.get
-  override def saveCatalog(catalog: ProductCatalog): UIO[Unit]       = catalogRef.set(catalog)
-  override def saveRuleset(ruleset: CompatibilityRuleset): UIO[Unit] = rulesetRef.set(ruleset)
+  override def loadCatalog: ProductCatalog < Async              = catalogRef.get
+  override def loadRuleset: CompatibilityRuleset < Async        = rulesetRef.get
+  override def saveCatalog(catalog: ProductCatalog): Unit < Async       = catalogRef.set(catalog)
+  override def saveRuleset(ruleset: CompatibilityRuleset): Unit < Async = rulesetRef.set(ruleset)
 
-  def updateCatalog(f: ProductCatalog => ProductCatalog): UIO[Unit] =
+  def updateCatalog(f: ProductCatalog => ProductCatalog): Unit < Async =
     catalogRef.update(f)
 
-  def updateRuleset(f: CompatibilityRuleset => CompatibilityRuleset): UIO[Unit] =
+  def updateRuleset(f: CompatibilityRuleset => CompatibilityRuleset): Unit < Async =
     rulesetRef.update(f)
 
-object CatalogSampleLayer:
+object CatalogSampleWiring:
 
-  def repositoryLayer(
+  def repository(
       initialCatalog: ProductCatalog = SampleCatalog.catalog,
       initialRuleset: CompatibilityRuleset = SampleRules.ruleset,
-  ): ULayer[InMemoryCatalogRepository] =
-    ZLayer.fromZIO {
-      for
-        catRef  <- Ref.make(initialCatalog)
-        ruleRef <- Ref.make(initialRuleset)
-      yield new InMemoryCatalogRepository(catRef, ruleRef)
-    }
+  ): InMemoryCatalogRepository < Sync =
+    for
+      catRef  <- AtomicRef.init(initialCatalog)
+      ruleRef <- AtomicRef.init(initialRuleset)
+    yield new InMemoryCatalogRepository(catRef, ruleRef)
 
-  def live(
+  def service(
       initialCatalog: ProductCatalog = SampleCatalog.catalog,
       initialRuleset: CompatibilityRuleset = SampleRules.ruleset,
-  ): ULayer[CatalogService] =
-    repositoryLayer(initialCatalog, initialRuleset) >>> CatalogServiceLive.layer
+  ): CatalogService < Sync =
+    repository(initialCatalog, initialRuleset).map(CatalogServiceLive.make)

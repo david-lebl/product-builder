@@ -7,7 +7,7 @@ import mpbuilder.identity.*
 import mpbuilder.ordering.*
 import mpbuilder.pricing.*
 import mpbuilder.shared.*
-import zio.*
+import kyo.*
 
 /** Role-based Backoffice / Admin BFF orchestrating all bounded contexts via public APIs only.
   *
@@ -21,134 +21,140 @@ import zio.*
 trait BackofficeFacade:
 
   // ── 1. Staff Authentication ────────────────────────────────────────────────
-  def loginStaff(email: EmailAddress, rawPassword: NonEmptyString): IO[BackofficeError, StaffAuthResult]
-  def validateStaffSession(token: SessionToken): IO[BackofficeError, StaffAuthResult]
-  def logoutStaff(token: SessionToken): UIO[Unit]
+  def loginStaff(email: EmailAddress, rawPassword: NonEmptyString): StaffAuthResult < (Async & Abort[BackofficeError])
+  def validateStaffSession(token: SessionToken): StaffAuthResult < (Async & Abort[BackofficeError])
+  def logoutStaff(token: SessionToken): Unit < Async
 
   // ── 2. Dashboard Summary ───────────────────────────────────────────────────
-  def getDashboardSummary(token: SessionToken): IO[BackofficeError, BackofficeDashboardSummary]
+  def getDashboardSummary(token: SessionToken): BackofficeDashboardSummary < (Async & Abort[BackofficeError])
 
   // ── 3. Order Intake & Manual Lifecycle ─────────────────────────────────────
-  def listOrders(token: SessionToken, filter: OrderFilter = OrderFilter()): IO[BackofficeError, List[OrderView]]
-  def getOrder(token: SessionToken, orderId: OrderId): IO[BackofficeError, OrderView]
-  def acceptOrder(token: SessionToken, orderId: OrderId, note: Option[NonEmptyString] = None): IO[BackofficeError, OrderView]
-  def putOrderOnHold(token: SessionToken, orderId: OrderId, reason: NonEmptyString): IO[BackofficeError, OrderView]
-  def resumeOrderFromHold(token: SessionToken, orderId: OrderId, note: Option[NonEmptyString] = None): IO[BackofficeError, OrderView]
+  def listOrders(token: SessionToken, filter: OrderFilter = OrderFilter()): List[OrderView] < (Async & Abort[BackofficeError])
+  def getOrder(token: SessionToken, orderId: OrderId): OrderView < (Async & Abort[BackofficeError])
+  def acceptOrder(token: SessionToken, orderId: OrderId, note: Option[NonEmptyString] = None): OrderView < (Async & Abort[BackofficeError])
+  def putOrderOnHold(token: SessionToken, orderId: OrderId, reason: NonEmptyString): OrderView < (Async & Abort[BackofficeError])
+  def resumeOrderFromHold(token: SessionToken, orderId: OrderId, note: Option[NonEmptyString] = None): OrderView < (Async & Abort[BackofficeError])
   def advanceOrderStage(
       token: SessionToken,
       orderId: OrderId,
       target: OrderStatus,
       note: Option[NonEmptyString] = None,
-  ): IO[BackofficeError, OrderView]
-  def confirmOrderPayment(token: SessionToken, orderId: OrderId, note: Option[NonEmptyString] = None): IO[BackofficeError, OrderView]
+  ): OrderView < (Async & Abort[BackofficeError])
+  def confirmOrderPayment(token: SessionToken, orderId: OrderId, note: Option[NonEmptyString] = None): OrderView < (Async & Abort[BackofficeError])
   def markOrderPaymentStatus(
       token: SessionToken,
       orderId: OrderId,
       status: PaymentStatus,
       note: Option[NonEmptyString] = None,
-  ): IO[BackofficeError, OrderView]
-  def editOrderLine(token: SessionToken, cmd: EditOrderLineCmd): IO[BackofficeError, OrderView]
-  def cancelOrder(token: SessionToken, orderId: OrderId, reason: NonEmptyString): IO[BackofficeError, OrderView]
-  def addOrderInternalNote(token: SessionToken, orderId: OrderId, text: NonEmptyString): IO[BackofficeError, OrderView]
+  ): OrderView < (Async & Abort[BackofficeError])
+  def editOrderLine(token: SessionToken, cmd: EditOrderLineCmd): OrderView < (Async & Abort[BackofficeError])
+  def cancelOrder(token: SessionToken, orderId: OrderId, reason: NonEmptyString): OrderView < (Async & Abort[BackofficeError])
+  def addOrderInternalNote(token: SessionToken, orderId: OrderId, text: NonEmptyString): OrderView < (Async & Abort[BackofficeError])
 
   // ── 4. Artwork Review ──────────────────────────────────────────────────────
-  def listOrderArtwork(token: SessionToken, orderId: OrderId): IO[BackofficeError, List[ArtworkSubmissionView]]
+  def listOrderArtwork(token: SessionToken, orderId: OrderId): List[ArtworkSubmissionView] < (Async & Abort[BackofficeError])
   def approveArtwork(
       token: SessionToken,
       artworkId: ArtworkId,
       overrideFailures: Boolean = false,
-  ): IO[BackofficeError, ArtworkSubmissionView]
+  ): ArtworkSubmissionView < (Async & Abort[BackofficeError])
   def requestArtworkChanges(
       token: SessionToken,
       artworkId: ArtworkId,
       notes: NonEmptyString,
-  ): IO[BackofficeError, ArtworkSubmissionView]
+  ): ArtworkSubmissionView < (Async & Abort[BackofficeError])
   def rejectArtwork(
       token: SessionToken,
       artworkId: ArtworkId,
       reason: NonEmptyString,
-  ): IO[BackofficeError, ArtworkSubmissionView]
+  ): ArtworkSubmissionView < (Async & Abort[BackofficeError])
   def uploadStaffArtworkRevision(
       token: SessionToken,
       orderId: OrderId,
       artworkId: ArtworkId,
       payload: StaffArtworkUploadPayload,
-  ): IO[BackofficeError, ArtworkSubmissionView]
+  ): ArtworkSubmissionView < (Async & Abort[BackofficeError])
   def uploadStaffOrderLineArtwork(
       token: SessionToken,
       orderId: OrderId,
       lineIndex: Int,
       componentKey: ComponentKey,
       payload: StaffArtworkUploadPayload,
-  ): IO[BackofficeError, ArtworkSubmissionView]
+  ): ArtworkSubmissionView < (Async & Abort[BackofficeError])
   def rerunArtworkPreflight(
       token: SessionToken,
       orderId: OrderId,
       artworkId: ArtworkId,
-  ): IO[BackofficeError, ArtworkSubmissionView]
+  ): ArtworkSubmissionView < (Async & Abort[BackofficeError])
 
   // ── 5. Catalog Management ──────────────────────────────────────────────────
-  def getCatalog(token: SessionToken): IO[BackofficeError, ProductCatalog]
-  def getRuleset(token: SessionToken): IO[BackofficeError, CompatibilityRuleset]
-  def upsertCategory(token: SessionToken, category: ProductCategory): IO[BackofficeError, ProductCatalog]
-  def deleteCategory(token: SessionToken, id: CategoryId): IO[BackofficeError, ProductCatalog]
-  def upsertMaterial(token: SessionToken, material: Material): IO[BackofficeError, ProductCatalog]
-  def deleteMaterial(token: SessionToken, id: MaterialId): IO[BackofficeError, ProductCatalog]
-  def upsertFinish(token: SessionToken, finish: Finish): IO[BackofficeError, ProductCatalog]
-  def deleteFinish(token: SessionToken, id: FinishId): IO[BackofficeError, ProductCatalog]
-  def upsertPrintingMethod(token: SessionToken, method: PrintingMethod): IO[BackofficeError, ProductCatalog]
-  def deletePrintingMethod(token: SessionToken, id: PrintingMethodId): IO[BackofficeError, ProductCatalog]
-  def upsertShowcaseListing(token: SessionToken, listing: ShowcaseListing): IO[BackofficeError, ProductCatalog]
-  def deleteShowcaseListing(token: SessionToken, categoryId: CategoryId): IO[BackofficeError, ProductCatalog]
-  def upsertRule(token: SessionToken, rule: CompatibilityRule): IO[BackofficeError, CompatibilityRuleset]
-  def deleteRule(token: SessionToken, id: RuleId): IO[BackofficeError, CompatibilityRuleset]
+  def getCatalog(token: SessionToken): ProductCatalog < (Async & Abort[BackofficeError])
+  def getRuleset(token: SessionToken): CompatibilityRuleset < (Async & Abort[BackofficeError])
+  def upsertCategory(token: SessionToken, category: ProductCategory): ProductCatalog < (Async & Abort[BackofficeError])
+  def deleteCategory(token: SessionToken, id: CategoryId): ProductCatalog < (Async & Abort[BackofficeError])
+  def upsertMaterial(token: SessionToken, material: Material): ProductCatalog < (Async & Abort[BackofficeError])
+  def deleteMaterial(token: SessionToken, id: MaterialId): ProductCatalog < (Async & Abort[BackofficeError])
+  def upsertFinish(token: SessionToken, finish: Finish): ProductCatalog < (Async & Abort[BackofficeError])
+  def deleteFinish(token: SessionToken, id: FinishId): ProductCatalog < (Async & Abort[BackofficeError])
+  def upsertPrintingMethod(token: SessionToken, method: PrintingMethod): ProductCatalog < (Async & Abort[BackofficeError])
+  def deletePrintingMethod(token: SessionToken, id: PrintingMethodId): ProductCatalog < (Async & Abort[BackofficeError])
+  def upsertShowcaseListing(token: SessionToken, listing: ShowcaseListing): ProductCatalog < (Async & Abort[BackofficeError])
+  def deleteShowcaseListing(token: SessionToken, categoryId: CategoryId): ProductCatalog < (Async & Abort[BackofficeError])
+  def upsertRule(token: SessionToken, rule: CompatibilityRule): CompatibilityRuleset < (Async & Abort[BackofficeError])
+  def deleteRule(token: SessionToken, id: RuleId): CompatibilityRuleset < (Async & Abort[BackofficeError])
 
   // ── 6. Pricing, Agreements, Promos & Margin Simulation ─────────────────────
-  def listPricelists(token: SessionToken): IO[BackofficeError, List[Pricelist]]
-  def savePricelist(token: SessionToken, pricelist: Pricelist): IO[BackofficeError, Pricelist]
-  def listAgreements(token: SessionToken): IO[BackofficeError, List[CustomerPriceAgreement]]
-  def saveAgreement(token: SessionToken, agreement: CustomerPriceAgreement): IO[BackofficeError, CustomerPriceAgreement]
-  def deleteAgreement(token: SessionToken, target: AgreementTarget, currency: Currency): IO[BackofficeError, Unit]
-  def listPromoCodes(token: SessionToken): IO[BackofficeError, List[PromoCode]]
-  def savePromoCode(token: SessionToken, promo: PromoCode): IO[BackofficeError, PromoCode]
-  def setPromoCodeActive(token: SessionToken, id: DiscountCodeId, active: Boolean): IO[BackofficeError, PromoCode]
-  def deletePromoCode(token: SessionToken, id: DiscountCodeId): IO[BackofficeError, Unit]
-  def listCostSheets(token: SessionToken): IO[BackofficeError, List[ProductionCostSheet]]
-  def saveCostSheet(token: SessionToken, sheet: ProductionCostSheet): IO[BackofficeError, ProductionCostSheet]
-  def simulateMargin(token: SessionToken, cmd: MarginSimulationCmd): IO[BackofficeError, MarginSimulationResult]
+  def listPricelists(token: SessionToken): List[Pricelist] < (Async & Abort[BackofficeError])
+  def savePricelist(token: SessionToken, pricelist: Pricelist): Pricelist < (Async & Abort[BackofficeError])
+  def listAgreements(token: SessionToken): List[CustomerPriceAgreement] < (Async & Abort[BackofficeError])
+  def saveAgreement(token: SessionToken, agreement: CustomerPriceAgreement): CustomerPriceAgreement < (Async & Abort[BackofficeError])
+  def deleteAgreement(token: SessionToken, target: AgreementTarget, currency: Currency): Unit < (Async & Abort[BackofficeError])
+  def listPromoCodes(token: SessionToken): List[PromoCode] < (Async & Abort[BackofficeError])
+  def savePromoCode(token: SessionToken, promo: PromoCode): PromoCode < (Async & Abort[BackofficeError])
+  def setPromoCodeActive(token: SessionToken, id: DiscountCodeId, active: Boolean): PromoCode < (Async & Abort[BackofficeError])
+  def deletePromoCode(token: SessionToken, id: DiscountCodeId): Unit < (Async & Abort[BackofficeError])
+  def listCostSheets(token: SessionToken): List[ProductionCostSheet] < (Async & Abort[BackofficeError])
+  def saveCostSheet(token: SessionToken, sheet: ProductionCostSheet): ProductionCostSheet < (Async & Abort[BackofficeError])
+  def simulateMargin(token: SessionToken, cmd: MarginSimulationCmd): MarginSimulationResult < (Async & Abort[BackofficeError])
 
   // ── 7. Customer Management ─────────────────────────────────────────────────
-  def listCustomers(token: SessionToken, filter: CustomerFilter = CustomerFilter()): IO[BackofficeError, List[CustomerView]]
-  def getCustomerDetail(token: SessionToken, id: CustomerId): IO[BackofficeError, CustomerDetailView]
-  def registerCustomer(token: SessionToken, cmd: RegisterCustomerCmd): IO[BackofficeError, CustomerView]
-  def approveCustomer(token: SessionToken, id: CustomerId): IO[BackofficeError, CustomerView]
-  def suspendCustomer(token: SessionToken, id: CustomerId, reason: NonEmptyString): IO[BackofficeError, CustomerView]
-  def deactivateCustomer(token: SessionToken, id: CustomerId, reason: NonEmptyString): IO[BackofficeError, CustomerView]
-  def changeCustomerTier(token: SessionToken, id: CustomerId, tier: CustomerTier): IO[BackofficeError, CustomerView]
-  def grantCustomerPaymentTerms(token: SessionToken, id: CustomerId, terms: PaymentTerms): IO[BackofficeError, CustomerView]
-  def updateCustomerProfile(token: SessionToken, cmd: UpdateCustomerProfileCmd): IO[BackofficeError, CustomerView]
-  def addCustomerNote(token: SessionToken, id: CustomerId, text: NonEmptyString): IO[BackofficeError, CustomerView]
+  def listCustomers(token: SessionToken, filter: CustomerFilter = CustomerFilter()): List[CustomerView] < (Async & Abort[BackofficeError])
+  def getCustomerDetail(token: SessionToken, id: CustomerId): CustomerDetailView < (Async & Abort[BackofficeError])
+  def registerCustomer(token: SessionToken, cmd: RegisterCustomerCmd): CustomerView < (Async & Abort[BackofficeError])
+  def approveCustomer(token: SessionToken, id: CustomerId): CustomerView < (Async & Abort[BackofficeError])
+  def suspendCustomer(token: SessionToken, id: CustomerId, reason: NonEmptyString): CustomerView < (Async & Abort[BackofficeError])
+  def deactivateCustomer(token: SessionToken, id: CustomerId, reason: NonEmptyString): CustomerView < (Async & Abort[BackofficeError])
+  def changeCustomerTier(token: SessionToken, id: CustomerId, tier: CustomerTier): CustomerView < (Async & Abort[BackofficeError])
+  def grantCustomerPaymentTerms(token: SessionToken, id: CustomerId, terms: PaymentTerms): CustomerView < (Async & Abort[BackofficeError])
+  def updateCustomerProfile(token: SessionToken, cmd: UpdateCustomerProfileCmd): CustomerView < (Async & Abort[BackofficeError])
+  def addCustomerNote(token: SessionToken, id: CustomerId, text: NonEmptyString): CustomerView < (Async & Abort[BackofficeError])
 
   // ── 8. Staff Directory & Store Delivery / Bank Settings ────────────────────
-  def listStaffMembers(token: SessionToken): IO[BackofficeError, List[StaffMemberView]]
-  def createStaffMember(token: SessionToken, cmd: CreateStaffCmd): IO[BackofficeError, StaffMemberView]
-  def updateStaffRoles(token: SessionToken, employeeId: EmployeeId, roles: Set[EmployeeRole]): IO[BackofficeError, StaffMemberView]
-  def setStaffActive(token: SessionToken, employeeId: EmployeeId, isActive: Boolean): IO[BackofficeError, StaffMemberView]
-  def resetStaffPassword(token: SessionToken, email: EmailAddress, newRawPassword: NonEmptyString): IO[BackofficeError, Unit]
+  def listStaffMembers(token: SessionToken): List[StaffMemberView] < (Async & Abort[BackofficeError])
+  def createStaffMember(token: SessionToken, cmd: CreateStaffCmd): StaffMemberView < (Async & Abort[BackofficeError])
+  def updateStaffRoles(token: SessionToken, employeeId: EmployeeId, roles: Set[EmployeeRole]): StaffMemberView < (Async & Abort[BackofficeError])
+  def setStaffActive(token: SessionToken, employeeId: EmployeeId, isActive: Boolean): StaffMemberView < (Async & Abort[BackofficeError])
+  def resetStaffPassword(token: SessionToken, email: EmailAddress, newRawPassword: NonEmptyString): Unit < (Async & Abort[BackofficeError])
 
-  def getStoreDeliverySettings(token: SessionToken): IO[BackofficeError, StoreDeliverySettingsView]
-  def upsertPickupLocation(token: SessionToken, loc: ShopPickupLocation): IO[BackofficeError, List[ShopPickupLocation]]
-  def deletePickupLocation(token: SessionToken, id: DeliveryOptionId): IO[BackofficeError, List[ShopPickupLocation]]
-  def upsertCourierOption(token: SessionToken, opt: CourierServiceOption): IO[BackofficeError, List[CourierServiceOption]]
-  def deleteCourierOption(token: SessionToken, currency: Currency, id: DeliveryOptionId): IO[BackofficeError, List[CourierServiceOption]]
-  def upsertBankAccount(token: SessionToken, currency: Currency, account: BankAccountConfig): IO[BackofficeError, Map[Currency, BankAccountConfig]]
+  def getStoreDeliverySettings(token: SessionToken): StoreDeliverySettingsView < (Async & Abort[BackofficeError])
+  def upsertPickupLocation(token: SessionToken, loc: ShopPickupLocation): List[ShopPickupLocation] < (Async & Abort[BackofficeError])
+  def deletePickupLocation(token: SessionToken, id: DeliveryOptionId): List[ShopPickupLocation] < (Async & Abort[BackofficeError])
+  def upsertCourierOption(token: SessionToken, opt: CourierServiceOption): List[CourierServiceOption] < (Async & Abort[BackofficeError])
+  def deleteCourierOption(token: SessionToken, currency: Currency, id: DeliveryOptionId): List[CourierServiceOption] < (Async & Abort[BackofficeError])
+  def upsertBankAccount(token: SessionToken, currency: Currency, account: BankAccountConfig): Map[Currency, BankAccountConfig] < (Async & Abort[BackofficeError])
 
 object BackofficeFacade:
-  val layer: ZLayer[
-    CatalogService & PricingService & CustomerService & IdentityService & OrderService & CheckoutOptionsService & ArtworkService & BlobStorage,
-    Nothing,
-    BackofficeFacade,
-  ] = ZLayer.fromFunction(BackofficeFacadeLive.apply)
+  def make(
+      catalog: CatalogService,
+      pricing: PricingService,
+      customers: CustomerService,
+      identity: IdentityService,
+      orders: OrderService,
+      checkoutOptions: CheckoutOptionsService,
+      artwork: ArtworkService,
+      blobs: BlobStorage,
+  ): BackofficeFacade =
+    new BackofficeFacadeLive(catalog, pricing, customers, identity, orders, checkoutOptions, artwork, blobs)
 
 final class BackofficeFacadeLive(
     catalogService: CatalogService,
@@ -169,17 +175,15 @@ final class BackofficeFacadeLive(
   private def authorize(
       token: SessionToken,
       allowedRoles: Set[EmployeeRole],
-  ): IO[BackofficeError, Principal.Employee] =
+  ): Principal.Employee < (Async & Abort[BackofficeError]) =
     for
       session <- identityService
                    .validateSession(token)
-                   .mapError(e => BackofficeError.Unauthenticated(e.message))
+                   .mapAbort(e => BackofficeError.Unauthenticated(e.message))
       emp     <- session.principal match
-                   case e: Principal.Employee => ZIO.succeed(e)
-                   case _                     => ZIO.fail(BackofficeError.NotAnEmployeeSession)
-      _       <- ZIO
-                   .fail(BackofficeError.Forbidden(allowedRoles, emp.roles))
-                   .when(emp.roles.intersect(allowedRoles).isEmpty)
+                   case e: Principal.Employee => Kyo.lift(e)
+                   case _                     => Abort.fail(BackofficeError.NotAnEmployeeSession)
+      _       <- Effects.failWhen(emp.roles.intersect(allowedRoles).isEmpty)(BackofficeError.Forbidden(allowedRoles, emp.roles))
     yield emp
 
   // ── 1. Staff Authentication ────────────────────────────────────────────────
@@ -187,34 +191,34 @@ final class BackofficeFacadeLive(
   override def loginStaff(
       email: EmailAddress,
       rawPassword: NonEmptyString,
-  ): IO[BackofficeError, StaffAuthResult] =
+  ): StaffAuthResult < (Async & Abort[BackofficeError]) =
     for
       session <- identityService
                    .loginWithPassword(email, rawPassword)
-                   .mapError(BackofficeError.IdentityFailure.apply)
+                   .mapAbort(BackofficeError.IdentityFailure.apply)
       emp     <- session.principal match
-                   case e: Principal.Employee => ZIO.succeed(e)
+                   case e: Principal.Employee => Kyo.lift(e)
                    case _ =>
                      identityService.logout(session.token) *>
-                       ZIO.fail(BackofficeError.NotAnEmployeeSession)
+                       Abort.fail(BackofficeError.NotAnEmployeeSession)
     yield StaffAuthResult(session, emp)
 
-  override def validateStaffSession(token: SessionToken): IO[BackofficeError, StaffAuthResult] =
+  override def validateStaffSession(token: SessionToken): StaffAuthResult < (Async & Abort[BackofficeError]) =
     for
       session <- identityService
                    .validateSession(token)
-                   .mapError(e => BackofficeError.Unauthenticated(e.message))
+                   .mapAbort(e => BackofficeError.Unauthenticated(e.message))
       emp     <- session.principal match
-                   case e: Principal.Employee => ZIO.succeed(e)
-                   case _                     => ZIO.fail(BackofficeError.NotAnEmployeeSession)
+                   case e: Principal.Employee => Kyo.lift(e)
+                   case _                     => Abort.fail(BackofficeError.NotAnEmployeeSession)
     yield StaffAuthResult(session, emp)
 
-  override def logoutStaff(token: SessionToken): UIO[Unit] =
+  override def logoutStaff(token: SessionToken): Unit < Async =
     identityService.logout(token)
 
   // ── 2. Dashboard Summary ───────────────────────────────────────────────────
 
-  override def getDashboardSummary(token: SessionToken): IO[BackofficeError, BackofficeDashboardSummary] =
+  override def getDashboardSummary(token: SessionToken): BackofficeDashboardSummary < (Async & Abort[BackofficeError]) =
     for
       _         <- authorize(token, AnyStaffRoles)
       orders    <- orderService.listOrders(OrderFilter())
@@ -250,47 +254,47 @@ final class BackofficeFacadeLive(
   override def listOrders(
       token: SessionToken,
       filter: OrderFilter,
-  ): IO[BackofficeError, List[OrderView]] =
+  ): List[OrderView] < (Async & Abort[BackofficeError]) =
     authorize(token, AnyStaffRoles) *> orderService.listOrders(filter)
 
-  override def getOrder(token: SessionToken, orderId: OrderId): IO[BackofficeError, OrderView] =
+  override def getOrder(token: SessionToken, orderId: OrderId): OrderView < (Async & Abort[BackofficeError]) =
     authorize(token, AnyStaffRoles) *>
-      orderService.getOrder(orderId).mapError(BackofficeError.OrderFailure.apply)
+      orderService.getOrder(orderId).mapAbort(BackofficeError.OrderFailure.apply)
 
   override def acceptOrder(
       token: SessionToken,
       orderId: OrderId,
       note: Option[NonEmptyString],
-  ): IO[BackofficeError, OrderView] =
+  ): OrderView < (Async & Abort[BackofficeError]) =
     for
       emp <- authorize(token, IntakeRoles)
       res <- orderService
                .acceptOrder(orderId, emp.employeeId, Some(emp.displayName), note.map(_.value))
-               .mapError(BackofficeError.OrderFailure.apply)
+               .mapAbort(BackofficeError.OrderFailure.apply)
     yield res
 
   override def putOrderOnHold(
       token: SessionToken,
       orderId: OrderId,
       reason: NonEmptyString,
-  ): IO[BackofficeError, OrderView] =
+  ): OrderView < (Async & Abort[BackofficeError]) =
     for
       emp <- authorize(token, IntakeRoles)
       res <- orderService
                .putOnHold(orderId, emp.employeeId, Some(emp.displayName), reason)
-               .mapError(BackofficeError.OrderFailure.apply)
+               .mapAbort(BackofficeError.OrderFailure.apply)
     yield res
 
   override def resumeOrderFromHold(
       token: SessionToken,
       orderId: OrderId,
       note: Option[NonEmptyString],
-  ): IO[BackofficeError, OrderView] =
+  ): OrderView < (Async & Abort[BackofficeError]) =
     for
       emp <- authorize(token, IntakeRoles)
       res <- orderService
                .resumeFromHold(orderId, emp.employeeId, Some(emp.displayName), note.map(_.value))
-               .mapError(BackofficeError.OrderFailure.apply)
+               .mapAbort(BackofficeError.OrderFailure.apply)
     yield res
 
   override def advanceOrderStage(
@@ -298,24 +302,24 @@ final class BackofficeFacadeLive(
       orderId: OrderId,
       target: OrderStatus,
       note: Option[NonEmptyString],
-  ): IO[BackofficeError, OrderView] =
+  ): OrderView < (Async & Abort[BackofficeError]) =
     for
       emp <- authorize(token, IntakeRoles)
       res <- orderService
                .advanceStage(orderId, target, emp.employeeId, Some(emp.displayName), note.map(_.value))
-               .mapError(BackofficeError.OrderFailure.apply)
+               .mapAbort(BackofficeError.OrderFailure.apply)
     yield res
 
   override def confirmOrderPayment(
       token: SessionToken,
       orderId: OrderId,
       note: Option[NonEmptyString],
-  ): IO[BackofficeError, OrderView] =
+  ): OrderView < (Async & Abort[BackofficeError]) =
     for
       emp <- authorize(token, IntakeRoles)
       res <- orderService
                .confirmPaymentByStaff(orderId, emp.employeeId, Some(emp.displayName), note.map(_.value))
-               .mapError(BackofficeError.OrderFailure.apply)
+               .mapAbort(BackofficeError.OrderFailure.apply)
     yield res
 
   override def markOrderPaymentStatus(
@@ -323,47 +327,47 @@ final class BackofficeFacadeLive(
       orderId: OrderId,
       status: PaymentStatus,
       note: Option[NonEmptyString],
-  ): IO[BackofficeError, OrderView] =
+  ): OrderView < (Async & Abort[BackofficeError]) =
     for
       emp <- authorize(token, ManagerAdminRoles)
       res <- orderService
                .markPaymentStatus(orderId, status, emp.employeeId, Some(emp.displayName), note.map(_.value))
-               .mapError(BackofficeError.OrderFailure.apply)
+               .mapAbort(BackofficeError.OrderFailure.apply)
     yield res
 
   override def editOrderLine(
       token: SessionToken,
       cmd: EditOrderLineCmd,
-  ): IO[BackofficeError, OrderView] =
+  ): OrderView < (Async & Abort[BackofficeError]) =
     for
       emp <- authorize(token, IntakeRoles + EmployeeRole.Prepress)
       res <- orderService
                .editOrderLine(cmd, emp.employeeId, Some(emp.displayName))
-               .mapError(BackofficeError.OrderFailure.apply)
+               .mapAbort(BackofficeError.OrderFailure.apply)
     yield res
 
   override def cancelOrder(
       token: SessionToken,
       orderId: OrderId,
       reason: NonEmptyString,
-  ): IO[BackofficeError, OrderView] =
+  ): OrderView < (Async & Abort[BackofficeError]) =
     for
       emp <- authorize(token, IntakeRoles)
       res <- orderService
                .cancelByStaff(orderId, emp.employeeId, Some(emp.displayName), reason)
-               .mapError(BackofficeError.OrderFailure.apply)
+               .mapAbort(BackofficeError.OrderFailure.apply)
     yield res
 
   override def addOrderInternalNote(
       token: SessionToken,
       orderId: OrderId,
       text: NonEmptyString,
-  ): IO[BackofficeError, OrderView] =
+  ): OrderView < (Async & Abort[BackofficeError]) =
     for
       emp <- authorize(token, AnyStaffRoles)
       res <- orderService
                .addInternalNote(orderId, emp.employeeId, Some(emp.displayName), text)
-               .mapError(BackofficeError.OrderFailure.apply)
+               .mapAbort(BackofficeError.OrderFailure.apply)
     yield res
 
   // ── 4. Artwork Review ──────────────────────────────────────────────────────
@@ -371,11 +375,11 @@ final class BackofficeFacadeLive(
   override def listOrderArtwork(
       token: SessionToken,
       orderId: OrderId,
-  ): IO[BackofficeError, List[ArtworkSubmissionView]] =
+  ): List[ArtworkSubmissionView] < (Async & Abort[BackofficeError]) =
     for
       _     <- authorize(token, AnyStaffRoles)
-      order <- orderService.getOrder(orderId).mapError(BackofficeError.OrderFailure.apply)
-      byIdx <- ZIO.foreach(order.lines.toList.zipWithIndex) { case (_, idx) =>
+      order <- orderService.getOrder(orderId).mapAbort(BackofficeError.OrderFailure.apply)
+      byIdx <- Effects.traverse(order.lines.toList.zipWithIndex) { case (_, idx) =>
                  artworkService.listByOwner(ArtworkOwner.OrderLineRef(orderId, idx))
                }
     yield byIdx.flatten
@@ -384,32 +388,32 @@ final class BackofficeFacadeLive(
       token: SessionToken,
       artworkId: ArtworkId,
       overrideFailures: Boolean,
-  ): IO[BackofficeError, ArtworkSubmissionView] =
+  ): ArtworkSubmissionView < (Async & Abort[BackofficeError]) =
     for
       emp <- authorize(token, AnyStaffRoles)
       res <- artworkService
                .approve(artworkId, emp.employeeId, overrideFailures)
-               .mapError(BackofficeError.ArtworkFailure.apply)
+               .mapAbort(BackofficeError.ArtworkFailure.apply)
     yield res
 
   override def requestArtworkChanges(
       token: SessionToken,
       artworkId: ArtworkId,
       notes: NonEmptyString,
-  ): IO[BackofficeError, ArtworkSubmissionView] =
+  ): ArtworkSubmissionView < (Async & Abort[BackofficeError]) =
     authorize(token, AnyStaffRoles) *>
-      artworkService.requestChanges(artworkId, notes).mapError(BackofficeError.ArtworkFailure.apply)
+      artworkService.requestChanges(artworkId, notes).mapAbort(BackofficeError.ArtworkFailure.apply)
 
   override def rejectArtwork(
       token: SessionToken,
       artworkId: ArtworkId,
       reason: NonEmptyString,
-  ): IO[BackofficeError, ArtworkSubmissionView] =
+  ): ArtworkSubmissionView < (Async & Abort[BackofficeError]) =
     for
       emp <- authorize(token, AnyStaffRoles)
       res <- artworkService
                .reject(artworkId, emp.employeeId, reason)
-               .mapError(BackofficeError.ArtworkFailure.apply)
+               .mapAbort(BackofficeError.ArtworkFailure.apply)
     yield res
 
   override def uploadStaffArtworkRevision(
@@ -417,11 +421,11 @@ final class BackofficeFacadeLive(
       orderId: OrderId,
       artworkId: ArtworkId,
       payload: StaffArtworkUploadPayload,
-  ): IO[BackofficeError, ArtworkSubmissionView] =
+  ): ArtworkSubmissionView < (Async & Abort[BackofficeError]) =
     for
       _        <- authorize(token, AnyStaffRoles)
-      order    <- orderService.getOrder(orderId).mapError(BackofficeError.OrderFailure.apply)
-      existing <- artworkService.getById(artworkId).mapError(BackofficeError.ArtworkFailure.apply)
+      order    <- orderService.getOrder(orderId).mapAbort(BackofficeError.OrderFailure.apply)
+      existing <- artworkService.getById(artworkId).mapAbort(BackofficeError.ArtworkFailure.apply)
       lineOpt   = existing.owner match
                     case ArtworkOwner.OrderLineRef(_, idx) => order.lines.lift(idx)
                     case _                                 => None
@@ -447,7 +451,7 @@ final class BackofficeFacadeLive(
                         requirement = Some(req),
                       )
                     )
-                    .mapError(BackofficeError.ArtworkFailure.apply)
+                    .mapAbort(BackofficeError.ArtworkFailure.apply)
     yield updated
 
   override def uploadStaffOrderLineArtwork(
@@ -456,13 +460,11 @@ final class BackofficeFacadeLive(
       lineIndex: Int,
       componentKey: ComponentKey,
       payload: StaffArtworkUploadPayload,
-  ): IO[BackofficeError, ArtworkSubmissionView] =
+  ): ArtworkSubmissionView < (Async & Abort[BackofficeError]) =
     for
       _     <- authorize(token, AnyStaffRoles)
-      order <- orderService.getOrder(orderId).mapError(BackofficeError.OrderFailure.apply)
-      line  <- ZIO
-                 .fromOption(order.lines.lift(lineIndex))
-                 .orElseFail(BackofficeError.OrderFailure(OrderError.OrderLineNotFound(orderId, OrderLineId.unsafe(s"index-$lineIndex"))))
+      order <- orderService.getOrder(orderId).mapAbort(BackofficeError.OrderFailure.apply)
+      line  <- order.lines.lift(lineIndex).orFail(BackofficeError.OrderFailure(OrderError.OrderLineNotFound(orderId, OrderLineId.unsafe(s"index-$lineIndex"))))
       existingList <- artworkService.listByOwner(ArtworkOwner.OrderLineRef(orderId, lineIndex))
       existingOpt   = existingList.find(_.componentKey == componentKey)
       res <- existingOpt match
@@ -474,8 +476,8 @@ final class BackofficeFacadeLive(
                  val pageCnt  = payload.pageCount.getOrElse(defaultPageCountFor(comp))
                  val req      = preflightRequirementFor(trimSize, pageCnt)
                  for
-                   now   <- Clock.instant
-                   rnd   <- Random.nextIntBetween(1000, 9999)
+                   now   <- Effects.now
+                   rnd   <- Random.nextInt(8999).map(_ + 1000)
                    artId  = ArtworkId.unsafe(s"art-staff-${now.toEpochMilli}-$rnd")
                    file  <- assetFile(s"uploads/${orderId.value}/${artId.value}-${sanitizeFileSegment(payload.fileName.value)}", payload)
                    view  <- artworkService
@@ -496,8 +498,8 @@ final class BackofficeFacadeLive(
                                   requirement = Some(req),
                                 )
                               )
-                              .mapError(BackofficeError.ArtworkFailure.apply)
-                   _ <- orderService.attachArtwork(orderId, lineIndex, componentKey, artId).mapError(BackofficeError.OrderFailure.apply)
+                              .mapAbort(BackofficeError.ArtworkFailure.apply)
+                   _ <- orderService.attachArtwork(orderId, lineIndex, componentKey, artId).mapAbort(BackofficeError.OrderFailure.apply)
                  yield view
     yield res
 
@@ -505,11 +507,11 @@ final class BackofficeFacadeLive(
       token: SessionToken,
       orderId: OrderId,
       artworkId: ArtworkId,
-  ): IO[BackofficeError, ArtworkSubmissionView] =
+  ): ArtworkSubmissionView < (Async & Abort[BackofficeError]) =
     for
       _        <- authorize(token, AnyStaffRoles)
-      order    <- orderService.getOrder(orderId).mapError(BackofficeError.OrderFailure.apply)
-      existing <- artworkService.getById(artworkId).mapError(BackofficeError.ArtworkFailure.apply)
+      order    <- orderService.getOrder(orderId).mapAbort(BackofficeError.OrderFailure.apply)
+      existing <- artworkService.getById(artworkId).mapAbort(BackofficeError.ArtworkFailure.apply)
       lineOpt   = existing.owner match
                     case ArtworkOwner.OrderLineRef(_, idx) => order.lines.lift(idx)
                     case _                                 => None
@@ -517,7 +519,7 @@ final class BackofficeFacadeLive(
       trimSize  = compOpt.map(_.finishedSize).getOrElse(existing.latestRevision.extractedSpecs.trimSize)
       pageCnt   = compOpt.map(defaultPageCountFor).getOrElse(existing.latestRevision.extractedSpecs.pageCount)
       req       = preflightRequirementFor(trimSize, pageCnt)
-      updated  <- artworkService.runPreflight(artworkId, req).mapError(BackofficeError.ArtworkFailure.apply)
+      updated  <- artworkService.runPreflight(artworkId, req).mapAbort(BackofficeError.ArtworkFailure.apply)
     yield updated
 
   private def defaultPageCountFor(comp: ComponentSnapshot): Int =
@@ -536,10 +538,10 @@ final class BackofficeFacadeLive(
     )
 
   /** Builds artwork file metadata, moving inline `data:` URL payloads into `BlobStorage` (Phase 5). */
-  private def assetFile(storageKey: String, payload: StaffArtworkUploadPayload): IO[BackofficeError, AssetFileMetadata] =
+  private def assetFile(storageKey: String, payload: StaffArtworkUploadPayload): AssetFileMetadata < (Async & Abort[BackofficeError]) =
     BlobIngest
       .ingest(blobStorage, storageKey, payload.downloadUrl.map(_.value), payload.previewUrl.orElse(payload.downloadUrl).map(_.value))
-      .mapError(BackofficeError.BlobFailure.apply)
+      .mapAbort(BackofficeError.BlobFailure.apply)
       .map { ing =>
         AssetFileMetadata(
           fileName = payload.fileName,
@@ -558,124 +560,122 @@ final class BackofficeFacadeLive(
 
   // ── 5. Catalog Management ──────────────────────────────────────────────────
 
-  override def getCatalog(token: SessionToken): IO[BackofficeError, ProductCatalog] =
+  override def getCatalog(token: SessionToken): ProductCatalog < (Async & Abort[BackofficeError]) =
     authorize(token, AnyStaffRoles) *> catalogService.getCatalog
 
-  override def getRuleset(token: SessionToken): IO[BackofficeError, CompatibilityRuleset] =
+  override def getRuleset(token: SessionToken): CompatibilityRuleset < (Async & Abort[BackofficeError]) =
     authorize(token, AnyStaffRoles) *> catalogService.getRuleset
 
-  override def upsertCategory(token: SessionToken, category: ProductCategory): IO[BackofficeError, ProductCatalog] =
+  override def upsertCategory(token: SessionToken, category: ProductCategory): ProductCatalog < (Async & Abort[BackofficeError]) =
     authorize(token, ManagerAdminRoles) *>
-      catalogService.upsertCategory(category).mapError(BackofficeError.CatalogFailure.apply)
+      catalogService.upsertCategory(category).mapAbort(BackofficeError.CatalogFailure.apply)
 
-  override def deleteCategory(token: SessionToken, id: CategoryId): IO[BackofficeError, ProductCatalog] =
+  override def deleteCategory(token: SessionToken, id: CategoryId): ProductCatalog < (Async & Abort[BackofficeError]) =
     authorize(token, ManagerAdminRoles) *>
-      catalogService.deleteCategory(id).mapError(BackofficeError.CatalogFailure.apply)
+      catalogService.deleteCategory(id).mapAbort(BackofficeError.CatalogFailure.apply)
 
-  override def upsertMaterial(token: SessionToken, material: Material): IO[BackofficeError, ProductCatalog] =
+  override def upsertMaterial(token: SessionToken, material: Material): ProductCatalog < (Async & Abort[BackofficeError]) =
     authorize(token, ManagerAdminRoles) *>
-      catalogService.upsertMaterial(material).mapError(BackofficeError.CatalogFailure.apply)
+      catalogService.upsertMaterial(material).mapAbort(BackofficeError.CatalogFailure.apply)
 
-  override def deleteMaterial(token: SessionToken, id: MaterialId): IO[BackofficeError, ProductCatalog] =
+  override def deleteMaterial(token: SessionToken, id: MaterialId): ProductCatalog < (Async & Abort[BackofficeError]) =
     authorize(token, ManagerAdminRoles) *>
-      catalogService.deleteMaterial(id).mapError(BackofficeError.CatalogFailure.apply)
+      catalogService.deleteMaterial(id).mapAbort(BackofficeError.CatalogFailure.apply)
 
-  override def upsertFinish(token: SessionToken, finish: Finish): IO[BackofficeError, ProductCatalog] =
+  override def upsertFinish(token: SessionToken, finish: Finish): ProductCatalog < (Async & Abort[BackofficeError]) =
     authorize(token, ManagerAdminRoles) *>
-      catalogService.upsertFinish(finish).mapError(BackofficeError.CatalogFailure.apply)
+      catalogService.upsertFinish(finish).mapAbort(BackofficeError.CatalogFailure.apply)
 
-  override def deleteFinish(token: SessionToken, id: FinishId): IO[BackofficeError, ProductCatalog] =
+  override def deleteFinish(token: SessionToken, id: FinishId): ProductCatalog < (Async & Abort[BackofficeError]) =
     authorize(token, ManagerAdminRoles) *>
-      catalogService.deleteFinish(id).mapError(BackofficeError.CatalogFailure.apply)
+      catalogService.deleteFinish(id).mapAbort(BackofficeError.CatalogFailure.apply)
 
-  override def upsertPrintingMethod(token: SessionToken, method: PrintingMethod): IO[BackofficeError, ProductCatalog] =
+  override def upsertPrintingMethod(token: SessionToken, method: PrintingMethod): ProductCatalog < (Async & Abort[BackofficeError]) =
     authorize(token, ManagerAdminRoles) *>
-      catalogService.upsertPrintingMethod(method).mapError(BackofficeError.CatalogFailure.apply)
+      catalogService.upsertPrintingMethod(method).mapAbort(BackofficeError.CatalogFailure.apply)
 
-  override def deletePrintingMethod(token: SessionToken, id: PrintingMethodId): IO[BackofficeError, ProductCatalog] =
+  override def deletePrintingMethod(token: SessionToken, id: PrintingMethodId): ProductCatalog < (Async & Abort[BackofficeError]) =
     authorize(token, ManagerAdminRoles) *>
-      catalogService.deletePrintingMethod(id).mapError(BackofficeError.CatalogFailure.apply)
+      catalogService.deletePrintingMethod(id).mapAbort(BackofficeError.CatalogFailure.apply)
 
-  override def upsertShowcaseListing(token: SessionToken, listing: ShowcaseListing): IO[BackofficeError, ProductCatalog] =
+  override def upsertShowcaseListing(token: SessionToken, listing: ShowcaseListing): ProductCatalog < (Async & Abort[BackofficeError]) =
     authorize(token, ManagerAdminRoles) *>
-      catalogService.upsertShowcaseListing(listing).mapError(BackofficeError.CatalogFailure.apply)
+      catalogService.upsertShowcaseListing(listing).mapAbort(BackofficeError.CatalogFailure.apply)
 
-  override def deleteShowcaseListing(token: SessionToken, categoryId: CategoryId): IO[BackofficeError, ProductCatalog] =
+  override def deleteShowcaseListing(token: SessionToken, categoryId: CategoryId): ProductCatalog < (Async & Abort[BackofficeError]) =
     authorize(token, ManagerAdminRoles) *>
-      catalogService.deleteShowcaseListing(categoryId).mapError(BackofficeError.CatalogFailure.apply)
+      catalogService.deleteShowcaseListing(categoryId).mapAbort(BackofficeError.CatalogFailure.apply)
 
-  override def upsertRule(token: SessionToken, rule: CompatibilityRule): IO[BackofficeError, CompatibilityRuleset] =
+  override def upsertRule(token: SessionToken, rule: CompatibilityRule): CompatibilityRuleset < (Async & Abort[BackofficeError]) =
     authorize(token, ManagerAdminRoles) *>
-      catalogService.upsertRule(rule).mapError(BackofficeError.CatalogFailure.apply)
+      catalogService.upsertRule(rule).mapAbort(BackofficeError.CatalogFailure.apply)
 
-  override def deleteRule(token: SessionToken, id: RuleId): IO[BackofficeError, CompatibilityRuleset] =
+  override def deleteRule(token: SessionToken, id: RuleId): CompatibilityRuleset < (Async & Abort[BackofficeError]) =
     authorize(token, ManagerAdminRoles) *>
-      catalogService.deleteRule(id).mapError(BackofficeError.CatalogFailure.apply)
+      catalogService.deleteRule(id).mapAbort(BackofficeError.CatalogFailure.apply)
 
   // ── 6. Pricing, Agreements, Promos & Margin Simulation ─────────────────────
 
-  override def listPricelists(token: SessionToken): IO[BackofficeError, List[Pricelist]] =
+  override def listPricelists(token: SessionToken): List[Pricelist] < (Async & Abort[BackofficeError]) =
     authorize(token, AnyStaffRoles) *> pricingService.listPricelists
 
-  override def savePricelist(token: SessionToken, pricelist: Pricelist): IO[BackofficeError, Pricelist] =
+  override def savePricelist(token: SessionToken, pricelist: Pricelist): Pricelist < (Async & Abort[BackofficeError]) =
     authorize(token, ManagerAdminRoles) *>
-      pricingService.savePricelist(pricelist).mapError(BackofficeError.PricingFailure.apply)
+      pricingService.savePricelist(pricelist).mapAbort(BackofficeError.PricingFailure.apply)
 
-  override def listAgreements(token: SessionToken): IO[BackofficeError, List[CustomerPriceAgreement]] =
+  override def listAgreements(token: SessionToken): List[CustomerPriceAgreement] < (Async & Abort[BackofficeError]) =
     authorize(token, AnyStaffRoles) *> pricingService.listAgreements
 
   override def saveAgreement(
       token: SessionToken,
       agreement: CustomerPriceAgreement,
-  ): IO[BackofficeError, CustomerPriceAgreement] =
+  ): CustomerPriceAgreement < (Async & Abort[BackofficeError]) =
     authorize(token, ManagerAdminRoles) *>
-      pricingService.saveAgreement(agreement).mapError(BackofficeError.PricingFailure.apply)
+      pricingService.saveAgreement(agreement).mapAbort(BackofficeError.PricingFailure.apply)
 
   override def deleteAgreement(
       token: SessionToken,
       target: AgreementTarget,
       currency: Currency,
-  ): IO[BackofficeError, Unit] =
+  ): Unit < (Async & Abort[BackofficeError]) =
     authorize(token, ManagerAdminRoles) *> pricingService.deleteAgreement(target, currency)
 
-  override def listPromoCodes(token: SessionToken): IO[BackofficeError, List[PromoCode]] =
+  override def listPromoCodes(token: SessionToken): List[PromoCode] < (Async & Abort[BackofficeError]) =
     authorize(token, AnyStaffRoles) *> pricingService.listPromoCodes
 
-  override def savePromoCode(token: SessionToken, promo: PromoCode): IO[BackofficeError, PromoCode] =
+  override def savePromoCode(token: SessionToken, promo: PromoCode): PromoCode < (Async & Abort[BackofficeError]) =
     authorize(token, ManagerAdminRoles) *>
-      pricingService.savePromoCode(promo).mapError(BackofficeError.PricingFailure.apply)
+      pricingService.savePromoCode(promo).mapAbort(BackofficeError.PricingFailure.apply)
 
   override def setPromoCodeActive(
       token: SessionToken,
       id: DiscountCodeId,
       active: Boolean,
-  ): IO[BackofficeError, PromoCode] =
+  ): PromoCode < (Async & Abort[BackofficeError]) =
     authorize(token, ManagerAdminRoles) *>
-      pricingService.setPromoCodeActive(id, active).mapError(BackofficeError.PricingFailure.apply)
+      pricingService.setPromoCodeActive(id, active).mapAbort(BackofficeError.PricingFailure.apply)
 
-  override def deletePromoCode(token: SessionToken, id: DiscountCodeId): IO[BackofficeError, Unit] =
+  override def deletePromoCode(token: SessionToken, id: DiscountCodeId): Unit < (Async & Abort[BackofficeError]) =
     authorize(token, ManagerAdminRoles) *> pricingService.deletePromoCode(id)
 
-  override def listCostSheets(token: SessionToken): IO[BackofficeError, List[ProductionCostSheet]] =
+  override def listCostSheets(token: SessionToken): List[ProductionCostSheet] < (Async & Abort[BackofficeError]) =
     authorize(token, AnyStaffRoles) *> pricingService.listCostSheets
 
   override def saveCostSheet(
       token: SessionToken,
       sheet: ProductionCostSheet,
-  ): IO[BackofficeError, ProductionCostSheet] =
+  ): ProductionCostSheet < (Async & Abort[BackofficeError]) =
     authorize(token, ManagerAdminRoles) *>
-      pricingService.saveCostSheet(sheet).mapError(BackofficeError.PricingFailure.apply)
+      pricingService.saveCostSheet(sheet).mapAbort(BackofficeError.PricingFailure.apply)
 
   override def simulateMargin(
       token: SessionToken,
       cmd: MarginSimulationCmd,
-  ): IO[BackofficeError, MarginSimulationResult] =
+  ): MarginSimulationResult < (Async & Abort[BackofficeError]) =
     for
       _      <- authorize(token, AnyStaffRoles)
-      cat    <- catalogService.getCategory(cmd.categoryId).mapError(BackofficeError.CatalogFailure.apply)
-      preset <- ZIO
-                  .fromOption(cat.presets.find(_.id == cmd.presetId))
-                  .orElseFail(BackofficeError.PresetNotFound(cmd.categoryId, cmd.presetId))
+      cat    <- catalogService.getCategory(cmd.categoryId).mapAbort(BackofficeError.CatalogFailure.apply)
+      preset <- (cat.presets.find(_.id == cmd.presetId)).orFail(BackofficeError.PresetNotFound(cmd.categoryId, cmd.presetId))
       specs   = preset.defaultSpecs.copy(quantity = cmd.quantity)
       cfgCmd  = ConfigureProductCmd(
                   configurationId = ConfigurationId.unsafe(s"sim-${cmd.presetId.value}-${cmd.quantity.value}"),
@@ -691,7 +691,7 @@ final class BackofficeFacadeLive(
                   },
                   specs = specs,
                 )
-      cfgRes <- catalogService.configure(cfgCmd).mapError(BackofficeError.CatalogFailure.apply)
+      cfgRes <- catalogService.configure(cfgCmd).mapAbort(BackofficeError.CatalogFailure.apply)
       subject = toPricingSubject(cfgRes.product, cmd.speed)
       qCmd    = PriceQuoteCmd(
                   quoteId = QuoteId.unsafe(s"sim-q-${cmd.presetId.value}"),
@@ -701,8 +701,8 @@ final class BackofficeFacadeLive(
                   customerTier = cmd.customerTier,
                   promoCode = cmd.promoCode,
                 )
-      quote  <- pricingService.quote(qCmd).mapError(BackofficeError.PricingFailure.apply)
-      margin <- pricingService.analyzeMargin(qCmd).mapError(BackofficeError.PricingFailure.apply)
+      quote  <- pricingService.quote(qCmd).mapAbort(BackofficeError.PricingFailure.apply)
+      margin <- pricingService.analyzeMargin(qCmd).mapAbort(BackofficeError.PricingFailure.apply)
       sheets  = subject.components.map(_.sheetsUsed).sum
     yield MarginSimulationResult(quote, margin, sheets)
 
@@ -711,23 +711,22 @@ final class BackofficeFacadeLive(
   override def listCustomers(
       token: SessionToken,
       filter: CustomerFilter,
-  ): IO[BackofficeError, List[CustomerView]] =
+  ): List[CustomerView] < (Async & Abort[BackofficeError]) =
     authorize(token, AnyStaffRoles) *> customerService.listCustomers(filter)
 
   override def getCustomerDetail(
       token: SessionToken,
       id: CustomerId,
-  ): IO[BackofficeError, CustomerDetailView] =
+  ): CustomerDetailView < (Async & Abort[BackofficeError]) =
     for
       _          <- authorize(token, AnyStaffRoles)
-      customer   <- customerService.getById(id).mapError(BackofficeError.CustomerFailure.apply)
+      customer   <- customerService.getById(id).mapAbort(BackofficeError.CustomerFailure.apply)
       orders     <- orderService.listOrdersByCustomer(id)
       agreements <- pricingService.listAgreements.map(
                       _.filter(_.target == AgreementTarget.SpecificCustomer(id))
                     )
-      artLists   <- ZIO.foreach(orders) { ord =>
-                      ZIO
-                        .foreach(ord.lines.toList.zipWithIndex) { case (line, idx) =>
+      artLists   <- Effects.traverse(orders) { ord =>
+                      Effects.traverse(ord.lines.toList.zipWithIndex) { case (line, idx) =>
                           artworkService.listByOwner(ArtworkOwner.OrderLineRef(ord.id, idx)).map { arts =>
                             arts.map { art =>
                               CustomerArtworkEntry(
@@ -749,126 +748,126 @@ final class BackofficeFacadeLive(
   override def registerCustomer(
       token: SessionToken,
       cmd: RegisterCustomerCmd,
-  ): IO[BackofficeError, CustomerView] =
+  ): CustomerView < (Async & Abort[BackofficeError]) =
     authorize(token, ManagerAdminRoles) *>
-      customerService.register(cmd).mapError(BackofficeError.CustomerFailure.apply)
+      customerService.register(cmd).mapAbort(BackofficeError.CustomerFailure.apply)
 
-  override def approveCustomer(token: SessionToken, id: CustomerId): IO[BackofficeError, CustomerView] =
+  override def approveCustomer(token: SessionToken, id: CustomerId): CustomerView < (Async & Abort[BackofficeError]) =
     for
       emp <- authorize(token, ManagerAdminRoles)
       res <- customerService
                .approve(id, CustomerActor.Employee(emp.employeeId, Some(emp.displayName)))
-               .mapError(BackofficeError.CustomerFailure.apply)
+               .mapAbort(BackofficeError.CustomerFailure.apply)
     yield res
 
   override def suspendCustomer(
       token: SessionToken,
       id: CustomerId,
       reason: NonEmptyString,
-  ): IO[BackofficeError, CustomerView] =
+  ): CustomerView < (Async & Abort[BackofficeError]) =
     for
       emp <- authorize(token, ManagerAdminRoles)
       res <- customerService
                .suspend(id, reason, Some(emp.employeeId), Some(emp.displayName))
-               .mapError(BackofficeError.CustomerFailure.apply)
+               .mapAbort(BackofficeError.CustomerFailure.apply)
     yield res
 
   override def deactivateCustomer(
       token: SessionToken,
       id: CustomerId,
       reason: NonEmptyString,
-  ): IO[BackofficeError, CustomerView] =
+  ): CustomerView < (Async & Abort[BackofficeError]) =
     for
       emp <- authorize(token, ManagerAdminRoles)
       res <- customerService
                .deactivate(id, reason, Some(emp.employeeId), Some(emp.displayName))
-               .mapError(BackofficeError.CustomerFailure.apply)
+               .mapAbort(BackofficeError.CustomerFailure.apply)
     yield res
 
   override def changeCustomerTier(
       token: SessionToken,
       id: CustomerId,
       tier: CustomerTier,
-  ): IO[BackofficeError, CustomerView] =
+  ): CustomerView < (Async & Abort[BackofficeError]) =
     for
       emp <- authorize(token, ManagerAdminRoles)
       res <- customerService
                .changeTier(id, tier, CustomerActor.Employee(emp.employeeId, Some(emp.displayName)))
-               .mapError(BackofficeError.CustomerFailure.apply)
+               .mapAbort(BackofficeError.CustomerFailure.apply)
     yield res
 
   override def grantCustomerPaymentTerms(
       token: SessionToken,
       id: CustomerId,
       terms: PaymentTerms,
-  ): IO[BackofficeError, CustomerView] =
+  ): CustomerView < (Async & Abort[BackofficeError]) =
     for
       emp <- authorize(token, ManagerAdminRoles)
       res <- customerService
                .grantPaymentTerms(id, terms, CustomerActor.Employee(emp.employeeId, Some(emp.displayName)))
-               .mapError(BackofficeError.CustomerFailure.apply)
+               .mapAbort(BackofficeError.CustomerFailure.apply)
     yield res
 
   override def updateCustomerProfile(
       token: SessionToken,
       cmd: UpdateCustomerProfileCmd,
-  ): IO[BackofficeError, CustomerView] =
+  ): CustomerView < (Async & Abort[BackofficeError]) =
     for
       emp <- authorize(token, ManagerAdminRoles)
       res <- customerService
                .updateProfile(cmd.copy(actor = CustomerActor.Employee(emp.employeeId, Some(emp.displayName))))
-               .mapError(BackofficeError.CustomerFailure.apply)
+               .mapAbort(BackofficeError.CustomerFailure.apply)
     yield res
 
   override def addCustomerNote(
       token: SessionToken,
       id: CustomerId,
       text: NonEmptyString,
-  ): IO[BackofficeError, CustomerView] =
+  ): CustomerView < (Async & Abort[BackofficeError]) =
     for
       emp <- authorize(token, AnyStaffRoles)
       res <- customerService
                .addNote(id, text, Some(emp.employeeId), Some(emp.displayName))
-               .mapError(BackofficeError.CustomerFailure.apply)
+               .mapAbort(BackofficeError.CustomerFailure.apply)
     yield res
 
   // ── 8. Staff Directory & Store Delivery / Bank Settings ────────────────────
 
-  override def listStaffMembers(token: SessionToken): IO[BackofficeError, List[StaffMemberView]] =
+  override def listStaffMembers(token: SessionToken): List[StaffMemberView] < (Async & Abort[BackofficeError]) =
     authorize(token, ManagerAdminRoles) *> identityService.listStaffMembers
 
   override def createStaffMember(
       token: SessionToken,
       cmd: CreateStaffCmd,
-  ): IO[BackofficeError, StaffMemberView] =
+  ): StaffMemberView < (Async & Abort[BackofficeError]) =
     authorize(token, AdminOnlyRoles) *>
-      identityService.createStaffMember(cmd).mapError(BackofficeError.IdentityFailure.apply)
+      identityService.createStaffMember(cmd).mapAbort(BackofficeError.IdentityFailure.apply)
 
   override def updateStaffRoles(
       token: SessionToken,
       employeeId: EmployeeId,
       roles: Set[EmployeeRole],
-  ): IO[BackofficeError, StaffMemberView] =
+  ): StaffMemberView < (Async & Abort[BackofficeError]) =
     authorize(token, AdminOnlyRoles) *>
-      identityService.updateStaffRoles(employeeId, roles).mapError(BackofficeError.IdentityFailure.apply)
+      identityService.updateStaffRoles(employeeId, roles).mapAbort(BackofficeError.IdentityFailure.apply)
 
   override def setStaffActive(
       token: SessionToken,
       employeeId: EmployeeId,
       isActive: Boolean,
-  ): IO[BackofficeError, StaffMemberView] =
+  ): StaffMemberView < (Async & Abort[BackofficeError]) =
     authorize(token, AdminOnlyRoles) *>
-      identityService.setStaffActive(employeeId, isActive).mapError(BackofficeError.IdentityFailure.apply)
+      identityService.setStaffActive(employeeId, isActive).mapAbort(BackofficeError.IdentityFailure.apply)
 
   override def resetStaffPassword(
       token: SessionToken,
       email: EmailAddress,
       newRawPassword: NonEmptyString,
-  ): IO[BackofficeError, Unit] =
+  ): Unit < (Async & Abort[BackofficeError]) =
     authorize(token, AdminOnlyRoles) *>
-      identityService.resetPassword(email, newRawPassword).mapError(BackofficeError.IdentityFailure.apply)
+      identityService.resetPassword(email, newRawPassword).mapAbort(BackofficeError.IdentityFailure.apply)
 
-  override def getStoreDeliverySettings(token: SessionToken): IO[BackofficeError, StoreDeliverySettingsView] =
+  override def getStoreDeliverySettings(token: SessionToken): StoreDeliverySettingsView < (Async & Abort[BackofficeError]) =
     for
       _        <- authorize(token, AnyStaffRoles)
       pickups  <- checkoutOptionsService.listAllPickupLocations
@@ -883,7 +882,7 @@ final class BackofficeFacadeLive(
   override def upsertPickupLocation(
       token: SessionToken,
       loc: ShopPickupLocation,
-  ): IO[BackofficeError, List[ShopPickupLocation]] =
+  ): List[ShopPickupLocation] < (Async & Abort[BackofficeError]) =
     authorize(token, ManagerAdminRoles) *>
       checkoutOptionsService.upsertPickupLocation(loc) *>
       checkoutOptionsService.listAllPickupLocations
@@ -891,7 +890,7 @@ final class BackofficeFacadeLive(
   override def deletePickupLocation(
       token: SessionToken,
       id: DeliveryOptionId,
-  ): IO[BackofficeError, List[ShopPickupLocation]] =
+  ): List[ShopPickupLocation] < (Async & Abort[BackofficeError]) =
     authorize(token, ManagerAdminRoles) *>
       checkoutOptionsService.deletePickupLocation(id) *>
       checkoutOptionsService.listAllPickupLocations
@@ -899,7 +898,7 @@ final class BackofficeFacadeLive(
   override def upsertCourierOption(
       token: SessionToken,
       opt: CourierServiceOption,
-  ): IO[BackofficeError, List[CourierServiceOption]] =
+  ): List[CourierServiceOption] < (Async & Abort[BackofficeError]) =
     authorize(token, ManagerAdminRoles) *>
       checkoutOptionsService.upsertCourierOption(opt) *>
       checkoutOptionsService.listAllCourierOptions.map(_.filter(_.currency == opt.currency))
@@ -908,7 +907,7 @@ final class BackofficeFacadeLive(
       token: SessionToken,
       currency: Currency,
       id: DeliveryOptionId,
-  ): IO[BackofficeError, List[CourierServiceOption]] =
+  ): List[CourierServiceOption] < (Async & Abort[BackofficeError]) =
     authorize(token, ManagerAdminRoles) *>
       checkoutOptionsService.deleteCourierOption(id, currency) *>
       checkoutOptionsService.listAllCourierOptions.map(_.filter(_.currency == currency))
@@ -917,7 +916,7 @@ final class BackofficeFacadeLive(
       token: SessionToken,
       currency: Currency,
       account: BankAccountConfig,
-  ): IO[BackofficeError, Map[Currency, BankAccountConfig]] =
+  ): Map[Currency, BankAccountConfig] < (Async & Abort[BackofficeError]) =
     authorize(token, ManagerAdminRoles) *>
       checkoutOptionsService.upsertBankAccount(currency, account) *>
       checkoutOptionsService.listBankAccounts

@@ -11,7 +11,7 @@ import mpbuilder.storefront.*
 /** Pure Kyo client port for the Storefront UI.
   *
   * Completely decoupled from the transport layer:
-  *   - Static / backend-less frontend wires `StorefrontClient.fromZio(...)` backed by `SampleShowcaseRuntime`
+  *   - Static / backend-less frontend wires `StorefrontClient.fromFacade(...)` backed by `SampleShowcaseRuntime`
   *   - Future REST / GraphQL / Kyo UI server-push integrations simply provide another `StorefrontClient`
   */
 trait StorefrontClient:
@@ -207,23 +207,19 @@ trait StorefrontClient:
 
 object StorefrontClient:
 
-  /** Lifts any ZIO `StorefrontFacade` into a pure Kyo `StorefrontClient` using `kyo-zio`. */
-  def fromZio(
+  /** Exposes a (Kyo) `StorefrontFacade` — in-memory or HTTP-backed — as the UI's `StorefrontClient` port. */
+  def fromFacade(
       facade: StorefrontFacade,
-      demoOtpLookup: OtpChallengeId => zio.UIO[Option[OtpCode]] = _ => zio.ZIO.none,
+      demoOtpLookup: OtpChallengeId => Option[OtpCode] < Async = _ => None,
   ): StorefrontClient = new StorefrontClient:
 
-    private inline def liftUIO[A](zioEff: => zio.UIO[A]): A < Async =
-      Abort.run[Nothing](ZIOs.get(zioEff)).map(_.getOrThrow)
 
-    private inline def liftIO[A](zioEff: => zio.IO[StorefrontError, A]): A < (Abort[StorefrontError] & Async) =
-      ZIOs.get(zioEff)
 
     override def getCatalog: ProductCatalog < Async =
-      liftUIO(facade.getCatalog)
+      facade.getCatalog
 
     override def listShowcaseListings: List[ShowcaseListing] < Async =
-      liftUIO(facade.listShowcaseListings)
+      facade.listShowcaseListings
 
     override def compatibleFinishes(
         categoryId: CategoryId,
@@ -232,7 +228,7 @@ object StorefrontClient:
         printingMethodId: Option[PrintingMethodId],
         alreadySelectedFinishIds: Set[FinishId],
     ): List[Finish] < (Abort[StorefrontError] & Async) =
-      liftIO(facade.compatibleFinishes(categoryId, componentKey, materialId, printingMethodId, alreadySelectedFinishIds))
+      facade.compatibleFinishes(categoryId, componentKey, materialId, printingMethodId, alreadySelectedFinishIds)
 
     override def finishParameterLimits(
         categoryId: CategoryId,
@@ -240,7 +236,7 @@ object StorefrontClient:
         materialId: MaterialId,
         printingMethodId: Option[PrintingMethodId],
     ): Map[FinishType, BigDecimal] < (Abort[StorefrontError] & Async) =
-      liftIO(facade.finishParameterLimits(categoryId, componentKey, materialId, printingMethodId))
+      facade.finishParameterLimits(categoryId, componentKey, materialId, printingMethodId)
 
     override def configureAndQuote(
         cmd: ConfigureProductCmd,
@@ -250,7 +246,7 @@ object StorefrontClient:
         promoCode: Option[String],
         lang: Language,
     ): ProductBuilderQuoteResult < (Abort[StorefrontError] & Async) =
-      liftIO(facade.configureAndQuote(cmd, currency, speed, sessionToken, promoCode, lang))
+      facade.configureAndQuote(cmd, currency, speed, sessionToken, promoCode, lang)
 
     override def pricePreset(
         categoryId: CategoryId,
@@ -261,42 +257,42 @@ object StorefrontClient:
         sessionToken: Option[SessionToken],
         lang: Language,
     ): ProductBuilderQuoteResult < (Abort[StorefrontError] & Async) =
-      liftIO(facade.pricePreset(categoryId, presetId, currency, speed, specsOverride, sessionToken, lang))
+      facade.pricePreset(categoryId, presetId, currency, speed, specsOverride, sessionToken, lang)
 
     override def loginWithPassword(
         email: EmailAddress,
         rawPassword: NonEmptyString,
     ): AuthResult < (Abort[StorefrontError] & Async) =
-      liftIO(facade.loginWithPassword(email, rawPassword))
+      facade.loginWithPassword(email, rawPassword)
 
     override def requestCustomerOtp(
         identifier: LoginIdentifier,
     ): OtpChallengeView < (Abort[StorefrontError] & Async) =
-      liftIO(facade.requestCustomerOtp(identifier))
+      facade.requestCustomerOtp(identifier)
 
     override def verifyOtp(
         challengeId: OtpChallengeId,
         code: OtpCode,
     ): AuthResult < (Abort[StorefrontError] & Async) =
-      liftIO(facade.verifyOtp(challengeId, code))
+      facade.verifyOtp(challengeId, code)
 
     override def currentCustomer(
         sessionToken: SessionToken,
     ): CustomerView < (Abort[StorefrontError] & Async) =
-      liftIO(facade.currentCustomer(sessionToken))
+      facade.currentCustomer(sessionToken)
 
     override def logout(sessionToken: SessionToken): Unit < Async =
-      liftUIO(facade.logout(sessionToken))
+      facade.logout(sessionToken)
 
     override def demoOtpCode(challengeId: OtpChallengeId): Option[OtpCode] < Async =
-      liftUIO(demoOtpLookup(challengeId))
+      locally(demoOtpLookup(challengeId))
 
     override def createCart(
         cartId: CartId,
         currency: Currency,
         sessionToken: Option[SessionToken],
     ): CartView < (Abort[StorefrontError] & Async) =
-      liftIO(facade.createCart(cartId, currency, sessionToken))
+      facade.createCart(cartId, currency, sessionToken)
 
     override def addConfiguredProductToCart(
         cartId: CartId,
@@ -307,36 +303,36 @@ object StorefrontClient:
         sessionToken: Option[SessionToken],
         artworkIds: Map[ComponentKey, ArtworkId],
     ): CartView < (Abort[StorefrontError] & Async) =
-      liftIO(facade.addConfiguredProductToCart(cartId, cmd, currency, speed, copies, sessionToken, artworkIds))
+      facade.addConfiguredProductToCart(cartId, cmd, currency, speed, copies, sessionToken, artworkIds)
 
     override def updateCartLineCopies(
         cartId: CartId,
         lineId: OrderLineId,
         copies: Quantity,
     ): CartView < (Abort[StorefrontError] & Async) =
-      liftIO(facade.updateCartLineCopies(cartId, lineId, copies))
+      facade.updateCartLineCopies(cartId, lineId, copies)
 
     override def removeCartLine(
         cartId: CartId,
         lineId: OrderLineId,
     ): CartView < (Abort[StorefrontError] & Async) =
-      liftIO(facade.removeCartLine(cartId, lineId))
+      facade.removeCartLine(cartId, lineId)
 
     override def clearCart(cartId: CartId): CartView < (Abort[StorefrontError] & Async) =
-      liftIO(facade.clearCart(cartId))
+      facade.clearCart(cartId)
 
     override def applyCartPromo(
         cartId: CartId,
         promoCode: String,
         sessionToken: Option[SessionToken],
     ): CartView < (Abort[StorefrontError] & Async) =
-      liftIO(facade.applyCartPromo(cartId, promoCode, sessionToken))
+      facade.applyCartPromo(cartId, promoCode, sessionToken)
 
     override def removeCartPromo(cartId: CartId): CartView < (Abort[StorefrontError] & Async) =
-      liftIO(facade.removeCartPromo(cartId))
+      facade.removeCartPromo(cartId)
 
     override def getCart(cartId: CartId): CartView < (Abort[StorefrontError] & Async) =
-      liftIO(facade.getCart(cartId))
+      facade.getCart(cartId)
 
     override def getCheckoutOptions(
         source: CheckoutSource,
@@ -344,7 +340,7 @@ object StorefrontClient:
         sessionToken: Option[SessionToken],
         promoCode: Option[String],
     ): CheckoutOptionsView < (Abort[StorefrontError] & Async) =
-      liftIO(facade.getCheckoutOptions(source, currency, sessionToken, promoCode))
+      facade.getCheckoutOptions(source, currency, sessionToken, promoCode)
 
     override def previewCheckout(
         source: CheckoutSource,
@@ -353,17 +349,17 @@ object StorefrontClient:
         sessionToken: Option[SessionToken],
         promoCode: Option[String],
     ): CheckoutPreview < (Abort[StorefrontError] & Async) =
-      liftIO(facade.previewCheckout(source, currency, deliveryChoice, sessionToken, promoCode))
+      facade.previewCheckout(source, currency, deliveryChoice, sessionToken, promoCode)
 
     override def submitCheckout(
         cmd: SubmitCheckoutCmd,
     ): CheckoutConfirmation < (Abort[StorefrontError] & Async) =
-      liftIO(facade.submitCheckout(cmd))
+      facade.submitCheckout(cmd)
 
     override def listMyOrders(
         sessionToken: SessionToken,
     ): List[OrderView] < (Abort[StorefrontError] & Async) =
-      liftIO(facade.listMyOrders(sessionToken))
+      facade.listMyOrders(sessionToken)
 
     override def updateMyAddresses(
         sessionToken: SessionToken,
@@ -371,19 +367,19 @@ object StorefrontClient:
         shippingAddresses: List[Address],
         defaultShippingIndex: Option[Int],
     ): CustomerView < (Abort[StorefrontError] & Async) =
-      liftIO(facade.updateMyAddresses(sessionToken, billingAddress, shippingAddresses, defaultShippingIndex))
+      facade.updateMyAddresses(sessionToken, billingAddress, shippingAddresses, defaultShippingIndex)
 
     override def getOrderPaymentInstructions(
         sessionToken: SessionToken,
         orderId: OrderId,
     ): PaymentInstructions < (Abort[StorefrontError] & Async) =
-      liftIO(facade.getOrderPaymentInstructions(sessionToken, orderId))
+      facade.getOrderPaymentInstructions(sessionToken, orderId)
 
     override def listOrderArtworks(
         sessionToken: SessionToken,
         orderId: OrderId,
     ): List[mpbuilder.artwork.ArtworkSubmissionView] < (Abort[StorefrontError] & Async) =
-      liftIO(facade.listOrderArtworks(sessionToken, orderId))
+      facade.listOrderArtworks(sessionToken, orderId)
 
     override def uploadDraftArtwork(
         sessionId: NonEmptyString,
@@ -393,12 +389,12 @@ object StorefrontClient:
         payload: ArtworkUploadPayload,
         sessionToken: Option[SessionToken],
     ): mpbuilder.artwork.ArtworkSubmissionView < (Abort[StorefrontError] & Async) =
-      liftIO(facade.uploadDraftArtwork(sessionId, componentKey, expectedTrim, expectedPages, payload))
+      facade.uploadDraftArtwork(sessionId, componentKey, expectedTrim, expectedPages, payload)
 
     override def deleteDraftArtwork(
         artworkId: ArtworkId,
     ): Unit < (Abort[StorefrontError] & Async) =
-      liftIO(facade.deleteDraftArtwork(artworkId))
+      facade.deleteDraftArtwork(artworkId)
 
     override def uploadOrderLineArtwork(
         sessionToken: SessionToken,
@@ -407,7 +403,7 @@ object StorefrontClient:
         componentKey: ComponentKey,
         payload: ArtworkUploadPayload,
     ): mpbuilder.artwork.ArtworkSubmissionView < (Abort[StorefrontError] & Async) =
-      liftIO(facade.uploadOrderLineArtwork(sessionToken, orderId, lineIndex, componentKey, payload))
+      facade.uploadOrderLineArtwork(sessionToken, orderId, lineIndex, componentKey, payload)
 
     override def reuploadOrderArtworkPayload(
         sessionToken: SessionToken,
@@ -415,7 +411,7 @@ object StorefrontClient:
         artworkId: ArtworkId,
         payload: ArtworkUploadPayload,
     ): mpbuilder.artwork.ArtworkSubmissionView < (Abort[StorefrontError] & Async) =
-      liftIO(facade.reuploadOrderArtworkPayload(sessionToken, orderId, artworkId, payload))
+      facade.reuploadOrderArtworkPayload(sessionToken, orderId, artworkId, payload)
 
     override def reuploadOrderArtwork(
         sessionToken: SessionToken,
@@ -426,4 +422,4 @@ object StorefrontClient:
         bleedMm: Int,
         colorSpace: mpbuilder.artwork.ColorSpace,
     ): mpbuilder.artwork.ArtworkSubmissionView < (Abort[StorefrontError] & Async) =
-      liftIO(facade.reuploadOrderArtwork(sessionToken, orderId, artworkId, fileName, resolutionDpi, bleedMm, colorSpace))
+      facade.reuploadOrderArtwork(sessionToken, orderId, artworkId, fileName, resolutionDpi, bleedMm, colorSpace)

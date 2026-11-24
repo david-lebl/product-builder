@@ -2,11 +2,11 @@ package mpbuilder.manufacturing
 
 import mpbuilder.manufacturing.core.*
 import mpbuilder.shared.*
-import zio.*
-import zio.test.*
+import kyo.*
+import kyo.test.*
 import java.time.Instant
 
-object ManufacturingDomainSpec extends ZIOSpecDefault:
+class ManufacturingDomainSpec extends Test[Any]:
 
   private val now = Instant.parse("2026-03-10T10:00:00Z")
 
@@ -65,22 +65,21 @@ object ManufacturingDomainSpec extends ZIOSpecDefault:
     status = MachineStatus.Maintenance,
   )
 
-  def spec = suite("ManufacturingDomainSpec")(
-    test("Roll-Up workflow routes printed Main through Prepress/Print/Laminate and unprinted Stand directly to Assembly (NO Print/Cut!)") {
+  "ManufacturingDomainSpec" - {
+    "Roll-Up workflow routes printed Main through Prepress/Print/Laminate and unprinted Stand directly to Assembly (NO Print/Cut!)" in {
       val wf = WorkflowGenerator.generate(rollupSpec, WorkflowId.unsafe("wf-rollup"), None, now)
       val mainSteps  = wf.steps.toList.filter(_.componentKey.contains(ComponentKey.Main))
       val standSteps = wf.steps.toList.filter(_.componentKey.contains(ComponentKey.Stand))
 
-      assertTrue(
-        wf.priority == Priority.Rush,
-        mainSteps.map(_.stationType) == List(StationType.LargeFormatPrinter, StationType.Laminator),
-        standSteps.map(_.stationType) == List(StationType.Assembly),
-        // Stand Assembly has zero print dependency and is immediately Ready!
-        standSteps.head.status == StepStatus.Ready,
-        standSteps.head.dependsOn.isEmpty,
-      )
-    },
-    test("WorkflowEngine validates employee capability, machine status, unlocks downstream steps, and re-wires DAG on rework") {
+      assert(wf.priority == Priority.Rush)
+      assert(mainSteps.map(_.stationType) == List(StationType.LargeFormatPrinter, StationType.Laminator))
+      assert(standSteps.map(_.stationType) == List(StationType.Assembly))
+      // Stand Assembly has zero print dependency and is immediately Ready!
+      assert(standSteps.head.status == StepStatus.Ready)
+      assert(standSteps.head.dependsOn.isEmpty)
+    }
+
+    "WorkflowEngine validates employee capability, machine status, unlocks downstream steps, and re-wires DAG on rework" in {
       val wf = WorkflowGenerator.generate(rollupSpec, WorkflowId.unsafe("wf-dag"), None, now)
       val prepressStep = wf.steps.find(_.stationType == StationType.Prepress).get
       val printStep    = wf.steps.find(_.stationType == StationType.LargeFormatPrinter).get
@@ -100,19 +99,18 @@ object ManufacturingDomainSpec extends ZIOSpecDefault:
       val reworkStep = wf4.steps.find(_.isRework).get
       val updatedLam = wf4.steps.find(_.id == lamStep.id).get
 
-      assertTrue(
-        badEmp == Left(ManufacturingError.EmployeeNotCapable(unqualifiedEmp.id, StationType.Prepress)),
-        unlockedPrint.status == StepStatus.Ready,
-        badMach == Left(ManufacturingError.MachineUnavailable(offlineLfPrinter.id, MachineStatus.Maintenance)),
-        wf4.status == WorkflowStatus.OnHold,
-        wf4.steps.find(_.id == printStep.id).map(_.status) == Some(StepStatus.Failed),
-        reworkStep.status == StepStatus.Ready,
-        reworkStep.stationType == StationType.LargeFormatPrinter,
-        // Laminator now depends on reworkStep instead of the failed printStep!
-        updatedLam.dependsOn == Set(reworkStep.id),
-      )
-    },
-    test("ManufacturingServiceLive computes CapacitySnapshot and enforces unified SpeedAvailabilityPolicy") {
+      assert(badEmp == Left(ManufacturingError.EmployeeNotCapable(unqualifiedEmp.id, StationType.Prepress)))
+      assert(unlockedPrint.status == StepStatus.Ready)
+      assert(badMach == Left(ManufacturingError.MachineUnavailable(offlineLfPrinter.id, MachineStatus.Maintenance)))
+      assert(wf4.status == WorkflowStatus.OnHold)
+      assert(wf4.steps.find(_.id == printStep.id).map(_.status) == Some(StepStatus.Failed))
+      assert(reworkStep.status == StepStatus.Ready)
+      assert(reworkStep.stationType == StationType.LargeFormatPrinter)
+      // Laminator now depends on reworkStep instead of the failed printStep!
+      assert(updatedLam.dependsOn == Set(reworkStep.id))
+    }
+
+    "ManufacturingServiceLive computes CapacitySnapshot and enforces unified SpeedAvailabilityPolicy" in {
       val catId = CategoryId.unsafe("booklets")
       val expressPolicy = SpeedAvailabilityPolicy(
         categoryId = catId,
@@ -122,41 +120,38 @@ object ManufacturingDomainSpec extends ZIOSpecDefault:
         blockedFinishOps = Set(FinishingOperation.EmbossingOrFoil),
       )
 
-      val layer: ULayer[ManufacturingService] = ZLayer.make[ManufacturingService](
-        EventBus.live,
-        ZLayer.fromZIO {
-          Ref.make(Map.empty[JobId, ProductionJob]).map { ref =>
-            new ProductionJobRepository:
-              override def findById(id: JobId): UIO[Option[ProductionJob]] = ref.get.map(_.get(id))
-              override def listActive: UIO[List[ProductionJob]]            = ref.get.map(_.values.toList)
-              override def save(job: ProductionJob): UIO[Unit]             = ref.update(_ + (job.id -> job))
-          }
-        },
-        ZLayer.succeed(new ShopResourceRepository:
-          override def findEmployee(id: EmployeeId): UIO[Option[Employee]] =
-            ZIO.succeed(Option.when(id == prepressEmp.id)(prepressEmp))
-          override def findMachine(id: MachineId): UIO[Option[Machine]] =
-            ZIO.succeed(Option.when(id == onlineLfPrinter.id)(onlineLfPrinter))
-          override def listMachines: UIO[List[Machine]] =
-            ZIO.succeed(List(onlineLfPrinter))
-          override def findSpeedPolicy(c: CategoryId, s: ManufacturingSpeed): UIO[Option[SpeedAvailabilityPolicy]] =
-            ZIO.succeed(Option.when(c == catId && s == ManufacturingSpeed.Express)(expressPolicy))
-        ),
-        ManufacturingServiceLive.layer,
-      )
+      val resources = new ShopResourceRepository:
+        override def findEmployee(id: EmployeeId): Option[Employee] < Async =
+          Option.when(id == prepressEmp.id)(prepressEmp)
+        override def findMachine(id: MachineId): Option[Machine] < Async =
+          Option.when(id == onlineLfPrinter.id)(onlineLfPrinter)
+        override def listMachines: List[Machine] < Async =
+          List(onlineLfPrinter)
+        override def findSpeedPolicy(c: CategoryId, s: ManufacturingSpeed): Option[SpeedAvailabilityPolicy] < Async =
+          Option.when(c == catId && s == ManufacturingSpeed.Express)(expressPolicy)
 
-      (for
-        svc       <- ZIO.service[ManufacturingService]
+      val makeService: ManufacturingService < Sync =
+        for
+          bus <- EventBus.init
+          ref <- AtomicRef.init(Map.empty[JobId, ProductionJob])
+          jobs = new ProductionJobRepository:
+                   override def findById(id: JobId): Option[ProductionJob] < Async = ref.get.map(_.get(id))
+                   override def listActive: List[ProductionJob] < Async            = ref.get.map(_.values.toList)
+                   override def save(job: ProductionJob): Unit < Async             = ref.update(_ + (job.id -> job))
+        yield ManufacturingServiceLive.make(jobs, resources, bus)
+
+      for
+        svc       <- makeService
         _         <- svc.createJob(JobId.unsafe("job-1"), NonEmptyChunk.single(rollupSpec))
         cap       <- svc.currentCapacity
         okExpress <- svc.checkSpeedAvailability(catId, ManufacturingSpeed.Express, Quantity.unsafe(100), 2, Set.empty, Set.empty).either
         tooMany   <- svc.checkSpeedAvailability(catId, ManufacturingSpeed.Express, Quantity.unsafe(500), 2, Set.empty, Set.empty).either
         badFinish <- svc.checkSpeedAvailability(catId, ManufacturingSpeed.Express, Quantity.unsafe(100), 2, Set.empty, Set(FinishingOperation.EmbossingOrFoil)).either
-      yield assertTrue(
-        cap.byStation.contains(StationType.LargeFormatPrinter),
-        okExpress.isRight,
-        tooMany.isLeft,
-        badFinish.isLeft,
-      )).provide(layer)
-    },
-  )
+      yield {
+        assert(cap.byStation.contains(StationType.LargeFormatPrinter))
+        assert(okExpress.isRight)
+        assert(tooMany.isLeft)
+        assert(badFinish.isLeft)
+      }
+    }
+  }

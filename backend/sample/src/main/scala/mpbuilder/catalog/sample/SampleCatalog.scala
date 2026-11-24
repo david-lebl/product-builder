@@ -2,7 +2,6 @@ package mpbuilder.catalog.sample
 
 import mpbuilder.catalog.*
 import mpbuilder.shared.*
-import zio.NonEmptyChunk
 
 /** Full sample product catalog replicated and modernized from legacy `SampleCatalog` + `SampleShowcase`.
   *

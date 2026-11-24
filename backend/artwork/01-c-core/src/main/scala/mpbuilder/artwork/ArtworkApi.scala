@@ -1,7 +1,7 @@
 package mpbuilder.artwork
 
 import mpbuilder.shared.*
-import zio.*
+import kyo.*
 import java.time.Instant
 
 // ── Public Models, Commands, Errors & Events ─────────────────────────────────
@@ -157,17 +157,13 @@ final case class ArtworkChangesRequested(
 // ── Public Inbound Port (Module API) ─────────────────────────────────────────
 
 trait ArtworkService:
-  def upload(cmd: UploadArtworkCmd): IO[ArtworkError, ArtworkSubmissionView]
-  def uploadRevision(cmd: UploadRevisionCmd): IO[ArtworkError, ArtworkSubmissionView]
-  def runPreflight(artworkId: ArtworkId, requirement: PreflightRequirement): IO[ArtworkError, ArtworkSubmissionView]
-  def approve(artworkId: ArtworkId, operatorId: EmployeeId, overrideWarningsOrFailures: Boolean = false): IO[ArtworkError, ArtworkSubmissionView]
-  def requestChanges(artworkId: ArtworkId, notes: NonEmptyString): IO[ArtworkError, ArtworkSubmissionView]
-  def reject(artworkId: ArtworkId, operatorId: EmployeeId, reason: NonEmptyString): IO[ArtworkError, ArtworkSubmissionView]
-  def reassignOwner(artworkId: ArtworkId, newOwner: ArtworkOwner): IO[ArtworkError, ArtworkSubmissionView]
-  def deleteDraft(artworkId: ArtworkId): IO[ArtworkError, Unit]
-  def getById(artworkId: ArtworkId): IO[ArtworkError.NotFound, ArtworkSubmissionView]
-  def listByOwner(owner: ArtworkOwner): UIO[List[ArtworkSubmissionView]]
-
-object ArtworkService:
-  def upload(cmd: UploadArtworkCmd): ZIO[ArtworkService, ArtworkError, ArtworkSubmissionView] =
-    ZIO.serviceWithZIO[ArtworkService](_.upload(cmd))
+  def upload(cmd: UploadArtworkCmd): ArtworkSubmissionView < (Async & Abort[ArtworkError])
+  def uploadRevision(cmd: UploadRevisionCmd): ArtworkSubmissionView < (Async & Abort[ArtworkError])
+  def runPreflight(artworkId: ArtworkId, requirement: PreflightRequirement): ArtworkSubmissionView < (Async & Abort[ArtworkError])
+  def approve(artworkId: ArtworkId, operatorId: EmployeeId, overrideWarningsOrFailures: Boolean = false): ArtworkSubmissionView < (Async & Abort[ArtworkError])
+  def requestChanges(artworkId: ArtworkId, notes: NonEmptyString): ArtworkSubmissionView < (Async & Abort[ArtworkError])
+  def reject(artworkId: ArtworkId, operatorId: EmployeeId, reason: NonEmptyString): ArtworkSubmissionView < (Async & Abort[ArtworkError])
+  def reassignOwner(artworkId: ArtworkId, newOwner: ArtworkOwner): ArtworkSubmissionView < (Async & Abort[ArtworkError])
+  def deleteDraft(artworkId: ArtworkId): Unit < (Async & Abort[ArtworkError])
+  def getById(artworkId: ArtworkId): ArtworkSubmissionView < (Async & Abort[ArtworkError.NotFound])
+  def listByOwner(owner: ArtworkOwner): List[ArtworkSubmissionView] < Async

@@ -3,28 +3,28 @@ package mpbuilder.artwork.sample
 import mpbuilder.artwork.*
 import mpbuilder.artwork.core.{ArtworkRepository, ArtworkServiceLive, ArtworkSubmission}
 import mpbuilder.shared.*
-import zio.*
+import kyo.*
 
 final class InMemoryArtworkRepository(
-    ref: Ref[Map[ArtworkId, ArtworkSubmission]],
+    ref: AtomicRef[Map[ArtworkId, ArtworkSubmission]],
 ) extends ArtworkRepository:
 
-  override def findById(id: ArtworkId): UIO[Option[ArtworkSubmission]] =
+  override def findById(id: ArtworkId): Option[ArtworkSubmission] < Async =
     ref.get.map(_.get(id))
 
-  override def findByOwner(owner: ArtworkOwner): UIO[List[ArtworkSubmission]] =
+  override def findByOwner(owner: ArtworkOwner): List[ArtworkSubmission] < Async =
     ref.get.map(_.values.filter(_.owner == owner).toList)
 
-  override def save(submission: ArtworkSubmission): UIO[Unit] =
+  override def save(submission: ArtworkSubmission): Unit < Async =
     ref.update(_ + (submission.id -> submission))
 
-  override def delete(id: ArtworkId): UIO[Unit] =
+  override def delete(id: ArtworkId): Unit < Async =
     ref.update(_ - id)
 
-  def listAll: UIO[List[ArtworkSubmissionView]] =
+  def listAll: List[ArtworkSubmissionView] < Async =
     ref.get.map(_.values.map(_.toView).toList)
 
-object ArtworkSampleLayer:
+object ArtworkSampleWiring:
 
   private val baseInstant = java.time.Instant.ofEpochMilli(1740000000000L)
 
@@ -249,12 +249,9 @@ object ArtworkSampleLayer:
 
     List(art1, art2, art3, art4).map(a => a.id -> a).toMap
 
-  def repositoryLayer(seedSampleArtworks: Boolean = true): ULayer[InMemoryArtworkRepository] =
+  def repository(seedSampleArtworks: Boolean = true): InMemoryArtworkRepository < Sync =
     val init = if seedSampleArtworks then seedArtworks else Map.empty[ArtworkId, ArtworkSubmission]
-    ZLayer.fromZIO(Ref.make(init).map(new InMemoryArtworkRepository(_)))
+    AtomicRef.init(init).map(new InMemoryArtworkRepository(_))
 
-  val live: ZLayer[EventBus, Nothing, ArtworkService] =
-    live(seedSampleArtworks = true)
-
-  def live(seedSampleArtworks: Boolean): ZLayer[EventBus, Nothing, ArtworkService] =
-    (repositoryLayer(seedSampleArtworks) ++ ZLayer.service[EventBus]) >>> ArtworkServiceLive.layer
+  def service(eventBus: EventBus, seedSampleArtworks: Boolean = true): ArtworkService < Sync =
+    repository(seedSampleArtworks).map(ArtworkServiceLive.make(_, eventBus))

@@ -2,11 +2,11 @@ package mpbuilder.ordering
 
 import mpbuilder.ordering.core.*
 import mpbuilder.shared.*
-import zio.*
-import zio.test.*
+import kyo.*
+import kyo.test.*
 import java.time.Instant
 
-object OrderingDomainSpec extends ZIOSpecDefault:
+class OrderingDomainSpec extends Test[Any]:
 
   private val now = Instant.parse("2026-03-10T10:00:00Z")
 
@@ -64,28 +64,27 @@ object OrderingDomainSpec extends ZIOSpecDefault:
       artworkIds = Map(ComponentKey.Main -> ArtworkId.unsafe("art-1")),
     )
 
-  private def orderServiceLayer: ULayer[OrderService & CartService & CheckoutOptionsService & EventBus] =
-    val busLayer = EventBus.live
-    val orderRepoLayer: ULayer[OrderRepository] = ZLayer.fromZIO {
-      Ref.make(Map.empty[OrderId, Order]).map { ref =>
+  private final case class Services(orders: OrderService, carts: CartService, options: CheckoutOptionsService, bus: EventBus)
+
+  private def services: Services < Sync =
+    val orderRepo: OrderRepository < Sync =
+      AtomicRef.init(Map.empty[OrderId, Order]).map { ref =>
         new OrderRepository:
-          override def findById(id: OrderId): UIO[Option[Order]] = ref.get.map(_.get(id))
-          override def findByCustomer(customerId: CustomerId): UIO[List[Order]] =
+          override def findById(id: OrderId): Option[Order] < Async = ref.get.map(_.get(id))
+          override def findByCustomer(customerId: CustomerId): List[Order] < Async =
             ref.get.map(_.values.filter(_.customer.customerId.contains(customerId)).toList)
-          override def listAll: UIO[List[Order]]     = ref.get.map(_.values.toList)
-          override def save(order: Order): UIO[Unit] = ref.update(_ + (order.id -> order))
+          override def listAll: List[Order] < Async     = ref.get.map(_.values.toList)
+          override def save(order: Order): Unit < Async = ref.update(_ + (order.id -> order))
       }
-    }
-    val cartRepoLayer: ULayer[CartRepository] = ZLayer.fromZIO {
-      Ref.make(Map.empty[CartId, Cart]).map { ref =>
+    val cartRepo: CartRepository < Sync =
+      AtomicRef.init(Map.empty[CartId, Cart]).map { ref =>
         new CartRepository:
-          override def findById(id: CartId): UIO[Option[Cart]] = ref.get.map(_.get(id))
-          override def save(cart: Cart): UIO[Unit]             = ref.update(_ + (cart.id -> cart))
+          override def findById(id: CartId): Option[Cart] < Async = ref.get.map(_.get(id))
+          override def save(cart: Cart): Unit < Async             = ref.update(_ + (cart.id -> cart))
       }
-    }
-    val deliveryRepoLayer: ULayer[DeliveryCatalogRepository] = ZLayer.succeed {
+    val deliveryRepo: DeliveryCatalogRepository =
       new DeliveryCatalogRepository:
-        override def pickupLocations: UIO[List[ShopPickupLocation]] = ZIO.succeed(
+        override def pickupLocations: List[ShopPickupLocation] < Async = Kyo.lift(
           List(
             ShopPickupLocation(
               id = DeliveryOptionId.unsafe("shop-prague"),
@@ -94,7 +93,7 @@ object OrderingDomainSpec extends ZIOSpecDefault:
             )
           )
         )
-        override def courierOptions(currency: Currency): UIO[List[CourierServiceOption]] = ZIO.succeed(
+        override def courierOptions(currency: Currency): List[CourierServiceOption] < Async = Kyo.lift(
           if currency == Currency.CZK then
             List(
               CourierServiceOption(
@@ -110,17 +109,22 @@ object OrderingDomainSpec extends ZIOSpecDefault:
             )
           else Nil
         )
-        override def bankAccount(currency: Currency): UIO[Option[BankAccountConfig]] = ZIO.succeed(
+        override def bankAccount(currency: Currency): Option[BankAccountConfig] < Async = Kyo.lift(
           Some(BankAccountConfig(NonEmptyString.unsafe("CZ6508000000192000145399"), None, NonEmptyString.unsafe("PrintShop s.r.o.")))
         )
-    }
-    busLayer ++
-      (cartRepoLayer >>> OrderingCoreLayers.cartLayer) ++
-      (deliveryRepoLayer >>> OrderingCoreLayers.checkoutOptionsLayer) ++
-      ((orderRepoLayer ++ busLayer) >>> OrderingCoreLayers.orderLayer)
+    for
+      bus    <- EventBus.init
+      orders <- orderRepo
+      carts  <- cartRepo
+    yield Services(
+      OrderingCoreLayers.orderService(orders, bus),
+      OrderingCoreLayers.cartService(carts),
+      OrderingCoreLayers.checkoutOptionsService(deliveryRepo),
+      bus,
+    )
 
-  def spec = suite("OrderingDomainSpec")(
-    test("Cart enforces currency consistency across lines, scales copies, and applies cart-level promo with VAT") {
+  "OrderingDomainSpec" - {
+    "Cart enforces currency consistency across lines, scales copies, and applies cart-level promo with VAT" in {
       val cart = Cart(CartId.unsafe("cart-1"), None, Currency.CZK, List.empty, None)
       val czkLine = sampleLine("l1", Currency.CZK, Money(1000))
       val eurLine = sampleLine("l2", Currency.EUR, Money(40))
@@ -134,18 +138,17 @@ object OrderingDomainSpec extends ZIOSpecDefault:
       val withPr  = doubled.map(_.withPromo(promo).toView)
 
       // 2 copies × 1000 net = 2000 net; -200 promo = 1800 net; 21% VAT = 378.00; gross = 2178.00; weight = 1000g
-      assertTrue(
-        added1.map(_.toView.netTotal) == Right(Money("1000.00")),
-        added2 == Left(OrderError.CurrencyMismatch(Currency.CZK, Currency.EUR)),
-        withPr.map(_.linesNetTotal) == Right(Money("2000.00")),
-        withPr.map(_.promoDiscountNet) == Right(Money("200.00")),
-        withPr.map(_.netTotal) == Right(Money("1800.00")),
-        withPr.map(_.taxTotal) == Right(Money("378.00")),
-        withPr.map(_.grossTotal) == Right(Money("2178.00")),
-        withPr.map(_.totalWeightGrams) == Right(Some(BigDecimal(1000))),
-      )
-    },
-    test("Order.place rejects unapproved InvoiceOnAccount, computes shipping VAT, and auto-confirms approved InvoiceOnAccount") {
+      assert(added1.map(_.toView.netTotal) == Right(Money("1000.00")))
+      assert(added2 == Left(OrderError.CurrencyMismatch(Currency.CZK, Currency.EUR)))
+      assert(withPr.map(_.linesNetTotal) == Right(Money("2000.00")))
+      assert(withPr.map(_.promoDiscountNet) == Right(Money("200.00")))
+      assert(withPr.map(_.netTotal) == Right(Money("1800.00")))
+      assert(withPr.map(_.taxTotal) == Right(Money("378.00")))
+      assert(withPr.map(_.grossTotal) == Right(Money("2178.00")))
+      assert(withPr.map(_.totalWeightGrams) == Right(Some(BigDecimal(1000))))
+    }
+
+    "Order.place rejects unapproved InvoiceOnAccount, computes shipping VAT, and auto-confirms approved InvoiceOnAccount" in {
       val line = sampleLine("l1", Currency.CZK, Money(1000))
       val courier = DeliverySelection.Courier(
         serviceId = NonEmptyString.unsafe("ppl-standard"),
@@ -169,15 +172,14 @@ object OrderingDomainSpec extends ZIOSpecDefault:
       val accepted = Order.place(approvedCmd, now)
 
       // Lines net=1000 (tax 210), Shipping net=100 (tax 21) -> total tax=231, grand gross=1331
-      assertTrue(
-        rejected == Left(OrderError.InvoiceNotAllowed(customerSnap.email)),
-        accepted.map(_.status) == Right(OrderStatus.Confirmed),
-        accepted.map(_.payment.status) == Right(PaymentStatus.Authorized),
-        accepted.map(_.totals.taxTotal) == Right(Money("231.00")),
-        accepted.map(_.totals.grandTotalGross) == Right(Money("1331.00")),
-      )
-    },
-    test("OrderServiceLive enforces strict state machine transitions, emits events, and lists orders by customer") {
+      assert(rejected == Left(OrderError.InvoiceNotAllowed(customerSnap.email)))
+      assert(accepted.map(_.status) == Right(OrderStatus.Confirmed))
+      assert(accepted.map(_.payment.status) == Right(PaymentStatus.Authorized))
+      assert(accepted.map(_.totals.taxTotal) == Right(Money("231.00")))
+      assert(accepted.map(_.totals.grandTotalGross) == Right(Money("1331.00")))
+    }
+
+    "OrderServiceLive enforces strict state machine transitions, emits events, and lists orders by customer" in {
       val line = sampleLine("l1", Currency.CZK, Money(2000))
       val cardCmd = PlaceOrderCmd(
         orderId = OrderId.unsafe("ord-card"),
@@ -190,11 +192,11 @@ object OrderingDomainSpec extends ZIOSpecDefault:
         lines = NonEmptyChunk.single(line),
       )
 
-      ZIO.scoped {
+      locally {
         for
-          svc        <- ZIO.service[OrderService]
-          bus        <- ZIO.service[EventBus]
-          queue      <- bus.subscribe
+          env        <- services
+          svc         = env.orders
+          queue      <- env.bus.subscribe
           placed     <- svc.placeOrder(cardCmd)
           history    <- svc.listOrdersByCustomer(customerSnap.customerId.get)
           illegal1   <- svc.markInProduction(placed.id).either // cannot start production before payment!
@@ -204,26 +206,28 @@ object OrderingDomainSpec extends ZIOSpecDefault:
           ready      <- svc.markReadyForDispatch(placed.id)
           shipped    <- svc.markDispatched(placed.id)
           done       <- svc.complete(placed.id)
-          ev1        <- queue.take
-          ev2        <- queue.take
-        yield assertTrue(
-          placed.status == OrderStatus.AwaitingPayment,
-          history.map(_.id) == List(placed.id),
-          illegal1.isLeft,
-          confirmed.status == OrderStatus.Confirmed,
-          inProd.status == OrderStatus.InProduction,
-          cantCancel.isLeft,
-          ready.status == OrderStatus.ReadyForDispatch,
-          shipped.status == OrderStatus.Dispatched,
-          done.status == OrderStatus.Completed,
-          ev1.isInstanceOf[OrderPlaced],
-          ev2.isInstanceOf[OrderConfirmed],
-        )
-      }.provide(orderServiceLayer)
-    },
-    test("CheckoutOptionsService computes courier fees, honors FREESHIP / threshold / weight caps, and builds SPD QR payload") {
+          events     <- queue.drain
+          ev1         = events(0)
+          ev2         = events(1)
+        yield {
+          assert(placed.status == OrderStatus.AwaitingPayment)
+          assert(history.map(_.id) == List(placed.id))
+          assert(illegal1.isLeft)
+          assert(confirmed.status == OrderStatus.Confirmed)
+          assert(inProd.status == OrderStatus.InProduction)
+          assert(cantCancel.isLeft)
+          assert(ready.status == OrderStatus.ReadyForDispatch)
+          assert(shipped.status == OrderStatus.Dispatched)
+          assert(done.status == OrderStatus.Completed)
+          assert(ev1.isInstanceOf[OrderPlaced])
+          assert(ev2.isInstanceOf[OrderConfirmed])
+        }
+      }
+    }
+
+    "CheckoutOptionsService computes courier fees, honors FREESHIP / threshold / weight caps, and builds SPD QR payload" in {
       for
-        optsSvc      <- ZIO.service[CheckoutOptionsService]
+        optsSvc      <- services.map(_.options)
         stdQuotes    <- optsSvc.availableDeliveryOptions(Currency.CZK, Money("1000"), Some(BigDecimal(500)), freeDeliveryPromo = false)
         freeByPromo  <- optsSvc.availableDeliveryOptions(Currency.CZK, Money("1000"), Some(BigDecimal(500)), freeDeliveryPromo = true)
         freeByThresh <- optsSvc.availableDeliveryOptions(Currency.CZK, Money("6000"), Some(BigDecimal(500)), freeDeliveryPromo = false)
@@ -242,20 +246,21 @@ object OrderingDomainSpec extends ZIOSpecDefault:
                           Money("1331.00"),
                           Currency.CZK,
                         )
-      yield assertTrue(
-        stdQuotes.find(_.id == DeliveryOptionId.unsafe("courier-standard")).map(_.feeNet) == Some(Money("100.00")),
-        freeByPromo.find(_.id == DeliveryOptionId.unsafe("courier-standard")).exists(q => q.feeNet == Money.zero && q.freeShippingApplied),
-        freeByThresh.find(_.id == DeliveryOptionId.unsafe("courier-standard")).exists(q => q.feeNet == Money.zero && q.freeShippingApplied),
-        overweight.isLeft,
-        !guestPay.find(_.method == PaymentMethod.InvoiceOnAccount).get.available,
-        corpPay.find(_.method == PaymentMethod.InvoiceOnAccount).get.available,
-        qrInstr match
+      yield {
+        assert(stdQuotes.find(_.id == DeliveryOptionId.unsafe("courier-standard")).map(_.feeNet) == Some(Money("100.00")))
+        assert(freeByPromo.find(_.id == DeliveryOptionId.unsafe("courier-standard")).exists(q => q.feeNet == Money.zero && q.freeShippingApplied))
+        assert(freeByThresh.find(_.id == DeliveryOptionId.unsafe("courier-standard")).exists(q => q.feeNet == Money.zero && q.freeShippingApplied))
+        assert(overweight.isLeft)
+        assert(!guestPay.find(_.method == PaymentMethod.InvoiceOnAccount).get.available)
+        assert(corpPay.find(_.method == PaymentMethod.InvoiceOnAccount).get.available)
+        assert(qrInstr match
           case PaymentInstructions.BankTransferQR(_, _, _, vs, amt, cur, payload) =>
             vs.value == "20260042" && amt == Money("1331.00") && cur == Currency.CZK && payload.startsWith("SPD*1.0*ACC:")
-          case _ => false,
-      )
-    }.provide(orderServiceLayer),
-    test("Staff Order Intake supports accept, hold/resume restoring prior stage, payment confirmation, manual stage progression, notes, and filters") {
+          case _ => false)
+      }
+    }
+
+    "Staff Order Intake supports accept, hold/resume restoring prior stage, payment confirmation, manual stage progression, notes, and filters" in {
       val line      = sampleLine("l-intake", Currency.CZK, Money(1500))
       val staffId   = EmployeeId.unsafe("emp-intake-1")
       val staffName = Some(NonEmptyString.unsafe("Operations Lead"))
@@ -271,7 +276,7 @@ object OrderingDomainSpec extends ZIOSpecDefault:
       )
 
       for
-        svc        <- ZIO.service[OrderService]
+        svc        <- services.map(_.orders)
         placed     <- svc.placeOrder(cmd)
         accepted   <- svc.acceptOrder(placed.id, staffId, staffName, Some("Checked artwork and stock"))
         paid       <- svc.confirmPaymentByStaff(placed.id, staffId, staffName, Some("WIRE-771"))
@@ -285,22 +290,22 @@ object OrderingDomainSpec extends ZIOSpecDefault:
         byQuery    <- svc.listOrders(OrderFilter(query = Some("0101")))
         byPaid     <- svc.listOrders(OrderFilter(paymentStatus = Some(PaymentStatus.Confirmed)))
         badResume  <- svc.resumeFromHold(placed.id, staffId, staffName, None).either
-      yield assertTrue(
-        placed.status == OrderStatus.AwaitingPayment,
-        accepted.status == OrderStatus.Accepted,
-        paid.status == OrderStatus.Accepted,
-        paid.payment.status == PaymentStatus.Confirmed,
-        onHold.status == OrderStatus.OnHold(NonEmptyString.unsafe("Waiting for bleed fix")),
-        resumed.status == OrderStatus.Accepted,
-        noted.internalNotes.size == 1,
-        inProd.status == OrderStatus.InProduction,
-        ready.status == OrderStatus.ReadyForDispatch,
-        completed.status == OrderStatus.Completed,
-        completed.statusHistory.size == 8,
-        byStatus.map(_.id) == List(placed.id),
-        byQuery.map(_.id) == List(placed.id),
-        byPaid.map(_.id) == List(placed.id),
-        badResume == Left(OrderError.OrderNotOnHold(placed.id, OrderStatus.Completed)),
-      )
-    }.provide(orderServiceLayer),
-  )
+      yield {
+        assert(placed.status == OrderStatus.AwaitingPayment)
+        assert(accepted.status == OrderStatus.Accepted)
+        assert(paid.status == OrderStatus.Accepted)
+        assert(paid.payment.status == PaymentStatus.Confirmed)
+        assert(onHold.status == OrderStatus.OnHold(NonEmptyString.unsafe("Waiting for bleed fix")))
+        assert(resumed.status == OrderStatus.Accepted)
+        assert(noted.internalNotes.size == 1)
+        assert(inProd.status == OrderStatus.InProduction)
+        assert(ready.status == OrderStatus.ReadyForDispatch)
+        assert(completed.status == OrderStatus.Completed)
+        assert(completed.statusHistory.size == 8)
+        assert(byStatus.map(_.id) == List(placed.id))
+        assert(byQuery.map(_.id) == List(placed.id))
+        assert(byPaid.map(_.id) == List(placed.id))
+        assert(badResume == Left(OrderError.OrderNotOnHold(placed.id, OrderStatus.Completed)))
+      }
+    }
+  }

@@ -9,8 +9,9 @@ import mpbuilder.ordering.*
 import mpbuilder.ordering.sample.SampleDeliveryCatalog
 import mpbuilder.shared.*
 import mpbuilder.storefront.*
-import zio.*
-import zio.test.*
+import kyo.*
+import kyo.test.*
+import ShowcaseTestEnv.*
 import java.time.Instant
 
 /** End-to-end Product Builder frontend scenarios exercised through `StorefrontFacade`:
@@ -24,7 +25,7 @@ import java.time.Instant
   *      - Quick single-item checkout -> leaves existing shopping cart untouched
   *      - Promo redemption counter enforcement (`ONEUSE` single-use code fails on 2nd checkout!)
   */
-object StorefrontFacadeSpec extends ZIOSpecDefault:
+class StorefrontFacadeSpec extends Test[Any]:
 
   private val validNow = Instant.parse("2025-06-15T12:00:00Z")
 
@@ -62,12 +63,11 @@ object StorefrontFacadeSpec extends ZIOSpecDefault:
       ),
     )
 
-  def spec = suite("StorefrontFacadeSpec")(
-    test("Agency OTP login via IČO, Customer password login, and Employee password login work seamlessly") {
+  "StorefrontFacadeSpec" - {
+    "Agency OTP login via IČO, Customer password login, and Employee password login work seamlessly" in {
       for
-        _        <- TestClock.setTime(validNow)
-        facade   <- ZIO.service[StorefrontFacade]
-        otpInbox <- ZIO.service[InMemoryOtpInbox]
+        facade   <- Env.get[StorefrontFacade]
+        otpInbox <- Env.get[InMemoryOtpInbox]
         // 1) Agency OTP login via Czech Company Registration Number (IČO = 12345678 -> Print Shop Pro)
         ch       <- facade.requestCustomerOtp(LoginIdentifier.CompanyRegNo(NonEmptyString.unsafe("12345678")))
         codeOpt  <- otpInbox.codeFor(ch.challengeId)
@@ -79,20 +79,19 @@ object StorefrontFacadeSpec extends ZIOSpecDefault:
         notCust  <- facade.currentCustomer(empAuth.session.token).either
         // 4) Suspended customer blocked from OTP login
         suspRes  <- facade.requestCustomerOtp(LoginIdentifier.Email(EmailAddress.unsafe("karel@suspendedco.cz"))).either
-      yield assertTrue(
-        otpAuth.customer.exists(_.company.exists(_.legalName.value == "Print Shop Pro s.r.o.")),
-        pwAuth.customer.exists(_.tier == CustomerTier.Silver),
-        empAuth.session.principal.employeeIdOpt == Some(EmployeeId.unsafe("emp-1")),
-        empAuth.customer.isEmpty,
-        notCust == Left(StorefrontError.NotACustomerSession),
-        suspRes.isLeft,
-      )
-    }.provide(SampleShowcaseRuntime.layer()),
+      yield {
+        assert(otpAuth.customer.exists(_.company.exists(_.legalName.value == "Print Shop Pro s.r.o.")))
+        assert(pwAuth.customer.exists(_.tier == CustomerTier.Silver))
+        assert(empAuth.session.principal.employeeIdOpt == Some(EmployeeId.unsafe("emp-1")))
+        assert(empAuth.customer.isEmpty)
+        assert(notCust == Left(StorefrontError.NotACustomerSession))
+        assert(suspRes.isLeft)
+      }
+    }.provideRuntime().atTime(validNow)
 
-    test("configureAndQuote returns dual base-vs-customer pricing, EN/CS breakdown, speed options, and finish parameter limits") {
+    "configureAndQuote returns dual base-vs-customer pricing, EN/CS breakdown, speed options, and finish parameter limits" in {
       for
-        _        <- TestClock.setTime(validNow)
-        facade   <- ZIO.service[StorefrontFacade]
+        facade   <- Env.get[StorefrontFacade]
         auth     <- facade.loginWithPassword(EmailAddress.unsafe("petr@megacorp.cz"), SampleIdentity.demoCustomerPassword)
         // Configure flyers as Platinum customer (MegaCorp) in CZK
         quotedCs <- facade.configureAndQuote(
@@ -116,29 +115,28 @@ object StorefrontFacadeSpec extends ZIOSpecDefault:
                       materialId = SampleCatalog.coatedGlossy350gsmId,
                       printingMethodId = Some(SampleCatalog.digitalId),
                     )
-      yield assertTrue(
+      yield {
         // MegaCorp Platinum agreement gives meaningful savings over walk-in base price
-        quotedCs.pricing.walkInBaseQuote.isDefined,
-        quotedCs.pricing.effectiveQuote.netTotal < quotedCs.pricing.walkInBaseQuote.get.netTotal,
-        quotedCs.pricing.savingsNet.exists(_.isPositive),
-        quotedCs.pricing.savingsPercent.exists(_ > BigDecimal(0)),
+        assert(quotedCs.pricing.walkInBaseQuote.isDefined)
+        assert(quotedCs.pricing.effectiveQuote.netTotal < quotedCs.pricing.walkInBaseQuote.get.netTotal)
+        assert(quotedCs.pricing.savingsNet.exists(_.isPositive))
+        assert(quotedCs.pricing.savingsPercent.exists(_ > BigDecimal(0)))
         // Speed tier cards populated with surcharge labels
-        quotedCs.speedOptions.map(_.speed).toSet == ManufacturingSpeed.values.toSet,
-        quotedCs.speedOptions.find(_.speed == ManufacturingSpeed.Express).exists(_.surchargePercent > BigDecimal(0)),
-        quotedCs.speedOptions.find(_.speed == ManufacturingSpeed.Economy).exists(_.surchargePercent < BigDecimal(0)),
+        assert(quotedCs.speedOptions.map(_.speed).toSet == ManufacturingSpeed.values.toSet)
+        assert(quotedCs.speedOptions.find(_.speed == ManufacturingSpeed.Express).exists(_.surchargePercent > BigDecimal(0)))
+        assert(quotedCs.speedOptions.find(_.speed == ManufacturingSpeed.Economy).exists(_.surchargePercent < BigDecimal(0)))
         // Localized breakdown differs cleanly between CS and EN
-        quotedCs.localizedBreakdown.nonEmpty,
-        quotedEn.localizedBreakdown.nonEmpty,
-        quotedCs.localizedBreakdown.map(_.label) != quotedEn.localizedBreakdown.map(_.label),
+        assert(quotedCs.localizedBreakdown.nonEmpty)
+        assert(quotedEn.localizedBreakdown.nonEmpty)
+        assert(quotedCs.localizedBreakdown.map(_.label) != quotedEn.localizedBreakdown.map(_.label))
         // RuleEngine discovers scoring crease cap before user picks scoring!
-        limits.get(FinishType.Scoring) == Some(BigDecimal(4)),
-      )
-    }.provide(SampleShowcaseRuntime.layer()),
+        assert(limits.get(FinishType.Scoring) == Some(BigDecimal(4)))
+      }
+    }.provideRuntime().atTime(validNow)
 
-    test("Guest checkout with cart lifecycle, FREESHIP promo, QR payment instructions, and cart clearing") {
+    "Guest checkout with cart lifecycle, FREESHIP promo, QR payment instructions, and cart clearing" in {
       for
-        _        <- TestClock.setTime(validNow)
-        facade   <- ZIO.service[StorefrontFacade]
+        facade   <- Env.get[StorefrontFacade]
         cartId    = CartId.unsafe("cart-guest-1")
         _        <- facade.createCart(cartId, Currency.CZK)
         added    <- facade.addConfiguredProductToCart(cartId, flyersCmd(250), Currency.CZK, copies = Quantity.unsafe(1))
@@ -178,29 +176,28 @@ object StorefrontFacadeSpec extends ZIOSpecDefault:
                       )
                     )
         afterCart <- facade.getCart(cartId)
-      yield assertTrue(
-        doubled.linesNetTotal == (added.linesNetTotal * BigDecimal(2)).rounded,
-        withFree.appliedPromo.exists(_.freeDelivery),
+      yield {
+        assert(doubled.linesNetTotal == (added.linesNetTotal * BigDecimal(2)).rounded)
+        assert(withFree.appliedPromo.exists(_.freeDelivery))
         // Guest options: InvoiceOnAccount unavailable, standard courier fee waived by FREESHIP
-        !opts.paymentOptions.find(_.method == PaymentMethod.InvoiceOnAccount).get.available,
-        opts.deliveryOptions.find(_.id == SampleDeliveryCatalog.courierStandardId).exists(d => d.feeNet == Money.zero && d.freeShippingApplied),
-        preview.shippingNet == Money.zero,
-        badInv.isLeft,
-        confirm.order.status == OrderStatus.AwaitingPayment,
-        confirm.order.totals.shippingNet == Money.zero,
-        confirm.paymentInstructions match
+        assert(!opts.paymentOptions.find(_.method == PaymentMethod.InvoiceOnAccount).get.available)
+        assert(opts.deliveryOptions.find(_.id == SampleDeliveryCatalog.courierStandardId).exists(d => d.feeNet == Money.zero && d.freeShippingApplied))
+        assert(preview.shippingNet == Money.zero)
+        assert(badInv.isLeft)
+        assert(confirm.order.status == OrderStatus.AwaitingPayment)
+        assert(confirm.order.totals.shippingNet == Money.zero)
+        assert(confirm.paymentInstructions match
           case PaymentInstructions.BankTransferQR(_, _, _, _, amt, Currency.CZK, qr) =>
             amt == confirm.order.totals.grandTotalGross && qr.startsWith("SPD*1.0*ACC:")
-          case _ => false,
+          case _ => false)
         // Cart cleared after basket checkout
-        afterCart.lines.isEmpty,
-      )
-    }.provide(SampleShowcaseRuntime.layer()),
+        assert(afterCart.lines.isEmpty)
+      }
+    }.provideRuntime().atTime(validNow)
 
-    test("Corporate InvoiceOnAccount auto-confirms, redeems single-use promo once, quick checkout preserves cart, and listMyOrders shows history") {
+    "Corporate InvoiceOnAccount auto-confirms, redeems single-use promo once, quick checkout preserves cart, and listMyOrders shows history" in {
       for
-        _        <- TestClock.setTime(validNow)
-        facade   <- ZIO.service[StorefrontFacade]
+        facade   <- Env.get[StorefrontFacade]
         auth     <- facade.loginWithPassword(EmailAddress.unsafe("jan@printshoppro.cz"), SampleIdentity.demoCustomerPassword)
         token     = auth.session.token
         customer  = auth.customer.get
@@ -263,31 +260,30 @@ object StorefrontFacadeSpec extends ZIOSpecDefault:
                       )
                     )
         history  <- facade.listMyOrders(token)
-      yield assertTrue(
-        opts.prefill.invoiceApproved,
-        opts.prefill.invoiceDueDays == Some(14),
-        confirm1.order.status == OrderStatus.Confirmed,
+      yield {
+        assert(opts.prefill.invoiceApproved)
+        assert(opts.prefill.invoiceDueDays == Some(14))
+        assert(confirm1.order.status == OrderStatus.Confirmed)
         // Quick-order line is priced server-side from the configuration, not taken from the client
-        confirm1.order.lines.head.price.copy(quoteId = serverQ.pricing.effectiveQuote.quoteId) ==
-          StorefrontTranslators.toLinePriceSnapshot(serverQ.pricing.effectiveQuote),
-        confirm1.order.totals.promoDiscountNet.isPositive,
-        confirm1.paymentInstructions == PaymentInstructions.InvoiceScheduled(14, NonEmptyString.unsafe(confirm1.order.orderNumber.value)),
-        cartStillFull.lines.size == 1,
-        reusedPromo.isLeft,
-        confirm2.order.status == OrderStatus.Confirmed,
-        history.size == 2,
-        history.map(_.id).toSet == Set(confirm1.order.id, confirm2.order.id),
-      )
-    }.provide(SampleShowcaseRuntime.layer(seedSampleOrders = false)),
+        assert(confirm1.order.lines.head.price.copy(quoteId = serverQ.pricing.effectiveQuote.quoteId) ==
+          StorefrontTranslators.toLinePriceSnapshot(serverQ.pricing.effectiveQuote))
+        assert(confirm1.order.totals.promoDiscountNet.isPositive)
+        assert(confirm1.paymentInstructions == PaymentInstructions.InvoiceScheduled(14, NonEmptyString.unsafe(confirm1.order.orderNumber.value)))
+        assert(cartStillFull.lines.size == 1)
+        assert(reusedPromo.isLeft)
+        assert(confirm2.order.status == OrderStatus.Confirmed)
+        assert(history.size == 2)
+        assert(history.map(_.id).toSet == Set(confirm1.order.id, confirm2.order.id))
+      }
+    }.provideRuntime(seedSampleOrders = false).atTime(validNow)
 
-    test("draft artwork flows through cart & checkout to order line; post-checkout upload locks once accepted unless changes are requested") {
+    "draft artwork flows through cart & checkout to order line; post-checkout upload locks once accepted unless changes are requested" in {
       import mpbuilder.artwork.*
       import mpbuilder.backoffice.*
 
       for
-        _        <- TestClock.setTime(validNow)
-        sf       <- ZIO.service[StorefrontFacade]
-        bo       <- ZIO.service[BackofficeFacade]
+        sf       <- Env.get[StorefrontFacade]
+        bo       <- Env.get[BackofficeFacade]
         auth     <- sf.loginWithPassword(EmailAddress.unsafe("jan@printshoppro.cz"), SampleIdentity.demoCustomerPassword)
         tok       = auth.session.token
         customer  = auth.customer.get
@@ -408,16 +404,16 @@ object StorefrontFacadeSpec extends ZIOSpecDefault:
                         pageCount = Some(1),
                       ),
                     )
-      yield assertTrue(
-        draftArt.owner == ArtworkOwner.DraftSession(draftSess),
-        arts1.size == 1,
-        arts1.head.id == draftArt.id,
-        arts1.head.owner == ArtworkOwner.OrderLineRef(orderId, 0),
-        confirm.order.lines.head.artworkIds == Map(ComponentKey.Main -> draftArt.id),
-        line1Art.owner == ArtworkOwner.OrderLineRef(orderId, 1),
-        blocked == Left(StorefrontError.OrderAlreadyAcceptedForArtwork(orderId, OrderStatus.Accepted)),
-        fixedArt.revisionCount == 2,
-        fixedArt.latestRevision.file.fileName.value == "line2-artwork-v2.pdf",
-      )
-    }.provide(SampleShowcaseRuntime.layer(seedSampleOrders = false)),
-  )
+      yield {
+        assert(draftArt.owner == ArtworkOwner.DraftSession(draftSess))
+        assert(arts1.size == 1)
+        assert(arts1.head.id == draftArt.id)
+        assert(arts1.head.owner == ArtworkOwner.OrderLineRef(orderId, 0))
+        assert(confirm.order.lines.head.artworkIds == Map(ComponentKey.Main -> draftArt.id))
+        assert(line1Art.owner == ArtworkOwner.OrderLineRef(orderId, 1))
+        assert(blocked == Left(StorefrontError.OrderAlreadyAcceptedForArtwork(orderId, OrderStatus.Accepted)))
+        assert(fixedArt.revisionCount == 2)
+        assert(fixedArt.latestRevision.file.fileName.value == "line2-artwork-v2.pdf")
+      }
+    }.provideRuntime(seedSampleOrders = false).atTime(validNow)
+  }

@@ -4,14 +4,14 @@ import mpbuilder.customers.{CustomerIdentifier, CustomerService, CustomerStatus}
 import mpbuilder.identity.*
 import mpbuilder.identity.core.*
 import mpbuilder.shared.*
-import zio.*
+import kyo.*
 
 /** In-memory OTP inbox so dev UI / tests can retrieve the 6-digit code sent for a challenge. */
-final class InMemoryOtpInbox(ref: Ref[Map[OtpChallengeId, OtpCode]]) extends OtpDeliveryPort:
-  override def sendOtp(challengeId: OtpChallengeId, principal: Principal, code: OtpCode): UIO[Unit] =
+final class InMemoryOtpInbox(ref: AtomicRef[Map[OtpChallengeId, OtpCode]]) extends OtpDeliveryPort:
+  override def sendOtp(challengeId: OtpChallengeId, principal: Principal, code: OtpCode): Unit < Async =
     ref.update(_ + (challengeId -> code))
 
-  def codeFor(challengeId: OtpChallengeId): UIO[Option[OtpCode]] =
+  def codeFor(challengeId: OtpChallengeId): Option[OtpCode] < Async =
     ref.get.map(_.get(challengeId))
 
 /** ACL adapter bridging `identity`'s `CustomerAccountLookupPort` to `customers`'s `CustomerService`. */
@@ -19,7 +19,7 @@ final class CustomerServiceLookupAdapter(
     customerService: CustomerService,
 ) extends CustomerAccountLookupPort:
 
-  override def resolveCustomer(identifier: LoginIdentifier): UIO[Option[ResolvedAccount]] =
+  override def resolveCustomer(identifier: LoginIdentifier): Option[ResolvedAccount] < Async =
     val custId = identifier match
       case LoginIdentifier.Email(e)        => CustomerIdentifier.Email(e)
       case LoginIdentifier.CompanyRegNo(r) => CustomerIdentifier.CompanyRegNo(r)
@@ -75,57 +75,58 @@ object SampleIdentity:
     roles = Set(EmployeeRole.Manager, EmployeeRole.Operator),
   )
 
-object IdentitySampleLayer:
+object IdentitySampleWiring:
 
-  val otpInboxLayer: ULayer[InMemoryOtpInbox] =
-    ZLayer.fromZIO(Ref.make(Map.empty[OtpChallengeId, OtpCode]).map(new InMemoryOtpInbox(_)))
+  def otpInbox: InMemoryOtpInbox < Sync =
+    AtomicRef.init(Map.empty[OtpChallengeId, OtpCode]).map(new InMemoryOtpInbox(_))
 
-  def live(
+  /** In-memory `IdentityService` (+ the demo OTP inbox) with seeded demo customer & staff credentials. */
+  def service(
+      custSvc: CustomerService,
+      eventBus: EventBus,
       seedCustomerEmails: List[(CustomerId, String, EmailAddress)] = SampleIdentity.demoCustomerLogins,
       config: IdentityConfig = IdentityConfig(),
-  ): ZLayer[CustomerService & EventBus, Nothing, IdentityService & InMemoryOtpInbox] =
-    ZLayer.fromZIOEnvironment {
+  ): (IdentityService, InMemoryOtpInbox) < Async =
+    locally {
       for
-        custSvc  <- ZIO.service[CustomerService]
-        eventBus <- ZIO.service[EventBus]
-        inboxRef <- Ref.make(Map.empty[OtpChallengeId, OtpCode])
+        inboxRef <- AtomicRef.init(Map.empty[OtpChallengeId, OtpCode])
         inbox     = new InMemoryOtpInbox(inboxRef)
 
-        credRef  <- Ref.make(Map.empty[EmailAddress, PasswordCredential])
-        otpRef   <- Ref.make(Map.empty[OtpChallengeId, OtpChallenge])
-        sessRef  <- Ref.make(Map.empty[SessionToken, StoredSession])
-        seqRef   <- Ref.make(1000L)
+        credRef  <- AtomicRef.init(Map.empty[EmailAddress, PasswordCredential])
+        otpRef   <- AtomicRef.init(Map.empty[OtpChallengeId, OtpChallenge])
+        sessRef  <- AtomicRef.init(Map.empty[SessionToken, StoredSession])
+        seqRef   <- AtomicLong.init(1000L)
 
         credRepo = new CredentialRepository:
-          override def findByEmail(email: EmailAddress): UIO[Option[PasswordCredential]] = credRef.get.map(_.get(email))
-          override def listAll: UIO[List[PasswordCredential]]                          = credRef.get.map(_.values.toList)
-          override def save(credential: PasswordCredential): UIO[Unit]                 = credRef.update(_ + (credential.email -> credential))
+          override def findByEmail(email: EmailAddress): Option[PasswordCredential] < Async = credRef.get.map(_.get(email))
+          override def listAll: List[PasswordCredential] < Async                          = credRef.get.map(_.values.toList)
+          override def save(credential: PasswordCredential): Unit < Async                 = credRef.update(_ + (credential.email -> credential))
 
         otpRepo = new OtpRepository:
-          override def findById(id: OtpChallengeId): UIO[Option[OtpChallenge]] = otpRef.get.map(_.get(id))
-          override def save(challenge: OtpChallenge): UIO[Unit]                = otpRef.update(_ + (challenge.id -> challenge))
+          override def findById(id: OtpChallengeId): Option[OtpChallenge] < Async = otpRef.get.map(_.get(id))
+          override def save(challenge: OtpChallenge): Unit < Async                = otpRef.update(_ + (challenge.id -> challenge))
 
         sessRepo = new SessionRepository:
-          override def findByToken(token: SessionToken): UIO[Option[StoredSession]] = sessRef.get.map(_.get(token))
-          override def save(session: StoredSession): UIO[Unit]                      = sessRef.update(_ + (session.token -> session))
-          override def revoke(token: SessionToken): UIO[Unit] =
+          override def findByToken(token: SessionToken): Option[StoredSession] < Async = sessRef.get.map(_.get(token))
+          override def save(session: StoredSession): Unit < Async                      = sessRef.update(_ + (session.token -> session))
+          override def revoke(token: SessionToken): Unit < Async =
             sessRef.update(_.updatedWith(token)(_.map(_.copy(revoked = true))))
 
         tokenGen = new TokenGenerator:
-          override def generateSessionToken: UIO[SessionToken] =
-            seqRef.updateAndGet(_ + 1).map(n => SessionToken.unsafe(s"sess-token-$n"))
-          override def generateOtpChallengeId: UIO[OtpChallengeId] =
-            seqRef.updateAndGet(_ + 1).map(n => OtpChallengeId.unsafe(s"otp-ch-$n"))
-          override def generateOtpCode: UIO[OtpCode] =
-            seqRef.updateAndGet(_ + 1).map(n => OtpCode.unsafe(f"${(123456 + n) % 900000 + 100000}%06d"))
-          override def generateSalt: UIO[String] =
-            seqRef.updateAndGet(_ + 1).map(n => s"sample-salt-$n")
+          override def generateSessionToken: SessionToken < Async =
+            seqRef.incrementAndGet.map(n => SessionToken.unsafe(s"sess-token-$n"))
+          override def generateOtpChallengeId: OtpChallengeId < Async =
+            seqRef.incrementAndGet.map(n => OtpChallengeId.unsafe(s"otp-ch-$n"))
+          override def generateOtpCode: OtpCode < Async =
+            seqRef.incrementAndGet.map(n => OtpCode.unsafe(f"${(123456 + n) % 900000 + 100000}%06d"))
+          override def generateSalt: String < Async =
+            seqRef.incrementAndGet.map(n => s"sample-salt-$n")
 
         lookup = new CustomerServiceLookupAdapter(custSvc)
         svc    = new IdentityServiceLive(credRepo, otpRepo, sessRepo, lookup, inbox, tokenGen, eventBus, config)
 
         // Seed password credentials for demo customers + employees
-        _ <- ZIO.foreachDiscard(seedCustomerEmails) { case (cid, name, email) =>
+        _ <- Kyo.foreachDiscard(seedCustomerEmails) { case (cid, name, email) =>
                svc
                  .registerPasswordCredential(
                    RegisterPasswordCmd(
@@ -136,7 +137,7 @@ object IdentitySampleLayer:
                  )
                  .ignore
              }
-        _ <- ZIO.foreachDiscard(
+        _ <- Kyo.foreachDiscard(
                List(
                  SampleIdentity.adminEmployeePrincipal,
                  SampleIdentity.prepressEmployeePrincipal,
@@ -153,5 +154,5 @@ object IdentitySampleLayer:
                  )
                  .ignore
              }
-      yield ZEnvironment[IdentityService, InMemoryOtpInbox](svc, inbox)
+      yield (svc, inbox)
     }

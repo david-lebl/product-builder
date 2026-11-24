@@ -43,11 +43,11 @@ All UI copy is available in **English and Czech**.
 | Area | Technology |
 |---|---|
 | Language & build | Scala 3.9.0, Scala.js 1.22.0, Mill 1.1.3, JDK 25 |
-| Domain & effects | ZIO 2.1, ZIO Prelude `Validation` (error accumulation), opaque types with smart constructors |
-| UI | Kyo UI 1.0.0-RC7 (`kyo-ui`, `kyo-i18n` Fluent bundles, `kyo-zio`), cross-compiled to JVM (tests) and Scala.js |
-| Persistence | PostgreSQL 17, Magnum (`magnumzio`), HikariCP, Flyway |
-| HTTP API | Tapir + ZIO HTTP server (OpenAPI / Swagger UI), sttp client4 (Fetch in the browser), jsoniter-scala |
-| Testing | ZIO Test, Kyo UI JVM render tests, Testcontainers (PostgreSQL) |
+| Domain & effects | Kyo 1.0.0-RC7 (`kyo-core`, `kyo-combinators`: `Async`, `Abort`, `AtomicRef`, `Clock`), error-accumulating `Validation`, opaque types with smart constructors |
+| UI | Kyo UI 1.0.0-RC7 (`kyo-ui`, `kyo-i18n` Fluent bundles), cross-compiled to JVM (tests) and Scala.js |
+| Persistence | PostgreSQL 17 via `kyo-sql` (native wire driver + pool, typed JSONB columns), schema-per-context migrations |
+| HTTP API | `kyo-http` typed routes + server (generated OpenAPI / Swagger UI), kyo-http client (JVM) / `fetch` (browser), `kyo-schema` JSON |
+| Testing | `kyo-test`, Kyo UI JVM render tests, `kyo-pod` throwaway PostgreSQL containers |
 | CI/CD | GitHub Actions → GitHub Pages (static demo) |
 
 ## Architecture
@@ -61,14 +61,14 @@ backend/
 ├── shared/                      Kernel: opaque IDs, Money, LocalizedString, EventBus, BlobStorage, IdSequence
 ├── catalog|pricing|customers|identity|ordering|artwork|manufacturing/
 │   ├── 01-c-core/               Domain + public API; depends ONLY on shared (JVM + JS)
-│   └── 02-o-db/                 PostgreSQL repository adapters + Flyway migrations (JVM; not manufacturing yet)
+│   └── 02-o-db/                 kyo-sql PostgreSQL repository adapters + migrations (JVM; not manufacturing yet)
 ├── storefront/                  Customer BFF facade
-│   ├── 01-i-tapir-api/          Pure Tapir contracts /api/v1/storefront (JVM + JS)
-│   └── 02-i-http/               Server routes
-├── backoffice/                  Staff RBAC BFF facade (+ 01-i-tapir-api /api/v1/admin, 02-i-http)
-├── api-kernel/                  Shared transport helpers: auth, error envelope, schemas, health & blobs
-├── json/                        jsoniter-scala codecs (JSONB rows + HTTP wire)
-├── platform/                    DB pool, migrations, local blob storage (JVM)
+│   ├── 01-i-http-api/           Wire DTOs, schemas & URL layout of /api/v1/storefront (JVM + JS)
+│   └── 02-i-http/               kyo-http routes
+├── backoffice/                  Staff RBAC BFF facade (+ 01-i-http-api /api/v1/admin, 02-i-http)
+├── api-kernel/                  Shared transport helpers: error envelope, status mapping, health; kyo-http helpers (JVM)
+├── json/                        kyo-schema codecs (JSONB rows + HTTP wire)
+├── platform/                    kyo-sql pool, migration runner, local blob storage (JVM)
 ├── sample/                      Showcase data, in-memory adapters, SampleShowcaseRuntime
 └── app/                         Composition root: --storage=memory|postgres, seeder, HTTP server
 
@@ -94,7 +94,7 @@ PostgreSQL schema per context**, each with its own migrations.
 ## Getting Started
 
 **Prerequisites:** JDK 25 (e.g. `sdk env` with the bundled `.sdkmanrc`), Mill 1.1.3 (`./mill` wrapper
-included), and Docker for PostgreSQL and the database tests.
+included), and Docker (or Podman) for PostgreSQL and the database tests.
 
 ### Static demo (no backend)
 
@@ -107,10 +107,10 @@ cd dist && python3 -m http.server 8000      # http://localhost:8000 (storefront)
 ### API server
 
 ```bash
-./mill backend.app.run --storage=memory     # http://localhost:8080/docs (Swagger UI)
+./mill backend.app.run --storage=memory     # http://localhost:8080/docs (Swagger UI), /openapi.json
 
 docker compose up -d postgres
-DATABASE_URL=jdbc:postgresql://localhost:5432/printcraft ./mill backend.app.run --storage=postgres
+DATABASE_URL=postgresql://localhost:5432/printcraft ./mill backend.app.run --storage=postgres
 ```
 
 On first boot the database is migrated and seeded with the showcase data. To point the SPA at the

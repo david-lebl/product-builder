@@ -3,7 +3,6 @@ package mpbuilder.pricing.sample
 import mpbuilder.catalog.sample.SampleCatalog
 import mpbuilder.pricing.*
 import mpbuilder.shared.*
-import zio.NonEmptyChunk
 import java.time.Instant
 
 /** Sample B2B customer price agreements (properly owned by `pricing`, NOT `customers`),

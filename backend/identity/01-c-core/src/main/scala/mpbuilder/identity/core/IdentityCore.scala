@@ -2,7 +2,7 @@ package mpbuilder.identity
 package core
 
 import mpbuilder.shared.*
-import zio.*
+import kyo.*
 import java.nio.charset.StandardCharsets
 import java.time.Instant
 
@@ -174,31 +174,31 @@ private[identity] object SecretHasher:
 // ── Outbound Ports (implemented by DB / ACL / Email adapters) ────────────────
 
 private[identity] trait CredentialRepository:
-  def findByEmail(email: EmailAddress): UIO[Option[PasswordCredential]]
-  def listAll: UIO[List[PasswordCredential]] = ZIO.succeed(Nil)
-  def save(credential: PasswordCredential): UIO[Unit]
+  def findByEmail(email: EmailAddress): Option[PasswordCredential] < Async
+  def listAll: List[PasswordCredential] < Async = Kyo.lift(Nil)
+  def save(credential: PasswordCredential): Unit < Async
 
 private[identity] trait OtpRepository:
-  def findById(id: OtpChallengeId): UIO[Option[OtpChallenge]]
-  def save(challenge: OtpChallenge): UIO[Unit]
+  def findById(id: OtpChallengeId): Option[OtpChallenge] < Async
+  def save(challenge: OtpChallenge): Unit < Async
 
 private[identity] trait SessionRepository:
-  def findByToken(token: SessionToken): UIO[Option[StoredSession]]
-  def save(session: StoredSession): UIO[Unit]
-  def revoke(token: SessionToken): UIO[Unit]
+  def findByToken(token: SessionToken): Option[StoredSession] < Async
+  def save(session: StoredSession): Unit < Async
+  def revoke(token: SessionToken): Unit < Async
 
 private[identity] trait TokenGenerator:
-  def generateSessionToken: UIO[SessionToken]
-  def generateOtpChallengeId: UIO[OtpChallengeId]
-  def generateOtpCode: UIO[OtpCode]
-  def generateSalt: UIO[String]
+  def generateSessionToken: SessionToken < Async
+  def generateOtpChallengeId: OtpChallengeId < Async
+  def generateOtpCode: OtpCode < Async
+  def generateSalt: String < Async
 
 private[identity] trait OtpDeliveryPort:
-  def sendOtp(challengeId: OtpChallengeId, principal: Principal, code: OtpCode): UIO[Unit]
+  def sendOtp(challengeId: OtpChallengeId, principal: Principal, code: OtpCode): Unit < Async
 
 /** Outbound ACL port to resolve customer accounts by Email / IČO / DIČ without depending on `customers`. */
 private[identity] trait CustomerAccountLookupPort:
-  def resolveCustomer(identifier: LoginIdentifier): UIO[Option[ResolvedAccount]]
+  def resolveCustomer(identifier: LoginIdentifier): Option[ResolvedAccount] < Async
 
 // ── Live Service Implementation ──────────────────────────────────────────────
 
@@ -213,10 +213,10 @@ private[identity] final class IdentityServiceLive(
     config: IdentityConfig = IdentityConfig(),
 ) extends IdentityService:
 
-  override def registerPasswordCredential(cmd: RegisterPasswordCmd): IO[IdentityError, Unit] =
+  override def registerPasswordCredential(cmd: RegisterPasswordCmd): Unit < (Async & Abort[IdentityError]) =
     for
       existing <- credentials.findByEmail(cmd.email)
-      _        <- ZIO.fail(IdentityError.CredentialAlreadyExists(cmd.email)).when(existing.isDefined)
+      _        <- Effects.failWhen(existing.isDefined)(IdentityError.CredentialAlreadyExists(cmd.email))
       salt     <- tokens.generateSalt
       hash      = SecretHasher.hash(cmd.rawPassword.value, salt)
       _        <- credentials.save(PasswordCredential(cmd.email, hash, salt, cmd.principal, isActive = true))
@@ -225,23 +225,21 @@ private[identity] final class IdentityServiceLive(
   override def loginWithPassword(
       email: EmailAddress,
       rawPassword: NonEmptyString,
-  ): IO[IdentityError, AuthSession] =
+  ): AuthSession < (Async & Abort[IdentityError]) =
     for
-      now  <- Clock.instant
+      now  <- Effects.now
       cred <- credentials.findByEmail(email).someOrFail(IdentityError.InvalidCredentials)
-      _    <- ZIO.fail(IdentityError.AccountNotActive("Account is disabled")).unless(cred.isActive)
+      _    <- Effects.failUnless(cred.isActive)(IdentityError.AccountNotActive("Account is disabled"))
       ok    = SecretHasher.verify(rawPassword.value, cred.salt, cred.passwordHash)
-      _    <- ZIO.fail(IdentityError.InvalidCredentials).unless(ok)
+      _    <- Effects.failUnless(ok)(IdentityError.InvalidCredentials)
       sess <- issueSession(cred.principal, AuthMethod.Password, now)
     yield sess
 
-  override def requestCustomerOtp(identifier: LoginIdentifier): IO[IdentityError, OtpChallengeView] =
+  override def requestCustomerOtp(identifier: LoginIdentifier): OtpChallengeView < (Async & Abort[IdentityError]) =
     for
-      now      <- Clock.instant
+      now      <- Effects.now
       resolved <- customerLookup.resolveCustomer(identifier).someOrFail(IdentityError.AccountNotFound(identifier))
-      _        <- ZIO
-                    .fail(IdentityError.AccountNotActive(resolved.inactiveReason.getOrElse("Account not active")))
-                    .unless(resolved.isActive)
+      _        <- Effects.failUnless(resolved.isActive)(IdentityError.AccountNotActive(resolved.inactiveReason.getOrElse("Account not active")))
       cid      <- tokens.generateOtpChallengeId
       code     <- tokens.generateOtpCode
       salt     <- tokens.generateSalt
@@ -262,13 +260,13 @@ private[identity] final class IdentityServiceLive(
       _        <- eventBus.publish(OtpRequested(cid, resolved.principal, now))
     yield challenge.toView
 
-  override def verifyOtp(challengeId: OtpChallengeId, code: OtpCode): IO[IdentityError, AuthSession] =
+  override def verifyOtp(challengeId: OtpChallengeId, code: OtpCode): AuthSession < (Async & Abort[IdentityError]) =
     for
-      now       <- Clock.instant
+      now       <- Effects.now
       challenge <- otps.findById(challengeId).someOrFail(IdentityError.OtpChallengeNotFound(challengeId))
-      _         <- ZIO.fail(IdentityError.OtpAlreadyUsed(challengeId)).when(challenge.consumed)
-      _         <- ZIO.fail(IdentityError.OtpExpired(challengeId)).when(now.isAfter(challenge.expiresAt))
-      _         <- ZIO.fail(IdentityError.OtpTooManyAttempts(challengeId)).when(challenge.attempts >= challenge.maxAttempts)
+      _         <- Effects.failWhen(challenge.consumed)(IdentityError.OtpAlreadyUsed(challengeId))
+      _         <- Effects.failWhen(now.isAfter(challenge.expiresAt))(IdentityError.OtpExpired(challengeId))
+      _         <- Effects.failWhen(challenge.attempts >= challenge.maxAttempts)(IdentityError.OtpTooManyAttempts(challengeId))
       matches    = SecretHasher.verify(code.value, challenge.salt, challenge.codeHash)
       session   <-
         if matches then
@@ -278,34 +276,34 @@ private[identity] final class IdentityServiceLive(
           val nextAttempts = challenge.attempts + 1
           val remaining    = math.max(0, challenge.maxAttempts - nextAttempts)
           otps.save(challenge.copy(attempts = nextAttempts)) *>
-            (if remaining == 0 then ZIO.fail(IdentityError.OtpTooManyAttempts(challengeId))
-             else ZIO.fail(IdentityError.OtpInvalid(remaining)))
+            (if remaining == 0 then Abort.fail(IdentityError.OtpTooManyAttempts(challengeId))
+             else Abort.fail(IdentityError.OtpInvalid(remaining)))
     yield session
 
-  override def validateSession(token: SessionToken): IO[IdentityError, AuthSession] =
+  override def validateSession(token: SessionToken): AuthSession < (Async & Abort[IdentityError]) =
     for
-      now  <- Clock.instant
+      now  <- Effects.now
       sess <- sessions.findByToken(token).someOrFail(IdentityError.SessionNotFound)
-      _    <- ZIO.fail(IdentityError.SessionNotFound).when(sess.revoked)
-      _    <- ZIO.fail(IdentityError.SessionExpired).when(now.isAfter(sess.expiresAt))
+      _    <- Effects.failWhen(sess.revoked)(IdentityError.SessionNotFound)
+      _    <- Effects.failWhen(now.isAfter(sess.expiresAt))(IdentityError.SessionExpired)
     yield sess.toPublic
 
-  override def logout(token: SessionToken): UIO[Unit] =
+  override def logout(token: SessionToken): Unit < Async =
     for
-      now     <- Clock.instant
+      now     <- Effects.now
       sessOpt <- sessions.findByToken(token)
       _       <- sessions.revoke(token)
-      _       <- ZIO.foreachDiscard(sessOpt.filterNot(_.revoked))(s => eventBus.publish(UserLoggedOut(s.principal, now)))
+      _       <- Kyo.foreachDiscard(sessOpt.filterNot(_.revoked))(s => eventBus.publish(UserLoggedOut(s.principal, now)))
     yield ()
 
-  override def listStaffMembers: UIO[List[StaffMemberView]] =
+  override def listStaffMembers: List[StaffMemberView] < Async =
     credentials.listAll.map { creds =>
       creds.collect { case PasswordCredential(email, _, _, Principal.Employee(empId, name, _, roles), active) =>
         StaffMemberView(empId, name, email, roles, active)
       }.sortBy(_.employeeId.value)
     }
 
-  override def createStaffMember(cmd: CreateStaffCmd): IO[IdentityError, StaffMemberView] =
+  override def createStaffMember(cmd: CreateStaffCmd): StaffMemberView < (Async & Abort[IdentityError]) =
     val principal = Principal.Employee(cmd.employeeId, cmd.displayName, cmd.email, cmd.roles)
     registerPasswordCredential(RegisterPasswordCmd(principal, cmd.email, cmd.initialPassword))
       .as(StaffMemberView(cmd.employeeId, cmd.displayName, cmd.email, cmd.roles, isActive = true))
@@ -313,17 +311,15 @@ private[identity] final class IdentityServiceLive(
   override def updateStaffRoles(
       employeeId: EmployeeId,
       roles: Set[EmployeeRole],
-  ): IO[IdentityError, StaffMemberView] =
+  ): StaffMemberView < (Async & Abort[IdentityError]) =
     for
       all  <- credentials.listAll
-      cred <- ZIO
-                .fromOption(all.find(_.principal.employeeIdOpt.contains(employeeId)))
-                .orElseFail(IdentityError.StaffNotFound(employeeId))
+      cred <- all.find(_.principal.employeeIdOpt.contains(employeeId)).orFail(IdentityError.StaffNotFound(employeeId))
       emp  <- cred.principal match
                 case e: Principal.Employee =>
-                  ZIO.succeed(new Principal.Employee(e.employeeId, e.displayName, e.email, roles))
+                  Kyo.lift(new Principal.Employee(e.employeeId, e.displayName, e.email, roles))
                 case _ =>
-                  ZIO.fail(IdentityError.StaffNotFound(employeeId))
+                  Abort.fail(IdentityError.StaffNotFound(employeeId))
       upd   = cred.copy(principal = emp)
       _    <- credentials.save(upd)
     yield StaffMemberView(emp.employeeId, emp.displayName, upd.email, emp.roles, upd.isActive)
@@ -331,20 +327,18 @@ private[identity] final class IdentityServiceLive(
   override def setStaffActive(
       employeeId: EmployeeId,
       isActive: Boolean,
-  ): IO[IdentityError, StaffMemberView] =
+  ): StaffMemberView < (Async & Abort[IdentityError]) =
     for
       all  <- credentials.listAll
-      cred <- ZIO
-                .fromOption(all.find(_.principal.employeeIdOpt.contains(employeeId)))
-                .orElseFail(IdentityError.StaffNotFound(employeeId))
+      cred <- all.find(_.principal.employeeIdOpt.contains(employeeId)).orFail(IdentityError.StaffNotFound(employeeId))
       emp  <- cred.principal match
-                case e: Principal.Employee => ZIO.succeed(e)
-                case _                     => ZIO.fail(IdentityError.StaffNotFound(employeeId))
+                case e: Principal.Employee => Kyo.lift(e)
+                case _                     => Abort.fail(IdentityError.StaffNotFound(employeeId))
       upd   = cred.copy(isActive = isActive)
       _    <- credentials.save(upd)
     yield StaffMemberView(emp.employeeId, emp.displayName, upd.email, emp.roles, upd.isActive)
 
-  override def resetPassword(email: EmailAddress, newRawPassword: NonEmptyString): IO[IdentityError, Unit] =
+  override def resetPassword(email: EmailAddress, newRawPassword: NonEmptyString): Unit < (Async & Abort[IdentityError]) =
     for
       cred <- credentials.findByEmail(email).someOrFail(IdentityError.AccountNotFound(LoginIdentifier.Email(email)))
       salt <- tokens.generateSalt
@@ -352,7 +346,7 @@ private[identity] final class IdentityServiceLive(
       _    <- credentials.save(cred.copy(passwordHash = hash, salt = salt))
     yield ()
 
-  private def issueSession(principal: Principal, method: AuthMethod, now: Instant): UIO[AuthSession] =
+  private def issueSession(principal: Principal, method: AuthMethod, now: Instant): AuthSession < Async =
     for
       token <- tokens.generateSessionToken
       stored = StoredSession(
@@ -368,19 +362,14 @@ private[identity] final class IdentityServiceLive(
     yield stored.toPublic
 
 private[identity] object IdentityCoreLayers:
-  def layer(config: IdentityConfig = IdentityConfig()): ZLayer[
-    CredentialRepository & OtpRepository & SessionRepository & CustomerAccountLookupPort & OtpDeliveryPort & TokenGenerator & EventBus,
-    Nothing,
-    IdentityService,
-  ] =
-    ZLayer.fromFunction(
-      (
-          c: CredentialRepository,
-          o: OtpRepository,
-          s: SessionRepository,
-          l: CustomerAccountLookupPort,
-          d: OtpDeliveryPort,
-          t: TokenGenerator,
-          e: EventBus,
-      ) => new IdentityServiceLive(c, o, s, l, d, t, e, config)
-    )
+  def make(
+      credentials: CredentialRepository,
+      otps: OtpRepository,
+      sessions: SessionRepository,
+      customerLookup: CustomerAccountLookupPort,
+      otpDelivery: OtpDeliveryPort,
+      tokens: TokenGenerator,
+      eventBus: EventBus,
+      config: IdentityConfig = IdentityConfig(),
+  ): IdentityService =
+    new IdentityServiceLive(credentials, otps, sessions, customerLookup, otpDelivery, tokens, eventBus, config)

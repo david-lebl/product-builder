@@ -13,8 +13,8 @@ import mpbuilder.shared.*
 /** Pure Kyo client port for the Backoffice / Admin UI.
   *
   * Completely decoupled from the transport layer:
-  *   - Static / backend-less demo wires `BackofficeClient.fromZio(...)` backed by `SampleShowcaseRuntime`
-  *   - Future REST / Tapir / GraphQL / Kyo UI server-push integrations simply provide another `BackofficeClient`
+  *   - Static / backend-less demo wires `BackofficeClient.fromFacade(...)` backed by `SampleShowcaseRuntime`
+  *   - HTTP (`HttpClients.backoffice`) / GraphQL / Kyo UI server-push integrations simply provide another `BackofficeClient`
   */
 trait BackofficeClient:
 
@@ -143,71 +143,67 @@ trait BackofficeClient:
 
 object BackofficeClient:
 
-  /** Lifts any ZIO `BackofficeFacade` into a pure Kyo `BackofficeClient` using `kyo-zio`. */
-  def fromZio(facade: BackofficeFacade): BackofficeClient = new BackofficeClient:
+  /** Exposes a (Kyo) `BackofficeFacade` — in-memory or HTTP-backed — as the UI's `BackofficeClient` port. */
+  def fromFacade(facade: BackofficeFacade): BackofficeClient = new BackofficeClient:
 
-    private inline def liftUIO[A](zioEff: => zio.UIO[A]): A < Async =
-      Abort.run[Nothing](ZIOs.get(zioEff)).map(_.getOrThrow)
 
-    private inline def liftIO[A](zioEff: => zio.IO[BackofficeError, A]): A < (Abort[BackofficeError] & Async) =
-      ZIOs.get(zioEff)
 
     override def loginStaff(email: EmailAddress, rawPassword: NonEmptyString) =
-      liftIO(facade.loginStaff(email, rawPassword))
+      facade.loginStaff(email, rawPassword)
 
     override def validateStaffSession(token: SessionToken) =
-      liftIO(facade.validateStaffSession(token))
+      facade.validateStaffSession(token)
 
     override def logoutStaff(token: SessionToken) =
-      liftUIO(facade.logoutStaff(token))
+      facade.logoutStaff(token)
 
     override def getDashboardSummary(token: SessionToken) =
-      liftIO(facade.getDashboardSummary(token))
+      facade.getDashboardSummary(token)
 
     override def listOrders(token: SessionToken, filter: OrderFilter) =
-      liftIO(facade.listOrders(token, filter))
+      facade.listOrders(token, filter)
 
     override def getOrder(token: SessionToken, orderId: OrderId) =
-      liftIO(facade.getOrder(token, orderId))
+      facade.getOrder(token, orderId)
 
     override def acceptOrder(token: SessionToken, orderId: OrderId, note: Option[NonEmptyString]) =
-      liftIO(facade.acceptOrder(token, orderId, note))
+      facade.acceptOrder(token, orderId, note)
 
     override def putOrderOnHold(token: SessionToken, orderId: OrderId, reason: NonEmptyString) =
-      liftIO(facade.putOrderOnHold(token, orderId, reason))
+      facade.putOrderOnHold(token, orderId, reason)
 
     override def resumeOrderFromHold(token: SessionToken, orderId: OrderId, note: Option[NonEmptyString]) =
-      liftIO(facade.resumeOrderFromHold(token, orderId, note))
+      facade.resumeOrderFromHold(token, orderId, note)
 
     override def advanceOrderStage(token: SessionToken, orderId: OrderId, target: OrderStatus, note: Option[NonEmptyString]) =
-      liftIO(facade.advanceOrderStage(token, orderId, target, note))
+      facade.advanceOrderStage(token, orderId, target, note)
 
     override def confirmOrderPayment(token: SessionToken, orderId: OrderId, note: Option[NonEmptyString]) =
-      liftIO(facade.confirmOrderPayment(token, orderId, note))
+      facade.confirmOrderPayment(token, orderId, note)
 
     override def markOrderPaymentStatus(token: SessionToken, orderId: OrderId, status: PaymentStatus, note: Option[NonEmptyString]) =
-      liftIO(facade.markOrderPaymentStatus(token, orderId, status, note))
+      facade.markOrderPaymentStatus(token, orderId, status, note)
 
     override def editOrderLine(token: SessionToken, cmd: EditOrderLineCmd) =
-      liftIO(facade.editOrderLine(token, cmd))
+      facade.editOrderLine(token, cmd)
 
     override def cancelOrder(token: SessionToken, orderId: OrderId, reason: NonEmptyString) =
-      liftIO(facade.cancelOrder(token, orderId, reason))
+      facade.cancelOrder(token, orderId, reason)
 
     override def addOrderInternalNote(token: SessionToken, orderId: OrderId, text: NonEmptyString) =
-      liftIO(facade.addOrderInternalNote(token, orderId, text))
+      facade.addOrderInternalNote(token, orderId, text)
 
     override def listOrderArtwork(token: SessionToken, orderId: OrderId) =
-      liftIO(facade.listOrderArtwork(token, orderId))
+      facade.listOrderArtwork(token, orderId)
 
     override def approveArtwork(token: SessionToken, artworkId: ArtworkId, overrideFailures: Boolean) =
-      liftIO(facade.approveArtwork(token, artworkId, overrideFailures))
+      facade.approveArtwork(token, artworkId, overrideFailures)
 
     override def requestArtworkChanges(token: SessionToken, artworkId: ArtworkId, notes: NonEmptyString) =
-      liftIO(facade.requestArtworkChanges(token, artworkId, notes))
+      facade.requestArtworkChanges(token, artworkId, notes)
 
     override def rejectArtwork(token: SessionToken, artworkId: ArtworkId, reason: NonEmptyString) =
-      liftIO(facade.rejectArtwork(token, artworkId, reason))
+      facade.rejectArtwork(token, artworkId, reason)
 
     override def uploadStaffArtworkRevision(
         token: SessionToken,
@@ -215,7 +211,7 @@ object BackofficeClient:
         artworkId: ArtworkId,
         payload: StaffArtworkUploadPayload,
     ) =
-      liftIO(facade.uploadStaffArtworkRevision(token, orderId, artworkId, payload))
+      facade.uploadStaffArtworkRevision(token, orderId, artworkId, payload)
 
     override def uploadStaffOrderLineArtwork(
         token: SessionToken,
@@ -224,148 +220,148 @@ object BackofficeClient:
         componentKey: ComponentKey,
         payload: StaffArtworkUploadPayload,
     ) =
-      liftIO(facade.uploadStaffOrderLineArtwork(token, orderId, lineIndex, componentKey, payload))
+      facade.uploadStaffOrderLineArtwork(token, orderId, lineIndex, componentKey, payload)
 
     override def rerunArtworkPreflight(token: SessionToken, orderId: OrderId, artworkId: ArtworkId) =
-      liftIO(facade.rerunArtworkPreflight(token, orderId, artworkId))
+      facade.rerunArtworkPreflight(token, orderId, artworkId)
 
     override def getCatalog(token: SessionToken) =
-      liftIO(facade.getCatalog(token))
+      facade.getCatalog(token)
 
     override def getRuleset(token: SessionToken) =
-      liftIO(facade.getRuleset(token))
+      facade.getRuleset(token)
 
     override def upsertCategory(token: SessionToken, category: ProductCategory) =
-      liftIO(facade.upsertCategory(token, category))
+      facade.upsertCategory(token, category)
 
     override def deleteCategory(token: SessionToken, id: CategoryId) =
-      liftIO(facade.deleteCategory(token, id))
+      facade.deleteCategory(token, id)
 
     override def upsertMaterial(token: SessionToken, material: Material) =
-      liftIO(facade.upsertMaterial(token, material))
+      facade.upsertMaterial(token, material)
 
     override def deleteMaterial(token: SessionToken, id: MaterialId) =
-      liftIO(facade.deleteMaterial(token, id))
+      facade.deleteMaterial(token, id)
 
     override def upsertFinish(token: SessionToken, finish: Finish) =
-      liftIO(facade.upsertFinish(token, finish))
+      facade.upsertFinish(token, finish)
 
     override def deleteFinish(token: SessionToken, id: FinishId) =
-      liftIO(facade.deleteFinish(token, id))
+      facade.deleteFinish(token, id)
 
     override def upsertPrintingMethod(token: SessionToken, method: PrintingMethod) =
-      liftIO(facade.upsertPrintingMethod(token, method))
+      facade.upsertPrintingMethod(token, method)
 
     override def deletePrintingMethod(token: SessionToken, id: PrintingMethodId) =
-      liftIO(facade.deletePrintingMethod(token, id))
+      facade.deletePrintingMethod(token, id)
 
     override def upsertShowcaseListing(token: SessionToken, listing: ShowcaseListing) =
-      liftIO(facade.upsertShowcaseListing(token, listing))
+      facade.upsertShowcaseListing(token, listing)
 
     override def deleteShowcaseListing(token: SessionToken, categoryId: CategoryId) =
-      liftIO(facade.deleteShowcaseListing(token, categoryId))
+      facade.deleteShowcaseListing(token, categoryId)
 
     override def upsertRule(token: SessionToken, rule: CompatibilityRule) =
-      liftIO(facade.upsertRule(token, rule))
+      facade.upsertRule(token, rule)
 
     override def deleteRule(token: SessionToken, id: RuleId) =
-      liftIO(facade.deleteRule(token, id))
+      facade.deleteRule(token, id)
 
     override def listPricelists(token: SessionToken) =
-      liftIO(facade.listPricelists(token))
+      facade.listPricelists(token)
 
     override def savePricelist(token: SessionToken, pricelist: Pricelist) =
-      liftIO(facade.savePricelist(token, pricelist))
+      facade.savePricelist(token, pricelist)
 
     override def listAgreements(token: SessionToken) =
-      liftIO(facade.listAgreements(token))
+      facade.listAgreements(token)
 
     override def saveAgreement(token: SessionToken, agreement: CustomerPriceAgreement) =
-      liftIO(facade.saveAgreement(token, agreement))
+      facade.saveAgreement(token, agreement)
 
     override def deleteAgreement(token: SessionToken, target: AgreementTarget, currency: Currency) =
-      liftIO(facade.deleteAgreement(token, target, currency))
+      facade.deleteAgreement(token, target, currency)
 
     override def listPromoCodes(token: SessionToken) =
-      liftIO(facade.listPromoCodes(token))
+      facade.listPromoCodes(token)
 
     override def savePromoCode(token: SessionToken, promo: PromoCode) =
-      liftIO(facade.savePromoCode(token, promo))
+      facade.savePromoCode(token, promo)
 
     override def setPromoCodeActive(token: SessionToken, id: DiscountCodeId, active: Boolean) =
-      liftIO(facade.setPromoCodeActive(token, id, active))
+      facade.setPromoCodeActive(token, id, active)
 
     override def deletePromoCode(token: SessionToken, id: DiscountCodeId) =
-      liftIO(facade.deletePromoCode(token, id))
+      facade.deletePromoCode(token, id)
 
     override def listCostSheets(token: SessionToken) =
-      liftIO(facade.listCostSheets(token))
+      facade.listCostSheets(token)
 
     override def saveCostSheet(token: SessionToken, sheet: ProductionCostSheet) =
-      liftIO(facade.saveCostSheet(token, sheet))
+      facade.saveCostSheet(token, sheet)
 
     override def simulateMargin(token: SessionToken, cmd: MarginSimulationCmd) =
-      liftIO(facade.simulateMargin(token, cmd))
+      facade.simulateMargin(token, cmd)
 
     override def listCustomers(token: SessionToken, filter: CustomerFilter) =
-      liftIO(facade.listCustomers(token, filter))
+      facade.listCustomers(token, filter)
 
     override def getCustomerDetail(token: SessionToken, id: CustomerId) =
-      liftIO(facade.getCustomerDetail(token, id))
+      facade.getCustomerDetail(token, id)
 
     override def registerCustomer(token: SessionToken, cmd: RegisterCustomerCmd) =
-      liftIO(facade.registerCustomer(token, cmd))
+      facade.registerCustomer(token, cmd)
 
     override def approveCustomer(token: SessionToken, id: CustomerId) =
-      liftIO(facade.approveCustomer(token, id))
+      facade.approveCustomer(token, id)
 
     override def suspendCustomer(token: SessionToken, id: CustomerId, reason: NonEmptyString) =
-      liftIO(facade.suspendCustomer(token, id, reason))
+      facade.suspendCustomer(token, id, reason)
 
     override def deactivateCustomer(token: SessionToken, id: CustomerId, reason: NonEmptyString) =
-      liftIO(facade.deactivateCustomer(token, id, reason))
+      facade.deactivateCustomer(token, id, reason)
 
     override def changeCustomerTier(token: SessionToken, id: CustomerId, tier: CustomerTier) =
-      liftIO(facade.changeCustomerTier(token, id, tier))
+      facade.changeCustomerTier(token, id, tier)
 
     override def grantCustomerPaymentTerms(token: SessionToken, id: CustomerId, terms: PaymentTerms) =
-      liftIO(facade.grantCustomerPaymentTerms(token, id, terms))
+      facade.grantCustomerPaymentTerms(token, id, terms)
 
     override def updateCustomerProfile(token: SessionToken, cmd: UpdateCustomerProfileCmd) =
-      liftIO(facade.updateCustomerProfile(token, cmd))
+      facade.updateCustomerProfile(token, cmd)
 
     override def addCustomerNote(token: SessionToken, id: CustomerId, text: NonEmptyString) =
-      liftIO(facade.addCustomerNote(token, id, text))
+      facade.addCustomerNote(token, id, text)
 
     override def listStaffMembers(token: SessionToken) =
-      liftIO(facade.listStaffMembers(token))
+      facade.listStaffMembers(token)
 
     override def createStaffMember(token: SessionToken, cmd: CreateStaffCmd) =
-      liftIO(facade.createStaffMember(token, cmd))
+      facade.createStaffMember(token, cmd)
 
     override def updateStaffRoles(token: SessionToken, employeeId: EmployeeId, roles: Set[EmployeeRole]) =
-      liftIO(facade.updateStaffRoles(token, employeeId, roles))
+      facade.updateStaffRoles(token, employeeId, roles)
 
     override def setStaffActive(token: SessionToken, employeeId: EmployeeId, isActive: Boolean) =
-      liftIO(facade.setStaffActive(token, employeeId, isActive))
+      facade.setStaffActive(token, employeeId, isActive)
 
     override def resetStaffPassword(token: SessionToken, email: EmailAddress, newRawPassword: NonEmptyString) =
-      liftIO(facade.resetStaffPassword(token, email, newRawPassword))
+      facade.resetStaffPassword(token, email, newRawPassword)
 
     override def getStoreDeliverySettings(token: SessionToken) =
-      liftIO(facade.getStoreDeliverySettings(token))
+      facade.getStoreDeliverySettings(token)
 
     override def upsertPickupLocation(token: SessionToken, loc: ShopPickupLocation) =
-      liftIO(facade.upsertPickupLocation(token, loc))
+      facade.upsertPickupLocation(token, loc)
 
     override def deletePickupLocation(token: SessionToken, id: DeliveryOptionId) =
-      liftIO(facade.deletePickupLocation(token, id))
+      facade.deletePickupLocation(token, id)
 
     override def upsertCourierOption(token: SessionToken, opt: CourierServiceOption) =
-      liftIO(facade.upsertCourierOption(token, opt))
+      facade.upsertCourierOption(token, opt)
 
     override def deleteCourierOption(token: SessionToken, currency: Currency, id: DeliveryOptionId) =
-      liftIO(facade.deleteCourierOption(token, currency, id))
+      facade.deleteCourierOption(token, currency, id)
 
     override def upsertBankAccount(token: SessionToken, currency: Currency, account: BankAccountConfig) =
-      liftIO(facade.upsertBankAccount(token, currency, account))
+      facade.upsertBankAccount(token, currency, account)

@@ -1,8 +1,7 @@
 package mpbuilder.manufacturing
 
 import mpbuilder.shared.*
-import zio.*
-import zio.prelude.Validation
+import kyo.*
 import java.time.{DayOfWeek, Instant, LocalTime}
 
 // ── Context-local IDs ────────────────────────────────────────────────────────
@@ -278,11 +277,11 @@ final case class OrderDispatched(
 // ── Public Inbound Port (Module API) ─────────────────────────────────────────
 
 trait ManufacturingService:
-  def createJob(jobId: JobId, specs: NonEmptyChunk[ProductionSpec], deadline: Option[Instant] = None): IO[ManufacturingError, ProductionJobView]
-  def claimStep(jobId: JobId, workflowId: WorkflowId, stepId: StepId, employeeId: EmployeeId, machineId: Option[MachineId]): IO[ManufacturingError, ProductionJobView]
-  def completeStep(jobId: JobId, workflowId: WorkflowId, stepId: StepId, notes: String = ""): IO[ManufacturingError, ProductionJobView]
-  def failStepAndScheduleRework(jobId: JobId, workflowId: WorkflowId, stepId: StepId, reason: NonEmptyString): IO[ManufacturingError, ProductionJobView]
-  def currentCapacity: UIO[CapacitySnapshot]
+  def createJob(jobId: JobId, specs: NonEmptyChunk[ProductionSpec], deadline: Option[Instant] = None): ProductionJobView < (Async & Abort[ManufacturingError])
+  def claimStep(jobId: JobId, workflowId: WorkflowId, stepId: StepId, employeeId: EmployeeId, machineId: Option[MachineId]): ProductionJobView < (Async & Abort[ManufacturingError])
+  def completeStep(jobId: JobId, workflowId: WorkflowId, stepId: StepId, notes: String = ""): ProductionJobView < (Async & Abort[ManufacturingError])
+  def failStepAndScheduleRework(jobId: JobId, workflowId: WorkflowId, stepId: StepId, reason: NonEmptyString): ProductionJobView < (Async & Abort[ManufacturingError])
+  def currentCapacity: CapacitySnapshot < Async
   def checkSpeedAvailability(
       categoryId: CategoryId,
       speed: ManufacturingSpeed,
@@ -290,4 +289,4 @@ trait ManufacturingService:
       componentCount: Int,
       materialIds: Set[MaterialId],
       finishingOps: Set[FinishingOperation],
-  ): IO[ManufacturingError.SpeedTierUnavailable, Unit]
+  ): Unit < (Async & Abort[ManufacturingError.SpeedTierUnavailable])

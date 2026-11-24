@@ -1,81 +1,75 @@
 package mpbuilder.json
 
-import com.github.plokhotnyuk.jsoniter_scala.core.*
-import com.github.plokhotnyuk.jsoniter_scala.macros.*
+import kyo.*
 import mpbuilder.json.JsonSupport.*
 import mpbuilder.shared.*
-import zio.prelude.Validation
 
-/** Codecs for `backend/shared` opaque types, value objects and enums. */
+/** Schemas for `backend/shared` opaque types, value objects and enums. */
 object SharedCodecs:
 
   // ── Identifiers ────────────────────────────────────────────────────────────
-  given JsonValueCodec[CategoryId]       = stringCodec("CategoryId")(CategoryId(_))(_.value)
-  given JsonValueCodec[MaterialId]       = stringCodec("MaterialId")(MaterialId(_))(_.value)
-  given JsonValueCodec[FinishId]         = stringCodec("FinishId")(FinishId(_))(_.value)
-  given JsonValueCodec[PrintingMethodId] = stringCodec("PrintingMethodId")(PrintingMethodId(_))(_.value)
-  given JsonValueCodec[StockFormatId]    = stringCodec("StockFormatId")(StockFormatId(_))(_.value)
-  given JsonValueCodec[PricelistId]      = stringCodec("PricelistId")(PricelistId(_))(_.value)
-  given JsonValueCodec[QuoteId]          = stringCodec("QuoteId")(QuoteId(_))(_.value)
-  given JsonValueCodec[CustomerId]       = stringCodec("CustomerId")(CustomerId(_))(_.value)
-  given JsonValueCodec[CartId]           = stringCodec("CartId")(CartId(_))(_.value)
-  given JsonValueCodec[OrderId]          = stringCodec("OrderId")(OrderId(_))(_.value)
-  given JsonValueCodec[ArtworkId]        = stringCodec("ArtworkId")(ArtworkId(_))(_.value)
-  given JsonValueCodec[DiscountCodeId]   = stringCodec("DiscountCodeId")(DiscountCodeId(_))(_.value)
-  given JsonValueCodec[JobId]            = stringCodec("JobId")(JobId(_))(_.value)
-  given JsonValueCodec[EmployeeId]       = stringCodec("EmployeeId")(EmployeeId(_))(_.value)
-  given JsonValueCodec[MachineId]        = stringCodec("MachineId")(MachineId(_))(_.value)
-  given JsonValueCodec[ComponentKey]     = stringCodec("ComponentKey")(ComponentKey(_))(_.value)
-
-  given JsonKeyCodec[CategoryId]       = stringKeyCodec("CategoryId")(CategoryId(_))(_.value)
-  given JsonKeyCodec[MaterialId]       = stringKeyCodec("MaterialId")(MaterialId(_))(_.value)
-  given JsonKeyCodec[FinishId]         = stringKeyCodec("FinishId")(FinishId(_))(_.value)
-  given JsonKeyCodec[PrintingMethodId] = stringKeyCodec("PrintingMethodId")(PrintingMethodId(_))(_.value)
-  given JsonKeyCodec[ComponentKey]     = stringKeyCodec("ComponentKey")(ComponentKey(_))(_.value)
-  given JsonKeyCodec[CustomerId]       = stringKeyCodec("CustomerId")(CustomerId(_))(_.value)
+  given Schema[CategoryId]       = stringOpaque("CategoryId")(CategoryId(_))(_.value)
+  given Schema[MaterialId]       = stringOpaque("MaterialId")(MaterialId(_))(_.value)
+  given Schema[FinishId]         = stringOpaque("FinishId")(FinishId(_))(_.value)
+  given Schema[PrintingMethodId] = stringOpaque("PrintingMethodId")(PrintingMethodId(_))(_.value)
+  given Schema[StockFormatId]    = stringOpaque("StockFormatId")(StockFormatId(_))(_.value)
+  given Schema[PricelistId]      = stringOpaque("PricelistId")(PricelistId(_))(_.value)
+  given Schema[QuoteId]          = stringOpaque("QuoteId")(QuoteId(_))(_.value)
+  given Schema[CustomerId]       = stringOpaque("CustomerId")(CustomerId(_))(_.value)
+  given Schema[CartId]           = stringOpaque("CartId")(CartId(_))(_.value)
+  given Schema[OrderId]          = stringOpaque("OrderId")(OrderId(_))(_.value)
+  given Schema[ArtworkId]        = stringOpaque("ArtworkId")(ArtworkId(_))(_.value)
+  given Schema[DiscountCodeId]   = stringOpaque("DiscountCodeId")(DiscountCodeId(_))(_.value)
+  given Schema[JobId]            = stringOpaque("JobId")(JobId(_))(_.value)
+  given Schema[EmployeeId]       = stringOpaque("EmployeeId")(EmployeeId(_))(_.value)
+  given Schema[MachineId]        = stringOpaque("MachineId")(MachineId(_))(_.value)
+  given Schema[ComponentKey]     = stringOpaque("ComponentKey")(ComponentKey(_))(_.value)
 
   // ── Strings & text ─────────────────────────────────────────────────────────
-  given JsonValueCodec[NonEmptyString] = stringCodec("NonEmptyString")(NonEmptyString(_))(_.value)
-  given JsonValueCodec[EmailAddress]   = stringCodec("EmailAddress")(EmailAddress(_))(_.value)
-  given JsonValueCodec[Version]        = stringCodec("Version")(Version(_))(_.value)
+  given Schema[NonEmptyString] = stringOpaque("NonEmptyString")(NonEmptyString(_))(_.value)
+  given Schema[EmailAddress]   = stringOpaque("EmailAddress")(EmailAddress(_))(_.value)
+  given Schema[Version]        = stringOpaque("Version")(Version(_))(_.value)
 
-  given JsonValueCodec[Language] = JsonCodecMaker.make(config)
-  given JsonKeyCodec[Language]   = enumKeyCodec("Language", Language.values)
+  given Schema[Language] = Schema.derived
 
   /** `LocalizedString` as `{"En": "...", "Cs": "..."}`. */
-  given JsonValueCodec[LocalizedString] =
-    val mapCodec: JsonValueCodec[Map[Language, String]] = JsonCodecMaker.make(config)
-    new JsonValueCodec[LocalizedString]:
-      override def decodeValue(in: JsonReader, default: LocalizedString): LocalizedString =
-        LocalizedString.fromMap(mapCodec.decodeValue(in, Map.empty)).toEither match
-          case Right(ls)  => ls
-          case Left(errs) => in.decodeError(s"Invalid LocalizedString: ${errs.mkString("; ")}")
-      override def encodeValue(x: LocalizedString, out: JsonWriter): Unit = mapCodec.encodeValue(x.toMap, out)
-      override def nullValue: LocalizedString                             = null.asInstanceOf[LocalizedString]
+  given Schema[LocalizedString] =
+    validated("LocalizedString", languageMap[String])(LocalizedString.fromMap)(_.toMap)
 
   // ── Money & rates ──────────────────────────────────────────────────────────
-  given JsonValueCodec[Money]      = bigDecimalCodec("Money")(v => Validation.succeed(Money(v)))(_.value)
-  given JsonValueCodec[Percentage] = bigDecimalCodec("Percentage")(Percentage(_))(_.value)
-  given JsonValueCodec[TaxRate]    = bigDecimalCodec("TaxRate")(TaxRate(_))(_.value)
-
-  given JsonValueCodec[Currency] = JsonCodecMaker.make(config)
-  given JsonKeyCodec[Currency]   = enumKeyCodec("Currency", Currency.values)
+  given Schema[Money]      = Schema.bigDecimalSchema.transform(Money(_))(_.value)
+  given Schema[Percentage] = bigDecimalOpaque("Percentage")(Percentage(_))(_.value)
+  given Schema[TaxRate]    = bigDecimalOpaque("TaxRate")(TaxRate(_))(_.value)
+  given Schema[Currency]   = Schema.derived
 
   // ── Measurements ───────────────────────────────────────────────────────────
-  given JsonValueCodec[PositiveMm]    = bigDecimalCodec("PositiveMm")(PositiveMm(_))(_.value)
-  given JsonValueCodec[NonNegativeMm] = bigDecimalCodec("NonNegativeMm")(NonNegativeMm(_))(_.value)
-  given JsonValueCodec[SquareMeters]  = bigDecimalCodec("SquareMeters")(SquareMeters(_))(_.value)
-  given JsonValueCodec[Grams]         = bigDecimalCodec("Grams")(Grams(_))(_.value)
-  given JsonValueCodec[PaperWeight]   = intCodec("PaperWeight")(PaperWeight(_))(_.gsm)
-  given JsonValueCodec[Quantity]      = intCodec("Quantity")(Quantity(_))(_.value)
-  given JsonValueCodec[VersionCount]  = intCodec("VersionCount")(VersionCount(_))(_.value)
+  given Schema[PositiveMm]    = bigDecimalOpaque("PositiveMm")(PositiveMm(_))(_.value)
+  given Schema[NonNegativeMm] = bigDecimalOpaque("NonNegativeMm")(NonNegativeMm(_))(_.value)
+  given Schema[SquareMeters]  = bigDecimalOpaque("SquareMeters")(SquareMeters(_))(_.value)
+  given Schema[Grams]         = bigDecimalOpaque("Grams")(Grams(_))(_.value)
+  given Schema[PaperWeight]   = intOpaque("PaperWeight")(PaperWeight(_))(_.gsm)
+  given Schema[Quantity]      = intOpaque("Quantity")(Quantity(_))(_.value)
+  given Schema[VersionCount]  = intOpaque("VersionCount")(VersionCount(_))(_.value)
 
   // ── Shared enums ───────────────────────────────────────────────────────────
-  given JsonValueCodec[ManufacturingSpeed] = JsonCodecMaker.make(config)
-  given JsonKeyCodec[ManufacturingSpeed]   = enumKeyCodec("ManufacturingSpeed", ManufacturingSpeed.values)
-  given JsonValueCodec[CustomerTier]       = JsonCodecMaker.make(config)
-  given JsonKeyCodec[CustomerTier]         = enumKeyCodec("CustomerTier", CustomerTier.values)
-  given JsonValueCodec[CustomerSegment]    = JsonCodecMaker.make(config)
+  given Schema[ManufacturingSpeed] = Schema.derived
+  given Schema[CustomerTier]       = Schema.derived
+  given Schema[CustomerSegment]    = Schema.derived
 
-  given JsonValueCodec[Address]     = JsonCodecMaker.make(config)
-  given JsonValueCodec[Dimension2D] = JsonCodecMaker.make(config)
+  given Schema[Address]     = Schema.derived
+  given Schema[Dimension2D] = Schema.derived
+
+  // ── Maps keyed by identifiers / enums (JSON objects rather than key-value arrays) ──
+  given categoryIdMap[V: Schema]: Schema[Map[CategoryId, V]] = keyedMap("CategoryId")(CategoryId(_))(_.value)
+  given materialIdMap[V: Schema]: Schema[Map[MaterialId, V]] = keyedMap("MaterialId")(MaterialId(_))(_.value)
+  given finishIdMap[V: Schema]: Schema[Map[FinishId, V]]     = keyedMap("FinishId")(FinishId(_))(_.value)
+  given printingMethodIdMap[V: Schema]: Schema[Map[PrintingMethodId, V]] =
+    keyedMap("PrintingMethodId")(PrintingMethodId(_))(_.value)
+  given componentKeyMap[V: Schema]: Schema[Map[ComponentKey, V]] = keyedMap("ComponentKey")(ComponentKey(_))(_.value)
+  given customerIdMap[V: Schema]: Schema[Map[CustomerId, V]]     = keyedMap("CustomerId")(CustomerId(_))(_.value)
+  given languageMap[V: Schema]: Schema[Map[Language, V]]         = keyedMap("Language")(enumKey("Language", Language.values))(_.toString)
+  given currencyMap[V: Schema]: Schema[Map[Currency, V]]         = keyedMap("Currency")(enumKey("Currency", Currency.values))(_.toString)
+  given speedMap[V: Schema]: Schema[Map[ManufacturingSpeed, V]] =
+    keyedMap("ManufacturingSpeed")(enumKey("ManufacturingSpeed", ManufacturingSpeed.values))(_.toString)
+  given tierMap[V: Schema]: Schema[Map[CustomerTier, V]] =
+    keyedMap("CustomerTier")(enumKey("CustomerTier", CustomerTier.values))(_.toString)

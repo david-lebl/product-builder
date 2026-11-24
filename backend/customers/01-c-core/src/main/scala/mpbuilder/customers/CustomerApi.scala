@@ -1,7 +1,7 @@
 package mpbuilder.customers
 
 import mpbuilder.shared.*
-import zio.*
+import kyo.*
 import java.time.Instant
 
 // ── Public Models, Commands, Errors & Events ─────────────────────────────────
@@ -157,19 +157,15 @@ final case class CustomerTierChanged(
 // ── Public Inbound Port (Module API) ─────────────────────────────────────────
 
 trait CustomerService:
-  def register(cmd: RegisterCustomerCmd): IO[CustomerError, CustomerView]
-  def getById(id: CustomerId): IO[CustomerError.NotFound, CustomerView]
-  def findByIdentifier(identifier: CustomerIdentifier): IO[CustomerError.NotFoundByIdentifier, CustomerView]
-  def listCustomers(filter: CustomerFilter = CustomerFilter()): UIO[List[CustomerView]]
-  def approve(id: CustomerId, actor: CustomerActor = CustomerActor.System): IO[CustomerError, CustomerView]
-  def suspend(id: CustomerId, reason: NonEmptyString, by: Option[EmployeeId], byName: Option[NonEmptyString] = None): IO[CustomerError, CustomerView]
-  def deactivate(id: CustomerId, reason: NonEmptyString, by: Option[EmployeeId], byName: Option[NonEmptyString] = None): IO[CustomerError, CustomerView]
-  def changeTier(id: CustomerId, newTier: CustomerTier, actor: CustomerActor = CustomerActor.System): IO[CustomerError, CustomerView]
-  def grantPaymentTerms(id: CustomerId, terms: PaymentTerms, actor: CustomerActor = CustomerActor.System): IO[CustomerError, CustomerView]
-  def updateProfile(cmd: UpdateCustomerProfileCmd): IO[CustomerError, CustomerView]
-  def updateAddresses(cmd: UpdateCustomerAddressesCmd): IO[CustomerError, CustomerView]
-  def addNote(id: CustomerId, text: NonEmptyString, by: Option[EmployeeId], byName: Option[NonEmptyString] = None): IO[CustomerError, CustomerView]
-
-object CustomerService:
-  def register(cmd: RegisterCustomerCmd): ZIO[CustomerService, CustomerError, CustomerView] =
-    ZIO.serviceWithZIO[CustomerService](_.register(cmd))
+  def register(cmd: RegisterCustomerCmd): CustomerView < (Async & Abort[CustomerError])
+  def getById(id: CustomerId): CustomerView < (Async & Abort[CustomerError.NotFound])
+  def findByIdentifier(identifier: CustomerIdentifier): CustomerView < (Async & Abort[CustomerError.NotFoundByIdentifier])
+  def listCustomers(filter: CustomerFilter = CustomerFilter()): List[CustomerView] < Async
+  def approve(id: CustomerId, actor: CustomerActor = CustomerActor.System): CustomerView < (Async & Abort[CustomerError])
+  def suspend(id: CustomerId, reason: NonEmptyString, by: Option[EmployeeId], byName: Option[NonEmptyString] = None): CustomerView < (Async & Abort[CustomerError])
+  def deactivate(id: CustomerId, reason: NonEmptyString, by: Option[EmployeeId], byName: Option[NonEmptyString] = None): CustomerView < (Async & Abort[CustomerError])
+  def changeTier(id: CustomerId, newTier: CustomerTier, actor: CustomerActor = CustomerActor.System): CustomerView < (Async & Abort[CustomerError])
+  def grantPaymentTerms(id: CustomerId, terms: PaymentTerms, actor: CustomerActor = CustomerActor.System): CustomerView < (Async & Abort[CustomerError])
+  def updateProfile(cmd: UpdateCustomerProfileCmd): CustomerView < (Async & Abort[CustomerError])
+  def updateAddresses(cmd: UpdateCustomerAddressesCmd): CustomerView < (Async & Abort[CustomerError])
+  def addNote(id: CustomerId, text: NonEmptyString, by: Option[EmployeeId], byName: Option[NonEmptyString] = None): CustomerView < (Async & Abort[CustomerError])

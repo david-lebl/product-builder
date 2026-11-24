@@ -314,7 +314,7 @@ That weighs (0,0,0) — exactly like the `*` selector it replaces — so it beha
 
 ---
 
-### `JsonReaderException: expected key: "type"` when reading a JSONB row
+### `JsonReaderException: expected key: "type"` when reading a JSONB row (pre-Kyo, jsoniter)
 
 **Symptom:** A value written with the `backend/json` codecs round-trips in memory but fails to decode after a trip through a PostgreSQL `JSONB` column, with `expected key: "type"`.
 
@@ -338,7 +338,7 @@ That weighs (0,0,0) — exactly like the `*` selector it replaces — so it beha
 
 ---
 
-### Tapir schema derivation: "Could not find Schema", then "Class too large"
+### Tapir schema derivation: "Could not find Schema", then "Class too large" (pre-Kyo)
 
 **Symptom:** `sttp.tapir.generic.auto` derivation of domain bodies reports `Could not find Schema for type …` deep inside the catalog tree; raising `-Xmax-inlines` makes it compile in ~2 minutes and then fails emitting with `Class too large` / `Method too large`.
 
@@ -368,7 +368,7 @@ That weighs (0,0,0) — exactly like the `*` selector it replaces — so it beha
 
 **Cause:** Browsers send an `OPTIONS` preflight before every cross-origin JSON `POST`/`PUT`/`DELETE` and every request with an `Authorization` header. zio-http's `Middleware.cors` added CORS headers but did not answer the preflight; Tapir saw no `OPTIONS` endpoint and rejected it with 405. Plain `GET`s (catalog, showcases) skip the preflight, so curl and the first screen looked fine. The JVM E2E client never sends preflights either.
 
-**Solution:** CORS is handled by Tapir's `CORSInterceptor` (`HttpServer.corsConfig`), which answers preflights for every endpoint with 204. `PlatformE2ESpec` now asserts a 2xx preflight for storefront and admin endpoints. If you change CORS handling, verify with:
+**Solution (pre-Kyo):** CORS was handled by Tapir's `CORSInterceptor`. Since the Kyo rewrite it is kyo-http's server-wide CORS policy (`ApiHttpServer.serverConfig`), which answers preflights for every endpoint with 204. `PlatformE2ESpec` now asserts a 2xx preflight for storefront and admin endpoints. If you change CORS handling, verify with:
 
 ```bash
 curl -i -X OPTIONS localhost:8080/api/v1/storefront/builder/quote \
@@ -419,3 +419,69 @@ export JAVA_HOME=~/.sdkman/candidates/java/25.0.1-tem PATH=$JAVA_HOME/bin:$PATH 
 **Solution:** Re-display explicitly: `Style.display(Display.flex).row…` in the media rule.
 
 **Files:** `modules/ui-core/src/main/scala/mpbuilder/ui/theme/AppTheme.scala`
+
+---
+
+### Kyo effect silently never runs (`Unit < Async` method body discards an effect)
+
+**Symptom:** State "disappears": a cart/order saved through an in-memory repository is not found
+afterwards (`CartNotFound`), an OTP code is never delivered, while everything compiles.
+
+**Cause:** A Kyo computation is a *value*. `def save(c: Cart): Unit < Async = ref.updateAndGet(_ + …)`
+type-checks through Scala's value discarding: the `Map < Sync` computation is lifted as a pure value and
+thrown away, so the update never executes.
+
+**Solution:** Use the unit-returning `ref.update(f)` (`mpbuilder.shared.Effects`) or append `.unit`. The
+build enables `-Wvalue-discard`, which reports these sites — treat that warning as an error in backend code.
+
+**Files:** `build.mill`, `backend/shared/src/main/scala/mpbuilder/shared/Effects.scala`, `backend/sample/…/InMemory*.scala`
+
+---
+
+### `This method requires a ConcreteTag, but the type … has type parameters` (kyo-http `.error`)
+
+**Symptom:** Registering a generic error envelope on a kyo-http route (`route.error[NotFound[E]](HttpStatus.NotFound)`) fails to compile.
+
+**Cause:** kyo-http dispatches typed errors by `ConcreteTag`, which only supports non-generic types.
+
+**Solution:** Declare concrete envelope case classes per BFF (`StorefrontRoutes.NotFound(message, error: StorefrontError)` …) and register one per status via the module's `apiErrors` extension.
+
+**Files:** `backend/{storefront,backoffice}/02-i-http/…/*Routes.scala`
+
+---
+
+### `Method too large: …BackofficeRoutes.<init>` when compiling kyo-http routes
+
+**Symptom:** The backoffice route module type-checks but fails while emitting bytecode.
+
+**Cause:** `bodyJson[T]` / `.error[…]` are inline; 69 routes in one `Seq(...)` expand into a single constructor larger than the JVM's 64 KB method limit.
+
+**Solution:** Build routes in several methods (one per area) and concatenate them (`authRoutes ++ ordersRoutes ++ …`).
+
+**Files:** `backend/backoffice/02-i-http/src/main/scala/mpbuilder/backoffice/http/BackofficeRoutes.scala`
+
+---
+
+### PostgreSQL tests: `Connect to 127.0.0.1:<port> failed … Connection refused` (Colima / Docker VM)
+
+**Symptom:** The kyo-pod container starts and is healthy, but every connection to its mapped port is refused.
+
+**Cause:** The Docker VM (seen with Colima/Lima) stopped forwarding newly published ports to the host — even `docker run -p 5432 postgres` is unreachable. Not a code problem.
+
+**Solution:** Restart the VM (`colima restart`), or point the tests at a reachable server:
+`TEST_DATABASE_URL=postgresql://user:pw@127.0.0.1:5432/postgres ./mill __.test` (role needs `CREATEDB`; each test creates and later drops its own database).
+
+**Files:** `backend/platform/src/test/scala/mpbuilder/platform/PostgresTestSupport.scala`
+
+---
+
+### Kyo `for` comprehension: `value flatMap is not a member of A | Nothing < Abort[E]`
+
+**Symptom:** A generator like `x <- if cond then pure else Abort.fail(e)` (or a `match`) does not compile.
+
+**Cause:** Without an expected type the branches infer a union of a pure value and a pending effect, which has no `map`/`flatMap`.
+
+**Solution:** Ascribe the expression: `(if cond then pure else Abort.fail(e)): A < Abort[E]`, or bind it to a typed `val` first.
+
+**Files:** any Kyo code (e.g. `backend/app/src/main/scala/mpbuilder/app/AppConfig.scala`)
+

@@ -1,51 +1,52 @@
 package mpbuilder.catalog
 package db
 
-import com.augustnagro.magnum.*
-import com.github.plokhotnyuk.jsoniter_scala.core.*
 import core.*
+import kyo.*
 import mpbuilder.json.DomainCodecs.given
-import mpbuilder.json.JsonSupport.*
 import mpbuilder.platform.db.{Database, MigrationSet}
-import zio.*
+
+private[catalog] object CatalogDbCodecs:
+  given SqlSchema.Column[ProductCatalog]       = Sql.jsonColumn
+  given SqlSchema.Column[CompatibilityRuleset] = Sql.jsonColumn
+
+import CatalogDbCodecs.given
 
 private[catalog] final class PostgresCatalogRepository(db: Database) extends CatalogRepository:
 
-  private def load[A: JsonValueCodec](name: String): UIO[A] =
-    db.run(sql"SELECT doc::text FROM catalog.documents WHERE name = $name".query[String].run().headOption)
-      .someOrElseZIO(ZIO.dieMessage(s"catalog.documents['$name'] is missing — run the DB seeder (--seed) first"))
-      .map(fromJsonUnsafe[A])
-
-  private def store[A: JsonValueCodec](name: String, version: String, value: A): UIO[Unit] =
-    val json = toJson(value)
-    db.tx {
-      sql"""INSERT INTO catalog.documents (name, version, doc) VALUES ($name, $version, $json::jsonb)
-            ON CONFLICT (name) DO UPDATE SET version = EXCLUDED.version, doc = EXCLUDED.doc, updated_at = now()"""
-        .update.run()
-      sql"INSERT INTO catalog.document_history (name, version, doc) VALUES ($name, $version, $json::jsonb)".update.run()
-      ()
+  private def load[A](name: String)(using SqlSchema.Column[A]): A < Async =
+    db.run(sql"SELECT doc FROM catalog.documents WHERE name = $name".as[A].run).map {
+      _.headOption match
+        case Some(doc) => doc
+        case None => Abort.panic(new IllegalStateException(s"catalog.documents['$name'] is missing — run the DB seeder (--seed) first"))
     }
 
-  override def loadCatalog: UIO[ProductCatalog]                   = load[ProductCatalog]("catalog")
-  override def loadRuleset: UIO[CompatibilityRuleset]             = load[CompatibilityRuleset]("ruleset")
-  override def saveCatalog(catalog: ProductCatalog): UIO[Unit]    = store("catalog", catalog.version.value, catalog)
-  override def saveRuleset(ruleset: CompatibilityRuleset): UIO[Unit] = store("ruleset", ruleset.version.value, ruleset)
+  private def store[A](name: String, version: String, value: A)(using SqlSchema.Column[A]): Unit < Async =
+    db.tx {
+      for
+        _ <- sql"""INSERT INTO catalog.documents (name, version, doc) VALUES ($name, $version, $value)
+                   ON CONFLICT (name) DO UPDATE SET version = EXCLUDED.version, doc = EXCLUDED.doc, updated_at = now()""".execute
+        _ <- sql"INSERT INTO catalog.document_history (name, version, doc) VALUES ($name, $version, $value)".execute
+      yield ()
+    }
 
-  def isEmpty: UIO[Boolean] =
-    db.run(sql"SELECT count(*) FROM catalog.documents".query[Long].run().head == 0L)
+  override def loadCatalog: ProductCatalog < Async                    = load[ProductCatalog]("catalog")
+  override def loadRuleset: CompatibilityRuleset < Async              = load[CompatibilityRuleset]("ruleset")
+  override def saveCatalog(catalog: ProductCatalog): Unit < Async       = store("catalog", catalog.version.value, catalog)
+  override def saveRuleset(ruleset: CompatibilityRuleset): Unit < Async = store("ruleset", ruleset.version.value, ruleset)
+
+  def isEmpty: Boolean < Async =
+    db.run(sql"SELECT count(*) FROM catalog.documents".as[Long].run.map(_.head == 0L))
 
 object CatalogDb:
-  val migrations: MigrationSet = MigrationSet("catalog")
+  val migrations: MigrationSet = MigrationSet("catalog", "V1__catalog.sql")
 
   /** `CatalogService` backed by PostgreSQL. */
-  val service: URLayer[Database, CatalogService] =
-    ZLayer.fromFunction((db: Database) => new PostgresCatalogRepository(db): CatalogRepository) >>> CatalogServiceLive.layer
+  def service(db: Database): CatalogService = CatalogServiceLive.make(new PostgresCatalogRepository(db))
 
   /** Seeds the catalog & ruleset documents when the database is empty. Returns `true` when seeded. */
-  def seedIfEmpty(catalog: ProductCatalog, ruleset: CompatibilityRuleset): URIO[Database, Boolean] =
-    ZIO.serviceWithZIO[Database] { db =>
-      val repo = new PostgresCatalogRepository(db)
-      repo.isEmpty.flatMap(empty =>
-        ZIO.when(empty)(repo.saveCatalog(catalog) *> repo.saveRuleset(ruleset)).map(_.isDefined)
-      )
+  def seedIfEmpty(db: Database, catalog: ProductCatalog, ruleset: CompatibilityRuleset): Boolean < Async =
+    val repo = new PostgresCatalogRepository(db)
+    repo.isEmpty.map { empty =>
+      if empty then repo.saveCatalog(catalog).andThen(repo.saveRuleset(ruleset)).andThen(true) else false
     }

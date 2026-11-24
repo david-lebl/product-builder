@@ -3,60 +3,60 @@ package mpbuilder.pricing.sample
 import mpbuilder.pricing.*
 import mpbuilder.pricing.core.*
 import mpbuilder.shared.*
-import zio.*
+import kyo.*
 
 /** In-memory `PricelistRepository` backed by `Ref`, allowing live pricelist switching
   * (e.g. toggling between unit-based and SRA3 sheet-based CZK pricelist in a UI showcase).
   */
 final class InMemoryPricelistRepository(
-    ref: Ref[Map[Currency, Pricelist]],
+    ref: AtomicRef[Map[Currency, Pricelist]],
 ) extends PricelistRepository:
 
-  override def findActive(currency: Currency): IO[PricingError.PricelistNotFound, Pricelist] =
-    ref.get.flatMap(m => ZIO.fromOption(m.get(currency)).orElseFail(new PricingError.PricelistNotFound(currency)))
+  override def findActive(currency: Currency): Pricelist < (Async & Abort[PricingError.PricelistNotFound]) =
+    ref.get.flatMap(m => m.get(currency).orFail(new PricingError.PricelistNotFound(currency)))
 
-  override def listAll: UIO[List[Pricelist]] =
+  override def listAll: List[Pricelist] < Async =
     ref.get.map(_.values.toList)
 
-  override def save(pricelist: Pricelist): UIO[Unit] =
+  override def save(pricelist: Pricelist): Unit < Async =
     ref.update(_ + (pricelist.currency -> pricelist))
 
-  def setActive(pricelist: Pricelist): UIO[Unit] =
+  def setActive(pricelist: Pricelist): Unit < Async =
     save(pricelist)
 
 final class InMemoryCustomerAgreementRepository(
-    ref: Ref[List[CustomerPriceAgreement]],
+    ref: AtomicRef[List[CustomerPriceAgreement]],
 ) extends CustomerAgreementRepository:
 
-  override def findForCustomer(customerId: CustomerId, currency: Currency): UIO[Option[CustomerPriceAgreement]] =
+  override def findForCustomer(customerId: CustomerId, currency: Currency): Option[CustomerPriceAgreement] < Async =
     ref.get.map(_.find(a => a.currency == currency && a.target == AgreementTarget.SpecificCustomer(customerId)))
 
-  override def findForTier(tier: CustomerTier, currency: Currency): UIO[Option[CustomerPriceAgreement]] =
+  override def findForTier(tier: CustomerTier, currency: Currency): Option[CustomerPriceAgreement] < Async =
     ref.get.map(_.find(a => a.currency == currency && a.target == AgreementTarget.TierDefault(tier)))
 
-  override def listAll: UIO[List[CustomerPriceAgreement]] =
+  override def listAll: List[CustomerPriceAgreement] < Async =
     ref.get
 
-  override def save(agreement: CustomerPriceAgreement): UIO[Unit] =
+  override def save(agreement: CustomerPriceAgreement): Unit < Async =
     ref.update(list => list.filterNot(a => a.target == agreement.target && a.currency == agreement.currency) :+ agreement)
 
-  override def delete(target: AgreementTarget, currency: Currency): UIO[Unit] =
+  override def delete(target: AgreementTarget, currency: Currency): Unit < Async =
     ref.update(_.filterNot(a => a.target == target && a.currency == currency))
 
-  def upsert(agreement: CustomerPriceAgreement): UIO[Unit] =
+  def upsert(agreement: CustomerPriceAgreement): Unit < Async =
     save(agreement)
 
 final class InMemoryPromoCodeRepository(
-    ref: Ref[Map[String, PromoCode]],
+    ref: AtomicRef[Map[String, PromoCode]],
 ) extends PromoCodeRepository:
 
-  override def findByCode(code: String): UIO[Option[PromoCode]] =
+  override def findByCode(code: String): Option[PromoCode] < Async =
     ref.get.map(_.get(code.trim.toUpperCase))
 
-  override def listAll: UIO[List[PromoCode]] =
+  override def listAll: List[PromoCode] < Async =
     ref.get.map(_.values.toList)
 
-  override def incrementUsage(codeId: DiscountCodeId): UIO[Unit] =
+  override def incrementUsage(codeId: DiscountCodeId): Unit < Async =
     ref.update { m =>
       m.map { case (k, promo) =>
         if promo.id == codeId then
@@ -65,47 +65,47 @@ final class InMemoryPromoCodeRepository(
       }
     }
 
-  override def save(promo: PromoCode): UIO[Unit] =
+  override def save(promo: PromoCode): Unit < Async =
     ref.update { m =>
       val withoutSameId = m.filterNot { case (_, existing) => existing.id == promo.id }
       withoutSameId + (promo.code.value.trim.toUpperCase -> promo)
     }
 
-  override def delete(id: DiscountCodeId): UIO[Unit] =
+  override def delete(id: DiscountCodeId): Unit < Async =
     ref.update(_.filterNot { case (_, p) => p.id == id })
 
 final class InMemoryCostSheetRepository(
-    ref: Ref[Map[Currency, ProductionCostSheet]],
+    ref: AtomicRef[Map[Currency, ProductionCostSheet]],
 ) extends CostSheetRepository:
 
-  override def findActive(currency: Currency): UIO[Option[ProductionCostSheet]] =
+  override def findActive(currency: Currency): Option[ProductionCostSheet] < Async =
     ref.get.map(_.get(currency))
 
-  override def listAll: UIO[List[ProductionCostSheet]] =
+  override def listAll: List[ProductionCostSheet] < Async =
     ref.get.map(_.values.toList)
 
-  override def save(sheet: ProductionCostSheet): UIO[Unit] =
+  override def save(sheet: ProductionCostSheet): Unit < Async =
     ref.update(_ + (sheet.currency -> sheet))
 
 final class StaticShopCapacityPort(
-    ref: Ref[DynamicPricingContext],
+    ref: AtomicRef[DynamicPricingContext],
 ) extends ShopCapacityPort:
 
-  override def currentPricingContext: UIO[DynamicPricingContext] = ref.get
+  override def currentPricingContext: DynamicPricingContext < Async = ref.get
 
-  def setContext(ctx: DynamicPricingContext): UIO[Unit] = ref.set(ctx)
+  def setContext(ctx: DynamicPricingContext): Unit < Async = ref.set(ctx)
 
-/** Adapter turning any `UIO[DynamicPricingContext]` supplier (e.g. bridged from `ManufacturingService.currentCapacity`)
+/** Adapter turning any `DynamicPricingContext < Async` supplier (e.g. bridged from `ManufacturingService.currentCapacity`)
   * into the `private[pricing]` `ShopCapacityPort`.
   */
 final class LiveShopCapacityPort(
-    fetch: UIO[DynamicPricingContext],
+    fetch: => DynamicPricingContext < Async,
 ) extends ShopCapacityPort:
-  override def currentPricingContext: UIO[DynamicPricingContext] = fetch
+  override def currentPricingContext: DynamicPricingContext < Async = fetch
 
-object PricingSampleLayer:
+object PricingSampleWiring:
 
-  def makeLiveCapacityPort(fetch: UIO[DynamicPricingContext]): ShopCapacityPort =
+  def makeLiveCapacityPort(fetch: => DynamicPricingContext < Async): ShopCapacityPort =
     new LiveShopCapacityPort(fetch)
 
   def defaultPricelists(useSheetCzk: Boolean = true): Map[Currency, Pricelist] =
@@ -114,60 +114,56 @@ object PricingSampleLayer:
       Currency.CZK -> (if useSheetCzk then SamplePricelist.pricelistCzkSheet else SamplePricelist.pricelistCzk),
     )
 
-  def pricelistRepoLayer(
+  def pricelistRepository(
       pricelists: Map[Currency, Pricelist] = defaultPricelists(),
-  ): ULayer[InMemoryPricelistRepository] =
-    ZLayer.fromZIO(Ref.make(pricelists).map(new InMemoryPricelistRepository(_)))
+  ): InMemoryPricelistRepository < Sync =
+    AtomicRef.init(pricelists).map(new InMemoryPricelistRepository(_))
 
-  def agreementRepoLayer(
+  def agreementRepository(
       agreements: List[CustomerPriceAgreement] = SampleAgreements.all,
-  ): ULayer[InMemoryCustomerAgreementRepository] =
-    ZLayer.fromZIO(Ref.make(agreements).map(new InMemoryCustomerAgreementRepository(_)))
+  ): InMemoryCustomerAgreementRepository < Sync =
+    AtomicRef.init(agreements).map(new InMemoryCustomerAgreementRepository(_))
 
-  def promoRepoLayer(
+  def promoRepository(
       promos: List[PromoCode] = SamplePromoCodes.all,
-  ): ULayer[InMemoryPromoCodeRepository] =
-    ZLayer.fromZIO(
-      Ref.make(promos.map(p => p.code.value.trim.toUpperCase -> p).toMap).map(new InMemoryPromoCodeRepository(_))
-    )
+  ): InMemoryPromoCodeRepository < Sync =
+    AtomicRef.init(promos.map(p => p.code.value.trim.toUpperCase -> p).toMap).map(new InMemoryPromoCodeRepository(_))
 
-  def costSheetRepoLayer(
+  def costSheetRepository(
       sheets: Map[Currency, ProductionCostSheet] = Map(
         Currency.USD -> SampleCostSheets.costSheetUsd,
         Currency.CZK -> SampleCostSheets.costSheetCzk,
       ),
-  ): ULayer[InMemoryCostSheetRepository] =
-    ZLayer.fromZIO(Ref.make(sheets).map(new InMemoryCostSheetRepository(_)))
+  ): InMemoryCostSheetRepository < Sync =
+    AtomicRef.init(sheets).map(new InMemoryCostSheetRepository(_))
 
-  def staticCapacityLayer(
+  def staticCapacity(
       ctx: DynamicPricingContext = DynamicPricingContext.default,
-  ): ULayer[StaticShopCapacityPort] =
-    ZLayer.fromZIO(Ref.make(ctx).map(new StaticShopCapacityPort(_)))
+  ): StaticShopCapacityPort < Sync =
+    AtomicRef.init(ctx).map(new StaticShopCapacityPort(_))
 
-  /** Self-contained `PricingService` layer with static capacity context (ideal for unit tests). */
-  def live(
+  /** Self-contained `PricingService` with a static capacity context (ideal for unit tests). */
+  def service(
+      eventBus: EventBus,
       useSheetCzk: Boolean = true,
       capacityContext: DynamicPricingContext = DynamicPricingContext.default,
-  ): ZLayer[EventBus, Nothing, PricingService] =
-    (pricelistRepoLayer(defaultPricelists(useSheetCzk)) ++
-      agreementRepoLayer() ++
-      promoRepoLayer() ++
-      costSheetRepoLayer() ++
-      staticCapacityLayer(capacityContext) ++
-      ZLayer.service[EventBus]) >>> PricingServiceLive.layer
+  ): PricingService < Sync =
+    staticCapacity(capacityContext).map(withCapacity(eventBus, _, useSheetCzk))
 
-  /** `PricingService` layer wired to any cross-context dynamic capacity effect (e.g.
+  /** `PricingService` wired to any cross-context dynamic capacity effect (e.g.
     * `ManufacturingService.currentCapacity`) without leaking `private[pricing] ShopCapacityPort`.
     */
-  def liveWithCapacityZIO[R: Tag](
-      fetch: URIO[R, DynamicPricingContext],
+  def serviceWithLiveCapacity(
+      eventBus: EventBus,
+      fetch: => DynamicPricingContext < Async,
       useSheetCzk: Boolean = true,
-  ): ZLayer[R & EventBus, Nothing, PricingService] =
-    val capLayer: ZLayer[R, Nothing, ShopCapacityPort] =
-      ZLayer.fromZIO(ZIO.environment[R].map(env => new LiveShopCapacityPort(fetch.provideEnvironment(env))))
-    (pricelistRepoLayer(defaultPricelists(useSheetCzk)) ++
-      agreementRepoLayer() ++
-      promoRepoLayer() ++
-      costSheetRepoLayer() ++
-      capLayer ++
-      ZLayer.service[EventBus]) >>> PricingServiceLive.layer
+  ): PricingService < Sync =
+    withCapacity(eventBus, new LiveShopCapacityPort(fetch), useSheetCzk)
+
+  private def withCapacity(eventBus: EventBus, capacity: ShopCapacityPort, useSheetCzk: Boolean): PricingService < Sync =
+    for
+      pricelists <- pricelistRepository(defaultPricelists(useSheetCzk))
+      agreements <- agreementRepository()
+      promos     <- promoRepository()
+      costSheets <- costSheetRepository()
+    yield PricingServiceLive.make(pricelists, agreements, promos, costSheets, capacity, eventBus)

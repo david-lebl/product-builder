@@ -3,7 +3,7 @@ package mpbuilder.ordering.sample
 import mpbuilder.ordering.*
 import mpbuilder.ordering.core.{Cart, CartRepository, DeliveryCatalogRepository, Order, OrderRepository, OrderingCoreLayers}
 import mpbuilder.shared.*
-import zio.*
+import kyo.*
 
 /** Sample shop pickup locations, courier options, and bank account matching the frontend checkout. */
 object SampleDeliveryCatalog:
@@ -117,77 +117,77 @@ object SampleDeliveryCatalog:
 
 /** In-memory `CartRepository` with convenience `createCart` for UI showcase sessions. */
 final class InMemoryCartRepository(
-    ref: Ref[Map[CartId, Cart]],
+    ref: AtomicRef[Map[CartId, Cart]],
 ) extends CartRepository:
 
-  override def findById(id: CartId): UIO[Option[Cart]] =
+  override def findById(id: CartId): Option[Cart] < Async =
     ref.get.map(_.get(id))
 
-  override def save(cart: Cart): UIO[Unit] =
+  override def save(cart: Cart): Unit < Async =
     ref.update(_ + (cart.id -> cart))
 
-  def createCart(cartId: CartId, currency: Currency, customerId: Option[CustomerId] = None): UIO[CartView] =
+  def createCart(cartId: CartId, currency: Currency, customerId: Option[CustomerId] = None): CartView < Async =
     val cart = Cart(cartId, customerId, currency, Nil, None)
     save(cart).as(cart.toView)
 
 final class InMemoryOrderRepository(
-    ref: Ref[Map[OrderId, Order]],
+    ref: AtomicRef[Map[OrderId, Order]],
 ) extends OrderRepository:
 
-  override def findById(id: OrderId): UIO[Option[Order]] =
+  override def findById(id: OrderId): Option[Order] < Async =
     ref.get.map(_.get(id))
 
-  override def findByCustomer(customerId: CustomerId): UIO[List[Order]] =
+  override def findByCustomer(customerId: CustomerId): List[Order] < Async =
     ref.get.map(_.values.filter(_.customer.customerId.contains(customerId)).toList)
 
-  override def listAll: UIO[List[Order]] =
+  override def listAll: List[Order] < Async =
     ref.get.map(_.values.toList.sortBy(_.placedAt))
 
-  override def save(order: Order): UIO[Unit] =
+  override def save(order: Order): Unit < Async =
     ref.update(_ + (order.id -> order))
 
-  def listAllViews: UIO[List[OrderView]] =
+  def listAllViews: List[OrderView] < Async =
     listAll.map(_.map(_.toView))
 
 final class InMemoryDeliveryCatalogRepository(
-    pickupsRef: Ref[List[ShopPickupLocation]],
-    couriersRef: Ref[Map[Currency, List[CourierServiceOption]]],
-    accountsRef: Ref[Map[Currency, BankAccountConfig]],
+    pickupsRef: AtomicRef[List[ShopPickupLocation]],
+    couriersRef: AtomicRef[Map[Currency, List[CourierServiceOption]]],
+    accountsRef: AtomicRef[Map[Currency, BankAccountConfig]],
 ) extends DeliveryCatalogRepository:
 
-  override def pickupLocations: UIO[List[ShopPickupLocation]] =
+  override def pickupLocations: List[ShopPickupLocation] < Async =
     pickupsRef.get
 
-  override def savePickupLocation(loc: ShopPickupLocation): UIO[Unit] =
+  override def savePickupLocation(loc: ShopPickupLocation): Unit < Async =
     pickupsRef.update(list => list.filterNot(_.id == loc.id) :+ loc)
 
-  override def deletePickupLocation(id: DeliveryOptionId): UIO[Unit] =
+  override def deletePickupLocation(id: DeliveryOptionId): Unit < Async =
     pickupsRef.update(_.filterNot(_.id == id))
 
-  override def courierOptions(currency: Currency): UIO[List[CourierServiceOption]] =
+  override def courierOptions(currency: Currency): List[CourierServiceOption] < Async =
     couriersRef.get.map(_.getOrElse(currency, Nil))
 
-  override def allCourierOptions: UIO[List[CourierServiceOption]] =
+  override def allCourierOptions: List[CourierServiceOption] < Async =
     couriersRef.get.map(_.values.flatten.toList)
 
-  override def saveCourierOption(opt: CourierServiceOption): UIO[Unit] =
+  override def saveCourierOption(opt: CourierServiceOption): Unit < Async =
     couriersRef.update { m =>
       val current = m.getOrElse(opt.currency, Nil).filterNot(_.id == opt.id)
       m + (opt.currency -> (current :+ opt))
     }
 
-  override def deleteCourierOption(id: DeliveryOptionId, currency: Currency): UIO[Unit] =
+  override def deleteCourierOption(id: DeliveryOptionId, currency: Currency): Unit < Async =
     couriersRef.update { m =>
       m.updatedWith(currency)(_.map(_.filterNot(_.id == id)))
     }
 
-  override def bankAccount(currency: Currency): UIO[Option[BankAccountConfig]] =
+  override def bankAccount(currency: Currency): Option[BankAccountConfig] < Async =
     accountsRef.get.map(_.get(currency))
 
-  override def allBankAccounts: UIO[Map[Currency, BankAccountConfig]] =
+  override def allBankAccounts: Map[Currency, BankAccountConfig] < Async =
     accountsRef.get
 
-  override def saveBankAccount(currency: Currency, config: BankAccountConfig): UIO[Unit] =
+  override def saveBankAccount(currency: Currency, config: BankAccountConfig): Unit < Async =
     accountsRef.update(_ + (currency -> config))
 
 object SampleSeedOrders:
@@ -439,38 +439,37 @@ object SampleSeedOrders:
 
     List(ord1, ord2, ord3, ord4)
 
-object OrderingSampleLayer:
+object OrderingSampleWiring:
 
-  def cartRepositoryLayer(
+  final case class Services(carts: CartService, checkoutOptions: CheckoutOptionsService, orders: OrderService)
+
+  def cartRepository(
       seedCarts: List[(CartId, Currency, Option[CustomerId])] = List(
         (CartId.unsafe("cart-showcase-czk"), Currency.CZK, None),
         (CartId.unsafe("cart-showcase-usd"), Currency.USD, None),
       ),
-  ): ULayer[InMemoryCartRepository] =
-    ZLayer.fromZIO {
-      val initial = seedCarts.map { case (id, cur, cid) => id -> Cart(id, cid, cur, Nil, None) }.toMap
-      Ref.make(initial).map(new InMemoryCartRepository(_))
-    }
+  ): InMemoryCartRepository < Sync =
+    val initial = seedCarts.map { case (id, cur, cid) => id -> Cart(id, cid, cur, Nil, None) }.toMap
+    AtomicRef.init(initial).map(new InMemoryCartRepository(_))
 
-  def orderRepositoryLayer(seedOrders: List[Order] = SampleSeedOrders.initialOrders): ULayer[InMemoryOrderRepository] =
-    ZLayer.fromZIO(
-      Ref.make(seedOrders.map(o => o.id -> o).toMap).map(new InMemoryOrderRepository(_))
+  def orderRepository(seedOrders: List[Order] = SampleSeedOrders.initialOrders): InMemoryOrderRepository < Sync =
+    AtomicRef.init(seedOrders.map(o => o.id -> o).toMap).map(new InMemoryOrderRepository(_))
+
+  def deliveryCatalog: DeliveryCatalogRepository < Sync =
+    for
+      p <- AtomicRef.init(SampleDeliveryCatalog.pickupLocations)
+      c <- AtomicRef.init(SampleDeliveryCatalog.courierOptionsByCurrency)
+      a <- AtomicRef.init(SampleDeliveryCatalog.bankAccounts)
+    yield new InMemoryDeliveryCatalogRepository(p, c, a)
+
+  def services(eventBus: EventBus, seedSampleOrders: Boolean = true): Services < Sync =
+    val seed = if seedSampleOrders then SampleSeedOrders.initialOrders else Nil
+    for
+      carts    <- cartRepository()
+      delivery <- deliveryCatalog
+      orders   <- orderRepository(seed)
+    yield Services(
+      OrderingCoreLayers.cartService(carts),
+      OrderingCoreLayers.checkoutOptionsService(delivery),
+      OrderingCoreLayers.orderService(orders, eventBus),
     )
-
-  val deliveryCatalogLayer: ULayer[DeliveryCatalogRepository] =
-    ZLayer.fromZIO {
-      for
-        p <- Ref.make(SampleDeliveryCatalog.pickupLocations)
-        c <- Ref.make(SampleDeliveryCatalog.courierOptionsByCurrency)
-        a <- Ref.make(SampleDeliveryCatalog.bankAccounts)
-      yield new InMemoryDeliveryCatalogRepository(p, c, a)
-    }
-
-  def live(seedSampleOrders: Boolean = true): ZLayer[EventBus, Nothing, CartService & CheckoutOptionsService & OrderService] =
-    val orders = if seedSampleOrders then SampleSeedOrders.initialOrders else Nil
-    (cartRepositoryLayer() >>> OrderingCoreLayers.cartLayer) ++
-      (deliveryCatalogLayer >>> OrderingCoreLayers.checkoutOptionsLayer) ++
-      ((orderRepositoryLayer(orders) ++ ZLayer.service[EventBus]) >>> OrderingCoreLayers.orderLayer)
-
-  val live: ZLayer[EventBus, Nothing, CartService & CheckoutOptionsService & OrderService] =
-    live(seedSampleOrders = true)

@@ -1,11 +1,15 @@
 package mpbuilder.json
 
-import com.github.plokhotnyuk.jsoniter_scala.core.*
-import com.github.plokhotnyuk.jsoniter_scala.macros.*
+import kyo.*
 import mpbuilder.json.JsonSupport.*
+import mpbuilder.shared.*
 import mpbuilder.json.SharedCodecs.given
+import mpbuilder.json.JsonSupport.given
 import mpbuilder.manufacturing.*
 
-/** Codecs for the parts of the `manufacturing` model surfaced through the BFF facades. */
+/** Schemas for the parts of the `manufacturing` model surfaced through the BFF facades. */
 object ManufacturingCodecs:
-  given JsonValueCodec[ManufacturingError] = JsonCodecMaker.make(config)
+  given Schema[WorkflowId] = stringOpaque("WorkflowId")(WorkflowId(_))(_.value)
+  given Schema[StepId]     = stringOpaque("StepId")(StepId(_))(_.value)
+
+  given Schema[ManufacturingError] = Schema.derived

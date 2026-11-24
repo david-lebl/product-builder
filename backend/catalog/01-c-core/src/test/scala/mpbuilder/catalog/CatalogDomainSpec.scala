@@ -2,10 +2,10 @@ package mpbuilder.catalog
 
 import mpbuilder.catalog.core.*
 import mpbuilder.shared.*
-import zio.*
-import zio.test.*
+import kyo.*
+import kyo.test.*
 
-object CatalogDomainSpec extends ZIOSpecDefault:
+class CatalogDomainSpec extends Test[Any]:
 
   // ── Shared Catalog Fixtures ──────────────────────────────────────────────
 
@@ -260,25 +260,22 @@ object CatalogDomainSpec extends ZIOSpecDefault:
     ),
   )
 
-  private val testRepoLayer: ULayer[CatalogRepository] =
-    ZLayer.succeed(new CatalogRepository:
-      override def loadCatalog: UIO[ProductCatalog]          = ZIO.succeed(catalog)
-      override def loadRuleset: UIO[CompatibilityRuleset]    = ZIO.succeed(ruleset)
-    )
+  private val testRepo: CatalogRepository =
+    new CatalogRepository:
+      override def loadCatalog: ProductCatalog < Async       = catalog
+      override def loadRuleset: CompatibilityRuleset < Async = ruleset
 
-  private val serviceLayer: ULayer[CatalogService] =
-    testRepoLayer >>> CatalogServiceLive.layer
+  private val service: CatalogService = CatalogServiceLive.make(testRepo)
 
-  def spec = suite("CatalogDomainSpec")(
-    test("InkConfiguration cleanly distinguishes 4+W/0 from 4/1 and validates special inks & duplex") {
-      assertTrue(
-        InkConfiguration.cmyk4W_0.notation == "4+W/0",
-        InkConfiguration.cmyk4W_0.isSingleSided,
-        InkConfiguration.cmyk4W_0.allSpecialInks == Set(SpecialInk.White),
-        InkConfiguration.cmyk4_1.notation == "4/1",
-        InkConfiguration.cmyk4_1.isDoubleSided,
-        InkConfiguration.cmyk4_1.allSpecialInks.isEmpty,
-      ) && {
+  "CatalogDomainSpec" - {
+    "InkConfiguration cleanly distinguishes 4+W/0 from 4/1 and validates special inks & duplex" in {
+      assert(InkConfiguration.cmyk4W_0.notation == "4+W/0")
+      assert(InkConfiguration.cmyk4W_0.isSingleSided)
+      assert(InkConfiguration.cmyk4W_0.allSpecialInks == Set(SpecialInk.White))
+      assert(InkConfiguration.cmyk4_1.notation == "4/1")
+      assert(InkConfiguration.cmyk4_1.isDoubleSided)
+      assert(InkConfiguration.cmyk4_1.allSpecialInks.isEmpty)
+      locally {
         val uvCmd = ConfigureProductCmd(
           configurationId = ConfigurationId.unsafe("cfg-uv-white"),
           categoryId = stickerCatId,
@@ -320,14 +317,13 @@ object CatalogDomainSpec extends ZIOSpecDefault:
         val okRes     = ConfigurationEngine.configure(uvCmd, catalog, ruleset)
         val badWhite  = ConfigurationEngine.configure(digitalWhiteCmd, catalog, ruleset)
         val badDuplex = ConfigurationEngine.configure(uvDuplexCmd, catalog, ruleset)
-        assertTrue(
-          okRes.isSuccess,
-          badWhite.isFailure,
-          badDuplex.isFailure,
-        )
+        assert(okRes.isSuccess)
+        assert(badWhite.isFailure)
+        assert(badDuplex.isFailure)
       }
-    },
-    test("multi-component booklet (300g Cover + 115g Body, 64pp saddle stitch) does NOT falsely reject Cover weight") {
+    }
+
+    "multi-component booklet (300g Cover + 115g Body, 64pp saddle stitch) does NOT falsely reject Cover weight" in {
       val cmd = ConfigureProductCmd(
         configurationId = ConfigurationId.unsafe("cfg-booklet"),
         categoryId = bookletCatId,
@@ -352,22 +348,21 @@ object CatalogDomainSpec extends ZIOSpecDefault:
           binding = Some(BindingSpec(BindingMethod.SaddleStitch, totalPages = 64, selfCover = false)),
         ),
       )
-      for res <- CatalogService.configure(cmd)
+      for res <- service.configure(cmd)
       yield
         val cover = res.product.components.find(_.key == ComponentKey.Cover).get
         val body  = res.product.components.find(_.key == ComponentKey.Body).get
-        assertTrue(
-          res.warnings.isEmpty,
-          // A5 saddle-stitch spread unfolds to 296x210 mm
-          cover.geometry.flatSize == Dimension2D.unsafeMm(296, 210),
-          // Separate cover = 1 spread per booklet, body = (64 - 4)/4 = 15 spreads per booklet
-          cover.geometry.unitsPerProduct == 1,
-          body.geometry.unitsPerProduct == 15,
-          res.product.weight.isDefined,
-          res.product.weight.get.weightPerProduct.value > BigDecimal(0),
-        )
-    },
-    test("tri-fold DL brochure unfolds to 297x210 for sheet imposition and emits Warning if 300g is unscored") {
+        assert(res.warnings.isEmpty)
+        // A5 saddle-stitch spread unfolds to 296x210 mm
+        assert(cover.geometry.flatSize == Dimension2D.unsafeMm(296, 210))
+        // Separate cover = 1 spread per booklet, body = (64 - 4)/4 = 15 spreads per booklet
+        assert(cover.geometry.unitsPerProduct == 1)
+        assert(body.geometry.unitsPerProduct == 15)
+        assert(res.product.weight.isDefined)
+        assert(res.product.weight.get.weightPerProduct.value > BigDecimal(0))
+    }
+
+    "tri-fold DL brochure unfolds to 297x210 for sheet imposition and emits Warning if 300g is unscored" in {
       val unscoredCmd = ConfigureProductCmd(
         configurationId = ConfigurationId.unsafe("cfg-trifold-warn"),
         categoryId = brochureCatId,
@@ -397,19 +392,19 @@ object CatalogDomainSpec extends ZIOSpecDefault:
         ),
       )
       for
-        unscoredRes <- CatalogService.configure(unscoredCmd)
-        scoredRes   <- CatalogService.configure(scoredCmd)
+        unscoredRes <- service.configure(unscoredCmd)
+        scoredRes   <- service.configure(scoredCmd)
       yield
         val flat = unscoredRes.product.components.head.geometry.flatSize
         val imp  = unscoredRes.product.components.head.geometry.imposition
-        assertTrue(
-          flat == Dimension2D.unsafeMm(297, 210), // 3 × 99mm × 210mm
-          imp.isInstanceOf[ImpositionResult.SheetImposition],
-          unscoredRes.warnings.map(_.ruleId) == List(RuleId.unsafe("heavy-fold-recommend-scoring")),
-          scoredRes.warnings.isEmpty,
-        )
-    },
-    test("roll-up banner combines RollStock printed Main + DiscreteBlank unprinted Stand with accurate weight") {
+        assert(flat == Dimension2D.unsafeMm(297, 210))
+        // 3 × 99mm × 210mm
+        assert(imp.isInstanceOf[ImpositionResult.SheetImposition])
+        assert(unscoredRes.warnings.map(_.ruleId) == List(RuleId.unsafe("heavy-fold-recommend-scoring")))
+        assert(scoredRes.warnings.isEmpty)
+    }
+
+    "roll-up banner combines RollStock printed Main + DiscreteBlank unprinted Stand with accurate weight" in {
       val validCmd = ConfigureProductCmd(
         configurationId = ConfigurationId.unsafe("cfg-rollup"),
         categoryId = rollupCatId,
@@ -444,33 +439,32 @@ object CatalogDomainSpec extends ZIOSpecDefault:
         )
       )
       for
-        ok   <- CatalogService.configure(validCmd)
-        fail <- CatalogService.configure(invalidPrintOnStand).either
+        ok   <- service.configure(validCmd)
+        fail <- service.configure(invalidPrintOnStand).either
       yield
         val mainComp  = ok.product.components.find(_.key == ComponentKey.Main).get
         val standComp = ok.product.components.find(_.key == ComponentKey.Stand).get
         // Banner: 0.85 * 2.0 * 220 = 374g; Stand: 2000g -> total per product = 2374g
         val perUnitG = ok.product.weight.get.weightPerProduct.value
-        assertTrue(
-          mainComp.print.isDefined,
-          standComp.print.isEmpty,
-          mainComp.geometry.imposition.isInstanceOf[ImpositionResult.RollImposition],
-          standComp.geometry.imposition == ImpositionResult.DiscreteUnit(2),
-          perUnitG == BigDecimal("2374.00"),
-          fail == Left(CatalogError.UnexpectedPrintSpec(ComponentKey.Stand)),
-        )
-    },
-    test("canonical RuleEngine guarantees parity between compatibleFinishes and full configure") {
+        assert(mainComp.print.isDefined)
+        assert(standComp.print.isEmpty)
+        assert(mainComp.geometry.imposition.isInstanceOf[ImpositionResult.RollImposition])
+        assert(standComp.geometry.imposition == ImpositionResult.DiscreteUnit(2))
+        assert(perUnitG == BigDecimal("2374.00"))
+        assert(fail == Left(CatalogError.UnexpectedPrintSpec(ComponentKey.Stand)))
+    }
+
+    "canonical RuleEngine guarantees parity between compatibleFinishes and full configure" in {
       for
-        withNone  <- CatalogService.compatibleFinishes(brochureCatId, ComponentKey.Main, art300.id, Some(digitalMethod.id))
-        withMatte <- CatalogService.compatibleFinishes(
+        withNone  <- service.compatibleFinishes(brochureCatId, ComponentKey.Main, art300.id, Some(digitalMethod.id))
+        withMatte <- service.compatibleFinishes(
                        brochureCatId,
                        ComponentKey.Main,
                        art300.id,
                        Some(digitalMethod.id),
                        alreadySelectedFinishIds = Set(matteLam.id),
                      )
-        bothLamRes <- CatalogService.configure(
+        bothLamRes <- service.configure(
                         ConfigureProductCmd(
                           configurationId = ConfigurationId.unsafe("cfg-double-lam"),
                           categoryId = brochureCatId,
@@ -492,14 +486,15 @@ object CatalogDomainSpec extends ZIOSpecDefault:
                           ),
                         )
                       ).either
-      yield assertTrue(
-        withNone.map(_.id).toSet.contains(glossLam.id),
-        !withMatte.map(_.id).toSet.contains(glossLam.id),
-        withMatte.map(_.id).toSet.contains(scoring.id),
-        bothLamRes.isLeft,
-      )
-    },
-    test("validates FinishSidePolicy and FinishParamSchema with error accumulation") {
+      yield {
+        assert(withNone.map(_.id).toSet.contains(glossLam.id))
+        assert(!withMatte.map(_.id).toSet.contains(glossLam.id))
+        assert(withMatte.map(_.id).toSet.contains(scoring.id))
+        assert(bothLamRes.isLeft)
+      }
+    }
+
+    "validates FinishSidePolicy and FinishParamSchema with error accumulation" in {
       val badCmd = ConfigureProductCmd(
         configurationId = ConfigurationId.unsafe("cfg-bad-params"),
         categoryId = brochureCatId,
@@ -521,11 +516,9 @@ object CatalogDomainSpec extends ZIOSpecDefault:
           quantity = Quantity.unsafe(100),
         ),
       )
-      for res <- CatalogService.configure(badCmd).either
-      yield assertTrue(
-        res match
+      for res <- service.configure(badCmd).either
+      yield assert(res match
           case Left(CatalogError.ConfigurationValidationFailed(errs)) => errs.size >= 3
-          case _                                                      => false
-      )
-    },
-  ).provideLayerShared(serviceLayer)
+          case _                                                      => false)
+    }
+  }

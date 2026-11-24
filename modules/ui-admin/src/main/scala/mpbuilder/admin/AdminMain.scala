@@ -38,13 +38,7 @@ object AdminMain extends KyoApp:
       case None       => bootInMemoryBackofficeClient
 
   private def bootInMemoryBackofficeClient: BackofficeClient < Async =
-    val bootZio: zio.UIO[BackofficeFacade] =
-      zio.ZIO.scoped {
-        SampleShowcaseRuntime.layer().build.map(_.get[BackofficeFacade])
-      }
-    Abort.run[Nothing](ZIOs.get(bootZio)).map { res =>
-      BackofficeClient.fromZio(res.getOrThrow)
-    }
+    SampleShowcaseRuntime.make().map(rt => BackofficeClient.fromFacade(rt.backoffice))
 
   /** Installs delegated pointer-drag resizing (plus double-click 50/50 reset) on any
     * Vaadin-style `[data-mp-dt-splitter]` divider inside a `[data-mp-dt-split-root]` container.

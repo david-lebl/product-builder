@@ -28,5 +28,5 @@ enum PricingError(val message: String):
       extends PricingError(s"Promo code '$code' has reached its usage limit")
   case PromoCodeNotEligible(code: String, reason: String)
       extends PricingError(s"Promo code '$code' is not eligible: $reason")
-  case PricingValidationFailed(errors: zio.NonEmptyChunk[PricingError])
+  case PricingValidationFailed(errors: NonEmptyChunk[PricingError])
       extends PricingError(s"Pricing failed with ${errors.size} error(s): ${errors.map(_.message).mkString("; ")}")

@@ -1,9 +1,9 @@
 # Local PostgreSQL for the persistent backend (Phase 3).
 #
 #   docker compose up -d postgres
-#   DATABASE_URL=jdbc:postgresql://localhost:5432/printcraft ./mill backend.app.run --storage=postgres
+#   DATABASE_URL=postgresql://localhost:5432/printcraft ./mill backend.app.run --storage=postgres
 #
-# Flyway migrations and the sample-data seeder run automatically on first boot.
+# Schema migrations (kyo-sql runner) and the sample-data seeder run automatically on first boot.
 services:
   postgres:
     image: postgres:17-alpine
