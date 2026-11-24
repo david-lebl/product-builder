@@ -1,6 +1,5 @@
 package mpbuilder.shared
 
-import zio.prelude.Validation
 
 /** Physical measurements using `BigDecimal` to avoid floating-point equality issues. */
 

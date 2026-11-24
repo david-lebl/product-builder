@@ -1,20 +1,21 @@
 package mpbuilder.json
 
-import com.github.plokhotnyuk.jsoniter_scala.core.*
-import com.github.plokhotnyuk.jsoniter_scala.macros.*
+import kyo.*
 import mpbuilder.artwork.*
 import mpbuilder.json.JsonSupport.*
+import mpbuilder.shared.*
 import mpbuilder.json.SharedCodecs.given
+import mpbuilder.json.JsonSupport.given
 
-/** Codecs for the public `artwork` model. */
+/** Schemas for the public `artwork` model. */
 object ArtworkCodecs:
-  given JsonValueCodec[ArtworkOwner]          = JsonCodecMaker.make(config)
-  given JsonValueCodec[ColorSpace]            = JsonCodecMaker.make(config)
-  given JsonValueCodec[AssetFileMetadata]     = JsonCodecMaker.make(config)
-  given JsonValueCodec[ExtractedFileSpecs]    = JsonCodecMaker.make(config)
-  given JsonValueCodec[PreflightRequirement]  = JsonCodecMaker.make(config)
-  given JsonValueCodec[PreflightReport]       = JsonCodecMaker.make(config)
-  given JsonValueCodec[ArtworkStatus]         = JsonCodecMaker.make(config)
-  given JsonValueCodec[ArtworkRevision]       = JsonCodecMaker.make(config)
-  given JsonValueCodec[ArtworkSubmissionView] = JsonCodecMaker.make(config)
-  given JsonValueCodec[ArtworkError]          = JsonCodecMaker.make(config)
+  given Schema[ArtworkOwner]          = Schema.derived
+  given Schema[ColorSpace]            = Schema.derived
+  given Schema[AssetFileMetadata]     = Schema.derived
+  given Schema[ExtractedFileSpecs]    = Schema.derived
+  given Schema[PreflightRequirement]  = Schema.derived
+  given Schema[PreflightReport]       = Schema.derived
+  given Schema[ArtworkStatus]         = Schema.derived
+  given Schema[ArtworkRevision]       = Schema.derived
+  given Schema[ArtworkSubmissionView] = Schema.derived
+  given Schema[ArtworkError]          = Schema.derived

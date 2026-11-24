@@ -6,9 +6,8 @@ This file provides guidance to AI assistants and developers when working with co
 
 - **JDK 25** (required by `io.getkyo:kyo-ui:1.0.0-RC7`, which targets JVM class file version 69.0)
 - **Scala 3.9.0**, **Scala.js 1.22.0**, **Mill 1.1.3**
-- **Kyo 1.0.0-RC7** (`kyo-ui`, `kyo-i18n`, `kyo-zio`) + **ZIO 2.1.26** + **ZIO Prelude 1.0.0-RC39**
-- **Persistence & API**: Magnum 2.0.0 (`magnumzio`) + HikariCP + Flyway + PostgreSQL 17, jsoniter-scala codecs, Tapir 1.14 + ZIO HTTP, sttp client4
-- **Docker** must be running for the `02-o-db`, `platform` and `app` test suites (Testcontainers)
+- **Kyo 1.0.0-RC7 everywhere**: `kyo-core` + `kyo-combinators` (effects), `kyo-schema-json` (JSON), `kyo-sql-postgres` (PostgreSQL 17, native wire driver), `kyo-http` (routes, server, OpenAPI, JVM client), `kyo-test` (tests), `kyo-pod` (test containers), `kyo-ui` + `kyo-i18n` (UI). No ZIO, Tapir, Magnum, Flyway, JDBC or jsoniter.
+- **Docker or Podman** must be running for the `02-o-db`, `platform` and `app` test suites (kyo-pod), or set `TEST_DATABASE_URL` to an existing PostgreSQL (role with `CREATEDB`)
 
 ## Build & Test Commands
 
@@ -28,13 +27,13 @@ This project uses **Mill** (`build.mill`).
 ./mill ui-admin-core.jvm.test
 ./mill 'backend.pricing.01-c-core.jvm.test'
 
-# Persistence contract tests (in-memory vs PostgreSQL via Testcontainers) & live HTTP E2E
+# Persistence contract tests (in-memory vs PostgreSQL via kyo-pod / TEST_DATABASE_URL) & live HTTP E2E
 ./mill 'backend.ordering.02-o-db.test'
 ./mill backend.app.test
 
-# Run the API server (Swagger UI at http://localhost:8080/docs)
+# Run the API server (kyo-http; Swagger UI at http://localhost:8080/docs, OpenAPI at /openapi.json)
 ./mill backend.app.run --storage=memory
-docker compose up -d postgres && DATABASE_URL=jdbc:postgresql://localhost:5432/printcraft ./mill backend.app.run --storage=postgres
+docker compose up -d postgres && DATABASE_URL=postgresql://localhost:5432/printcraft ./mill backend.app.run --storage=postgres
 
 # Build Scala.js bundles
 ./mill ui.fastLinkJS             # Dev Unified Storefront + #/admin SPA → out/ui/fastLinkJS.dest/main.js
@@ -63,36 +62,37 @@ All backend modules cross-compile to both `.jvm` and `.js` so the static fronten
 - **`backend/identity/01-c-core`** — Identity, Authentication (Password + Passwordless OTP), Sessions & Staff Directory Management.
 - **`backend/storefront`** — Storefront BFF / Application Orchestration Facade (`StorefrontFacade`). Depends only on public context APIs.
 - **`backend/backoffice`** — Role-based Staff Backoffice & Order Intake BFF (`BackofficeFacade`). Enforces `Operator` / `Prepress` / `Manager` / `Admin` RBAC across all contexts. Depends only on public context APIs.
-- **`backend/json`** (JVM + JS) — jsoniter-scala codecs for all public domain types (JSONB rows + HTTP wire); opaque types decode through smart constructors.
-- **`backend/platform`** (JVM) — Magnum `Database` (HikariCP), per-context Flyway migrations (schema per context), `PostgresIdSequence`, `LocalFileBlobStorage`.
-- **`backend/<context>/02-o-db`** (JVM) — PostgreSQL repository adapters + migrations for identity, customers, catalog, pricing, ordering, artwork (manufacturing stays in-memory).
-- **`backend/api-kernel`** (JVM + JS) — Transport kernel shared by both BFF APIs (`mpbuilder.api`): bearer auth, opaque path codecs, typed error envelope, OpenAPI schemas, `/healthz`, `/readyz`, `/api/v1/blobs/**`.
-- **`backend/storefront/01-i-tapir-api`** & **`backend/backoffice/01-i-tapir-api`** (JVM + JS) — Each BFF's pure Tapir contracts (`/api/v1/storefront`, `/api/v1/admin`), request DTOs & codecs (`mpbuilder.<bff>.http.api`).
-- **`backend/storefront/02-i-http`** & **`backend/backoffice/02-i-http`** (JVM) — Tapir server routes binding each contract to its facade (`mpbuilder.<bff>.http`).
-- **`backend/app`** (JVM) — Composition root `mpbuilder.app.Main` (`--storage=memory|postgres`), per-context Postgres wiring in `mpbuilder.<ctx>.wiring`, idempotent DB seeder, HTTP server assembly (`mpbuilder.app.http`: ZIO HTTP, Swagger UI, CORS).
-- **`backend/sample`** — Sample showcase data (15 products, 5 groups, demo B2B accounts, 4 seeded demo orders, demo staff accounts, promo codes), in-memory adapters, ACL bridges, and `SampleShowcaseRuntime`.
+- **`backend/json`** (JVM + JS) — kyo-schema `Schema`s for all public domain types (JSONB rows + HTTP wire); opaque types decode through smart constructors (`JsonSupport.validated`).
+- **`backend/platform`** (JVM) — kyo-sql `Database` (pool), `Migrations` (schema per context, `<schema>.schema_migrations`, advisory-locked), `PostgresIdSequence`, `LocalFileBlobStorage`, `KeyedDoc` rows.
+- **`backend/<context>/02-o-db`** (JVM) — kyo-sql PostgreSQL repository adapters (typed JSONB via `Sql.jsonColumn`) + migrations for identity, customers, catalog, pricing, ordering, artwork (manufacturing stays in-memory).
+- **`backend/api-kernel`** (JVM + JS) — Transport kernel shared by both BFF APIs (`mpbuilder.api`): `ApiError` envelope, `ApiConventions.statusOf`, `HealthStatus`; JVM-only `src/main/scala-jvm` adds `ApiServer` kyo-http helpers (bearer extraction, opaque path codecs, `.doc`).
+- **`backend/storefront/01-i-http-api`** & **`backend/backoffice/01-i-http-api`** (JVM + JS) — Each BFF's wire DTOs, schemas & URL layout (`StorefrontApi` / `BackofficeApi`, `mpbuilder.<bff>.http.api`).
+- **`backend/storefront/02-i-http`** & **`backend/backoffice/02-i-http`** (JVM) — kyo-http `HttpRoute`s + handlers binding each API to its facade (`mpbuilder.<bff>.http`), one error envelope type per HTTP status.
+- **`backend/app`** (JVM) — Composition root `mpbuilder.app.Main` (`KyoApp`, `--storage=memory|postgres`), per-context Postgres wiring in `mpbuilder.<ctx>.wiring`, idempotent DB seeder, kyo-http server assembly (`mpbuilder.app.http.ApiHttpServer`: OpenAPI, Swagger UI page, CORS, health, blobs).
+- **`backend/sample`** — Sample showcase data (15 products, 5 groups, demo B2B accounts, 4 seeded demo orders, demo staff accounts, promo codes), in-memory adapters (`AtomicRef`), `*SampleWiring` constructors, ACL bridges, and `SampleShowcaseRuntime.make` (→ `ShowcaseRuntime`).
 
 ### Frontend (`modules/`)
 
 - **`modules/ui-core`** (`ui-core.jvm`, `ui-core.js`) — Cross-compiled Kyo UI library with **zero** `org.scalajs.dom` imports and **zero** dependency on `backend.sample`. Contains `StorefrontClient`, `Translations` (EN/CS Fluent), `AppTheme`, shared `ConfiguratorView`, `StorefrontApp`, and `CalculatorView`, plus JVM UI tests in `StorefrontUiSpec.scala`.
 - **`modules/ui-admin-core`** (`ui-admin-core.jvm`, `ui-admin-core.js`) — Cross-compiled Kyo UI Backoffice library with **zero** `org.scalajs.dom` imports and **zero** dependency on `backend.sample`. Contains:
-  - `mpbuilder.admin.port.BackofficeClient` — Pure Kyo async port (`BackofficeClient.fromZio` via `kyo-zio`).
+  - `mpbuilder.admin.port.BackofficeClient` — Pure Kyo async port (`BackofficeClient.fromFacade`).
   - `mpbuilder.admin.i18n.AdminTranslations` — EN/CS Fluent bundles composed with `Translations`.
   - `mpbuilder.admin.theme.AdminTheme` — Responsive sidebar/topbar/KPI/table/timeline `kyo.Stylesheet`.
   - `mpbuilder.admin.views` — Staff Login, Operations Dashboard, Order Intake Queue, Order Detail (manual stage controls, artwork review, staff notes, audit timeline), Catalog Manager, Pricing & Live Margin Simulator, Customer Manager & B2B Approvals, and Staff Directory & Store Delivery/Bank Settings.
   - JVM UI test suite in `modules/ui-admin-core/src/test/scala/mpbuilder/admin/BackofficeUiSpec.scala` covering RBAC, EN/CS i18n, and unified Storefront → Backoffice E2E order flow.
 - **`modules/ui`** (`ui`) — Unified Static Scala.js Demo SPA (`mpbuilder.ui.Main`) hosting BOTH Storefront (`#/catalog`, `#/builder`, ...) and Staff Backoffice (`#/admin/...`) over ONE shared in-memory `SampleShowcaseRuntime` so Storefront orders land immediately in Staff Order Intake.
 - **`modules/ui-admin`** (`ui-admin`) — Standalone deployable Scala.js Backoffice SPA (`mpbuilder.admin.AdminMain`, deployed to `_site/admin/`).
-- **`modules/ui-http-client`** (`ui-http-client.jvm`, `ui-http-client.js`) — `HttpStorefrontFacade` / `HttpBackofficeFacade` implementing the facade traits over the Tapir contracts; `HttpClients.storefront/backoffice(baseUrl)`. SPAs switch to it when `window.__API_BASE_URL__` is set (calculator: `apiBaseUrl` mount option).
+- **`modules/ui-http-client`** (`ui-http-client.jvm`, `ui-http-client.js`) — `HttpStorefrontFacade` / `HttpBackofficeFacade` implementing the facade traits over `/api/v1` (`ApiCaller`); transport = kyo-http client on the JVM (`src/main/scala-jvm`), `window.fetch` in the browser (`src/main/scala-js`; kyo-http's JS client is Node-only); `HttpClients.storefront/backoffice(baseUrl)`. SPAs switch to it when `window.__API_BASE_URL__` is set (calculator: `apiBaseUrl` mount option).
 - **`modules/ui-calculator`** (`ui-calculator`) — Standalone embeddable Scala.js widget (`mpbuilder.calculator.CalculatorWidget`) exporting global `MPCalculator.mount(selector, config)` without a main initializer.
 
 ## Domain & UI Conventions
 
 - **Bounded context isolation** — Every `backend/<context>/01-c-core` depends ONLY on `backend/shared` (zero cross-core dependencies).
-- **Opaque types with smart constructors** — IDs and value objects use Scala 3 opaque types validated via ZIO Prelude `Validation[E, A]`. Use `.unsafe(...)` only in tests/sample fixtures.
+- **Opaque types with smart constructors** — IDs and value objects use Scala 3 opaque types validated via `mpbuilder.shared.Validation[E, A]` (error-accumulating; Kyo has none). Use `.unsafe(...)` only in tests/sample fixtures.
+- **Kyo effects** — Service methods return `A < Async` or `A < (Async & Abort[E])`; wire services with plain constructors (`XServiceLive.make`, `*SampleWiring`, `SampleShowcaseRuntime.make`), not `Layer`s. Shared helpers live in `mpbuilder.shared.Effects` (`orFail`, `someOrFail`, `.either`, `.as`, `ref.update`, `Effects.traverse`, …) plus kyo-combinators (`mapAbort`, `orPanic`, `*>`). **Never discard an effect** (`-Wvalue-discard` is on): `ref.updateAndGet(f)` in a `Unit < Async` method silently never runs — use `ref.update(f)` / `.unit`. Mixed pure/effect `if`/`match` branches need an `A < S` ascription. Tests use kyo-test (`class XSpec extends Test[Any]`).
 - **Money** — `Money` is an opaque type over `BigDecimal` (`HALF_UP` rounding). Never use `Double` for monetary calculations.
 - **i18n** — UI copy lives in `Translations.scala` & `AdminTranslations.scala` (`kyo-i18n` Fluent bundles, EN & CS); domain entities use `LocalizedString`. Every UI change must keep EN & CS complete without missing-key markers (`‹` / `›`).
-- **Persistence** — Repository ports stay `private[context]`; Postgres adapters live in `mpbuilder.<ctx>.db`. Persist via indexed key columns + a `doc JSONB` aggregate, always derived with `mpbuilder.json.JsonSupport.config`. New tables go in a new `V<n>__*.sql` under `db/migration/<ctx>/` (never edit applied migrations). Every repository change must keep its in-memory/Postgres contract spec green.
+- **Persistence** — Repository ports stay `private[context]`; Postgres adapters live in `mpbuilder.<ctx>.db`. Persist via indexed key columns + a `doc JSONB` aggregate bound as `given SqlSchema.Column[X] = Sql.jsonColumn` (kyo-schema `Schema` from `backend/json`). New tables go in a new `V<n>__*.sql` under `db/migration/<ctx>/` **and** must be appended to the context's `MigrationSet` (never edit applied migrations — checksums are verified). Every repository change must keep its in-memory/Postgres contract spec green.
 - **Facade IDs & files** — Facades draw IDs from `IdSequence` and store artwork bytes via `BlobStorage` (`BlobIngest`), never in aggregates.
 - **Kyo UI cross-platform purity** — Never import `org.scalajs.dom` or `backend.sample` inside `modules/ui-core` or `modules/ui-admin-core`. Browser-only glue (clipboard, `localStorage`, `window.location.hash`, `mailto:`) is injected via callbacks from `modules/ui`, `modules/ui-admin`, and `modules/ui-calculator`.
 
@@ -118,7 +118,7 @@ All backend modules cross-compile to both `.jvm` and `.js` so the static fronten
 | Standalone Admin SPA | `modules/ui-admin/src/main/scala/mpbuilder/admin/AdminMain.scala` |
 | JSON codecs | `backend/json/src/main/scala/mpbuilder/json/` |
 | DB platform & migrations | `backend/platform/src/main/scala/mpbuilder/platform/`, `backend/*/02-o-db/src/main/resources/db/migration/` |
-| HTTP contracts / routes / server | `backend/{storefront,backoffice}/01-i-tapir-api/`, `backend/{storefront,backoffice}/02-i-http/`, `backend/api-kernel/`, `backend/app/…/mpbuilder/app/http/` |
+| HTTP API DTOs / routes / server | `backend/{storefront,backoffice}/01-i-http-api/`, `backend/{storefront,backoffice}/02-i-http/`, `backend/api-kernel/`, `backend/app/…/mpbuilder/app/http/` |
 | HTTP clients | `modules/ui-http-client/src/main/scala/mpbuilder/httpclient/` |
 | Calculator JS export | `modules/ui-calculator/src/main/scala/mpbuilder/calculator/CalculatorWidget.scala` |
 

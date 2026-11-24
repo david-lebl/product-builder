@@ -2,8 +2,6 @@ package mpbuilder.catalog
 package core
 
 import mpbuilder.shared.*
-import zio.NonEmptyChunk
-import zio.prelude.{AssociativeBothCovariantOps, Validation}
 
 /** Pure error-accumulating product configurator.
   *

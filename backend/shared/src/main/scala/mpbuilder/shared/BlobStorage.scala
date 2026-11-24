@@ -1,6 +1,6 @@
 package mpbuilder.shared
 
-import zio.*
+import kyo.*
 
 import java.nio.charset.StandardCharsets
 import java.util.Base64
@@ -35,9 +35,9 @@ enum BlobError(val message: String):
   *   - `mpbuilder.platform.blob.LocalFileBlobStorage` — JVM local filesystem (dev server); S3/R2 later
   */
 trait BlobStorage:
-  def put(key: String, bytes: Chunk[Byte], mimeType: String): IO[BlobError, StoredBlob]
-  def get(key: String): IO[BlobError, Option[BlobContent]]
-  def delete(key: String): IO[BlobError, Unit]
+  def put(key: String, bytes: Chunk[Byte], mimeType: String)(using Frame): StoredBlob < (Async & Abort[BlobError])
+  def get(key: String)(using Frame): Option[BlobContent] < (Async & Abort[BlobError])
+  def delete(key: String)(using Frame): Unit < (Async & Abort[BlobError])
 
 object BlobStorage:
 
@@ -58,30 +58,28 @@ object BlobStorage:
   def inMemory(
       publicBaseUrl: Option[String] = None,
       maxBytes: Long = DefaultMaxBytes,
-  ): UIO[BlobStorage] =
-    Ref.make(Map.empty[String, BlobContent]).map(new InMemoryBlobStorage(_, publicBaseUrl, maxBytes))
-
-  val inMemoryLayer: ULayer[BlobStorage] = ZLayer.fromZIO(inMemory())
+  )(using Frame): BlobStorage < Sync =
+    AtomicRef.init(Map.empty[String, BlobContent]).map(new InMemoryBlobStorage(_, publicBaseUrl, maxBytes))
 
 final class InMemoryBlobStorage(
-    ref: Ref[Map[String, BlobContent]],
+    ref: AtomicRef[Map[String, BlobContent]],
     publicBaseUrl: Option[String],
     maxBytes: Long,
 ) extends BlobStorage:
 
-  override def put(key: String, bytes: Chunk[Byte], mimeType: String): IO[BlobError, StoredBlob] =
+  override def put(key: String, bytes: Chunk[Byte], mimeType: String)(using Frame): StoredBlob < (Async & Abort[BlobError]) =
     for
-      k   <- ZIO.fromEither(BlobStorage.validateKey(key))
-      _   <- ZIO.fail(BlobError.TooLarge(bytes.size.toLong, maxBytes)).when(bytes.size.toLong > maxBytes)
+      k   <- BlobStorage.validateKey(key).orAbort
+      _   <- Effects.failWhen(bytes.size.toLong > maxBytes)(BlobError.TooLarge(bytes.size.toLong, maxBytes))
       meta = BlobStorage.describe(k, bytes, mimeType, publicBaseUrl.map(base => s"${base.stripSuffix("/")}/$k"))
       _   <- ref.update(_ + (k -> BlobContent(meta, bytes)))
     yield meta
 
-  override def get(key: String): IO[BlobError, Option[BlobContent]] =
-    ZIO.fromEither(BlobStorage.validateKey(key)).flatMap(k => ref.get.map(_.get(k)))
+  override def get(key: String)(using Frame): Option[BlobContent] < (Async & Abort[BlobError]) =
+    BlobStorage.validateKey(key).orAbort.map(k => ref.get.map(_.get(k)))
 
-  override def delete(key: String): IO[BlobError, Unit] =
-    ZIO.fromEither(BlobStorage.validateKey(key)).flatMap(k => ref.update(_ - k))
+  override def delete(key: String)(using Frame): Unit < (Async & Abort[BlobError]) =
+    BlobStorage.validateKey(key).orAbort.map(k => ref.update(_ - k))
 
 // ── `data:` URL support ──────────────────────────────────────────────────────
 
@@ -107,7 +105,7 @@ object DataUrl:
           val bytes =
             if isBase64 then Base64.getDecoder.decode(payload.filterNot(_.isWhitespace))
             else percentDecode(payload)
-          Right(DecodedDataUrl(mime, Chunk.fromArray(bytes)))
+          Right(DecodedDataUrl(mime, Chunk.from(bytes)))
         catch case e: IllegalArgumentException => Left(BlobError.InvalidDataUrl(e.getMessage))
 
   def encode(mimeType: String, bytes: Chunk[Byte]): String =
@@ -148,21 +146,21 @@ object BlobIngest:
       storageKey: String,
       downloadUrl: Option[String],
       previewUrl: Option[String],
-  ): IO[BlobError, IngestedAsset] =
-    def store(key: String, url: Option[String]): IO[BlobError, (Option[String], Option[StoredBlob])] =
+  )(using Frame): IngestedAsset < (Async & Abort[BlobError]) =
+    def store(key: String, url: Option[String]): (Option[String], Option[StoredBlob]) < (Async & Abort[BlobError]) =
       url match
         case Some(u) if DataUrl.isDataUrl(u) =>
           for
-            decoded <- ZIO.fromEither(DataUrl.decode(u))
+            decoded <- DataUrl.decode(u).orAbort
             meta    <- blobs.put(key, decoded.bytes, decoded.mimeType)
           yield (Some(meta.publicUrl.getOrElse(u)), Some(meta))
-        case other => ZIO.succeed((other, None))
+        case other => (other, None)
 
     val previewIsSameAsDownload = previewUrl.isDefined && previewUrl == downloadUrl
     for
       main <- store(storageKey, downloadUrl)
-      prev <- if previewIsSameAsDownload then ZIO.succeed((main._1, None))
-              else store(s"$storageKey.preview", previewUrl)
+      prev <- (if previewIsSameAsDownload then (main._1, None)
+               else store(s"$storageKey.preview", previewUrl)): (Option[String], Option[StoredBlob]) < (Async & Abort[BlobError])
     yield IngestedAsset(main._1, prev._1, main._2.map(_.sizeBytes), main._2.map(_.checksumSha256))
 
 // ── Monotonic ID sequence port ───────────────────────────────────────────────
@@ -172,10 +170,8 @@ object BlobIngest:
   * collide across server restarts.
   */
 trait IdSequence:
-  def next: UIO[Long]
+  def next(using Frame): Long < Async
 
 object IdSequence:
-  def inMemory(start: Long = 0L): UIO[IdSequence] =
-    Ref.make(start).map(ref => new IdSequence { def next: UIO[Long] = ref.updateAndGet(_ + 1) })
-
-  def inMemoryLayer(start: Long = 0L): ULayer[IdSequence] = ZLayer.fromZIO(inMemory(start))
+  def inMemory(start: Long = 0L)(using Frame): IdSequence < Sync =
+    AtomicLong.init(start).map(counter => new IdSequence { def next(using Frame): Long < Async = counter.incrementAndGet })

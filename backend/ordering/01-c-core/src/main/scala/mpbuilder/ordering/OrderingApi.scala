@@ -1,8 +1,7 @@
 package mpbuilder.ordering
 
 import mpbuilder.shared.*
-import zio.*
-import zio.prelude.Validation
+import kyo.*
 import java.time.Instant
 
 // ── Context-local IDs ────────────────────────────────────────────────────────
@@ -448,16 +447,16 @@ final case class OrderCancelled(
 // ── Public Inbound Ports (Module API) ────────────────────────────────────────
 
 trait CartService:
-  def createCart(cartId: CartId, currency: Currency, customerId: Option[CustomerId] = None): IO[OrderError, CartView]
-  def addLine(cartId: CartId, line: CartLine): IO[OrderError, CartView]
-  def updateLineCopies(cartId: CartId, lineId: OrderLineId, copies: Quantity): IO[OrderError, CartView]
-  def replaceLine(cartId: CartId, line: CartLine): IO[OrderError, CartView]
-  def removeLine(cartId: CartId, lineId: OrderLineId): IO[OrderError, CartView]
-  def clearCart(cartId: CartId): IO[OrderError, CartView]
-  def applyPromo(cartId: CartId, promo: AppliedPromoSnapshot): IO[OrderError, CartView]
-  def removePromo(cartId: CartId): IO[OrderError, CartView]
-  def assignCustomer(cartId: CartId, customerId: Option[CustomerId]): IO[OrderError, CartView]
-  def getCart(cartId: CartId): IO[OrderError.CartNotFound, CartView]
+  def createCart(cartId: CartId, currency: Currency, customerId: Option[CustomerId] = None): CartView < (Async & Abort[OrderError])
+  def addLine(cartId: CartId, line: CartLine): CartView < (Async & Abort[OrderError])
+  def updateLineCopies(cartId: CartId, lineId: OrderLineId, copies: Quantity): CartView < (Async & Abort[OrderError])
+  def replaceLine(cartId: CartId, line: CartLine): CartView < (Async & Abort[OrderError])
+  def removeLine(cartId: CartId, lineId: OrderLineId): CartView < (Async & Abort[OrderError])
+  def clearCart(cartId: CartId): CartView < (Async & Abort[OrderError])
+  def applyPromo(cartId: CartId, promo: AppliedPromoSnapshot): CartView < (Async & Abort[OrderError])
+  def removePromo(cartId: CartId): CartView < (Async & Abort[OrderError])
+  def assignCustomer(cartId: CartId, customerId: Option[CustomerId]): CartView < (Async & Abort[OrderError])
+  def getCart(cartId: CartId): CartView < (Async & Abort[OrderError.CartNotFound])
 
 trait CheckoutOptionsService:
   def availableDeliveryOptions(
@@ -465,7 +464,7 @@ trait CheckoutOptionsService:
       itemsNetSubtotal: Money,
       totalWeightGrams: Option[BigDecimal],
       freeDeliveryPromo: Boolean = false,
-  ): UIO[List[DeliveryOptionQuote]]
+  ): List[DeliveryOptionQuote] < Async
 
   def resolveDelivery(
       choice: DeliveryOptionChoice,
@@ -473,12 +472,12 @@ trait CheckoutOptionsService:
       itemsNetSubtotal: Money,
       totalWeightGrams: Option[BigDecimal],
       freeDeliveryPromo: Boolean = false,
-  ): IO[OrderError, DeliverySelection]
+  ): DeliverySelection < (Async & Abort[OrderError])
 
   def availablePaymentOptions(
       invoiceApproved: Boolean,
       cardEnabled: Boolean = false,
-  ): UIO[List[PaymentOption]]
+  ): List[PaymentOption] < Async
 
   def generatePaymentInstructions(
       orderNumber: OrderNumber,
@@ -486,93 +485,89 @@ trait CheckoutOptionsService:
       grandTotalGross: Money,
       currency: Currency,
       invoiceDueDays: Option[Int] = None,
-  ): UIO[PaymentInstructions]
+  ): PaymentInstructions < Async
 
   // ── Admin Delivery & Payment Configuration ─────────────────────────────────
-  def listAllPickupLocations: UIO[List[ShopPickupLocation]]
-  def upsertPickupLocation(loc: ShopPickupLocation): UIO[ShopPickupLocation]
-  def deletePickupLocation(id: DeliveryOptionId): UIO[Unit]
-  def listAllCourierOptions: UIO[List[CourierServiceOption]]
-  def upsertCourierOption(opt: CourierServiceOption): UIO[CourierServiceOption]
-  def deleteCourierOption(id: DeliveryOptionId, currency: Currency): UIO[Unit]
-  def listBankAccounts: UIO[Map[Currency, BankAccountConfig]]
-  def upsertBankAccount(currency: Currency, config: BankAccountConfig): UIO[BankAccountConfig]
+  def listAllPickupLocations: List[ShopPickupLocation] < Async
+  def upsertPickupLocation(loc: ShopPickupLocation): ShopPickupLocation < Async
+  def deletePickupLocation(id: DeliveryOptionId): Unit < Async
+  def listAllCourierOptions: List[CourierServiceOption] < Async
+  def upsertCourierOption(opt: CourierServiceOption): CourierServiceOption < Async
+  def deleteCourierOption(id: DeliveryOptionId, currency: Currency): Unit < Async
+  def listBankAccounts: Map[Currency, BankAccountConfig] < Async
+  def upsertBankAccount(currency: Currency, config: BankAccountConfig): BankAccountConfig < Async
 
 trait OrderService:
-  def placeOrder(cmd: PlaceOrderCmd): IO[OrderError, OrderView]
-  def confirmPayment(orderId: OrderId, reference: Option[String]): IO[OrderError, OrderView]
-  def markInProduction(orderId: OrderId): IO[OrderError, OrderView]
-  def markReadyForDispatch(orderId: OrderId): IO[OrderError, OrderView]
-  def markDispatched(orderId: OrderId): IO[OrderError, OrderView]
-  def complete(orderId: OrderId): IO[OrderError, OrderView]
-  def cancel(orderId: OrderId, reason: NonEmptyString): IO[OrderError, OrderView]
-  def getOrder(orderId: OrderId): IO[OrderError.OrderNotFound, OrderView]
-  def listOrdersByCustomer(customerId: CustomerId): UIO[List[OrderView]]
+  def placeOrder(cmd: PlaceOrderCmd): OrderView < (Async & Abort[OrderError])
+  def confirmPayment(orderId: OrderId, reference: Option[String]): OrderView < (Async & Abort[OrderError])
+  def markInProduction(orderId: OrderId): OrderView < (Async & Abort[OrderError])
+  def markReadyForDispatch(orderId: OrderId): OrderView < (Async & Abort[OrderError])
+  def markDispatched(orderId: OrderId): OrderView < (Async & Abort[OrderError])
+  def complete(orderId: OrderId): OrderView < (Async & Abort[OrderError])
+  def cancel(orderId: OrderId, reason: NonEmptyString): OrderView < (Async & Abort[OrderError])
+  def getOrder(orderId: OrderId): OrderView < (Async & Abort[OrderError.OrderNotFound])
+  def listOrdersByCustomer(customerId: CustomerId): List[OrderView] < Async
 
   // ── Staff Order Intake & Manual Stage Management ───────────────────────────
-  def listOrders(filter: OrderFilter = OrderFilter()): UIO[List[OrderView]]
+  def listOrders(filter: OrderFilter = OrderFilter()): List[OrderView] < Async
   def acceptOrder(
       orderId: OrderId,
       by: EmployeeId,
       byName: Option[NonEmptyString] = None,
       note: Option[String] = None,
-  ): IO[OrderError, OrderView]
+  ): OrderView < (Async & Abort[OrderError])
   def putOnHold(
       orderId: OrderId,
       by: EmployeeId,
       byName: Option[NonEmptyString] = None,
       reason: NonEmptyString,
-  ): IO[OrderError, OrderView]
+  ): OrderView < (Async & Abort[OrderError])
   def resumeFromHold(
       orderId: OrderId,
       by: EmployeeId,
       byName: Option[NonEmptyString] = None,
       note: Option[String] = None,
-  ): IO[OrderError, OrderView]
+  ): OrderView < (Async & Abort[OrderError])
   def advanceStage(
       orderId: OrderId,
       target: OrderStatus,
       by: EmployeeId,
       byName: Option[NonEmptyString] = None,
       note: Option[String] = None,
-  ): IO[OrderError, OrderView]
+  ): OrderView < (Async & Abort[OrderError])
   def confirmPaymentByStaff(
       orderId: OrderId,
       by: EmployeeId,
       byName: Option[NonEmptyString] = None,
       reference: Option[String] = None,
-  ): IO[OrderError, OrderView]
+  ): OrderView < (Async & Abort[OrderError])
   def markPaymentStatus(
       orderId: OrderId,
       status: PaymentStatus,
       by: EmployeeId,
       byName: Option[NonEmptyString] = None,
       reference: Option[String] = None,
-  ): IO[OrderError, OrderView]
+  ): OrderView < (Async & Abort[OrderError])
   def editOrderLine(
       cmd: EditOrderLineCmd,
       by: EmployeeId,
       byName: Option[NonEmptyString] = None,
-  ): IO[OrderError, OrderView]
+  ): OrderView < (Async & Abort[OrderError])
   def cancelByStaff(
       orderId: OrderId,
       by: EmployeeId,
       byName: Option[NonEmptyString] = None,
       reason: NonEmptyString,
-  ): IO[OrderError, OrderView]
+  ): OrderView < (Async & Abort[OrderError])
   def addInternalNote(
       orderId: OrderId,
       by: EmployeeId,
       byName: Option[NonEmptyString] = None,
       text: NonEmptyString,
-  ): IO[OrderError, OrderView]
+  ): OrderView < (Async & Abort[OrderError])
   def attachArtwork(
       orderId: OrderId,
       lineIndex: Int,
       componentKey: ComponentKey,
       artworkId: ArtworkId,
-  ): IO[OrderError, OrderView]
-
-object OrderService:
-  def placeOrder(cmd: PlaceOrderCmd): ZIO[OrderService, OrderError, OrderView] =
-    ZIO.serviceWithZIO[OrderService](_.placeOrder(cmd))
+  ): OrderView < (Async & Abort[OrderError])

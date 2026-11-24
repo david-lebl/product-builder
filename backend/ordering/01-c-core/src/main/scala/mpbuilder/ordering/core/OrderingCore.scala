@@ -2,7 +2,7 @@ package mpbuilder.ordering
 package core
 
 import mpbuilder.shared.*
-import zio.*
+import kyo.*
 import java.time.Instant
 
 // ── Shared Tax / Promo Calculation Helper ────────────────────────────────────
@@ -420,94 +420,94 @@ private[ordering] object Order:
 // ── Outbound Ports ───────────────────────────────────────────────────────────
 
 private[ordering] trait CartRepository:
-  def findById(id: CartId): UIO[Option[Cart]]
-  def save(cart: Cart): UIO[Unit]
+  def findById(id: CartId): Option[Cart] < Async
+  def save(cart: Cart): Unit < Async
 
 private[ordering] trait OrderRepository:
-  def findById(id: OrderId): UIO[Option[Order]]
-  def findByCustomer(customerId: CustomerId): UIO[List[Order]]
-  def listAll: UIO[List[Order]]
-  def save(order: Order): UIO[Unit]
+  def findById(id: OrderId): Option[Order] < Async
+  def findByCustomer(customerId: CustomerId): List[Order] < Async
+  def listAll: List[Order] < Async
+  def save(order: Order): Unit < Async
 
 private[ordering] trait DeliveryCatalogRepository:
-  def pickupLocations: UIO[List[ShopPickupLocation]]
-  def savePickupLocation(loc: ShopPickupLocation): UIO[Unit] = ZIO.unit
-  def deletePickupLocation(id: DeliveryOptionId): UIO[Unit]  = ZIO.unit
-  def courierOptions(currency: Currency): UIO[List[CourierServiceOption]]
-  def allCourierOptions: UIO[List[CourierServiceOption]] =
-    ZIO.foreach(Currency.values.toList)(courierOptions).map(_.flatten)
-  def saveCourierOption(opt: CourierServiceOption): UIO[Unit]              = ZIO.unit
-  def deleteCourierOption(id: DeliveryOptionId, currency: Currency): UIO[Unit] = ZIO.unit
-  def bankAccount(currency: Currency): UIO[Option[BankAccountConfig]]
-  def allBankAccounts: UIO[Map[Currency, BankAccountConfig]] =
-    ZIO.foreach(Currency.values.toList)(c => bankAccount(c).map(_.map(c -> _))).map(_.flatten.toMap)
-  def saveBankAccount(currency: Currency, config: BankAccountConfig): UIO[Unit] = ZIO.unit
+  def pickupLocations: List[ShopPickupLocation] < Async
+  def savePickupLocation(loc: ShopPickupLocation): Unit < Async = Kyo.unit
+  def deletePickupLocation(id: DeliveryOptionId): Unit < Async  = Kyo.unit
+  def courierOptions(currency: Currency): List[CourierServiceOption] < Async
+  def allCourierOptions: List[CourierServiceOption] < Async =
+    Effects.traverse(Currency.values.toList)(courierOptions).map(_.flatten)
+  def saveCourierOption(opt: CourierServiceOption): Unit < Async              = Kyo.unit
+  def deleteCourierOption(id: DeliveryOptionId, currency: Currency): Unit < Async = Kyo.unit
+  def bankAccount(currency: Currency): Option[BankAccountConfig] < Async
+  def allBankAccounts: Map[Currency, BankAccountConfig] < Async =
+    Effects.traverse(Currency.values.toList)(c => bankAccount(c).map(_.map(c -> _))).map(_.flatten.toMap)
+  def saveBankAccount(currency: Currency, config: BankAccountConfig): Unit < Async = Kyo.unit
 
 // ── Live Service Implementations ─────────────────────────────────────────────
 
 private[ordering] final class CartServiceLive(repo: CartRepository) extends CartService:
 
-  override def createCart(cartId: CartId, currency: Currency, customerId: Option[CustomerId]): IO[OrderError, CartView] =
+  override def createCart(cartId: CartId, currency: Currency, customerId: Option[CustomerId]): CartView < (Async & Abort[OrderError]) =
     val cart = Cart(cartId, customerId, currency, Nil, None)
     repo.save(cart).as(cart.toView)
 
-  override def addLine(cartId: CartId, line: CartLine): IO[OrderError, CartView] =
+  override def addLine(cartId: CartId, line: CartLine): CartView < (Async & Abort[OrderError]) =
     for
       cart    <- repo.findById(cartId).someOrFail(OrderError.CartNotFound(cartId))
-      updated <- ZIO.fromEither(cart.addLine(line))
+      updated <- cart.addLine(line).orAbort
       _       <- repo.save(updated)
     yield updated.toView
 
-  override def updateLineCopies(cartId: CartId, lineId: OrderLineId, copies: Quantity): IO[OrderError, CartView] =
+  override def updateLineCopies(cartId: CartId, lineId: OrderLineId, copies: Quantity): CartView < (Async & Abort[OrderError]) =
     for
       cart    <- repo.findById(cartId).someOrFail(OrderError.CartNotFound(cartId))
-      updated <- ZIO.fromEither(cart.updateLineCopies(lineId, copies))
+      updated <- (cart.updateLineCopies(lineId, copies)).orAbort
       _       <- repo.save(updated)
     yield updated.toView
 
-  override def replaceLine(cartId: CartId, line: CartLine): IO[OrderError, CartView] =
+  override def replaceLine(cartId: CartId, line: CartLine): CartView < (Async & Abort[OrderError]) =
     for
       cart    <- repo.findById(cartId).someOrFail(OrderError.CartNotFound(cartId))
-      updated <- ZIO.fromEither(cart.replaceLine(line))
+      updated <- cart.replaceLine(line).orAbort
       _       <- repo.save(updated)
     yield updated.toView
 
-  override def removeLine(cartId: CartId, lineId: OrderLineId): IO[OrderError, CartView] =
+  override def removeLine(cartId: CartId, lineId: OrderLineId): CartView < (Async & Abort[OrderError]) =
     for
       cart   <- repo.findById(cartId).someOrFail(OrderError.CartNotFound(cartId))
       updated = cart.removeLine(lineId)
       _      <- repo.save(updated)
     yield updated.toView
 
-  override def clearCart(cartId: CartId): IO[OrderError, CartView] =
+  override def clearCart(cartId: CartId): CartView < (Async & Abort[OrderError]) =
     for
       cart   <- repo.findById(cartId).someOrFail(OrderError.CartNotFound(cartId))
       updated = cart.clear
       _      <- repo.save(updated)
     yield updated.toView
 
-  override def applyPromo(cartId: CartId, promo: AppliedPromoSnapshot): IO[OrderError, CartView] =
+  override def applyPromo(cartId: CartId, promo: AppliedPromoSnapshot): CartView < (Async & Abort[OrderError]) =
     for
       cart   <- repo.findById(cartId).someOrFail(OrderError.CartNotFound(cartId))
       updated = cart.withPromo(promo)
       _      <- repo.save(updated)
     yield updated.toView
 
-  override def removePromo(cartId: CartId): IO[OrderError, CartView] =
+  override def removePromo(cartId: CartId): CartView < (Async & Abort[OrderError]) =
     for
       cart   <- repo.findById(cartId).someOrFail(OrderError.CartNotFound(cartId))
       updated = cart.withoutPromo
       _      <- repo.save(updated)
     yield updated.toView
 
-  override def assignCustomer(cartId: CartId, customerId: Option[CustomerId]): IO[OrderError, CartView] =
+  override def assignCustomer(cartId: CartId, customerId: Option[CustomerId]): CartView < (Async & Abort[OrderError]) =
     for
       cart   <- repo.findById(cartId).someOrFail(OrderError.CartNotFound(cartId))
       updated = cart.withCustomer(customerId)
       _      <- repo.save(updated)
     yield updated.toView
 
-  override def getCart(cartId: CartId): IO[OrderError.CartNotFound, CartView] =
+  override def getCart(cartId: CartId): CartView < (Async & Abort[OrderError.CartNotFound]) =
     repo.findById(cartId).someOrFail(new OrderError.CartNotFound(cartId)).map(_.toView)
 
 private[ordering] final class CheckoutOptionsServiceLive(
@@ -519,7 +519,7 @@ private[ordering] final class CheckoutOptionsServiceLive(
       itemsNetSubtotal: Money,
       totalWeightGrams: Option[BigDecimal],
       freeDeliveryPromo: Boolean,
-  ): UIO[List[DeliveryOptionQuote]] =
+  ): List[DeliveryOptionQuote] < Async =
     for
       pickups  <- deliveryRepo.pickupLocations
       couriers <- deliveryRepo.courierOptions(currency)
@@ -571,24 +571,24 @@ private[ordering] final class CheckoutOptionsServiceLive(
       itemsNetSubtotal: Money,
       totalWeightGrams: Option[BigDecimal],
       freeDeliveryPromo: Boolean,
-  ): IO[OrderError, DeliverySelection] =
+  ): DeliverySelection < (Async & Abort[OrderError]) =
     choice match
       case DeliveryOptionChoice.ShopPickup(locId) =>
         deliveryRepo.pickupLocations.flatMap { locs =>
           locs.find(l => l.id == locId && l.isActive) match
-            case None => ZIO.fail(OrderError.DeliveryOptionNotFound(locId))
+            case None => Abort.fail(OrderError.DeliveryOptionNotFound(locId))
             case Some(loc) =>
-              ZIO.succeed(DeliverySelection.ShopPickup(NonEmptyString.unsafe(loc.id.value)))
+              Kyo.lift(DeliverySelection.ShopPickup(NonEmptyString.unsafe(loc.id.value)))
         }
       case DeliveryOptionChoice.Courier(svcId, shippingAddress) =>
         availableDeliveryOptions(currency, itemsNetSubtotal, totalWeightGrams, freeDeliveryPromo).flatMap { quotes =>
           quotes.find(q => !q.isPickup && q.id == svcId) match
             case None =>
-              ZIO.fail(OrderError.DeliveryOptionNotFound(svcId))
+              Abort.fail(OrderError.DeliveryOptionNotFound(svcId))
             case Some(q) if !q.available =>
-              ZIO.fail(OrderError.DeliveryOptionUnavailable(svcId, q.unavailableReason.getOrElse("Unavailable")))
+              Abort.fail(OrderError.DeliveryOptionUnavailable(svcId, q.unavailableReason.getOrElse("Unavailable")))
             case Some(q) =>
-              ZIO.succeed(
+              Kyo.lift(
                 DeliverySelection.Courier(
                   serviceId = NonEmptyString.unsafe(q.id.value),
                   shippingAddress = shippingAddress,
@@ -601,8 +601,8 @@ private[ordering] final class CheckoutOptionsServiceLive(
   override def availablePaymentOptions(
       invoiceApproved: Boolean,
       cardEnabled: Boolean,
-  ): UIO[List[PaymentOption]] =
-    ZIO.succeed(
+  ): List[PaymentOption] < Async =
+    Kyo.lift(
       List(
         PaymentOption(PaymentMethod.BankTransferQR, available = true),
         PaymentOption(
@@ -626,7 +626,7 @@ private[ordering] final class CheckoutOptionsServiceLive(
       grandTotalGross: Money,
       currency: Currency,
       invoiceDueDays: Option[Int],
-  ): UIO[PaymentInstructions] =
+  ): PaymentInstructions < Async =
     method match
       case PaymentMethod.BankTransferQR =>
         deliveryRepo.bankAccount(currency).map { acctOpt =>
@@ -653,37 +653,37 @@ private[ordering] final class CheckoutOptionsServiceLive(
           )
         }
       case PaymentMethod.Card =>
-        ZIO.succeed(PaymentInstructions.CardPending(None, "Redirect to card payment gateway"))
+        Kyo.lift(PaymentInstructions.CardPending(None, "Redirect to card payment gateway"))
       case PaymentMethod.InvoiceOnAccount =>
-        ZIO.succeed(
+        Kyo.lift(
           PaymentInstructions.InvoiceScheduled(
             dueDays = invoiceDueDays.getOrElse(14),
             invoiceReference = NonEmptyString.unsafe(orderNumber.value),
           )
         )
 
-  override def listAllPickupLocations: UIO[List[ShopPickupLocation]] =
+  override def listAllPickupLocations: List[ShopPickupLocation] < Async =
     deliveryRepo.pickupLocations
 
-  override def upsertPickupLocation(loc: ShopPickupLocation): UIO[ShopPickupLocation] =
+  override def upsertPickupLocation(loc: ShopPickupLocation): ShopPickupLocation < Async =
     deliveryRepo.savePickupLocation(loc).as(loc)
 
-  override def deletePickupLocation(id: DeliveryOptionId): UIO[Unit] =
+  override def deletePickupLocation(id: DeliveryOptionId): Unit < Async =
     deliveryRepo.deletePickupLocation(id)
 
-  override def listAllCourierOptions: UIO[List[CourierServiceOption]] =
+  override def listAllCourierOptions: List[CourierServiceOption] < Async =
     deliveryRepo.allCourierOptions
 
-  override def upsertCourierOption(opt: CourierServiceOption): UIO[CourierServiceOption] =
+  override def upsertCourierOption(opt: CourierServiceOption): CourierServiceOption < Async =
     deliveryRepo.saveCourierOption(opt).as(opt)
 
-  override def deleteCourierOption(id: DeliveryOptionId, currency: Currency): UIO[Unit] =
+  override def deleteCourierOption(id: DeliveryOptionId, currency: Currency): Unit < Async =
     deliveryRepo.deleteCourierOption(id, currency)
 
-  override def listBankAccounts: UIO[Map[Currency, BankAccountConfig]] =
+  override def listBankAccounts: Map[Currency, BankAccountConfig] < Async =
     deliveryRepo.allBankAccounts
 
-  override def upsertBankAccount(currency: Currency, config: BankAccountConfig): UIO[BankAccountConfig] =
+  override def upsertBankAccount(currency: Currency, config: BankAccountConfig): BankAccountConfig < Async =
     deliveryRepo.saveBankAccount(currency, config).as(config)
 
 private[ordering] final class OrderServiceLive(
@@ -691,41 +691,41 @@ private[ordering] final class OrderServiceLive(
     eventBus: EventBus,
 ) extends OrderService:
 
-  override def placeOrder(cmd: PlaceOrderCmd): IO[OrderError, OrderView] =
+  override def placeOrder(cmd: PlaceOrderCmd): OrderView < (Async & Abort[OrderError]) =
     for
-      now   <- Clock.instant
-      order <- ZIO.fromEither(Order.place(cmd, now))
+      now   <- Effects.now
+      order <- (Order.place(cmd, now)).orAbort
       _     <- repo.save(order)
       _     <- eventBus.publish(OrderPlaced(order.id, order.orderNumber, order.customer.customerId, order.totals.grandTotalGross, order.totals.currency, now))
       _     <- eventBus.publish(OrderConfirmed(order.id, order.orderNumber, order.lines, now))
                  .when(order.status == OrderStatus.Confirmed)
     yield order.toView
 
-  override def confirmPayment(orderId: OrderId, reference: Option[String]): IO[OrderError, OrderView] =
+  override def confirmPayment(orderId: OrderId, reference: Option[String]): OrderView < (Async & Abort[OrderError]) =
     confirmPaymentInternal(orderId, reference, OrderActor.System)
 
-  override def markInProduction(orderId: OrderId): IO[OrderError, OrderView] =
+  override def markInProduction(orderId: OrderId): OrderView < (Async & Abort[OrderError]) =
     transition(orderId, OrderStatus.InProduction, OrderActor.System, None)
 
-  override def markReadyForDispatch(orderId: OrderId): IO[OrderError, OrderView] =
+  override def markReadyForDispatch(orderId: OrderId): OrderView < (Async & Abort[OrderError]) =
     transition(orderId, OrderStatus.ReadyForDispatch, OrderActor.System, None)
 
-  override def markDispatched(orderId: OrderId): IO[OrderError, OrderView] =
+  override def markDispatched(orderId: OrderId): OrderView < (Async & Abort[OrderError]) =
     transition(orderId, OrderStatus.Dispatched, OrderActor.System, None)
 
-  override def complete(orderId: OrderId): IO[OrderError, OrderView] =
+  override def complete(orderId: OrderId): OrderView < (Async & Abort[OrderError]) =
     transition(orderId, OrderStatus.Completed, OrderActor.System, None)
 
-  override def cancel(orderId: OrderId, reason: NonEmptyString): IO[OrderError, OrderView] =
+  override def cancel(orderId: OrderId, reason: NonEmptyString): OrderView < (Async & Abort[OrderError]) =
     cancelInternal(orderId, reason, OrderActor.System)
 
-  override def getOrder(orderId: OrderId): IO[OrderError.OrderNotFound, OrderView] =
+  override def getOrder(orderId: OrderId): OrderView < (Async & Abort[OrderError.OrderNotFound]) =
     repo.findById(orderId).someOrFail(new OrderError.OrderNotFound(orderId)).map(_.toView)
 
-  override def listOrdersByCustomer(customerId: CustomerId): UIO[List[OrderView]] =
+  override def listOrdersByCustomer(customerId: CustomerId): List[OrderView] < Async =
     repo.findByCustomer(customerId).map(_.map(_.toView).sortBy(_.placedAt)(using Ordering[Instant].reverse))
 
-  override def listOrders(filter: OrderFilter): UIO[List[OrderView]] =
+  override def listOrders(filter: OrderFilter): List[OrderView] < Async =
     repo.listAll.map { orders =>
       val qOpt = filter.query.map(_.trim.toLowerCase).filter(_.nonEmpty)
       orders
@@ -751,11 +751,11 @@ private[ordering] final class OrderServiceLive(
       by: EmployeeId,
       byName: Option[NonEmptyString],
       note: Option[String],
-  ): IO[OrderError, OrderView] =
+  ): OrderView < (Async & Abort[OrderError]) =
     for
-      now     <- Clock.instant
+      now     <- Effects.now
       order   <- repo.findById(orderId).someOrFail(OrderError.OrderNotFound(orderId))
-      updated <- ZIO.fromEither(order.accept(OrderActor.Employee(by, byName), note, now))
+      updated <- (order.accept(OrderActor.Employee(by, byName), note, now)).orAbort
       _       <- repo.save(updated)
       _       <- eventBus.publish(OrderAccepted(updated.id, updated.orderNumber, by, now))
       _       <- eventBus.publish(OrderStageChanged(updated.id, order.status, updated.status, by, now))
@@ -766,11 +766,11 @@ private[ordering] final class OrderServiceLive(
       by: EmployeeId,
       byName: Option[NonEmptyString],
       reason: NonEmptyString,
-  ): IO[OrderError, OrderView] =
+  ): OrderView < (Async & Abort[OrderError]) =
     for
-      now     <- Clock.instant
+      now     <- Effects.now
       order   <- repo.findById(orderId).someOrFail(OrderError.OrderNotFound(orderId))
-      updated <- ZIO.fromEither(order.putOnHold(reason, OrderActor.Employee(by, byName), now))
+      updated <- (order.putOnHold(reason, OrderActor.Employee(by, byName), now)).orAbort
       _       <- repo.save(updated)
       _       <- eventBus.publish(OrderPutOnHold(updated.id, reason, by, now))
       _       <- eventBus.publish(OrderStageChanged(updated.id, order.status, updated.status, by, now))
@@ -781,11 +781,11 @@ private[ordering] final class OrderServiceLive(
       by: EmployeeId,
       byName: Option[NonEmptyString],
       note: Option[String],
-  ): IO[OrderError, OrderView] =
+  ): OrderView < (Async & Abort[OrderError]) =
     for
-      now     <- Clock.instant
+      now     <- Effects.now
       order   <- repo.findById(orderId).someOrFail(OrderError.OrderNotFound(orderId))
-      updated <- ZIO.fromEither(order.resumeFromHold(OrderActor.Employee(by, byName), note, now))
+      updated <- (order.resumeFromHold(OrderActor.Employee(by, byName), note, now)).orAbort
       _       <- repo.save(updated)
       _       <- eventBus.publish(OrderStageChanged(updated.id, order.status, updated.status, by, now))
     yield updated.toView
@@ -796,16 +796,16 @@ private[ordering] final class OrderServiceLive(
       by: EmployeeId,
       byName: Option[NonEmptyString],
       note: Option[String],
-  ): IO[OrderError, OrderView] =
+  ): OrderView < (Async & Abort[OrderError]) =
     target match
       case OrderStatus.Accepted          => acceptOrder(orderId, by, byName, note)
       case OrderStatus.OnHold(reason)    => putOnHold(orderId, by, byName, reason)
       case OrderStatus.Cancelled(reason) => cancelByStaff(orderId, by, byName, reason)
       case other =>
         for
-          now     <- Clock.instant
+          now     <- Effects.now
           order   <- repo.findById(orderId).someOrFail(OrderError.OrderNotFound(orderId))
-          updated <- ZIO.fromEither(order.transitionTo(other, OrderActor.Employee(by, byName), note, now))
+          updated <- (order.transitionTo(other, OrderActor.Employee(by, byName), note, now)).orAbort
           _       <- repo.save(updated)
           _       <- eventBus.publish(OrderStageChanged(updated.id, order.status, updated.status, by, now))
         yield updated.toView
@@ -815,7 +815,7 @@ private[ordering] final class OrderServiceLive(
       by: EmployeeId,
       byName: Option[NonEmptyString],
       reference: Option[String],
-  ): IO[OrderError, OrderView] =
+  ): OrderView < (Async & Abort[OrderError]) =
     confirmPaymentInternal(orderId, reference, OrderActor.Employee(by, byName))
 
   override def markPaymentStatus(
@@ -824,11 +824,11 @@ private[ordering] final class OrderServiceLive(
       by: EmployeeId,
       byName: Option[NonEmptyString],
       reference: Option[String],
-  ): IO[OrderError, OrderView] =
+  ): OrderView < (Async & Abort[OrderError]) =
     for
-      now     <- Clock.instant
+      now     <- Effects.now
       order   <- repo.findById(orderId).someOrFail(OrderError.OrderNotFound(orderId))
-      updated <- ZIO.fromEither(order.setPaymentStatus(status, reference, now, OrderActor.Employee(by, byName)))
+      updated <- (order.setPaymentStatus(status, reference, now, OrderActor.Employee(by, byName))).orAbort
       _       <- repo.save(updated)
       _       <- eventBus.publish(OrderConfirmed(updated.id, updated.orderNumber, updated.lines, now))
                    .when(order.status != OrderStatus.Confirmed && updated.status == OrderStatus.Confirmed)
@@ -838,11 +838,11 @@ private[ordering] final class OrderServiceLive(
       cmd: EditOrderLineCmd,
       by: EmployeeId,
       byName: Option[NonEmptyString],
-  ): IO[OrderError, OrderView] =
+  ): OrderView < (Async & Abort[OrderError]) =
     for
-      now     <- Clock.instant
+      now     <- Effects.now
       order   <- repo.findById(cmd.orderId).someOrFail(OrderError.OrderNotFound(cmd.orderId))
-      updated <- ZIO.fromEither(order.editLine(cmd, OrderActor.Employee(by, byName), now))
+      updated <- (order.editLine(cmd, OrderActor.Employee(by, byName), now)).orAbort
       _       <- repo.save(updated)
     yield updated.toView
 
@@ -851,7 +851,7 @@ private[ordering] final class OrderServiceLive(
       by: EmployeeId,
       byName: Option[NonEmptyString],
       reason: NonEmptyString,
-  ): IO[OrderError, OrderView] =
+  ): OrderView < (Async & Abort[OrderError]) =
     cancelInternal(orderId, reason, OrderActor.Employee(by, byName))
 
   override def addInternalNote(
@@ -859,9 +859,9 @@ private[ordering] final class OrderServiceLive(
       by: EmployeeId,
       byName: Option[NonEmptyString],
       text: NonEmptyString,
-  ): IO[OrderError, OrderView] =
+  ): OrderView < (Async & Abort[OrderError]) =
     for
-      now     <- Clock.instant
+      now     <- Effects.now
       order   <- repo.findById(orderId).someOrFail(OrderError.OrderNotFound(orderId))
       updated  = order.addNote(by, byName, text, now)
       _       <- repo.save(updated)
@@ -872,10 +872,10 @@ private[ordering] final class OrderServiceLive(
       lineIndex: Int,
       componentKey: ComponentKey,
       artworkId: ArtworkId,
-  ): IO[OrderError, OrderView] =
+  ): OrderView < (Async & Abort[OrderError]) =
     for
       order   <- repo.findById(orderId).someOrFail(OrderError.OrderNotFound(orderId))
-      updated <- ZIO.fromEither(order.attachArtwork(lineIndex, componentKey, artworkId))
+      updated <- (order.attachArtwork(lineIndex, componentKey, artworkId)).orAbort
       _       <- repo.save(updated)
     yield updated.toView
 
@@ -883,11 +883,11 @@ private[ordering] final class OrderServiceLive(
       orderId: OrderId,
       reference: Option[String],
       actor: OrderActor,
-  ): IO[OrderError, OrderView] =
+  ): OrderView < (Async & Abort[OrderError]) =
     for
-      now     <- Clock.instant
+      now     <- Effects.now
       order   <- repo.findById(orderId).someOrFail(OrderError.OrderNotFound(orderId))
-      updated <- ZIO.fromEither(order.confirmPayment(reference, now, actor))
+      updated <- (order.confirmPayment(reference, now, actor)).orAbort
       _       <- repo.save(updated)
       _       <- eventBus.publish(OrderConfirmed(updated.id, updated.orderNumber, updated.lines, now))
                    .when(order.status != OrderStatus.Confirmed && updated.status == OrderStatus.Confirmed)
@@ -897,11 +897,11 @@ private[ordering] final class OrderServiceLive(
       orderId: OrderId,
       reason: NonEmptyString,
       actor: OrderActor,
-  ): IO[OrderError, OrderView] =
+  ): OrderView < (Async & Abort[OrderError]) =
     for
-      now     <- Clock.instant
+      now     <- Effects.now
       order   <- repo.findById(orderId).someOrFail(OrderError.OrderNotFound(orderId))
-      updated <- ZIO.fromEither(order.transitionTo(OrderStatus.Cancelled(reason), actor, Some(reason.value), now))
+      updated <- (order.transitionTo(OrderStatus.Cancelled(reason), actor, Some(reason.value), now)).orAbort
       _       <- repo.save(updated)
       _       <- eventBus.publish(OrderCancelled(updated.id, reason, now))
     yield updated.toView
@@ -911,20 +911,15 @@ private[ordering] final class OrderServiceLive(
       next: OrderStatus,
       actor: OrderActor,
       note: Option[String],
-  ): IO[OrderError, OrderView] =
+  ): OrderView < (Async & Abort[OrderError]) =
     for
-      now     <- Clock.instant
+      now     <- Effects.now
       order   <- repo.findById(orderId).someOrFail(OrderError.OrderNotFound(orderId))
-      updated <- ZIO.fromEither(order.transitionTo(next, actor, note, now))
+      updated <- (order.transitionTo(next, actor, note, now)).orAbort
       _       <- repo.save(updated)
     yield updated.toView
 
 private[ordering] object OrderingCoreLayers:
-  val cartLayer: ZLayer[CartRepository, Nothing, CartService] =
-    ZLayer.fromFunction(CartServiceLive.apply)
-
-  val checkoutOptionsLayer: ZLayer[DeliveryCatalogRepository, Nothing, CheckoutOptionsService] =
-    ZLayer.fromFunction(CheckoutOptionsServiceLive.apply)
-
-  val orderLayer: ZLayer[OrderRepository & EventBus, Nothing, OrderService] =
-    ZLayer.fromFunction(OrderServiceLive.apply)
+  def cartService(repo: CartRepository): CartService                                  = CartServiceLive(repo)
+  def checkoutOptionsService(repo: DeliveryCatalogRepository): CheckoutOptionsService = CheckoutOptionsServiceLive(repo)
+  def orderService(repo: OrderRepository, eventBus: EventBus): OrderService           = OrderServiceLive(repo, eventBus)

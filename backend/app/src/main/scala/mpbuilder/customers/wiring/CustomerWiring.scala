@@ -2,13 +2,15 @@ package mpbuilder.customers
 package wiring
 
 import db.CustomersDb
+import kyo.*
 import mpbuilder.customers.sample.SampleCustomers
 import mpbuilder.platform.db.Database
-import zio.*
 
 object CustomerWiring:
   /** Seeds the sample customer directory when no customer exists yet. Returns `true` when seeded. */
-  val seedIfEmpty: URIO[Database, Boolean] =
-    ZIO.serviceWithZIO[core.CustomerRepository] { repo =>
-      repo.listAll.flatMap(existing => ZIO.when(existing.isEmpty)(ZIO.foreachDiscard(SampleCustomers.all)(repo.save)).map(_.isDefined))
-    }.provideSomeLayer[Database](CustomersDb.repository)
+  def seedIfEmpty(db: Database): Boolean < Async =
+    val repo = CustomersDb.repository(db)
+    repo.listAll.map { existing =>
+      if existing.nonEmpty then false
+      else Kyo.foreachDiscard(SampleCustomers.all)(repo.save).andThen(true)
+    }

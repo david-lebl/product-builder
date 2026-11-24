@@ -1,23 +1,24 @@
 package mpbuilder.json
 
-import com.github.plokhotnyuk.jsoniter_scala.core.*
-import com.github.plokhotnyuk.jsoniter_scala.macros.*
+import kyo.*
 import mpbuilder.customers.*
 import mpbuilder.json.JsonSupport.*
+import mpbuilder.shared.*
 import mpbuilder.json.SharedCodecs.given
+import mpbuilder.json.JsonSupport.given
 
-/** Codecs for the public `customers` model. */
+/** Schemas for the public `customers` model. */
 object CustomerCodecs:
-  given JsonValueCodec[CustomerStatus]             = JsonCodecMaker.make(config)
-  given JsonValueCodec[CompanyProfile]             = JsonCodecMaker.make(config)
-  given JsonValueCodec[ContactPerson]              = JsonCodecMaker.make(config)
-  given JsonValueCodec[PaymentTerms]               = JsonCodecMaker.make(config)
-  given JsonValueCodec[CustomerAuditEntry]         = JsonCodecMaker.make(config)
-  given JsonValueCodec[AccountNote]                = JsonCodecMaker.make(config)
-  given JsonValueCodec[CustomerView]               = JsonCodecMaker.make(config)
-  given JsonValueCodec[CustomerFilter]             = JsonCodecMaker.make(config)
-  given JsonValueCodec[RegisterCustomerCmd]        = JsonCodecMaker.make(config)
-  given JsonValueCodec[UpdateCustomerProfileCmd]   = JsonCodecMaker.make(config)
-  given JsonValueCodec[UpdateCustomerAddressesCmd] = JsonCodecMaker.make(config)
-  given JsonValueCodec[CustomerIdentifier]         = JsonCodecMaker.make(config)
-  given JsonValueCodec[CustomerError]              = JsonCodecMaker.make(config)
+  given Schema[CustomerStatus]             = Schema.derived
+  given Schema[CompanyProfile]             = Schema.derived
+  given Schema[ContactPerson]              = Schema.derived
+  given Schema[PaymentTerms]               = Schema.derived
+  given Schema[CustomerAuditEntry]         = Schema.derived
+  given Schema[AccountNote]                = Schema.derived
+  given Schema[CustomerView]               = Schema.derived
+  given Schema[CustomerFilter]             = Schema.derived
+  given Schema[RegisterCustomerCmd]        = Schema.derived
+  given Schema[UpdateCustomerProfileCmd]   = Schema.derived
+  given Schema[UpdateCustomerAddressesCmd] = Schema.derived
+  given Schema[CustomerIdentifier]         = Schema.derived
+  given Schema[CustomerError]              = Schema.derived

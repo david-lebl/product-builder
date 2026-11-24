@@ -2,7 +2,7 @@ package mpbuilder.artwork
 package core
 
 import mpbuilder.shared.*
-import zio.*
+import kyo.*
 import java.time.Instant
 
 /** Pure automated prepress preflight evaluator. */
@@ -132,7 +132,7 @@ private[artwork] final case class ArtworkSubmission(
           case Some(r) if r.hasFailures    => ArtworkStatus.PreflightFailed
           case Some(_)                     => ArtworkStatus.PreflightPassed
         val rev = ArtworkRevision(revisions.size + 1, file, specs, reportOpt, now)
-        Right(copy(status = newStatus, revisions = revisions :+ rev))
+        Right(copy(status = newStatus, revisions = revisions.appended(rev)))
 
   def withPreflight(req: PreflightRequirement, now: Instant): ArtworkSubmission =
     val report    = PreflightEvaluator.evaluate(latest.extractedSpecs, req, now)
@@ -196,36 +196,36 @@ private[artwork] object ArtworkSubmission:
       Right(ArtworkSubmission(cmd.artworkId, cmd.owner, cmd.componentKey, cmd.versionIndex, status, NonEmptyChunk.single(rev)))
 
 private[artwork] trait ArtworkRepository:
-  def findById(id: ArtworkId): UIO[Option[ArtworkSubmission]]
-  def findByOwner(owner: ArtworkOwner): UIO[List[ArtworkSubmission]] = ZIO.succeed(Nil)
-  def save(submission: ArtworkSubmission): UIO[Unit]
-  def delete(id: ArtworkId): UIO[Unit] = ZIO.unit
+  def findById(id: ArtworkId): Option[ArtworkSubmission] < Async
+  def findByOwner(owner: ArtworkOwner): List[ArtworkSubmission] < Async = Kyo.lift(Nil)
+  def save(submission: ArtworkSubmission): Unit < Async
+  def delete(id: ArtworkId): Unit < Async = Kyo.unit
 
 private[artwork] final class ArtworkServiceLive(
     repo: ArtworkRepository,
     eventBus: EventBus,
 ) extends ArtworkService:
 
-  override def upload(cmd: UploadArtworkCmd): IO[ArtworkError, ArtworkSubmissionView] =
+  override def upload(cmd: UploadArtworkCmd): ArtworkSubmissionView < (Async & Abort[ArtworkError]) =
     for
-      now <- Clock.instant
-      sub <- ZIO.fromEither(ArtworkSubmission.create(cmd, now))
+      now <- Effects.now
+      sub <- (ArtworkSubmission.create(cmd, now)).orAbort
       _   <- repo.save(sub)
       _   <- eventBus.publish(ArtworkUploaded(sub.id, sub.owner, sub.componentKey, sub.latest.revisionNumber, now))
     yield sub.toView
 
-  override def uploadRevision(cmd: UploadRevisionCmd): IO[ArtworkError, ArtworkSubmissionView] =
+  override def uploadRevision(cmd: UploadRevisionCmd): ArtworkSubmissionView < (Async & Abort[ArtworkError]) =
     for
-      now <- Clock.instant
+      now <- Effects.now
       sub <- repo.findById(cmd.artworkId).someOrFail(ArtworkError.NotFound(cmd.artworkId))
-      upd <- ZIO.fromEither(sub.addRevision(cmd.file, cmd.extractedSpecs, cmd.requirement, now))
+      upd <- (sub.addRevision(cmd.file, cmd.extractedSpecs, cmd.requirement, now)).orAbort
       _   <- repo.save(upd)
       _   <- eventBus.publish(ArtworkUploaded(upd.id, upd.owner, upd.componentKey, upd.latest.revisionNumber, now))
     yield upd.toView
 
-  override def runPreflight(artworkId: ArtworkId, requirement: PreflightRequirement): IO[ArtworkError, ArtworkSubmissionView] =
+  override def runPreflight(artworkId: ArtworkId, requirement: PreflightRequirement): ArtworkSubmissionView < (Async & Abort[ArtworkError]) =
     for
-      now <- Clock.instant
+      now <- Effects.now
       sub <- repo.findById(artworkId).someOrFail(ArtworkError.NotFound(artworkId))
       upd  = sub.withPreflight(requirement, now)
       _   <- repo.save(upd)
@@ -235,54 +235,53 @@ private[artwork] final class ArtworkServiceLive(
       artworkId: ArtworkId,
       operatorId: EmployeeId,
       overrideWarningsOrFailures: Boolean,
-  ): IO[ArtworkError, ArtworkSubmissionView] =
+  ): ArtworkSubmissionView < (Async & Abort[ArtworkError]) =
     for
-      now <- Clock.instant
+      now <- Effects.now
       sub <- repo.findById(artworkId).someOrFail(ArtworkError.NotFound(artworkId))
-      upd <- ZIO.fromEither(sub.approve(operatorId, overrideWarningsOrFailures, now))
+      upd <- (sub.approve(operatorId, overrideWarningsOrFailures, now)).orAbort
       _   <- repo.save(upd)
       _   <- eventBus.publish(ArtworkApproved(upd.id, upd.owner, operatorId, now))
     yield upd.toView
 
-  override def requestChanges(artworkId: ArtworkId, notes: NonEmptyString): IO[ArtworkError, ArtworkSubmissionView] =
+  override def requestChanges(artworkId: ArtworkId, notes: NonEmptyString): ArtworkSubmissionView < (Async & Abort[ArtworkError]) =
     for
-      now <- Clock.instant
+      now <- Effects.now
       sub <- repo.findById(artworkId).someOrFail(ArtworkError.NotFound(artworkId))
-      upd <- ZIO.fromEither(sub.requestChanges(notes))
+      upd <- sub.requestChanges(notes).orAbort
       _   <- repo.save(upd)
       _   <- eventBus.publish(ArtworkChangesRequested(upd.id, upd.owner, notes, now))
     yield upd.toView
 
-  override def reject(artworkId: ArtworkId, operatorId: EmployeeId, reason: NonEmptyString): IO[ArtworkError, ArtworkSubmissionView] =
+  override def reject(artworkId: ArtworkId, operatorId: EmployeeId, reason: NonEmptyString): ArtworkSubmissionView < (Async & Abort[ArtworkError]) =
     for
-      now <- Clock.instant
+      now <- Effects.now
       sub <- repo.findById(artworkId).someOrFail(ArtworkError.NotFound(artworkId))
-      upd <- ZIO.fromEither(sub.reject(reason))
+      upd <- sub.reject(reason).orAbort
       _   <- repo.save(upd)
       _   <- eventBus.publish(ArtworkChangesRequested(upd.id, upd.owner, reason, now))
     yield upd.toView
 
-  override def reassignOwner(artworkId: ArtworkId, newOwner: ArtworkOwner): IO[ArtworkError, ArtworkSubmissionView] =
+  override def reassignOwner(artworkId: ArtworkId, newOwner: ArtworkOwner): ArtworkSubmissionView < (Async & Abort[ArtworkError]) =
     for
       sub <- repo.findById(artworkId).someOrFail(ArtworkError.NotFound(artworkId))
       upd  = sub.withOwner(newOwner)
       _   <- repo.save(upd)
     yield upd.toView
 
-  override def deleteDraft(artworkId: ArtworkId): IO[ArtworkError, Unit] =
+  override def deleteDraft(artworkId: ArtworkId): Unit < (Async & Abort[ArtworkError]) =
     for
       sub <- repo.findById(artworkId).someOrFail(ArtworkError.NotFound(artworkId))
       _ <- sub.owner match
              case _: ArtworkOwner.DraftSession => repo.delete(artworkId)
-             case other                        => ZIO.fail(ArtworkError.CannotDeleteNonDraft(artworkId, other))
+             case other                        => Abort.fail(ArtworkError.CannotDeleteNonDraft(artworkId, other))
     yield ()
 
-  override def getById(artworkId: ArtworkId): IO[ArtworkError.NotFound, ArtworkSubmissionView] =
+  override def getById(artworkId: ArtworkId): ArtworkSubmissionView < (Async & Abort[ArtworkError.NotFound]) =
     repo.findById(artworkId).someOrFail(new ArtworkError.NotFound(artworkId)).map(_.toView)
 
-  override def listByOwner(owner: ArtworkOwner): UIO[List[ArtworkSubmissionView]] =
+  override def listByOwner(owner: ArtworkOwner): List[ArtworkSubmissionView] < Async =
     repo.findByOwner(owner).map(_.map(_.toView))
 
 private[artwork] object ArtworkServiceLive:
-  val layer: ZLayer[ArtworkRepository & EventBus, Nothing, ArtworkService] =
-    ZLayer.fromFunction(ArtworkServiceLive.apply)
+  def make(repo: ArtworkRepository, eventBus: EventBus): ArtworkService = ArtworkServiceLive(repo, eventBus)

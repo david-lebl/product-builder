@@ -3,7 +3,6 @@ package mpbuilder.pricing.sample
 import mpbuilder.catalog.sample.SampleCatalog
 import mpbuilder.pricing.*
 import mpbuilder.shared.*
-import zio.NonEmptyChunk
 
 /** Full sample pricelists replicated and modernized from legacy `SamplePricelist`:
   *   - `pricelistUsd`: USD unit/area pricelist (0% tax) covering all 50 materials & 9 methods

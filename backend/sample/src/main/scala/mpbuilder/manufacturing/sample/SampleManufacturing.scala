@@ -4,7 +4,7 @@ import mpbuilder.catalog.sample.SampleCatalog
 import mpbuilder.manufacturing.*
 import mpbuilder.manufacturing.core.{ManufacturingServiceLive, ProductionJob, ProductionJobRepository, ShopResourceRepository}
 import mpbuilder.shared.*
-import zio.*
+import kyo.*
 import java.time.{DayOfWeek, LocalTime}
 
 /** Sample shop-floor resources, employees, machines, working hours, and unified
@@ -82,53 +82,54 @@ object SampleManufacturing:
   )
 
 final class InMemoryProductionJobRepository(
-    ref: Ref[Map[JobId, ProductionJob]],
+    ref: AtomicRef[Map[JobId, ProductionJob]],
 ) extends ProductionJobRepository:
 
-  override def findById(id: JobId): UIO[Option[ProductionJob]] =
+  override def findById(id: JobId): Option[ProductionJob] < Async =
     ref.get.map(_.get(id))
 
-  override def listActive: UIO[List[ProductionJob]] =
+  override def listActive: List[ProductionJob] < Async =
     ref.get.map(_.values.filterNot(_.isAllWorkflowsCompleted).toList)
 
-  override def save(job: ProductionJob): UIO[Unit] =
+  override def save(job: ProductionJob): Unit < Async =
     ref.update(_ + (job.id -> job))
 
 final class InMemoryShopResourceRepository(
-    employeesRef: Ref[Map[EmployeeId, Employee]],
-    machinesRef: Ref[Map[MachineId, Machine]],
-    policiesRef: Ref[Map[(CategoryId, ManufacturingSpeed), SpeedAvailabilityPolicy]],
+    employeesRef: AtomicRef[Map[EmployeeId, Employee]],
+    machinesRef: AtomicRef[Map[MachineId, Machine]],
+    policiesRef: AtomicRef[Map[(CategoryId, ManufacturingSpeed), SpeedAvailabilityPolicy]],
 ) extends ShopResourceRepository:
 
-  override def findEmployee(id: EmployeeId): UIO[Option[Employee]] =
+  override def findEmployee(id: EmployeeId): Option[Employee] < Async =
     employeesRef.get.map(_.get(id))
 
-  override def findMachine(id: MachineId): UIO[Option[Machine]] =
+  override def findMachine(id: MachineId): Option[Machine] < Async =
     machinesRef.get.map(_.get(id))
 
-  override def listMachines: UIO[List[Machine]] =
+  override def listMachines: List[Machine] < Async =
     machinesRef.get.map(_.values.toList)
 
-  override def findSpeedPolicy(categoryId: CategoryId, speed: ManufacturingSpeed): UIO[Option[SpeedAvailabilityPolicy]] =
+  override def findSpeedPolicy(categoryId: CategoryId, speed: ManufacturingSpeed): Option[SpeedAvailabilityPolicy] < Async =
     policiesRef.get.map(_.get((categoryId, speed)))
 
-object ManufacturingSampleLayer:
+object ManufacturingSampleWiring:
 
-  val jobRepositoryLayer: ULayer[InMemoryProductionJobRepository] =
-    ZLayer.fromZIO(Ref.make(Map.empty[JobId, ProductionJob]).map(new InMemoryProductionJobRepository(_)))
+  def jobRepository: InMemoryProductionJobRepository < Sync =
+    AtomicRef.init(Map.empty[JobId, ProductionJob]).map(new InMemoryProductionJobRepository(_))
 
-  def resourceRepositoryLayer(
+  def resourceRepository(
       employees: List[Employee] = SampleManufacturing.employees,
       machines: List[Machine] = SampleManufacturing.machines,
       policies: List[SpeedAvailabilityPolicy] = SampleManufacturing.speedPolicies,
-  ): ULayer[InMemoryShopResourceRepository] =
-    ZLayer.fromZIO {
-      for
-        eRef <- Ref.make(employees.map(e => e.id -> e).toMap)
-        mRef <- Ref.make(machines.map(m => m.id -> m).toMap)
-        pRef <- Ref.make(policies.map(p => (p.categoryId, p.speed) -> p).toMap)
-      yield new InMemoryShopResourceRepository(eRef, mRef, pRef)
-    }
+  ): InMemoryShopResourceRepository < Sync =
+    for
+      eRef <- AtomicRef.init(employees.map(e => e.id -> e).toMap)
+      mRef <- AtomicRef.init(machines.map(m => m.id -> m).toMap)
+      pRef <- AtomicRef.init(policies.map(p => (p.categoryId, p.speed) -> p).toMap)
+    yield new InMemoryShopResourceRepository(eRef, mRef, pRef)
 
-  val live: ZLayer[EventBus, Nothing, ManufacturingService] =
-    (jobRepositoryLayer ++ resourceRepositoryLayer() ++ ZLayer.service[EventBus]) >>> ManufacturingServiceLive.layer
+  def service(eventBus: EventBus): ManufacturingService < Sync =
+    for
+      jobs      <- jobRepository
+      resources <- resourceRepository()
+    yield ManufacturingServiceLive.make(jobs, resources, eventBus)

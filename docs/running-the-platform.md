@@ -32,11 +32,14 @@ Docker must be running.
 
 ```bash
 docker compose up -d postgres
-DATABASE_URL=jdbc:postgresql://localhost:5432/printcraft ./mill backend.app.run --storage=postgres
+DATABASE_URL=postgresql://localhost:5432/printcraft ./mill backend.app.run --storage=postgres
 ```
 
-- On first boot, Flyway creates the tables and the seeder loads the sample catalog, pricing,
-  customers, demo orders, demo artwork and the demo logins. Seeding never runs twice.
+- On first boot, the migration runner creates the tables (one schema per bounded context) and the
+  seeder loads the sample catalog, pricing, customers, demo orders, demo artwork and the demo logins.
+  Seeding never runs twice.
+- Databases created before the Kyo rewrite (Flyway history, jsoniter JSON) are not compatible:
+  recreate them with `docker compose down -v`.
 - Data survives restarts. Uploaded artwork files are stored in `./data/blobs` (git-ignored).
 - To start from a clean database: `docker compose down -v`.
 - Passwordless sign-in codes are not e-mailed yet. They are printed in the server log as
@@ -79,11 +82,11 @@ Use a port other than 8080, because the API is on 8080. CORS allows any origin b
 |---|---|---|---|
 | Storage mode | `--storage=memory\|postgres` | `STORAGE` | `memory` |
 | Bind address / port | `--host`, `--port` | `HOST`, `PORT` | `0.0.0.0`, `8080` |
-| Allowed CORS origins | `--cors=http://localhost:3000,https://…` | `CORS_ORIGINS` | `*` |
+| Allowed CORS origin | `--cors=http://localhost:3000` (`*` or exactly one origin) | `CORS_ORIGINS` | `*` |
 | Blob directory | `--blob-dir=/tmp/blobs` | `BLOB_DIR` | `./data/blobs` |
 | Blob URL prefix | `--blob-public-base-url` | `BLOB_PUBLIC_BASE_URL` | `/api/v1/blobs` |
 | Skip sample-data seeding | `--no-seed` | — | seeding on |
-| Database | — | `DATABASE_URL`, `DATABASE_USER`, `DATABASE_PASSWORD`, `DATABASE_POOL_SIZE` | user and password `printcraft` |
+| Database | — | `DATABASE_URL` (`postgresql://host:port/db`), `DATABASE_USER`, `DATABASE_PASSWORD`, `DATABASE_POOL_SIZE` | user and password `printcraft` |
 
 Flags take precedence over environment variables.
 
@@ -95,5 +98,8 @@ Flags take precedence over environment variables.
 ./mill __.test                           # everything
 ```
 
-The `02-o-db`, `platform` and `app` test suites start a throwaway PostgreSQL 17 container via
-Testcontainers, so Docker must be running for them.
+The `02-o-db`, `platform` and `app` test suites start one throwaway PostgreSQL 17 container per test JVM
+via kyo-pod (Docker or Podman must be running) and give every test its own fresh database. To use an
+existing server instead (CI, or a local Docker VM that cannot forward published ports), point
+`TEST_DATABASE_URL` at it, e.g. `TEST_DATABASE_URL=postgresql://postgres:secret@127.0.0.1:5432/postgres ./mill __.test`
+(the role needs `CREATEDB`).

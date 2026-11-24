@@ -1,6 +1,5 @@
 package mpbuilder.shared
 
-import zio.prelude.Validation
 import java.math.MathContext
 
 /** Monetary value represented as arbitrary-precision `BigDecimal`.

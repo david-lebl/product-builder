@@ -10,24 +10,25 @@ import mpbuilder.manufacturing.sample.SampleManufacturing
 import mpbuilder.ordering.*
 import mpbuilder.pricing.*
 import mpbuilder.shared.*
-import zio.*
-import zio.test.*
+import kyo.*
+import kyo.test.*
+import ShowcaseTestEnv.*
 
-object SampleEndToEndShowcaseSpec extends ZIOSpecDefault:
+class SampleEndToEndShowcaseSpec extends Test[Any]:
 
   import SampleCatalog.*
 
-  override def spec = suite("SampleEndToEndShowcaseSpec")(
-    test("complete backend-less showcase journey: customer -> configure -> quote -> preflight -> cart -> order -> manufacturing DAG & live capacity") {
-      ZIO.scoped {
+  "SampleEndToEndShowcaseSpec" - {
+    "complete backend-less showcase journey: customer -> configure -> quote -> preflight -> cart -> order -> manufacturing DAG & live capacity" in {
+      locally {
       for
-        eventQueue <- ZIO.serviceWithZIO[EventBus](_.subscribe)
+        eventQueue <- Env.use[EventBus](_.subscribe)
 
         // 1. Browse showcase catalog (15 categories ordered 1..15)
         listings <- ShowcaseFacade.listShowcaseListings
 
         // 2. Register a new B2B agency customer, approve, upgrade to Gold, grant NetInvoice terms
-        custSvc <- ZIO.service[CustomerService]
+        custSvc <- Env.get[CustomerService]
         newCustId = CustomerId.unsafe("cust-new-agency")
         pending <- custSvc.register(
                      RegisterCustomerCmd(
@@ -82,7 +83,7 @@ object SampleEndToEndShowcaseSpec extends ZIOSpecDefault:
                      )
 
         // 4. Derive PreflightRequirement for Roll-Up Main graphic, upload & pass preflight, operator-approve
-        artSvc <- ZIO.service[ArtworkService]
+        artSvc <- Env.get[ArtworkService]
         reqOpt  = DomainBridges.toPreflightRequirement(rollupCQ.configuration.product, ComponentKey.Main)
         artId   = ArtworkId.unsafe("art-rollup-main-1")
         artSub <- artSvc.upload(
@@ -110,8 +111,8 @@ object SampleEndToEndShowcaseSpec extends ZIOSpecDefault:
         artApproved <- artSvc.approve(artId, SampleManufacturing.empPrepressId)
 
         // 5. Add both lines to showcase cart & place B2B InvoiceOnAccount order
-        cartSvc  <- ZIO.service[CartService]
-        orderSvc <- ZIO.service[OrderService]
+        cartSvc  <- Env.get[CartService]
+        orderSvc <- Env.get[OrderService]
         cartId    = CartId.unsafe("cart-showcase-czk")
         line1 = CartLine(
                   lineId = OrderLineId.unsafe("line-1"),
@@ -165,13 +166,13 @@ object SampleEndToEndShowcaseSpec extends ZIOSpecDefault:
                  )
 
         // 6. Check manufacturing speed availability & create shop-floor production DAG
-        mfgSvc <- ZIO.service[ManufacturingService]
+        mfgSvc <- Env.get[ManufacturingService]
         expressTooMany <- mfgSvc
                             .checkSpeedAvailability(businessCardsId, ManufacturingSpeed.Express, Quantity.unsafe(5000), 1, Set(coated300gsmId), Set.empty)
-                            .exit
+                            .result
         expressEmboss <- mfgSvc
                            .checkSpeedAvailability(businessCardsId, ManufacturingSpeed.Express, Quantity.unsafe(100), 1, Set(coated300gsmId), Set(FinishingOperation.EmbossingOrFoil))
-                           .exit
+                           .result
 
         capBefore <- mfgSvc.currentCapacity
         spec1 = DomainBridges.toProductionSpec(order.id, 0, rollupCQ.configuration.product, ManufacturingSpeed.Standard)
@@ -196,43 +197,43 @@ object SampleEndToEndShowcaseSpec extends ZIOSpecDefault:
                                     SampleManufacturing.empLeadAllId,
                                     Some(SampleManufacturing.machMaintenanceId),
                                   )
-                                  .exit
+                                  .result
 
         // Check events published on EventBus across all contexts
-        events <- eventQueue.takeAll
-      yield assertTrue(
-        listings.size == 15,
-        listings.map(_.sortOrder) == (1 to 15).toList,
-        pending.status == CustomerStatus.PendingApproval,
-        approved.status == CustomerStatus.Active,
-        goldCust.tier == CustomerTier.Gold,
-        rollupCQ.quote.promoDiscount.isDefined,
-        artSub.status == ArtworkStatus.PreflightPassed,
-        artApproved.status.isInstanceOf[ArtworkStatus.OperatorApproved],
-        cartView.lines.size == 2,
+        events <- eventQueue.drain
+      yield {
+        assert(listings.size == 15)
+        assert(listings.map(_.sortOrder) == (1 to 15).toList)
+        assert(pending.status == CustomerStatus.PendingApproval)
+        assert(approved.status == CustomerStatus.Active)
+        assert(goldCust.tier == CustomerTier.Gold)
+        assert(rollupCQ.quote.promoDiscount.isDefined)
+        assert(artSub.status == ArtworkStatus.PreflightPassed)
+        assert(artApproved.status.isInstanceOf[ArtworkStatus.OperatorApproved])
+        assert(cartView.lines.size == 2)
         // InvoiceOnAccount approved B2B order starts immediately in Confirmed status
-        order.status == OrderStatus.Confirmed,
-        order.totals.linesNetTotal == (rollupCQ.quote.netTotal + bookletCQ.quote.netTotal).rounded,
-        expressTooMany.isFailure,
-        expressEmboss.isFailure,
+        assert(order.status == OrderStatus.Confirmed)
+        assert(order.totals.linesNetTotal == (rollupCQ.quote.netTotal + bookletCQ.quote.netTotal).rounded)
+        assert(expressTooMany.isFailure)
+        assert(expressEmboss.isFailure)
         // Roll-Up Stand has ONLY Assembly step; Main has LargeFormatPrinter + Laminator
-        standSteps.map(_.stationType) == List(StationType.Assembly),
-        mainSteps.map(_.stationType) == List(StationType.LargeFormatPrinter, StationType.Laminator),
+        assert(standSteps.map(_.stationType) == List(StationType.Assembly))
+        assert(mainSteps.map(_.stationType) == List(StationType.LargeFormatPrinter, StationType.Laminator))
         // Stand step was Ready immediately in parallel with Prepress and completed cleanly
-        claimedJob.workflows.head.status == WorkflowStatus.InProgress,
-        doneStand.workflows.head.steps.find(_.id == standSteps.head.id).exists(_.status == StepStatus.Completed),
-        maintMachineRejected.isFailure,
+        assert(claimedJob.workflows.head.status == WorkflowStatus.InProgress)
+        assert(doneStand.workflows.head.steps.find(_.id == standSteps.head.id).exists(_.status == StepStatus.Completed))
+        assert(maintMachineRejected.isFailure)
         // Live capacity increased when the job entered the shop floor
-        capBefore.globalUtilisation == BigDecimal(0),
-        capAfter.globalUtilisation >= capBefore.globalUtilisation,
+        assert(capBefore.globalUtilisation == BigDecimal(0))
+        assert(capAfter.globalUtilisation >= capBefore.globalUtilisation)
         // Cross-context events all recorded on shared EventBus
-        events.exists(_.isInstanceOf[CustomerRegistered]),
-        events.exists(_.isInstanceOf[QuoteIssued]),
-        events.exists(_.isInstanceOf[ArtworkApproved]),
-        events.exists(_.isInstanceOf[OrderConfirmed]),
-        events.exists(_.isInstanceOf[ProductionJobCreated]),
-        events.exists(_.isInstanceOf[WorkflowStepCompleted]),
-      )
+        assert(events.exists(_.isInstanceOf[CustomerRegistered]))
+        assert(events.exists(_.isInstanceOf[QuoteIssued]))
+        assert(events.exists(_.isInstanceOf[ArtworkApproved]))
+        assert(events.exists(_.isInstanceOf[OrderConfirmed]))
+        assert(events.exists(_.isInstanceOf[ProductionJobCreated]))
+        assert(events.exists(_.isInstanceOf[WorkflowStepCompleted]))
       }
-    },
-  ).provideLayer(SampleShowcaseRuntime.layer(useSheetCzk = true))
+      }
+    }.provideRuntime(useSheetCzk = true)
+  }

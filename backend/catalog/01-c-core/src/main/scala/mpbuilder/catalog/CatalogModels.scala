@@ -1,8 +1,6 @@
 package mpbuilder.catalog
 
 import mpbuilder.shared.*
-import zio.NonEmptyChunk
-import zio.prelude.*
 
 // ── Context-local IDs ────────────────────────────────────────────────────────
 

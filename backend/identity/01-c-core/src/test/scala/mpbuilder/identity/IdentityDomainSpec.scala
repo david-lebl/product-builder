@@ -2,11 +2,11 @@ package mpbuilder.identity
 
 import mpbuilder.identity.core.*
 import mpbuilder.shared.*
-import zio.*
-import zio.test.*
+import kyo.*
+import kyo.test.*
 import java.time.Instant
 
-object IdentityDomainSpec extends ZIOSpecDefault:
+class IdentityDomainSpec extends Test[Any]:
 
   private val customerPrincipal = Principal.Customer(
     customerId = CustomerId.unsafe("cust-1"),
@@ -27,89 +27,75 @@ object IdentityDomainSpec extends ZIOSpecDefault:
     email = EmailAddress.unsafe("karel@suspendedco.cz"),
   )
 
-  private final class RecordingOtpDelivery(ref: Ref[Map[OtpChallengeId, OtpCode]]) extends OtpDeliveryPort:
-    override def sendOtp(challengeId: OtpChallengeId, principal: Principal, code: OtpCode): UIO[Unit] =
+  private final class RecordingOtpDelivery(ref: AtomicRef[Map[OtpChallengeId, OtpCode]]) extends OtpDeliveryPort:
+    override def sendOtp(challengeId: OtpChallengeId, principal: Principal, code: OtpCode): Unit < Async =
       ref.update(_ + (challengeId -> code))
-    def codeFor(challengeId: OtpChallengeId): UIO[Option[OtpCode]] =
+    def codeFor(challengeId: OtpChallengeId): Option[OtpCode] < Async =
       ref.get.map(_.get(challengeId))
 
-  private def testLayer(
+  private final case class Fixture(svc: IdentityService, bus: EventBus, delivery: RecordingOtpDelivery)
+
+  private val t0 = java.time.Instant.parse("2026-04-01T10:00:00Z")
+
+  /** Runs `f` against a fresh in-memory identity service with a controlled clock starting at `t0`. */
+  private def withFixture[A, S](
       config: IdentityConfig = IdentityConfig(otpTtl = 5.minutes, otpMaxAttempts = 3, sessionTtl = 1.hour),
-  ): ULayer[IdentityService & EventBus & RecordingOtpDelivery] =
-    val busLayer = EventBus.live
-    val deliveryLayer: ULayer[RecordingOtpDelivery] =
-      ZLayer.fromZIO(Ref.make(Map.empty[OtpChallengeId, OtpCode]).map(new RecordingOtpDelivery(_)))
-
-    val credLayer: ULayer[CredentialRepository] = ZLayer.fromZIO {
-      Ref.make(Map.empty[EmailAddress, PasswordCredential]).map { ref =>
-        new CredentialRepository:
-          override def findByEmail(email: EmailAddress): UIO[Option[PasswordCredential]] = ref.get.map(_.get(email))
-          override def save(credential: PasswordCredential): UIO[Unit]                   = ref.update(_ + (credential.email -> credential))
-      }
+  )(f: (Fixture, Clock.TimeControl) => A < S): A < (S & Async) =
+    Clock.withTimeControl { clock =>
+      for
+        _        <- clock.set(kyo.Instant.fromJava(t0))
+        bus      <- EventBus.init
+        delivery <- AtomicRef.init(Map.empty[OtpChallengeId, OtpCode]).map(new RecordingOtpDelivery(_))
+        credRef  <- AtomicRef.init(Map.empty[EmailAddress, PasswordCredential])
+        otpRef   <- AtomicRef.init(Map.empty[OtpChallengeId, OtpChallenge])
+        sessRef  <- AtomicRef.init(Map.empty[SessionToken, StoredSession])
+        counter  <- AtomicLong.init(0L)
+        creds = new CredentialRepository:
+                  override def findByEmail(email: EmailAddress): Option[PasswordCredential] < Async = credRef.get.map(_.get(email))
+                  override def save(credential: PasswordCredential): Unit < Async =
+                    credRef.update(_ + (credential.email -> credential))
+        otps = new OtpRepository:
+                 override def findById(id: OtpChallengeId): Option[OtpChallenge] < Async = otpRef.get.map(_.get(id))
+                 override def save(challenge: OtpChallenge): Unit < Async =
+                   otpRef.update(_ + (challenge.id -> challenge))
+        sessions = new SessionRepository:
+                     override def findByToken(token: SessionToken): Option[StoredSession] < Async = sessRef.get.map(_.get(token))
+                     override def save(session: StoredSession): Unit < Async =
+                       sessRef.update(_ + (session.token -> session))
+                     override def revoke(token: SessionToken): Unit < Async =
+                       sessRef.update(_.updatedWith(token)(_.map(_.copy(revoked = true))))
+        lookup = new CustomerAccountLookupPort:
+                   override def resolveCustomer(identifier: LoginIdentifier): Option[ResolvedAccount] < Async =
+                     identifier match
+                       case LoginIdentifier.Email(e) if e == customerPrincipal.email =>
+                         Some(ResolvedAccount(customerPrincipal, isActive = true))
+                       case LoginIdentifier.CompanyRegNo(r) if r.value == "12345678" =>
+                         Some(ResolvedAccount(customerPrincipal, isActive = true))
+                       case LoginIdentifier.VatId(v) if v.value == "CZ12345678" =>
+                         Some(ResolvedAccount(customerPrincipal, isActive = true))
+                       case LoginIdentifier.Email(e) if e == suspendedPrincipal.email =>
+                         Some(ResolvedAccount(suspendedPrincipal, isActive = false, inactiveReason = Some("Account is Suspended")))
+                       case _ => None
+        tokens = new TokenGenerator:
+                   override def generateSessionToken: SessionToken < Async =
+                     counter.incrementAndGet.map(n => SessionToken.unsafe(s"tok-$n"))
+                   override def generateOtpChallengeId: OtpChallengeId < Async =
+                     counter.incrementAndGet.map(n => OtpChallengeId.unsafe(s"otp-$n"))
+                   override def generateOtpCode: OtpCode < Async =
+                     counter.incrementAndGet.map(n => OtpCode.unsafe(f"${(100000 + n) % 1000000}%06d"))
+                   override def generateSalt: String < Async =
+                     counter.incrementAndGet.map(n => s"salt-$n")
+        svc = IdentityCoreLayers.make(creds, otps, sessions, lookup, delivery, tokens, bus, config)
+        out <- f(Fixture(svc, bus, delivery), clock)
+      yield out
     }
 
-    val otpLayer: ULayer[OtpRepository] = ZLayer.fromZIO {
-      Ref.make(Map.empty[OtpChallengeId, OtpChallenge]).map { ref =>
-        new OtpRepository:
-          override def findById(id: OtpChallengeId): UIO[Option[OtpChallenge]] = ref.get.map(_.get(id))
-          override def save(challenge: OtpChallenge): UIO[Unit]                = ref.update(_ + (challenge.id -> challenge))
-      }
-    }
-
-    val sessionLayer: ULayer[SessionRepository] = ZLayer.fromZIO {
-      Ref.make(Map.empty[SessionToken, StoredSession]).map { ref =>
-        new SessionRepository:
-          override def findByToken(token: SessionToken): UIO[Option[StoredSession]] = ref.get.map(_.get(token))
-          override def save(session: StoredSession): UIO[Unit]                      = ref.update(_ + (session.token -> session))
-          override def revoke(token: SessionToken): UIO[Unit] =
-            ref.update(_.updatedWith(token)(_.map(_.copy(revoked = true))))
-      }
-    }
-
-    val lookupLayer: ULayer[CustomerAccountLookupPort] = ZLayer.succeed {
-      new CustomerAccountLookupPort:
-        override def resolveCustomer(identifier: LoginIdentifier): UIO[Option[ResolvedAccount]] =
-          ZIO.succeed(identifier match
-            case LoginIdentifier.Email(e) if e == customerPrincipal.email =>
-              Some(ResolvedAccount(customerPrincipal, isActive = true))
-            case LoginIdentifier.CompanyRegNo(r) if r.value == "12345678" =>
-              Some(ResolvedAccount(customerPrincipal, isActive = true))
-            case LoginIdentifier.VatId(v) if v.value == "CZ12345678" =>
-              Some(ResolvedAccount(customerPrincipal, isActive = true))
-            case LoginIdentifier.Email(e) if e == suspendedPrincipal.email =>
-              Some(ResolvedAccount(suspendedPrincipal, isActive = false, inactiveReason = Some("Account is Suspended")))
-            case _ => None
-          )
-    }
-
-    val tokenGenLayer: ULayer[TokenGenerator] = ZLayer.fromZIO {
-      Ref.make(0L).map { counter =>
-        new TokenGenerator:
-          override def generateSessionToken: UIO[SessionToken] =
-            counter.updateAndGet(_ + 1).map(n => SessionToken.unsafe(s"tok-$n"))
-          override def generateOtpChallengeId: UIO[OtpChallengeId] =
-            counter.updateAndGet(_ + 1).map(n => OtpChallengeId.unsafe(s"otp-$n"))
-          override def generateOtpCode: UIO[OtpCode] =
-            counter.updateAndGet(_ + 1).map(n => OtpCode.unsafe(f"${(100000 + n) % 1000000}%06d"))
-          override def generateSalt: UIO[String] =
-            counter.updateAndGet(_ + 1).map(n => s"salt-$n")
-      }
-    }
-
-    val svcLayer =
-      (credLayer ++ otpLayer ++ sessionLayer ++ lookupLayer ++ deliveryLayer ++ tokenGenLayer ++ busLayer) >>>
-        IdentityCoreLayers.layer(config)
-
-    busLayer ++ deliveryLayer ++ svcLayer
-
-  def spec = suite("IdentityDomainSpec")(
-    test("supports email+password login for both Customer and Employee principals, and validates/revokes sessions") {
-      ZIO.scoped {
+  "IdentityDomainSpec" - {
+    "supports email+password login for both Customer and Employee principals, and validates/revokes sessions" in {
+      withFixture() { (fx, _) =>
+        val svc = fx.svc
         for
-          _         <- TestClock.setTime(Instant.parse("2026-04-01T10:00:00Z"))
-          svc       <- ZIO.service[IdentityService]
-          bus       <- ZIO.service[EventBus]
-          queue     <- bus.subscribe
+          queue     <- fx.bus.subscribe
           _         <- svc.registerPasswordCredential(
                          RegisterPasswordCmd(customerPrincipal, customerPrincipal.email, NonEmptyString.unsafe("secret123"))
                        )
@@ -122,28 +108,30 @@ object IdentityDomainSpec extends ZIOSpecDefault:
           validated <- svc.validateSession(custSess.token)
           _         <- svc.logout(custSess.token)
           revoked   <- svc.validateSession(custSess.token).either
-          ev1       <- queue.take
-          ev2       <- queue.take
-          ev3       <- queue.take
-        yield assertTrue(
-          badLogin == Left(IdentityError.InvalidCredentials),
-          custSess.principal == customerPrincipal,
-          custSess.method == AuthMethod.Password,
-          empSess.principal == employeePrincipal,
-          empSess.principal.employeeIdOpt == Some(EmployeeId.unsafe("emp-1")),
-          validated.token == custSess.token,
-          revoked == Left(IdentityError.SessionNotFound),
-          ev1.isInstanceOf[UserLoggedIn],
-          ev2.isInstanceOf[UserLoggedIn],
-          ev3.isInstanceOf[UserLoggedOut],
-        )
-      }.provide(testLayer())
-    },
-    test("supports agency OTP login by IČO / DIČ, rejects inactive accounts, and enforces single-use + attempt limits") {
+          events    <- queue.drain
+          ev1        = events(0)
+          ev2        = events(1)
+          ev3        = events(2)
+        yield {
+          assert(badLogin == Left(IdentityError.InvalidCredentials))
+          assert(custSess.principal == customerPrincipal)
+          assert(custSess.method == AuthMethod.Password)
+          assert(empSess.principal == employeePrincipal)
+          assert(empSess.principal.employeeIdOpt == Some(EmployeeId.unsafe("emp-1")))
+          assert(validated.token == custSess.token)
+          assert(revoked == Left(IdentityError.SessionNotFound))
+          assert(ev1.isInstanceOf[UserLoggedIn])
+          assert(ev2.isInstanceOf[UserLoggedIn])
+          assert(ev3.isInstanceOf[UserLoggedOut])
+        }
+      }
+    }
+
+    "supports agency OTP login by IČO / DIČ, rejects inactive accounts, and enforces single-use + attempt limits" in {
+      withFixture() { (fx, clock) =>
+      val svc      = fx.svc
+      val delivery = fx.delivery
       for
-        _            <- TestClock.setTime(Instant.parse("2026-04-01T10:00:00Z"))
-        svc          <- ZIO.service[IdentityService]
-        delivery     <- ZIO.service[RecordingOtpDelivery]
         suspendedRes <- svc.requestCustomerOtp(LoginIdentifier.Email(suspendedPrincipal.email)).either
         chIco        <- svc.requestCustomerOtp(LoginIdentifier.CompanyRegNo(NonEmptyString.unsafe("12345678")))
         codeOpt      <- delivery.codeFor(chIco.challengeId)
@@ -153,28 +141,31 @@ object IdentityDomainSpec extends ZIOSpecDefault:
         // Second challenge via VAT ID (DIČ) to test expiry
         chVat        <- svc.requestCustomerOtp(LoginIdentifier.VatId(NonEmptyString.unsafe("CZ12345678")))
         vatCode      <- delivery.codeFor(chVat.challengeId)
-        _            <- TestClock.adjust(6.minutes)
+        _            <- clock.advance(6.minutes)
         expired      <- svc.verifyOtp(chVat.challengeId, vatCode.get).either
-      yield assertTrue(
-        suspendedRes.isLeft,
-        chIco.maskedDestination == "ja***@printshoppro.cz",
-        wrongAttempt == Left(IdentityError.OtpInvalid(2)),
-        session.principal == customerPrincipal,
-        session.method == AuthMethod.Otp,
-        replay == Left(IdentityError.OtpAlreadyUsed(chIco.challengeId)),
-        expired == Left(IdentityError.OtpExpired(chVat.challengeId)),
-      )
-    }.provide(testLayer()),
-    test("session expires after configured TTL") {
+      yield {
+        assert(suspendedRes.isLeft)
+        assert(chIco.maskedDestination == "ja***@printshoppro.cz")
+        assert(wrongAttempt == Left(IdentityError.OtpInvalid(2)))
+        assert(session.principal == customerPrincipal)
+        assert(session.method == AuthMethod.Otp)
+        assert(replay == Left(IdentityError.OtpAlreadyUsed(chIco.challengeId)))
+        assert(expired == Left(IdentityError.OtpExpired(chVat.challengeId)))
+      }
+      }
+    }
+
+    "session expires after configured TTL" in {
+      withFixture() { (fx, clock) =>
+      val svc = fx.svc
       for
-        _    <- TestClock.setTime(Instant.parse("2026-04-01T10:00:00Z"))
-        svc  <- ZIO.service[IdentityService]
         _    <- svc.registerPasswordCredential(
                   RegisterPasswordCmd(customerPrincipal, customerPrincipal.email, NonEmptyString.unsafe("pass123"))
                 )
         sess <- svc.loginWithPassword(customerPrincipal.email, NonEmptyString.unsafe("pass123"))
-        _    <- TestClock.adjust(2.hours)
+        _    <- clock.advance(2.hours)
         res  <- svc.validateSession(sess.token).either
-      yield assertTrue(res == Left(IdentityError.SessionExpired))
-    }.provide(testLayer()),
-  )
+      yield assert(res == Left(IdentityError.SessionExpired))
+      }
+    }
+  }

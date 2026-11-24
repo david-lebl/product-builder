@@ -8,33 +8,36 @@ import mpbuilder.ordering.*
 import mpbuilder.ordering.sample.SampleDeliveryCatalog
 import mpbuilder.platform.PostgresTestSupport
 import mpbuilder.platform.blob.LocalFileBlobStorage
-import mpbuilder.platform.db.DbConfig
+import mpbuilder.platform.db.{Database, DbConfig}
 import mpbuilder.shared.*
 import mpbuilder.storefront.*
-import zio.*
-import zio.test.*
+import kyo.*
+import kyo.test.*
 
 import java.nio.file.{Files, Path}
 
 /** Phase 3: the facades running entirely on PostgreSQL — seeded, exercised, and rebuilt
   * from scratch against the same database (simulated server restart).
   */
-object PostgresRuntimeSpec extends ZIOSpecDefault:
+class PostgresRuntimeSpec extends Test[Any]:
 
   private val adminEmail = SampleIdentity.adminEmployeePrincipal.email
   private val staffPass  = SampleIdentity.demoEmployeePassword
-  private val pdf        = Chunk.fromArray("%PDF-1.7\n%%EOF".getBytes("UTF-8"))
+  private val pdf        = Chunk.from("%PDF-1.7\n%%EOF".getBytes("UTF-8"))
 
   final case class FirstRun(orderId: OrderId, history: List[OrderStatusEvent], artworkKey: String, seededOrders: Int)
 
-  private def runtime(db: DbConfig, blobDir: Path) =
-    AppRuntime.postgresServices(db, LocalFileBlobStorage.layer(blobDir, Some("/api/v1/blobs")))
+  /** Opens a pool on `cfg` (closed with the scope) and wires every PostgreSQL-backed service on it. */
+  private def runtime(cfg: DbConfig, blobDir: Path) =
+    Database.init(cfg, AppRuntime.migrationSets).map(db =>
+      AppRuntime.postgresServices(db, new LocalFileBlobStorage(blobDir, Some("/api/v1/blobs")))
+    )
 
-  private val firstRun: ZIO[StorefrontFacade & BackofficeFacade & mpbuilder.platform.db.Database & mpbuilder.identity.IdentityService, Any, FirstRun] =
+  private def firstRun(rt: AppRuntime.PostgresServices) =
+    val sf = rt.storefront
+    val bo = rt.backoffice
     for
-      _       <- AppRuntime.seedIfEmpty
-      sf      <- ZIO.service[StorefrontFacade]
-      bo      <- ZIO.service[BackofficeFacade]
+      _       <- AppRuntime.seedIfEmpty(rt.db, rt.identity)
       admin   <- bo.loginStaff(adminEmail, staffPass)
       seeded  <- bo.listOrders(admin.session.token, OrderFilter())
       cat     <- sf.getCatalog
@@ -77,32 +80,32 @@ object PostgresRuntimeSpec extends ZIOSpecDefault:
       noted   <- bo.addOrderInternalNote(admin.session.token, orderId, NonEmptyString.unsafe("persist me"))
     yield FirstRun(orderId, noted.statusHistory, draft.latestRevision.file.storageKey.value, seeded.size)
 
-  def spec = suite("Phase 3 — facades on PostgreSQL")(
-    test("seeded database serves the facades and all state survives a full runtime rebuild") {
+  "Phase 3 — facades on PostgreSQL" - {
+    "seeded database serves the facades and all state survives a full runtime rebuild".timeout(5.minutes) in {
       for
-        db      <- ZIO.service[DbConfig]
-        blobDir <- ZIO.attempt(Files.createTempDirectory("pg-blobs-"))
-        first   <- ZIO.scoped(firstRun.provideSomeLayer[Scope](runtime(db, blobDir)))
-        second  <- ZIO.scoped {
-                     (for
-                       _     <- AppRuntime.seedIfEmpty // must be a no-op now
-                       bo    <- ZIO.service[BackofficeFacade]
-                       admin <- bo.loginStaff(adminEmail, staffPass)
-                       order <- bo.getOrder(admin.session.token, first.orderId)
-                       all   <- bo.listOrders(admin.session.token, OrderFilter())
-                     yield (order, all.size)).provideSomeLayer[Scope](runtime(db, blobDir))
+        cfg     <- PostgresTestSupport.freshDatabaseConfig
+        blobDir <- Sync.defer(Files.createTempDirectory("pg-blobs-"))
+        first   <- Scope.run(runtime(cfg, blobDir).map(firstRun))
+        second  <- Scope.run {
+                     runtime(cfg, blobDir).map { rt =>
+                       for
+                         _     <- AppRuntime.seedIfEmpty(rt.db, rt.identity) // must be a no-op now
+                         admin <- rt.backoffice.loginStaff(adminEmail, staffPass)
+                         order <- rt.backoffice.getOrder(admin.session.token, first.orderId)
+                         all   <- rt.backoffice.listOrders(admin.session.token, OrderFilter())
+                       yield (order, all.size)
+                     }
                    }
         (order, total) = second
-        stored  <- ZIO.attempt(Files.readAllBytes(blobDir.resolve(first.artworkKey)))
-      yield assertTrue(
-        first.seededOrders == 4,
-        order.status == OrderStatus.InProduction,
-        order.statusHistory == first.history,
-        order.internalNotes.exists(_.text.value == "persist me"),
-        total == 5,
-        Chunk.fromArray(stored) == pdf,
+        stored  <- Sync.defer(Files.readAllBytes(blobDir.resolve(first.artworkKey)))
+      yield
+        assert(first.seededOrders == 4)
+        assert(order.status == OrderStatus.InProduction)
+        assert(order.statusHistory == first.history)
+        assert(order.internalNotes.exists(_.text.value == "persist me"))
+        assert(total == 5)
+        assert(Chunk.from(stored) == pdf)
         // restart-safe IDs come from platform.id_sequence (starts at 10000)
-        first.orderId.value.stripPrefix("ord-").toLongOption.exists(_ >= 10000L),
-      )
-    }.provideShared(PostgresTestSupport.containerLayer)
-  ) @@ TestAspect.withLiveClock @@ TestAspect.timeout(5.minutes)
+        assert(first.orderId.value.stripPrefix("ord-").toLongOption.exists(_ >= 10000L))
+    }
+  }

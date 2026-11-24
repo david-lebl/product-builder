@@ -15,20 +15,15 @@ import mpbuilder.storefront.StorefrontFacade
 import mpbuilder.ui.i18n.AppI18n
 import mpbuilder.ui.port.StorefrontClient
 import mpbuilder.ui.storefront.{AppRoute, StorefrontState}
-import zio.ZIO
-import zio.test.*
+import kyo.test.*
 
-object BackofficeUiSpec extends ZIOSpecDefault:
+class BackofficeUiSpec extends Test[Any]:
 
   private def withSharedClients[A](
       f: (StorefrontClient, BackofficeClient) => A < (Abort[Any] & Async),
-  ): ZIO[Any, Any, A] =
-    ZIO.scoped {
-      SampleShowcaseRuntime.layer().build.flatMap { env =>
-        val sfClient = StorefrontClient.fromZio(env.get[StorefrontFacade], env.get[InMemoryOtpInbox].codeFor)
-        val boClient = BackofficeClient.fromZio(env.get[BackofficeFacade])
-        ZIOs.run(f(sfClient, boClient))
-      }
+  ): A < (Abort[Any] & Async) =
+    SampleShowcaseRuntime.make().map { rt =>
+      f(StorefrontClient.fromFacade(rt.storefront, rt.otpInbox.codeFor), BackofficeClient.fromFacade(rt.backoffice))
     }
 
   private def renderHtml(ui: UI, i18n: AppI18n): String < Async =
@@ -36,20 +31,18 @@ object BackofficeUiSpec extends ZIOSpecDefault:
       UI.runRender(ui).take(1).run.map(_.headMaybe.getOrElse(""))
     }
 
-  override def spec: Spec[TestEnvironment, Any] =
-    suite("Kyo UI Backoffice & Unified Demo Spec")(
-      test("AdminTheme stylesheet emits responsive breakpoints and backoffice layout rules") {
+  "Kyo UI Backoffice & Unified Demo Spec" - {
+      "AdminTheme stylesheet emits responsive breakpoints and backoffice layout rules" in {
         val css = AdminTheme.adminStylesheet.render
-        assertTrue(
-          css.contains("@media (max-width: 960px)"),
-          css.contains("@media (max-width: 640px)"),
-          css.contains(".mp-admin-shell"),
-          css.contains(".mp-admin-sidebar"),
-          css.contains(".mp-kpi-grid"),
-          css.contains(".mp-timeline"),
-        )
-      },
-      test("AdminRoute hash routing round-trips both unified (#/admin/...) and standalone (#/...) prefixes") {
+        assert(css.contains("@media (max-width: 960px)"))
+        assert(css.contains("@media (max-width: 640px)"))
+        assert(css.contains(".mp-admin-shell"))
+        assert(css.contains(".mp-admin-sidebar"))
+        assert(css.contains(".mp-kpi-grid"))
+        assert(css.contains(".mp-timeline"))
+      }
+
+      "AdminRoute hash routing round-trips both unified (#/admin/...) and standalone (#/...) prefixes" in {
         val ordId = OrderId.unsafe("ord-seed-0901")
         val routes = List(
           AdminRoute.Dashboard,
@@ -60,15 +53,14 @@ object BackofficeUiSpec extends ZIOSpecDefault:
           AdminRoute.Customers,
           AdminRoute.StaffAndSettings,
         )
-        assertTrue(
-          routes.forall(r => AdminRoute.fromHash(AdminRoute.toHash(r, "#/admin"), requireAdminPrefix = true).contains(r)),
-          routes.forall(r => AdminRoute.fromHash(AdminRoute.toHash(r, "#"), requireAdminPrefix = false).contains(r)),
-          AdminRoute.fromHash("#/catalog", requireAdminPrefix = true).isEmpty,
-          AdminRoute.fromHash("#/admin", requireAdminPrefix = true).contains(AdminRoute.Dashboard),
-        )
-      },
-      test("AdminTranslations renders EN & CS cleanly with zero missing-key markers") {
-        ZIOs.run {
+        assert(routes.forall(r => AdminRoute.fromHash(AdminRoute.toHash(r, "#/admin"), requireAdminPrefix = true).contains(r)))
+        assert(routes.forall(r => AdminRoute.fromHash(AdminRoute.toHash(r, "#"), requireAdminPrefix = false).contains(r)))
+        assert(AdminRoute.fromHash("#/catalog", requireAdminPrefix = true).isEmpty)
+        assert(AdminRoute.fromHash("#/admin", requireAdminPrefix = true).contains(AdminRoute.Dashboard))
+      }
+
+      "AdminTranslations renders EN & CS cleanly with zero missing-key markers" in {
+        locally {
           for
             i18n    <- AdminTranslations.init(Language.En)
             enDash  <- I18n.let(i18n.handle)(i18n.now("adm-dash-title"))
@@ -76,16 +68,17 @@ object BackofficeUiSpec extends ZIOSpecDefault:
             _       <- i18n.setLanguage(Language.Cs)
             csDash  <- I18n.let(i18n.handle)(i18n.now("adm-dash-title"))
             csOrd   <- I18n.let(i18n.handle)(i18n.now("adm-nav-orders"))
-          yield assertTrue(
-            enBrand == "PrintCraft Studio",
-            enDash == "Operations Dashboard",
-            csDash == "Provozní přehled",
-            csOrd == "Příjem objednávek",
-            !enDash.contains("‹") && !csDash.contains("‹"),
-          )
+          yield {
+            assert(enBrand == "PrintCraft Studio")
+            assert(enDash == "Operations Dashboard")
+            assert(csDash == "Provozní přehled")
+            assert(csOrd == "Příjem objednávek")
+            assert(!enDash.contains("‹") && !csDash.contains("‹"))
+          }
         }
-      },
-      test("Staff login gate, RBAC read-only Prepress view, and full Admin EN/CS views render cleanly") {
+      }
+
+      "Staff login gate, RBAC read-only Prepress view, and full Admin EN/CS views render cleanly" in {
         withSharedClients { (_, boClient) =>
           for
             i18n       <- AdminTranslations.init(Language.En)
@@ -103,24 +96,25 @@ object BackofficeUiSpec extends ZIOSpecDefault:
             dashEnHtml <- renderHtml(ui, i18n)
             _          <- I18n.let(i18n.handle)(state.setLanguage(Language.Cs))
             dashCsHtml <- renderHtml(ui, i18n)
-          yield assertTrue(
-            loginHtml.contains("Staff Backoffice Sign In"),
-            loginHtml.contains("admin@printshop.cz"),
-            !loginHtml.contains("‹") && !loginHtml.contains("›"),
-            prepress.isRight,
-            prepHtml.contains("Read-only Intake (Prepress)"),
-            !prepHtml.contains("‹") && !prepHtml.contains("›"),
-            admin.isRight,
-            dashEnHtml.contains("Operations Dashboard"),
-            dashEnHtml.contains("ORD-2026-0901"),
-            !dashEnHtml.contains("‹") && !dashEnHtml.contains("›"),
-            dashCsHtml.contains("Provozní přehled"),
-            dashCsHtml.contains("Příjem objednávek"),
-            !dashCsHtml.contains("‹") && !dashCsHtml.contains("›"),
-          )
+          yield {
+            assert(loginHtml.contains("Staff Backoffice Sign In"))
+            assert(loginHtml.contains("admin@printshop.cz"))
+            assert(!loginHtml.contains("‹") && !loginHtml.contains("›"))
+            assert(prepress.isRight)
+            assert(prepHtml.contains("Read-only Intake (Prepress)"))
+            assert(!prepHtml.contains("‹") && !prepHtml.contains("›"))
+            assert(admin.isRight)
+            assert(dashEnHtml.contains("Operations Dashboard"))
+            assert(dashEnHtml.contains("ORD-2026-0901"))
+            assert(!dashEnHtml.contains("‹") && !dashEnHtml.contains("›"))
+            assert(dashCsHtml.contains("Provozní přehled"))
+            assert(dashCsHtml.contains("Příjem objednávek"))
+            assert(!dashCsHtml.contains("‹") && !dashCsHtml.contains("›"))
+          }
         }
-      },
-      test("Unified E2E: Storefront checkout lands live in Backoffice Order Intake, flows to Completed, and reflects back in Storefront") {
+      }
+
+      "Unified E2E: Storefront checkout lands live in Backoffice Order Intake, flows to Completed, and reflects back in Storefront" in {
         withSharedClients { (sfClient, boClient) =>
           for
             i18n    <- AdminTranslations.init(Language.En)
@@ -159,20 +153,21 @@ object BackofficeUiSpec extends ZIOSpecDefault:
             detHtml   <- renderHtml(boUi, i18n)
             _         <- I18n.let(i18n.handle)(sfState.refreshOrders)
             sfOrders  <- sfState.orders.get
-          yield assertTrue(
-            queue.exists(_.id == newOrdId),
-            finalOrd.exists(_.status == OrderStatus.Completed),
-            finalOrd.exists(_.internalNotes.exists(_.text.value.contains("Customer confirmed delivery"))),
-            finalOrd.exists(_.statusHistory.size >= 7),
-            detHtml.contains(conf.order.orderNumber.value),
-            detHtml.contains("Customer confirmed delivery"),
-            detHtml.contains("Status Audit Trail"),
-            !detHtml.contains("‹") && !detHtml.contains("›"),
-            sfOrders.find(_.id == newOrdId).exists(_.status == OrderStatus.Completed),
-          )
+          yield {
+            assert(queue.exists(_.id == newOrdId))
+            assert(finalOrd.exists(_.status == OrderStatus.Completed))
+            assert(finalOrd.exists(_.internalNotes.exists(_.text.value.contains("Customer confirmed delivery"))))
+            assert(finalOrd.exists(_.statusHistory.size >= 7))
+            assert(detHtml.contains(conf.order.orderNumber.value))
+            assert(detHtml.contains("Customer confirmed delivery"))
+            assert(detHtml.contains("Status Audit Trail"))
+            assert(!detHtml.contains("‹") && !detHtml.contains("›"))
+            assert(sfOrders.find(_.id == newOrdId).exists(_.status == OrderStatus.Completed))
+          }
         }
-      },
-      test("Catalog, Pricing + Margin Simulator, Customers, and Staff/Settings screens render cleanly and mutate live") {
+      }
+
+      "Catalog, Pricing + Margin Simulator, Customers, and Staff/Settings screens render cleanly and mutate live" in {
         withSharedClients { (_, boClient) =>
           for
             i18n    <- AdminTranslations.init(Language.En)
@@ -210,27 +205,28 @@ object BackofficeUiSpec extends ZIOSpecDefault:
             // Staff & Store Settings
             _       <- I18n.let(i18n.handle)(boState.navigate(AdminRoute.StaffAndSettings))
             setHtml <- renderHtml(boUi, i18n)
-          yield assertTrue(
-            catHtml.contains("Catalog &amp; Capabilities Inspector"),
-            catHtml.contains("mp-tabs"),
-            catHtml.contains("mp-dt-table"),
-            !catHtml.contains("‹") && !catHtml.contains("›"),
-            priHtml.contains("Margin Simulator"),
-            priHtml.contains("mp-tabs"),
-            !priHtml.contains("‹") && !priHtml.contains("›"),
-            simRes.exists(_.quote.grossTotal.value > 0),
-            simRes.exists(_.margin.productionCostNet.value > 0),
-            custHtml.contains("Customer Accounts &amp; B2B Approvals"),
-            custHtml.contains("mp-dt-table"),
-            !custHtml.contains("‹") && !custHtml.contains("›"),
-            setHtml.contains("Staff Directory &amp; Store Settings"),
-            setHtml.contains("mp-tabs"),
-            setHtml.contains("admin@printshop.cz"),
-            !setHtml.contains("‹") && !setHtml.contains("›"),
-          )
+          yield {
+            assert(catHtml.contains("Catalog &amp; Capabilities Inspector"))
+            assert(catHtml.contains("mp-tabs"))
+            assert(catHtml.contains("mp-dt-table"))
+            assert(!catHtml.contains("‹") && !catHtml.contains("›"))
+            assert(priHtml.contains("Margin Simulator"))
+            assert(priHtml.contains("mp-tabs"))
+            assert(!priHtml.contains("‹") && !priHtml.contains("›"))
+            assert(simRes.exists(_.quote.grossTotal.value > 0))
+            assert(simRes.exists(_.margin.productionCostNet.value > 0))
+            assert(custHtml.contains("Customer Accounts &amp; B2B Approvals"))
+            assert(custHtml.contains("mp-dt-table"))
+            assert(!custHtml.contains("‹") && !custHtml.contains("›"))
+            assert(setHtml.contains("Staff Directory &amp; Store Settings"))
+            assert(setHtml.contains("mp-tabs"))
+            assert(setHtml.contains("admin@printshop.cz"))
+            assert(!setHtml.contains("‹") && !setHtml.contains("›"))
+          }
         }
-      },
-      test("Phase 2B refinements: Order Intake DataTable split filters, priority/deadline, payment toggle, line edit, artwork review, customer contacts/audit & pricing deep-link") {
+      }
+
+      "Phase 2B refinements: Order Intake DataTable split filters, priority/deadline, payment toggle, line edit, artwork review, customer contacts/audit & pricing deep-link" in {
         withSharedClients { (_, boClient) =>
           for
             i18n    <- AdminTranslations.init(Language.En)
@@ -309,46 +305,47 @@ object BackofficeUiSpec extends ZIOSpecDefault:
             _             <- I18n.let(i18n.handle)(boState.navigate(AdminRoute.OrderDetail(ordId)))
             embOrdUi      <- I18n.let(i18n.handle)(mpbuilder.admin.views.OrderDetailView.render(boState, embedded = true))
             embOrdHtml    <- renderHtml(embOrdUi, i18n)
-          yield assertTrue(
-            ordersHtml.contains("mp-dt-root"),
-            ordersHtml.contains("mp-dt-table"),
-            ordersHtml.contains("mp-dt-header-top"),
-            ordersHtml.contains("mp-dt-title-block"),
-            ordersHtml.contains("mp-dt-header-filters"),
-            ordersHtml.contains("mp-dt-ms-wrap"),
-            ordersHtml.contains("mp-dt-check"),
-            !ordersHtml.contains(">Open<"),
-            ordersHtml.contains("Intake Status"),
-            ordersHtml.contains("Payment Status"),
-            ordersHtml.contains("Priority"),
-            !ordersHtml.contains("‹") && !ordersHtml.contains("›"),
-            ord2Opt.exists(_.isPaid),
-            ord2Opt.exists(_.priority == OrderPriority.Urgent),
-            ord2Opt.exists(_.lines.head.specNote.contains("Pantone 286 C spot check")),
-            detEnHtml.contains("mp-detail-head-row"),
-            detEnHtml.contains("mp-detail-tags-row"),
-            detEnHtml.contains("mp-action-bar"),
-            detEnHtml.contains("mp-action-menu-wrap"),
-            detEnHtml.contains("Next stage:"),
-            detEnHtml.contains("Pantone 286 C spot check"),
-            detEnHtml.contains("Artwork &amp; Preflight Review"),
-            !detEnHtml.contains("‹") && !detEnHtml.contains("›"),
-            embOrdHtml.contains("mp-tabs-sm"),
-            embOrdHtml.contains("mp-detail-head-row"),
-            embOrdHtml.contains("mp-action-menu-wrap"),
-            updatedB2b.exists(_.additionalContacts.exists(_.email.value == "klara@printshoppro.cz")),
-            updatedB2b.exists(_.auditLog.exists(e => e.action == "ProfileUpdated" && e.actor.isInstanceOf[CustomerActor.Employee])),
-            focusTab == "agreements",
-            focusCid.contains(b2bCust.id),
-            agrHtml.contains("mp-dt-table"),
-            promoHtml.contains("Lifecycle"),
-            plHtml.contains("mp-dt-table"),
-            !plHtml.contains("‹") && !plHtml.contains("›"),
-            !plCsHtml.contains("‹") && !plCsHtml.contains("›"),
-          )
+          yield {
+            assert(ordersHtml.contains("mp-dt-root"))
+            assert(ordersHtml.contains("mp-dt-table"))
+            assert(ordersHtml.contains("mp-dt-header-top"))
+            assert(ordersHtml.contains("mp-dt-title-block"))
+            assert(ordersHtml.contains("mp-dt-header-filters"))
+            assert(ordersHtml.contains("mp-dt-ms-wrap"))
+            assert(ordersHtml.contains("mp-dt-check"))
+            assert(!ordersHtml.contains(">Open<"))
+            assert(ordersHtml.contains("Intake Status"))
+            assert(ordersHtml.contains("Payment Status"))
+            assert(ordersHtml.contains("Priority"))
+            assert(!ordersHtml.contains("‹") && !ordersHtml.contains("›"))
+            assert(ord2Opt.exists(_.isPaid))
+            assert(ord2Opt.exists(_.priority == OrderPriority.Urgent))
+            assert(ord2Opt.exists(_.lines.head.specNote.contains("Pantone 286 C spot check")))
+            assert(detEnHtml.contains("mp-detail-head-row"))
+            assert(detEnHtml.contains("mp-detail-tags-row"))
+            assert(detEnHtml.contains("mp-action-bar"))
+            assert(detEnHtml.contains("mp-action-menu-wrap"))
+            assert(detEnHtml.contains("Next stage:"))
+            assert(detEnHtml.contains("Pantone 286 C spot check"))
+            assert(detEnHtml.contains("Artwork &amp; Preflight Review"))
+            assert(!detEnHtml.contains("‹") && !detEnHtml.contains("›"))
+            assert(embOrdHtml.contains("mp-tabs-sm"))
+            assert(embOrdHtml.contains("mp-detail-head-row"))
+            assert(embOrdHtml.contains("mp-action-menu-wrap"))
+            assert(updatedB2b.exists(_.additionalContacts.exists(_.email.value == "klara@printshoppro.cz")))
+            assert(updatedB2b.exists(_.auditLog.exists(e => e.action == "ProfileUpdated" && e.actor.isInstanceOf[CustomerActor.Employee])))
+            assert(focusTab == "agreements")
+            assert(focusCid.contains(b2bCust.id))
+            assert(agrHtml.contains("mp-dt-table"))
+            assert(promoHtml.contains("Lifecycle"))
+            assert(plHtml.contains("mp-dt-table"))
+            assert(!plHtml.contains("‹") && !plHtml.contains("›"))
+            assert(!plCsHtml.contains("‹") && !plCsHtml.contains("›"))
+          }
         }
-      },
-      test("Artwork management in Backoffice: OrderDetail preview/download/copy-link/revisions/staff-upload and Customer Detail Artworks tab (EN & CS)") {
+      }
+
+      "Artwork management in Backoffice: OrderDetail preview/download/copy-link/revisions/staff-upload and Customer Detail Artworks tab (EN & CS)" in {
         import mpbuilder.customers.sample.SampleCustomers
         import mpbuilder.ui.components.ArtworkComponents
 
@@ -389,26 +386,26 @@ object BackofficeUiSpec extends ZIOSpecDefault:
             custCs <- renderHtml(boUi, i18n)
             _      <- I18n.let(i18n.handle)(bo.navigate(AdminRoute.OrderDetail(ord2Id)))
             odCs   <- renderHtml(boUi, i18n)
-          yield assertTrue(
-            odEn0.contains("mp-art-thumb"),
-            odEn0.contains("data-mp-download-url"),
-            odEn0.contains("data-mp-copy-url"),
-            odEn0.contains("Upload Prepress Fix"),
-            odEn0.contains("Revision History ("),
-            odEn0.contains("Re-run Preflight"),
-            odEn0.contains("Preview"),
-            updated.revisionCount == art0.revisionCount + 1,
-            rerun.revisionCount == updated.revisionCount,
-            rerun.latestRevision.preflight.isDefined,
-            prevHtml.contains("mp-art-preview-modal"),
-            prevHtml.contains("Order #0902 · Main"),
-            selDet.exists(_.artworks.nonEmpty),
-            selDet.exists(_.artworks.exists(_.orderId == ord2Id)),
-            !odEn0.contains("‹") && !odEn0.contains("›"),
-            !odCs.contains("‹") && !odCs.contains("›"),
-            !custEn.contains("‹") && !custEn.contains("›"),
-            !custCs.contains("‹") && !custCs.contains("›"),
-          )
+          yield {
+            assert(odEn0.contains("mp-art-thumb"))
+            assert(odEn0.contains("data-mp-download-url"))
+            assert(odEn0.contains("data-mp-copy-url"))
+            assert(odEn0.contains("Upload Prepress Fix"))
+            assert(odEn0.contains("Revision History ("))
+            assert(odEn0.contains("Re-run Preflight"))
+            assert(odEn0.contains("Preview"))
+            assert(updated.revisionCount == art0.revisionCount + 1)
+            assert(rerun.revisionCount == updated.revisionCount)
+            assert(rerun.latestRevision.preflight.isDefined)
+            assert(prevHtml.contains("mp-art-preview-modal"))
+            assert(prevHtml.contains("Order #0902 · Main"))
+            assert(selDet.exists(_.artworks.nonEmpty))
+            assert(selDet.exists(_.artworks.exists(_.orderId == ord2Id)))
+            assert(!odEn0.contains("‹") && !odEn0.contains("›"))
+            assert(!odCs.contains("‹") && !odCs.contains("›"))
+            assert(!custEn.contains("‹") && !custEn.contains("›"))
+            assert(!custCs.contains("‹") && !custCs.contains("›"))
+          }
         }
-      },
-    )
+      }
+  }

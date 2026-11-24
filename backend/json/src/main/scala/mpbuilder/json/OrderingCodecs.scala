@@ -1,50 +1,46 @@
 package mpbuilder.json
 
-import com.github.plokhotnyuk.jsoniter_scala.core.*
-import com.github.plokhotnyuk.jsoniter_scala.macros.*
+import kyo.*
 import mpbuilder.json.JsonSupport.*
+import mpbuilder.shared.*
 import mpbuilder.json.SharedCodecs.given
+import mpbuilder.json.JsonSupport.given
 import mpbuilder.ordering.*
-import zio.NonEmptyChunk
 
-/** Codecs for the public `ordering` model (cart, checkout, orders, delivery settings). */
+/** Schemas for the public `ordering` model (cart, checkout, orders, delivery settings). */
 object OrderingCodecs:
-  given JsonValueCodec[OrderLineId]      = stringCodec("OrderLineId")(OrderLineId(_))(_.value)
-  given JsonValueCodec[OrderNumber]      = stringCodec("OrderNumber")(OrderNumber(_))(_.value)
-  given JsonValueCodec[DeliveryOptionId] = stringCodec("DeliveryOptionId")(DeliveryOptionId(_))(_.value)
+  given Schema[OrderLineId]      = stringOpaque("OrderLineId")(OrderLineId(_))(_.value)
+  given Schema[OrderNumber]      = stringOpaque("OrderNumber")(OrderNumber(_))(_.value)
+  given Schema[DeliveryOptionId] = stringOpaque("DeliveryOptionId")(DeliveryOptionId(_))(_.value)
 
-  given necComponentSnapshot: JsonValueCodec[NonEmptyChunk[ComponentSnapshot]] =
-    nonEmptyChunkCodec(JsonCodecMaker.make[List[ComponentSnapshot]](config), "ComponentSnapshot list")
-  given necOrderLine: JsonValueCodec[NonEmptyChunk[OrderLine]] =
-    nonEmptyChunkCodec(JsonCodecMaker.make[List[OrderLine]](config), "OrderLine list")
 
-  given JsonValueCodec[ProductSnapshot]       = JsonCodecMaker.make(config)
-  given JsonValueCodec[LinePriceSnapshot]     = JsonCodecMaker.make(config)
-  given JsonValueCodec[AppliedPromoSnapshot]  = JsonCodecMaker.make(config)
-  given JsonValueCodec[ShopPickupLocation]    = JsonCodecMaker.make(config)
-  given JsonValueCodec[CourierServiceOption]  = JsonCodecMaker.make(config)
-  given JsonValueCodec[BankAccountConfig]     = JsonCodecMaker.make(config)
-  given JsonValueCodec[DeliveryOptionChoice]  = JsonCodecMaker.make(config)
-  given JsonValueCodec[DeliveryOptionQuote]   = JsonCodecMaker.make(config)
-  given JsonValueCodec[PaymentOption]         = JsonCodecMaker.make(config)
-  given JsonValueCodec[PaymentInstructions]   = JsonCodecMaker.make(config)
-  given JsonValueCodec[CartLine]              = JsonCodecMaker.make(config)
-  given JsonValueCodec[CartView]              = JsonCodecMaker.make(config)
-  given JsonValueCodec[OrderCustomerSnapshot] = JsonCodecMaker.make(config)
-  given JsonValueCodec[DeliverySelection]     = JsonCodecMaker.make(config)
-  given JsonValueCodec[PaymentMethod]         = JsonCodecMaker.make(config)
-  given JsonValueCodec[PaymentStatus]         = JsonCodecMaker.make(config)
-  given JsonValueCodec[PaymentRecord]         = JsonCodecMaker.make(config)
-  given JsonValueCodec[OrderStatus]           = JsonCodecMaker.make(config)
-  given JsonValueCodec[OrderStatusKind]       = JsonCodecMaker.make(config)
-  given JsonValueCodec[OrderActor]            = JsonCodecMaker.make(config)
-  given JsonValueCodec[OrderStatusEvent]      = JsonCodecMaker.make(config)
-  given JsonValueCodec[OrderInternalNote]     = JsonCodecMaker.make(config)
-  given JsonValueCodec[OrderFilter]           = JsonCodecMaker.make(config)
-  given JsonValueCodec[OrderPriority]         = JsonCodecMaker.make(config)
-  given JsonValueCodec[OrderLine]             = JsonCodecMaker.make(config)
-  given JsonValueCodec[OrderTotals]           = JsonCodecMaker.make(config)
-  given JsonValueCodec[OrderView]             = JsonCodecMaker.make(config)
-  given JsonValueCodec[PlaceOrderCmd]         = JsonCodecMaker.make(config)
-  given JsonValueCodec[EditOrderLineCmd]      = JsonCodecMaker.make(config)
-  given JsonValueCodec[OrderError]            = JsonCodecMaker.make(config)
+  given Schema[ProductSnapshot]       = Schema.derived
+  given Schema[LinePriceSnapshot]     = Schema.derived
+  given Schema[AppliedPromoSnapshot]  = Schema.derived
+  given Schema[ShopPickupLocation]    = Schema.derived
+  given Schema[CourierServiceOption]  = Schema.derived
+  given Schema[BankAccountConfig]     = Schema.derived
+  given Schema[DeliveryOptionChoice]  = Schema.derived
+  given Schema[DeliveryOptionQuote]   = Schema.derived
+  given Schema[PaymentOption]         = Schema.derived
+  given Schema[PaymentInstructions]   = Schema.derived
+  given Schema[CartLine]              = Schema.derived
+  given Schema[CartView]              = Schema.derived
+  given Schema[OrderCustomerSnapshot] = Schema.derived
+  given Schema[DeliverySelection]     = Schema.derived
+  given Schema[PaymentMethod]         = Schema.derived
+  given Schema[PaymentStatus]         = Schema.derived
+  given Schema[PaymentRecord]         = Schema.derived
+  given Schema[OrderStatus]           = Schema.derived
+  given Schema[OrderStatusKind]       = Schema.derived
+  given Schema[OrderActor]            = Schema.derived
+  given Schema[OrderStatusEvent]      = Schema.derived
+  given Schema[OrderInternalNote]     = Schema.derived
+  given Schema[OrderFilter]           = Schema.derived
+  given Schema[OrderPriority]         = Schema.derived
+  given Schema[OrderLine]             = Schema.derived
+  given Schema[OrderTotals]           = Schema.derived
+  given Schema[OrderView]             = Schema.derived
+  given Schema[PlaceOrderCmd]         = Schema.derived
+  given Schema[EditOrderLineCmd]      = Schema.derived
+  given Schema[OrderError]            = Schema.derived

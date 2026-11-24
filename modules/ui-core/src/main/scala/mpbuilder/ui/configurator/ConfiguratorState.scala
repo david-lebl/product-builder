@@ -9,7 +9,6 @@ import mpbuilder.storefront.*
 import mpbuilder.ui.components.{ArtworkComponents, BrowserPickedFile}
 import mpbuilder.ui.i18n.AppI18n
 import mpbuilder.ui.port.StorefrontClient
-import zio.NonEmptyChunk
 
 /** Mutable-friendly draft state for a single component inside the product configurator. */
 final case class DraftComponent(

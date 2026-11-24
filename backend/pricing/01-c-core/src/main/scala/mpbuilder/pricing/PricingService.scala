@@ -1,7 +1,7 @@
 package mpbuilder.pricing
 
 import mpbuilder.shared.*
-import zio.*
+import kyo.*
 import java.time.Instant
 
 // ── Domain Events ────────────────────────────────────────────────────────────
@@ -37,25 +37,21 @@ final case class EvaluatePromoCmd(
 )
 
 trait PricingService:
-  def quote(cmd: PriceQuoteCmd): IO[PricingError, PriceQuote]
-  def analyzeMargin(cmd: PriceQuoteCmd, lowMarginThreshold: Percentage = Percentage.unsafe(BigDecimal(15))): IO[PricingError, MarginAnalysis]
-  def evaluatePromoCode(cmd: EvaluatePromoCmd): IO[PricingError, PromoEvaluation]
-  def redeemPromoCode(codeId: DiscountCodeId): IO[PricingError, Unit]
-  def speedMultipliers(currency: Currency): IO[PricingError.PricelistNotFound, List[SpeedMultiplierSummary]]
+  def quote(cmd: PriceQuoteCmd): PriceQuote < (Async & Abort[PricingError])
+  def analyzeMargin(cmd: PriceQuoteCmd, lowMarginThreshold: Percentage = Percentage.unsafe(BigDecimal(15))): MarginAnalysis < (Async & Abort[PricingError])
+  def evaluatePromoCode(cmd: EvaluatePromoCmd): PromoEvaluation < (Async & Abort[PricingError])
+  def redeemPromoCode(codeId: DiscountCodeId): Unit < (Async & Abort[PricingError])
+  def speedMultipliers(currency: Currency): List[SpeedMultiplierSummary] < (Async & Abort[PricingError.PricelistNotFound])
 
   // ── Pricing Administration ─────────────────────────────────────────────────
-  def listPricelists: UIO[List[Pricelist]]
-  def savePricelist(pricelist: Pricelist): IO[PricingError, Pricelist]
-  def listAgreements: UIO[List[CustomerPriceAgreement]]
-  def saveAgreement(agreement: CustomerPriceAgreement): IO[PricingError, CustomerPriceAgreement]
-  def deleteAgreement(target: AgreementTarget, currency: Currency): UIO[Unit]
-  def listPromoCodes: UIO[List[PromoCode]]
-  def savePromoCode(promo: PromoCode): IO[PricingError, PromoCode]
-  def setPromoCodeActive(id: DiscountCodeId, active: Boolean): IO[PricingError, PromoCode]
-  def deletePromoCode(id: DiscountCodeId): UIO[Unit]
-  def listCostSheets: UIO[List[ProductionCostSheet]]
-  def saveCostSheet(sheet: ProductionCostSheet): IO[PricingError, ProductionCostSheet]
-
-object PricingService:
-  def quote(cmd: PriceQuoteCmd): ZIO[PricingService, PricingError, PriceQuote] =
-    ZIO.serviceWithZIO[PricingService](_.quote(cmd))
+  def listPricelists: List[Pricelist] < Async
+  def savePricelist(pricelist: Pricelist): Pricelist < (Async & Abort[PricingError])
+  def listAgreements: List[CustomerPriceAgreement] < Async
+  def saveAgreement(agreement: CustomerPriceAgreement): CustomerPriceAgreement < (Async & Abort[PricingError])
+  def deleteAgreement(target: AgreementTarget, currency: Currency): Unit < Async
+  def listPromoCodes: List[PromoCode] < Async
+  def savePromoCode(promo: PromoCode): PromoCode < (Async & Abort[PricingError])
+  def setPromoCodeActive(id: DiscountCodeId, active: Boolean): PromoCode < (Async & Abort[PricingError])
+  def deletePromoCode(id: DiscountCodeId): Unit < Async
+  def listCostSheets: List[ProductionCostSheet] < Async
+  def saveCostSheet(sheet: ProductionCostSheet): ProductionCostSheet < (Async & Abort[PricingError])

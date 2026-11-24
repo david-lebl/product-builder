@@ -2,28 +2,28 @@ package mpbuilder.catalog
 package core
 
 import mpbuilder.shared.*
-import zio.*
+import kyo.*
 
-/** Live ZIO implementation of `CatalogService` (compile-time isolated inside `catalog`). */
+/** Live Kyo implementation of `CatalogService` (compile-time isolated inside `catalog`). */
 private[catalog] final class CatalogServiceLive(
     repo: CatalogRepository,
 ) extends CatalogService:
 
-  override def getCatalog: UIO[ProductCatalog] =
+  override def getCatalog: ProductCatalog < Async =
     repo.loadCatalog
 
-  override def getCategory(id: CategoryId): IO[CatalogError.CategoryNotFound, ProductCategory] =
-    repo.loadCatalog.flatMap(c => ZIO.fromOption(c.categories.get(id)).orElseFail(CatalogError.CategoryNotFound(id)))
+  override def getCategory(id: CategoryId): ProductCategory < (Async & Abort[CatalogError.CategoryNotFound]) =
+    repo.loadCatalog.flatMap(c => c.categories.get(id).orFail(CatalogError.CategoryNotFound(id)))
 
-  override def getMaterial(id: MaterialId): IO[CatalogError.MaterialNotFound, Material] =
-    repo.loadCatalog.flatMap(c => ZIO.fromOption(c.materials.get(id)).orElseFail(CatalogError.MaterialNotFound(id)))
+  override def getMaterial(id: MaterialId): Material < (Async & Abort[CatalogError.MaterialNotFound]) =
+    repo.loadCatalog.flatMap(c => c.materials.get(id).orFail(CatalogError.MaterialNotFound(id)))
 
-  override def getFinish(id: FinishId): IO[CatalogError.FinishNotFound, Finish] =
-    repo.loadCatalog.flatMap(c => ZIO.fromOption(c.finishes.get(id)).orElseFail(CatalogError.FinishNotFound(id)))
+  override def getFinish(id: FinishId): Finish < (Async & Abort[CatalogError.FinishNotFound]) =
+    repo.loadCatalog.flatMap(c => c.finishes.get(id).orFail(CatalogError.FinishNotFound(id)))
 
-  override def getPrintingMethod(id: PrintingMethodId): IO[CatalogError.PrintingMethodNotFound, PrintingMethod] =
+  override def getPrintingMethod(id: PrintingMethodId): PrintingMethod < (Async & Abort[CatalogError.PrintingMethodNotFound]) =
     repo.loadCatalog.flatMap(c =>
-      ZIO.fromOption(c.printingMethods.get(id)).orElseFail(CatalogError.PrintingMethodNotFound(id))
+      c.printingMethods.get(id).orFail(CatalogError.PrintingMethodNotFound(id))
     )
 
   override def compatibleFinishes(
@@ -32,16 +32,15 @@ private[catalog] final class CatalogServiceLive(
       materialId: MaterialId,
       printingMethodId: Option[PrintingMethodId],
       alreadySelectedFinishIds: Set[FinishId],
-  ): IO[CatalogError, List[Finish]] =
+  ): List[Finish] < (Async & Abort[CatalogError]) =
     for
       catalog  <- repo.loadCatalog
       ruleset  <- repo.loadRuleset
-      category <- ZIO.fromOption(catalog.categories.get(categoryId)).orElseFail(CatalogError.CategoryNotFound(categoryId))
-      template <- ZIO.fromOption(category.templateFor(componentKey))
-                    .orElseFail(CatalogError.UnexpectedComponent(categoryId, componentKey))
-      material <- ZIO.fromOption(catalog.materials.get(materialId)).orElseFail(CatalogError.MaterialNotFound(materialId))
-      pmOpt    <- ZIO.foreach(printingMethodId)(id =>
-                    ZIO.fromOption(catalog.printingMethods.get(id)).orElseFail(CatalogError.PrintingMethodNotFound(id))
+      category <- catalog.categories.get(categoryId).orFail(CatalogError.CategoryNotFound(categoryId))
+      template <- category.templateFor(componentKey).orFail(CatalogError.UnexpectedComponent(categoryId, componentKey))
+      material <- catalog.materials.get(materialId).orFail(CatalogError.MaterialNotFound(materialId))
+      pmOpt    <- Effects.traverse(printingMethodId)(id =>
+                    catalog.printingMethods.get(id).orFail(CatalogError.PrintingMethodNotFound(id))
                   )
       existing  = alreadySelectedFinishIds.toList.flatMap(catalog.finishes.get).map { f =>
                     val side = f.sidePolicy match
@@ -61,38 +60,37 @@ private[catalog] final class CatalogServiceLive(
       componentKey: ComponentKey,
       materialId: MaterialId,
       printingMethodId: Option[PrintingMethodId],
-  ): IO[CatalogError, Map[FinishType, BigDecimal]] =
+  ): Map[FinishType, BigDecimal] < (Async & Abort[CatalogError]) =
     for
       catalog  <- repo.loadCatalog
       ruleset  <- repo.loadRuleset
-      category <- ZIO.fromOption(catalog.categories.get(categoryId)).orElseFail(CatalogError.CategoryNotFound(categoryId))
-      _        <- ZIO.fromOption(category.templateFor(componentKey))
-                    .orElseFail(CatalogError.UnexpectedComponent(categoryId, componentKey))
-      material <- ZIO.fromOption(catalog.materials.get(materialId)).orElseFail(CatalogError.MaterialNotFound(materialId))
-      pmOpt    <- ZIO.foreach(printingMethodId)(id =>
-                    ZIO.fromOption(catalog.printingMethods.get(id)).orElseFail(CatalogError.PrintingMethodNotFound(id))
+      category <- catalog.categories.get(categoryId).orFail(CatalogError.CategoryNotFound(categoryId))
+      _        <- category.templateFor(componentKey).orFail(CatalogError.UnexpectedComponent(categoryId, componentKey))
+      material <- catalog.materials.get(materialId).orFail(CatalogError.MaterialNotFound(materialId))
+      pmOpt    <- Effects.traverse(printingMethodId)(id =>
+                    catalog.printingMethods.get(id).orFail(CatalogError.PrintingMethodNotFound(id))
                   )
     yield RuleEngine.finishParameterLimits(ruleset, categoryId, componentKey, material, pmOpt)
 
-  override def configure(cmd: ConfigureProductCmd): IO[CatalogError, ConfigurationResult] =
+  override def configure(cmd: ConfigureProductCmd): ConfigurationResult < (Async & Abort[CatalogError]) =
     for
       catalog <- repo.loadCatalog
       ruleset <- repo.loadRuleset
       result  <- ConfigurationEngine.configure(cmd, catalog, ruleset).fold(
-                   errors => ZIO.fail(
+                   errors => Abort.fail(
                      if errors.size == 1 then errors.head
                      else CatalogError.ConfigurationValidationFailed(errors)
                    ),
-                   ZIO.succeed(_),
+                   Kyo.lift(_),
                  )
     yield result
 
   // ── Catalog & Ruleset Administration ───────────────────────────────────────
 
-  override def getRuleset: UIO[CompatibilityRuleset] =
+  override def getRuleset: CompatibilityRuleset < Async =
     repo.loadRuleset
 
-  override def upsertCategory(category: ProductCategory): IO[CatalogError, ProductCatalog] =
+  override def upsertCategory(category: ProductCategory): ProductCatalog < (Async & Abort[CatalogError]) =
     for
       cat <- repo.loadCatalog
       next = cat.copy(
@@ -102,10 +100,10 @@ private[catalog] final class CatalogServiceLive(
       _   <- repo.saveCatalog(next)
     yield next
 
-  override def deleteCategory(id: CategoryId): IO[CatalogError, ProductCatalog] =
+  override def deleteCategory(id: CategoryId): ProductCatalog < (Async & Abort[CatalogError]) =
     for
       cat <- repo.loadCatalog
-      _   <- ZIO.fail(CatalogError.CategoryNotFound(id)).unless(cat.categories.contains(id))
+      _   <- Effects.failUnless(cat.categories.contains(id))(CatalogError.CategoryNotFound(id))
       next = cat.copy(
                version = bumpVersion(cat.version),
                categories = cat.categories - id,
@@ -114,7 +112,7 @@ private[catalog] final class CatalogServiceLive(
       _   <- repo.saveCatalog(next)
     yield next
 
-  override def upsertMaterial(material: Material): IO[CatalogError, ProductCatalog] =
+  override def upsertMaterial(material: Material): ProductCatalog < (Async & Abort[CatalogError]) =
     for
       cat <- repo.loadCatalog
       next = cat.copy(
@@ -124,14 +122,14 @@ private[catalog] final class CatalogServiceLive(
       _   <- repo.saveCatalog(next)
     yield next
 
-  override def deleteMaterial(id: MaterialId): IO[CatalogError, ProductCatalog] =
+  override def deleteMaterial(id: MaterialId): ProductCatalog < (Async & Abort[CatalogError]) =
     for
       cat <- repo.loadCatalog
-      _   <- ZIO.fail(CatalogError.MaterialNotFound(id)).unless(cat.materials.contains(id))
+      _   <- Effects.failUnless(cat.materials.contains(id))(CatalogError.MaterialNotFound(id))
       refs = cat.categories.values.toList
                .filter(_.components.exists(_.allowedMaterialIds.contains(id)))
                .map(_.id.value)
-      _   <- ZIO.fail(CatalogError.EntityInUse("Material", id.value, refs)).when(refs.nonEmpty)
+      _   <- Effects.failWhen(refs.nonEmpty)(CatalogError.EntityInUse("Material", id.value, refs))
       next = cat.copy(
                version = bumpVersion(cat.version),
                materials = cat.materials - id,
@@ -139,7 +137,7 @@ private[catalog] final class CatalogServiceLive(
       _   <- repo.saveCatalog(next)
     yield next
 
-  override def upsertFinish(finish: Finish): IO[CatalogError, ProductCatalog] =
+  override def upsertFinish(finish: Finish): ProductCatalog < (Async & Abort[CatalogError]) =
     for
       cat <- repo.loadCatalog
       next = cat.copy(
@@ -149,14 +147,14 @@ private[catalog] final class CatalogServiceLive(
       _   <- repo.saveCatalog(next)
     yield next
 
-  override def deleteFinish(id: FinishId): IO[CatalogError, ProductCatalog] =
+  override def deleteFinish(id: FinishId): ProductCatalog < (Async & Abort[CatalogError]) =
     for
       cat <- repo.loadCatalog
-      _   <- ZIO.fail(CatalogError.FinishNotFound(id)).unless(cat.finishes.contains(id))
+      _   <- Effects.failUnless(cat.finishes.contains(id))(CatalogError.FinishNotFound(id))
       refs = cat.categories.values.toList
                .filter(_.components.exists(_.allowedFinishIds.contains(id)))
                .map(_.id.value)
-      _   <- ZIO.fail(CatalogError.EntityInUse("Finish", id.value, refs)).when(refs.nonEmpty)
+      _   <- Effects.failWhen(refs.nonEmpty)(CatalogError.EntityInUse("Finish", id.value, refs))
       next = cat.copy(
                version = bumpVersion(cat.version),
                finishes = cat.finishes - id,
@@ -164,7 +162,7 @@ private[catalog] final class CatalogServiceLive(
       _   <- repo.saveCatalog(next)
     yield next
 
-  override def upsertPrintingMethod(method: PrintingMethod): IO[CatalogError, ProductCatalog] =
+  override def upsertPrintingMethod(method: PrintingMethod): ProductCatalog < (Async & Abort[CatalogError]) =
     for
       cat <- repo.loadCatalog
       next = cat.copy(
@@ -174,14 +172,14 @@ private[catalog] final class CatalogServiceLive(
       _   <- repo.saveCatalog(next)
     yield next
 
-  override def deletePrintingMethod(id: PrintingMethodId): IO[CatalogError, ProductCatalog] =
+  override def deletePrintingMethod(id: PrintingMethodId): ProductCatalog < (Async & Abort[CatalogError]) =
     for
       cat <- repo.loadCatalog
-      _   <- ZIO.fail(CatalogError.PrintingMethodNotFound(id)).unless(cat.printingMethods.contains(id))
+      _   <- Effects.failUnless(cat.printingMethods.contains(id))(CatalogError.PrintingMethodNotFound(id))
       refs = cat.categories.values.toList
                .filter(_.components.exists(_.allowedPrintingMethodIds.contains(id)))
                .map(_.id.value)
-      _   <- ZIO.fail(CatalogError.EntityInUse("PrintingMethod", id.value, refs)).when(refs.nonEmpty)
+      _   <- Effects.failWhen(refs.nonEmpty)(CatalogError.EntityInUse("PrintingMethod", id.value, refs))
       next = cat.copy(
                version = bumpVersion(cat.version),
                printingMethods = cat.printingMethods - id,
@@ -189,10 +187,10 @@ private[catalog] final class CatalogServiceLive(
       _   <- repo.saveCatalog(next)
     yield next
 
-  override def upsertShowcaseListing(listing: ShowcaseListing): IO[CatalogError, ProductCatalog] =
+  override def upsertShowcaseListing(listing: ShowcaseListing): ProductCatalog < (Async & Abort[CatalogError]) =
     for
       cat <- repo.loadCatalog
-      _   <- ZIO.fail(CatalogError.CategoryNotFound(listing.categoryId)).unless(cat.categories.contains(listing.categoryId))
+      _   <- Effects.failUnless(cat.categories.contains(listing.categoryId))(CatalogError.CategoryNotFound(listing.categoryId))
       next = cat.copy(
                version = bumpVersion(cat.version),
                showcases = cat.showcases + (listing.categoryId -> listing),
@@ -200,7 +198,7 @@ private[catalog] final class CatalogServiceLive(
       _   <- repo.saveCatalog(next)
     yield next
 
-  override def deleteShowcaseListing(categoryId: CategoryId): IO[CatalogError, ProductCatalog] =
+  override def deleteShowcaseListing(categoryId: CategoryId): ProductCatalog < (Async & Abort[CatalogError]) =
     for
       cat <- repo.loadCatalog
       next = cat.copy(
@@ -210,7 +208,7 @@ private[catalog] final class CatalogServiceLive(
       _   <- repo.saveCatalog(next)
     yield next
 
-  override def upsertRule(rule: CompatibilityRule): IO[CatalogError, CompatibilityRuleset] =
+  override def upsertRule(rule: CompatibilityRule): CompatibilityRuleset < (Async & Abort[CatalogError]) =
     for
       rs <- repo.loadRuleset
       updated = if rs.rules.exists(_.id == rule.id) then rs.rules.map(r => if r.id == rule.id then rule else r)
@@ -219,10 +217,10 @@ private[catalog] final class CatalogServiceLive(
       _   <- repo.saveRuleset(next)
     yield next
 
-  override def deleteRule(id: RuleId): IO[CatalogError, CompatibilityRuleset] =
+  override def deleteRule(id: RuleId): CompatibilityRuleset < (Async & Abort[CatalogError]) =
     for
       rs <- repo.loadRuleset
-      _  <- ZIO.fail(CatalogError.RuleNotFound(id)).unless(rs.rules.exists(_.id == id))
+      _  <- Effects.failUnless(rs.rules.exists(_.id == id))(CatalogError.RuleNotFound(id))
       next = rs.copy(version = bumpVersion(rs.version), rules = rs.rules.filterNot(_.id == id))
       _   <- repo.saveRuleset(next)
     yield next
@@ -240,5 +238,4 @@ private[catalog] final class CatalogServiceLive(
         case None    => Version.unsafe(s"$raw.1")
 
 private[catalog] object CatalogServiceLive:
-  val layer: ZLayer[CatalogRepository, Nothing, CatalogService] =
-    ZLayer.fromFunction(CatalogServiceLive.apply)
+  def make(repo: CatalogRepository): CatalogService = new CatalogServiceLive(repo)

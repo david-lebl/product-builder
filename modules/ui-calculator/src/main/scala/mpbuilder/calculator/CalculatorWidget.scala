@@ -80,16 +80,7 @@ object CalculatorWidget:
       case None       => bootSampleClient
 
   private def bootSampleClient: StorefrontClient < Async =
-    val bootZio: zio.UIO[(StorefrontFacade, InMemoryOtpInbox)] =
-      zio.ZIO.scoped {
-        SampleShowcaseRuntime.layer().build.map { env =>
-          (env.get[StorefrontFacade], env.get[InMemoryOtpInbox])
-        }
-      }
-    Abort.run[Nothing](ZIOs.get(bootZio)).map { res =>
-      val (facade, otpInbox) = res.getOrThrow
-      StorefrontClient.fromZio(facade, otpInbox.codeFor)
-    }
+    SampleShowcaseRuntime.make().map(rt => StorefrontClient.fromFacade(rt.storefront, rt.otpInbox.codeFor))
 
   private def copyToClipboard(text: String): Unit < Sync =
     Sync.defer {

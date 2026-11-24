@@ -50,5 +50,5 @@ enum CatalogError(val message: String):
       extends CatalogError(s"Rule '${ruleId.value}' not found")
   case EntityInUse(entityType: String, entityId: String, usedBy: List[String])
       extends CatalogError(s"Cannot delete $entityType '$entityId': still referenced by ${usedBy.mkString(", ")}")
-  case ConfigurationValidationFailed(errors: zio.NonEmptyChunk[CatalogError])
+  case ConfigurationValidationFailed(errors: NonEmptyChunk[CatalogError])
       extends CatalogError(s"Configuration failed with ${errors.size} error(s): ${errors.map(_.message).mkString("; ")}")

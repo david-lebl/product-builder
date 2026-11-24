@@ -8,7 +8,7 @@ import mpbuilder.manufacturing.ManufacturingService
 import mpbuilder.ordering.*
 import mpbuilder.pricing.*
 import mpbuilder.shared.*
-import zio.*
+import kyo.*
 import java.time.ZoneOffset
 
 /** Storefront BFF / Application Orchestration Facade for the Product Builder frontend.
@@ -26,8 +26,8 @@ trait StorefrontFacade:
 
   // ── Catalog & Product Builder ──────────────────────────────────────────────
 
-  def getCatalog: UIO[ProductCatalog]
-  def listShowcaseListings: UIO[List[ShowcaseListing]]
+  def getCatalog: ProductCatalog < Async
+  def listShowcaseListings: List[ShowcaseListing] < Async
 
   def compatibleFinishes(
       categoryId: CategoryId,
@@ -35,14 +35,14 @@ trait StorefrontFacade:
       materialId: MaterialId,
       printingMethodId: Option[PrintingMethodId],
       alreadySelectedFinishIds: Set[FinishId] = Set.empty,
-  ): IO[StorefrontError, List[Finish]]
+  ): List[Finish] < (Async & Abort[StorefrontError])
 
   def finishParameterLimits(
       categoryId: CategoryId,
       componentKey: ComponentKey,
       materialId: MaterialId,
       printingMethodId: Option[PrintingMethodId],
-  ): IO[StorefrontError, Map[FinishType, BigDecimal]]
+  ): Map[FinishType, BigDecimal] < (Async & Abort[StorefrontError])
 
   def configureAndQuote(
       cmd: ConfigureProductCmd,
@@ -51,7 +51,7 @@ trait StorefrontFacade:
       sessionToken: Option[SessionToken] = None,
       promoCode: Option[String] = None,
       lang: Language = Language.En,
-  ): IO[StorefrontError, ProductBuilderQuoteResult]
+  ): ProductBuilderQuoteResult < (Async & Abort[StorefrontError])
 
   def pricePreset(
       categoryId: CategoryId,
@@ -61,15 +61,15 @@ trait StorefrontFacade:
       specsOverride: Option[ProductSpecs] = None,
       sessionToken: Option[SessionToken] = None,
       lang: Language = Language.En,
-  ): IO[StorefrontError, ProductBuilderQuoteResult]
+  ): ProductBuilderQuoteResult < (Async & Abort[StorefrontError])
 
   // ── Authentication & Session ───────────────────────────────────────────────
 
-  def loginWithPassword(email: EmailAddress, rawPassword: NonEmptyString): IO[StorefrontError, AuthResult]
-  def requestCustomerOtp(identifier: LoginIdentifier): IO[StorefrontError, OtpChallengeView]
-  def verifyOtp(challengeId: OtpChallengeId, code: OtpCode): IO[StorefrontError, AuthResult]
-  def currentCustomer(sessionToken: SessionToken): IO[StorefrontError, CustomerView]
-  def logout(sessionToken: SessionToken): UIO[Unit]
+  def loginWithPassword(email: EmailAddress, rawPassword: NonEmptyString): AuthResult < (Async & Abort[StorefrontError])
+  def requestCustomerOtp(identifier: LoginIdentifier): OtpChallengeView < (Async & Abort[StorefrontError])
+  def verifyOtp(challengeId: OtpChallengeId, code: OtpCode): AuthResult < (Async & Abort[StorefrontError])
+  def currentCustomer(sessionToken: SessionToken): CustomerView < (Async & Abort[StorefrontError])
+  def logout(sessionToken: SessionToken): Unit < Async
 
   // ── Shopping Cart ──────────────────────────────────────────────────────────
 
@@ -77,7 +77,7 @@ trait StorefrontFacade:
       cartId: CartId,
       currency: Currency,
       sessionToken: Option[SessionToken] = None,
-  ): IO[StorefrontError, CartView]
+  ): CartView < (Async & Abort[StorefrontError])
 
   def addConfiguredProductToCart(
       cartId: CartId,
@@ -87,20 +87,20 @@ trait StorefrontFacade:
       copies: Quantity = Quantity.one,
       sessionToken: Option[SessionToken] = None,
       artworkIds: Map[ComponentKey, ArtworkId] = Map.empty,
-  ): IO[StorefrontError, CartView]
+  ): CartView < (Async & Abort[StorefrontError])
 
-  def updateCartLineCopies(cartId: CartId, lineId: OrderLineId, copies: Quantity): IO[StorefrontError, CartView]
-  def removeCartLine(cartId: CartId, lineId: OrderLineId): IO[StorefrontError, CartView]
-  def clearCart(cartId: CartId): IO[StorefrontError, CartView]
+  def updateCartLineCopies(cartId: CartId, lineId: OrderLineId, copies: Quantity): CartView < (Async & Abort[StorefrontError])
+  def removeCartLine(cartId: CartId, lineId: OrderLineId): CartView < (Async & Abort[StorefrontError])
+  def clearCart(cartId: CartId): CartView < (Async & Abort[StorefrontError])
 
   def applyCartPromo(
       cartId: CartId,
       promoCode: String,
       sessionToken: Option[SessionToken] = None,
-  ): IO[StorefrontError, CartView]
+  ): CartView < (Async & Abort[StorefrontError])
 
-  def removeCartPromo(cartId: CartId): IO[StorefrontError, CartView]
-  def getCart(cartId: CartId): IO[StorefrontError, CartView]
+  def removeCartPromo(cartId: CartId): CartView < (Async & Abort[StorefrontError])
+  def getCart(cartId: CartId): CartView < (Async & Abort[StorefrontError])
 
   // ── Checkout & Order History ───────────────────────────────────────────────
 
@@ -109,7 +109,7 @@ trait StorefrontFacade:
       currency: Currency,
       sessionToken: Option[SessionToken] = None,
       promoCode: Option[String] = None,
-  ): IO[StorefrontError, CheckoutOptionsView]
+  ): CheckoutOptionsView < (Async & Abort[StorefrontError])
 
   def previewCheckout(
       source: CheckoutSource,
@@ -117,11 +117,11 @@ trait StorefrontFacade:
       deliveryChoice: Option[DeliveryOptionChoice],
       sessionToken: Option[SessionToken] = None,
       promoCode: Option[String] = None,
-  ): IO[StorefrontError, CheckoutPreview]
+  ): CheckoutPreview < (Async & Abort[StorefrontError])
 
-  def submitCheckout(cmd: SubmitCheckoutCmd): IO[StorefrontError, CheckoutConfirmation]
+  def submitCheckout(cmd: SubmitCheckoutCmd): CheckoutConfirmation < (Async & Abort[StorefrontError])
 
-  def listMyOrders(sessionToken: SessionToken): IO[StorefrontError, List[OrderView]]
+  def listMyOrders(sessionToken: SessionToken): List[OrderView] < (Async & Abort[StorefrontError])
 
   // ── Customer Self-Service (Addresses, Payment Re-view, Artwork Upload/Re-upload) ──
 
@@ -130,12 +130,12 @@ trait StorefrontFacade:
       billingAddress: Address,
       shippingAddresses: List[Address],
       defaultShippingIndex: Option[Int],
-  ): IO[StorefrontError, CustomerView]
+  ): CustomerView < (Async & Abort[StorefrontError])
 
   def getOrderPaymentInstructions(
       sessionToken: SessionToken,
       orderId: OrderId,
-  ): IO[StorefrontError, PaymentInstructions]
+  ): PaymentInstructions < (Async & Abort[StorefrontError])
 
   def uploadDraftArtwork(
       sessionId: NonEmptyString,
@@ -143,14 +143,14 @@ trait StorefrontFacade:
       expectedTrimSize: Dimension2D,
       expectedPageCount: Option[Int] = None,
       payload: ArtworkUploadPayload,
-  ): IO[StorefrontError, ArtworkSubmissionView]
+  ): ArtworkSubmissionView < (Async & Abort[StorefrontError])
 
-  def deleteDraftArtwork(artworkId: ArtworkId): IO[StorefrontError, Unit]
+  def deleteDraftArtwork(artworkId: ArtworkId): Unit < (Async & Abort[StorefrontError])
 
   def listOrderArtworks(
       sessionToken: SessionToken,
       orderId: OrderId,
-  ): IO[StorefrontError, List[ArtworkSubmissionView]]
+  ): List[ArtworkSubmissionView] < (Async & Abort[StorefrontError])
 
   def uploadOrderLineArtwork(
       sessionToken: SessionToken,
@@ -158,14 +158,14 @@ trait StorefrontFacade:
       lineIndex: Int,
       componentKey: ComponentKey,
       payload: ArtworkUploadPayload,
-  ): IO[StorefrontError, ArtworkSubmissionView]
+  ): ArtworkSubmissionView < (Async & Abort[StorefrontError])
 
   def reuploadOrderArtworkPayload(
       sessionToken: SessionToken,
       orderId: OrderId,
       artworkId: ArtworkId,
       payload: ArtworkUploadPayload,
-  ): IO[StorefrontError, ArtworkSubmissionView]
+  ): ArtworkSubmissionView < (Async & Abort[StorefrontError])
 
   def reuploadOrderArtwork(
       sessionToken: SessionToken,
@@ -175,7 +175,7 @@ trait StorefrontFacade:
       resolutionDpi: Int = 300,
       bleedMm: Int = 3,
       colorSpace: ColorSpace = ColorSpace.CMYK,
-  ): IO[StorefrontError, ArtworkSubmissionView]
+  ): ArtworkSubmissionView < (Async & Abort[StorefrontError])
 
 final class StorefrontFacadeLive(
     catalogService: CatalogService,
@@ -191,10 +191,10 @@ final class StorefrontFacadeLive(
     blobStorage: BlobStorage,
 ) extends StorefrontFacade:
 
-  override def getCatalog: UIO[ProductCatalog] =
+  override def getCatalog: ProductCatalog < Async =
     catalogService.getCatalog
 
-  override def listShowcaseListings: UIO[List[ShowcaseListing]] =
+  override def listShowcaseListings: List[ShowcaseListing] < Async =
     catalogService.getCatalog.map(_.showcases.values.toList.sortBy(_.sortOrder))
 
   override def compatibleFinishes(
@@ -203,20 +203,20 @@ final class StorefrontFacadeLive(
       materialId: MaterialId,
       printingMethodId: Option[PrintingMethodId],
       alreadySelectedFinishIds: Set[FinishId],
-  ): IO[StorefrontError, List[Finish]] =
+  ): List[Finish] < (Async & Abort[StorefrontError]) =
     catalogService
       .compatibleFinishes(categoryId, componentKey, materialId, printingMethodId, alreadySelectedFinishIds)
-      .mapError(StorefrontError.CatalogFailure.apply)
+      .mapAbort(StorefrontError.CatalogFailure.apply)
 
   override def finishParameterLimits(
       categoryId: CategoryId,
       componentKey: ComponentKey,
       materialId: MaterialId,
       printingMethodId: Option[PrintingMethodId],
-  ): IO[StorefrontError, Map[FinishType, BigDecimal]] =
+  ): Map[FinishType, BigDecimal] < (Async & Abort[StorefrontError]) =
     catalogService
       .finishParameterLimits(categoryId, componentKey, materialId, printingMethodId)
-      .mapError(StorefrontError.CatalogFailure.apply)
+      .mapAbort(StorefrontError.CatalogFailure.apply)
 
   override def configureAndQuote(
       cmd: ConfigureProductCmd,
@@ -225,11 +225,11 @@ final class StorefrontFacadeLive(
       sessionToken: Option[SessionToken],
       promoCode: Option[String],
       lang: Language,
-  ): IO[StorefrontError, ProductBuilderQuoteResult] =
+  ): ProductBuilderQuoteResult < (Async & Abort[StorefrontError]) =
     for
       customerOpt  <- resolveOptionalCustomer(sessionToken)
       catalog      <- catalogService.getCatalog
-      cfgRes       <- catalogService.configure(cmd).mapError(StorefrontError.CatalogFailure.apply)
+      cfgRes       <- catalogService.configure(cmd).mapAbort(StorefrontError.CatalogFailure.apply)
       subject       = StorefrontTranslators.toPricingSubject(cfgRes.product, speed)
       effectiveQId <- nextQuoteId
       effectiveQ   <- pricingService
@@ -244,9 +244,9 @@ final class StorefrontFacadeLive(
                             promoCode = promoCode,
                           )
                         )
-                        .mapError(StorefrontError.PricingFailure.apply)
+                        .mapAbort(StorefrontError.PricingFailure.apply)
       walkInQOpt   <- customerOpt match
-                        case None => ZIO.none
+                        case None => Kyo.lift(None)
                         case Some(_) =>
                           for
                             baseQId <- nextQuoteId
@@ -259,7 +259,7 @@ final class StorefrontFacadeLive(
                                              promoCode = promoCode,
                                            )
                                          )
-                                         .mapError(StorefrontError.PricingFailure.apply)
+                                         .mapAbort(StorefrontError.PricingFailure.apply)
                           yield Some(baseQ)
       dualPricing   = buildDualPriceQuote(effectiveQ, walkInQOpt)
       speedOpts    <- evaluateSpeedOptions(cfgRes.product, currency)
@@ -274,10 +274,10 @@ final class StorefrontFacadeLive(
       specsOverride: Option[ProductSpecs],
       sessionToken: Option[SessionToken],
       lang: Language,
-  ): IO[StorefrontError, ProductBuilderQuoteResult] =
+  ): ProductBuilderQuoteResult < (Async & Abort[StorefrontError]) =
     for
-      cat    <- catalogService.getCategory(categoryId).mapError(StorefrontError.CatalogFailure.apply)
-      preset <- ZIO.fromOption(cat.presets.find(_.id == presetId)).orElseFail(StorefrontError.PresetNotFound(categoryId, presetId))
+      cat    <- catalogService.getCategory(categoryId).mapAbort(StorefrontError.CatalogFailure.apply)
+      preset <- (cat.presets.find(_.id == presetId)).orFail(StorefrontError.PresetNotFound(categoryId, presetId))
       seq    <- idSequence.next
       cmd     = StorefrontTranslators.presetToConfigureCmd(
                   configId = ConfigurationId.unsafe(s"cfg-${presetId.value}-$seq"),
@@ -290,29 +290,29 @@ final class StorefrontFacadeLive(
 
   // ── Auth ───────────────────────────────────────────────────────────────────
 
-  override def loginWithPassword(email: EmailAddress, rawPassword: NonEmptyString): IO[StorefrontError, AuthResult] =
+  override def loginWithPassword(email: EmailAddress, rawPassword: NonEmptyString): AuthResult < (Async & Abort[StorefrontError]) =
     for
-      session  <- identityService.loginWithPassword(email, rawPassword).mapError(StorefrontError.IdentityFailure.apply)
+      session  <- identityService.loginWithPassword(email, rawPassword).mapAbort(StorefrontError.IdentityFailure.apply)
       customer <- loadCustomerForPrincipal(session.principal)
     yield AuthResult(session, customer)
 
-  override def requestCustomerOtp(identifier: LoginIdentifier): IO[StorefrontError, OtpChallengeView] =
-    identityService.requestCustomerOtp(identifier).mapError(StorefrontError.IdentityFailure.apply)
+  override def requestCustomerOtp(identifier: LoginIdentifier): OtpChallengeView < (Async & Abort[StorefrontError]) =
+    identityService.requestCustomerOtp(identifier).mapAbort(StorefrontError.IdentityFailure.apply)
 
-  override def verifyOtp(challengeId: OtpChallengeId, code: OtpCode): IO[StorefrontError, AuthResult] =
+  override def verifyOtp(challengeId: OtpChallengeId, code: OtpCode): AuthResult < (Async & Abort[StorefrontError]) =
     for
-      session  <- identityService.verifyOtp(challengeId, code).mapError(StorefrontError.IdentityFailure.apply)
+      session  <- identityService.verifyOtp(challengeId, code).mapAbort(StorefrontError.IdentityFailure.apply)
       customer <- loadCustomerForPrincipal(session.principal)
     yield AuthResult(session, customer)
 
-  override def currentCustomer(sessionToken: SessionToken): IO[StorefrontError, CustomerView] =
+  override def currentCustomer(sessionToken: SessionToken): CustomerView < (Async & Abort[StorefrontError]) =
     for
-      session <- identityService.validateSession(sessionToken).mapError(StorefrontError.IdentityFailure.apply)
-      cid     <- ZIO.fromOption(session.principal.customerIdOpt).orElseFail(StorefrontError.NotACustomerSession)
-      cust    <- customerService.getById(cid).mapError(StorefrontError.CustomerFailure.apply)
+      session <- identityService.validateSession(sessionToken).mapAbort(StorefrontError.IdentityFailure.apply)
+      cid     <- session.principal.customerIdOpt.orFail(StorefrontError.NotACustomerSession)
+      cust    <- customerService.getById(cid).mapAbort(StorefrontError.CustomerFailure.apply)
     yield cust
 
-  override def logout(sessionToken: SessionToken): UIO[Unit] =
+  override def logout(sessionToken: SessionToken): Unit < Async =
     identityService.logout(sessionToken)
 
   // ── Cart ───────────────────────────────────────────────────────────────────
@@ -321,10 +321,10 @@ final class StorefrontFacadeLive(
       cartId: CartId,
       currency: Currency,
       sessionToken: Option[SessionToken],
-  ): IO[StorefrontError, CartView] =
+  ): CartView < (Async & Abort[StorefrontError]) =
     for
       customerOpt <- resolveOptionalCustomer(sessionToken)
-      cart        <- cartService.createCart(cartId, currency, customerOpt.map(_.id)).mapError(StorefrontError.OrderFailure.apply)
+      cart        <- cartService.createCart(cartId, currency, customerOpt.map(_.id)).mapAbort(StorefrontError.OrderFailure.apply)
     yield cart
 
   override def addConfiguredProductToCart(
@@ -335,7 +335,7 @@ final class StorefrontFacadeLive(
       copies: Quantity,
       sessionToken: Option[SessionToken],
       artworkIds: Map[ComponentKey, ArtworkId],
-  ): IO[StorefrontError, CartView] =
+  ): CartView < (Async & Abort[StorefrontError]) =
     for
       quoted <- configureAndQuote(cmd, currency, speed, sessionToken, promoCode = None)
       lineId <- nextLineId
@@ -347,37 +347,37 @@ final class StorefrontFacadeLive(
                   copies = copies,
                   artworkIds = artworkIds,
                 )
-      cart   <- cartService.addLine(cartId, line).mapError(StorefrontError.OrderFailure.apply)
+      cart   <- cartService.addLine(cartId, line).mapAbort(StorefrontError.OrderFailure.apply)
     yield cart
 
-  override def updateCartLineCopies(cartId: CartId, lineId: OrderLineId, copies: Quantity): IO[StorefrontError, CartView] =
-    cartService.updateLineCopies(cartId, lineId, copies).mapError(StorefrontError.OrderFailure.apply)
+  override def updateCartLineCopies(cartId: CartId, lineId: OrderLineId, copies: Quantity): CartView < (Async & Abort[StorefrontError]) =
+    cartService.updateLineCopies(cartId, lineId, copies).mapAbort(StorefrontError.OrderFailure.apply)
 
-  override def removeCartLine(cartId: CartId, lineId: OrderLineId): IO[StorefrontError, CartView] =
-    cartService.removeLine(cartId, lineId).mapError(StorefrontError.OrderFailure.apply)
+  override def removeCartLine(cartId: CartId, lineId: OrderLineId): CartView < (Async & Abort[StorefrontError]) =
+    cartService.removeLine(cartId, lineId).mapAbort(StorefrontError.OrderFailure.apply)
 
-  override def clearCart(cartId: CartId): IO[StorefrontError, CartView] =
-    cartService.clearCart(cartId).mapError(StorefrontError.OrderFailure.apply)
+  override def clearCart(cartId: CartId): CartView < (Async & Abort[StorefrontError]) =
+    cartService.clearCart(cartId).mapAbort(StorefrontError.OrderFailure.apply)
 
   override def applyCartPromo(
       cartId: CartId,
       promoCode: String,
       sessionToken: Option[SessionToken],
-  ): IO[StorefrontError, CartView] =
+  ): CartView < (Async & Abort[StorefrontError]) =
     for
-      cart        <- cartService.getCart(cartId).mapError(StorefrontError.OrderFailure.apply)
-      _           <- ZIO.fail(StorefrontError.OrderFailure(OrderError.EmptyCart(cartId))).when(cart.lines.isEmpty)
+      cart        <- cartService.getCart(cartId).mapAbort(StorefrontError.OrderFailure.apply)
+      _           <- Effects.failWhen(cart.lines.isEmpty)(StorefrontError.OrderFailure(OrderError.EmptyCart(cartId)))
       customerOpt <- resolveOptionalCustomer(sessionToken)
       eval        <- evaluateCartPromo(promoCode, cart.lines, cart.currency, customerOpt)
       snap         = AppliedPromoSnapshot(eval.codeId, eval.code, eval.discountNet, eval.freeDelivery)
-      updated     <- cartService.applyPromo(cartId, snap).mapError(StorefrontError.OrderFailure.apply)
+      updated     <- cartService.applyPromo(cartId, snap).mapAbort(StorefrontError.OrderFailure.apply)
     yield updated
 
-  override def removeCartPromo(cartId: CartId): IO[StorefrontError, CartView] =
-    cartService.removePromo(cartId).mapError(StorefrontError.OrderFailure.apply)
+  override def removeCartPromo(cartId: CartId): CartView < (Async & Abort[StorefrontError]) =
+    cartService.removePromo(cartId).mapAbort(StorefrontError.OrderFailure.apply)
 
-  override def getCart(cartId: CartId): IO[StorefrontError, CartView] =
-    cartService.getCart(cartId).mapError(StorefrontError.OrderFailure.apply)
+  override def getCart(cartId: CartId): CartView < (Async & Abort[StorefrontError]) =
+    cartService.getCart(cartId).mapAbort(StorefrontError.OrderFailure.apply)
 
   // ── Checkout & Order History ───────────────────────────────────────────────
 
@@ -386,10 +386,10 @@ final class StorefrontFacadeLive(
       currency: Currency,
       sessionToken: Option[SessionToken],
       promoCode: Option[String],
-  ): IO[StorefrontError, CheckoutOptionsView] =
+  ): CheckoutOptionsView < (Async & Abort[StorefrontError]) =
     for
       customerOpt                     <- resolveOptionalCustomer(sessionToken)
-      loaded                          <- loadCheckoutLines(source, sessionToken, ZIO.succeed(quickPreviewLineId))
+      loaded                          <- loadCheckoutLines(source, sessionToken, Kyo.lift(quickPreviewLineId))
       (lines, existingPromoOpt)        = loaded
       effectivePromoOpt               <- resolveEffectivePromo(promoCode, existingPromoOpt, lines, currency, customerOpt)
       itemsNet                         = lines.map(_.lineNetTotal).foldLeft(Money.zero)(_ + _).rounded
@@ -419,19 +419,19 @@ final class StorefrontFacadeLive(
       deliveryChoice: Option[DeliveryOptionChoice],
       sessionToken: Option[SessionToken],
       promoCode: Option[String],
-  ): IO[StorefrontError, CheckoutPreview] =
+  ): CheckoutPreview < (Async & Abort[StorefrontError]) =
     for
       customerOpt               <- resolveOptionalCustomer(sessionToken)
-      loaded                    <- loadCheckoutLines(source, sessionToken, ZIO.succeed(quickPreviewLineId))
+      loaded                    <- loadCheckoutLines(source, sessionToken, Kyo.lift(quickPreviewLineId))
       (lines, existingPromoOpt)  = loaded
       effectivePromoOpt         <- resolveEffectivePromo(promoCode, existingPromoOpt, lines, currency, customerOpt)
       itemsNet                   = lines.map(_.lineNetTotal).foldLeft(Money.zero)(_ + _).rounded
       totalWeight                = aggregateWeights(lines)
       freeDelivery               = effectivePromoOpt.exists(_.freeDelivery)
-      deliveryOpt               <- ZIO.foreach(deliveryChoice) { choice =>
+      deliveryOpt               <- Effects.traverse(deliveryChoice) { choice =>
                                      checkoutOptionsService
                                        .resolveDelivery(choice, currency, itemsNet, totalWeight, freeDelivery)
-                                       .mapError(StorefrontError.OrderFailure.apply)
+                                       .mapAbort(StorefrontError.OrderFailure.apply)
                                    }
       promoDisc                  = effectivePromoOpt.map(_.discountNet).getOrElse(Money.zero).atMost(itemsNet).rounded
       discountedNet              = (itemsNet - promoDisc).rounded
@@ -455,14 +455,12 @@ final class StorefrontFacadeLive(
       totalWeightGrams = totalWeight,
     )
 
-  override def submitCheckout(cmd: SubmitCheckoutCmd): IO[StorefrontError, CheckoutConfirmation] =
+  override def submitCheckout(cmd: SubmitCheckoutCmd): CheckoutConfirmation < (Async & Abort[StorefrontError]) =
     for
       customerOpt                     <- resolveOptionalCustomer(cmd.sessionToken)
       loaded                          <- loadCheckoutLines(cmd.source, cmd.sessionToken, nextLineId)
       (lines, existingPromoOpt)        = loaded
-      nonEmptyLines                   <- ZIO
-                                           .fromOption(NonEmptyChunk.fromIterableOption(lines))
-                                           .orElseFail(
+      nonEmptyLines                   <- NonEmptyChunk.fromIterableOption(lines).orFail(
                                              cmd.source match
                                                case CheckoutSource.FromCart(cid) => StorefrontError.OrderFailure(OrderError.EmptyCart(cid))
                                                case _                            => StorefrontError.OrderFailure(OrderError.EmptyCart(CartId.unsafe("quick")))
@@ -474,20 +472,16 @@ final class StorefrontFacadeLive(
       freeDelivery                     = effectivePromoOpt.exists(_.freeDelivery)
       delivery                        <- checkoutOptionsService
                                            .resolveDelivery(cmd.deliveryChoice, currency, itemsNet, totalWeight, freeDelivery)
-                                           .mapError(StorefrontError.OrderFailure.apply)
+                                           .mapAbort(StorefrontError.OrderFailure.apply)
       (invoiceApproved, invoiceDueOpt) = invoiceEligibility(customerOpt)
       payOpts                         <- checkoutOptionsService.availablePaymentOptions(invoiceApproved)
-      chosenPay                       <- ZIO
-                                           .fromOption(payOpts.find(_.method == cmd.paymentMethod))
-                                           .orElseFail(StorefrontError.PaymentMethodNotAllowed(cmd.paymentMethod, "Unknown payment method"))
-      _                               <- ZIO
-                                           .fail(
+      chosenPay                       <- (payOpts.find(_.method == cmd.paymentMethod)).orFail(StorefrontError.PaymentMethodNotAllowed(cmd.paymentMethod, "Unknown payment method"))
+      _                               <- Effects.failUnless(chosenPay.available)(
                                              StorefrontError.PaymentMethodNotAllowed(
                                                cmd.paymentMethod,
                                                chosenPay.unavailableReason.getOrElse("Not available"),
                                              )
                                            )
-                                           .unless(chosenPay.available)
       orderId                         <- nextOrderId
       orderNumber                     <- nextOrderNumber
       orderCustomer                    = customerOpt.fold(cmd.customer)(c => cmd.customer.copy(customerId = Some(c.id), segment = c.segment))
@@ -506,23 +500,23 @@ final class StorefrontFacadeLive(
                                                appliedPromo = effectivePromoOpt,
                                              )
                                            )
-                                           .mapError(StorefrontError.OrderFailure.apply)
+                                           .mapAbort(StorefrontError.OrderFailure.apply)
       // Transfer any draft artworks attached during configuration to their permanent OrderLineRef owners
-      _                               <- ZIO.foreachDiscard(nonEmptyLines.toList.zipWithIndex) { case (line, lineIdx) =>
-                                           ZIO.foreachDiscard(line.artworkIds.values.toList) { artId =>
+      _                               <- Kyo.foreachDiscard(nonEmptyLines.toList.zipWithIndex) { case (line, lineIdx) =>
+                                           Kyo.foreachDiscard(line.artworkIds.values.toList) { artId =>
                                              artworkService
                                                .reassignOwner(artId, ArtworkOwner.OrderLineRef(order.id, lineIdx))
-                                               .mapError(StorefrontError.ArtworkFailure.apply)
+                                               .mapAbort(StorefrontError.ArtworkFailure.apply)
                                            }
                                          }
-      _                               <- ZIO.foreachDiscard(effectivePromoOpt)(p =>
-                                           pricingService.redeemPromoCode(p.codeId).mapError(StorefrontError.PricingFailure.apply)
+      _                               <- Kyo.foreachDiscard(effectivePromoOpt)(p =>
+                                           pricingService.redeemPromoCode(p.codeId).mapAbort(StorefrontError.PricingFailure.apply)
                                          )
       _                               <- cmd.source match
                                            case CheckoutSource.FromCart(cartId) =>
-                                             cartService.clearCart(cartId).mapError(StorefrontError.OrderFailure.apply).unit
+                                             cartService.clearCart(cartId).mapAbort(StorefrontError.OrderFailure.apply).unit
                                            case CheckoutSource.QuickSingleLine(_) =>
-                                             ZIO.unit
+                                             Kyo.unit
       instructions                    <- checkoutOptionsService.generatePaymentInstructions(
                                            orderNumber = order.orderNumber,
                                            method = cmd.paymentMethod,
@@ -532,7 +526,7 @@ final class StorefrontFacadeLive(
                                          )
     yield CheckoutConfirmation(order, instructions)
 
-  override def listMyOrders(sessionToken: SessionToken): IO[StorefrontError, List[OrderView]] =
+  override def listMyOrders(sessionToken: SessionToken): List[OrderView] < (Async & Abort[StorefrontError]) =
     for
       customer <- currentCustomer(sessionToken)
       orders   <- orderService.listOrdersByCustomer(customer.id)
@@ -543,7 +537,7 @@ final class StorefrontFacadeLive(
       billingAddress: Address,
       shippingAddresses: List[Address],
       defaultShippingIndex: Option[Int],
-  ): IO[StorefrontError, CustomerView] =
+  ): CustomerView < (Async & Abort[StorefrontError]) =
     for
       customer <- currentCustomer(sessionToken)
       updated  <- customerService
@@ -559,13 +553,13 @@ final class StorefrontFacadeLive(
                         ),
                       )
                     )
-                    .mapError(StorefrontError.CustomerFailure.apply)
+                    .mapAbort(StorefrontError.CustomerFailure.apply)
     yield updated
 
   override def getOrderPaymentInstructions(
       sessionToken: SessionToken,
       orderId: OrderId,
-  ): IO[StorefrontError, PaymentInstructions] =
+  ): PaymentInstructions < (Async & Abort[StorefrontError]) =
     for
       customer <- currentCustomer(sessionToken)
       order    <- loadOwnedOrder(customer.id, orderId)
@@ -585,7 +579,7 @@ final class StorefrontFacadeLive(
       expectedTrimSize: Dimension2D,
       expectedPageCount: Option[Int],
       payload: ArtworkUploadPayload,
-  ): IO[StorefrontError, ArtworkSubmissionView] =
+  ): ArtworkSubmissionView < (Async & Abort[StorefrontError]) =
     val trimSize = payload.trimSizeOverride.getOrElse(expectedTrimSize)
     val pageCnt  = payload.pageCount.orElse(expectedPageCount).getOrElse(1)
     val req      = buildPreflightRequirement(expectedTrimSize, expectedPageCount)
@@ -611,26 +605,26 @@ final class StorefrontFacadeLive(
                      requirement = Some(req),
                    )
                  )
-                 .mapError(StorefrontError.ArtworkFailure.apply)
+                 .mapAbort(StorefrontError.ArtworkFailure.apply)
     yield view
 
-  override def deleteDraftArtwork(artworkId: ArtworkId): IO[StorefrontError, Unit] =
+  override def deleteDraftArtwork(artworkId: ArtworkId): Unit < (Async & Abort[StorefrontError]) =
     for
-      existing <- artworkService.getById(artworkId).option
-      _        <- artworkService.deleteDraft(artworkId).mapError(StorefrontError.ArtworkFailure.apply)
+      existing <- artworkService.getById(artworkId).orNone
+      _        <- artworkService.deleteDraft(artworkId).mapAbort(StorefrontError.ArtworkFailure.apply)
       // Best-effort cleanup of stored print files & previews of the discarded draft.
       keys      = existing.toList.flatMap(_.revisions.map(_.file.storageKey.value))
-      _        <- ZIO.foreachDiscard(keys)(k => blobStorage.delete(k).ignore *> blobStorage.delete(s"$k.preview").ignore)
+      _        <- Kyo.foreachDiscard(keys)(k => blobStorage.delete(k).ignore *> blobStorage.delete(s"$k.preview").ignore)
     yield ()
 
   override def listOrderArtworks(
       sessionToken: SessionToken,
       orderId: OrderId,
-  ): IO[StorefrontError, List[ArtworkSubmissionView]] =
+  ): List[ArtworkSubmissionView] < (Async & Abort[StorefrontError]) =
     for
       customer <- currentCustomer(sessionToken)
       order    <- loadOwnedOrder(customer.id, orderId)
-      byIdx    <- ZIO.foreach(order.lines.toList.zipWithIndex) { case (_, idx) =>
+      byIdx    <- Effects.traverse(order.lines.toList.zipWithIndex) { case (_, idx) =>
                     artworkService.listByOwner(ArtworkOwner.OrderLineRef(orderId, idx))
                   }
     yield byIdx.flatten
@@ -641,16 +635,12 @@ final class StorefrontFacadeLive(
       lineIndex: Int,
       componentKey: ComponentKey,
       payload: ArtworkUploadPayload,
-  ): IO[StorefrontError, ArtworkSubmissionView] =
+  ): ArtworkSubmissionView < (Async & Abort[StorefrontError]) =
     for
       customer <- currentCustomer(sessionToken)
       order    <- loadOwnedOrder(customer.id, orderId)
-      _        <- ZIO
-                    .fail(StorefrontError.OrderAlreadyAcceptedForArtwork(orderId, order.status))
-                    .unless(order.status.allowsCustomerArtworkUpload)
-      line     <- ZIO
-                    .fromOption(order.lines.lift(lineIndex))
-                    .orElseFail(StorefrontError.OrderFailure(OrderError.OrderLineNotFound(orderId, OrderLineId.unsafe(s"index-$lineIndex"))))
+      _        <- Effects.failUnless(order.status.allowsCustomerArtworkUpload)(StorefrontError.OrderAlreadyAcceptedForArtwork(orderId, order.status))
+      line     <- order.lines.lift(lineIndex).orFail(StorefrontError.OrderFailure(OrderError.OrderLineNotFound(orderId, OrderLineId.unsafe(s"index-$lineIndex"))))
       existingList <- artworkService.listByOwner(ArtworkOwner.OrderLineRef(orderId, lineIndex))
       existingOpt   = existingList.find(_.componentKey == componentKey)
       res <- existingOpt match
@@ -684,8 +674,8 @@ final class StorefrontFacadeLive(
                                   requirement = Some(req),
                                 )
                               )
-                              .mapError(StorefrontError.ArtworkFailure.apply)
-                   _ <- orderService.attachArtwork(orderId, lineIndex, componentKey, artId).mapError(StorefrontError.OrderFailure.apply)
+                              .mapAbort(StorefrontError.ArtworkFailure.apply)
+                   _ <- orderService.attachArtwork(orderId, lineIndex, componentKey, artId).mapAbort(StorefrontError.OrderFailure.apply)
                  yield view
     yield res
 
@@ -694,19 +684,19 @@ final class StorefrontFacadeLive(
       orderId: OrderId,
       artworkId: ArtworkId,
       payload: ArtworkUploadPayload,
-  ): IO[StorefrontError, ArtworkSubmissionView] =
+  ): ArtworkSubmissionView < (Async & Abort[StorefrontError]) =
     for
       customer <- currentCustomer(sessionToken)
       order    <- loadOwnedOrder(customer.id, orderId)
-      existing <- artworkService.getById(artworkId).mapError(StorefrontError.ArtworkFailure.apply)
+      existing <- artworkService.getById(artworkId).mapAbort(StorefrontError.ArtworkFailure.apply)
       _        <- existing.owner match
-                    case ArtworkOwner.OrderLineRef(oid, _) if oid == orderId => ZIO.unit
-                    case _ => ZIO.fail(StorefrontError.OrderNotOwned(orderId))
+                    case ArtworkOwner.OrderLineRef(oid, _) if oid == orderId => Kyo.unit
+                    case _ => Abort.fail(StorefrontError.OrderNotOwned(orderId))
       needsRevision = existing.status match
                         case ArtworkStatus.ChangesRequested(_) | ArtworkStatus.PreflightFailed => true
                         case _                                                                 => false
       canUpload = order.status.allowsCustomerArtworkUpload || (!order.status.isTerminal && needsRevision)
-      _        <- ZIO.fail(StorefrontError.OrderAlreadyAcceptedForArtwork(orderId, order.status)).unless(canUpload)
+      _        <- Effects.failUnless(canUpload)(StorefrontError.OrderAlreadyAcceptedForArtwork(orderId, order.status))
       lineOpt   = existing.owner match
                     case ArtworkOwner.OrderLineRef(_, idx) => order.lines.lift(idx)
                     case _                                 => None
@@ -734,7 +724,7 @@ final class StorefrontFacadeLive(
                         requirement = Some(req),
                       )
                     )
-                    .mapError(StorefrontError.ArtworkFailure.apply)
+                    .mapAbort(StorefrontError.ArtworkFailure.apply)
     yield updated
 
   override def reuploadOrderArtwork(
@@ -745,7 +735,7 @@ final class StorefrontFacadeLive(
       resolutionDpi: Int,
       bleedMm: Int,
       colorSpace: ColorSpace,
-  ): IO[StorefrontError, ArtworkSubmissionView] =
+  ): ArtworkSubmissionView < (Async & Abort[StorefrontError]) =
     reuploadOrderArtworkPayload(
       sessionToken = sessionToken,
       orderId = orderId,
@@ -761,25 +751,25 @@ final class StorefrontFacadeLive(
 
   // ── Private Helpers ────────────────────────────────────────────────────────
 
-  private def loadOwnedOrder(customerId: CustomerId, orderId: OrderId): IO[StorefrontError, OrderView] =
+  private def loadOwnedOrder(customerId: CustomerId, orderId: OrderId): OrderView < (Async & Abort[StorefrontError]) =
     for
-      order <- orderService.getOrder(orderId).mapError(StorefrontError.OrderFailure.apply)
-      _     <- ZIO.fail(StorefrontError.OrderNotOwned(orderId)).unless(order.customer.customerId.contains(customerId))
+      order <- orderService.getOrder(orderId).mapAbort(StorefrontError.OrderFailure.apply)
+      _     <- Effects.failUnless(order.customer.customerId.contains(customerId))(StorefrontError.OrderNotOwned(orderId))
     yield order
 
-  private def resolveOptionalCustomer(sessionToken: Option[SessionToken]): IO[StorefrontError, Option[CustomerView]] =
+  private def resolveOptionalCustomer(sessionToken: Option[SessionToken]): Option[CustomerView] < (Async & Abort[StorefrontError]) =
     sessionToken match
-      case None => ZIO.none
+      case None => Kyo.lift(None)
       case Some(tok) =>
         for
-          session  <- identityService.validateSession(tok).mapError(StorefrontError.IdentityFailure.apply)
+          session  <- identityService.validateSession(tok).mapAbort(StorefrontError.IdentityFailure.apply)
           customer <- loadCustomerForPrincipal(session.principal)
         yield customer
 
-  private def loadCustomerForPrincipal(principal: Principal): IO[StorefrontError, Option[CustomerView]] =
+  private def loadCustomerForPrincipal(principal: Principal): Option[CustomerView] < (Async & Abort[StorefrontError]) =
     principal.customerIdOpt match
-      case None      => ZIO.none
-      case Some(cid) => customerService.getById(cid).mapError(StorefrontError.CustomerFailure.apply).map(Some(_))
+      case None      => Kyo.lift(None)
+      case Some(cid) => customerService.getById(cid).mapAbort(StorefrontError.CustomerFailure.apply).map(Some(_))
 
   private def buildDualPriceQuote(effective: PriceQuote, walkInOpt: Option[PriceQuote]): DualPriceQuote =
     walkInOpt match
@@ -796,12 +786,12 @@ final class StorefrontFacadeLive(
   private def evaluateSpeedOptions(
       product: ConfiguredProduct,
       currency: Currency,
-  ): IO[StorefrontError, List[SpeedTierOption]] =
+  ): List[SpeedTierOption] < (Async & Abort[StorefrontError]) =
     val materialIds  = product.components.toList.map(_.material.id).toSet
     val finishingOps = product.components.toList.flatMap(_.finishes).flatMap(sf => StorefrontTranslators.toFinishingOperation(sf.finishType)).toSet
     for
-      multipliers <- pricingService.speedMultipliers(currency).mapError(StorefrontError.PricingFailure.apply)
-      options     <- ZIO.foreach(multipliers) { m =>
+      multipliers <- pricingService.speedMultipliers(currency).mapAbort(StorefrontError.PricingFailure.apply)
+      options     <- Effects.traverse(multipliers) { m =>
                        manufacturingService
                          .checkSpeedAvailability(
                            categoryId = product.categoryId,
@@ -830,11 +820,11 @@ final class StorefrontFacadeLive(
   private def loadCheckoutLines(
       source: CheckoutSource,
       sessionToken: Option[SessionToken],
-      quickLineId: UIO[OrderLineId],
-  ): IO[StorefrontError, (List[CartLine], Option[AppliedPromoSnapshot])] =
+      quickLineId: OrderLineId < Async,
+  ): ((List[CartLine], Option[AppliedPromoSnapshot])) < (Async & Abort[StorefrontError]) =
     source match
       case CheckoutSource.FromCart(cartId) =>
-        cartService.getCart(cartId).mapError(StorefrontError.OrderFailure.apply).map(c => (c.lines, c.appliedPromo))
+        cartService.getCart(cartId).mapAbort(StorefrontError.OrderFailure.apply).map(c => (c.lines, c.appliedPromo))
       case CheckoutSource.QuickSingleLine(item) =>
         for
           quoted <- configureAndQuote(item.cmd, item.currency, item.speed, sessionToken, promoCode = None)
@@ -859,22 +849,22 @@ final class StorefrontFacadeLive(
       lines: List[CartLine],
       currency: Currency,
       customerOpt: Option[CustomerView],
-  ): IO[StorefrontError, Option[AppliedPromoSnapshot]] =
+  ): Option[AppliedPromoSnapshot] < (Async & Abort[StorefrontError]) =
     val rawCodeOpt = promoCodeOverride.map(_.trim).filter(_.nonEmpty).orElse(existingPromo.map(_.code.value))
     rawCodeOpt match
-      case None => ZIO.none
+      case None => Kyo.lift(None)
       case Some(code) if lines.nonEmpty =>
         evaluateCartPromo(code, lines, currency, customerOpt).map { eval =>
           Some(AppliedPromoSnapshot(eval.codeId, eval.code, eval.discountNet, eval.freeDelivery))
         }
-      case Some(_) => ZIO.none
+      case Some(_) => Kyo.lift(None)
 
   private def evaluateCartPromo(
       code: String,
       lines: List[CartLine],
       currency: Currency,
       customerOpt: Option[CustomerView],
-  ): IO[StorefrontError, PromoEvaluation] =
+  ): PromoEvaluation < (Async & Abort[StorefrontError]) =
     val orderNet = lines.map(_.lineNetTotal).foldLeft(Money.zero)(_ + _).rounded
     val catIds   = lines.map(_.product.categoryId).toSet
     pricingService
@@ -888,7 +878,7 @@ final class StorefrontFacadeLive(
           customerSegment = customerOpt.map(_.segment),
         )
       )
-      .mapError(StorefrontError.PricingFailure.apply)
+      .mapAbort(StorefrontError.PricingFailure.apply)
 
   private def invoiceEligibility(customerOpt: Option[CustomerView]): (Boolean, Option[Int]) =
     customerOpt match
@@ -912,23 +902,23 @@ final class StorefrontFacadeLive(
           val ratio = discountedNet.value / rawNet.value
           lines.map(l => l.price.taxRate.taxOnNet((l.lineNetTotal * ratio).rounded)).foldLeft(Money.zero)(_ + _).rounded
 
-  private def nextQuoteId: UIO[QuoteId] =
+  private def nextQuoteId: QuoteId < Async =
     idSequence.next.map(n => QuoteId.unsafe(s"q-$n"))
 
-  private def nextLineId: UIO[OrderLineId] =
+  private def nextLineId: OrderLineId < Async =
     idSequence.next.map(n => OrderLineId.unsafe(s"line-$n"))
 
-  private def nextOrderId: UIO[OrderId] =
+  private def nextOrderId: OrderId < Async =
     idSequence.next.map(n => OrderId.unsafe(s"ord-$n"))
 
-  private def nextOrderNumber: UIO[OrderNumber] =
+  private def nextOrderNumber: OrderNumber < Async =
     for
-      now <- Clock.instant
+      now <- Effects.now
       n   <- idSequence.next
       year = now.atZone(ZoneOffset.UTC).getYear
     yield OrderNumber.unsafe(f"ORD-$year-$n%04d")
 
-  private def nextArtworkId: UIO[ArtworkId] =
+  private def nextArtworkId: ArtworkId < Async =
     idSequence.next.map(n => ArtworkId.unsafe(s"art-$n"))
 
   private def buildPreflightRequirement(
@@ -950,10 +940,10 @@ final class StorefrontFacadeLive(
       case None                        => 1
 
   /** Builds artwork file metadata, moving inline `data:` URL payloads into `BlobStorage` (Phase 5). */
-  private def assetFile(storageKey: String, payload: ArtworkUploadPayload): IO[StorefrontError, AssetFileMetadata] =
+  private def assetFile(storageKey: String, payload: ArtworkUploadPayload): AssetFileMetadata < (Async & Abort[StorefrontError]) =
     BlobIngest
       .ingest(blobStorage, storageKey, payload.downloadUrl.map(_.value), payload.previewUrl.orElse(payload.downloadUrl).map(_.value))
-      .mapError(StorefrontError.BlobFailure.apply)
+      .mapAbort(StorefrontError.BlobFailure.apply)
       .map { ing =>
         AssetFileMetadata(
           fileName = payload.fileName,
@@ -971,23 +961,17 @@ final class StorefrontFacadeLive(
     if cleaned.nonEmpty then cleaned else "artwork.pdf"
 
 object StorefrontFacade:
-  val layer: ZLayer[
-    CatalogService & PricingService & CustomerService & IdentityService & ArtworkService & CartService & CheckoutOptionsService & OrderService & ManufacturingService & IdSequence & BlobStorage,
-    Nothing,
-    StorefrontFacade,
-  ] =
-    ZLayer.fromZIO {
-      for
-        cat   <- ZIO.service[CatalogService]
-        prc   <- ZIO.service[PricingService]
-        cust  <- ZIO.service[CustomerService]
-        id    <- ZIO.service[IdentityService]
-        art   <- ZIO.service[ArtworkService]
-        cart  <- ZIO.service[CartService]
-        opts  <- ZIO.service[CheckoutOptionsService]
-        ord   <- ZIO.service[OrderService]
-        mfg   <- ZIO.service[ManufacturingService]
-        seq   <- ZIO.service[IdSequence]
-        blobs <- ZIO.service[BlobStorage]
-      yield new StorefrontFacadeLive(cat, prc, cust, id, art, cart, opts, ord, mfg, seq, blobs)
-    }
+  def make(
+      catalog: CatalogService,
+      pricing: PricingService,
+      customers: CustomerService,
+      identity: IdentityService,
+      artwork: ArtworkService,
+      carts: CartService,
+      checkoutOptions: CheckoutOptionsService,
+      orders: OrderService,
+      manufacturing: ManufacturingService,
+      idSequence: IdSequence,
+      blobs: BlobStorage,
+  ): StorefrontFacade =
+    new StorefrontFacadeLive(catalog, pricing, customers, identity, artwork, carts, checkoutOptions, orders, manufacturing, idSequence, blobs)

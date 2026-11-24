@@ -13,10 +13,11 @@ import mpbuilder.ordering.sample.SampleDeliveryCatalog
 import mpbuilder.pricing.*
 import mpbuilder.shared.*
 import mpbuilder.storefront.*
-import zio.*
-import zio.test.*
+import kyo.*
+import kyo.test.*
+import ShowcaseTestEnv.*
 
-object BackofficeFacadeSpec extends ZIOSpecDefault:
+class BackofficeFacadeSpec extends Test[Any]:
 
   private val adminEmail    = SampleIdentity.adminEmployeePrincipal.email
   private val managerEmail  = SampleIdentity.managerEmployeePrincipal.email
@@ -26,11 +27,11 @@ object BackofficeFacadeSpec extends ZIOSpecDefault:
   private val customerEmail = EmailAddress.unsafe("jan@printshoppro.cz")
   private val customerPass  = SampleIdentity.demoCustomerPassword
 
-  def spec = suite("BackofficeFacadeSpec")(
-    test("enforces staff authentication and RBAC across Customer, Prepress, Manager, and Admin roles") {
+  "BackofficeFacadeSpec" - {
+    "enforces staff authentication and RBAC across Customer, Prepress, Manager, and Admin roles" in {
       for
-        sf       <- ZIO.service[StorefrontFacade]
-        bo       <- ZIO.service[BackofficeFacade]
+        sf       <- Env.get[StorefrontFacade]
+        bo       <- Env.get[BackofficeFacade]
         // Customer session must be rejected by Backoffice
         custAuth <- sf.loginWithPassword(customerEmail, customerPass)
         custDash <- bo.getDashboardSummary(custAuth.session.token).either
@@ -80,27 +81,27 @@ object BackofficeFacadeSpec extends ZIOSpecDefault:
         promoted <- bo.updateStaffRoles(admAuth.session.token, created.employeeId, Set(EmployeeRole.Operator, EmployeeRole.Prepress))
         disabled <- bo.setStaffActive(admAuth.session.token, created.employeeId, isActive = false)
         blocked  <- bo.loginStaff(EmailAddress.unsafe("jana@printshop.cz"), NonEmptyString.unsafe("newpass123")).either
-      yield assertTrue(
-        custDash == Left(BackofficeError.NotAnEmployeeSession),
-        custLogin == Left(BackofficeError.NotAnEmployeeSession),
-        badTok.isLeft,
-        prepDash.totalOrders >= 4,
-        prepAcc.left.exists(_.isInstanceOf[BackofficeError.Forbidden]),
-        prepCat.left.exists(_.isInstanceOf[BackofficeError.Forbidden]),
-        prepNote.internalNotes.exists(_.text.value == "Checked fonts"),
-        staff.size == 3,
-        mgrAdd.left.exists(_.isInstanceOf[BackofficeError.Forbidden]),
-        janaAuth.employee.employeeId == created.employeeId,
-        promoted.roles == Set(EmployeeRole.Operator, EmployeeRole.Prepress),
-        !disabled.isActive,
-        blocked.isLeft,
-      )
-    }.provide(SampleShowcaseRuntime.layer()),
+      yield {
+        assert(custDash == Left(BackofficeError.NotAnEmployeeSession))
+        assert(custLogin == Left(BackofficeError.NotAnEmployeeSession))
+        assert(badTok.isLeft)
+        assert(prepDash.totalOrders >= 4)
+        assert(prepAcc.left.exists(_.isInstanceOf[BackofficeError.Forbidden]))
+        assert(prepCat.left.exists(_.isInstanceOf[BackofficeError.Forbidden]))
+        assert(prepNote.internalNotes.exists(_.text.value == "Checked fonts"))
+        assert(staff.size == 3)
+        assert(mgrAdd.left.exists(_.isInstanceOf[BackofficeError.Forbidden]))
+        assert(janaAuth.employee.employeeId == created.employeeId)
+        assert(promoted.roles == Set(EmployeeRole.Operator, EmployeeRole.Prepress))
+        assert(!disabled.isActive)
+        assert(blocked.isLeft)
+      }
+    }.provideRuntime()
 
-    test("E2E Storefront checkout immediately lands in Backoffice Order Intake and flows through full manual lifecycle") {
+    "E2E Storefront checkout immediately lands in Backoffice Order Intake and flows through full manual lifecycle" in {
       for
-        sf      <- ZIO.service[StorefrontFacade]
-        bo      <- ZIO.service[BackofficeFacade]
+        sf      <- Env.get[StorefrontFacade]
+        bo      <- Env.get[BackofficeFacade]
         admAuth <- bo.loginStaff(adminEmail, staffPass)
 
         // 1. Customer configures Business Cards preset and submits checkout via StorefrontFacade
@@ -158,23 +159,23 @@ object BackofficeFacadeSpec extends ZIOSpecDefault:
         inProd   <- bo.advanceOrderStage(admAuth.session.token, orderId, OrderStatus.InProduction, None)
         ready    <- bo.advanceOrderStage(admAuth.session.token, orderId, OrderStatus.ReadyForDispatch, None)
         done     <- bo.advanceOrderStage(admAuth.session.token, orderId, OrderStatus.Completed, Some(NonEmptyString.unsafe("Picked up")))
-      yield assertTrue(
-        intake.exists(_.id == orderId),
-        accepted.status == OrderStatus.Accepted,
-        paid.payment.status == PaymentStatus.Confirmed,
-        held.status.isInstanceOf[OrderStatus.OnHold],
-        resumed.status == OrderStatus.Accepted,
-        inProd.status == OrderStatus.InProduction,
-        ready.status == OrderStatus.ReadyForDispatch,
-        done.status == OrderStatus.Completed,
-        done.statusHistory.size == 8,
-      )
-    }.provide(SampleShowcaseRuntime.layer()),
+      yield {
+        assert(intake.exists(_.id == orderId))
+        assert(accepted.status == OrderStatus.Accepted)
+        assert(paid.payment.status == PaymentStatus.Confirmed)
+        assert(held.status.isInstanceOf[OrderStatus.OnHold])
+        assert(resumed.status == OrderStatus.Accepted)
+        assert(inProd.status == OrderStatus.InProduction)
+        assert(ready.status == OrderStatus.ReadyForDispatch)
+        assert(done.status == OrderStatus.Completed)
+        assert(done.statusHistory.size == 8)
+      }
+    }.provideRuntime()
 
-    test("Catalog CRUD enforces EntityInUse protection and reflects live edits in Storefront") {
+    "Catalog CRUD enforces EntityInUse protection and reflects live edits in Storefront" in {
       for
-        sf       <- ZIO.service[StorefrontFacade]
-        bo       <- ZIO.service[BackofficeFacade]
+        sf       <- Env.get[StorefrontFacade]
+        bo       <- Env.get[BackofficeFacade]
         mgrAuth  <- bo.loginStaff(managerEmail, staffPass)
         initial  <- bo.getCatalog(mgrAuth.session.token)
         // Deleting an actively used material must fail with EntityInUse
@@ -188,21 +189,21 @@ object BackofficeFacadeSpec extends ZIOSpecDefault:
         afterAdd <- bo.upsertMaterial(mgrAuth.session.token, newMat)
         sfCat    <- sf.getCatalog
         afterDel <- bo.deleteMaterial(mgrAuth.session.token, newMatId)
-      yield assertTrue(
-        blocked.left.exists {
+      yield {
+        assert(blocked.left.exists {
           case BackofficeError.CatalogFailure(_: CatalogError.EntityInUse) => true
           case _                                                           => false
-        },
-        afterAdd.materials.contains(newMatId),
-        sfCat.materials.contains(newMatId),
-        afterAdd.version != initial.version,
-        !afterDel.materials.contains(newMatId),
-      )
-    }.provide(SampleShowcaseRuntime.layer()),
+        })
+        assert(afterAdd.materials.contains(newMatId))
+        assert(sfCat.materials.contains(newMatId))
+        assert(afterAdd.version != initial.version)
+        assert(!afterDel.materials.contains(newMatId))
+      }
+    }.provideRuntime()
 
-    test("Pricing CRUD, Promo Codes, live Margin Simulation, Customer Approval, and Store Settings work end-to-end") {
+    "Pricing CRUD, Promo Codes, live Margin Simulation, Customer Approval, and Store Settings work end-to-end" in {
       for
-        bo       <- ZIO.service[BackofficeFacade]
+        bo       <- Env.get[BackofficeFacade]
         mgrAuth  <- bo.loginStaff(managerEmail, staffPass)
         tok       = mgrAuth.session.token
 
@@ -260,27 +261,26 @@ object BackofficeFacadeSpec extends ZIOSpecDefault:
                          accountHolder = NonEmptyString.unsafe("MP PrintShop s.r.o."),
                        ),
                      )
-      yield assertTrue(
-        promos1.size == promos0.size + 1,
-        !toggled.isActive,
-        sim.quote.netTotal.value > BigDecimal(0),
-        sim.margin.productionCostNet.value >= BigDecimal(0),
-        pending.exists(_.id == pendId),
-        approved.status == CustomerStatus.Active,
-        gold.tier == CustomerTier.Gold,
-        credited.paymentTerms.isInstanceOf[PaymentTerms.NetInvoice],
-        noted.notes.exists(_.text.value == "Verified VAT registration"),
-        detail.customer.id == pendId,
-        shops1.size == settings0.pickupLocations.size + 1,
-        shops2.size == settings0.pickupLocations.size,
-        banks1.contains(Currency.EUR),
-      )
-    }.provide(SampleShowcaseRuntime.layer()),
+      yield {
+        assert(promos1.size == promos0.size + 1)
+        assert(!toggled.isActive)
+        assert(sim.quote.netTotal.value > BigDecimal(0))
+        assert(sim.margin.productionCostNet.value >= BigDecimal(0))
+        assert(pending.exists(_.id == pendId))
+        assert(approved.status == CustomerStatus.Active)
+        assert(gold.tier == CustomerTier.Gold)
+        assert(credited.paymentTerms.isInstanceOf[PaymentTerms.NetInvoice])
+        assert(noted.notes.exists(_.text.value == "Verified VAT registration"))
+        assert(detail.customer.id == pendId)
+        assert(shops1.size == settings0.pickupLocations.size + 1)
+        assert(shops2.size == settings0.pickupLocations.size)
+        assert(banks1.contains(Currency.EUR))
+      }
+    }.provideRuntime()
 
-    test("Customer multi-contacts & audit trail, Promo createdAt/lifecycle, Order priority/deadline/payment/line-edit, and Artwork review") {
+    "Customer multi-contacts & audit trail, Promo createdAt/lifecycle, Order priority/deadline/payment/line-edit, and Artwork review" in {
       for
-        _        <- TestClock.setTime(java.time.Instant.parse("2026-07-01T12:00:00Z"))
-        bo       <- ZIO.service[BackofficeFacade]
+        bo       <- Env.get[BackofficeFacade]
         mgrAuth  <- bo.loginStaff(managerEmail, staffPass)
         tok       = mgrAuth.session.token
 
@@ -335,7 +335,7 @@ object BackofficeFacadeSpec extends ZIOSpecDefault:
                        .either
 
         // 2. Promo codes newest-first ordering + lifecycle classification
-        now       <- Clock.instant
+        now       <- Effects.now
         freshPromo = PromoCode(
                        id = DiscountCodeId.unsafe("promo-newest-99"),
                        code = NonEmptyString.unsafe("NEWEST99"),
@@ -367,36 +367,36 @@ object BackofficeFacadeSpec extends ZIOSpecDefault:
         // Artwork list & reject
         arts      <- bo.listOrderArtwork(tok, OrderId.unsafe("ord-seed-0901"))
         rejected  <- bo.rejectArtwork(tok, arts.head.id, NonEmptyString.unsafe("Corrupted PDF"))
-      yield assertTrue(
-        edited.additionalContacts.exists(_.email.value == "eva@printshoppro.cz"),
-        edited.auditLog.exists { e =>
+      yield {
+        assert(edited.additionalContacts.exists(_.email.value == "eva@printshoppro.cz"))
+        assert(edited.auditLog.exists { e =>
           e.action == "ProfileUpdated" && e.actor.isInstanceOf[CustomerActor.Employee]
-        },
-        indivBad.left.exists {
+        })
+        assert(indivBad.left.exists {
           case BackofficeError.CustomerFailure(_: CustomerError.MultipleContactsNotAllowed) => true
           case _                                                                            => false
-        },
-        promos.head.code.value == "NEWEST99",
-        statuses.contains(PromoLifecycleStatus.Active),
-        statuses.contains(PromoLifecycleStatus.Expired),
-        statuses.contains(PromoLifecycleStatus.Exhausted),
-        statuses.contains(PromoLifecycleStatus.Inactive),
-        ord2.priority == OrderPriority.Urgent,
-        ord2.calculatedDeadline == ord2.placedAt.plusSeconds(24L * 3600L),
-        paidOrd.payment.status == PaymentStatus.Confirmed,
-        paidOrd.status == ord2.status,
-        unpaidOrd.payment.status == PaymentStatus.Pending,
-        editedOrd.priority == OrderPriority.Economy,
-        editedOrd.lines.head.copies.value == 2,
-        editedOrd.lines.head.specNote.contains("Use Pantone 286C match"),
-        editedOrd.totals.linesNetTotal.value > ord2.totals.linesNetTotal.value,
-        rejected.status == ArtworkStatus.Rejected(NonEmptyString.unsafe("Corrupted PDF")),
-      )
-    }.provide(SampleShowcaseRuntime.layer()),
+        })
+        assert(promos.head.code.value == "NEWEST99")
+        assert(statuses.contains(PromoLifecycleStatus.Active))
+        assert(statuses.contains(PromoLifecycleStatus.Expired))
+        assert(statuses.contains(PromoLifecycleStatus.Exhausted))
+        assert(statuses.contains(PromoLifecycleStatus.Inactive))
+        assert(ord2.priority == OrderPriority.Urgent)
+        assert(ord2.calculatedDeadline == ord2.placedAt.plusSeconds(24L * 3600L))
+        assert(paidOrd.payment.status == PaymentStatus.Confirmed)
+        assert(paidOrd.status == ord2.status)
+        assert(unpaidOrd.payment.status == PaymentStatus.Pending)
+        assert(editedOrd.priority == OrderPriority.Economy)
+        assert(editedOrd.lines.head.copies.value == 2)
+        assert(editedOrd.lines.head.specNote.contains("Use Pantone 286C match"))
+        assert(editedOrd.totals.linesNetTotal.value > ord2.totals.linesNetTotal.value)
+        assert(rejected.status == ArtworkStatus.Rejected(NonEmptyString.unsafe("Corrupted PDF")))
+      }
+    }.provideRuntime().atTime(java.time.Instant.parse("2026-07-01T12:00:00Z"))
 
-    test("Customer self-service address editing, payment instructions re-view, and artwork re-upload") {
+    "Customer self-service address editing, payment instructions re-view, and artwork re-upload" in {
       for
-        sf      <- ZIO.service[StorefrontFacade]
+        sf      <- Env.get[StorefrontFacade]
         auth    <- sf.loginWithPassword(customerEmail, customerPass)
         tok      = auth.session.token
         cust0    = auth.customer.get
@@ -428,22 +428,22 @@ object BackofficeFacadeSpec extends ZIOSpecDefault:
                      bleedMm = 3,
                      colorSpace = ColorSpace.CMYK,
                    )
-      yield assertTrue(
-        updated.billingAddress.street.value == "Na Příkopě 22",
-        updated.shippingAddresses.size == 2,
-        updated.defaultShippingIndex.contains(1),
-        updated.defaultShippingAddress.contains(deliv2),
-        updated.auditLog.exists(_.actor.isInstanceOf[CustomerActor.CustomerSelf]),
-        instrOk,
-        art0.status.isInstanceOf[ArtworkStatus.ChangesRequested],
-        art1.revisionCount == art0.revisionCount + 1,
-        art1.status == ArtworkStatus.PreflightPassed,
-      )
-    }.provide(SampleShowcaseRuntime.layer()),
+      yield {
+        assert(updated.billingAddress.street.value == "Na Příkopě 22")
+        assert(updated.shippingAddresses.size == 2)
+        assert(updated.defaultShippingIndex.contains(1))
+        assert(updated.defaultShippingAddress.contains(deliv2))
+        assert(updated.auditLog.exists(_.actor.isInstanceOf[CustomerActor.CustomerSelf]))
+        assert(instrOk)
+        assert(art0.status.isInstanceOf[ArtworkStatus.ChangesRequested])
+        assert(art1.revisionCount == art0.revisionCount + 1)
+        assert(art1.status == ArtworkStatus.PreflightPassed)
+      }
+    }.provideRuntime()
 
-    test("Staff artwork management: upload revision, upload missing order-line artwork, rerun preflight, and customer detail artworks tab data") {
+    "Staff artwork management: upload revision, upload missing order-line artwork, rerun preflight, and customer detail artworks tab data" in {
       for
-        bo       <- ZIO.service[BackofficeFacade]
+        bo       <- Env.get[BackofficeFacade]
         auth     <- bo.loginStaff(adminEmail, staffPass)
         tok       = auth.session.token
 
@@ -495,18 +495,18 @@ object BackofficeFacadeSpec extends ZIOSpecDefault:
 
         // 5. Customer detail artworks list now includes the newly uploaded cover artwork
         custDet2 <- bo.getCustomerDetail(tok, SampleCustomers.printShopProId)
-      yield assertTrue(
-        custDet.artworks.nonEmpty,
-        custDet.artworks.forall(e => e.orderNumber.value.nonEmpty && e.artwork.latestRevision.file.shareableUrl.startsWith("https://")),
-        custDet.artworks.forall(e => e.artwork.createdAt != java.time.Instant.EPOCH),
-        fixedRev.revisionCount == art0.revisionCount + 1,
-        fixedRev.allRevisions.size == fixedRev.revisionCount,
-        fixedRev.status == ArtworkStatus.PreflightPassed,
-        rerun.revisionCount == fixedRev.revisionCount,
-        rerun.latestRevision.preflight.exists(_.isCleanPass),
-        rerun.status == ArtworkStatus.PreflightPassed,
-        added.componentKey == ComponentKey.Cover,
-        custDet2.artworks.exists(_.artwork.id == added.id),
-      )
-    }.provide(SampleShowcaseRuntime.layer()),
-  )
+      yield {
+        assert(custDet.artworks.nonEmpty)
+        assert(custDet.artworks.forall(e => e.orderNumber.value.nonEmpty && e.artwork.latestRevision.file.shareableUrl.startsWith("https://")))
+        assert(custDet.artworks.forall(e => e.artwork.createdAt != java.time.Instant.EPOCH))
+        assert(fixedRev.revisionCount == art0.revisionCount + 1)
+        assert(fixedRev.allRevisions.size == fixedRev.revisionCount)
+        assert(fixedRev.status == ArtworkStatus.PreflightPassed)
+        assert(rerun.revisionCount == fixedRev.revisionCount)
+        assert(rerun.latestRevision.preflight.exists(_.isCleanPass))
+        assert(rerun.status == ArtworkStatus.PreflightPassed)
+        assert(added.componentKey == ComponentKey.Cover)
+        assert(custDet2.artworks.exists(_.artwork.id == added.id))
+      }
+    }.provideRuntime()
+  }

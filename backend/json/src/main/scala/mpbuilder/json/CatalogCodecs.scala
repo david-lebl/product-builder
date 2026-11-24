@@ -1,47 +1,42 @@
 package mpbuilder.json
 
-import com.github.plokhotnyuk.jsoniter_scala.core.*
-import com.github.plokhotnyuk.jsoniter_scala.macros.*
+import kyo.*
 import mpbuilder.catalog.*
 import mpbuilder.json.JsonSupport.*
+import mpbuilder.shared.*
 import mpbuilder.json.SharedCodecs.given
-import zio.NonEmptyChunk
+import mpbuilder.json.JsonSupport.given
 
-/** Codecs for the public `catalog` model (catalog, rules, configuration). */
+/** Schemas for the public `catalog` model (catalog, rules, configuration). */
 object CatalogCodecs:
 
-  given JsonValueCodec[RuleId]          = stringCodec("RuleId")(RuleId(_))(_.value)
-  given JsonValueCodec[PresetId]        = stringCodec("PresetId")(PresetId(_))(_.value)
-  given JsonValueCodec[ConfigurationId] = stringCodec("ConfigurationId")(ConfigurationId(_))(_.value)
+  given Schema[RuleId]          = stringOpaque("RuleId")(RuleId(_))(_.value)
+  given Schema[PresetId]        = stringOpaque("PresetId")(PresetId(_))(_.value)
+  given Schema[ConfigurationId] = stringOpaque("ConfigurationId")(ConfigurationId(_))(_.value)
 
-  given JsonValueCodec[FinishType] = JsonCodecMaker.make(config)
-  given JsonKeyCodec[FinishType]   = enumKeyCodec("FinishType", FinishType.values)
+  given Schema[FinishType] = Schema.derived
+  given finishTypeMap[V: Schema]: Schema[Map[FinishType, V]] =
+    keyedMap("FinishType")(enumKey("FinishType", FinishType.values))(_.toString)
 
-  given necMediaFormat: JsonValueCodec[NonEmptyChunk[MediaFormat]] =
-    nonEmptyChunkCodec(JsonCodecMaker.make[List[MediaFormat]](config), "MediaFormat list")
-  given necComponentTemplate: JsonValueCodec[NonEmptyChunk[ComponentTemplate]] =
-    nonEmptyChunkCodec(JsonCodecMaker.make[List[ComponentTemplate]](config), "ComponentTemplate list")
-  given necComponentPreset: JsonValueCodec[NonEmptyChunk[ComponentPreset]] =
-    nonEmptyChunkCodec(JsonCodecMaker.make[List[ComponentPreset]](config), "ComponentPreset list")
-  given necComponentSelection: JsonValueCodec[NonEmptyChunk[ComponentSelection]] =
-    nonEmptyChunkCodec(JsonCodecMaker.make[List[ComponentSelection]](config), "ComponentSelection list")
-  given necConfiguredComponent: JsonValueCodec[NonEmptyChunk[ConfiguredComponent]] =
-    nonEmptyChunkCodec(JsonCodecMaker.make[List[ConfiguredComponent]](config), "ConfiguredComponent list")
-  given necComponentWeight: JsonValueCodec[NonEmptyChunk[ComponentWeight]] =
-    nonEmptyChunkCodec(JsonCodecMaker.make[List[ComponentWeight]](config), "ComponentWeight list")
-  given necCatalogError: JsonValueCodec[NonEmptyChunk[CatalogError]] =
-    nonEmptyChunkCodec(JsonCodecMaker.make[List[CatalogError]](config), "CatalogError list")
 
-  given JsonValueCodec[Material]             = JsonCodecMaker.make(config)
-  given JsonValueCodec[Finish]               = JsonCodecMaker.make(config)
-  given JsonValueCodec[PrintingMethod]       = JsonCodecMaker.make(config)
-  given JsonValueCodec[ProductSpecs]         = JsonCodecMaker.make(config)
-  given JsonValueCodec[ProductCategory]      = JsonCodecMaker.make(config)
-  given JsonValueCodec[ShowcaseListing]      = JsonCodecMaker.make(config)
-  given JsonValueCodec[ProductCatalog]       = JsonCodecMaker.make(config)
-  given JsonValueCodec[CompatibilityRule]    = JsonCodecMaker.make(config)
-  given JsonValueCodec[CompatibilityRuleset] = JsonCodecMaker.make(config)
-  given JsonValueCodec[ConfigureProductCmd]  = JsonCodecMaker.make(config)
-  given JsonValueCodec[ConfiguredProduct]    = JsonCodecMaker.make(config)
-  given JsonValueCodec[ConfigurationResult]  = JsonCodecMaker.make(config)
-  given JsonValueCodec[CatalogError]         = JsonCodecMaker.make(config)
+  given Schema[Material]             = Schema.derived
+  given Schema[Finish]               = Schema.derived
+  given Schema[PrintingMethod]       = Schema.derived
+  given Schema[ProductSpecs]         = Schema.derived
+  given Schema[ProductCategory]      = Schema.derived
+  given Schema[ShowcaseListing]      = Schema.derived
+  given Schema[ProductCatalog]       = Schema.derived
+  // Recursive rule predicates: named givens so the derivation's self-references resolve to them.
+  given componentPredicateSchema: Schema[ComponentPredicate] = Schema.derived
+  given dimensionPredicateSchema: Schema[DimensionPredicate] = Schema.derived
+  given quantityPredicateSchema: Schema[QuantityPredicate]   = Schema.derived
+  given bindingPredicateSchema: Schema[BindingPredicate]     = Schema.derived
+  given foldPredicateSchema: Schema[FoldPredicate]           = Schema.derived
+  given configPredicateSchema: Schema[ConfigPredicate]       = Schema.derived
+
+  given Schema[CompatibilityRule]    = Schema.derived
+  given Schema[CompatibilityRuleset] = Schema.derived
+  given Schema[ConfigureProductCmd]  = Schema.derived
+  given Schema[ConfiguredProduct]    = Schema.derived
+  given Schema[ConfigurationResult]  = Schema.derived
+  given Schema[CatalogError]         = Schema.derived

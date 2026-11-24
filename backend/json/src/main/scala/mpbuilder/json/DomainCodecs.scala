@@ -1,7 +1,8 @@
 package mpbuilder.json
 
-/** Single import point for every public domain codec: `import mpbuilder.json.DomainCodecs.given`. */
+/** Single import point for every public domain schema: `import mpbuilder.json.DomainCodecs.given`. */
 object DomainCodecs:
+  export JsonSupport.given
   export SharedCodecs.given
   export CatalogCodecs.given
   export PricingCodecs.given

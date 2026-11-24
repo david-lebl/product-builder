@@ -2,11 +2,11 @@ package mpbuilder.pricing
 
 import mpbuilder.pricing.core.*
 import mpbuilder.shared.*
-import zio.*
-import zio.test.*
+import kyo.*
+import kyo.test.*
 import java.time.Instant
 
-object PricingDomainSpec extends ZIOSpecDefault:
+class PricingDomainSpec extends Test[Any]:
 
   private val now = Instant.parse("2026-03-10T12:00:00Z")
 
@@ -165,8 +165,8 @@ object PricingDomainSpec extends ZIOSpecDefault:
       ),
     )
 
-  def spec = suite("PricingDomainSpec")(
-    test("TieredArea evaluates TotalJobArea (10 × 1.5 m² = 15 m² hits 10 m²+ tier) and prices 4+W/0 distinctly from 4/1") {
+  "PricingDomainSpec" - {
+    "TieredArea evaluates TotalJobArea (10 × 1.5 m² = 15 m² hits 10 m²+ tier) and prices 4+W/0 distinctly from 4/1" in {
       val sWhite = bannerSubject(qty = 10, ink = InkBillingKey("4+W", "0"))
       val s41    = bannerSubject(qty = 10, ink = InkBillingKey("4", "1"))
       val qWhite = PricingEngine.calculate(QuoteId.unsafe("q-w"), sWhite, basePricelist, DynamicPricingContext.default, None, None, None, now).toEither.toOption.get
@@ -176,16 +176,15 @@ object PricingDomainSpec extends ZIOSpecDefault:
       // 4+W/0 ink: 15 m² @ 150 = 2250 vs 4/1 ink: 15 m² @ 90 = 1350 -> diff = 900 CZK
       // Grommets (spacing 500, scaleByArea=true): 15 m² @ 30 = 450 CZK
       // Hem (5m perimeter × 10 = 50m @ 20): 1000 CZK
-      assertTrue(
-        qWhite.componentQuotes.head.materialLine.total == Money("4500.00"),
-        qWhite.componentQuotes.head.inkLine.map(_.total) == Some(Money("2250.00")),
-        q41.componentQuotes.head.inkLine.map(_.total) == Some(Money("1350.00")),
-        qWhite.netTotal - q41.netTotal == Money("900.00"),
-        qWhite.tax.taxAmount == TaxRate.czStandard.taxOnNet(qWhite.netTotal),
-        qWhite.grossTotal == qWhite.netTotal + qWhite.tax.taxAmount,
-      )
-    },
-    test("CustomerPriceAgreement transforms TieredArea & ByDiscreteParam uniformly via RateModel.mapMoney while leaving OneTimeSetup untouched") {
+      assert(qWhite.componentQuotes.head.materialLine.total == Money("4500.00"))
+      assert(qWhite.componentQuotes.head.inkLine.map(_.total) == Some(Money("2250.00")))
+      assert(q41.componentQuotes.head.inkLine.map(_.total) == Some(Money("1350.00")))
+      assert(qWhite.netTotal - q41.netTotal == Money("900.00"))
+      assert(qWhite.tax.taxAmount == TaxRate.czStandard.taxOnNet(qWhite.netTotal))
+      assert(qWhite.grossTotal == qWhite.netTotal + qWhite.tax.taxAmount)
+    }
+
+    "CustomerPriceAgreement transforms TieredArea & ByDiscreteParam uniformly via RateModel.mapMoney while leaving OneTimeSetup untouched" in {
       val agreement = CustomerPriceAgreement(
         target = AgreementTarget.SpecificCustomer(CustomerId.unsafe("cust-vip")),
         currency = Currency.CZK,
@@ -196,13 +195,12 @@ object PricingDomainSpec extends ZIOSpecDefault:
       val vipQ  = PricingEngine.calculate(QuoteId.unsafe("q-vip"), subj, basePricelist, DynamicPricingContext.default, Some(agreement), None, None, now).toEither.toOption.get
 
       // Material (TieredArea 300 -> 270 -> 4050), Grommets (ByDiscreteParam 30 -> 27 -> 405)
-      assertTrue(
-        vipQ.componentQuotes.head.materialLine.total == Money("4050.00"),
-        vipQ.componentQuotes.head.finishLines.find(_.kind == ChargeKind.FinishCharge(grommetsId, "Grommets")).map(_.total) == Some(Money("405.00")),
-        vipQ.netTotal < baseQ.netTotal,
-      )
-    },
-    test("scoped VolumeCurves differentiate Offset vs Digital, and VersionCount adds setup fees without losing run volume tier") {
+      assert(vipQ.componentQuotes.head.materialLine.total == Money("4050.00"))
+      assert(vipQ.componentQuotes.head.finishLines.find(_.kind == ChargeKind.FinishCharge(grommetsId, "Grommets")).map(_.total) == Some(Money("405.00")))
+      assert(vipQ.netTotal < baseQ.netTotal)
+    }
+
+    "scoped VolumeCurves differentiate Offset vs Digital, and VersionCount adds setup fees without losing run volume tier" in {
       def flyerSubj(methodId: PrintingMethodId, versions: Int) = PricingSubject(
         categoryId = flyerCatId,
         quantity = Quantity.unsafe(500),
@@ -236,16 +234,17 @@ object PricingDomainSpec extends ZIOSpecDefault:
       val digVersionFee = digQ.setupFees.find(_.kind == ChargeKind.VersionChangeCharge(4)).map(_.total)
       val offPlateFee   = offQ.setupFees.find(_.kind == ChargeKind.SetupFee(PricingTarget.PrintingMethodRate(offsetId))).map(_.total)
 
-      assertTrue(
-        digQ.volumeMultiplier == BigDecimal("0.85"), // global curve
-        offQ.volumeMultiplier == BigDecimal("0.60"), // method-scoped Offset curve
-        digVersionFee == Some(Money("600.00")),
-        offPlateFee == Some(Money("1200.00")),
-        // Lamination Both sides: 125 sheets × 2 sides × 5 CZK = 1250 CZK
-        digQ.componentQuotes.head.finishLines.find(_.kind == ChargeKind.FinishCharge(matteLamId, "Lamination")).map(_.total) == Some(Money("1250.00")),
-      )
-    },
-    test("dynamic Express surge respects cap, minimum order floor applies, and promo code validates constraints") {
+      assert(digQ.volumeMultiplier == BigDecimal("0.85"))
+      // global curve
+      assert(offQ.volumeMultiplier == BigDecimal("0.60"))
+      // method-scoped Offset curve
+      assert(digVersionFee == Some(Money("600.00")))
+      assert(offPlateFee == Some(Money("1200.00")))
+      // Lamination Both sides: 125 sheets × 2 sides × 5 CZK = 1250 CZK
+      assert(digQ.componentQuotes.head.finishLines.find(_.kind == ChargeKind.FinishCharge(matteLamId, "Lamination")).map(_.total) == Some(Money("1250.00")))
+    }
+
+    "dynamic Express surge respects cap, minimum order floor applies, and promo code validates constraints" in {
       val smallSubj = PricingSubject(
         categoryId = flyerCatId,
         quantity = Quantity.unsafe(10),
@@ -285,16 +284,15 @@ object PricingDomainSpec extends ZIOSpecDefault:
       val okQ  = PricingEngine.calculate(QuoteId.unsafe("q-min"), smallSubj, basePricelist, busyCtx, None, Some(promo), Some(pCtx), now).toEither.toOption.get
       val badQ = PricingEngine.calculate(QuoteId.unsafe("q-exp"), smallSubj, basePricelist, busyCtx, None, Some(expiredPromo), Some(pCtx), now)
 
-      assertTrue(
-        okQ.speedAdjustment.exists(_.kind == ChargeKind.SpeedAdjustment(ManufacturingSpeed.Express, BigDecimal("1.80"))),
-        // Variable = 5*(6+4)=50, ×1.80 = 90 -> bumped to min floor 250.00 -> 10% promo = -25.00 -> net 225.00
-        okQ.minimumAdjustment.isDefined,
-        okQ.promoDiscount.map(_.total) == Some(Money("-25.00")),
-        okQ.netTotal == Money("225.00"),
-        badQ.isFailure,
-      )
-    },
-    test("MarginAnalysis detects below-cost selling prices") {
+      assert(okQ.speedAdjustment.exists(_.kind == ChargeKind.SpeedAdjustment(ManufacturingSpeed.Express, BigDecimal("1.80"))))
+      // Variable = 5*(6+4)=50, ×1.80 = 90 -> bumped to min floor 250.00 -> 10% promo = -25.00 -> net 225.00
+      assert(okQ.minimumAdjustment.isDefined)
+      assert(okQ.promoDiscount.map(_.total) == Some(Money("-25.00")))
+      assert(okQ.netTotal == Money("225.00"))
+      assert(badQ.isFailure)
+    }
+
+    "MarginAnalysis detects below-cost selling prices" in {
       val subj = bannerSubject(qty = 10, ink = InkBillingKey("4", "1"))
       val q = PricingEngine.calculate(QuoteId.unsafe("q-m"), subj, basePricelist, DynamicPricingContext.default, None, None, None, now).toEither.toOption.get
       val expensiveCostSheet = ProductionCostSheet(
@@ -305,10 +303,8 @@ object PricingDomainSpec extends ZIOSpecDefault:
         overheadFactor = BigDecimal("1.10"),
       )
       val analysis = PricingEngine.analyzeMargin(subj, q, expensiveCostSheet).toEither.toOption.get
-      assertTrue(
-        analysis.isBelowCost,
-        analysis.marginNet.isNegative,
-        analysis.warnings.exists(_.isInstanceOf[MarginWarning.BelowProductionCost]),
-      )
-    },
-  )
+      assert(analysis.isBelowCost)
+      assert(analysis.marginNet.isNegative)
+      assert(analysis.warnings.exists(_.isInstanceOf[MarginWarning.BelowProductionCost]))
+    }
+  }
