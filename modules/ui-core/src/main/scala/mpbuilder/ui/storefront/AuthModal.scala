@@ -6,6 +6,7 @@ import kyo.Style.*
 import mpbuilder.identity.*
 import mpbuilder.shared.*
 import mpbuilder.storefront.*
+import mpbuilder.ui.components.Icons
 import mpbuilder.ui.components.CommonComponents.*
 import mpbuilder.ui.theme.AppTheme.*
 import mpbuilder.ui.theme.AppTheme.Palette.*
@@ -144,7 +145,7 @@ object AuthModal:
                 h2(state.i18n.t("auth-title")).style(sectionTitle.margin(0.px)),
                 p(state.i18n.t("auth-subtitle")).style(smallText.margin(0.px)),
               ),
-              button.cssClass("mp-btn mp-btn-ghost mp-btn-sm").onClick(resetAndClose)(state.i18n.t("nav-close")),
+              button.cssClass("mp-icon-btn mp-icon-btn-sm").aria("label", "Close").onClick(resetAndClose)(Icons(Icons.Icon.Close, 16)),
             ),
 
             viewState.render { case (((((tab, idKind), chOpt), demoCodeOpt), errOpt), busy) =>

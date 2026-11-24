@@ -505,13 +505,13 @@ object DataTable:
                   div.style(rowSm)(
                     button
                       .cssClass("mp-btn mp-btn-secondary mp-btn-sm mp-dt-mobile-back")
-                      .onClick(closeSidePane)(if isCs then "← Zpět" else "← Back"),
+                      .onClick(closeSidePane)(Icons(Icons.Icon.ArrowLeft, 15), span(if isCs then "Zpět" else "Back")),
                     h3(cfg.title).style(Style.margin(0.px).fontSize(15.px).fontWeight(FontWeight.w800).color(ink)),
                   ),
                   button
-                    .cssClass("mp-btn mp-btn-ghost mp-btn-sm")
-                    .style(Style.padding(4.px, 8.px))
-                    .onClick(closeSidePane)("✕"),
+                    .cssClass("mp-icon-btn mp-icon-btn-sm")
+                    .aria("label", if isCs then "Zavřít" else "Close")
+                    .onClick(closeSidePane)(Icons(Icons.Icon.Close, 16)),
                 ),
                 div.cssClass("mp-dt-detail-body")(
                   cfg.renderForm(() => closeSidePane),
@@ -527,7 +527,7 @@ object DataTable:
                   div.style(rowSm.minWidth(0.px))(
                     button
                       .cssClass("mp-btn mp-btn-secondary mp-btn-sm mp-dt-mobile-back")
-                      .onClick(closeSidePane)(if isCs then "← Zpět" else "← Back"),
+                      .onClick(closeSidePane)(Icons(Icons.Icon.ArrowLeft, 15), span(if isCs then "Zpět" else "Back")),
                     span(paneHeading).style(Style.fontSize(12.px).fontWeight(FontWeight.w700).color(inkMuted)),
                   ),
                   div.style(rowXs.flexShrink(0.0))(
@@ -539,9 +539,9 @@ object DataTable:
                           .onClick(openFull(row))(if isCs then "⤢ Celá stránka" else "⤢ Full View")
                       case None => UI.empty,
                     button
-                      .cssClass("mp-btn mp-btn-ghost mp-btn-sm")
-                      .style(Style.padding(4.px, 8.px))
-                      .onClick(closeSidePane)("✕"),
+                      .cssClass("mp-icon-btn mp-icon-btn-sm")
+                      .aria("label", if isCs then "Zavřít" else "Close")
+                      .onClick(closeSidePane)(Icons(Icons.Icon.Close, 16)),
                   ),
                 ),
                 div.cssClass("mp-dt-detail-body")(

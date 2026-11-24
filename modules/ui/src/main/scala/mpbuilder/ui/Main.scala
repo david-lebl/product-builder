@@ -1,5 +1,6 @@
 package mpbuilder.ui
 
+import mpbuilder.ui.theme.{AppTheme, ThemeController, ThemeMode}
 import kyo.*
 import kyo.UI.*
 import mpbuilder.admin.BackofficeApp
@@ -71,6 +72,23 @@ object Main extends KyoApp:
       try dom.window.localStorage.setItem(LangStorageKey, lang.code)
       catch case _: Throwable => ()
     }
+
+  private def detectThemeMode: ThemeMode =
+    try Option(dom.window.localStorage.getItem(AppTheme.ThemeStorageKey)).map(ThemeMode.fromCode).getOrElse(ThemeMode.System)
+    catch case _: Throwable => ThemeMode.System
+
+  /** Applies the theme to `<html data-theme>` (matching `AppTheme.themeStylesheet`) and persists the choice. */
+  private def applyTheme(mode: ThemeMode): Unit < Sync =
+    Sync.defer {
+      dom.document.documentElement.setAttribute("data-theme", mode.code)
+      try dom.window.localStorage.setItem(AppTheme.ThemeStorageKey, mode.code)
+      catch case _: Throwable => ()
+    }
+
+  private def installDocumentCss(): Unit =
+    val styleEl = dom.document.createElement("style")
+    styleEl.textContent = AppTheme.documentCss
+    dom.document.head.appendChild(styleEl)
 
   private def installMasterDetailSplitter(): Unit =
     val styleEl = dom.document.createElement("style")
@@ -279,6 +297,8 @@ object Main extends KyoApp:
       (sfClient, boClient) = clients
       appI18n <- AdminTranslations.init(initialLang)
       _       <- UI.runStylesheet(AdminTheme.adminStylesheet)
+      _       <- Sync.defer(installDocumentCss())
+      themeCtl <- ThemeController.init(detectThemeMode, applyTheme)
       _       <- Sync.defer(installMasterDetailSplitter())
       _       <- Sync.defer(installArtworkFileBridge(appI18n))
       modeRef <- Signal.initRef[AppMode](initialMode)
@@ -296,6 +316,7 @@ object Main extends KyoApp:
                                   dom.window.location.hash = target
                               },
                             onLanguagePersist = persistLanguage,
+                            theme = Some(themeCtl),
                           )
                boState <- BackofficeState.init(
                             client = boClient,
@@ -308,6 +329,7 @@ object Main extends KyoApp:
                                   dom.window.location.hash = target
                               },
                             onLanguagePersist = persistLanguage,
+                            theme = Some(themeCtl),
                           )
                openAdmin: (() => Unit < Async) = () =>
                  for

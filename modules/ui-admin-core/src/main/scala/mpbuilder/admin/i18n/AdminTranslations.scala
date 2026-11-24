@@ -32,7 +32,7 @@ object AdminTranslations:
       |adm-nav-pricing = Pricing & Margin
       |adm-nav-customers = Customers
       |adm-nav-settings = Staff & Store Settings
-      |adm-back-to-storefront = ← Storefront
+      |adm-back-to-storefront = Storefront
       |adm-refresh = Refresh
       |adm-sign-out = Sign Out
       |adm-readonly-banner = Read-only view for your current role. Management actions require Manager or Admin privileges.
@@ -86,10 +86,10 @@ object AdminTranslations:
       |adm-orders-col-items = Items
       |adm-orders-col-total = Total
       |adm-orders-col-placed = Placed
-      |adm-orders-open = Open Detail →
+      |adm-orders-open = Open
       |adm-orders-empty = No orders match the current filters.
       |
-      |adm-od-back = ← Back to Queue
+      |adm-od-back = Back to Queue
       |adm-od-actions-title = Intake & Stage Actions
       |adm-od-action-note-placeholder = Optional staff note for this transition...
       |adm-od-confirm-payment = Mark Paid
@@ -217,7 +217,7 @@ object AdminTranslations:
       |adm-cust-notes-title = Internal Account Notes
       |adm-cust-orders-title = Order History
       |adm-cust-agreements-title = Customer Pricing & Agreements
-      |adm-cust-edit-in-pricing = Edit in Pricing →
+      |adm-cust-edit-in-pricing = Edit in Pricing
       |adm-cust-audit-title = Audit Trail
       |adm-cust-artworks-title = Print Artworks & Files
       |adm-cust-artworks-empty = No artwork files have been uploaded by this customer yet.
@@ -256,7 +256,7 @@ object AdminTranslations:
       |adm-nav-pricing = Ceníky a marže
       |adm-nav-customers = Zákazníci
       |adm-nav-settings = Zaměstnanci a nastavení
-      |adm-back-to-storefront = ← E-shop
+      |adm-back-to-storefront = E-shop
       |adm-refresh = Obnovit
       |adm-sign-out = Odhlásit se
       |adm-readonly-banner = Režim pouze pro čtení pro vaši roli. Správcovské akce vyžadují roli Manager nebo Admin.
@@ -310,10 +310,10 @@ object AdminTranslations:
       |adm-orders-col-items = Položky
       |adm-orders-col-total = Celkem
       |adm-orders-col-placed = Vytvořeno
-      |adm-orders-open = Otevřít detail →
+      |adm-orders-open = Otevřít
       |adm-orders-empty = Aktuálním filtrům neodpovídají žádné objednávky.
       |
-      |adm-od-back = ← Zpět na frontu
+      |adm-od-back = Zpět na frontu
       |adm-od-actions-title = Akce příjmu a posun stavu
       |adm-od-action-note-placeholder = Volitelná interní poznámka k přechodu stavu...
       |adm-od-confirm-payment = Označit jako zaplaceno
@@ -441,7 +441,7 @@ object AdminTranslations:
       |adm-cust-notes-title = Interní poznámky k účtu
       |adm-cust-orders-title = Historie objednávek
       |adm-cust-agreements-title = Zákaznické ceny a smlouvy
-      |adm-cust-edit-in-pricing = Upravit v Cenících →
+      |adm-cust-edit-in-pricing = Upravit v Cenících
       |adm-cust-audit-title = Auditní záznamy
       |adm-cust-artworks-title = Tisková data a soubory
       |adm-cust-artworks-empty = Tento zákazník zatím nenahrál žádná tisková data.

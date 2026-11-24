@@ -395,3 +395,27 @@ export JAVA_HOME=~/.sdkman/candidates/java/25.0.1-tem PATH=$JAVA_HOME/bin:$PATH 
 ```
 
 **Files:** `build.mill`
+
+---
+
+### Large blank gaps under form inputs (`mp-field` in a column)
+
+**Symptom:** ~180px of empty space below inputs in the staff login card, the configurator category select, etc.
+
+**Cause:** `mp-field` set `flex-grow: 1; flex-basis: 180px` for wrapping field rows. Inside a *column* flex container, `flex-basis` applies to height.
+
+**Solution:** `mp-field` no longer sets a basis; only `.mp-field-row > .mp-field` gets `flex-basis: 180px`. Use `mp-field-row` for side-by-side fields.
+
+**Files:** `modules/ui-core/src/main/scala/mpbuilder/ui/theme/AppTheme.scala`
+
+---
+
+### Media-query override of a `displayNone` rule has no effect (`Style.row`)
+
+**Symptom:** The hamburger menu (`mp-mobile-only`) and DataTable mobile "Back" button never appeared on tablet/mobile.
+
+**Cause:** In Kyo UI, `Style.row` / `Style.column` emit only `flex-direction`, not `display`. A media rule `Style.row…` cannot undo a base `Style.displayNone`.
+
+**Solution:** Re-display explicitly: `Style.display(Display.flex).row…` in the media rule.
+
+**Files:** `modules/ui-core/src/main/scala/mpbuilder/ui/theme/AppTheme.scala`

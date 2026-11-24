@@ -7,6 +7,8 @@ import mpbuilder.admin.state.{AdminRoute, BackofficeState}
 import mpbuilder.artwork.{ArtworkOwner, ArtworkStatus, CheckOutcome}
 import mpbuilder.ordering.*
 import mpbuilder.shared.*
+import mpbuilder.ui.components.Icons
+import mpbuilder.ui.components.Icons.Icon
 import mpbuilder.ui.components.CommonComponents.*
 import mpbuilder.ui.components.{ActionMenu, ArtworkComponents, ConfirmDialog, TabBar}
 import mpbuilder.ui.theme.AppTheme.*
@@ -67,7 +69,7 @@ object OrderDetailView:
                 div.style(rowBetween)(
                   span(if isCs then "Načítání objednávky..." else "Loading order...").style(mutedText),
                   if !embedded then
-                    button.cssClass("mp-btn mp-btn-secondary mp-btn-sm").onClick(state.navigate(AdminRoute.Orders))(state.i18n.t("adm-od-back"))
+                    button.cssClass("mp-btn mp-btn-secondary mp-btn-sm").onClick(state.navigate(AdminRoute.Orders))(Icons(Icon.ArrowLeft, 15), span(state.i18n.t("adm-od-back")))
                   else UI.empty,
                 ),
               )
@@ -334,7 +336,7 @@ object OrderDetailView:
                                     expandedBreakdownRef.updateAndGet { cur =>
                                       if cur.contains(ln.lineId) then cur - ln.lineId else cur + ln.lineId
                                     }.unit
-                                  )(s"${if showBreakdown then "▾" else "▸"} ${if isCs then "Rozpis ceny" else "Price Breakdown"}"),
+                                  )(Icons(if showBreakdown then Icon.ChevronDown else Icon.ChevronRight, 15), span(if isCs then "Rozpis ceny" else "Price Breakdown")),
                                 if canEditLines then
                                   button
                                     .cssClass(if isEditingLine then "mp-btn mp-btn-primary mp-btn-sm" else "mp-btn mp-btn-secondary mp-btn-sm")
@@ -659,8 +661,8 @@ object OrderDetailView:
                               .onClick(
                                 expandedRevisionsRef.updateAndGet(cur => if cur.contains(art.id) then cur - art.id else cur + art.id).unit
                               )(
-                                s"${if showRevs then "▾" else "▸"} ",
-                                state.i18n.t("adm-od-artwork-revisions", Dict("count" -> art.allRevisions.size.toString)),
+                                Icons(if showRevs then Icon.ChevronDown else Icon.ChevronRight, 15),
+                                span(state.i18n.t("adm-od-artwork-revisions", Dict("count" -> art.allRevisions.size.toString))),
                               ),
                           ),
 
@@ -746,7 +748,7 @@ object OrderDetailView:
                     paymentStatusBadge(ord.payment.status, lang),
                   ),
                   span(state.i18n.t("adm-od-payment-b2b-hint")).style(smallText),
-                  infoRow(if isCs then "Platební metoda" else "Payment Method", ord.payment.method.toString),
+                  infoRow(if isCs then "Platební metoda" else "Payment Method", paymentMethodLabel(ord.payment.method, lang)),
                   ord.payment.externalReference.map(r => infoRow(if isCs then "Reference" else "Reference", r)).getOrElse(UI.empty),
                   ord.payment.confirmedAt.map(t => infoRow(if isCs then "Potvrzeno dne" else "Confirmed At", formatInstant(t))).getOrElse(UI.empty),
                   if canManage then
@@ -900,7 +902,7 @@ object OrderDetailView:
                         button
                           .cssClass("mp-btn mp-btn-secondary mp-btn-sm")
                           .style(Style.flexShrink(0.0))
-                          .onClick(state.navigate(AdminRoute.Orders))(state.i18n.t("adm-od-back"))
+                          .onClick(state.navigate(AdminRoute.Orders))(Icons(Icon.ArrowLeft, 15), span(state.i18n.t("adm-od-back")))
                       else UI.empty,
                       h1(ord.orderNumber.value).style(
                         Style.margin(0.px).fontSize(if embedded then 19.px else 24.px).fontWeight(FontWeight.w800).color(ink),

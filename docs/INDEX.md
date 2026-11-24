@@ -53,6 +53,7 @@ How-to guides for developers working with the codebase.
 | Document | Description |
 |----------|-------------|
 | [ui-guide.md](ui-guide.md) | Build, run, and test instructions (Mill) |
+| [ui-design-system.md](ui-design-system.md) | UI design system — theme tokens, light/dark/system mode, icons, shared controls, responsive rules |
 | [running-the-platform.md](running-the-platform.md) | How to run the API server (`--storage=memory\|postgres`), demo logins, pointing the SPAs/calculator at it, server options, and tests |
 | [backend-persistence-and-http-api.md](backend-persistence-and-http-api.md) | PostgreSQL persistence (Magnum + Flyway, schema per context), Tapir HTTP API & Swagger, `--storage=memory\|postgres`, HTTP client wiring (`window.__API_BASE_URL__`), and artwork `BlobStorage` |
 | [adding-new-product-guide.md](adding-new-product-guide.md) | Step-by-step guide for adding new products to the catalog |
@@ -79,6 +80,7 @@ Session-by-session work logs documenting what was done, decisions made, and issu
 | Document | Description |
 |----------|-------------|
 | [changelog/README.md](changelog/README.md) | Changelog format, template, and log entries index |
+| [changelog/2026-11-24-ui-visual-ux-modernization.md](changelog/2026-11-24-ui-visual-ux-modernization.md) | UI modernization — CSS-variable theme with dark mode, icon set, shared controls, storefront & backoffice redesign, layout bug fixes |
 | [changelog/2026-11-23-quick-order-server-pricing.md](changelog/2026-11-23-quick-order-server-pricing.md) | Bugfix — quick-order checkout sends a configuration (`QuickOrderItem`) and is re-priced server-side instead of trusting a client price |
 | [changelog/2026-11-23-phase4-http-api.md](changelog/2026-11-23-phase4-http-api.md) | Roadmap Phase 4 — per-BFF Tapir HTTP API, ZIO HTTP server (`--storage=memory\|postgres`), HTTP clients & frontend mode switch |
 | [changelog/2026-11-23-phase3-postgres-persistence.md](changelog/2026-11-23-phase3-postgres-persistence.md) | Roadmap Phase 3 + 5.1 storage — PostgreSQL persistence (Magnum + Flyway), DB seeder, contract tests, artwork BlobStorage |

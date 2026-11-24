@@ -8,6 +8,7 @@ import mpbuilder.catalog.*
 import mpbuilder.shared.*
 import mpbuilder.storefront.*
 import mpbuilder.ui.components.{ArtworkComponents, BrowserPickedFile, CommonComponents}
+import mpbuilder.ui.components.Icons
 import mpbuilder.ui.components.CommonComponents.*
 import mpbuilder.ui.theme.AppTheme.*
 import mpbuilder.ui.theme.AppTheme.Palette.*
@@ -332,7 +333,19 @@ object ConfiguratorView:
             div.style(Style.fontWeight(FontWeight.w700).fontSize(13.px).color(ink))(finish.name(lang)),
             finish.description.map(desc => div.style(smallText)(desc(lang))).getOrElse(UI.empty),
           ),
-          badge(if isSelected then "✓" else "+", if isSelected then BadgeTone.Brand else BadgeTone.Neutral),
+          span.style(
+            Style.row
+              .align(Alignment.center)
+              .justify(Justification.center)
+              .width(24.px)
+              .height(24.px)
+              .flexShrink(0.0)
+              .rounded(999.px)
+              .bg(if isSelected then brand else surfaceAlt)
+              .color(if isSelected then Color.white else inkMuted)
+              .border(1.px, if isSelected then brand else Palette.border)
+              .transition(TransitionProperty.all, 140, Easing.easeOut),
+          )(Icons(if isSelected then Icons.Icon.Check else Icons.Icon.Plus, 14, 2.4)),
         ),
       selectionOpt match
         case None => UI.empty
@@ -1065,15 +1078,15 @@ object ConfiguratorView:
                 div.style(Style.column.gap(8.px))(
                   button
                     .cssClass("mp-btn mp-btn-primary mp-btn-lg")
-                    .onClick(onAddToCart(d, res))(ctrl.i18n.t("cfg-btn-add-cart")),
+                    .onClick(onAddToCart(d, res))(Icons(Icons.Icon.Cart, 18), span(ctrl.i18n.t("cfg-btn-add-cart"))),
                   button
                     .cssClass("mp-btn mp-btn-secondary mp-btn-lg")
-                    .onClick(onQuickOrder(d, res))(ctrl.i18n.t("cfg-btn-quick-order")),
+                    .onClick(onQuickOrder(d, res))(Icons(Icons.Icon.Zap, 17), span(ctrl.i18n.t("cfg-btn-quick-order"))),
                 )
               case ConfiguratorHost.Calculator(_, onRequestEmailOrder) =>
                 button
                   .cssClass("mp-btn mp-btn-primary mp-btn-lg")
-                  .onClick(onRequestEmailOrder(d, res))(ctrl.i18n.t("cfg-btn-email-order")),
+                  .onClick(onRequestEmailOrder(d, res))(Icons(Icons.Icon.Mail, 17), span(ctrl.i18n.t("cfg-btn-email-order"))),
 
             // Prepress advisories / warnings
             if res.configuration.warnings.nonEmpty then

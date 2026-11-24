@@ -12,52 +12,90 @@ import kyo.Style.*
   */
 object AppTheme:
 
-  // ── Typed Color Palette ────────────────────────────────────────────────────
+  // ── Design Tokens (CSS custom properties, light + dark) ────────────────────
 
+  /** One themable color token, emitted as `--mp-<name>` with a light and a dark value. */
+  final case class Token(name: String, light: String, dark: String):
+    val cssVar: String = s"mp-$name"
+    val color: Color   = Color.variable(cssVar)
+
+  /** Typed palette. Every member resolves to `var(--mp-…)`, so the whole UI re-themes (light / dark /
+    * system) by swapping the variable block — no call site needs to know which theme is active.
+    */
   object Palette:
     private[theme] def hexColor(raw: String, fallback: Color = Color.slate): Color =
       Color.hex(raw).getOrElse(fallback)
 
-    val canvas: Color         = hexColor("#F8FAFC")
-    val surface: Color        = Color.white
-    val surfaceAlt: Color     = hexColor("#F1F5F9")
-    val surfaceHover: Color   = hexColor("#EEF2F7")
-    val border: Color         = hexColor("#E2E8F0")
-    val borderStrong: Color   = hexColor("#CBD5E1")
-    val ink: Color            = hexColor("#0F172A")
-    val inkSecondary: Color   = hexColor("#475569")
-    val inkMuted: Color       = hexColor("#64748B")
-    val brand: Color          = hexColor("#4F46E5", Color.indigo)
-    val brandHover: Color     = hexColor("#4338CA", Color.indigo)
-    val brandSoft: Color      = hexColor("#EEF2FF")
-    val brandBorder: Color    = hexColor("#C7D2FE")
-    val brandDark: Color      = hexColor("#312E81")
-    val emerald: Color        = hexColor("#059669", Color.green)
-    val emeraldSoft: Color    = hexColor("#ECFDF5")
-    val emeraldBorder: Color  = hexColor("#A7F3D0")
-    val emeraldInk: Color     = hexColor("#065F46")
-    val amber: Color          = hexColor("#D97706", Color.orange)
-    val amberSoft: Color      = hexColor("#FFFBEB")
-    val amberBorder: Color    = hexColor("#FDE68A")
-    val amberInk: Color       = hexColor("#92400E")
-    val rose: Color           = hexColor("#DC2626", Color.red)
-    val roseSoft: Color       = hexColor("#FEF2F2")
-    val roseBorder: Color     = hexColor("#FECACA")
-    val roseInk: Color        = hexColor("#991B1B")
-    val silverBg: Color       = hexColor("#E0F2FE")
-    val silverBorder: Color   = hexColor("#7DD3FC")
-    val silverInk: Color      = hexColor("#0369A1")
-    val goldBg: Color         = hexColor("#FEF3C7")
-    val goldBorder: Color     = hexColor("#FCD34D")
-    val goldInk: Color        = hexColor("#B45309")
-    val platinumBg: Color     = hexColor("#F3E8FF")
-    val platinumBorder: Color = hexColor("#C4B5FD")
-    val platinumInk: Color    = hexColor("#6D28D9")
-    val backdrop: Color       = Color.rgba(15, 23, 42, 0.48)
-    val glassHeader: Color    = Color.rgba(255, 255, 255, 0.92)
-    val shadowSubtle: Color   = Color.rgba(15, 23, 42, 0.06)
-    val shadowMedium: Color   = Color.rgba(15, 23, 42, 0.12)
-    val shadowStrong: Color   = Color.rgba(15, 23, 42, 0.22)
+    private val registry = scala.collection.mutable.ListBuffer.empty[Token]
+    private def token(name: String, light: String, dark: String): Color =
+      val t = Token(name, light, dark)
+      registry += t
+      t.color
+
+    // Surfaces
+    val canvas: Color         = token("canvas", "#F6F7FB", "#0B0F19")
+    val surface: Color        = token("surface", "#FFFFFF", "#111827")
+    val surfaceAlt: Color     = token("surface-alt", "#F3F5F9", "#161F31")
+    val surfaceHover: Color   = token("surface-hover", "#ECEFF5", "#1E293B")
+    val border: Color         = token("border", "#E3E7EE", "#232E42")
+    val borderStrong: Color   = token("border-strong", "#CBD2DD", "#334155")
+    // Text
+    val ink: Color            = token("ink", "#0F172A", "#E6EAF1")
+    val inkSecondary: Color   = token("ink-secondary", "#475569", "#B3BECD")
+    val inkMuted: Color       = token("ink-muted", "#64748B", "#8592A6")
+    // Brand (indigo)
+    val brand: Color          = token("brand", "#4F46E5", "#6366F1")
+    val brandHover: Color     = token("brand-hover", "#4338CA", "#7C83F7")
+    val brandSoft: Color      = token("brand-soft", "#EEF2FF", "rgba(99, 102, 241, 0.16)")
+    val brandBorder: Color    = token("brand-border", "#C7D2FE", "rgba(129, 140, 248, 0.40)")
+    val brandDark: Color      = token("brand-ink", "#3730A3", "#C7D2FE")
+    // Semantic
+    val emerald: Color        = token("emerald", "#059669", "#10B981")
+    val emeraldSoft: Color    = token("emerald-soft", "#ECFDF5", "rgba(16, 185, 129, 0.14)")
+    val emeraldBorder: Color  = token("emerald-border", "#A7F3D0", "rgba(16, 185, 129, 0.36)")
+    val emeraldInk: Color     = token("emerald-ink", "#065F46", "#6EE7B7")
+    val amber: Color          = token("amber", "#D97706", "#F59E0B")
+    val amberSoft: Color      = token("amber-soft", "#FFFBEB", "rgba(245, 158, 11, 0.14)")
+    val amberBorder: Color    = token("amber-border", "#FDE68A", "rgba(245, 158, 11, 0.36)")
+    val amberInk: Color       = token("amber-ink", "#92400E", "#FCD34D")
+    val rose: Color           = token("rose", "#DC2626", "#EF4444")
+    val roseSoft: Color       = token("rose-soft", "#FEF2F2", "rgba(239, 68, 68, 0.14)")
+    val roseBorder: Color     = token("rose-border", "#FECACA", "rgba(239, 68, 68, 0.38)")
+    val roseInk: Color        = token("rose-ink", "#991B1B", "#FCA5A5")
+    val violet: Color         = token("violet", "#7C3AED", "#A78BFA")
+    val violetSoft: Color     = token("violet-soft", "#F5F3FF", "rgba(139, 92, 246, 0.16)")
+    val sky: Color            = token("sky", "#0284C7", "#38BDF8")
+    val skySoft: Color        = token("sky-soft", "#F0F9FF", "rgba(14, 165, 233, 0.14)")
+    // Customer tiers
+    val silverBg: Color       = token("silver-bg", "#E0F2FE", "rgba(14, 165, 233, 0.16)")
+    val silverBorder: Color   = token("silver-border", "#7DD3FC", "rgba(56, 189, 248, 0.42)")
+    val silverInk: Color      = token("silver-ink", "#0369A1", "#7DD3FC")
+    val goldBg: Color         = token("gold-bg", "#FEF3C7", "rgba(234, 179, 8, 0.16)")
+    val goldBorder: Color     = token("gold-border", "#FCD34D", "rgba(250, 204, 21, 0.42)")
+    val goldInk: Color        = token("gold-ink", "#B45309", "#FDE047")
+    val platinumBg: Color     = token("platinum-bg", "#F3E8FF", "rgba(168, 85, 247, 0.16)")
+    val platinumBorder: Color = token("platinum-border", "#C4B5FD", "rgba(192, 132, 252, 0.42)")
+    val platinumInk: Color    = token("platinum-ink", "#6D28D9", "#D8B4FE")
+    // Overlays, glass & elevation
+    val backdrop: Color       = token("backdrop", "rgba(15, 23, 42, 0.42)", "rgba(2, 6, 23, 0.66)")
+    val glassHeader: Color    = token("glass", "rgba(255, 255, 255, 0.82)", "rgba(11, 15, 25, 0.78)")
+    val shadowSubtle: Color   = token("shadow-sm", "rgba(15, 23, 42, 0.06)", "rgba(0, 0, 0, 0.30)")
+    val shadowMedium: Color   = token("shadow-md", "rgba(15, 23, 42, 0.10)", "rgba(0, 0, 0, 0.42)")
+    val shadowStrong: Color   = token("shadow-lg", "rgba(15, 23, 42, 0.18)", "rgba(0, 0, 0, 0.60)")
+    val focusRing: Color      = token("focus-ring", "rgba(79, 70, 229, 0.28)", "rgba(129, 140, 248, 0.45)")
+    // Inverse surfaces (toasts, tooltips) stay dark-on-light in both themes
+    val inverseBg: Color      = token("inverse-bg", "#0F172A", "#1E293B")
+    val inverseInk: Color     = token("inverse-ink", "#F8FAFC", "#F8FAFC")
+
+    /** All themable tokens, in declaration order. */
+    lazy val tokens: List[Token] = registry.toList
+
+    // Static (non-themed) brand literals for gradients & illustrations that look right on both themes.
+    val brandStatic: Color  = hexColor("#4F46E5", Color.indigo)
+    val brandDeep: Color    = hexColor("#312E81", Color.indigo)
+    val violetStatic: Color = hexColor("#7C3AED", Color.purple)
+    val skyStatic: Color    = hexColor("#0284C7", Color.blue)
+    val onBrand: Color      = Color.white
 
   import Palette.*
 
@@ -85,36 +123,88 @@ object AppTheme:
   val sectionTitle: Style =
     Style.fontSize(18.px).fontWeight(FontWeight.w700).color(ink).letterSpacing((-0.2).px)
 
+  /** Accessible keyboard focus ring (applied via `:focus-visible`, so mouse clicks stay clean). */
+  val focusVisibleRing: Style =
+    Style.shadow(0.px, 0.px, 0.px, 3.px, focusRing).borderColor(brand)
+
+  /** Hides content visually while keeping it in the accessibility tree (screen-reader label). */
+  val visuallyHidden: Style =
+    Style.position(Position.absolute)
+      .width(1.px)
+      .height(1.px)
+      .padding(0.px)
+      .margin((-1).px)
+      .overflow(Overflow.hidden)
+      .whiteSpace(WhiteSpace.noWrap)
+      .border(0.px, BorderStyle.none, Color.transparent)
+      .opacity(0.0)
+
   val dividerStyle: Style =
     Style.height(1.px).width(100.pct).bg(border).border(0.px, BorderStyle.none, Color.transparent)
 
   // ── Core Responsive Stylesheet (Shared by Storefront SPA + Calculator) ─────
 
-  val coreStylesheet: Stylesheet =
+  // ── Typography ─────────────────────────────────────────────────────────────
+
+  /** Inter (loaded by the host page) with a native system-UI fallback, so embeds without the web font still look crisp. */
+  val fontStack: FontFamily =
+    FontFamily.Custom("\"Inter\", \"InterVariable\", ui-sans-serif, system-ui, -apple-system, \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, sans-serif")
+
+  val monoStack: FontFamily =
+    FontFamily.Custom("ui-monospace, \"SF Mono\", SFMono-Regular, Menlo, Consolas, monospace")
+
+  // ── Theme Variables (light default, `[data-theme=dark]`, and `[data-theme=system]` + OS dark) ──
+
+  private def darkPairs: Seq[(String, String)] = Palette.tokens.map(t => t.cssVar -> t.dark)
+
+  val themeStylesheet: Stylesheet =
     Stylesheet
-      .vars(
-        "mp-canvas"  -> "#F8FAFC",
-        "mp-surface" -> "#FFFFFF",
-        "mp-ink"     -> "#0F172A",
-        "mp-brand"   -> "#4F46E5",
+      .vars(Palette.tokens.map(t => t.cssVar -> t.light)*)
+      .scopedVars(Selector.data("theme", "dark"), darkPairs*)
+      .media(Stylesheet.MediaQuery.prefersDark)(
+        Stylesheet.scopedVars(Selector.data("theme", "system"), darkPairs*),
       )
+
+  // ── Motion ─────────────────────────────────────────────────────────────────
+
+  val motionStylesheet: Stylesheet =
+    Stylesheet
+      .keyframes("mp-fade-in", Stylesheet.Keyframe.from -> Style.opacity(0.0), Stylesheet.Keyframe.to -> Style.opacity(1.0))
+      .keyframes(
+        "mp-rise-in",
+        Stylesheet.Keyframe.from -> Style.opacity(0.0).translate(0.px, 10.px),
+        Stylesheet.Keyframe.to   -> Style.opacity(1.0).translate(0.px, 0.px),
+      )
+      .keyframes(
+        "mp-slide-in-right",
+        Stylesheet.Keyframe.from -> Style.opacity(0.6).translate(32.px, 0.px),
+        Stylesheet.Keyframe.to   -> Style.opacity(1.0).translate(0.px, 0.px),
+      )
+      .keyframes(
+        "mp-drop-in",
+        Stylesheet.Keyframe.from -> Style.opacity(0.0).translate(0.px, (-6).px),
+        Stylesheet.Keyframe.to   -> Style.opacity(1.0).translate(0.px, 0.px),
+      )
+
+  val coreStylesheet: Stylesheet =
+    themeStylesheet ++ motionStylesheet ++ Stylesheet
       // Root containers
       .rule(
         "mp-app",
         Style.column
-          .minHeight(100.pct)
+          .minHeight(100.vh)
           .bg(canvas)
           .color(ink)
-          .fontFamily(FontFamily.SystemUi)
+          .fontFamily(fontStack)
           .fontSize(15.px)
-          .lineHeight(1.5),
+          .lineHeight(1.55),
       )
       .rule(
         "mp-calc-root",
         Style.column
           .bg(canvas)
           .color(ink)
-          .fontFamily(FontFamily.SystemUi)
+          .fontFamily(fontStack)
           .fontSize(15.px)
           .lineHeight(1.5)
           .rounded(16.px)
@@ -130,6 +220,10 @@ object AppTheme:
           .margin(0.px, Length.Auto)
           .padding(0.px, 24.px),
       )
+      .rule(
+        "mp-main",
+        Style.padding(28.px, 24.px, 56.px, 24.px).flexGrow(1.0),
+      )
       // Sticky Header
       .rule(
         "mp-header",
@@ -138,8 +232,7 @@ object AppTheme:
           .zIndex(40)
           .width(100.pct)
           .bg(glassHeader)
-          .borderBottom(1.px, border)
-          .shadow(0.px, 1.px, 8.px, 0.px, shadowSubtle),
+          .borderBottom(1.px, border),
       )
       .rule(
         "mp-header-inner",
@@ -147,7 +240,8 @@ object AppTheme:
           .width(100.pct)
           .maxWidth(1240.px)
           .margin(0.px, Length.Auto)
-          .padding(12.px, 24.px)
+          .padding(10.px, 24.px)
+          .minHeight(64.px)
           .align(Alignment.center)
           .justify(Justification.spaceBetween)
           .gap(16.px),
@@ -174,12 +268,13 @@ object AppTheme:
         "mp-hero",
         Style.column
           .width(100.pct)
-          .padding(40.px, 32.px)
-          .rounded(20.px)
-          .bgGradient(GradientDirection.toBottomRight, (brandDark, 0.pct), (brand, 65.pct), (hexColor("#7C3AED"), 100.pct))
+          .padding(44.px, 40.px)
+          .rounded(24.px)
+          .bgGradient(GradientDirection.toBottomRight, (brandDeep, 0.pct), (brandStatic, 55.pct), (violetStatic, 100.pct))
           .color(Color.white)
           .gap(16.px)
-          .shadow(0.px, 12.px, 32.px, 0.px, Color.rgba(79, 70, 229, 0.22)),
+          .overflow(Overflow.hidden)
+          .shadow(0.px, 18.px, 40.px, (-12).px, Color.rgba(79, 70, 229, 0.45)),
       )
       .rule(
         "mp-hero-title",
@@ -191,26 +286,27 @@ object AppTheme:
         Style.column
           .bg(surface)
           .border(1.px, border)
-          .rounded(14.px)
+          .rounded(16.px)
           .padding(20.px)
           .gap(14.px)
-          .shadow(0.px, 1.px, 3.px, 0.px, shadowSubtle),
+          .shadow(0.px, 1.px, 2.px, 0.px, shadowSubtle),
       )
       .rule(
         "mp-card-product",
         Style.column
           .bg(surface)
           .border(1.px, border)
-          .rounded(16.px)
-          .padding(20.px)
-          .gap(12.px)
+          .rounded(18.px)
+          .padding(0.px)
+          .gap(0.px)
           .flexGrow(1.0)
           .flexShrink(1.0)
-          .flexBasis(320.px)
+          .flexBasis(300.px)
           .maxWidth(420.px)
-          .shadow(0.px, 1.px, 4.px, 0.px, shadowSubtle)
-          .transition(TransitionProperty.all, 160, Easing.easeOut)
-          .hover(Style.borderColor(brandBorder).shadow(0.px, 8.px, 24.px, 0.px, shadowMedium)),
+          .overflow(Overflow.hidden)
+          .shadow(0.px, 1.px, 2.px, 0.px, shadowSubtle)
+          .transition(TransitionProperty.all, 180, Easing.easeOut)
+          .hover(Style.borderColor(brandBorder).translate(0.px, (-3).px).shadow(0.px, 14.px, 30.px, (-8).px, shadowMedium)),
       )
       .rule(
         "mp-card-grid",
@@ -236,8 +332,10 @@ object AppTheme:
           .gap(4.px)
           .flexGrow(1.0)
           .flexBasis(200.px)
+          .align(Alignment.stretch)
           .cursor(Cursor.pointer)
           .textAlign(TextAlign.left)
+          .color(ink)
           .transition(TransitionProperty.all, 140, Easing.easeOut)
           .hover(Style.borderColor(brandBorder).bg(surfaceAlt)),
       )
@@ -251,9 +349,11 @@ object AppTheme:
           .gap(4.px)
           .flexGrow(1.0)
           .flexBasis(200.px)
+          .align(Alignment.stretch)
           .cursor(Cursor.pointer)
           .textAlign(TextAlign.left)
-          .shadow(0.px, 2.px, 8.px, 0.px, Color.rgba(79, 70, 229, 0.14)),
+          .color(ink)
+          .shadow(0.px, 0.px, 0.px, 3.px, focusRing),
       )
       // 2-Column Responsive Split (Configurator & Checkout)
       .rule(
@@ -286,20 +386,24 @@ object AppTheme:
         Style.row
           .align(Alignment.center)
           .justify(Justification.center)
-          .gap(6.px)
+          .gap(7.px)
           .padding(9.px, 16.px)
           .rounded(10.px)
           .fontSize(14.px)
           .fontWeight(FontWeight.w600)
+          .lineHeight(1.25)
+          .whiteSpace(WhiteSpace.noWrap)
           .cursor(Cursor.pointer)
           .border(1.px, Color.transparent)
-          .transition(TransitionProperty.all, 140, Easing.easeOut),
+          .transition(TransitionProperty.all, 140, Easing.easeOut)
+          .active(Style.translate(0.px, 1.px)),
       )
       .rule(
         "mp-btn-primary",
         Style.bg(brand)
-          .color(Color.white)
-          .hover(Style.bg(brandHover))
+          .color(onBrand)
+          .shadow(0.px, 1.px, 2.px, 0.px, shadowMedium)
+          .hover(Style.bg(brandHover).shadow(0.px, 6.px, 16.px, (-6).px, Color.rgba(79, 70, 229, 0.55)))
           .disabled(Style.opacity(0.5).cursor(Cursor.notAllowed)),
       )
       .rule(
@@ -307,6 +411,7 @@ object AppTheme:
         Style.bg(surface)
           .color(ink)
           .border(1.px, borderStrong)
+          .shadow(0.px, 1.px, 2.px, 0.px, shadowSubtle)
           .hover(Style.bg(surfaceAlt).borderColor(brandBorder))
           .disabled(Style.opacity(0.5).cursor(Cursor.notAllowed)),
       )
@@ -314,18 +419,20 @@ object AppTheme:
         "mp-btn-ghost",
         Style.bg(Color.transparent)
           .color(inkSecondary)
-          .hover(Style.bg(surfaceAlt).color(ink)),
+          .hover(Style.bg(surfaceHover).color(ink))
+          .disabled(Style.opacity(0.5).cursor(Cursor.notAllowed)),
       )
       .rule(
         "mp-btn-nav-active",
-        Style.bg(brandSoft).color(brand),
+        Style.bg(brandSoft).color(brandDark).hover(Style.bg(brandSoft).color(brandDark)),
       )
       .rule(
         "mp-btn-danger",
         Style.bg(roseSoft)
           .color(roseInk)
           .border(1.px, roseBorder)
-          .hover(Style.bg(rose).color(Color.white)),
+          .hover(Style.bg(rose).color(Color.white).borderColor(rose))
+          .disabled(Style.opacity(0.5).cursor(Cursor.notAllowed)),
       )
       .rule(
         "mp-btn-sm",
@@ -377,7 +484,9 @@ object AppTheme:
           .color(ink)
           .fontSize(14.px)
           .lineHeight(1.4)
-          .focus(Style.borderColor(brand).shadow(0.px, 0.px, 0.px, 3.px, Color.rgba(79, 70, 229, 0.16))),
+          .transition(TransitionProperty.all, 120, Easing.easeOut)
+          .hover(Style.borderColor(inkMuted))
+          .focus(Style.borderColor(brand).shadow(0.px, 0.px, 0.px, 3.px, focusRing)),
       )
       .rule(
         "mp-field-row",
@@ -385,7 +494,7 @@ object AppTheme:
       )
       .rule(
         "mp-field",
-        Style.column.gap(5.px).flexGrow(1.0).flexBasis(180.px).minWidth(0.px),
+        Style.column.gap(6.px).flexGrow(1.0).minWidth(0.px),
       )
       // Drawer & Modal Overlays
       .rule(
@@ -397,17 +506,20 @@ object AppTheme:
           .bottom(0.px)
           .zIndex(80)
           .bg(backdrop)
+          .animation("mp-fade-in", 160, Easing.easeOut)
           .row
           .justify(Justification.end),
       )
       .rule(
         "mp-drawer",
         Style.column
-          .width(440.px)
+          .width(460.px)
           .maxWidth(100.pct)
           .height(100.pct)
           .bg(surface)
-          .shadow((-8).px, 0.px, 32.px, 0.px, shadowStrong)
+          .borderLeft(1.px, border)
+          .shadow((-12).px, 0.px, 40.px, 0.px, shadowStrong)
+          .animation("mp-slide-in-right", 220, Easing.easeOut)
           .overflowY(Overflow.auto),
       )
       .rule(
@@ -419,6 +531,7 @@ object AppTheme:
           .bottom(0.px)
           .zIndex(90)
           .bg(backdrop)
+          .animation("mp-fade-in", 160, Easing.easeOut)
           .row
           .align(Alignment.center)
           .justify(Justification.center)
@@ -431,11 +544,14 @@ object AppTheme:
           .maxWidth(100.pct)
           .maxHeight(92.pct)
           .bg(surface)
-          .rounded(18.px)
+          .color(ink)
+          .border(1.px, border)
+          .rounded(20.px)
           .padding(24.px)
           .gap(16.px)
           .overflowY(Overflow.auto)
-          .shadow(0.px, 20.px, 48.px, 0.px, shadowStrong),
+          .animation("mp-rise-in", 200, Easing.easeOut)
+          .shadow(0.px, 24.px, 56.px, (-12).px, shadowStrong),
       )
       // Toast
       .rule(
@@ -444,13 +560,15 @@ object AppTheme:
           .bottom(20.px)
           .right(20.px)
           .zIndex(100)
-          .padding(12.px, 18.px)
-          .rounded(12.px)
-          .bg(ink)
-          .color(Color.white)
+          .maxWidth(420.px)
+          .padding(10.px, 10.px, 10.px, 14.px)
+          .rounded(14.px)
+          .bg(inverseBg)
+          .color(inverseInk)
           .fontSize(14.px)
           .fontWeight(FontWeight.w600)
-          .shadow(0.px, 8.px, 24.px, 0.px, shadowStrong),
+          .animation("mp-rise-in", 220, Easing.easeOut)
+          .shadow(0.px, 12.px, 32.px, (-6).px, shadowStrong),
       )
       // Refined Balanced Tab Bar (full-width bottom divider line clearly scoping content below)
       .rule(
@@ -530,13 +648,14 @@ object AppTheme:
           .top(100.pct)
           .right(0.px)
           .zIndex(60)
-          .minWidth(190.px)
-          .margin(5.px, 0.px, 0.px, 0.px)
+          .minWidth(200.px)
+          .margin(6.px, 0.px, 0.px, 0.px)
           .bg(surface)
-          .border(1.px, borderStrong)
-          .rounded(10.px)
+          .border(1.px, border)
+          .rounded(12.px)
           .padding(5.px)
-          .shadow(0.px, 10.px, 28.px, 0.px, shadowMedium)
+          .animation("mp-drop-in", 140, Easing.easeOut)
+          .shadow(0.px, 14.px, 34.px, (-6).px, shadowMedium)
           .column
           .gap(2.px),
       )
@@ -994,26 +1113,360 @@ object AppTheme:
           .bg(canvas)
           .border(1.px, border),
       )
+      // ── Icons ──────────────────────────────────────────────────────────────
+      .rule(
+        "mp-icon",
+        Style.display(Display.inlineFlex)
+          .align(Alignment.center)
+          .justify(Justification.center)
+          .flexShrink(0.0)
+          .lineHeight(1.0),
+      )
+      // ── Segmented Control (single-select multi-button) ─────────────────────
+      .rule(
+        "mp-seg",
+        Style.row
+          .align(Alignment.center)
+          .gap(2.px)
+          .padding(3.px)
+          .rounded(11.px)
+          .bg(surfaceAlt)
+          .border(1.px, border)
+          .flexShrink(0.0),
+      )
+      .rule(
+        "mp-seg-btn",
+        Style.row
+          .align(Alignment.center)
+          .justify(Justification.center)
+          .gap(6.px)
+          .padding(5.px, 10.px)
+          .rounded(8.px)
+          .bg(Color.transparent)
+          .border(0.px, BorderStyle.none, Color.transparent)
+          .color(inkMuted)
+          .fontSize(12.px)
+          .fontWeight(FontWeight.w700)
+          .letterSpacing(0.2.px)
+          .lineHeight(1.2)
+          .whiteSpace(WhiteSpace.noWrap)
+          .cursor(Cursor.pointer)
+          .transition(TransitionProperty.all, 140, Easing.easeOut)
+          .hover(Style.color(ink)),
+      )
+      .rule(
+        "mp-seg-btn-active",
+        Style.bg(surface)
+          .color(ink)
+          .shadow(0.px, 1.px, 3.px, 0.px, shadowMedium)
+          .hover(Style.color(ink)),
+      )
+      .rule(
+        "mp-seg-full",
+        Style.width(100.pct),
+      )
+      .rule(
+        Selector.cls("mp-seg-full").child(Selector.cls("mp-seg-btn")),
+        Style.flexGrow(1.0).flexBasis(0.px),
+      )
+      // ── Joined Button Group ────────────────────────────────────────────────
+      .rule(
+        "mp-btn-group",
+        Style.row
+          .align(Alignment.stretch)
+          .flexShrink(0.0),
+      )
+      .rule(
+        Selector.cls("mp-btn-group").child(Selector.cls("mp-btn")),
+        Style.rounded(0.px).margin(0.px, 0.px, 0.px, (-1).px),
+      )
+      .rule(
+        Selector.cls("mp-btn-group").child(Selector.cls("mp-btn")).pseudo("first-child"),
+        Style.rounded(10.px, 0.px, 0.px, 10.px).margin(0.px),
+      )
+      .rule(
+        Selector.cls("mp-btn-group").child(Selector.cls("mp-btn")).pseudo("last-child"),
+        Style.rounded(0.px, 10.px, 10.px, 0.px),
+      )
+      // ── Icon Buttons with Count Badge ──────────────────────────────────────
+      .rule(
+        "mp-icon-btn",
+        Style.row
+          .position(Position.relative)
+          .align(Alignment.center)
+          .justify(Justification.center)
+          .width(38.px)
+          .height(38.px)
+          .flexShrink(0.0)
+          .padding(0.px)
+          .rounded(10.px)
+          .bg(Color.transparent)
+          .border(1.px, Color.transparent)
+          .color(inkSecondary)
+          .cursor(Cursor.pointer)
+          .transition(TransitionProperty.all, 140, Easing.easeOut)
+          .hover(Style.bg(surfaceHover).color(ink))
+          .active(Style.translate(0.px, 1.px)),
+      )
+      .rule(
+        "mp-icon-btn-outline",
+        Style.bg(surface).border(1.px, border).hover(Style.bg(surfaceAlt).borderColor(borderStrong).color(ink)),
+      )
+      .rule(
+        "mp-icon-btn-sm",
+        Style.width(30.px).height(30.px).rounded(8.px),
+      )
+      .rule(
+        "mp-count-badge",
+        Style.row
+          .position(Position.absolute)
+          .top((-5).px)
+          .right((-5).px)
+          .align(Alignment.center)
+          .justify(Justification.center)
+          .minWidth(18.px)
+          .height(18.px)
+          .padding(0.px, 5.px)
+          .rounded(999.px)
+          .bg(rose)
+          .color(Color.white)
+          .border(2.px, surface)
+          .fontSize(10.px)
+          .fontWeight(FontWeight.w800)
+          .lineHeight(1.0)
+          .animation("mp-rise-in", 180, Easing.easeOut),
+      )
+      .rule(
+        "mp-count-pill",
+        Style.row
+          .align(Alignment.center)
+          .justify(Justification.center)
+          .minWidth(20.px)
+          .height(20.px)
+          .padding(0.px, 6.px)
+          .rounded(999.px)
+          .bg(Color.rgba(255, 255, 255, 0.24))
+          .color(Color.white)
+          .fontSize(11.px)
+          .fontWeight(FontWeight.w800)
+          .lineHeight(1.0),
+      )
+      // ── Avatar ─────────────────────────────────────────────────────────────
+      .rule(
+        "mp-avatar",
+        Style.row
+          .align(Alignment.center)
+          .justify(Justification.center)
+          .width(32.px)
+          .height(32.px)
+          .flexShrink(0.0)
+          .rounded(999.px)
+          .bgGradient(GradientDirection.toBottomRight, (brandStatic, 0.pct), (violetStatic, 100.pct))
+          .color(Color.white)
+          .fontSize(12.px)
+          .fontWeight(FontWeight.w800)
+          .letterSpacing(0.3.px)
+          .lineHeight(1.0),
+      )
+      .rule(
+        "mp-avatar-sm",
+        Style.width(24.px).height(24.px).fontSize(10.px),
+      )
+      .rule(
+        "mp-avatar-lg",
+        Style.width(40.px).height(40.px).fontSize(14.px),
+      )
+      // ── Brand Mark ─────────────────────────────────────────────────────────
+      .rule(
+        "mp-logo-mark",
+        Style.row
+          .align(Alignment.center)
+          .justify(Justification.center)
+          .width(34.px)
+          .height(34.px)
+          .flexShrink(0.0)
+          .rounded(10.px)
+          .bgGradient(GradientDirection.toBottomRight, (brandStatic, 0.pct), (violetStatic, 100.pct))
+          .color(Color.white)
+          .shadow(0.px, 4.px, 12.px, (-2).px, Color.rgba(79, 70, 229, 0.45)),
+      )
+      // ── Search Field with Leading Icon ─────────────────────────────────────
+      .rule(
+        "mp-search",
+        Style.position(Position.relative)
+          .row
+          .align(Alignment.center)
+          .width(100.pct)
+          .minWidth(0.px),
+      )
+      .rule(
+        "mp-search-icon",
+        Style.position(Position.absolute)
+          .left(12.px)
+          .top(0.px)
+          .bottom(0.px)
+          .row
+          .align(Alignment.center)
+          .color(inkMuted),
+      )
+      .rule(
+        "mp-search-input",
+        Style.padding(10.px, 12.px, 10.px, 38.px),
+      )
+      // ── Product Card Anatomy ───────────────────────────────────────────────
+      .rule(
+        "mp-product-visual",
+        Style.row
+          .position(Position.relative)
+          .align(Alignment.center)
+          .justify(Justification.spaceBetween)
+          .gap(12.px)
+          .height(104.px)
+          .padding(18.px, 20.px)
+          .overflow(Overflow.hidden)
+          .borderBottom(1.px, border),
+      )
+      .rule(
+        "mp-product-glyph",
+        Style.row
+          .align(Alignment.center)
+          .justify(Justification.center)
+          .width(56.px)
+          .height(56.px)
+          .rounded(16.px)
+          .bg(surface)
+          .border(1.px, border)
+          .shadow(0.px, 6.px, 16.px, (-6).px, shadowMedium),
+      )
+      .rule(
+        "mp-product-body",
+        Style.column
+          .gap(10.px)
+          .padding(16.px, 20.px, 20.px, 20.px)
+          .flexGrow(1.0),
+      )
+      .rule(
+        "mp-chip",
+        Style.display(Display.inlineFlex)
+          .align(Alignment.center)
+          .gap(5.px)
+          .padding(3.px, 9.px)
+          .rounded(999.px)
+          .bg(surfaceAlt)
+          .color(inkSecondary)
+          .border(1.px, border)
+          .fontSize(12.px)
+          .fontWeight(FontWeight.w600)
+          .lineHeight(1.2)
+          .whiteSpace(WhiteSpace.noWrap),
+      )
+      // ── Section Header & Empty State ───────────────────────────────────────
+      .rule(
+        "mp-eyebrow",
+        Style.fontSize(11.px)
+          .fontWeight(FontWeight.w800)
+          .letterSpacing(0.8.px)
+          .textTransform(TextTransform.uppercase)
+          .color(brand),
+      )
+      .rule(
+        "mp-page-title",
+        Style.margin(0.px)
+          .fontSize(28.px)
+          .fontWeight(FontWeight.w800)
+          .letterSpacing((-0.5).px)
+          .lineHeight(1.2)
+          .color(ink),
+      )
+      .rule(
+        "mp-empty",
+        Style.column
+          .align(Alignment.center)
+          .justify(Justification.center)
+          .textAlign(TextAlign.center)
+          .gap(10.px)
+          .padding(48.px, 24.px)
+          .rounded(18.px)
+          .bg(surface)
+          .border(1.px, BorderStyle.dashed, borderStrong),
+      )
+      .rule(
+        "mp-empty-icon",
+        Style.row
+          .align(Alignment.center)
+          .justify(Justification.center)
+          .width(52.px)
+          .height(52.px)
+          .rounded(16.px)
+          .bg(brandSoft)
+          .color(brand),
+      )
+      // ── Theme Toggle Menu ──────────────────────────────────────────────────
+      .rule(
+        "mp-theme-menu",
+        Style.position(Position.absolute)
+          .top(100.pct)
+          .right(0.px)
+          .zIndex(60)
+          .minWidth(170.px)
+          .margin(8.px, 0.px, 0.px, 0.px)
+          .padding(5.px)
+          .bg(surface)
+          .border(1.px, border)
+          .rounded(12.px)
+          .animation("mp-drop-in", 140, Easing.easeOut)
+          .shadow(0.px, 14.px, 34.px, (-6).px, shadowMedium)
+          .column
+          .gap(2.px),
+      )
+      // ── Responsive Visibility Helpers ──────────────────────────────────────
+      .rule("mp-show-sm", Style.displayNone)
+      // ── Keyboard Focus Rings (only for keyboard navigation) ────────────────
+      .rule(Selector.cls("mp-btn").pseudo("focus-visible"), focusVisibleRing)
+      .rule(Selector.cls("mp-icon-btn").pseudo("focus-visible"), focusVisibleRing)
+      .rule(Selector.cls("mp-seg-btn").pseudo("focus-visible"), focusVisibleRing)
+      .rule(Selector.cls("mp-pill").pseudo("focus-visible"), focusVisibleRing)
+      .rule(Selector.cls("mp-pill-active").pseudo("focus-visible"), focusVisibleRing)
+      .rule(Selector.cls("mp-tab").pseudo("focus-visible"), focusVisibleRing)
+      .rule(Selector.cls("mp-option-card").pseudo("focus-visible"), focusVisibleRing)
+      .rule(Selector.cls("mp-action-menu-item").pseudo("focus-visible"), focusVisibleRing)
+      // Field rows: fields share a row and wrap at 180px
+      .rule(
+        Selector.cls("mp-field-row").child(Selector.cls("mp-field")),
+        Style.flexGrow(1.0).flexBasis(180.px),
+      )
+      // Compact desktop (<= 1200px): header nav collapses to icon-only buttons
+      .media(Stylesheet.MediaQuery.maxWidth(1200.px))(
+        Stylesheet.rule("mp-nav-label", visuallyHidden),
+      )
       // Tablet breakpoint (<= 960px)
       .media(Stylesheet.MediaQuery.maxWidth(960.px))(
         Stylesheet
           .rule("mp-split-layout", Style.column.gap(20.px))
           .rule("mp-split-aside", Style.width(100.pct).position(Position.relative).top(0.px))
           .rule("mp-desktop-nav", Style.displayNone)
-          .rule("mp-mobile-only", Style.row.align(Alignment.center).gap(6.px))
+          .rule("mp-hide-md", Style.displayNone)
+          .rule("mp-mobile-only", Style.display(Display.flex).row.align(Alignment.center).gap(6.px))
           .rule("mp-hero-title", Style.fontSize(28.px))
           .rule("mp-dt-split", Style.column.minHeight(0.px))
           .rule("mp-dt-list-pane-split", Style.displayNone)
           .rule("mp-dt-splitter", Style.displayNone)
           .rule("mp-dt-detail-pane", Style.width(100.pct).flexBasis(Length.Auto).maxHeight(Length.Auto))
-          .rule("mp-dt-mobile-back", Style.row.align(Alignment.center).gap(6.px)),
+          .rule("mp-dt-mobile-back", Style.display(Display.flex).row.align(Alignment.center).gap(6.px)),
       )
       // Mobile breakpoint (<= 640px)
       .media(Stylesheet.MediaQuery.maxWidth(640.px))(
         Stylesheet
           .rule("mp-container", Style.padding(0.px, 14.px))
+          .rule("mp-main", Style.padding(18.px, 14.px, 40.px, 14.px))
+          .rule("mp-hide-sm", Style.displayNone)
+          .rule("mp-show-sm", Style.display(Display.inlineFlex))
+          .rule("mp-page-title", Style.fontSize(22.px))
+          .rule("mp-toast", Style.left(12.px).right(12.px).bottom(12.px).maxWidth(Length.Auto))
+          .rule("mp-product-visual", Style.height(88.px))
+          .rule("mp-drawer", Style.width(100.pct).borderLeft(1.px, Color.transparent))
           .rule("mp-header-inner", Style.padding(10.px, 14.px).gap(8.px))
-          .rule("mp-hero", Style.padding(24.px, 18.px).rounded(14.px))
+          .rule("mp-hero", Style.padding(28.px, 20.px).rounded(18.px))
           .rule("mp-hero-title", Style.fontSize(24.px))
           .rule("mp-card", Style.padding(14.px))
           .rule("mp-card-product", Style.flexBasis(100.pct).maxWidth(100.pct))
@@ -1028,7 +1481,39 @@ object AppTheme:
   val storefrontStylesheet: Stylesheet =
     Stylesheet.rule(
       Selector.tag("body"),
-      Style.margin(0.px).padding(0.px).bg(canvas).color(ink).fontFamily(FontFamily.SystemUi),
+      Style.margin(0.px).padding(0.px).bg(canvas).color(ink).fontFamily(fontStack),
     ) ++ coreStylesheet
 
   val calculatorStylesheet: Stylesheet = coreStylesheet
+
+  /** Storage key + `<html data-theme>` attribute name shared by every browser host. */
+  val ThemeStorageKey: String = "mpbuilder.theme"
+
+  /** Document-level CSS that typed `kyo.Style` cannot express (glass blur, native control color-scheme,
+    * selection, scrollbars, tabular numerals, reduced motion, custom select chevron).
+    * Injected verbatim by full-page browser hosts (`modules/ui`, `modules/ui-admin`); never by the embeddable calculator.
+    */
+  val documentCss: String =
+    """html{-webkit-text-size-adjust:100%;color-scheme:light}
+      |html[data-theme="dark"]{color-scheme:dark}
+      |@media (prefers-color-scheme: dark){html[data-theme="system"]{color-scheme:dark}}
+      |body{-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;text-rendering:optimizeLegibility;font-feature-settings:"cv11","ss01","ss03"}
+      |button,input,select,textarea{font:inherit;color:inherit}
+      |::selection{background:var(--mp-brand-soft);color:var(--mp-ink)}
+      |::placeholder{color:var(--mp-ink-muted);opacity:.85}
+      |.mp-backdrop,.mp-modal-backdrop{-webkit-backdrop-filter:blur(3px);backdrop-filter:blur(3px)}
+      |.mp-header,.mp-admin-topbar{-webkit-backdrop-filter:saturate(180%) blur(14px);backdrop-filter:saturate(180%) blur(14px)}
+      |.mp-hero{position:relative;isolation:isolate}
+      |.mp-hero::before{content:"";position:absolute;width:520px;height:520px;right:-140px;top:-220px;border-radius:50%;background:radial-gradient(closest-side,rgba(255,255,255,.22),rgba(255,255,255,0));z-index:-1;pointer-events:none}
+      |.mp-hero::after{content:"";position:absolute;inset:0;background-image:radial-gradient(rgba(255,255,255,.14) 1px,transparent 1px);background-size:18px 18px;-webkit-mask-image:linear-gradient(to left,#000,transparent 70%);mask-image:linear-gradient(to left,#000,transparent 70%);z-index:-1;pointer-events:none}
+      |.mp-product-visual::after{content:"";position:absolute;inset:0;background-image:radial-gradient(currentColor 1px,transparent 1px);background-size:14px 14px;opacity:.12;-webkit-mask-image:linear-gradient(to left,#000,transparent 75%);mask-image:linear-gradient(to left,#000,transparent 75%);pointer-events:none}
+      |table,.mp-num,.mp-kpi-card,.mp-dt-table{font-variant-numeric:tabular-nums}
+      |.mp-icon svg{display:block;overflow:visible}
+      |*{scrollbar-width:thin;scrollbar-color:var(--mp-border-strong) transparent}
+      |select.mp-input{-webkit-appearance:none;appearance:none;padding-right:36px;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2364748B' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center}
+      |input[type="checkbox"],input[type="radio"]{accent-color:var(--mp-brand)}
+      |[data-tooltip]{position:relative}
+      |[data-tooltip]:hover::after,[data-tooltip]:focus-visible::after{content:attr(data-tooltip);position:absolute;top:calc(100% + 8px);right:0;white-space:nowrap;padding:5px 9px;border-radius:8px;background:var(--mp-inverse-bg);color:var(--mp-inverse-ink);font-size:12px;font-weight:600;line-height:1.2;box-shadow:0 8px 20px -6px var(--mp-shadow-lg);z-index:70;pointer-events:none;animation:mp-drop-in 120ms ease-out}
+      |:focus:not(:focus-visible){outline:none}
+      |@media (prefers-reduced-motion: reduce){*,*::before,*::after{animation-duration:1ms!important;animation-iteration-count:1!important;transition-duration:1ms!important;scroll-behavior:auto!important}}
+      |""".stripMargin

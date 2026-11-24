@@ -7,6 +7,8 @@ import mpbuilder.admin.state.{AdminRoute, BackofficeState}
 import mpbuilder.ordering.OrderStatus
 import mpbuilder.shared.Language
 import mpbuilder.ui.components.CommonComponents.*
+import mpbuilder.ui.components.{Controls, Icons}
+import mpbuilder.ui.components.Icons.Icon
 import mpbuilder.ui.theme.AppTheme.*
 import mpbuilder.ui.theme.AppTheme.Palette.*
 
@@ -34,25 +36,27 @@ object DashboardView:
             // Title header
             div.style(rowBetween.flexWrap(FlexWrap.wrap))(
               div.style(stackXs)(
-                h1(state.i18n.t("adm-dash-title")).style(Style.margin(0.px).fontSize(24.px).fontWeight(FontWeight.w800).color(ink)),
+                h1(state.i18n.t("adm-dash-title")).cssClass("mp-page-title"),
                 p(state.i18n.t("adm-dash-subtitle")).style(mutedText.margin(0.px)),
               ),
               button
                 .cssClass("mp-btn mp-btn-primary mp-btn-sm")
-                .onClick(state.navigate(AdminRoute.Orders))(state.i18n.t("adm-dash-view-all-orders")),
+                .onClick(state.navigate(AdminRoute.Orders))(Icons(Icon.Inbox, 15), span(state.i18n.t("adm-dash-view-all-orders"))),
             ),
 
-            // KPI Stat Grid
+            // KPI Stat Grids — order pipeline, then business health
             div.cssClass("mp-kpi-grid")(
-              kpiCard(state.i18n.t("adm-kpi-awaiting-intake"), d.ordersAwaitingIntake.toString, BadgeTone.Amber, () => state.navigate(AdminRoute.Orders)),
-              kpiCard(state.i18n.t("adm-kpi-awaiting-payment"), d.ordersAwaitingPayment.toString, BadgeTone.Amber, () => state.navigate(AdminRoute.Orders)),
-              kpiCard(state.i18n.t("adm-kpi-accepted"), d.ordersAccepted.toString, BadgeTone.Emerald, () => state.navigate(AdminRoute.Orders)),
-              kpiCard(state.i18n.t("adm-kpi-in-production"), d.ordersInProduction.toString, BadgeTone.Brand, () => state.navigate(AdminRoute.Orders)),
-              kpiCard(state.i18n.t("adm-kpi-ready-dispatch"), d.ordersReadyForDispatch.toString, BadgeTone.Brand, () => state.navigate(AdminRoute.Orders)),
-              kpiCard(state.i18n.t("adm-kpi-on-hold"), d.ordersOnHold.toString, if d.ordersOnHold > 0 then BadgeTone.Rose else BadgeTone.Neutral, () => state.navigate(AdminRoute.Orders)),
-              kpiCard(state.i18n.t("adm-kpi-pending-b2b"), d.pendingB2BCustomers.toString, if d.pendingB2BCustomers > 0 then BadgeTone.Amber else BadgeTone.Emerald, () => state.navigate(AdminRoute.Customers)),
-              kpiCard(state.i18n.t("adm-kpi-active-promos"), d.activePromoCodes.toString, BadgeTone.Neutral, () => state.navigate(AdminRoute.Pricing)),
-              kpiCard(state.i18n.t("adm-kpi-catalog"), s"${d.catalogCategoryCount} / ${d.catalogMaterialCount}", BadgeTone.Neutral, () => state.navigate(AdminRoute.Catalog)),
+              kpiCard(state.i18n.t("adm-kpi-awaiting-intake"), d.ordersAwaitingIntake.toString, Icon.Inbox, BadgeTone.Amber, () => state.navigate(AdminRoute.Orders)),
+              kpiCard(state.i18n.t("adm-kpi-awaiting-payment"), d.ordersAwaitingPayment.toString, Icon.CreditCard, BadgeTone.Amber, () => state.navigate(AdminRoute.Orders)),
+              kpiCard(state.i18n.t("adm-kpi-accepted"), d.ordersAccepted.toString, Icon.CheckCircle, BadgeTone.Emerald, () => state.navigate(AdminRoute.Orders)),
+              kpiCard(state.i18n.t("adm-kpi-in-production"), d.ordersInProduction.toString, Icon.Printer, BadgeTone.Brand, () => state.navigate(AdminRoute.Orders)),
+              kpiCard(state.i18n.t("adm-kpi-ready-dispatch"), d.ordersReadyForDispatch.toString, Icon.Truck, BadgeTone.Brand, () => state.navigate(AdminRoute.Orders)),
+              kpiCard(state.i18n.t("adm-kpi-on-hold"), d.ordersOnHold.toString, Icon.Pause, if d.ordersOnHold > 0 then BadgeTone.Rose else BadgeTone.Neutral, () => state.navigate(AdminRoute.Orders)),
+            ),
+            div.cssClass("mp-kpi-grid")(
+              kpiCard(state.i18n.t("adm-kpi-pending-b2b"), d.pendingB2BCustomers.toString, Icon.Building, if d.pendingB2BCustomers > 0 then BadgeTone.Amber else BadgeTone.Emerald, () => state.navigate(AdminRoute.Customers)),
+              kpiCard(state.i18n.t("adm-kpi-active-promos"), d.activePromoCodes.toString, Icon.Percent, BadgeTone.Brand, () => state.navigate(AdminRoute.Pricing)),
+              kpiCard(state.i18n.t("adm-kpi-catalog"), s"${d.catalogCategoryCount} / ${d.catalogMaterialCount}", Icon.Layers, BadgeTone.Neutral, () => state.navigate(AdminRoute.Catalog)),
             ),
 
             // Two-column operational lists
@@ -72,38 +76,34 @@ object DashboardView:
                         val needsAccept = ord.status match
                           case OrderStatus.Placed | OrderStatus.Confirmed => true
                           case _                                          => false
-                        div.style(
-                          Style.row
-                            .flexWrap(FlexWrap.wrap)
-                            .justify(Justification.spaceBetween)
-                            .align(Alignment.center)
-                            .gap(10.px)
-                            .padding(12.px, 14.px)
-                            .rounded(12.px)
-                            .bg(surfaceAlt)
-                            .border(1.px, Palette.border),
-                        )(
-                          div.style(stackXs)(
-                            div.style(rowSm.flexWrap(FlexWrap.wrap))(
-                              span(ord.orderNumber.value).style(Style.fontWeight(FontWeight.w800).fontSize(14.px).color(ink)),
-                              badge(orderStatusLabel(ord.status, lang), orderStatusTone(ord.status)),
-                              badge(ord.payment.status.toString, BadgeTone.Neutral),
-                            ),
-                            div.style(smallText)(
-                              s"${ord.customer.companyName.map(_.value).getOrElse(ord.customer.fullName.value)} · ${ord.lines.size} ${if lang == Language.Cs then "pol." else "lines"} · ${formatInstant(ord.placedAt)}"
+                        val custName = ord.customer.companyName.map(_.value).getOrElse(ord.customer.fullName.value)
+                        val linesLbl =
+                          if lang == Language.Cs then s"${ord.lines.size} pol."
+                          else if ord.lines.size == 1 then "1 line"
+                          else s"${ord.lines.size} lines"
+                        div.cssClass("mp-list-row")(
+                          div.style(Style.row.align(Alignment.center).gap(12.px).minWidth(0.px).flexGrow(1.0).flexBasis(280.px))(
+                            Controls.avatar(custName),
+                            div.style(stackXs.minWidth(0.px))(
+                              div.style(rowSm.flexWrap(FlexWrap.wrap))(
+                                span(ord.orderNumber.value).style(Style.fontWeight(FontWeight.w800).fontSize(14.px).color(ink)),
+                                badge(orderStatusLabel(ord.status, lang), orderStatusTone(ord.status)),
+                                paymentStatusBadge(ord.payment.status, lang),
+                              ),
+                              div.style(smallText)(s"$custName · $linesLbl · ${formatInstant(ord.placedAt)}"),
                             ),
                           ),
-                          div.style(rowSm)(
+                          div.style(rowSm.flexShrink(0.0).margin(0.px, 0.px, 0.px, Length.Auto))(
                             span(formatMoney(ord.totals.grandTotalGross, ord.totals.currency, lang))
-                              .style(Style.fontWeight(FontWeight.w700).fontSize(14.px).color(ink)),
+                              .style(Style.fontWeight(FontWeight.w700).fontSize(14.px).color(ink).whiteSpace(WhiteSpace.noWrap)),
                             if canIntake && needsAccept then
                               button
                                 .cssClass("mp-btn mp-btn-primary mp-btn-sm")
-                                .onClick(state.acceptOrder(ord.id))(state.i18n.t("adm-od-accept"))
+                                .onClick(state.acceptOrder(ord.id))(Icons(Icon.Check, 15), span(state.i18n.t("adm-od-accept")))
                             else UI.empty,
                             button
                               .cssClass("mp-btn mp-btn-secondary mp-btn-sm")
-                              .onClick(state.navigate(AdminRoute.OrderDetail(ord.id)))(state.i18n.t("adm-orders-open")),
+                              .onClick(state.navigate(AdminRoute.OrderDetail(ord.id)))(span(state.i18n.t("adm-orders-open")), Icons(Icon.ChevronRight, 15)),
                           ),
                         )
                       }*
@@ -143,11 +143,11 @@ object DashboardView:
                             if canManage then
                               button
                                 .cssClass("mp-btn mp-btn-primary mp-btn-sm")
-                                .onClick(state.approveCustomer(cust.id))(state.i18n.t("adm-cust-approve"))
+                                .onClick(state.approveCustomer(cust.id))(Icons(Icon.Check, 15), span(state.i18n.t("adm-cust-approve")))
                             else UI.empty,
                             button
                               .cssClass("mp-btn mp-btn-secondary mp-btn-sm")
-                              .onClick(state.selectCustomer(cust.id).andThen(state.navigate(AdminRoute.Customers)))(state.i18n.t("adm-orders-open")),
+                              .onClick(state.selectCustomer(cust.id).andThen(state.navigate(AdminRoute.Customers)))(span(state.i18n.t("adm-orders-open")), Icons(Icon.ChevronRight, 15)),
                           ),
                         )
                       }*
@@ -161,19 +161,22 @@ object DashboardView:
   private def kpiCard(
       labelNode: UI,
       value: String,
+      icon: Icon,
       tone: BadgeTone,
       onClickAction: () => Unit < Async,
   ): UI =
-    val accentColor = tone match
-      case BadgeTone.Brand   => brand
-      case BadgeTone.Emerald => emerald
-      case BadgeTone.Amber   => amber
-      case BadgeTone.Rose    => rose
-      case BadgeTone.Neutral => ink
+    val (accent, soft) = tone match
+      case BadgeTone.Brand   => (brand, brandSoft)
+      case BadgeTone.Emerald => (emerald, emeraldSoft)
+      case BadgeTone.Amber   => (amber, amberSoft)
+      case BadgeTone.Rose    => (rose, roseSoft)
+      case BadgeTone.Neutral => (inkSecondary, surfaceAlt)
     button
       .cssClass("mp-kpi-card")
-      .style(Style.cursor(Cursor.pointer).textAlign(TextAlign.left))
       .onClick(onClickAction())(
-        span(labelNode).style(smallText.fontWeight(FontWeight.w600)),
-        span(value).style(Style.fontSize(26.px).fontWeight(FontWeight.w800).color(accentColor).lineHeight(1.1)),
+        div.style(Style.row.align(Alignment.start).justify(Justification.spaceBetween).gap(10.px))(
+          span(labelNode).style(smallText.fontWeight(FontWeight.w600).color(inkSecondary).lineHeight(1.35)),
+          div.cssClass("mp-kpi-icon").style(Style.bg(soft).color(accent))(Icons(icon, 17)),
+        ),
+        span(value).cssClass("mp-kpi-value").style(if tone == BadgeTone.Rose then Style.color(rose) else Style.color(ink)),
       )

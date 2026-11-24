@@ -93,6 +93,7 @@ final class BackofficeState(
     val onRouteChange: AdminRoute => Unit < Sync,
     val onLanguagePersist: Language => Unit < Sync,
     val onDataMutated: () => Unit < Async,
+    val theme: mpbuilder.ui.theme.ThemeController,
 ):
 
   // ── Role Helpers ───────────────────────────────────────────────────────────
@@ -827,8 +828,10 @@ object BackofficeState:
       onRouteChange: AdminRoute => Unit < Sync = _ => Kyo.unit,
       onLanguagePersist: Language => Unit < Sync = _ => Kyo.unit,
       onDataMutated: () => Unit < Async = () => Kyo.unit,
+      theme: Option[mpbuilder.ui.theme.ThemeController] = None,
   ): BackofficeState < Sync =
     for
+      themeCtl    <- theme.fold(mpbuilder.ui.theme.ThemeController.init())(t => Sync.defer(t))
       routeRef    <- Signal.initRef[AdminRoute](initialRoute)
       authRef     <- Signal.initRef[Option[StaffAuthResult]](None)
       dashRef     <- Signal.initRef[Option[BackofficeDashboardSummary]](None)
@@ -889,4 +892,5 @@ object BackofficeState:
       onRouteChange,
       onLanguagePersist,
       onDataMutated,
+      themeCtl,
     )

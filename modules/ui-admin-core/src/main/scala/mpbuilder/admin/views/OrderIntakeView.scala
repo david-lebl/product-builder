@@ -108,7 +108,7 @@ object OrderIntakeView:
             cell = ord =>
               div.style(Style.column.gap(2.px))(
                 paymentStatusBadge(ord.payment.status, lang),
-                span(ord.payment.method.toString).style(smallText),
+                span(paymentMethodLabel(ord.payment.method, lang)).style(smallText),
               ),
           ),
           DataTable.Column[OrderView](

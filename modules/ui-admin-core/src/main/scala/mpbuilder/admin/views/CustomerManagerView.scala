@@ -8,6 +8,8 @@ import mpbuilder.backoffice.CustomerArtworkEntry
 import mpbuilder.customers.*
 import mpbuilder.pricing.AgreementTarget
 import mpbuilder.shared.*
+import mpbuilder.ui.components.Icons
+import mpbuilder.ui.components.Icons.Icon
 import mpbuilder.ui.components.CommonComponents.*
 import mpbuilder.ui.components.{ActionMenu, ArtworkComponents, ConfirmDialog, DataTable, TabBar}
 import mpbuilder.ui.theme.AppTheme.*
@@ -486,7 +488,7 @@ object CustomerManagerView:
                         h3(state.i18n.t("adm-cust-agreements-title")).style(sectionTitle.margin(0.px)),
                         button
                           .cssClass("mp-btn mp-btn-secondary mp-btn-sm")
-                          .onClick(state.openCustomerPricing(c.id))(state.i18n.t("adm-cust-edit-in-pricing")),
+                          .onClick(state.openCustomerPricing(c.id))(span(state.i18n.t("adm-cust-edit-in-pricing")), Icons(Icon.ArrowRight, 14)),
                       ),
                       if matchingAgreements.isEmpty then
                         span(
@@ -538,7 +540,7 @@ object CustomerManagerView:
                                 span(formatMoney(o.totals.grandTotalGross, o.totals.currency, lang)).style(Style.fontWeight(FontWeight.w700)),
                                 button
                                   .cssClass("mp-btn mp-btn-secondary mp-btn-sm")
-                                  .onClick(state.navigate(AdminRoute.OrderDetail(o.id)))(state.i18n.t("adm-orders-open")),
+                                  .onClick(state.navigate(AdminRoute.OrderDetail(o.id)))(span(state.i18n.t("adm-orders-open")), Icons(Icon.ChevronRight, 15)),
                               ),
                             )
                           }*
