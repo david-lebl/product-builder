@@ -55,6 +55,7 @@ object Translations:
       |brand-tagline = Custom Print & Packaging
       |nav-catalog = Products
       |nav-builder = Configurator
+      |nav-design-studio = Design Studio
       |nav-account = My Account
       |nav-admin = Staff Backoffice
       |nav-cart = Cart
@@ -363,6 +364,7 @@ object Translations:
       |brand-tagline = Zakázkový tisk a obaly
       |nav-catalog = Produkty
       |nav-builder = Konfigurátor
+      |nav-design-studio = Design Studio
       |nav-account = Můj účet
       |nav-admin = Administrace
       |nav-cart = Košík
