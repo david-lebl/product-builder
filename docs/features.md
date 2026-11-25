@@ -16,6 +16,13 @@ The core of the system is a domain-driven product configurator for the printing 
 - **4 printing methods**: Digital, Offset, Letterpress, UV Inkjet — each with process type and max color count
 - **Multi-component products**: categories define component templates (e.g. booklet cover + body, roll-up banner + optional stand)
 
+### Material Selection (Configurator UI)
+
+- Materials are picked from a searchable combo box grouped by family, each option showing a surface swatch, surface & properties and weight.
+- Search is case/diacritic-insensitive across EN & CS names, family, surface (with synonyms such as gloss/lesk, matte/matný), properties and weight; all terms must match.
+- Weight filters: `200-300`, `>=250`, `<200` (optional `g`/`gsm`/`g/m2`); a plain `300` matches as text.
+- Below the box, "Also available in" pills switch the same paper line to another grammage in one click.
+
 ### Ink Configuration
 
 Per-side ink setup modelling (`InkSetup` = ink type + color count):

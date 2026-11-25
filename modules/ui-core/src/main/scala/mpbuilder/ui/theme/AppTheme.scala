@@ -355,6 +355,139 @@ object AppTheme:
           .color(ink)
           .shadow(0.px, 0.px, 0.px, 3.px, focusRing),
       )
+      // Rich searchable Combo Box (material picker)
+      .rule("mp-combo", Style.position(Position.relative).width(100.pct))
+      .rule(
+        "mp-combo-trigger",
+        Style.row
+          .align(Alignment.center)
+          .gap(12.px)
+          .width(100.pct)
+          .padding(10.px, 12.px)
+          .rounded(12.px)
+          .border(1.px, borderStrong)
+          .bg(surface)
+          .color(ink)
+          .cursor(Cursor.pointer)
+          .textAlign(TextAlign.left)
+          .transition(TransitionProperty.all, 120, Easing.easeOut)
+          .hover(Style.borderColor(brandBorder).bg(surfaceAlt)),
+      )
+      .rule(
+        "mp-combo-open",
+        Style.position(Position.relative)
+          .zIndex(60)
+          .column
+          .width(100.pct)
+          .rounded(12.px)
+          .border(1.px, brand)
+          .bg(surface)
+          .shadow(0.px, 0.px, 0.px, 3.px, focusRing),
+      )
+      .rule(
+        "mp-combo-search",
+        Style.row.align(Alignment.center).gap(8.px).padding(4.px, 6.px, 4.px, 12.px),
+      )
+      .rule(
+        "mp-combo-input",
+        Style.flexGrow(1.0)
+          .minWidth(0.px)
+          .padding(8.px, 0.px)
+          .border(0.px, BorderStyle.none, Color.transparent)
+          .bg(Color.transparent)
+          .color(ink)
+          .fontSize(14.px),
+      )
+      .rule(
+        "mp-combo-panel",
+        Style.position(Position.absolute)
+          .top(100.pct)
+          .left(0.px)
+          .right(0.px)
+          .zIndex(60)
+          .margin(6.px, 0.px, 0.px, 0.px)
+          .column
+          .bg(surface)
+          .border(1.px, border)
+          .rounded(12.px)
+          .overflow(Overflow.hidden)
+          .animation("mp-drop-in", 140, Easing.easeOut)
+          .shadow(0.px, 18.px, 40.px, (-8).px, shadowStrong),
+      )
+      .rule("mp-combo-scroll", Style.column.maxHeight(360.px).overflowY(Overflow.auto).padding(4.px))
+      .rule(
+        "mp-combo-group",
+        Style.padding(10.px, 10.px, 4.px, 10.px)
+          .fontSize(11.px)
+          .fontWeight(FontWeight.w800)
+          .letterSpacing(0.5.px)
+          .textTransform(TextTransform.uppercase)
+          .color(inkMuted),
+      )
+      .rule(
+        "mp-combo-option",
+        Style.row
+          .align(Alignment.center)
+          .gap(12.px)
+          .width(100.pct)
+          .padding(8.px, 10.px)
+          .rounded(8.px)
+          .bg(Color.transparent)
+          .border(0.px, BorderStyle.none, Color.transparent)
+          .color(ink)
+          .cursor(Cursor.pointer)
+          .textAlign(TextAlign.left)
+          .hover(Style.bg(surfaceAlt)),
+      )
+      .rule("mp-combo-option-active", Style.bg(surfaceHover).hover(Style.bg(surfaceHover)))
+      .rule(Selector.cls("mp-combo-option-selected").descendant(Selector.cls("mp-combo-label")), Style.color(brandDark))
+      .rule("mp-combo-leading", Style.row.flexShrink(0.0))
+      .rule("mp-combo-text", Style.column.gap(2.px).flexGrow(1.0).minWidth(0.px))
+      .rule("mp-combo-label", Style.fontSize(14.px).fontWeight(FontWeight.w700).color(ink).lineHeight(1.3))
+      .rule("mp-combo-meta", Style.fontSize(12.px).color(inkMuted).lineHeight(1.35))
+      .rule("mp-combo-trailing", Style.row.flexShrink(0.0))
+      .rule(
+        "mp-combo-weight",
+        Style.padding(3.px, 8.px)
+          .rounded(999.px)
+          .bg(surfaceAlt)
+          .border(1.px, border)
+          .fontSize(12.px)
+          .fontWeight(FontWeight.w700)
+          .color(inkSecondary)
+          .whiteSpace(WhiteSpace.noWrap),
+      )
+      .rule("mp-combo-check", Style.row.width(16.px).flexShrink(0.0).color(brand))
+      .rule("mp-combo-chevron", Style.row.flexShrink(0.0).color(inkMuted))
+      .rule("mp-combo-mark", Style.bg(amberSoft).color(amberInk).rounded(3.px))
+      .rule(
+        "mp-combo-empty",
+        Style.column.align(Alignment.center).gap(10.px).padding(22.px, 16.px).color(inkMuted).fontSize(13.px),
+      )
+      .rule(
+        "mp-combo-footer",
+        Style.row
+          .justify(Justification.spaceBetween)
+          .gap(10.px)
+          .padding(7.px, 12.px)
+          .borderTop(1.px, border)
+          .bg(surfaceAlt)
+          .fontSize(11.px)
+          .color(inkMuted),
+      )
+      .rule(
+        "mp-combo-swatch",
+        Style.width(30.px).height(30.px).rounded(8.px).border(1.px, borderStrong).flexShrink(0.0),
+      )
+      .rule("mp-swatch-uncoated", Style.bgGradient(GradientDirection.toBottomRight, (Color.hex("#FAFAF7").getOrElse(Color.white), 0.pct), (Color.hex("#E7E5DE").getOrElse(Color.white), 100.pct)))
+      .rule("mp-swatch-coatedgloss", Style.bgGradient(GradientDirection.toBottomRight, (Color.hex("#FFFFFF").getOrElse(Color.white), 0.pct), (Color.hex("#C7D2FE").getOrElse(Color.white), 100.pct)))
+      .rule("mp-swatch-coatedsilk", Style.bgGradient(GradientDirection.toBottomRight, (Color.hex("#F8FAFC").getOrElse(Color.white), 0.pct), (Color.hex("#DDE3EC").getOrElse(Color.white), 100.pct)))
+      .rule("mp-swatch-coatedmatte", Style.bgGradient(GradientDirection.toBottomRight, (Color.hex("#F1F2F4").getOrElse(Color.white), 0.pct), (Color.hex("#D4D7DD").getOrElse(Color.white), 100.pct)))
+      .rule("mp-swatch-naturaltextured", Style.bgGradient(GradientDirection.toBottomRight, (Color.hex("#E9D8B8").getOrElse(Color.white), 0.pct), (Color.hex("#B9946A").getOrElse(Color.white), 100.pct)))
+      .rule("mp-swatch-transparentfilm", Style.bgGradient(GradientDirection.toBottomRight, (Color.hex("#E0F2FE").getOrElse(Color.white), 0.pct), (Color.hex("#F8FAFC").getOrElse(Color.white), 100.pct)))
+      .rule("mp-swatch-metallic", Style.bgGradient(GradientDirection.toBottomRight, (Color.hex("#E5E7EB").getOrElse(Color.white), 0.pct), (Color.hex("#9CA3AF").getOrElse(Color.white), 100.pct)))
+      .rule("mp-swatch-glazed", Style.bgGradient(GradientDirection.toBottomRight, (Color.hex("#FFFFFF").getOrElse(Color.white), 0.pct), (Color.hex("#BFDBFE").getOrElse(Color.white), 100.pct)))
+      .rule("mp-weight-variants", Style.row.flexWrap(FlexWrap.wrap).align(Alignment.center).gap(8.px))
       // 2-Column Responsive Split (Configurator & Checkout)
       .rule(
         "mp-split-layout",
@@ -1435,6 +1568,7 @@ object AppTheme:
       .rule(Selector.cls("mp-pill-active").pseudo("focus-visible"), focusVisibleRing)
       .rule(Selector.cls("mp-tab").pseudo("focus-visible"), focusVisibleRing)
       .rule(Selector.cls("mp-option-card").pseudo("focus-visible"), focusVisibleRing)
+      .rule(Selector.cls("mp-combo-trigger").pseudo("focus-visible"), focusVisibleRing)
       .rule(Selector.cls("mp-action-menu-item").pseudo("focus-visible"), focusVisibleRing)
       // Field rows: fields share a row and wrap at 180px
       .rule(

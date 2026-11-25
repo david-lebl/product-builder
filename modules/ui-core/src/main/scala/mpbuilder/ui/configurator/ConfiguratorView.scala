@@ -7,7 +7,7 @@ import mpbuilder.artwork.*
 import mpbuilder.catalog.*
 import mpbuilder.shared.*
 import mpbuilder.storefront.*
-import mpbuilder.ui.components.{ArtworkComponents, BrowserPickedFile, CommonComponents, Controls}
+import mpbuilder.ui.components.{ArtworkComponents, BrowserPickedFile, ComboBox, CommonComponents, Controls}
 import mpbuilder.ui.components.Icons
 import mpbuilder.ui.components.CommonComponents.*
 import mpbuilder.ui.theme.AppTheme.*
@@ -222,27 +222,8 @@ object ConfiguratorView:
     val activeMethod = comp.printingMethodId.flatMap(catalog.printingMethods.get).filter(_.enabled)
 
     div.style(Style.column.gap(18.px))(
-      // Material selector
-      div.style(Style.column.gap(8.px))(
-        label.style(labelStyle)(ctrl.i18n.t("cfg-component-material")),
-        div.cssClass("mp-option-grid")(
-          allowedMaterials.map { mat =>
-            val isSel = mat.id == comp.materialId
-            button
-              .cssClass(if isSel then "mp-option-card-active" else "mp-option-card")
-              .onClick(ctrl.updateMaterial(comp.key, mat.id))(
-                div.style(Style.fontWeight(FontWeight.w700).fontSize(13.px).color(ink))(mat.name(lang)),
-                div.style(Style.row.flexWrap(FlexWrap.wrap).gap(4.px).margin(4.px, 0.px, 0.px, 0.px))(
-                  badge(formatMaterialWeight(mat.weight), if isSel then BadgeTone.Brand else BadgeTone.Neutral),
-                  badge(mat.surfaceCoating.toString, BadgeTone.Neutral),
-                  UI.fragment(
-                    mat.properties.take(2).toList.map(p => badge(p.toString, BadgeTone.Emerald))*
-                  ),
-                ),
-              )
-          }*
-        ),
-      ),
+      // Material selector: searchable rich combo box + one-click weight variants
+      renderMaterialPicker(ctrl, allowedMaterials, comp, lang),
 
       // Printing method & Ink configuration
       if !isPrintable then
@@ -292,6 +273,65 @@ object ConfiguratorView:
             }*
           ),
       ),
+    )
+
+  private def materialItem(mat: Material, lang: Language): ComboBox.Item[MaterialId] =
+    val facets =
+      surfaceCoatingLabel(mat.surfaceCoating, lang) ::
+        mat.properties.toList.sortBy(_.ordinal).take(3).map(materialPropertyLabel(_, lang))
+    ComboBox.Item(
+      key = mat.id,
+      label = mat.name(lang),
+      group = Some(materialFamilyLabel(mat.family, lang)),
+      leading = Some(span.cssClass(s"mp-combo-swatch mp-swatch-${mat.surfaceCoating.toString.toLowerCase}")()),
+      meta = Some(span(facets.mkString(" · "))),
+      trailing = Some(span.cssClass("mp-combo-weight")(formatMaterialWeight(mat.weight))),
+    )
+
+  private def renderMaterialPicker(
+      ctrl: ConfiguratorController,
+      allowedMaterials: List[Material],
+      comp: DraftComponent,
+      lang: Language,
+  ): UI =
+    val selectedMat = allowedMaterials.find(_.id == comp.materialId)
+    val variants    = selectedMat.map(MaterialSearch.weightVariants(_, allowedMaterials)).getOrElse(Nil)
+    val i18n        = ctrl.i18n
+
+    div.style(Style.column.gap(8.px))(
+      label.style(labelStyle)(i18n.t("cfg-component-material")),
+      ComboBox.render[MaterialId](
+        handle = ctrl.materialPicker,
+        selected = selectedMat.map(materialItem(_, lang)),
+        search = q => MaterialSearch.search(allowedMaterials, q, lang).map(materialItem(_, lang)),
+        totalCount = allowedMaterials.size,
+        onSelect = id => ctrl.updateMaterial(comp.key, id),
+        labels = ComboBox.Labels(
+          searchPlaceholder = i18n.t("cfg-material-search-placeholder"),
+          emptyTrigger = i18n.t("cfg-material-choose"),
+          noResults = i18n.t("cfg-material-no-results"),
+          clearSearch = i18n.t("cfg-material-clear-search"),
+          keyboardHint = i18n.t("cfg-material-keyboard-hint"),
+          resultCount = (shown, total) => i18n.t("cfg-material-count", Dict("shown" -> shown.toString, "total" -> total.toString)),
+        ),
+        highlightTerms = MaterialSearch.highlightTerms,
+        ariaLabel = if lang == Language.Cs then "Materiál" else "Material",
+        idKey = s"material-${comp.key.value}",
+      ),
+      if variants.size > 1 then
+        div.cssClass("mp-weight-variants")(
+          span.style(Style.fontSize(12.px).fontWeight(FontWeight.w700).color(inkMuted))(i18n.t("cfg-material-weight-variants")),
+          div.style(Style.row.flexWrap(FlexWrap.wrap).gap(6.px))(
+            variants.map { v =>
+              val isSel = v.id == comp.materialId
+              button
+                .cssClass(if isSel then "mp-pill-active" else "mp-pill")
+                .aria("pressed", isSel.toString)
+                .onClick(ctrl.updateMaterial(comp.key, v.id))(formatMaterialWeight(v.weight))
+            }*
+          ),
+        )
+      else UI.empty,
     )
 
   private def renderInkSelector(

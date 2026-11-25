@@ -28,6 +28,7 @@ The Storefront, Backoffice and Calculator share one typed design system in `modu
 | Toast | `Controls.toast` | Status messages with dismiss |
 | Empty state | `Controls.emptyState` | No-results / empty lists |
 | Tooltip | `data-tooltip="…"` | Hover/focus hint |
+| Combo box | `ComboBox.render` + `ComboBox.Handle` (`mp-combo-*`) | Searchable rich single-select: grouped options, match highlighting, keyboard nav, result count (configurator material picker) |
 
 ## Responsive Behavior
 
