@@ -214,6 +214,75 @@ class StorefrontUiSpec extends Test[Any]:
         }
       }
 
+      "Material combo box search matches name, surface, CS diacritics & gsm ranges and offers weight variants" in {
+        withClient { client =>
+          for
+            catalog <- client.getCatalog
+          yield {
+            val mats = catalog.materials.values.toList.filter(_.enabled)
+            def names(q: String) = MaterialSearch.search(mats, q, Language.En).map(_.name(Language.En))
+            def gsms(q: String)  = MaterialSearch.search(mats, q, Language.En).flatMap(_.weight.grammageGsm)
+
+            // Empty query lists everything, ordered by family then weight
+            assert(MaterialSearch.search(mats, "", Language.En).size == mats.size)
+            // Surface + plain number (AND across terms)
+            assert(names("matte 350").nonEmpty)
+            assert(names("matte 350").forall(n => n.contains("Matte") && n.contains("350")))
+            // CS labels, case & diacritics folded ("matny" finds "matný")
+            assert(names("MATNY").nonEmpty && names("matný") == names("matny"))
+            // gsm range & comparators (with optional unit suffix)
+            assert(gsms("200-300").nonEmpty && gsms("200-300").forall(g => g >= 200 && g <= 300))
+            assert(gsms("250 - 300gsm") == gsms("250-300"))
+            assert(gsms(">=350").nonEmpty && gsms(">=350").forall(_ >= 350))
+            assert(gsms("<150g").forall(_ < 150))
+            assert(MaterialSearch.parse("gloss >250") == List(MaterialSearch.Term.Text("gloss"), MaterialSearch.Term.GsmRange(251, Int.MaxValue)))
+            assert(MaterialSearch.highlightTerms("gloss 200-300") == List("gloss"))
+            assert(names("zzz-no-such-paper").isEmpty)
+            // Weight variants: the glossy line exposes several grammages incl. itself, sorted ascending
+            val glossy   = mats.find(m => m.surfaceCoating == SurfaceCoating.CoatedGloss && m.family == MaterialFamily.Paper).get
+            val variants = MaterialSearch.weightVariants(glossy, mats)
+            assert(variants.size > 1 && variants.exists(_.id == glossy.id))
+            assert(variants.flatMap(_.weight.grammageGsm) == variants.flatMap(_.weight.grammageGsm).sorted)
+            assert(variants.forall(_.surfaceCoating == SurfaceCoating.CoatedGloss))
+            // Highlight segments are diacritic-insensitive and preserve original text
+            val segs = mpbuilder.ui.components.ComboBox.highlightSegments("Křídový papír matný", List("matny"))
+            assert(segs.map(_._1).mkString == "Křídový papír matný")
+            assert(segs.contains("matný" -> true))
+          }
+        }
+      }
+
+      "Configurator renders the material combo box (closed & open) in EN and CS without missing keys" in {
+        withClient { client =>
+          for
+            appI18n <- Translations.init(Language.En)
+            catalog <- client.getCatalog
+            curRef  <- Signal.initRef(Currency.CZK)
+            noTok   <- Signal.initRef[Option[SessionToken]](None)
+            ctrl    <- I18n.let(appI18n.handle)(ConfiguratorController.init(client, catalog, appI18n, curRef, noTok, None))
+            host     = ConfiguratorHost.Calculator(None, (_, _) => Kyo.unit)
+            ui       = ConfiguratorView.render(ctrl, host)
+            closed  <- renderHtml(ui, appI18n)
+            _       <- ctrl.materialPicker.openAt(0)
+            _       <- ctrl.materialPicker.query.set("gloss")
+            openEn  <- renderHtml(ui, appI18n)
+            _       <- appI18n.setLanguage(Language.Cs)
+            openCs  <- renderHtml(ui, appI18n)
+            _       <- ctrl.materialPicker.close
+            reClosed <- renderHtml(ui, appI18n)
+          yield {
+            assert(closed.contains("mp-combo-trigger"))
+            assert(!closed.contains("mp-combo-panel"))
+            assert(openEn.contains("mp-combo-panel") && openEn.contains("mp-combo-option"))
+            assert(openEn.contains("mp-combo-mark"))
+            assert(openEn.contains("materials"))
+            assert(openCs.contains("materiálů"))
+            assert(reClosed.contains("mp-combo-trigger") && !reClosed.contains("mp-combo-panel"))
+            List(closed, openEn, openCs).foreach(h => assert(!h.contains("‹") && !h.contains("›")))
+          }
+        }
+      }
+
       "Standalone CalculatorView renders EN/CS with disclaimer and formats email quote summary" in {
         withClient { client =>
           for

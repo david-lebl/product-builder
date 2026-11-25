@@ -131,6 +131,13 @@ object Translations:
       |cfg-category-label = Product Category
       |cfg-presets-label = Quick-Start Presets
       |cfg-component-material = Substrate / Material
+      |cfg-material-search-placeholder = Search material, surface or weight (e.g. matte 300, 200-350)…
+      |cfg-material-choose = Choose a material
+      |cfg-material-no-results = No material matches your search.
+      |cfg-material-clear-search = Clear search
+      |cfg-material-keyboard-hint = ↑↓ navigate · Enter select · Esc close
+      |cfg-material-count = { $shown } of { $total } materials
+      |cfg-material-weight-variants = Also available in
       |cfg-component-print-method = Printing Method
       |cfg-component-ink = Ink Configuration
       |cfg-component-finishes = Finishes & Post-Press
@@ -432,6 +439,13 @@ object Translations:
       |cfg-category-label = Kategorie produktu
       |cfg-presets-label = Rychlé šablony
       |cfg-component-material = Materiál / substrát
+      |cfg-material-search-placeholder = Hledat materiál, povrch nebo gramáž (např. matný 300, 200-350)…
+      |cfg-material-choose = Vyberte materiál
+      |cfg-material-no-results = Hledání neodpovídá žádný materiál.
+      |cfg-material-clear-search = Vymazat hledání
+      |cfg-material-keyboard-hint = ↑↓ pohyb · Enter výběr · Esc zavřít
+      |cfg-material-count = { $shown } z { $total } materiálů
+      |cfg-material-weight-variants = K dispozici také v gramáži
       |cfg-component-print-method = Technologie tisku
       |cfg-component-ink = Barevnost tisku
       |cfg-component-finishes = Dokončovací zpracování

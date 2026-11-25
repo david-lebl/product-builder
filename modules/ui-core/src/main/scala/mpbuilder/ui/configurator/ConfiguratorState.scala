@@ -72,6 +72,7 @@ final class ConfiguratorController(
     val compatibleFinishesMap: SignalRef[Map[ComponentKey, List[Finish]]],
     val finishLimitsMap: SignalRef[Map[ComponentKey, Map[FinishType, BigDecimal]]],
     private val seqRef: SignalRef[Long],
+    val materialPicker: mpbuilder.ui.components.ComboBox.Handle,
     val draftSessionId: NonEmptyString = NonEmptyString.unsafe("draft-session-ui"),
 ):
 
@@ -456,6 +457,7 @@ object ConfiguratorController:
       finMapRef  <- Signal.initRef(Map.empty[ComponentKey, List[Finish]])
       limMapRef  <- Signal.initRef(Map.empty[ComponentKey, Map[FinishType, BigDecimal]])
       seqRef     <- Signal.initRef(0L)
+      matPicker  <- mpbuilder.ui.components.ComboBox.Handle.make
       ctrl        = new ConfiguratorController(
                       client,
                       catalogRef,
@@ -468,6 +470,7 @@ object ConfiguratorController:
                       finMapRef,
                       limMapRef,
                       seqRef,
+                      matPicker,
                     )
       _          <- ctrl.recompute
     yield ctrl
