@@ -6,168 +6,484 @@ import kyo.Style.*
 import mpbuilder.catalog.*
 import mpbuilder.shared.*
 import mpbuilder.ui.components.CommonComponents.*
-import mpbuilder.ui.configurator.QuoteStatus
+import mpbuilder.ui.components.Icons
+import mpbuilder.ui.components.Icons.Icon
+import mpbuilder.ui.configurator.{ConfiguratorController, QuoteStatus}
 import mpbuilder.ui.theme.AppTheme.*
 import mpbuilder.ui.theme.AppTheme.Palette.*
 
-/** Product Detail page displaying full category specs and live-priced Presets with Add-to-Cart, Quick Order & Customize CTAs. */
+/** E-shop style Product Detail page.
+  *
+  * Desktop: product image gallery on the left, buy box on the right (title, short description, preset picker,
+  * live price, Add-to-Cart / Quick Order / Customize / Design Studio CTAs). Below: full description, specifications,
+  * a preset comparison, a Design Studio promo and the "how it works" steps. Tablet and mobile stack everything.
+  *
+  * @param selectedPreset preset picked in the buy box (falls back to the first available preset)
+  * @param onDesignInStudio opens the Design Studio on the chosen preset (storefront hosts that embed the editor)
+  * @param designStudioHref plain link to the standalone Design Studio page (fallback when not embedded)
+  */
 object ProductDetailView:
 
-  def render(state: StorefrontState, categoryId: CategoryId): UI =
+  def render(
+      state: StorefrontState,
+      categoryId: CategoryId,
+      selectedPreset: SignalRef[Option[PresetId]],
+      onDesignInStudio: Option[(ProductCategory, PresetId) => Unit < Async] = None,
+      designStudioHref: Option[String] = None,
+  ): UI =
     val combined =
       state.catalogRef
         .combineLatest(state.presetQuotes)
         .combineLatest(state.currency)
         .combineLatest(state.i18n.language)
+        .combineLatest(selectedPreset)
 
-    combined.render { case (((catalog, quotesMap), cur), lang) =>
+    combined.render { case ((((catalog, quotesMap), cur), lang), selectedOpt) =>
       catalog.categories.get(categoryId) match
         case None =>
           div.cssClass("mp-card")(
-            alertBanner(BadgeTone.Rose, span("Not Found"), List(s"Category '${categoryId.value}' not found")),
+            alertBanner(BadgeTone.Rose, span(state.i18n.t("detail-not-found-title")), List(categoryId.value)),
             button.cssClass("mp-btn mp-btn-secondary").onClick(state.openCatalog)(state.i18n.t("detail-back")),
           )
         case Some(cat) if !cat.enabled =>
           div.cssClass("mp-card")(
             alertBanner(
               BadgeTone.Amber,
-              span(if lang == Language.Cs then "Produkt je dočasně nedostupný" else "Product Temporarily Unavailable"),
-              List(
-                if lang == Language.Cs then s"Kategorie „${cat.name(lang)}“ je momentálně zakázána."
-                else s"Category “${cat.name(lang)}” is currently disabled."
-              ),
+              span(state.i18n.t("detail-unavailable-title")),
+              List(cat.name(lang)),
             ),
             button.cssClass("mp-btn mp-btn-secondary").onClick(state.openCatalog)(state.i18n.t("detail-back")),
           )
         case Some(cat) =>
           val listingOpt       = catalog.showcases.get(categoryId)
-          val availablePresets = cat.presets.filter(mpbuilder.ui.configurator.ConfiguratorController.isPresetAvailable(_, catalog))
-          div.style(Style.column.gap(22.px).width(100.pct))(
-            // Back breadcrumb
-            div.style(Style.row.align(Alignment.center).gap(8.px))(
-              button
-                .cssClass("mp-btn mp-btn-ghost mp-btn-sm")
-                .onClick(state.openCatalog)("← ", state.i18n.t("detail-back")),
-            ),
+          val availablePresets = cat.presets.filter(ConfiguratorController.isPresetAvailable(_, catalog))
+          val activePreset     = selectedOpt.flatMap(id => availablePresets.find(_.id == id)).orElse(availablePresets.headOption)
+          val ctx              = Ctx(state, catalog, cat, listingOpt, quotesMap, cur, lang, onDesignInStudio, designStudioHref)
 
-            // Category Overview Card
-            div.cssClass("mp-card")(
-              div.style(Style.row.flexWrap(FlexWrap.wrap).gap(16.px).align(Alignment.start).justify(Justification.spaceBetween))(
-                div.style(Style.row.gap(14.px).align(Alignment.start).flexGrow(1.0).minWidth(240.px))(
-                  listingOpt.map(sc => groupIcon(sc.group)).getOrElse(UI.empty),
-                  div.style(Style.column.gap(6.px))(
-                    listingOpt
-                      .map(sc => badge(catalogGroupLabel(sc.group, lang), BadgeTone.Brand))
-                      .getOrElse(UI.empty),
-                    h1(cat.name(lang)).style(Style.margin(0.px).fontSize(26.px).fontWeight(FontWeight.w800).color(ink)),
-                    listingOpt
-                      .map(sc => p(sc.detailedDescription(lang)).style(mutedText.margin(0.px).maxWidth(760.px)))
-                      .orElse(cat.description.map(d => p(d(lang)).style(mutedText.margin(0.px))))
-                      .getOrElse(UI.empty),
-                  ),
-                ),
-                button
-                  .cssClass("mp-btn mp-btn-primary")
-                  .onClick(state.openBuilder(Some(cat.id)))(state.i18n.t("detail-custom-cta")),
+          div.style(Style.column.gap(28.px).width(100.pct))(
+            renderBreadcrumb(ctx),
+            div.cssClass("mp-pd-top")(
+              renderGallery(ctx),
+              renderBuyBox(ctx, availablePresets, activePreset, selectedPreset),
+            ),
+            renderTrustStrip(ctx),
+            div.cssClass("mp-pd-details")(
+              div.cssClass("mp-pd-details-main")(
+                renderDescription(ctx),
+                if availablePresets.size > 1 then renderPresetComparison(ctx, availablePresets, activePreset, selectedPreset) else UI.empty,
               ),
-              // Component summary pills
-              div.style(Style.row.flexWrap(FlexWrap.wrap).gap(8.px).align(Alignment.center).padding(10.px, 0.px, 0.px, 0.px).borderTop(1.px, Palette.border))(
-                span(state.i18n.t("detail-components-label")).style(smallText.fontWeight(FontWeight.w700)),
-                UI.fragment(
-                  cat.components.toList.map { tpl =>
-                    val activeMatCount = tpl.allowedMaterialIds.count(id => catalog.materials.get(id).exists(_.enabled))
-                    badge(
-                      s"${tpl.label(lang)} ($activeMatCount materials)",
-                      BadgeTone.Neutral,
-                    )
-                  }*
-                ),
+              div.cssClass("mp-pd-details-aside")(
+                renderSpecs(ctx, activePreset),
+                renderHowItWorks(ctx),
               ),
             ),
-
-            // Live-Priced Presets Grid
-            if availablePresets.nonEmpty then
-              div.style(Style.column.gap(14.px))(
-                div.style(Style.column.gap(4.px))(
-                  h2(state.i18n.t("detail-presets-title")).style(sectionTitle.margin(0.px)),
-                  p(state.i18n.t("detail-presets-subtitle")).style(mutedText.margin(0.px)),
-                ),
-                div.cssClass("mp-card-grid")(
-                  availablePresets.map { preset =>
-                    val quoteStatus = quotesMap.getOrElse(preset.id, QuoteStatus.Loading)
-                    renderPresetCard(state, cat, preset, quoteStatus, cur, lang)
-                  }*
-                ),
-              )
-            else UI.empty,
+            renderStudioPromo(ctx, activePreset),
           )
     }
 
-  private def renderPresetCard(
+  private final case class Ctx(
       state: StorefrontState,
+      catalog: ProductCatalog,
       cat: ProductCategory,
-      preset: CategoryPreset,
-      quoteStatus: QuoteStatus,
+      listing: Option[ShowcaseListing],
+      quotes: Map[PresetId, QuoteStatus],
       currency: Currency,
       lang: Language,
-  ): UI =
-    val dimsStr = formatDimension(preset.defaultSpecs.dimensions.finishedBoundingBox)
-    val qtyStr  = s"${preset.defaultSpecs.quantity.value} pcs"
+      onDesignInStudio: Option[(ProductCategory, PresetId) => Unit < Async],
+      designStudioHref: Option[String],
+  ):
+    def t(key: String): Signal[String] = state.i18n.t(key)
+    val isCs: Boolean      = lang == Language.Cs
+    def group: Option[CatalogGroup] = listing.map(_.group)
 
-    div.cssClass("mp-card-product")(
-      div.style(Style.column.gap(4.px))(
-        h3(preset.name(lang)).style(Style.margin(0.px).fontSize(17.px).fontWeight(FontWeight.w700).color(ink)),
-        preset.description.map(d => p(d(lang)).style(mutedText.margin(0.px))).getOrElse(UI.empty),
-      ),
-      div.style(Style.row.flexWrap(FlexWrap.wrap).gap(6.px))(
-        badge(dimsStr, BadgeTone.Neutral),
-        badge(qtyStr, BadgeTone.Neutral),
-        preset.defaultSpecs.binding
-          .map(b => badge(s"${bindingMethodLabel(b.method, lang)}, ${b.totalPages}p", BadgeTone.Neutral))
-          .getOrElse(UI.empty),
-      ),
-      // Live price area
-      div.style(Style.column.gap(4.px).padding(12.px).rounded(12.px).bg(surfaceAlt).border(1.px, Palette.border).flexGrow(1.0))(
-        quoteStatus match
-          case QuoteStatus.Loading =>
-            span(state.i18n.t("detail-loading-price")).style(mutedText)
-          case QuoteStatus.Failed(err) =>
-            span(err.message).style(Style.fontSize(12.px).color(roseInk))
-          case QuoteStatus.Ready(res) =>
-            val q = res.pricing.effectiveQuote
-            div.style(Style.column.gap(4.px))(
-              res.pricing.walkInBaseQuote match
-                case Some(walkIn) =>
-                  span(formatMoney(walkIn.grossTotal, currency, lang)).style(smallText.strikethrough)
-                case None => UI.empty,
-              div.style(rowBetween)(
-                span(formatMoney(q.grossTotal, currency, lang)).style(Style.fontSize(22.px).fontWeight(FontWeight.w800).color(ink)),
-                res.pricing.savingsPercent
-                  .filter(_ > BigDecimal(0))
-                  .map(pct => badge(s"-${pct.setScale(0, BigDecimal.RoundingMode.HALF_UP)}% B2B", BadgeTone.Emerald))
-                  .getOrElse(UI.empty),
-              ),
-              span(s"${if lang == Language.Cs then "Bez DPH" else "Excl. VAT"}: ${formatMoney(q.netTotal, currency, lang)}").style(smallText),
-            ),
-      ),
-      // Action buttons
-      div.style(Style.column.gap(8.px))(
-        div.style(Style.row.gap(8.px).flexWrap(FlexWrap.wrap))(
-          button
-            .cssClass("mp-btn mp-btn-primary mp-btn-sm")
-            .style(Style.flexGrow(1.0))
-            .onClick(state.addPresetToCart(cat.id, preset.id))(state.i18n.t("detail-add-cart")),
-          quoteStatus match
-            case QuoteStatus.Ready(_) =>
-              button
-                .cssClass("mp-btn mp-btn-secondary mp-btn-sm")
-                .style(Style.flexGrow(1.0))
-                .onClick(state.startPresetQuickOrder(cat.id, preset.id))(state.i18n.t("detail-quick-order"))
-            case _ => UI.empty,
-        ),
-        button
-          .cssClass("mp-btn mp-btn-ghost mp-btn-sm")
-          .style(Style.width(100.pct))
-          .onClick(state.openBuilder(Some(cat.id), Some(preset.id)))(state.i18n.t("detail-use-preset")),
+  // ── Breadcrumb ─────────────────────────────────────────────────────────────
+
+  private def renderBreadcrumb(c: Ctx): UI =
+    nav.cssClass("mp-pd-breadcrumb").aria("label", "Breadcrumb")(
+      button.cssClass("mp-pd-crumb").onClick(c.state.openCatalog)(Icons(Icon.ArrowLeft, 14), c.t("nav-catalog")),
+      c.group
+        .map(g =>
+          UI.fragment(
+            span(Icons(Icon.ChevronRight, 13)).style(Style.color(inkMuted).row.align(Alignment.center)),
+            span(catalogGroupLabel(g, c.lang)).style(Style.color(inkMuted)),
+          )
+        )
+        .getOrElse(UI.empty),
+      span(Icons(Icon.ChevronRight, 13)).style(Style.color(inkMuted).row.align(Alignment.center)),
+      span(c.cat.name(c.lang)).style(Style.color(ink).fontWeight(FontWeight.w600)),
+    )
+
+  // ── Left: Gallery ──────────────────────────────────────────────────────────
+
+  private def renderGallery(c: Ctx): UI =
+    val title = c.cat.name(c.lang)
+    val media = c.listing.flatMap(_.imageUrl) match
+      case Some(url) =>
+        div.cssClass("mp-pd-media")(img(UI.ImgSrc.Path(url), title).cssClass("mp-product-img"))
+      case None =>
+        val (accent, soft) = c.group.map(groupAccent).getOrElse((brand, brandSoft))
+        div
+          .cssClass("mp-pd-media mp-pd-media-glyph")
+          .style(Style.bgGradient(GradientDirection.toBottomRight, (soft, 0.pct), (surface, 100.pct)).color(accent))(
+            div.cssClass("mp-product-glyph").style(Style.width(96.px).height(96.px).rounded(28.px))(
+              Icons(c.group.map(groupGlyph).getOrElse(Icon.Package), 44, 1.6)
+            )
+          )
+
+    div.cssClass("mp-pd-gallery")(
+      media,
+      div.style(Style.row.flexWrap(FlexWrap.wrap).gap(8.px))(
+        c.group.map(g => badge(catalogGroupLabel(g, c.lang), BadgeTone.Brand)).getOrElse(UI.empty),
+        span.cssClass("mp-chip")(Icons(Icon.Zap, 13), c.t("detail-feat-live-price")),
+        span.cssClass("mp-chip")(Icons(Icon.CheckCircle, 13), c.t("detail-feat-preflight")),
+        if c.onDesignInStudio.isDefined || c.designStudioHref.isDefined then
+          span.cssClass("mp-chip")(Icons(Icon.Palette, 13), c.t("detail-feat-design-online"))
+        else UI.empty,
       ),
     )
+
+  // ── Right: Buy Box ─────────────────────────────────────────────────────────
+
+  private def renderBuyBox(
+      c: Ctx,
+      presets: List[CategoryPreset],
+      active: Option[CategoryPreset],
+      selectedRef: SignalRef[Option[PresetId]],
+  ): UI =
+    val shortDesc = c.listing.map(_.tagline(c.lang)).orElse(c.cat.description.map(_(c.lang)))
+
+    div.cssClass("mp-pd-buy")(
+      div.style(stackSm)(
+        h1(c.cat.name(c.lang)).cssClass("mp-pd-title"),
+        shortDesc.map(d => p(d).style(Style.fontSize(16.px).lineHeight(1.55).color(inkSecondary).margin(0.px))).getOrElse(UI.empty),
+        div.style(rowWrap)(
+          UI.fragment(c.cat.components.toList.map(tpl => span.cssClass("mp-chip")(Icons(Icon.Layers, 13), tpl.label(c.lang)))*),
+          if presets.nonEmpty then
+            span.cssClass("mp-chip")(
+              Icons(Icon.Sparkles, 13),
+              c.state.i18n.t(pluralKey("catalog-presets", presets.size, c.lang), Dict("count" -> presets.size.toString)),
+            )
+          else UI.empty,
+        ),
+      ),
+      if presets.nonEmpty then
+        div.style(stackSm)(
+          span(c.t("detail-choose-preset")).style(labelStyle),
+          div.cssClass("mp-pd-preset-list").role("radiogroup")(
+            presets.map(preset => renderPresetOption(c, preset, active.exists(_.id == preset.id), selectedRef))*
+          ),
+        )
+      else UI.empty,
+      active match
+        case Some(preset) => renderPriceAndActions(c, preset)
+        case None =>
+          div.style(stackSm)(
+            p(c.t("detail-no-presets")).style(mutedText.margin(0.px)),
+            button
+              .cssClass("mp-btn mp-btn-primary mp-btn-lg")
+              .onClick(c.state.openBuilder(Some(c.cat.id)))(Icons(Icon.Sliders, 17), c.t("detail-custom-cta")),
+          ),
+    )
+
+  private def presetSummary(preset: CategoryPreset, lang: Language): String =
+    val dims = formatDimension(preset.defaultSpecs.dimensions.finishedBoundingBox)
+    val qty  = s"${preset.defaultSpecs.quantity.value} ${if lang == Language.Cs then "ks" else "pcs"}"
+    val bind = preset.defaultSpecs.binding.map(b => s"${bindingMethodLabel(b.method, lang)}, ${b.totalPages} ${if lang == Language.Cs then "str." else "pp"}")
+    (List(dims, qty) ++ bind).mkString(" · ")
+
+  private def renderPresetOption(c: Ctx, preset: CategoryPreset, isActive: Boolean, selectedRef: SignalRef[Option[PresetId]]): UI =
+    val priceText = c.quotes.get(preset.id) match
+      case Some(QuoteStatus.Ready(res)) => span(formatMoney(res.pricing.effectiveQuote.grossTotal, c.currency, c.lang)).cssClass("mp-num")
+      case Some(QuoteStatus.Failed(_))  => span("—")
+      case _                            => span("…")
+
+    button
+      .cssClass(if isActive then "mp-pd-preset mp-pd-preset-active" else "mp-pd-preset")
+      .role("radio")
+      .aria("checked", isActive.toString)
+      .onClick(selectedRef.set(Some(preset.id)))(
+        span.cssClass("mp-pd-radio")(if isActive then span.cssClass("mp-pd-radio-dot") else UI.empty),
+        div.style(Style.column.gap(2.px).flexGrow(1.0).minWidth(0.px))(
+          span(preset.name(c.lang)).style(Style.fontSize(14.px).fontWeight(FontWeight.w700).color(ink)),
+          span(presetSummary(preset, c.lang)).style(smallText),
+        ),
+        priceText.style(Style.fontSize(14.px).fontWeight(FontWeight.w700).color(ink).whiteSpace(WhiteSpace.noWrap)),
+      )
+
+  private def renderPriceAndActions(c: Ctx, preset: CategoryPreset): UI =
+    val quote = c.quotes.getOrElse(preset.id, QuoteStatus.Loading)
+
+    val priceBox = div.cssClass("mp-pd-price-box")(
+      quote match
+        case QuoteStatus.Loading =>
+          div.style(rowSm)(Icons(Icon.Clock, 16), span(c.t("detail-loading-price")).style(mutedText))
+        case QuoteStatus.Failed(err) =>
+          span(err.message).style(Style.fontSize(13.px).color(roseInk))
+        case QuoteStatus.Ready(res) =>
+          val q = res.pricing.effectiveQuote
+          val qty = preset.defaultSpecs.quantity.value
+          div.style(stackXs)(
+            div.style(Style.row.align(Alignment.end).gap(10.px).flexWrap(FlexWrap.wrap))(
+              span(formatMoney(q.grossTotal, c.currency, c.lang)).cssClass("mp-pd-price mp-num"),
+              res.pricing.walkInBaseQuote
+                .map(w => span(formatMoney(w.grossTotal, c.currency, c.lang)).style(mutedText.strikethrough.padding(0.px, 0.px, 6.px, 0.px)))
+                .getOrElse(UI.empty),
+              res.pricing.savingsPercent
+                .filter(_ > BigDecimal(0))
+                .map(pct => span(badge(s"-${pct.setScale(0, BigDecimal.RoundingMode.HALF_UP)}% B2B", BadgeTone.Emerald)).style(Style.padding(0.px, 0.px, 6.px, 0.px)))
+                .getOrElse(UI.empty),
+            ),
+            span(
+              s"${if c.isCs then "Bez DPH" else "Excl. VAT"}: ${formatMoney(q.netTotal, c.currency, c.lang)}" +
+                (if qty > 0 then s" · ${formatMoney(q.grossTotal / qty, c.currency, c.lang)} / ${if c.isCs then "ks" else "pc"}" else "")
+            ).style(smallText),
+          ),
+      div.style(rowSm.padding(10.px, 0.px, 0.px, 0.px).borderTop(1.px, Palette.border))(
+        span(Icons(Icon.Truck, 15)).style(Style.color(emerald).row.align(Alignment.center)),
+        span(c.t("detail-dispatch-note")).style(smallText),
+      ),
+    )
+
+    val studioButton: UI =
+      c.onDesignInStudio match
+        case Some(open) =>
+          button
+            .cssClass("mp-btn mp-pd-studio-btn")
+            .onClick(open(c.cat, preset.id))(Icons(Icon.Palette, 17), span(c.t("detail-design-studio-cta")))
+        case None =>
+          c.designStudioHref match
+            case Some(href) =>
+              a.cssClass("mp-btn mp-pd-studio-btn")
+                .href(UI.Href.Path(href))(Icons(Icon.Palette, 17), span(c.t("detail-design-studio-cta")))
+            case None => UI.empty
+
+    div.style(stackMd)(
+      priceBox,
+      div.style(stackSm)(
+        div.style(Style.row.gap(8.px).flexWrap(FlexWrap.wrap))(
+          button
+            .cssClass("mp-btn mp-btn-primary mp-btn-lg")
+            .style(Style.flexGrow(1.0).flexBasis(180.px))
+            .onClick(c.state.addPresetToCart(c.cat.id, preset.id))(Icons(Icon.Cart, 17), span(c.t("detail-add-cart"))),
+          quote match
+            case QuoteStatus.Ready(_) =>
+              button
+                .cssClass("mp-btn mp-btn-secondary mp-btn-lg")
+                .style(Style.flexGrow(1.0).flexBasis(140.px))
+                .onClick(c.state.startPresetQuickOrder(c.cat.id, preset.id))(Icons(Icon.Zap, 16), span(c.t("detail-quick-order")))
+            case _ => UI.empty,
+        ),
+        studioButton,
+        div.style(Style.row.gap(8.px).flexWrap(FlexWrap.wrap))(
+          button
+            .cssClass("mp-btn mp-btn-ghost mp-btn-sm")
+            .style(Style.flexGrow(1.0))
+            .onClick(c.state.openBuilder(Some(c.cat.id), Some(preset.id)))(Icons(Icon.Sliders, 15), span(c.t("detail-use-preset"))),
+          button
+            .cssClass("mp-btn mp-btn-ghost mp-btn-sm")
+            .style(Style.flexGrow(1.0))
+            .onClick(c.state.openBuilder(Some(c.cat.id)))(Icons(Icon.Wand, 15), span(c.t("detail-custom-cta"))),
+        ),
+      ),
+    )
+
+  // ── Trust strip ────────────────────────────────────────────────────────────
+
+  private def renderTrustStrip(c: Ctx): UI =
+    def item(icon: Icon, titleKey: String, descKey: String): UI =
+      div.cssClass("mp-pd-trust-item")(
+        span.cssClass("mp-pd-trust-icon")(Icons(icon, 18)),
+        div.style(Style.column.gap(2.px).minWidth(0.px))(
+          span(c.t(titleKey)).style(Style.fontSize(14.px).fontWeight(FontWeight.w700).color(ink)),
+          span(c.t(descKey)).style(smallText),
+        ),
+      )
+    div.cssClass("mp-pd-trust")(
+      item(Icon.Zap, "detail-trust-price-title", "detail-trust-price-desc"),
+      item(Icon.Shield, "detail-trust-proof-title", "detail-trust-proof-desc"),
+      item(Icon.Truck, "detail-trust-ship-title", "detail-trust-ship-desc"),
+      item(Icon.Percent, "detail-trust-b2b-title", "detail-trust-b2b-desc"),
+    )
+
+  // ── Below: Description ─────────────────────────────────────────────────────
+
+  private def renderDescription(c: Ctx): UI =
+    val long = c.listing.map(_.detailedDescription(c.lang)).filter(_.nonEmpty)
+    val catDesc = c.cat.description.map(_(c.lang)).filter(d => !long.contains(d))
+    div.cssClass("mp-card")(
+      h2(c.t("detail-about-title")).style(sectionTitle.margin(0.px)),
+      long.map(d => p(d).style(Style.fontSize(15.px).lineHeight(1.7).color(inkSecondary).margin(0.px))).getOrElse(UI.empty),
+      catDesc.map(d => p(d).style(Style.fontSize(15.px).lineHeight(1.7).color(inkSecondary).margin(0.px))).getOrElse(UI.empty),
+      ul.cssClass("mp-pd-bullets")(
+        li(Icons(Icon.Check, 15), span(c.t("detail-bullet-materials"))),
+        li(Icons(Icon.Check, 15), span(c.t("detail-bullet-artwork"))),
+        li(Icons(Icon.Check, 15), span(c.t("detail-bullet-imposition"))),
+      ),
+    )
+
+  // ── Below: Preset comparison ───────────────────────────────────────────────
+
+  private def renderPresetComparison(
+      c: Ctx,
+      presets: List[CategoryPreset],
+      active: Option[CategoryPreset],
+      selectedRef: SignalRef[Option[PresetId]],
+  ): UI =
+    div.style(stackMd)(
+      div.style(stackXs)(
+        h2(c.t("detail-presets-title")).style(sectionTitle.margin(0.px)),
+        p(c.t("detail-presets-subtitle")).style(mutedText.margin(0.px)),
+      ),
+      div.cssClass("mp-pd-compare")(
+        presets.map { preset =>
+          val isActive = active.exists(_.id == preset.id)
+          val quote    = c.quotes.getOrElse(preset.id, QuoteStatus.Loading)
+          div.cssClass(if isActive then "mp-pd-compare-card mp-pd-compare-card-active" else "mp-pd-compare-card")(
+            div.style(stackXs)(
+              div.style(rowBetween)(
+                h3(preset.name(c.lang)).style(Style.margin(0.px).fontSize(16.px).fontWeight(FontWeight.w700).color(ink)),
+                if isActive then span(Icons(Icon.CheckCircle, 18)).style(Style.color(brand).row.align(Alignment.center)) else UI.empty,
+              ),
+              preset.description.map(d => p(d(c.lang)).style(smallText.margin(0.px))).getOrElse(UI.empty),
+            ),
+            presetFacts(c, preset),
+            div.style(rowBetween.padding(10.px, 0.px, 0.px, 0.px).borderTop(1.px, Palette.border))(
+              quote match
+                case QuoteStatus.Ready(res) =>
+                  span(formatMoney(res.pricing.effectiveQuote.grossTotal, c.currency, c.lang))
+                    .cssClass("mp-num")
+                    .style(Style.fontSize(18.px).fontWeight(FontWeight.w800).color(ink))
+                case QuoteStatus.Failed(_) => span("—").style(mutedText)
+                case QuoteStatus.Loading   => span(c.t("detail-loading-price")).style(smallText),
+              button
+                .cssClass(if isActive then "mp-btn mp-btn-secondary mp-btn-sm" else "mp-btn mp-btn-ghost mp-btn-sm")
+                .disabled(isActive)
+                .onClick(selectedRef.set(Some(preset.id)))(c.t(if isActive then "detail-selected" else "detail-select")),
+            ),
+          )
+        }*
+      ),
+    )
+
+  private def presetFacts(c: Ctx, preset: CategoryPreset): UI =
+    def fact(icon: Icon, text: String): UI =
+      li(span(Icons(icon, 14)).style(Style.color(inkMuted).row.align(Alignment.center)), span(text))
+    val comps = preset.components.toList.flatMap { cp =>
+      val mat = c.catalog.materials.get(cp.materialId).map(_.name(c.lang))
+      val pm  = cp.printingMethodId.flatMap(c.catalog.printingMethods.get).map(_.name(c.lang))
+      val ink = cp.inkConfiguration.map(_.notation)
+      val fin = cp.finishes.flatMap(f => c.catalog.finishes.get(f.finishId)).map(_.name(c.lang))
+      val printing = (pm.toList ++ ink.map(i => if pm.isDefined then s"($i)" else i).toList).mkString(" ")
+      List(
+        mat.map(m => fact(Icon.Layers, m)),
+        Option.when(printing.nonEmpty)(fact(Icon.Printer, printing)),
+        Option.when(fin.nonEmpty)(fact(Icon.Sparkles, fin.mkString(", "))),
+      ).flatten
+    }
+    ul.cssClass("mp-pd-facts")(
+      UI.fragment((fact(Icon.Ruler, presetSummary(preset, c.lang)) :: comps)*)
+    )
+
+  // ── Below: Specifications ──────────────────────────────────────────────────
+
+  private def renderSpecs(c: Ctx, active: Option[CategoryPreset]): UI =
+    def row(label: UI, value: String): UI =
+      div.cssClass("mp-pd-spec-row")(span.style(labelStyle)(label), span(value).style(Style.fontSize(13.px).color(ink).textAlign(TextAlign.right)))
+
+    val compRows = c.cat.components.toList.map { tpl =>
+      val mats  = tpl.allowedMaterialIds.count(id => c.catalog.materials.get(id).exists(_.enabled))
+      val fins  = tpl.allowedFinishIds.count(id => c.catalog.finishes.get(id).exists(_.enabled))
+      val value =
+        if c.isCs then s"$mats materiálů · $fins úprav"
+        else s"$mats materials · $fins finishes"
+      row(span(tpl.label(c.lang)), value)
+    }
+    val methods = c.cat.allowedPrintingMethodIds.toList.flatMap(c.catalog.printingMethods.get).filter(_.enabled).map(_.name(c.lang)).sorted
+
+    div.cssClass("mp-card")(
+      h2(c.t("detail-specs-title")).style(sectionTitle.margin(0.px)),
+      div.style(Style.column)(
+        UI.fragment((compRows ++
+          Option.when(methods.nonEmpty)(row(span(c.t("detail-spec-printing")), methods.mkString(", "))).toList ++
+          active.map(p => row(span(c.t("detail-starting-specs")), presetSummary(p, c.lang))).toList ++
+          active.flatMap(_.defaultSpecs.bleed).map(b => row(span(c.t("detail-spec-bleed")), s"${b.value} mm")).toList)*)
+      ),
+    )
+
+  private def renderHowItWorks(c: Ctx): UI =
+    def step(n: Int, key: String): UI =
+      li(span(n.toString).cssClass("mp-pd-step-num"), span(c.t(key)).style(Style.fontSize(13.px).color(inkSecondary).lineHeight(1.45)))
+    div.cssClass("mp-card")(
+      h2(c.t("detail-how-title")).style(sectionTitle.margin(0.px)),
+      ol.cssClass("mp-pd-steps")(
+        step(1, "detail-how-1"),
+        step(2, "detail-how-2"),
+        step(3, "detail-how-3"),
+        step(4, "detail-how-4"),
+      ),
+    )
+
+  // ── Below: Design Studio promo ─────────────────────────────────────────────
+
+  private def renderStudioPromo(c: Ctx, active: Option[CategoryPreset]): UI =
+    val cta: UI =
+      (c.onDesignInStudio, active) match
+        case (Some(open), Some(preset)) =>
+          button.cssClass("mp-btn mp-studio-cta").onClick(open(c.cat, preset.id))(
+            Icons(Icon.Palette, 17),
+            span(c.t("detail-design-studio-cta")),
+            Icons(Icon.ArrowRight, 16),
+          )
+        case _ =>
+          c.designStudioHref match
+            case Some(href) =>
+              a.cssClass("mp-btn mp-studio-cta").href(UI.Href.Path(href))(
+                Icons(Icon.Palette, 17),
+                span(c.t("studio-open")),
+                Icons(Icon.ArrowRight, 16),
+              )
+            case None => UI.empty
+    if c.onDesignInStudio.isEmpty && c.designStudioHref.isEmpty then UI.empty
+    else StudioPromo.render(c.state, cta)
+
+/** Design Studio promotional band shared by the catalog and the product detail page. */
+object StudioPromo:
+
+  def render(state: StorefrontState, cta: UI): UI =
+    def feat(icon: Icon, key: String): UI =
+      li(span(Icons(icon, 15)).cssClass("mp-studio-feat-icon"), span(state.i18n.t(key)))
+
+    section.cssClass("mp-studio-promo")(
+      div.cssClass("mp-studio-copy")(
+        span.cssClass("mp-studio-eyebrow")(Icons(Icon.Sparkles, 13), state.i18n.t("studio-eyebrow")),
+        h2(state.i18n.t("studio-title")).cssClass("mp-studio-title"),
+        p(state.i18n.t("studio-subtitle")).style(Style.margin(0.px).fontSize(15.px).lineHeight(1.6).color(Color.rgba(255, 255, 255, 0.86))),
+        ul.cssClass("mp-studio-feats")(
+          feat(Icon.Grid, "studio-feat-templates"),
+          feat(Icon.Image, "studio-feat-photos"),
+          feat(Icon.Ruler, "studio-feat-bleed"),
+          feat(Icon.CheckCircle, "studio-feat-preflight"),
+        ),
+        div.style(Style.row.flexWrap(FlexWrap.wrap).gap(10.px).margin(4.px, 0.px, 0.px, 0.px))(cta),
+      ),
+      div.cssClass("mp-studio-visual").aria("hidden", "true")(
+        div.cssClass("mp-studio-window")(
+          div.cssClass("mp-studio-window-bar")(span(), span(), span()),
+          div.cssClass("mp-studio-window-body")(
+            div.cssClass("mp-studio-tools")(
+              span(Icons(Icon.Pencil, 14)),
+              span(Icons(Icon.Image, 14)),
+              span(Icons(Icon.Layers, 14)),
+              span(Icons(Icon.Palette, 14)),
+            ),
+            div.cssClass("mp-studio-canvas")(
+              div.cssClass("mp-studio-card")(
+                div.cssClass("mp-studio-card-photo"),
+                div.cssClass("mp-studio-card-lines")(span(), span(), span()),
+              )
+            ),
+          ),
+        )
+      ),
+    )
+end StudioPromo
