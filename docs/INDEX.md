@@ -85,6 +85,7 @@ Session-by-session work logs documenting what was done, decisions made, and issu
 |----------|-------------|
 | [changelog/2026-11-25-ci-workflow-review.md](changelog/2026-11-25-ci-workflow-review.md) | Session log for the CI workflow fixes, official Mill launcher, caching and report-only scalafmt check |
 | [changelog/2026-11-25-scalajs-link-oom.md](changelog/2026-11-25-scalajs-link-oom.md) | Session log for the Scala.js link OutOfMemoryError fix (Mill daemon `-Xmx6g`) |
+| [changelog/2026-11-25-fulllinkjs-oom-deploy.md](changelog/2026-11-25-fulllinkjs-oom-deploy.md) | Session log for the deploy `fullLinkJS` OutOfMemoryError fix (link bundles one at a time) |
 | [changelog/README.md](changelog/README.md) | Changelog format, template, and log entries index |
 | [changelog/2026-11-25-configurator-material-combobox.md](changelog/2026-11-25-configurator-material-combobox.md) | Feature — searchable rich material combo box (name/surface/gsm ranges, EN+CS) with weight-variant pills in the configurator |
 | [changelog/2026-11-24-ui-visual-ux-modernization.md](changelog/2026-11-24-ui-visual-ux-modernization.md) | UI modernization — CSS-variable theme with dark mode, icon set, shared controls, storefront & backoffice redesign, layout bug fixes |

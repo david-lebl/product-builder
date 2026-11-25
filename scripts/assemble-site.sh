@@ -9,8 +9,17 @@ ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 SITE_DIR="${1:-_site}"
 cd "$ROOT_DIR"
 
-# One Mill invocation so the fullLinkJS tasks are planned and run in parallel.
-./mill '{ui,ui-admin,ui-calculator,ui-editor}.fullLinkJS'
+# Compile all four apps first (parallel, cheap on memory), then link each production bundle
+# on its own. fullLinkJS (optimizer + Closure) needs several GB of heap per bundle; running the
+# four in parallel in one Mill daemon overflows the -Xmx in .mill-jvm-opts on a 16 GB CI runner
+# (java.lang.OutOfMemoryError: Java heap space). The daemon is shut down after each link so the
+# Scala.js linker caches it keeps per module are released before the next bundle.
+./mill '{ui,ui-admin,ui-calculator,ui-editor}.compile'
+./mill shutdown
+for app in ui ui-admin ui-calculator ui-editor; do
+  ./mill "$app.fullLinkJS"
+  ./mill shutdown
+done
 
 rm -rf "$SITE_DIR"
 mkdir -p "$SITE_DIR/admin" "$SITE_DIR/calculator" "$SITE_DIR/editor"
