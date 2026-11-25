@@ -1576,6 +1576,299 @@ object AppTheme:
           .lineHeight(1.2)
           .whiteSpace(WhiteSpace.noWrap),
       )
+      // ── Product Detail (e-shop layout) ─────────────────────────────────────
+      .rule(
+        "mp-pd-breadcrumb",
+        Style.row.flexWrap(FlexWrap.wrap).align(Alignment.center).gap(8.px).fontSize(13.px),
+      )
+      .rule(
+        "mp-pd-crumb",
+        Style.row
+          .align(Alignment.center)
+          .gap(6.px)
+          .padding(4.px, 8.px)
+          .rounded(8.px)
+          .bg(Color.transparent)
+          .border(1.px, Color.transparent)
+          .color(inkSecondary)
+          .fontSize(13.px)
+          .fontWeight(FontWeight.w600)
+          .cursor(Cursor.pointer)
+          .hover(Style.bg(surfaceHover).color(ink)),
+      )
+      .rule(
+        "mp-pd-top",
+        Style.row.align(Alignment.start).gap(36.px).width(100.pct),
+      )
+      .rule(
+        "mp-pd-gallery",
+        Style.column
+          .gap(12.px)
+          .flexGrow(1.0)
+          .flexShrink(1.0)
+          .flexBasis(0.px)
+          .minWidth(0.px)
+          .position(Position.sticky)
+          .top(82.px),
+      )
+      .rule(
+        "mp-pd-media",
+        Style.row
+          .position(Position.relative)
+          .align(Alignment.center)
+          .justify(Justification.center)
+          .width(100.pct)
+          .height(460.px)
+          .rounded(22.px)
+          .overflow(Overflow.hidden)
+          .bg(surfaceAlt)
+          .border(1.px, border)
+          .shadow(0.px, 18.px, 40.px, (-24).px, shadowMedium),
+      )
+      .rule(
+        "mp-pd-buy",
+        Style.column
+          .gap(22.px)
+          .flexGrow(1.0)
+          .flexShrink(1.0)
+          .flexBasis(0.px)
+          .minWidth(0.px)
+          .maxWidth(560.px),
+      )
+      .rule(
+        "mp-pd-title",
+        Style.margin(0.px).fontSize(34.px).fontWeight(FontWeight.w800).letterSpacing((-0.6).px).lineHeight(1.15).color(ink),
+      )
+      .rule("mp-pd-preset-list", Style.column.gap(8.px))
+      .rule(
+        "mp-pd-preset",
+        Style.row
+          .align(Alignment.center)
+          .gap(12.px)
+          .width(100.pct)
+          .padding(12.px, 14.px)
+          .rounded(14.px)
+          .bg(surface)
+          .border(1.px, border)
+          .color(ink)
+          .textAlign(TextAlign.left)
+          .cursor(Cursor.pointer)
+          .transition(TransitionProperty.all, 140, Easing.easeOut)
+          .hover(Style.borderColor(brandBorder).bg(surfaceAlt)),
+      )
+      .rule(
+        "mp-pd-preset-active",
+        Style.bg(brandSoft).borderColor(brand).shadow(0.px, 0.px, 0.px, 3.px, focusRing).hover(Style.bg(brandSoft).borderColor(brand)),
+      )
+      .rule(
+        "mp-pd-radio",
+        Style.row
+          .align(Alignment.center)
+          .justify(Justification.center)
+          .width(18.px)
+          .height(18.px)
+          .flexShrink(0.0)
+          .rounded(999.px)
+          .border(2.px, borderStrong)
+          .bg(surface),
+      )
+      .rule(Selector.cls("mp-pd-preset-active").descendant(Selector.cls("mp-pd-radio")), Style.borderColor(brand))
+      .rule("mp-pd-radio-dot", Style.width(8.px).height(8.px).rounded(999.px).bg(brand))
+      .rule(
+        "mp-pd-price-box",
+        Style.column
+          .gap(10.px)
+          .padding(18.px, 20.px)
+          .rounded(16.px)
+          .bg(surface)
+          .border(1.px, border)
+          .shadow(0.px, 1.px, 2.px, 0.px, shadowSubtle),
+      )
+      .rule(
+        "mp-pd-price",
+        Style.fontSize(34.px).fontWeight(FontWeight.w800).letterSpacing((-0.6).px).lineHeight(1.1).color(ink),
+      )
+      .rule(
+        "mp-pd-studio-btn",
+        Style.width(100.pct)
+          .padding(12.px, 18.px)
+          .rounded(12.px)
+          .fontSize(15.px)
+          .fontWeight(FontWeight.w700)
+          .color(Color.white)
+          .bgGradient(GradientDirection.toRight, (brandStatic, 0.pct), (violetStatic, 100.pct))
+          .shadow(0.px, 10.px, 24.px, (-10).px, Color.rgba(124, 58, 237, 0.6))
+          .hover(Style.shadow(0.px, 14.px, 30.px, (-10).px, Color.rgba(124, 58, 237, 0.75)).translate(0.px, (-1).px)),
+      )
+      .rule(
+        "mp-pd-trust",
+        Style.row
+          .flexWrap(FlexWrap.wrap)
+          .gap(1.px)
+          .rounded(16.px)
+          .overflow(Overflow.hidden)
+          .bg(border)
+          .border(1.px, border),
+      )
+      .rule(
+        "mp-pd-trust-item",
+        Style.row
+          .align(Alignment.center)
+          .gap(12.px)
+          .padding(16.px, 18.px)
+          .bg(surface)
+          .flexGrow(1.0)
+          .flexBasis(220.px),
+      )
+      .rule(
+        "mp-pd-trust-icon",
+        Style.row
+          .align(Alignment.center)
+          .justify(Justification.center)
+          .width(38.px)
+          .height(38.px)
+          .flexShrink(0.0)
+          .rounded(12.px)
+          .bg(brandSoft)
+          .color(brand),
+      )
+      .rule("mp-pd-details", Style.row.align(Alignment.start).gap(24.px).width(100.pct))
+      .rule(
+        "mp-pd-details-main",
+        Style.column.gap(24.px).flexGrow(1.0).flexShrink(1.0).flexBasis(0.px).minWidth(0.px),
+      )
+      .rule("mp-pd-details-aside", Style.column.gap(24.px).width(360.px).flexShrink(0.0))
+      .rule("mp-pd-compare", Style.row.flexWrap(FlexWrap.wrap).gap(14.px).align(Alignment.stretch))
+      .rule(
+        "mp-pd-compare-card",
+        Style.column
+          .gap(12.px)
+          .padding(16.px, 18.px)
+          .rounded(16.px)
+          .bg(surface)
+          .border(1.px, border)
+          .flexGrow(1.0)
+          .flexShrink(1.0)
+          .flexBasis(240.px)
+          .minWidth(0.px)
+          .transition(TransitionProperty.all, 140, Easing.easeOut)
+          .hover(Style.borderColor(brandBorder)),
+      )
+      .rule("mp-pd-compare-card-active", Style.borderColor(brand).shadow(0.px, 0.px, 0.px, 3.px, focusRing))
+      .rule(
+        "mp-pd-spec-row",
+        Style.row.justify(Justification.spaceBetween).align(Alignment.start).gap(16.px).padding(10.px, 0.px).borderBottom(1.px, border),
+      )
+      .rule(
+        "mp-pd-step-num",
+        Style.row
+          .align(Alignment.center)
+          .justify(Justification.center)
+          .width(24.px)
+          .height(24.px)
+          .flexShrink(0.0)
+          .rounded(999.px)
+          .bg(brandSoft)
+          .color(brand)
+          .fontSize(12.px)
+          .fontWeight(FontWeight.w800),
+      )
+      // ── Design Studio promo band ───────────────────────────────────────────
+      .rule(
+        "mp-studio-promo",
+        Style.row
+          .align(Alignment.center)
+          .gap(32.px)
+          .width(100.pct)
+          .padding(36.px, 40.px)
+          .rounded(24.px)
+          .overflow(Overflow.hidden)
+          .color(Color.white)
+          .bgGradient(GradientDirection.toBottomRight, (violetStatic, 0.pct), (brandStatic, 60.pct), (brandDeep, 100.pct))
+          .shadow(0.px, 18.px, 40.px, (-14).px, Color.rgba(124, 58, 237, 0.45)),
+      )
+      .rule("mp-studio-copy", Style.column.gap(14.px).flexGrow(1.0).flexShrink(1.0).flexBasis(0.px).minWidth(0.px))
+      .rule(
+        "mp-studio-eyebrow",
+        Style.row
+          .align(Alignment.center)
+          .alignSelf(Alignment.start)
+          .gap(6.px)
+          .padding(5.px, 12.px)
+          .rounded(999.px)
+          .bg(Color.rgba(255, 255, 255, 0.16))
+          .border(1.px, Color.rgba(255, 255, 255, 0.24))
+          .fontSize(12.px)
+          .fontWeight(FontWeight.w700)
+          .letterSpacing(0.4.px),
+      )
+      .rule(
+        "mp-studio-title",
+        Style.margin(0.px).fontSize(28.px).fontWeight(FontWeight.w800).letterSpacing((-0.5).px).lineHeight(1.2).color(Color.white),
+      )
+      .rule(
+        "mp-studio-feat-icon",
+        Style.row
+          .align(Alignment.center)
+          .justify(Justification.center)
+          .width(26.px)
+          .height(26.px)
+          .flexShrink(0.0)
+          .rounded(8.px)
+          .bg(Color.rgba(255, 255, 255, 0.16)),
+      )
+      .rule(
+        "mp-studio-cta",
+        Style.bg(Color.white)
+          .color(brandDeep)
+          .padding(12.px, 20.px)
+          .rounded(12.px)
+          .fontWeight(FontWeight.w700)
+          .shadow(0.px, 8.px, 20.px, (-6).px, Color.rgba(15, 23, 42, 0.35))
+          .hover(Style.bg(Color.hex("#EEF2FF").getOrElse(Color.white))),
+      )
+      .rule("mp-studio-visual", Style.row.justify(Justification.center).flexShrink(0.0).width(380.px))
+      .rule(
+        "mp-studio-window",
+        Style.column
+          .width(100.pct)
+          .rounded(16.px)
+          .overflow(Overflow.hidden)
+          .bg(Color.rgba(255, 255, 255, 0.10))
+          .border(1.px, Color.rgba(255, 255, 255, 0.28))
+          .shadow(0.px, 24.px, 48.px, (-16).px, Color.rgba(15, 23, 42, 0.55)),
+      )
+      .rule(
+        "mp-studio-window-bar",
+        Style.row.gap(6.px).padding(10.px, 12.px).bg(Color.rgba(255, 255, 255, 0.12)).borderBottom(1.px, Color.rgba(255, 255, 255, 0.18)),
+      )
+      .rule("mp-studio-window-body", Style.row.align(Alignment.stretch).height(210.px))
+      .rule(
+        "mp-studio-tools",
+        Style.column.gap(10.px).padding(12.px, 10.px).borderRight(1.px, Color.rgba(255, 255, 255, 0.18)).color(Color.rgba(255, 255, 255, 0.9)),
+      )
+      .rule("mp-studio-canvas", Style.row.align(Alignment.center).justify(Justification.center).flexGrow(1.0).padding(18.px))
+      .rule(
+        "mp-studio-card",
+        Style.row
+          .gap(12.px)
+          .align(Alignment.center)
+          .width(230.px)
+          .height(132.px)
+          .padding(14.px)
+          .rounded(8.px)
+          .bg(Color.white)
+          .shadow(0.px, 14.px, 28.px, (-10).px, Color.rgba(15, 23, 42, 0.5)),
+      )
+      .rule(
+        "mp-studio-card-photo",
+        Style.width(80.px)
+          .height(100.px)
+          .flexShrink(0.0)
+          .rounded(6.px)
+          .bgGradient(GradientDirection.toBottomRight, (Color.hex("#F472B6").getOrElse(Color.white), 0.pct), (Color.hex("#6366F1").getOrElse(Color.white), 100.pct)),
+      )
+      .rule("mp-studio-card-lines", Style.column.gap(8.px).flexGrow(1.0))
       // ── Section Header & Empty State ───────────────────────────────────────
       .rule(
         "mp-eyebrow",
@@ -1691,6 +1984,15 @@ object AppTheme:
           .rule("mp-hide-md", Style.displayNone)
           .rule("mp-mobile-only", Style.display(Display.flex).row.align(Alignment.center).gap(6.px))
           .rule("mp-hero-title", Style.fontSize(28.px))
+          .rule("mp-pd-top", Style.column.gap(24.px))
+          .rule("mp-pd-gallery", Style.width(100.pct).flexBasis(Length.Auto).position(Position.relative).top(0.px))
+          .rule("mp-pd-buy", Style.width(100.pct).flexBasis(Length.Auto).maxWidth(100.pct))
+          .rule("mp-pd-media", Style.height(360.px))
+          .rule("mp-pd-details", Style.column)
+          .rule("mp-pd-details-main", Style.width(100.pct).flexBasis(Length.Auto))
+          .rule("mp-pd-details-aside", Style.width(100.pct))
+          .rule("mp-studio-promo", Style.column.align(Alignment.stretch).padding(28.px, 24.px))
+          .rule("mp-studio-visual", Style.width(100.pct))
           .rule("mp-dt-split", Style.column.minHeight(0.px))
           .rule("mp-dt-list-pane-split", Style.displayNone)
           .rule("mp-dt-splitter", Style.displayNone)
@@ -1727,6 +2029,12 @@ object AppTheme:
           .rule("mp-header-inner", Style.padding(10.px, 14.px).gap(8.px))
           .rule("mp-hero", Style.padding(28.px, 20.px).rounded(18.px))
           .rule("mp-hero-title", Style.fontSize(24.px))
+          .rule("mp-pd-media", Style.height(260.px).rounded(16.px))
+          .rule("mp-pd-title", Style.fontSize(26.px))
+          .rule("mp-pd-price", Style.fontSize(28.px))
+          .rule("mp-studio-promo", Style.padding(24.px, 18.px).rounded(18.px))
+          .rule("mp-studio-title", Style.fontSize(22.px))
+          .rule("mp-studio-visual", Style.displayNone)
           .rule("mp-card", Style.padding(14.px))
           .rule("mp-card-product", Style.flexBasis(100.pct).maxWidth(100.pct))
           .rule("mp-option-card", Style.flexBasis(140.px))
@@ -1767,6 +2075,19 @@ object AppTheme:
       |.mp-hero::after{content:"";position:absolute;inset:0;background-image:radial-gradient(rgba(255,255,255,.14) 1px,transparent 1px);background-size:18px 18px;-webkit-mask-image:linear-gradient(to left,#000,transparent 70%);mask-image:linear-gradient(to left,#000,transparent 70%);z-index:-1;pointer-events:none}
       |.mp-product-visual:not(.mp-product-visual-img)::after{content:"";position:absolute;inset:0;background-image:radial-gradient(currentColor 1px,transparent 1px);background-size:14px 14px;opacity:.12;-webkit-mask-image:linear-gradient(to left,#000,transparent 75%);mask-image:linear-gradient(to left,#000,transparent 75%);pointer-events:none}
       |.mp-product-img{width:100%;height:100%;object-fit:cover;display:block}
+      |.mp-pd-bullets,.mp-pd-facts,.mp-pd-steps,.mp-studio-feats{list-style:none;margin:0;padding:0;display:flex;flex-direction:column}
+      |.mp-pd-bullets{gap:10px}.mp-pd-bullets li{display:flex;flex-direction:row;align-items:flex-start;gap:10px;font-size:14px;line-height:1.5;color:var(--mp-ink-secondary)}.mp-pd-bullets li>.mp-icon{color:var(--mp-emerald);margin-top:3px;flex-shrink:0}
+      |.mp-pd-facts{gap:7px;flex-grow:1}.mp-pd-facts li{display:flex;flex-direction:row;align-items:flex-start;gap:8px;font-size:13px;line-height:1.4;color:var(--mp-ink-secondary)}
+      |.mp-pd-steps{gap:12px}.mp-pd-steps li{display:flex;flex-direction:row;align-items:flex-start;gap:12px}
+      |.mp-studio-feats{flex-direction:row;flex-wrap:wrap;gap:10px 18px}.mp-studio-feats li{display:flex;flex-direction:row;align-items:center;gap:8px;font-size:14px;font-weight:600;color:#fff}
+      |.mp-pd-spec-row:last-child{border-bottom:0}
+      |.mp-pd-media-glyph::after{content:"";position:absolute;inset:0;background-image:radial-gradient(currentColor 1px,transparent 1px);background-size:16px 16px;opacity:.14;pointer-events:none}
+      |.mp-studio-promo{position:relative;isolation:isolate}
+      |.mp-studio-promo::after{content:"";position:absolute;inset:0;background-image:radial-gradient(rgba(255,255,255,.14) 1px,transparent 1px);background-size:18px 18px;-webkit-mask-image:linear-gradient(to right,#000,transparent 65%);mask-image:linear-gradient(to right,#000,transparent 65%);z-index:-1;pointer-events:none}
+      |.mp-studio-window-bar span{width:9px;height:9px;border-radius:50%;background:rgba(255,255,255,.45)}
+      |.mp-studio-tools span{display:flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:8px;background:rgba(255,255,255,.12)}.mp-studio-tools span:first-child{background:#fff;color:#4F46E5}
+      |.mp-studio-card{outline:1px dashed rgba(236,72,153,.7);outline-offset:6px}
+      |.mp-studio-card-lines span{display:block;height:8px;border-radius:4px;background:#E2E8F0}.mp-studio-card-lines span:first-child{height:12px;width:85%;background:#312E81}.mp-studio-card-lines span:nth-child(2){width:65%}.mp-studio-card-lines span:nth-child(3){width:45%;background:#C4B5FD}
       |table,.mp-num,.mp-kpi-card,.mp-dt-table{font-variant-numeric:tabular-nums}
       |.mp-icon svg{display:block;overflow:visible}
       |*{scrollbar-width:thin;scrollbar-color:var(--mp-border-strong) transparent}

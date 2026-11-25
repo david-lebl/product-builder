@@ -14,7 +14,7 @@ import mpbuilder.ui.theme.AppTheme.Palette.*
 /** Responsive product catalog page with hero banner, live search, group filter pills & product cards. */
 object CatalogView:
 
-  def render(state: StorefrontState): UI < Async =
+  def render(state: StorefrontState, designStudioHref: Option[String] = None): UI < Async =
     for
       searchRef <- Signal.initRef("")
       groupRef  <- Signal.initRef[Option[CatalogGroup]](None)
@@ -87,11 +87,26 @@ object CatalogView:
                   .hover(Style.bg(Color.hex("#EEF2FF").getOrElse(Color.white))),
               )
               .onClick(state.openBuilder())(Icons(Icon.Wand, 17), span(state.i18n.t("catalog-hero-cta")), Icons(Icon.ArrowRight, 16)),
+            designStudioHref match
+              case Some(href) =>
+                a.cssClass("mp-btn")
+                  .style(
+                    Style.bg(Color.rgba(255, 255, 255, 0.12))
+                      .color(Color.white)
+                      .padding(12.px, 20.px)
+                      .rounded(12.px)
+                      .fontWeight(FontWeight.w700)
+                      .border(1.px, Color.rgba(255, 255, 255, 0.32))
+                      .hover(Style.bg(Color.rgba(255, 255, 255, 0.2))),
+                  )
+                  .href(UI.Href.Path(href))(Icons(Icon.Palette, 17), span(state.i18n.t("catalog-hero-studio-cta")))
+              case None => UI.empty,
           ),
           div.style(Style.row.flexWrap(FlexWrap.wrap).gap(8.px).margin(6.px, 0.px, 0.px, 0.px))(
             heroFeature(Icon.Zap, "catalog-hero-feat-pricing"),
             heroFeature(Icon.Layers, "catalog-hero-feat-imposition"),
             heroFeature(Icon.Percent, "catalog-hero-feat-b2b"),
+            if designStudioHref.isDefined then heroFeature(Icon.Palette, "catalog-hero-feat-studio") else UI.empty,
           ),
         ),
 
@@ -243,6 +258,19 @@ object CatalogView:
               }*
             )
         },
+
+        // Design Studio promo
+        designStudioHref match
+          case Some(href) =>
+            StudioPromo.render(
+              state,
+              a.cssClass("mp-btn mp-studio-cta").href(UI.Href.Path(href))(
+                Icons(Icon.Palette, 17),
+                span(state.i18n.t("studio-open")),
+                Icons(Icon.ArrowRight, 16),
+              ),
+            )
+          case None => UI.empty,
       )
 
   private def matches(catalog: ProductCatalog, listing: ShowcaseListing, q: String, lang: Language): Boolean =

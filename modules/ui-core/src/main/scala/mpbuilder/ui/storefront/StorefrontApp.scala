@@ -3,6 +3,7 @@ package mpbuilder.ui.storefront
 import kyo.*
 import kyo.UI.*
 import kyo.Style.*
+import mpbuilder.catalog.{PresetId, ProductCategory}
 import mpbuilder.shared.*
 import mpbuilder.ui.components.CommonComponents.*
 import mpbuilder.ui.components.{Controls, Icons}
@@ -21,7 +22,8 @@ object StorefrontApp:
       designStudioHref: Option[String] = None,
   ): UI < Async =
     for
-      catalogUI    <- CatalogView.render(state)
+      catalogUI    <- CatalogView.render(state, designStudioHref)
+      detailPreset <- Signal.initRef[Option[PresetId]](None)
       accountUI    <- AccountView.render(state)
       cartDrawerUI <- CartDrawer.render(state)
       authModalUI  <- AuthModal.render(state)
@@ -38,6 +40,31 @@ object StorefrontApp:
 
       val builderUI: UI = ConfiguratorView.render(state.configurator, builderHost, showHeader = true)
 
+      // "Design in Design Studio" from the product detail page: load the preset into the configurator, then open
+      // the editor for its first printable part so the finished design attaches to that configuration.
+      val designFromDetail: Option[(ProductCategory, PresetId) => Unit < Async] =
+        onDesignOnline.map { open => (cat: ProductCategory, presetId: PresetId) =>
+          for
+            _    <- state.openBuilder(Some(cat.id), Some(presetId))
+            d    <- state.configurator.draft.get
+            lang <- state.i18n.currentLanguage
+            _ <- d.components.find(c => cat.templateFor(c.key).forall(_.printable)) match
+                   case Some(comp) if d.categoryId == cat.id =>
+                     open(
+                       DesignOnlineRequest(
+                         categoryId = cat.id,
+                         categoryName = cat.name(Language.En),
+                         componentKey = comp.key,
+                         componentLabel = cat.templateFor(comp.key).map(_.label(lang)).getOrElse(comp.key.value),
+                         trimSize = d.specs.dimensions.finishedBoundingBox,
+                         pageCount = d.specs.binding.map(_.totalPages),
+                         designId = d.designs.get(comp.key),
+                       )
+                     )
+                   case _ => Kyo.unit
+          yield ()
+        }
+
       div.cssClass("mp-app")(
         renderHeader(state, onOpenAdmin, designStudioHref),
         // Main Content
@@ -46,7 +73,7 @@ object StorefrontApp:
             currentRoute match
               case AppRoute.Catalog => catalogUI
               case AppRoute.ProductDetail(catId) =>
-                ProductDetailView.render(state, catId)
+                ProductDetailView.render(state, catId, detailPreset, designFromDetail, designStudioHref)
               case AppRoute.Builder(_, _) => builderUI
               case AppRoute.Checkout(_) =>
                 checkoutOpt match
