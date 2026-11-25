@@ -221,7 +221,11 @@ object CatalogView:
                         ),
                       )
 
-                div.cssClass("mp-card-product")(
+                // Whole card opens the product detail page; the inner buttons stop propagation so
+                // "Details" doesn't navigate twice and "Configure" isn't overridden by the card click.
+                div.cssClass("mp-card-product")
+                  .data("mp-product-card", listing.categoryId.value)
+                  .onClick(state.openProductDetail(listing.categoryId))(
                   visualHeader,
                   div.cssClass("mp-product-body")(
                     h3(title).style(Style.margin(0.px).fontSize(17.px).fontWeight(FontWeight.w700).letterSpacing((-0.2).px).color(ink)),
@@ -244,10 +248,12 @@ object CatalogView:
                       button
                         .cssClass("mp-btn mp-btn-secondary mp-btn-sm")
                         .style(Style.flexGrow(1.0))
+                        .stopPropagation(true)
                         .onClick(state.openProductDetail(listing.categoryId))(span(state.i18n.t("catalog-btn-details"))),
                       button
                         .cssClass("mp-btn mp-btn-primary mp-btn-sm")
                         .style(Style.flexGrow(1.0))
+                        .stopPropagation(true)
                         .onClick(state.openBuilder(Some(listing.categoryId)))(
                           span(state.i18n.t("catalog-btn-configure")),
                           Icons(Icon.ArrowRight, 15),
