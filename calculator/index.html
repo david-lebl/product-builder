@@ -1,28 +1,25 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Price Calculator</title>
-    <link rel="stylesheet" href="calculator.css">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PrintCraft Studio — Price Calculator</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; }
+    body { margin: 0; padding: 24px 16px; background: #F1F5F9; font-family: system-ui, -apple-system, sans-serif; }
+    #calculator-root { max-width: 1180px; margin: 0 auto; }
+    button { font-family: inherit; }
+  </style>
 </head>
 <body>
-    <!--
-      Standalone page. Sites that want full CSS/JS isolation embed this page
-      in an iframe:
-
-        <iframe src="https://calc.example.com/" style="width:100%;height:1400px;border:0"></iframe>
-
-      Set `orderEmail` below to the address that should receive order requests.
-    -->
-    <div id="app-root"></div>
-
-    <script src="main.js"></script>
-    <script>
-      MPCalculator.mount('#app-root', {
-        // lang: 'cs',
-        orderEmail: ''
-      });
-    </script>
+  <div id="calculator-root"></div>
+  <script src="main.js"></script>
+  <script>
+    MPCalculator.mount("#calculator-root", {
+      lang: (navigator.language || "en").toLowerCase().startsWith("cs") ? "cs" : "en",
+      currency: "CZK",
+      orderEmail: "orders@printcraft.studio"
+    });
+  </script>
 </body>
 </html>
