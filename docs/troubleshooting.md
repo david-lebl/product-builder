@@ -24,7 +24,9 @@
 
 **Solution:** `.mill-jvm-opts` sets `-Xmx6g` (next to `-Xss8m`). Mill restarts the daemon when this file changes. If a bundle grows enough to hit the limit again, raise `-Xmx` or link with fewer parallel jobs (`./mill -j 2 …`).
 
-**Files:** `.mill-jvm-opts`
+**Production variant (`fullLinkJS`, deploy workflows):** 6 GB is still not enough for four parallel `fullLinkJS` runs (optimizer + Closure Compiler per bundle; the log ends with `Emitter: Class tree cache stats …` then `OutOfMemoryError`). `scripts/assemble-site.sh` therefore compiles the apps in one parallel invocation, then links each production bundle in its own `./mill <app>.fullLinkJS` and runs `./mill shutdown` after each, so every link starts in a fresh daemon with the full heap and no linker caches from the previous bundle.
+
+**Files:** `.mill-jvm-opts`, `scripts/assemble-site.sh`
 
 ---
 
