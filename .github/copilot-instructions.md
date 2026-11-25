@@ -7,15 +7,10 @@ This file provides guidance to GitHub Copilot coding agent when working with cod
 See [CLAUDE.md](../CLAUDE.md) for detailed build commands. Quick reference:
 
 ```bash
-# Mill (recommended)
-mill __.compile          # Compile all
-mill __.test             # Test all
-mill ui.fastLinkJS       # Dev JS build
-
-# sbt (legacy)
-sbt compile              # Compile all
-sbt test                 # Test all
-sbt ui/fastLinkJS        # Dev JS build
+./mill __.compile                              # Compile all
+./mill __.test                                 # Test all
+./mill ui.fastLinkJS                           # Dev JS build
+./mill mill.scalalib.scalafmt/checkFormatAll   # Check formatting (reformatAll to fix)
 ```
 
 ## Key Architecture Rules

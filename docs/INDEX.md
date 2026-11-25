@@ -24,6 +24,7 @@ Research documents, gap analyses, and architecture decisions — context for *wh
 | Document | Description |
 |----------|-------------|
 | [analysis/visual-editor-architecture.md](analysis/visual-editor-architecture.md) | Design Studio (visual editor): document model in mm/pt, shared SVG renderer, local-first IndexedDB storage, server sync & asset upload design, print-PDF pipeline, iframe embedding & bundle-size measurements |
+| [analysis/ci-optimization-plan.md](analysis/ci-optimization-plan.md) | GitHub Actions / Mill CI review: fixed issues (CI skipped `develop` PRs, broken preview cleanup, custom Mill wrapper) and backlog (scalafmt enforcement, scalafix, staged jobs, `out/` caching, Scala Steward) |
 | [analysis/kyo-ecosystem-findings.md](analysis/kyo-ecosystem-findings.md) | Kyo 1.0.0-RC7 bugs, gaps & footguns found during the backend rewrite (with reproductions) — input for upstream issues |
 | [analysis/printing-domain-analysis.md](analysis/printing-domain-analysis.md) | Comprehensive printing industry domain analysis (50+ product categories, materials, methods) |
 | [analysis/domain-model-gap-analysis.md](analysis/domain-model-gap-analysis.md) | Comparison of domain model vs real-world printing requirements (8 priority gaps) |
@@ -82,6 +83,7 @@ Session-by-session work logs documenting what was done, decisions made, and issu
 
 | Document | Description |
 |----------|-------------|
+| [changelog/2026-11-25-ci-workflow-review.md](changelog/2026-11-25-ci-workflow-review.md) | Session log for the CI workflow fixes, official Mill launcher, caching and report-only scalafmt check |
 | [changelog/README.md](changelog/README.md) | Changelog format, template, and log entries index |
 | [changelog/2026-11-25-configurator-material-combobox.md](changelog/2026-11-25-configurator-material-combobox.md) | Feature — searchable rich material combo box (name/surface/gsm ranges, EN+CS) with weight-variant pills in the configurator |
 | [changelog/2026-11-24-ui-visual-ux-modernization.md](changelog/2026-11-24-ui-visual-ux-modernization.md) | UI modernization — CSS-variable theme with dark mode, icon set, shared controls, storefront & backoffice redesign, layout bug fixes |

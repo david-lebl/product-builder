@@ -31,6 +31,13 @@ This project uses **Mill** (`build.mill`).
 ./mill 'backend.ordering.02-o-db.test'
 ./mill backend.app.test
 
+# Formatting (scalafmt, .scalafmt.conf) — CI runs checkFormatAll (report-only for now)
+./mill mill.scalalib.scalafmt/checkFormatAll
+./mill mill.scalalib.scalafmt/reformatAll
+
+# Assemble the GitHub Pages site locally (4 fullLinkJS bundles → _site/)
+scripts/assemble-site.sh _site
+
 # Run the API server (kyo-http; Swagger UI at http://localhost:8080/docs, OpenAPI at /openapi.json)
 ./mill backend.app.run --storage=memory
 docker compose up -d postgres && DATABASE_URL=postgresql://localhost:5432/printcraft ./mill backend.app.run --storage=postgres
