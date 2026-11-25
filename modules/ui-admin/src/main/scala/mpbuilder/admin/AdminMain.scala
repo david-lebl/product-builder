@@ -249,6 +249,15 @@ object AdminMain extends KyoApp:
     dom.document.addEventListener("drop", onDrop)
     dom.document.addEventListener("click", onClick)
 
+  /** Every route change opens the new page at the top (SPA navigation would otherwise keep the old scroll offset). */
+  private def scrollToTop(): Unit =
+    dom.window.scrollTo(0, 0)
+
+  /** Stop the browser restoring a stale offset on reload/back — our views re-render asynchronously anyway. */
+  private def disableScrollRestoration(): Unit =
+    try dom.window.history.asInstanceOf[js.Dynamic].updateDynamic("scrollRestoration")("manual")
+    catch case _: Throwable => ()
+
   run {
     val initialLang  = detectInitialLanguage
     val initialRoute = AdminRoute.fromHash(dom.window.location.hash, requireAdminPrefix = false).getOrElse(AdminRoute.Dashboard)
@@ -258,6 +267,7 @@ object AdminMain extends KyoApp:
       appI18n <- AdminTranslations.init(initialLang)
       _       <- UI.runStylesheet(AdminTheme.adminStylesheet)
       _       <- Sync.defer(installDocumentCss())
+      _       <- Sync.defer(disableScrollRestoration())
       themeCtl <- ThemeController.init(detectThemeMode, applyTheme)
       _       <- Sync.defer(installMasterDetailSplitter())
       _       <- Sync.defer(installArtworkFileBridge(appI18n))
@@ -272,6 +282,7 @@ object AdminMain extends KyoApp:
                               val target = AdminRoute.toHash(r, prefix = "#")
                               if dom.window.location.hash != target then
                                 dom.window.location.hash = target
+                              scrollToTop()
                             },
                           onLanguagePersist = lang =>
                             Sync.defer {
@@ -283,6 +294,7 @@ object AdminMain extends KyoApp:
                _ <- Sync.defer {
                       import kyo.AllowUnsafe.embrace.danger
                       val listener: js.Function1[dom.HashChangeEvent, Unit] = _ =>
+                        scrollToTop()
                         AdminRoute.fromHash(dom.window.location.hash, requireAdminPrefix = false).foreach { nextRoute =>
                           val eff = I18n.let(appI18n.handle)(state.navigate(nextRoute, syncHash = false))
                           val _   = Sync.Unsafe.evalOrThrow(Fiber.initUnscoped(eff))
