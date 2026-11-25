@@ -24,8 +24,8 @@ object CartDrawer:
           .combineLatest(state.i18n.language)
 
       UI.when(state.cartDrawerOpen)(
-        div.cssClass("mp-backdrop")(
-          div.cssClass("mp-drawer")(
+        div.cssClass("mp-backdrop mp-cart-backdrop").onClickSelf(state.cartDrawerOpen.set(false))(
+          div.cssClass("mp-drawer").role("dialog").aria("modal", "true")(
             // Drawer Header
             div.style(
               rowBetween

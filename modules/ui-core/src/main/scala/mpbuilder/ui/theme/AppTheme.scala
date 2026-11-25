@@ -181,6 +181,11 @@ object AppTheme:
         Stylesheet.Keyframe.to   -> Style.opacity(1.0).translate(0.px, 0.px),
       )
       .keyframes(
+        "mp-slide-up",
+        Stylesheet.Keyframe.from -> Style.opacity(0.4).translate(0.px, 48.px),
+        Stylesheet.Keyframe.to   -> Style.opacity(1.0).translate(0.px, 0.px),
+      )
+      .keyframes(
         "mp-drop-in",
         Stylesheet.Keyframe.from -> Style.opacity(0.0).translate(0.px, (-6).px),
         Stylesheet.Keyframe.to   -> Style.opacity(1.0).translate(0.px, 0.px),
@@ -573,6 +578,13 @@ object AppTheme:
         Style.padding(6.px, 12.px).fontSize(13.px).rounded(8.px),
       )
       .rule(
+        "mp-btn-success",
+        Style.bg(emerald)
+          .color(onBrand)
+          .shadow(0.px, 6.px, 16.px, (-6).px, Color.rgba(5, 150, 105, 0.55))
+          .animation("mp-fade-in", 160, Easing.easeOut),
+      )
+      .rule(
         "mp-btn-lg",
         Style.padding(12.px, 20.px).fontSize(15.px).rounded(12.px).width(100.pct),
       )
@@ -629,6 +641,68 @@ object AppTheme:
       .rule(
         "mp-field",
         Style.column.gap(6.px).flexGrow(1.0).minWidth(0.px),
+      )
+      // Configurator price dock (mobile / tablet only; shown by the <= 960px media block)
+      .rule("mp-cfg-dock", Style.displayNone)
+      .rule("mp-cfg-dock-backdrop", Style.displayNone)
+      .rule(
+        "mp-cfg-dock-bar",
+        Style.row
+          .align(Alignment.center)
+          .gap(10.px)
+          .padding(8.px, 8.px, 8.px, 6.px)
+          .bg(surface),
+      )
+      .rule(
+        "mp-cfg-dock-toggle",
+        Style.row
+          .align(Alignment.center)
+          .gap(8.px)
+          .flexGrow(1.0)
+          .minWidth(0.px)
+          .minHeight(48.px)
+          .padding(4.px, 8.px)
+          .rounded(12.px)
+          .bg(Color.transparent)
+          .border(0.px, Color.transparent)
+          .color(ink)
+          .textAlign(TextAlign.left)
+          .cursor(Cursor.pointer)
+          .hover(Style.bg(surfaceHover)),
+      )
+      .rule(
+        "mp-cfg-dock-chevron",
+        Style.row
+          .align(Alignment.center)
+          .justify(Justification.center)
+          .width(30.px)
+          .height(30.px)
+          .flexShrink(0.0)
+          .rounded(999.px)
+          .bg(surfaceAlt)
+          .color(inkSecondary),
+      )
+      .rule("mp-cfg-dock-label", Style.fontSize(11.px).fontWeight(FontWeight.w600).color(inkMuted).letterSpacing(0.3.px).lineHeight(1.2))
+      .rule("mp-cfg-dock-price", Style.fontSize(20.px).fontWeight(FontWeight.w800).color(ink).lineHeight(1.2).letterSpacing((-0.3).px))
+      .rule("mp-cfg-dock-sub", Style.fontSize(12.px).fontWeight(FontWeight.w600).color(brand).lineHeight(1.2))
+      .rule(
+        "mp-cfg-dock-cta",
+        Style.flexShrink(0.0).minHeight(48.px).padding(10.px, 18.px).rounded(12.px).fontSize(15.px),
+      )
+      .rule(
+        "mp-cfg-dock-sheet",
+        Style.column
+          .gap(14.px)
+          .padding(6.px, 16.px, 16.px, 16.px)
+          .maxHeight(62.vh)
+          .overflowY(Overflow.auto)
+          .bg(surface)
+          .borderBottom(1.px, border)
+          .animation("mp-rise-in", 200, Easing.easeOut),
+      )
+      .rule(
+        "mp-cfg-dock-grabber",
+        Style.width(40.px).height(4.px).rounded(999.px).bg(borderStrong).margin(4.px, Length.Auto, 0.px, Length.Auto).flexShrink(0.0),
       )
       // Drawer & Modal Overlays
       .rule(
@@ -1584,7 +1658,33 @@ object AppTheme:
       .media(Stylesheet.MediaQuery.maxWidth(960.px))(
         Stylesheet
           .rule("mp-split-layout", Style.column.gap(20.px))
-          .rule("mp-split-aside", Style.width(100.pct).position(Position.relative).top(0.px))
+          .rule("mp-split-aside", Style.displayNone)
+          .rule(
+            "mp-cfg-dock",
+            Style.display(Display.flex).column
+              .position(Position.sticky)
+              .bottom(12.px)
+              .zIndex(46)
+              .width(100.pct)
+              .bg(surface)
+              .border(1.px, border)
+              .rounded(18.px)
+              .overflow(Overflow.hidden)
+              .shadow(0.px, 18.px, 48.px, (-12).px, shadowStrong),
+          )
+          .rule("mp-cfg-dock-open", Style.borderColor(brandBorder))
+          .rule(
+            "mp-cfg-dock-backdrop",
+            Style.display(Display.block)
+              .position(Position.fixed)
+              .top(0.px)
+              .left(0.px)
+              .right(0.px)
+              .bottom(0.px)
+              .zIndex(45)
+              .bg(backdrop)
+              .animation("mp-fade-in", 160, Easing.easeOut),
+          )
           .rule("mp-desktop-nav", Style.displayNone)
           .rule("mp-hide-md", Style.displayNone)
           .rule("mp-mobile-only", Style.display(Display.flex).row.align(Alignment.center).gap(6.px))
@@ -1606,7 +1706,22 @@ object AppTheme:
           .rule("mp-toast", Style.left(12.px).right(12.px).bottom(12.px).maxWidth(Length.Auto))
           .rule("mp-product-visual", Style.height(88.px))
           .rule("mp-product-visual-img", Style.height(148.px))
-          .rule("mp-drawer", Style.width(100.pct).borderLeft(1.px, Color.transparent))
+          // Phones: the cart rises from the bottom edge as a sheet (continuing the configurator's price dock)
+          .rule("mp-cart-backdrop", Style.column.justify(Justification.end))
+          .rule(
+            "mp-drawer",
+            Style.width(100.pct)
+              .height(Length.Auto)
+              .maxHeight(92.pct)
+              .borderLeft(1.px, Color.transparent)
+              .borderTop(1.px, border)
+              .rounded(20.px, 20.px, 0.px, 0.px)
+              .shadow(0.px, (-12).px, 40.px, 0.px, shadowStrong)
+              .animation("mp-slide-up", 240, Easing.easeOut),
+          )
+          .rule("mp-cfg-dock", Style.bottom(8.px).rounded(16.px))
+          .rule("mp-cfg-dock-price", Style.fontSize(19.px))
+          .rule("mp-cfg-dock-cta", Style.padding(10.px, 14.px))
           .rule("mp-header-inner", Style.padding(10.px, 14.px).gap(8.px))
           .rule("mp-hero", Style.padding(28.px, 20.px).rounded(18.px))
           .rule("mp-hero-title", Style.fontSize(24.px))
@@ -1658,5 +1773,10 @@ object AppTheme:
       |[data-tooltip]{position:relative}
       |[data-tooltip]:hover::after,[data-tooltip]:focus-visible::after{content:attr(data-tooltip);position:absolute;top:calc(100% + 8px);right:0;white-space:nowrap;padding:5px 9px;border-radius:8px;background:var(--mp-inverse-bg);color:var(--mp-inverse-ink);font-size:12px;font-weight:600;line-height:1.2;box-shadow:0 8px 20px -6px var(--mp-shadow-lg);z-index:70;pointer-events:none;animation:mp-drop-in 120ms ease-out}
       |:focus:not(:focus-visible){outline:none}
+      |.mp-cfg-dock{margin-bottom:env(safe-area-inset-bottom)}
+      |.mp-cfg-dock-toggle{-webkit-tap-highlight-color:transparent}
+      |.mp-cfg-dock-chevron{transition:transform .2s ease}
+      |.mp-cfg-dock-toggle:active .mp-cfg-dock-chevron{transform:scale(.9)}
+      |.mp-cfg-dock-sheet{overscroll-behavior:contain}
       |@media (prefers-reduced-motion: reduce){*,*::before,*::after{animation-duration:1ms!important;animation-iteration-count:1!important;transition-duration:1ms!important;scroll-behavior:auto!important}}
       |""".stripMargin

@@ -134,11 +134,17 @@ Enter specifications:
 #### Step 6: Validate Price in Preview & Add to Basket
 Use the "Validate price" button in the Price Preview card (under total price) to validate the current configuration and toggle the detailed breakdown visibility. The main price card also shows price-per-item when quantity is greater than one. You can then add the configured product to the shopping basket with a specified quantity.
 
+**Mobile & tablet (≤ 960px) — sticky price dock.** The side price summary is replaced by a dock pinned to the bottom of the screen:
+- **Collapsed bar** — live total incl. VAT, quantity and net price per piece, plus the primary action (*Add to cart* in the storefront, *Order by email* in the calculator widget). When the quote has errors, the bar shows *Check configuration (n)* and the action is disabled.
+- **Expanded sheet** — tap the price (chevron) to open the full summary: currency switch, gross / net / VAT / per-piece, B2B savings, a *Your Configuration* recap (product, size, quantity, speed, materials & finishes), warnings, press & weight details, the price breakdown and *Quick Order*. Tap the backdrop, the close button or the chevron to collapse it.
+- **Add-to-cart feedback** — the button shows *Adding…* then turns green with *Added to cart* for about 2s (only when the add actually succeeded). The sheet collapses, and on phones (≤ 640px) the cart opens as a bottom sheet rising from the same edge. Tapping outside the cart closes it.
+
 ### Shopping Basket
 - View all added items with product details (category, material, printing method, finishes)
 - Update quantities for individual items
 - Remove items or clear the entire basket
 - See basket total calculation
+- On phones the basket opens as a bottom sheet; tap outside it to close
 
 ### Visual Editor
 

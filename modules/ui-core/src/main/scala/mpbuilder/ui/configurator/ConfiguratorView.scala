@@ -15,7 +15,8 @@ import mpbuilder.ui.theme.AppTheme.Palette.*
 
 enum ConfiguratorHost:
   case Storefront(
-      onAddToCart: (DraftConfig, ProductBuilderQuoteResult) => Unit < Async,
+      /** Adds the configured product to the cart; returns whether it succeeded (drives the "Added ✓" feedback). */
+      onAddToCart: (DraftConfig, ProductBuilderQuoteResult) => Boolean < Async,
       onQuickOrder: (DraftConfig, ProductBuilderQuoteResult) => Unit < Async,
       onPreviewArtwork: (ArtworkSubmissionView, Option[String]) => Unit < Sync = (_, _) => Kyo.unit,
       onLinkCopied: String => Unit < Async = _ => Kyo.unit,
@@ -61,6 +62,7 @@ object ConfiguratorView:
         .combineLatest(ctrl.draft)
         .combineLatest(ctrl.displayCurrency)
         .combineLatest(ctrl.i18n.language)
+        .combineLatest(ctrl.cartFeedback)
 
     div.style(Style.column.gap(20.px).width(100.pct))(
       if showHeader then
@@ -96,11 +98,13 @@ object ConfiguratorView:
         ),
         // Right: Sticky Live Price Summary
         div.cssClass("mp-split-aside")(
-          quoteCombined.render { case (((status, d), cur), lang) =>
-            renderQuoteSidebar(ctrl, status, d, cur, lang, host)
+          quoteCombined.render { case ((((status, d), cur), lang), feedback) =>
+            renderQuoteSidebar(ctrl, status, d, cur, lang, host, feedback)
           },
         ),
       ),
+      // Mobile / tablet: sticky bottom price dock (hidden on desktop)
+      renderDock(ctrl, host),
     )
 
   // ── Step 1: Product Category & Quick-Start Presets ─────────────────────────
@@ -1114,149 +1118,349 @@ object ConfiguratorView:
       currency: Currency,
       lang: Language,
       host: ConfiguratorHost,
+      feedback: CartFeedback,
   ): UI =
     div.cssClass("mp-card").style(Style.gap(16.px))(
       div.style(rowBetween)(
         h2(ctrl.i18n.t("cfg-quote-title")).style(sectionTitle.margin(0.px)),
-        Controls.segmented[Currency](
-          List(Currency.CZK, Currency.EUR).map(c => c -> (span(c.toString): UI)),
-          currency,
-          c => ctrl.setDisplayCurrency(c),
-          ariaLabel = if lang == Language.Cs then "Měna" else "Currency",
-        ),
+        currencySwitch(ctrl, currency, lang),
       ),
       status match
         case QuoteStatus.Loading =>
           div.style(Style.padding(24.px, 0.px).textAlign(TextAlign.center).color(inkMuted))(
             ctrl.i18n.t("cfg-quote-calculating"),
           )
-
         case QuoteStatus.Failed(err) =>
-          val messages = err match
-            case StorefrontError.CatalogFailure(CatalogError.ConfigurationValidationFailed(errs)) =>
-              errs.toList.map(_.message)
-            case other => List(other.message)
-          alertBanner(BadgeTone.Rose, span(ctrl.i18n.t("cfg-errors-title")), messages)
-
+          quoteErrorBanner(ctrl, err)
         case QuoteStatus.Ready(res) =>
-          val q       = res.pricing.effectiveQuote
-          val qCur    = q.currency
-          val unitNet = Money((q.netTotal.value / BigDecimal(q.quantity.value.max(1)))).rounded
-          val vatPct  = q.tax.rate.value.bigDecimal.stripTrailingZeros.toPlainString
-
           div.style(Style.column.gap(14.px))(
-            // Headline price block
-            div.style(Style.column.gap(6.px).padding(16.px).rounded(14.px).bg(surfaceAlt).border(1.px, Palette.border))(
-              // Optional walk-in strikethrough for B2B
-              res.pricing.walkInBaseQuote match
-                case Some(walkIn) =>
-                  div.style(rowBetween)(
-                    span(ctrl.i18n.t("cfg-quote-walkin")).style(smallText),
-                    span(formatMoney(walkIn.grossTotal, qCur, lang)).style(smallText.strikethrough),
-                  )
-                case None => UI.empty,
-              div.style(rowBetween)(
-                span(ctrl.i18n.t("cfg-quote-gross")).style(Style.fontSize(13.px).fontWeight(FontWeight.w600).color(inkSecondary)),
-                span(formatMoney(q.grossTotal, qCur, lang)).style(Style.fontSize(26.px).fontWeight(FontWeight.w800).color(ink)),
-              ),
-              div.style(rowBetween)(
-                span(ctrl.i18n.t("cfg-quote-net")).style(smallText),
-                span(formatMoney(q.netTotal, qCur, lang)).style(Style.fontSize(13.px).fontWeight(FontWeight.w600).color(inkSecondary)),
-              ),
-              div.style(rowBetween)(
-                span(ctrl.i18n.t("cfg-quote-vat", Dict("rate" -> vatPct))).style(smallText),
-                span(formatMoney(q.tax.taxAmount, qCur, lang)).style(smallText),
-              ),
-              div.style(rowBetween)(
-                span(ctrl.i18n.t("cfg-quote-unit")).style(smallText),
-                span(formatMoney(unitNet, qCur, lang)).style(Style.fontSize(13.px).fontWeight(FontWeight.w700).color(brand)),
+            renderPriceBlock(ctrl, res, lang),
+            renderSavingsAndBadges(ctrl, res, d, lang),
+            renderCtas(ctrl, host, d, res, feedback),
+            renderQuoteFootnotes(ctrl, res, lang),
+          ),
+    )
+
+  private def currencySwitch(ctrl: ConfiguratorController, currency: Currency, lang: Language): UI =
+    Controls.segmented[Currency](
+      List(Currency.CZK, Currency.EUR).map(c => c -> (span(c.toString): UI)),
+      currency,
+      c => ctrl.setDisplayCurrency(c),
+      ariaLabel = if lang == Language.Cs then "Měna" else "Currency",
+    )
+
+  private def quoteErrors(err: StorefrontError): List[String] = err match
+    case StorefrontError.CatalogFailure(CatalogError.ConfigurationValidationFailed(errs)) =>
+      errs.toList.map(_.message)
+    case other => List(other.message)
+
+  private def quoteErrorBanner(ctrl: ConfiguratorController, err: StorefrontError): UI =
+    alertBanner(BadgeTone.Rose, span(ctrl.i18n.t("cfg-errors-title")), quoteErrors(err))
+
+  private def unitNetOf(res: ProductBuilderQuoteResult): Money =
+    val q = res.pricing.effectiveQuote
+    Money(q.netTotal.value / BigDecimal(q.quantity.value.max(1))).rounded
+
+  /** Headline price block: optional walk-in strikethrough, gross, net, VAT & per-piece price. */
+  private def renderPriceBlock(ctrl: ConfiguratorController, res: ProductBuilderQuoteResult, lang: Language): UI =
+    val q      = res.pricing.effectiveQuote
+    val qCur   = q.currency
+    val vatPct = q.tax.rate.value.bigDecimal.stripTrailingZeros.toPlainString
+    div.cssClass("mp-num").style(Style.column.gap(6.px).padding(16.px).rounded(14.px).bg(surfaceAlt).border(1.px, Palette.border))(
+      res.pricing.walkInBaseQuote match
+        case Some(walkIn) =>
+          div.style(rowBetween)(
+            span(ctrl.i18n.t("cfg-quote-walkin")).style(smallText),
+            span(formatMoney(walkIn.grossTotal, qCur, lang)).style(smallText.strikethrough),
+          )
+        case None => UI.empty,
+      div.style(rowBetween)(
+        span(ctrl.i18n.t("cfg-quote-gross")).style(Style.fontSize(13.px).fontWeight(FontWeight.w600).color(inkSecondary)),
+        span(formatMoney(q.grossTotal, qCur, lang)).style(Style.fontSize(26.px).fontWeight(FontWeight.w800).color(ink)),
+      ),
+      div.style(rowBetween)(
+        span(ctrl.i18n.t("cfg-quote-net")).style(smallText),
+        span(formatMoney(q.netTotal, qCur, lang)).style(Style.fontSize(13.px).fontWeight(FontWeight.w600).color(inkSecondary)),
+      ),
+      div.style(rowBetween)(
+        span(ctrl.i18n.t("cfg-quote-vat", Dict("rate" -> vatPct))).style(smallText),
+        span(formatMoney(q.tax.taxAmount, qCur, lang)).style(smallText),
+      ),
+      div.style(rowBetween)(
+        span(ctrl.i18n.t("cfg-quote-unit")).style(smallText),
+        span(formatMoney(unitNetOf(res), qCur, lang)).style(Style.fontSize(13.px).fontWeight(FontWeight.w700).color(brand)),
+      ),
+    )
+
+  /** B2B savings banner plus volume-multiplier / attached-artwork badges. */
+  private def renderSavingsAndBadges(ctrl: ConfiguratorController, res: ProductBuilderQuoteResult, d: DraftConfig, lang: Language): UI =
+    val q    = res.pricing.effectiveQuote
+    val qCur = q.currency
+    UI.fragment(
+      (res.pricing.savingsNet, res.pricing.savingsPercent) match
+        case (Some(sav), Some(pct)) if sav.value > BigDecimal(0) =>
+          div.style(
+            Style.padding(10.px, 12.px)
+              .rounded(10.px)
+              .bg(emeraldSoft)
+              .border(1.px, emeraldBorder)
+              .color(emeraldInk)
+              .fontSize(13.px)
+              .fontWeight(FontWeight.w600),
+          )(
+            ctrl.i18n.t(
+              "cfg-quote-savings",
+              Dict(
+                "amount" -> formatMoney(sav, qCur, lang),
+                "pct"    -> pct.setScale(1, BigDecimal.RoundingMode.HALF_UP).toString,
               ),
             ),
+          )
+        case _ => UI.empty,
+      if q.volumeMultiplier != BigDecimal(1) || d.artworks.nonEmpty then
+        div.style(Style.row.flexWrap(FlexWrap.wrap).gap(6.px))(
+          if q.volumeMultiplier != BigDecimal(1) then
+            badge(
+              s"${if lang == Language.Cs then "Množstevní koef." else "Volume mult."}: ${q.volumeMultiplier}×",
+              BadgeTone.Brand,
+            )
+          else UI.empty,
+          if d.artworks.nonEmpty then
+            reactiveBadge(
+              ctrl.i18n.t("cfg-artwork-attached-badge", Dict("count" -> d.artworks.size.toString)),
+              BadgeTone.Emerald,
+            )
+          else UI.empty,
+        )
+      else UI.empty,
+    )
 
-            // B2B Savings Banner
-            (res.pricing.savingsNet, res.pricing.savingsPercent) match
-              case (Some(sav), Some(pct)) if sav.value > BigDecimal(0) =>
-                div.style(
-                  Style.padding(10.px, 12.px)
-                    .rounded(10.px)
-                    .bg(emeraldSoft)
-                    .border(1.px, emeraldBorder)
-                    .color(emeraldInk)
-                    .fontSize(13.px)
-                    .fontWeight(FontWeight.w600),
-                )(
-                  ctrl.i18n.t(
-                    "cfg-quote-savings",
-                    Dict(
-                      "amount" -> formatMoney(sav, qCur, lang),
-                      "pct"    -> pct.setScale(1, BigDecimal.RoundingMode.HALF_UP).toString,
-                    ),
-                  ),
-                )
-              case _ => UI.empty,
-
-            // Volume multiplier & attached artwork badges
-            if q.volumeMultiplier != BigDecimal(1) || d.artworks.nonEmpty then
-              div.style(Style.row.flexWrap(FlexWrap.wrap).gap(6.px))(
-                if q.volumeMultiplier != BigDecimal(1) then
-                  badge(
-                    s"${if lang == Language.Cs then "Množstevní koef." else "Volume mult."}: ${q.volumeMultiplier}×",
-                    BadgeTone.Brand,
-                  )
-                else UI.empty,
-                if d.artworks.nonEmpty then
-                  reactiveBadge(
-                    ctrl.i18n.t("cfg-artwork-attached-badge", Dict("count" -> d.artworks.size.toString)),
-                    BadgeTone.Emerald,
-                  )
-                else UI.empty,
+  /** Prepress warnings, press imposition / weight and the localized price breakdown. */
+  private def renderQuoteFootnotes(ctrl: ConfiguratorController, res: ProductBuilderQuoteResult, lang: Language): UI =
+    val qCur = res.pricing.effectiveQuote.currency
+    UI.fragment(
+      if res.configuration.warnings.nonEmpty then
+        alertBanner(
+          BadgeTone.Amber,
+          span(ctrl.i18n.t("cfg-warnings-title")),
+          res.configuration.warnings.map(_.reason(lang)),
+        )
+      else UI.empty,
+      renderImpositionDetails(ctrl, res.configuration.product, lang),
+      if res.localizedBreakdown.nonEmpty then
+        div.style(Style.column.gap(6.px).borderTop(1.px, Palette.border).padding(12.px, 0.px, 0.px, 0.px))(
+          div.style(Style.fontSize(12.px).fontWeight(FontWeight.w700).color(inkMuted).letterSpacing(0.3.px))(
+            ctrl.i18n.t("cfg-quote-breakdown"),
+          ),
+          div.cssClass("mp-num").style(Style.column.gap(4.px))(
+            res.localizedBreakdown.map { line =>
+              div.style(rowBetween.fontSize(12.px).gap(12.px))(
+                span(line.label).style(Style.color(inkSecondary)),
+                span(formatMoney(line.total, qCur, lang)).style(Style.fontWeight(FontWeight.w600).color(ink)),
               )
-            else UI.empty,
+            }*
+          ),
+        )
+      else UI.empty,
+    )
 
-            // Host-specific CTA buttons
-            host match
-              case ConfiguratorHost.Storefront(onAddToCart, onQuickOrder, _, _, _, _, _) =>
-                div.style(Style.column.gap(8.px))(
-                  button
-                    .cssClass("mp-btn mp-btn-primary mp-btn-lg")
-                    .onClick(onAddToCart(d, res))(Icons(Icons.Icon.Cart, 18), span(ctrl.i18n.t("cfg-btn-add-cart"))),
-                  button
-                    .cssClass("mp-btn mp-btn-secondary mp-btn-lg")
-                    .onClick(onQuickOrder(d, res))(Icons(Icons.Icon.Zap, 17), span(ctrl.i18n.t("cfg-btn-quick-order"))),
-                )
-              case ConfiguratorHost.Calculator(_, onRequestEmailOrder) =>
+  /** Compact "what you're ordering" recap shown in the expanded mobile sheet. */
+  private def renderConfigRecap(ctrl: ConfiguratorController, res: ProductBuilderQuoteResult, d: DraftConfig, lang: Language): UI =
+    val prod = res.configuration.product
+    def row(labelKey: String, value: String): UI =
+      div.style(rowBetween.fontSize(13.px).gap(12.px).align(Alignment.start))(
+        span(ctrl.i18n.t(labelKey)).style(Style.color(inkSecondary).flexShrink(0.0)),
+        span(value).style(Style.fontWeight(FontWeight.w600).color(ink).textAlign(TextAlign.right)),
+      )
+    div.style(Style.column.gap(6.px))(
+      div.style(Style.fontSize(12.px).fontWeight(FontWeight.w700).color(inkMuted).letterSpacing(0.3.px))(
+        ctrl.i18n.t("cfg-dock-recap"),
+      ),
+      row("cfg-dock-recap-product", prod.categoryName(lang)),
+      row("cfg-dock-recap-size", formatDimension(prod.specs.dimensions.finishedBoundingBox)),
+      row("cfg-dock-recap-quantity", s"${prod.specs.quantity.value} ${if lang == Language.Cs then "ks" else "pcs"}"),
+      row("cfg-dock-recap-speed", speedLabel(d.speed, lang)),
+      UI.fragment(
+        prod.components.toList.map { c =>
+          val print = c.print.map(p => s" · ${p.ink.notation}").getOrElse("")
+          val fins  = if c.finishes.isEmpty then "" else " · " + c.finishes.map(_.finish.name(lang)).mkString(", ")
+          div.style(rowBetween.fontSize(13.px).gap(12.px).align(Alignment.start))(
+            span(if prod.components.size > 1 then c.key.value else ctrl.i18n.t("cfg-dock-recap-material")).style(Style.color(inkSecondary).flexShrink(0.0)),
+            span(s"${c.material.name(lang)}$print$fins").style(Style.fontWeight(FontWeight.w600).color(ink).textAlign(TextAlign.right)),
+          )
+        }*
+      ),
+    )
+
+  /** Add-to-cart button with idle → adding → added ✓ feedback. */
+  private def addToCartButton(
+      ctrl: ConfiguratorController,
+      feedback: CartFeedback,
+      size: String,
+      compactLabel: Boolean,
+      action: => Boolean < Async,
+  ): UI =
+    val (cls, icon, key) = feedback match
+      case CartFeedback.Idle   => ("mp-btn-primary", Icons.Icon.Cart, if compactLabel then "cfg-dock-add" else "cfg-btn-add-cart")
+      case CartFeedback.Adding => ("mp-btn-primary", Icons.Icon.Clock, "cfg-btn-adding")
+      case CartFeedback.Added  => ("mp-btn-success", Icons.Icon.Check, "cfg-btn-added")
+    button
+      .cssClass(s"mp-btn $cls $size")
+      .disabled(feedback == CartFeedback.Adding)
+      .aria("live", "polite")
+      .onClick(ctrl.runAddToCart(action))(Icons(icon, 18), span(ctrl.i18n.t(key)))
+
+  /** Host-specific call-to-action buttons (desktop sidebar & expanded mobile sheet). */
+  private def renderCtas(
+      ctrl: ConfiguratorController,
+      host: ConfiguratorHost,
+      d: DraftConfig,
+      res: ProductBuilderQuoteResult,
+      feedback: CartFeedback,
+  ): UI =
+    host match
+      case sf: ConfiguratorHost.Storefront =>
+        div.style(Style.column.gap(8.px))(
+          addToCartButton(ctrl, feedback, "mp-btn-lg", compactLabel = false, sf.onAddToCart(d, res)),
+          button
+            .cssClass("mp-btn mp-btn-secondary mp-btn-lg")
+            .onClick(ctrl.collapseDock.andThen(sf.onQuickOrder(d, res)))(Icons(Icons.Icon.Zap, 17), span(ctrl.i18n.t("cfg-btn-quick-order"))),
+        )
+      case ConfiguratorHost.Calculator(_, onRequestEmailOrder) =>
+        button
+          .cssClass("mp-btn mp-btn-primary mp-btn-lg")
+          .onClick(onRequestEmailOrder(d, res))(Icons(Icons.Icon.Mail, 17), span(ctrl.i18n.t("cfg-btn-email-order")))
+
+  // ── Mobile / Tablet Price Dock ───────────────────────────────────────────
+  //
+  // Below 960px the sidebar is hidden and this dock sticks to the bottom of the viewport:
+  // a compact bar (live gross price + per-piece + primary CTA) that expands into a sheet with the
+  // full summary, configuration recap, breakdown & secondary actions. Adding to cart collapses
+  // the sheet, flips the button to "Added ✓" and the cart rises from the same bottom edge.
+
+  private def renderDock(ctrl: ConfiguratorController, host: ConfiguratorHost): UI =
+    val dockSignal =
+      ctrl.quoteStatus
+        .combineLatest(ctrl.draft)
+        .combineLatest(ctrl.displayCurrency)
+        .combineLatest(ctrl.i18n.language)
+        .combineLatest(ctrl.dockExpanded)
+        .combineLatest(ctrl.cartFeedback)
+
+    dockSignal.render { case (((((status, d), cur), lang), expanded), feedback) =>
+      val readyOpt = status match
+        case QuoteStatus.Ready(res) => Some(res)
+        case _                      => None
+
+      UI.fragment(
+        if expanded then div.cssClass("mp-cfg-dock-backdrop").aria("hidden", "true").onClick(ctrl.collapseDock)
+        else UI.empty,
+        div.cssClass(if expanded then "mp-cfg-dock mp-cfg-dock-open" else "mp-cfg-dock").role("region").aria("label", if lang == Language.Cs then "Cena" else "Price")(
+          if expanded then renderDockSheet(ctrl, status, d, cur, lang, host, feedback) else UI.empty,
+          div.cssClass("mp-cfg-dock-bar")(
+            button
+              .cssClass("mp-cfg-dock-toggle")
+              .aria("expanded", expanded.toString)
+              .aria("label", if lang == Language.Cs then "Zobrazit detail ceny" else "Show price details")
+              .onClick(ctrl.toggleDock)(
+                renderDockPrice(ctrl, status, lang),
+                span.cssClass("mp-cfg-dock-chevron")(Icons(if expanded then Icons.Icon.ChevronDown else Icons.Icon.ChevronUp, 18)),
+              ),
+            readyOpt match
+              case Some(res) =>
+                host match
+                  case sf: ConfiguratorHost.Storefront =>
+                    addToCartButton(ctrl, feedback, "mp-cfg-dock-cta", compactLabel = true, sf.onAddToCart(d, res))
+                  case ConfiguratorHost.Calculator(_, onRequestEmailOrder) =>
+                    button
+                      .cssClass("mp-btn mp-btn-primary mp-cfg-dock-cta")
+                      .onClick(onRequestEmailOrder(d, res))(Icons(Icons.Icon.Mail, 17), span(ctrl.i18n.t("cfg-dock-email")))
+              case None =>
                 button
-                  .cssClass("mp-btn mp-btn-primary mp-btn-lg")
-                  .onClick(onRequestEmailOrder(d, res))(Icons(Icons.Icon.Mail, 17), span(ctrl.i18n.t("cfg-btn-email-order"))),
+                  .cssClass("mp-btn mp-btn-primary mp-cfg-dock-cta")
+                  .disabled(true)(Icons(Icons.Icon.Cart, 18), span(ctrl.i18n.t("cfg-dock-add"))),
+          ),
+        ),
+      )
+    }
 
-            // Prepress advisories / warnings
-            if res.configuration.warnings.nonEmpty then
-              alertBanner(
-                BadgeTone.Amber,
-                span(ctrl.i18n.t("cfg-warnings-title")),
-                res.configuration.warnings.map(_.reason(lang)),
+  /** Collapsed-bar price: gross total headline + per-piece / quantity subline (or loading / error state). */
+  private def renderDockPrice(ctrl: ConfiguratorController, status: QuoteStatus, lang: Language): UI =
+    div.cssClass("mp-num").style(Style.column.gap(1.px).minWidth(0.px).flexGrow(1.0).align(Alignment.start))(
+      status match
+        case QuoteStatus.Loading =>
+          UI.fragment(
+            span(ctrl.i18n.t("cfg-quote-gross")).cssClass("mp-cfg-dock-label"),
+            span(ctrl.i18n.t("cfg-quote-calculating")).cssClass("mp-cfg-dock-price").style(Style.color(inkMuted).fontSize(15.px)),
+          )
+        case QuoteStatus.Failed(err) =>
+          UI.fragment(
+            span(ctrl.i18n.t("cfg-errors-title")).cssClass("mp-cfg-dock-label").style(Style.color(rose)),
+            span(ctrl.i18n.t("cfg-dock-fix", Dict("count" -> quoteErrors(err).size.toString)))
+              .cssClass("mp-cfg-dock-price")
+              .style(Style.color(roseInk).fontSize(15.px)),
+          )
+        case QuoteStatus.Ready(res) =>
+          val q    = res.pricing.effectiveQuote
+          val qCur = q.currency
+          val hasSavings = res.pricing.savingsNet.exists(_.value > BigDecimal(0))
+          UI.fragment(
+            span(ctrl.i18n.t("cfg-quote-gross")).cssClass("mp-cfg-dock-label"),
+            div.style(Style.row.align(Alignment.center).gap(8.px).minWidth(0.px))(
+              span(formatMoney(q.grossTotal, qCur, lang)).cssClass("mp-cfg-dock-price"),
+              res.pricing.walkInBaseQuote match
+                case Some(walkIn) if hasSavings =>
+                  span(formatMoney(walkIn.grossTotal, qCur, lang)).cssClass("mp-hide-sm").style(smallText.strikethrough)
+                case _ => UI.empty,
+            ),
+            span(
+              ctrl.i18n.t(
+                "cfg-dock-unit",
+                Dict("unit" -> formatMoney(unitNetOf(res), qCur, lang), "qty" -> q.quantity.value.toString),
               )
-            else UI.empty,
+            ).cssClass("mp-cfg-dock-sub"),
+          ),
+    )
 
-            // Press imposition & weight details
-            renderImpositionDetails(ctrl, res.configuration.product, lang),
-
-            // Localized breakdown
-            if res.localizedBreakdown.nonEmpty then
-              div.style(Style.column.gap(6.px).borderTop(1.px, Palette.border).padding(12.px, 0.px, 0.px, 0.px))(
-                div.style(Style.fontSize(12.px).fontWeight(FontWeight.w700).color(inkMuted).letterSpacing(0.3.px))(
-                  ctrl.i18n.t("cfg-quote-breakdown"),
-                ),
-                div.style(Style.column.gap(4.px))(
-                  res.localizedBreakdown.map { line =>
-                    div.style(rowBetween.fontSize(12.px))(
-                      span(line.label).style(Style.color(inkSecondary)),
-                      span(formatMoney(line.total, qCur, lang)).style(Style.fontWeight(FontWeight.w600).color(ink)),
-                    )
-                  }*
-                ),
-              )
-            else UI.empty,
+  private def renderDockSheet(
+      ctrl: ConfiguratorController,
+      status: QuoteStatus,
+      d: DraftConfig,
+      cur: Currency,
+      lang: Language,
+      host: ConfiguratorHost,
+      feedback: CartFeedback,
+  ): UI =
+    div.cssClass("mp-cfg-dock-sheet")(
+      div.cssClass("mp-cfg-dock-grabber"),
+      div.style(rowBetween.gap(10.px))(
+        h2(ctrl.i18n.t("cfg-quote-title")).style(sectionTitle.margin(0.px).fontSize(16.px)),
+        div.style(Style.row.align(Alignment.center).gap(6.px))(
+          currencySwitch(ctrl, cur, lang),
+          button
+            .cssClass("mp-icon-btn mp-icon-btn-sm")
+            .aria("label", if lang == Language.Cs then "Zavřít" else "Close")
+            .onClick(ctrl.collapseDock)(Icons(Icons.Icon.Close, 16)),
+        ),
+      ),
+      status match
+        case QuoteStatus.Loading =>
+          div.style(Style.padding(16.px, 0.px).textAlign(TextAlign.center).color(inkMuted))(ctrl.i18n.t("cfg-quote-calculating"))
+        case QuoteStatus.Failed(err) =>
+          quoteErrorBanner(ctrl, err)
+        case QuoteStatus.Ready(res) =>
+          UI.fragment(
+            renderPriceBlock(ctrl, res, lang),
+            renderSavingsAndBadges(ctrl, res, d, lang),
+            renderConfigRecap(ctrl, res, d, lang),
+            renderQuoteFootnotes(ctrl, res, lang),
+            host match
+              case sf: ConfiguratorHost.Storefront =>
+                button
+                  .cssClass("mp-btn mp-btn-secondary")
+                  .style(Style.width(100.pct))
+                  .onClick(ctrl.collapseDock.andThen(sf.onQuickOrder(d, res)))(Icons(Icons.Icon.Zap, 16), span(ctrl.i18n.t("cfg-btn-quick-order")))
+              case _: ConfiguratorHost.Calculator => UI.empty,
           ),
     )
 
