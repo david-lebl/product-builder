@@ -3,8 +3,9 @@
 > ⚠️ **Note**: This project was built with the assistance of an LLM (Large Language Model).
 
 A domain-driven print-shop platform: customers configure and price print products, upload artwork
-with automated preflight and place orders; staff accept, review and progress those orders and manage
-the catalog, pricing, customers and store settings in a role-based backoffice.
+with automated preflight (or design it online in the built-in Design Studio) and place orders; staff
+accept, review and progress those orders and manage the catalog, pricing, customers and store settings
+in a role-based backoffice.
 
 **🌐 Live Demo (runs fully in the browser, no backend):** [https://david-lebl.github.io/product-builder/](https://david-lebl.github.io/product-builder/)
 
@@ -13,6 +14,7 @@ the catalog, pricing, customers and store settings in a role-based backoffice.
 | Storefront + Staff Backoffice (`#/admin`) | [david-lebl.github.io/product-builder](https://david-lebl.github.io/product-builder/) |
 | Standalone Backoffice | [david-lebl.github.io/product-builder/admin/](https://david-lebl.github.io/product-builder/admin/) |
 | Embeddable price calculator | [david-lebl.github.io/product-builder/calculator/](https://david-lebl.github.io/product-builder/calculator/) |
+| Design Studio (visual editor) | [david-lebl.github.io/product-builder/editor/](https://david-lebl.github.io/product-builder/editor/) |
 
 Orders placed in the storefront land immediately in Staff Order Intake: both run on one shared
 in-memory runtime. Demo staff login: `admin@printshop.cz` / `staff1234`; demo customer:
@@ -26,12 +28,17 @@ in-memory runtime. Demo staff login: `admin@printshop.cz` / `staff1234`; demo cu
 |:---:|:---:|
 | ![Staff Backoffice](docs/screenshots/staff-backoffice.png) | ![Embeddable Price Calculator](docs/screenshots/price-calculator.png) |
 
+| Design Studio Editor | Design Studio Templates |
+|:---:|:---:|
+| ![Design Studio Editor](docs/screenshots/design-studio-editor.png) | ![Design Studio Templates](docs/screenshots/design-studio-templates.png) |
+
 ## What It Does
 
 **Storefront**
 - **Product configurator** for 15 products in 5 groups (sheet print, large format, bound, specialty & packaging, promotional): materials, printing methods, ink configuration, finishes and specs, guided by a declarative compatibility rule engine with press-sheet imposition.
 - **Live pricing** with a detailed breakdown, speed tiers (express / standard / economy) driven by shop-floor capacity, promo codes and **B2B dual pricing** (list vs. agreement price) for signed-in business customers.
 - **Artwork upload** per product component with automated **prepress preflight** (resolution, bleed, trim size, colour space, page count, fonts, transparency), plus revisions after ordering.
+- **Design online**: no print file? Each printable component can open the Design Studio and attach the finished design as its artwork.
 - **Cart and checkout** with shop pickup or courier delivery; payment by QR bank transfer, card, or invoice on account (net terms for approved B2B accounts); password or passwordless sign-in (OTP by e-mail, IČO or DIČ).
 - **My account**: order history, addresses, payment instructions, artwork status.
 
@@ -41,6 +48,12 @@ in-memory runtime. Demo staff login: `admin@printshop.cz` / `staff1234`; demo cu
 - **Catalog manager** for categories, presets, materials, finishes, printing methods, rules and showcases, with in-use protection and catalog versioning.
 - **Pricing manager** for pricelists, B2B agreements, promo codes, cost sheets and a live margin simulator.
 - **Customers** (approvals, tiers, credit terms, notes, audit trail), **staff directory**, and **store settings** (pickup locations, couriers, bank accounts).
+
+**Design Studio** (visual editor): design business cards, flyers, posters, postcards, wall and desk calendars and photo books in the browser.
+- **Templates** per product type, plus text (heading, body, handwritten), photos, clipart, shapes, backgrounds and layouts.
+- **Print-true document model**: geometry in millimetres relative to the trim box, fonts in points, with bleed and safe-margin guides and live **print checks**.
+- **Multi-page documents** (front/back, 13-page calendars with generated month grids, photo books), undo/redo and autosave on the device (IndexedDB).
+- Runs standalone at `/editor/` or embedded in the storefront configurator, where the finished design becomes the line's artwork.
 
 **Embeddable calculator**: a standalone widget (`MPCalculator.mount(selector, config)`) that prices products on any website, with e-mail ordering.
 
@@ -67,9 +80,9 @@ the server.
 ```
 backend/
 ├── shared/                      Kernel: opaque IDs, Money, LocalizedString, EventBus, BlobStorage, IdSequence
-├── catalog|pricing|customers|identity|ordering|artwork|manufacturing/
+├── catalog|pricing|customers|identity|ordering|artwork|manufacturing|design/
 │   ├── 01-c-core/               Domain + public API; depends ONLY on shared (JVM + JS)
-│   └── 02-o-db/                 kyo-sql PostgreSQL repository adapters + migrations (JVM; not manufacturing yet)
+│   └── 02-o-db/                 kyo-sql PostgreSQL repository adapters + migrations (JVM; not manufacturing/design yet)
 ├── storefront/                  Customer BFF facade
 │   ├── 01-i-http-api/           Wire DTOs, schemas & URL layout of /api/v1/storefront (JVM + JS)
 │   └── 02-i-http/               kyo-http routes
@@ -86,6 +99,8 @@ modules/
 ├── ui-http-client/              HTTP implementations of the facades (JVM + JS)
 ├── ui/                          Unified SPA: storefront + #/admin
 ├── ui-admin/                    Standalone backoffice SPA
+├── ui-editor-core/              Design Studio controller & views (Kyo UI, JVM + JS)
+├── ui-editor/                   Design Studio page (standalone or iframe-embedded by the storefront)
 └── ui-calculator/               Embeddable calculator widget
 ```
 
@@ -144,6 +159,7 @@ server options and demo logins.
 - **[PLAN.md](PLAN.md)**: goals and roadmap status; details in [docs_roadmap/platform_roadmap.md](docs_roadmap/platform_roadmap.md)
 - **[docs/backend-persistence-and-http-api.md](docs/backend-persistence-and-http-api.md)**: persistence, HTTP API and blob storage design
 - **[docs/running-the-platform.md](docs/running-the-platform.md)**: running the server and frontends
+- **[docs/analysis/visual-editor-architecture.md](docs/analysis/visual-editor-architecture.md)**: Design Studio architecture, document model and storefront embedding
 - **[guides/scala_3_modulith_boilerplate.md](guides/scala_3_modulith_boilerplate.md)**: the module and layer conventions
 - **[CLAUDE.md](CLAUDE.md)**: build commands and coding conventions for contributors and AI assistants
 - **[docs/troubleshooting.md](docs/troubleshooting.md)** and **[docs/changelog/](docs/changelog/)**: known issues and work history
