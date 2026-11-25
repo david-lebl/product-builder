@@ -351,6 +351,15 @@ object Main extends KyoApp:
            }
     yield ()
 
+  /** Every route change opens the new page at the top (SPA navigation would otherwise keep the old scroll offset). */
+  private def scrollToTop(): Unit =
+    dom.window.scrollTo(0, 0)
+
+  /** Stop the browser restoring a stale offset on reload/back — our views re-render asynchronously anyway. */
+  private def disableScrollRestoration(): Unit =
+    try dom.window.history.asInstanceOf[js.Dynamic].updateDynamic("scrollRestoration")("manual")
+    catch case _: Throwable => ()
+
   run {
     val initialLang       = detectInitialLanguage
     val initialHash       = dom.window.location.hash
@@ -364,6 +373,7 @@ object Main extends KyoApp:
       appI18n <- AdminTranslations.init(initialLang)
       _       <- UI.runStylesheet(AdminTheme.adminStylesheet)
       _       <- Sync.defer(installDocumentCss())
+      _       <- Sync.defer(disableScrollRestoration())
       themeCtl <- ThemeController.init(detectThemeMode, applyTheme)
       _       <- Sync.defer(installMasterDetailSplitter())
       _       <- Sync.defer(installArtworkFileBridge(appI18n))
@@ -380,6 +390,7 @@ object Main extends KyoApp:
                                 val target = AppRoute.toHash(r)
                                 if dom.window.location.hash != target then
                                   dom.window.location.hash = target
+                                scrollToTop()
                               },
                             onLanguagePersist = persistLanguage,
                             theme = Some(themeCtl),
@@ -393,6 +404,7 @@ object Main extends KyoApp:
                                 val target = AdminRoute.toHash(r, prefix = "#/admin")
                                 if dom.window.location.hash != target then
                                   dom.window.location.hash = target
+                                scrollToTop()
                               },
                             onLanguagePersist = persistLanguage,
                             onDataMutated = () => sfState.refreshCatalog,
@@ -416,6 +428,7 @@ object Main extends KyoApp:
                       import kyo.AllowUnsafe.embrace.danger
                       val listener: js.Function1[dom.HashChangeEvent, Unit] = _ =>
                         val hash = dom.window.location.hash
+                        scrollToTop()
                         AdminRoute.fromHash(hash, requireAdminPrefix = true) match
                           case Some(adminRoute) =>
                             val eff = I18n.let(appI18n.handle) {
