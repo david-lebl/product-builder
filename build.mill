@@ -431,11 +431,15 @@ object backend extends Module {
         backend.storefront.jvm,
         backend.backoffice.jvm,
         backend.design.`01-c-core`.jvm,
+        backend.json.jvm,
       )
+      def mvnDeps = backendCoreDeps ++ jsonDeps
       object test extends CoreTests
     }
     object js extends BackendJsModule {
       def baseDir = dir
+      // `src/main/scala-js`: browser IndexedDB `DocStore` for the persistent static demo.
+      def sources = Task.Sources(dir / "src" / "main" / "scala", dir / "src" / "main" / "scala-js")
       def moduleDeps = Seq(
         backend.shared.js,
         backend.catalog.`01-c-core`.js,
@@ -448,7 +452,9 @@ object backend extends Module {
         backend.storefront.js,
         backend.backoffice.js,
         backend.design.`01-c-core`.js,
+        backend.json.js,
       )
+      def mvnDeps = backendCoreDeps ++ backendJsExtraDeps ++ jsonDeps
     }
   }
 

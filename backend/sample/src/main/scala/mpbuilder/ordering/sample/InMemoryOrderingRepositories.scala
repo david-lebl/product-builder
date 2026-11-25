@@ -2,6 +2,8 @@ package mpbuilder.ordering.sample
 
 import mpbuilder.ordering.*
 import mpbuilder.ordering.core.{Cart, CartRepository, DeliveryCatalogRepository, Order, OrderRepository, OrderingCoreLayers}
+import mpbuilder.json.DomainCodecs.given
+import mpbuilder.sample.SampleStorage
 import mpbuilder.shared.*
 import kyo.*
 
@@ -117,7 +119,7 @@ object SampleDeliveryCatalog:
 
 /** In-memory `CartRepository` with convenience `createCart` for UI showcase sessions. */
 final class InMemoryCartRepository(
-    ref: AtomicRef[Map[CartId, Cart]],
+    ref: StateRef[Map[CartId, Cart]],
 ) extends CartRepository:
 
   override def findById(id: CartId): Option[Cart] < Async =
@@ -131,7 +133,7 @@ final class InMemoryCartRepository(
     save(cart).as(cart.toView)
 
 final class InMemoryOrderRepository(
-    ref: AtomicRef[Map[OrderId, Order]],
+    ref: StateRef[Map[OrderId, Order]],
 ) extends OrderRepository:
 
   override def findById(id: OrderId): Option[Order] < Async =
@@ -150,9 +152,9 @@ final class InMemoryOrderRepository(
     listAll.map(_.map(_.toView))
 
 final class InMemoryDeliveryCatalogRepository(
-    pickupsRef: AtomicRef[List[ShopPickupLocation]],
-    couriersRef: AtomicRef[Map[Currency, List[CourierServiceOption]]],
-    accountsRef: AtomicRef[Map[Currency, BankAccountConfig]],
+    pickupsRef: StateRef[List[ShopPickupLocation]],
+    couriersRef: StateRef[Map[Currency, List[CourierServiceOption]]],
+    accountsRef: StateRef[Map[Currency, BankAccountConfig]],
 ) extends DeliveryCatalogRepository:
 
   override def pickupLocations: List[ShopPickupLocation] < Async =
@@ -443,31 +445,44 @@ object OrderingSampleWiring:
 
   final case class Services(carts: CartService, checkoutOptions: CheckoutOptionsService, orders: OrderService)
 
+  private given Schema[Cart]  = Schema.derived
+  private given Schema[Order] = Schema.derived
+
   def cartRepository(
       seedCarts: List[(CartId, Currency, Option[CustomerId])] = List(
         (CartId.unsafe("cart-showcase-czk"), Currency.CZK, None),
         (CartId.unsafe("cart-showcase-usd"), Currency.USD, None),
       ),
+      storage: SampleStorage = SampleStorage.memory,
   ): InMemoryCartRepository < Sync =
     val initial = seedCarts.map { case (id, cur, cid) => id -> Cart(id, cid, cur, Nil, None) }.toMap
-    AtomicRef.init(initial).map(new InMemoryCartRepository(_))
+    storage.map("ordering.carts", initial)(_.value, CartId.unsafe).map(new InMemoryCartRepository(_))
 
-  def orderRepository(seedOrders: List[Order] = SampleSeedOrders.initialOrders): InMemoryOrderRepository < Sync =
-    AtomicRef.init(seedOrders.map(o => o.id -> o).toMap).map(new InMemoryOrderRepository(_))
+  def orderRepository(
+      seedOrders: List[Order] = SampleSeedOrders.initialOrders,
+      storage: SampleStorage = SampleStorage.memory,
+  ): InMemoryOrderRepository < Sync =
+    storage
+      .map("ordering.orders", seedOrders.map(o => o.id -> o).toMap)(_.value, OrderId.unsafe)
+      .map(new InMemoryOrderRepository(_))
 
-  def deliveryCatalog: DeliveryCatalogRepository < Sync =
+  def deliveryCatalog(storage: SampleStorage = SampleStorage.memory): DeliveryCatalogRepository < Sync =
     for
-      p <- AtomicRef.init(SampleDeliveryCatalog.pickupLocations)
-      c <- AtomicRef.init(SampleDeliveryCatalog.courierOptionsByCurrency)
-      a <- AtomicRef.init(SampleDeliveryCatalog.bankAccounts)
+      p <- storage.value("ordering.pickupLocations", SampleDeliveryCatalog.pickupLocations)
+      c <- storage.map("ordering.courierOptions", SampleDeliveryCatalog.courierOptionsByCurrency)(_.toString, Currency.valueOf)
+      a <- storage.map("ordering.bankAccounts", SampleDeliveryCatalog.bankAccounts)(_.toString, Currency.valueOf)
     yield new InMemoryDeliveryCatalogRepository(p, c, a)
 
-  def services(eventBus: EventBus, seedSampleOrders: Boolean = true): Services < Sync =
+  def services(
+      eventBus: EventBus,
+      seedSampleOrders: Boolean = true,
+      storage: SampleStorage = SampleStorage.memory,
+  ): Services < Sync =
     val seed = if seedSampleOrders then SampleSeedOrders.initialOrders else Nil
     for
-      carts    <- cartRepository()
-      delivery <- deliveryCatalog
-      orders   <- orderRepository(seed)
+      carts    <- cartRepository(storage = storage)
+      delivery <- deliveryCatalog(storage)
+      orders   <- orderRepository(seed, storage)
     yield Services(
       OrderingCoreLayers.cartService(carts),
       OrderingCoreLayers.checkoutOptionsService(delivery),

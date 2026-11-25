@@ -3,14 +3,16 @@ package mpbuilder.catalog.sample
 import mpbuilder.catalog.*
 import mpbuilder.catalog.core.{CatalogRepository, CatalogServiceLive}
 import kyo.*
+import mpbuilder.json.DomainCodecs.given
+import mpbuilder.sample.SampleStorage
 import mpbuilder.shared.*
 
-/** Mutable in-memory `CatalogRepository` backed by Kyo `AtomicRef`, suitable for
-  * unit tests AND backend-less UI showcases (supports live admin edits).
+/** Mutable in-memory `CatalogRepository` backed by [[StateRef]]s, suitable for
+  * unit tests AND backend-less UI showcases (supports live admin edits, optionally persisted).
   */
 final class InMemoryCatalogRepository(
-    catalogRef: AtomicRef[ProductCatalog],
-    rulesetRef: AtomicRef[CompatibilityRuleset],
+    catalogRef: StateRef[ProductCatalog],
+    rulesetRef: StateRef[CompatibilityRuleset],
 ) extends CatalogRepository:
 
   override def loadCatalog: ProductCatalog < Async              = catalogRef.get
@@ -29,14 +31,16 @@ object CatalogSampleWiring:
   def repository(
       initialCatalog: ProductCatalog = SampleCatalog.catalog,
       initialRuleset: CompatibilityRuleset = SampleRules.ruleset,
+      storage: SampleStorage = SampleStorage.memory,
   ): InMemoryCatalogRepository < Sync =
     for
-      catRef  <- AtomicRef.init(initialCatalog)
-      ruleRef <- AtomicRef.init(initialRuleset)
+      catRef  <- storage.value("catalog.catalog", initialCatalog)
+      ruleRef <- storage.value("catalog.ruleset", initialRuleset)
     yield new InMemoryCatalogRepository(catRef, ruleRef)
 
   def service(
       initialCatalog: ProductCatalog = SampleCatalog.catalog,
       initialRuleset: CompatibilityRuleset = SampleRules.ruleset,
+      storage: SampleStorage = SampleStorage.memory,
   ): CatalogService < Sync =
-    repository(initialCatalog, initialRuleset).map(CatalogServiceLive.make)
+    repository(initialCatalog, initialRuleset, storage).map(CatalogServiceLive.make)

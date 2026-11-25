@@ -499,3 +499,14 @@ build enables `-Wvalue-discard`, which reports these sites — treat that warnin
 
 **Files:** any Kyo code (e.g. `backend/app/src/main/scala/mpbuilder/app/AppConfig.scala`)
 
+---
+
+### Scala.js: `value objectStoreNames is not a member of kyo.Result[...]` on `req.result`
+
+**Symptom:** Accessing `.result` on a `js.Dynamic` (e.g. an IndexedDB request) yields a `kyo.Result` type error.
+
+**Cause:** With `import kyo.*` in scope, Kyo's `.result` extension wins over the dynamic member selection.
+
+**Solution:** Use `req.selectDynamic("result")`.
+
+**Files:** `backend/sample/src/main/scala-js/mpbuilder/sample/browser/IndexedDbDocStore.scala`

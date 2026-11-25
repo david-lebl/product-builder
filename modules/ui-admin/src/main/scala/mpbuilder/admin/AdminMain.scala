@@ -7,7 +7,7 @@ import mpbuilder.admin.port.BackofficeClient
 import mpbuilder.admin.state.{AdminRoute, BackofficeState}
 import mpbuilder.admin.theme.AdminTheme
 import mpbuilder.backoffice.BackofficeFacade
-import mpbuilder.sample.SampleShowcaseRuntime
+import mpbuilder.sample.browser.BrowserShowcaseRuntime
 import mpbuilder.shared.Language
 import mpbuilder.ui.components.{BrowserPickedFile, FileDropRegistry}
 import org.scalajs.dom
@@ -25,7 +25,7 @@ object AdminMain extends KyoApp:
     val raw = saved.orElse(Option(dom.window.navigator.language)).getOrElse("en").toLowerCase
     if raw.startsWith("cs") then Language.Cs else Language.En
 
-  /** Mode B (network API) when the host page sets `window.__API_BASE_URL__`; otherwise Mode A (static in-memory). */
+  /** Mode B (network API) when the host page sets `window.__API_BASE_URL__`; otherwise Mode A (static, in the browser). */
   private def apiBaseUrl: Option[String] =
     try
       val v = dom.window.asInstanceOf[scala.scalajs.js.Dynamic].selectDynamic("__API_BASE_URL__")
@@ -37,8 +37,9 @@ object AdminMain extends KyoApp:
       case Some(base) => Sync.defer(mpbuilder.httpclient.HttpClients.backoffice(base))
       case None       => bootInMemoryBackofficeClient
 
+  /** Mode A: the sample runtime, persisted in IndexedDB (shared with the storefront page of the same origin). */
   private def bootInMemoryBackofficeClient: BackofficeClient < Async =
-    SampleShowcaseRuntime.make().map(rt => BackofficeClient.fromFacade(rt.backoffice))
+    BrowserShowcaseRuntime.make().map(b => BackofficeClient.fromFacade(b.runtime.backoffice))
 
   /** Installs delegated pointer-drag resizing (plus double-click 50/50 reset) on any
     * Vaadin-style `[data-mp-dt-splitter]` divider inside a `[data-mp-dt-split-root]` container.

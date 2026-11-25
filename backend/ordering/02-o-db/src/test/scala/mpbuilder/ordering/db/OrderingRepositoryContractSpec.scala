@@ -20,9 +20,9 @@ class OrderingRepositoryContractSpec extends Test[Any]:
     for
       carts  <- OrderingSampleWiring.cartRepository(Nil)
       orders <- OrderingSampleWiring.orderRepository(Nil)
-      p      <- AtomicRef.init(List.empty[ShopPickupLocation])
-      c      <- AtomicRef.init(Map.empty[Currency, List[CourierServiceOption]])
-      a      <- AtomicRef.init(Map.empty[Currency, BankAccountConfig])
+      p      <- StateRef.init(List.empty[ShopPickupLocation])
+      c      <- StateRef.init(Map.empty[Currency, List[CourierServiceOption]])
+      a      <- StateRef.init(Map.empty[Currency, BankAccountConfig])
     yield Repos(carts, orders, new InMemoryDeliveryCatalogRepository(p, c, a))
 
   private def postgres: Fresh =

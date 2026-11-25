@@ -409,6 +409,8 @@ object Translations:
       |
       |# Footer
       |footer-static-note = Running 100% client-side with Kyo UI + modular Scala 3 backend sample runtime (no server required).
+      |footer-reset-demo = Reset demo data
+      |footer-reset-demo-confirm = Your orders, accounts and changes are saved in this browser. Delete them and start again from the sample data?
       |""".stripMargin
 
   val csFtl: String =
@@ -771,4 +773,6 @@ object Translations:
       |
       |# Patička
       |footer-static-note = Běží 100 % na klientu v Kyo UI + modulární Scala 3 sample runtime (bez backendu).
+      |footer-reset-demo = Obnovit demo data
+      |footer-reset-demo-confirm = Vaše objednávky, účty a změny jsou uložené v tomto prohlížeči. Smazat je a začít znovu s ukázkovými daty?
       |""".stripMargin

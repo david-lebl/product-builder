@@ -2,11 +2,13 @@ package mpbuilder.artwork.sample
 
 import mpbuilder.artwork.*
 import mpbuilder.artwork.core.{ArtworkRepository, ArtworkServiceLive, ArtworkSubmission}
+import mpbuilder.json.DomainCodecs.given
+import mpbuilder.sample.SampleStorage
 import mpbuilder.shared.*
 import kyo.*
 
 final class InMemoryArtworkRepository(
-    ref: AtomicRef[Map[ArtworkId, ArtworkSubmission]],
+    ref: StateRef[Map[ArtworkId, ArtworkSubmission]],
 ) extends ArtworkRepository:
 
   override def findById(id: ArtworkId): Option[ArtworkSubmission] < Async =
@@ -25,6 +27,8 @@ final class InMemoryArtworkRepository(
     ref.get.map(_.values.map(_.toView).toList)
 
 object ArtworkSampleWiring:
+
+  private given Schema[ArtworkSubmission] = Schema.derived
 
   private val baseInstant = java.time.Instant.ofEpochMilli(1740000000000L)
 
@@ -249,9 +253,16 @@ object ArtworkSampleWiring:
 
     List(art1, art2, art3, art4).map(a => a.id -> a).toMap
 
-  def repository(seedSampleArtworks: Boolean = true): InMemoryArtworkRepository < Sync =
+  def repository(
+      seedSampleArtworks: Boolean = true,
+      storage: SampleStorage = SampleStorage.memory,
+  ): InMemoryArtworkRepository < Sync =
     val init = if seedSampleArtworks then seedArtworks else Map.empty[ArtworkId, ArtworkSubmission]
-    AtomicRef.init(init).map(new InMemoryArtworkRepository(_))
+    storage.map("artwork.submissions", init)(_.value, ArtworkId.unsafe).map(new InMemoryArtworkRepository(_))
 
-  def service(eventBus: EventBus, seedSampleArtworks: Boolean = true): ArtworkService < Sync =
-    repository(seedSampleArtworks).map(ArtworkServiceLive.make(_, eventBus))
+  def service(
+      eventBus: EventBus,
+      seedSampleArtworks: Boolean = true,
+      storage: SampleStorage = SampleStorage.memory,
+  ): ArtworkService < Sync =
+    repository(seedSampleArtworks, storage).map(ArtworkServiceLive.make(_, eventBus))

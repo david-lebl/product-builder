@@ -24,7 +24,7 @@
                      StorefrontFacade & BackofficeFacade (Kyo effects)
                                          │
                     context services ── *Repository ports (private[ctx])
-                          ├─ in-memory adapters (backend/sample, AtomicRef)
+                          ├─ in-memory adapters (backend/sample, StateRef; IndexedDB write-through in the browser)
                           └─ PostgreSQL adapters (backend/<ctx>/02-o-db, kyo-sql)
 ```
 
@@ -164,6 +164,34 @@ server instead (CI, or a Docker VM that cannot forward published ports).
   When the adapter serves files (server mode), the stored URL becomes `/api/v1/blobs/<key>` so large
   payloads never land in database rows; the static browser mode keeps its data URL.
 * Discarding a draft artwork also deletes its stored files.
+
+## 6a. Browser persistence of the static demo (IndexedDB)
+
+In Mode A the SPAs (`ui`, standalone `ui-admin`) keep the sample runtime's state in the browser, so placed
+orders, registered customers, logins, promo usage and backoffice edits (catalog, pricing, B2B approvals,
+delivery/bank settings, order workflow) survive a page reload.
+
+* Every sample repository holds its state in a `mpbuilder.shared.StateRef` cell. `StateRef.init` is plain
+  memory; `StateRef.persistentMap` / `persistentValue` keep the same in-memory cell and write each change
+  through to a `DocStore` (`collection → key → JSON`) as one batch — one document per entity for maps
+  (orders, carts, customers, artwork, credentials, sessions, pricelists, promo codes, cost sheets, couriers,
+  bank accounts), one document for whole values (catalog, ruleset, agreements, pickup locations, ID counters).
+  Reads never touch the store.
+* `SampleStorage.load(docStore)` reads everything once at boot. A collection that was never changed is not
+  stored and starts from the sample seeds; its first change writes it completely (marker in `__meta`).
+  Documents use the `backend/json` kyo-schema encoding (same as the Postgres JSONB rows). A collection that
+  no longer decodes falls back to its seeds; a different `SampleStorage.FormatVersion` wipes the store.
+* The `IdSequence` and the identity token counter are persisted too, so new IDs never overwrite stored ones.
+* `IndexedDbDocStore` (`backend/sample/src/main/scala-js`) = database `mpbuilder-demo`, object store `docs`
+  keyed by `[c, k]`; one `readwrite` transaction per batch. It is per origin, so the unified SPA and
+  `admin/` share data. Unavailable IndexedDB → the demo silently runs in memory. A failed write is logged and
+  never fails the domain operation; the next change rewrites the whole collection.
+* The storefront footer shows **Reset demo data** (with confirmation) when persistence is active: it clears
+  the store and reloads into fresh sample data.
+* Not persisted: shop-floor manufacturing jobs, OTP challenges, blob bytes (browser mode keeps artwork as
+  `data:` URLs inside the artwork aggregate anyway). The calculator widget and `--storage=memory` stay in memory.
+* Limitation: two tabs open at the same time each keep their own in-memory copy (changes from one tab appear
+  in the other only after a reload, and both may draw the same next ID).
 
 ## 7. Known limitations / follow-ups
 

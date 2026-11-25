@@ -59,7 +59,7 @@ How-to guides for developers working with the codebase.
 | [../HOW_TO_RUN.md](../HOW_TO_RUN.md) | Local development script (`scripts/dev.sh`) for frontend, backend, and PostgreSQL combinations |
 | [ui-design-system.md](ui-design-system.md) | UI design system — theme tokens, light/dark/system mode, icons, shared controls, responsive rules |
 | [running-the-platform.md](running-the-platform.md) | How to run the API server (`--storage=memory\|postgres`), demo logins, pointing the SPAs/calculator at it, server options, and tests |
-| [backend-persistence-and-http-api.md](backend-persistence-and-http-api.md) | PostgreSQL persistence (kyo-sql, schema per context, migration runner), kyo-http API (OpenAPI & Swagger), `--storage=memory\|postgres`, HTTP client wiring (`window.__API_BASE_URL__`), artwork `BlobStorage`, and Kyo coding conventions |
+| [backend-persistence-and-http-api.md](backend-persistence-and-http-api.md) | PostgreSQL persistence (kyo-sql, schema per context, migration runner), kyo-http API (OpenAPI & Swagger), `--storage=memory\|postgres`, HTTP client wiring (`window.__API_BASE_URL__`), artwork `BlobStorage`, IndexedDB persistence of the static demo, and Kyo coding conventions |
 | [adding-new-product-guide.md](adding-new-product-guide.md) | Step-by-step guide for adding new products to the catalog |
 | [../CLAUDE.md](../CLAUDE.md) | AI assistant guidance — architecture, build commands, coding conventions |
 
@@ -87,6 +87,7 @@ Session-by-session work logs documenting what was done, decisions made, and issu
 | [changelog/2026-11-25-scalajs-link-oom.md](changelog/2026-11-25-scalajs-link-oom.md) | Session log for the Scala.js link OutOfMemoryError fix (Mill daemon `-Xmx6g`) |
 | [changelog/2026-11-25-fulllinkjs-oom-deploy.md](changelog/2026-11-25-fulllinkjs-oom-deploy.md) | Session log for the deploy `fullLinkJS` OutOfMemoryError fix (link bundles one at a time) |
 | [changelog/README.md](changelog/README.md) | Changelog format, template, and log entries index |
+| [changelog/2026-11-25-indexeddb-demo-persistence.md](changelog/2026-11-25-indexeddb-demo-persistence.md) | Feature — static demo state (orders, accounts, backoffice edits) persisted in IndexedDB via write-through `StateRef`s, with Reset demo data |
 | [changelog/2026-11-25-mobile-configurator-sticky-dock.md](changelog/2026-11-25-mobile-configurator-sticky-dock.md) | Feature — sticky bottom price dock on mobile/tablet with expandable price-detail sheet, add-to-cart feedback and bottom-sheet cart |
 | [changelog/2026-11-25-configurator-material-combobox.md](changelog/2026-11-25-configurator-material-combobox.md) | Feature — searchable rich material combo box (name/surface/gsm ranges, EN+CS) with weight-variant pills in the configurator |
 | [changelog/2026-11-24-ui-visual-ux-modernization.md](changelog/2026-11-24-ui-visual-ux-modernization.md) | UI modernization — CSS-variable theme with dark mode, icon set, shared controls, storefront & backoffice redesign, layout bug fixes |
