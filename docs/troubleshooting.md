@@ -16,6 +16,18 @@
 
 ---
 
+### `OutOfMemoryError: Java heap space` while linking Scala.js bundles
+
+**Symptom:** `./mill '{ui,ui-admin,ui-calculator,ui-editor}.fastLinkJS'` (CI step "Link Scala.js bundles", or `scripts/assemble-site.sh`) fails with `java.lang.OutOfMemoryError: Java heap space` in `org.scalajs.linker.backend.javascript.ByteArrayWriter` / `SourceMapWriter`.
+
+**Cause:** The Scala.js linker runs inside the Mill daemon JVM. Without `-Xmx` the JVM caps its heap at ¼ of physical RAM (4 GB on the 16 GB `ubuntu-latest` runner). The four bundles are linked in parallel and each one, with its source map, is held in memory while it is written (fastLink output is 60–107 MB of JS plus 38–57 MB of source map per bundle). After `__.compile` and `__.test` have already filled the daemon, 4 GB is not enough.
+
+**Solution:** `.mill-jvm-opts` sets `-Xmx6g` (next to `-Xss8m`). Mill restarts the daemon when this file changes. If a bundle grows enough to hit the limit again, raise `-Xmx` or link with fewer parallel jobs (`./mill -j 2 …`).
+
+**Files:** `.mill-jvm-opts`
+
+---
+
 ### sbt not pre-installed in CI/sandbox environments
 
 **Symptom:** `sbt: command not found` when trying to build with sbt in a fresh environment.
