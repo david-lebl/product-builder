@@ -21,6 +21,8 @@ enum ConfiguratorHost:
       onLinkCopied: String => Unit < Async = _ => Kyo.unit,
       onArtworkUploaded: () => Unit < Async = () => Kyo.unit,
       onArtworkRemoved: () => Unit < Async = () => Kyo.unit,
+      /** Opens the Visual Editor (only hosts that bundle it provide this). */
+      onDesignOnline: Option[DesignOnlineRequest => Unit < Async] = None,
   )
   case Calculator(
       orderEmail: Option[String],
@@ -925,6 +927,7 @@ object ConfiguratorView:
                 )
               else UI.empty,
 
+              designOnlineAction(ctrl, sf, cat, d, comp, compLabel),
               d.artworks.get(comp.key) match
                 case Some(art) =>
                   val rev = art.latestRevision
@@ -1019,6 +1022,48 @@ object ConfiguratorView:
           }*
         ),
       )
+
+  /** "Design it online" call-to-action (or "Edit design" for an attached Visual Editor design). */
+  private def designOnlineAction(
+      ctrl: ConfiguratorController,
+      sf: ConfiguratorHost.Storefront,
+      cat: ProductCategory,
+      d: DraftConfig,
+      comp: DraftComponent,
+      compLabel: String,
+  ): UI =
+    sf.onDesignOnline match
+      case None => UI.empty
+      case Some(open) =>
+        val existing = d.designs.get(comp.key)
+        val request = DesignOnlineRequest(
+          categoryId = cat.id,
+          categoryName = cat.name(Language.En),
+          componentKey = comp.key,
+          componentLabel = compLabel,
+          trimSize = d.specs.dimensions.finishedBoundingBox,
+          pageCount = d.specs.binding.map(_.totalPages),
+          designId = existing,
+        )
+        div.cssClass("mp-design-online").style(
+          Style.row.align(Alignment.center).justify(Justification.spaceBetween).gap(12.px).flexWrap(FlexWrap.wrap)
+            .padding(12.px, 14.px).rounded(12.px).bg(brandSoft).border(1.px, brandBorder),
+        )(
+          div.style(Style.row.align(Alignment.center).gap(10.px).minWidth(0.px).flexShrink(1.0))(
+            span.style(Style.color(brand).row.align(Alignment.center))(Icons(Icons.Icon.Palette, 22)),
+            div.style(stackXs.minWidth(0.px))(
+              span(ctrl.i18n.t(if existing.isDefined then "cfg-design-edit-title" else "cfg-design-online-title"))
+                .style(Style.fontSize(14.px).fontWeight(FontWeight.w700).color(ink)),
+              span(ctrl.i18n.t("cfg-design-online-hint")).style(smallText),
+            ),
+          ),
+          button
+            .cssClass("mp-btn mp-btn-primary mp-btn-sm")
+            .onClick(open(request))(
+              Icons(if existing.isDefined then Icons.Icon.Pencil else Icons.Icon.Wand, 15),
+              span(ctrl.i18n.t(if existing.isDefined then "cfg-design-edit" else "cfg-design-online")),
+            ),
+        )
 
   // ── Sticky Right Sidebar: Live Quote, B2B Savings, Breakdown & CTAs ────────
 
@@ -1130,7 +1175,7 @@ object ConfiguratorView:
 
             // Host-specific CTA buttons
             host match
-              case ConfiguratorHost.Storefront(onAddToCart, onQuickOrder, _, _, _, _) =>
+              case ConfiguratorHost.Storefront(onAddToCart, onQuickOrder, _, _, _, _, _) =>
                 div.style(Style.column.gap(8.px))(
                   button
                     .cssClass("mp-btn mp-btn-primary mp-btn-lg")

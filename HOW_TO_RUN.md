@@ -34,7 +34,7 @@ chmod +x scripts/dev.sh
 
 ### 1. Frontend Alone (Static In-Memory Mode)
 
-Builds all three Scala.js apps (`ui`, `ui-admin`, `ui-calculator`) with `fastLinkJS`, assembles them into `_dev/` (git-ignored), and serves them on port `3000`:
+Builds all four Scala.js apps (`ui`, `ui-admin`, `ui-calculator`, `ui-editor`) with `fastLinkJS`, assembles them into `_dev/` (git-ignored), and serves them on port `3000`:
 
 ```bash
 ./scripts/dev.sh frontend
@@ -45,6 +45,7 @@ Open:
 - Unified Staff Backoffice: `http://localhost:3000/#/admin`
 - Standalone Staff Backoffice: `http://localhost:3000/admin/`
 - Embeddable Price Calculator: `http://localhost:3000/calculator/`
+- Design Studio (visual editor; the storefront's "Design online" opens it in an iframe): `http://localhost:3000/editor/`
 
 To build and serve only a single app (faster incremental linking):
 
@@ -94,7 +95,7 @@ Press `Ctrl+C` to stop the frontend and backend servers (PostgreSQL keeps runnin
 
 | Flag | Environment Variable | Default | Description |
 |---|---|---|---|
-| `--app=<target>` | `APP` | `all` | Frontend target(s): `all`, `ui`, `admin`, `calculator` |
+| `--app=<target>` | `APP` | `all` | Frontend target(s): `all`, `ui` (includes the editor it embeds), `admin`, `calculator`, `editor` |
 | `--port=<port>` | `FRONTEND_PORT` | `3000` | Port for the static frontend HTTP server |
 | `--api-port=<port>` | `API_PORT` | `8080` | Port for the backend API server |
 | `--prod`, `--full` | `LINK_MODE=full` | `fast` | Use Scala.js `fullLinkJS` instead of `fastLinkJS` |

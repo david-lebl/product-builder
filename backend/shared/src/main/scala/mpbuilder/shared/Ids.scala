@@ -79,6 +79,13 @@ object ArtworkId:
   def unsafe(value: String): ArtworkId = value
   extension (id: ArtworkId) def value: String = id
 
+/** A customer design project created in the Visual Editor (owned by `design`, referenced by cart / order lines). */
+opaque type DesignId = String
+object DesignId:
+  def apply(value: String): Validation[String, DesignId] = IdValidation.nonEmpty("DesignId", value)
+  def unsafe(value: String): DesignId = value
+  extension (id: DesignId) def value: String = id
+
 opaque type DiscountCodeId = String
 object DiscountCodeId:
   def apply(value: String): Validation[String, DiscountCodeId] = IdValidation.nonEmpty("DiscountCodeId", value)

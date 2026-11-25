@@ -42,6 +42,10 @@ docker compose up -d postgres && DATABASE_URL=postgresql://localhost:5432/printc
 ./mill ui-admin.fullLinkJS       # Prod Standalone Backoffice SPA → out/ui-admin/fullLinkJS.dest/main.js
 ./mill ui-calculator.fastLinkJS  # Dev Calculator Widget → out/ui-calculator/fastLinkJS.dest/main.js
 ./mill ui-calculator.fullLinkJS  # Prod Calculator Widget → out/ui-calculator/fullLinkJS.dest/main.js
+./mill ui-editor.fastLinkJS      # Dev Design Studio (visual editor) page → out/ui-editor/fastLinkJS.dest/main.js
+./mill ui-editor.fullLinkJS      # Prod Design Studio → out/ui-editor/fullLinkJS.dest/main.js (deployed to _site/editor/)
+./mill ui-editor-core.jvm.test   # Editor controller/view tests
+./mill 'backend.design.01-c-core.jvm.test'
 ```
 
 ## Architecture Overview
@@ -60,6 +64,7 @@ All backend modules cross-compile to both `.jvm` and `.js` so the static fronten
 - **`backend/ordering/01-c-core`** — Shopping Cart, Order Placement, Manual Order Intake Lifecycle (`Accepted`, `OnHold`/`Resume`, `InProduction`, `ReadyForDispatch`, `Dispatched`, `Completed`, `Cancelled`), `OrderStatusEvent` Audit Trail & Delivery/Bank Settings.
 - **`backend/manufacturing/01-c-core`** — Shop-Floor Manufacturing Workflows, Capacity & Fulfilment.
 - **`backend/identity/01-c-core`** — Identity, Authentication (Password + Passwordless OTP), Sessions & Staff Directory Management.
+- **`backend/design/01-c-core`** — Customer Design Projects (Visual Editor): print document model (mm / pt, trim-relative), templates & presets, calendar math, preflight, shared SVG renderer (`DesignSvg`), `DesignService` (revisions, device/customer ownership, submit-freeze).
 - **`backend/storefront`** — Storefront BFF / Application Orchestration Facade (`StorefrontFacade`). Depends only on public context APIs.
 - **`backend/backoffice`** — Role-based Staff Backoffice & Order Intake BFF (`BackofficeFacade`). Enforces `Operator` / `Prepress` / `Manager` / `Admin` RBAC across all contexts. Depends only on public context APIs.
 - **`backend/json`** (JVM + JS) — kyo-schema `Schema`s for all public domain types (JSONB rows + HTTP wire); opaque types decode through smart constructors (`JsonSupport.validated`).
@@ -83,6 +88,8 @@ All backend modules cross-compile to both `.jvm` and `.js` so the static fronten
 - **`modules/ui`** (`ui`) — Unified Static Scala.js Demo SPA (`mpbuilder.ui.Main`) hosting BOTH Storefront (`#/catalog`, `#/builder`, ...) and Staff Backoffice (`#/admin/...`) over ONE shared in-memory `SampleShowcaseRuntime` so Storefront orders land immediately in Staff Order Intake.
 - **`modules/ui-admin`** (`ui-admin`) — Standalone deployable Scala.js Backoffice SPA (`mpbuilder.admin.AdminMain`, deployed to `_site/admin/`).
 - **`modules/ui-http-client`** (`ui-http-client.jvm`, `ui-http-client.js`) — `HttpStorefrontFacade` / `HttpBackofficeFacade` implementing the facade traits over `/api/v1` (`ApiCaller`); transport = kyo-http client on the JVM (`src/main/scala-jvm`), `window.fetch` in the browser (`src/main/scala-js`; kyo-http's JS client is Node-only); `HttpClients.storefront/backoffice(baseUrl)`. SPAs switch to it when `window.__API_BASE_URL__` is set (calculator: `apiBaseUrl` mount option).
+- **`modules/ui-editor-core`** (`ui-editor-core.jvm`, `ui-editor-core.js`) — Kyo UI Design Studio (`EditorController`, views, `EditorTranslations`, `EditorTheme.css`). Shared sources are DOM-free; `src/main/scala-js` holds the browser glue (`BrowserEditor` pointer/keyboard/drop bridge, `IndexedDbStores`).
+- **`modules/ui-editor`** (`ui-editor`) — Design Studio page (`mpbuilder.editor.EditorMain`, `_site/editor/`), standalone or embedded by the storefront in an iframe via `EmbedProtocol` (query params in, `postMessage` out). Never linked into the storefront/calculator/backoffice bundles (Kyo UI node ids collide across runtimes; ES-module splitting disables Closure — see `docs/analysis/visual-editor-architecture.md`).
 - **`modules/ui-calculator`** (`ui-calculator`) — Standalone embeddable Scala.js widget (`mpbuilder.calculator.CalculatorWidget`) exporting global `MPCalculator.mount(selector, config)` without a main initializer.
 
 ## Domain & UI Conventions
@@ -94,6 +101,7 @@ All backend modules cross-compile to both `.jvm` and `.js` so the static fronten
 - **i18n** — UI copy lives in `Translations.scala` & `AdminTranslations.scala` (`kyo-i18n` Fluent bundles, EN & CS); domain entities use `LocalizedString`. Every UI change must keep EN & CS complete without missing-key markers (`‹` / `›`).
 - **Persistence** — Repository ports stay `private[context]`; Postgres adapters live in `mpbuilder.<ctx>.db`. Persist via indexed key columns + a `doc JSONB` aggregate bound as `given SqlSchema.Column[X] = Sql.jsonColumn` (kyo-schema `Schema` from `backend/json`). New tables go in a new `V<n>__*.sql` under `db/migration/<ctx>/` **and** must be appended to the context's `MigrationSet` (never edit applied migrations — checksums are verified). Every repository change must keep its in-memory/Postgres contract spec green.
 - **Facade IDs & files** — Facades draw IDs from `IdSequence` and store artwork bytes via `BlobStorage` (`BlobIngest`), never in aggregates.
+- **Design documents** — Geometry in mm relative to the trim box, fonts in pt, never pixels; images are `AssetId` references (content-addressed), never bytes. New document fields need defaults; breaking changes bump `DesignDocument.CurrentFormatVersion` with a migration in `DesignCodecs.decodeDocument`. Kyo UI's base CSS makes `div`/`header`/`section` flex **columns** — set `flex-direction:row` explicitly for row layouts.
 - **Kyo UI cross-platform purity** — Never import `org.scalajs.dom` or `backend.sample` inside `modules/ui-core` or `modules/ui-admin-core`. Browser-only glue (clipboard, `localStorage`, `window.location.hash`, `mailto:`) is injected via callbacks from `modules/ui`, `modules/ui-admin`, and `modules/ui-calculator`.
 
 ## Key Paths
@@ -120,6 +128,7 @@ All backend modules cross-compile to both `.jvm` and `.js` so the static fronten
 | DB platform & migrations | `backend/platform/src/main/scala/mpbuilder/platform/`, `backend/*/02-o-db/src/main/resources/db/migration/` |
 | HTTP API DTOs / routes / server | `backend/{storefront,backoffice}/01-i-http-api/`, `backend/{storefront,backoffice}/02-i-http/`, `backend/api-kernel/`, `backend/app/…/mpbuilder/app/http/` |
 | HTTP clients | `modules/ui-http-client/src/main/scala/mpbuilder/httpclient/` |
+| Design Studio (editor) | `backend/design/01-c-core/`, `modules/ui-editor-core/`, `modules/ui-editor/`, `docs/analysis/visual-editor-architecture.md` |
 | Calculator JS export | `modules/ui-calculator/src/main/scala/mpbuilder/calculator/CalculatorWidget.scala` |
 
 ## Documentation Knowledge Base

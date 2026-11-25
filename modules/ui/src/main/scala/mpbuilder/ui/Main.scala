@@ -11,7 +11,7 @@ import mpbuilder.admin.theme.AdminTheme
 import mpbuilder.backoffice.BackofficeFacade
 import mpbuilder.identity.sample.InMemoryOtpInbox
 import mpbuilder.sample.SampleShowcaseRuntime
-import mpbuilder.shared.{Currency, Language}
+import mpbuilder.shared.{Currency, DesignId, Language}
 import mpbuilder.storefront.StorefrontFacade
 import mpbuilder.ui.components.{BrowserPickedFile, FileDropRegistry}
 import mpbuilder.ui.port.StorefrontClient
@@ -278,6 +278,79 @@ object Main extends KyoApp:
     dom.document.addEventListener("drop", onDrop)
     dom.document.addEventListener("click", onClick)
 
+  /** "Design online": opens the Design Studio page (`editor/`, a separate Scala.js bundle) in a full-screen
+    * iframe and attaches the confirmed design as the component's artwork. The storefront bundle only carries
+    * this glue; the protocol is documented in `mpbuilder.editor.EmbedProtocol` (ui-editor).
+    */
+  private def openDesignStudio(sfState: StorefrontState, appI18n: mpbuilder.ui.i18n.AppI18n)(
+      req: mpbuilder.ui.configurator.DesignOnlineRequest
+  ): Unit < Async =
+    for
+      lang     <- appI18n.currentLanguage
+      customer <- sfState.currentCustomer.get
+      _ <- Sync.defer {
+             import kyo.AllowUnsafe.embrace.danger
+             def enc(v: String): String = scala.scalajs.js.URIUtils.encodeURIComponent(v)
+             val theme = Option(dom.document.documentElement.getAttribute("data-theme")).getOrElse("system")
+             val params = List(
+               "embed"      -> "1",
+               "v"          -> "1",
+               "lang"       -> lang.code,
+               "theme"      -> theme,
+               "category"   -> req.categoryId.value,
+               "component"  -> req.componentKey.value,
+               "title"      -> s"${req.categoryName} · ${req.componentLabel}",
+               "w"          -> req.trimSize.width.value.toString,
+               "h"          -> req.trimSize.height.value.toString,
+             ) ++ req.pageCount.map(p => "pages" -> p.toString) ++
+               req.designId.map(d => "design" -> d.value) ++
+               customer.map(c => "customer" -> c.id.value)
+             val src = "editor/index.html?" + params.map((k, v) => s"$k=${enc(v)}").mkString("&")
+
+             val frame = dom.document.createElement("iframe").asInstanceOf[dom.HTMLIFrameElement]
+             frame.src = src
+             frame.title = "Design Studio"
+             frame.setAttribute("allow", "clipboard-write")
+             frame.style.cssText = "position:fixed;inset:0;width:100vw;height:100vh;border:0;z-index:200;background:#F6F7FB"
+             dom.document.body.appendChild(frame)
+             dom.document.body.style.overflow = "hidden"
+
+             lazy val listener: scala.scalajs.js.Function1[dom.MessageEvent, Unit] = (ev: dom.MessageEvent) =>
+               if ev.origin == dom.window.location.origin && ev.source == frame.contentWindow then
+                 val data = ev.data.asInstanceOf[scala.scalajs.js.Dynamic]
+                 val kind = if scala.scalajs.js.isUndefined(data) || data == null then "" else String.valueOf(data.selectDynamic("type"))
+                 def closeFrame(): Unit =
+                   dom.window.removeEventListener("message", listener)
+                   if frame.parentNode != null then { val _ = frame.parentNode.removeChild(frame) }
+                   dom.document.body.style.overflow = ""
+                 kind match
+                   case "mpbuilder.editor.close" => closeFrame()
+                   case "mpbuilder.editor.complete" =>
+                     val d = data.selectDynamic("design")
+                     val minDpi = d.selectDynamic("minimumDpi")
+                     val art = mpbuilder.ui.configurator.DesignArtwork(
+                       designId = DesignId.unsafe(String.valueOf(d.selectDynamic("id"))),
+                       name = String.valueOf(d.selectDynamic("name")),
+                       proofDataUrl = String.valueOf(d.selectDynamic("proofDataUrl")),
+                       minimumDpi = if scala.scalajs.js.isUndefined(minDpi) || minDpi == null then None else Some(minDpi.asInstanceOf[Double].toInt),
+                       bleedMm = d.selectDynamic("bleedMm").asInstanceOf[Double],
+                       pageCount = d.selectDynamic("pageCount").asInstanceOf[Double].toInt,
+                       trimSize = req.trimSize,
+                     )
+                     closeFrame()
+                     val eff = I18n.let(appI18n.handle) {
+                       for
+                         res <- sfState.configurator.attachDesignArtwork(req.componentKey, art)
+                         msg <- appI18n.now(if res.isDefined then "cfg-design-attached-toast" else "cfg-design-attach-failed")
+                         _   <- sfState.showToast(msg)
+                       yield ()
+                     }
+                     val _ = Sync.Unsafe.evalOrThrow(Fiber.initUnscoped(eff))
+                   case _ => ()
+             dom.window.addEventListener("message", listener)
+           }
+    yield ()
+
   run {
     val initialLang       = detectInitialLanguage
     val initialHash       = dom.window.location.hash
@@ -360,7 +433,7 @@ object Main extends KyoApp:
                             }
                       dom.window.addEventListener("hashchange", listener)
                     }
-               sfUi <- StorefrontApp.render(sfState, onOpenAdmin = Some(openAdmin))
+               sfUi <- StorefrontApp.render(sfState, onOpenAdmin = Some(openAdmin), onDesignOnline = Some(openDesignStudio(sfState, appI18n)))
                boUi <- BackofficeApp.render(boState, onBackToStorefront = Some(backToStorefront))
                rootUi = modeRef.render {
                           case AppMode.Storefront => sfUi

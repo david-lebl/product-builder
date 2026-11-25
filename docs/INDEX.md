@@ -10,7 +10,7 @@ Core feature specifications — stable documents describing *what* the system do
 |----------|-------------|
 | [features.md](features.md) | Comprehensive feature overview of the entire system |
 | [pricing.md](pricing.md) | Pricing engine specification with 24 rule types and worked examples |
-| [visual-product-types.md](visual-product-types.md) | Visual editor product types (calendars, photo books, wall pictures) and formats |
+| [visual-product-types.md](visual-product-types.md) | Legacy (pre-Kyo PoC) visual editor product types — superseded by the Design Studio architecture doc |
 | [manufacturing-speed-pipeline.md](manufacturing-speed-pipeline.md) | Order completion time estimation — 8-stage pipeline specification |
 | [new-product-specification.md](new-product-specification.md) | Specification for adding new product types to the system |
 | [help-information.md](help-information.md) | Contextual help system specification (field-level `?` and `i` buttons) |
@@ -23,6 +23,7 @@ Research documents, gap analyses, and architecture decisions — context for *wh
 
 | Document | Description |
 |----------|-------------|
+| [analysis/visual-editor-architecture.md](analysis/visual-editor-architecture.md) | Design Studio (visual editor): document model in mm/pt, shared SVG renderer, local-first IndexedDB storage, server sync & asset upload design, print-PDF pipeline, iframe embedding & bundle-size measurements |
 | [analysis/kyo-ecosystem-findings.md](analysis/kyo-ecosystem-findings.md) | Kyo 1.0.0-RC7 bugs, gaps & footguns found during the backend rewrite (with reproductions) — input for upstream issues |
 | [analysis/printing-domain-analysis.md](analysis/printing-domain-analysis.md) | Comprehensive printing industry domain analysis (50+ product categories, materials, methods) |
 | [analysis/domain-model-gap-analysis.md](analysis/domain-model-gap-analysis.md) | Comparison of domain model vs real-world printing requirements (8 priority gaps) |

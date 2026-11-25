@@ -19,6 +19,7 @@ object SharedCodecs:
   given Schema[CartId]           = stringOpaque("CartId")(CartId(_))(_.value)
   given Schema[OrderId]          = stringOpaque("OrderId")(OrderId(_))(_.value)
   given Schema[ArtworkId]        = stringOpaque("ArtworkId")(ArtworkId(_))(_.value)
+  given Schema[DesignId]         = stringOpaque("DesignId")(DesignId(_))(_.value)
   given Schema[DiscountCodeId]   = stringOpaque("DiscountCodeId")(DiscountCodeId(_))(_.value)
   given Schema[JobId]            = stringOpaque("JobId")(JobId(_))(_.value)
   given Schema[EmployeeId]       = stringOpaque("EmployeeId")(EmployeeId(_))(_.value)

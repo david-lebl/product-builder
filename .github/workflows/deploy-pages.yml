@@ -39,6 +39,9 @@ jobs:
       - name: Build standalone calculator
         run: mill ui-calculator.fullLinkJS
 
+      - name: Build Design Studio (visual editor)
+        run: mill ui-editor.fullLinkJS
+
       - name: Assemble site
         run: |
           mkdir -p _site
@@ -53,6 +56,10 @@ jobs:
           mkdir -p _site/calculator
           cp modules/ui-calculator/src/main/resources/* _site/calculator/
           cp out/ui-calculator/fullLinkJS.dest/main.js _site/calculator/
+          # The Design Studio is a separate page; the storefront opens it in an iframe (editor/index.html).
+          mkdir -p _site/editor
+          cp modules/ui-editor/src/main/resources/index.html _site/editor/
+          cp out/ui-editor/fullLinkJS.dest/main.js _site/editor/
 
       - name: Deploy to GitHub Pages
         uses: JamesIves/github-pages-deploy-action@v4
