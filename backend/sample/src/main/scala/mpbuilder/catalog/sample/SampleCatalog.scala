@@ -1630,7 +1630,7 @@ object SampleCatalog:
     ShowcaseListing(brochuresId, CatalogGroup.Sheet,
       LocalizedString("Structured storytelling in every fold", "Přehledná prezentace v každém skladu"),
       LocalizedString("Half-fold, tri-fold, Z-fold, and gate-fold brochures with automatic flat-sheet imposition.", "Půlené, trojskládané a Z-skládané brožury s automatickým vyřazením na tiskový arch."), 3,
-      imageUrl = Some("https://images.unsplash.com/photo-1695634621121-691d54259d37?w=600&h=400&fit=crop")),
+      imageUrl = Some("https://images.unsplash.com/photo-1572044162444-ad60f128bdea?w=600&h=400&fit=crop")),
     ShowcaseListing(postcardsId, CatalogGroup.Sheet,
       LocalizedString("Tactile cards that stand out", "Pohlednice a pozvánky, které zaujmou"),
       LocalizedString("Heavy coated, cotton, or kraft cards with front gloss lamination or luxury foil.", "Silné křídové, bavlněné či kraftové karty s přední laminací nebo zlatou ražbou."), 4,
