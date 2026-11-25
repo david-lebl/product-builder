@@ -39,8 +39,11 @@ object BackofficeApp:
 
               // Fluid Workspace
               div.cssClass("mp-admin-workspace")(
-                renderTopbar(state, staffAuth, onBackToStorefront),
-                renderMobileNav(state, onBackToStorefront),
+                // Sticky wrapper so the mobile nav opens under the topbar at the current scroll position
+                div.cssClass("mp-admin-topbar-wrap")(
+                  renderTopbar(state, staffAuth, onBackToStorefront),
+                  renderMobileNav(state, onBackToStorefront),
+                ),
                 main.cssClass("mp-admin-content")(
                   // Dismissible error banner
                   state.errorBanner.render {

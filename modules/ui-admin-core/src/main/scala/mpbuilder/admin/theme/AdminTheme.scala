@@ -100,11 +100,16 @@ object AdminTheme:
           .bg(canvas),
       )
       .rule(
-        "mp-admin-topbar",
-        Style.row
+        "mp-admin-topbar-wrap",
+        Style.column
           .position(Position.sticky)
           .top(0.px)
           .zIndex(35)
+          .width(100.pct),
+      )
+      .rule(
+        "mp-admin-topbar",
+        Style.row
           .width(100.pct)
           .minHeight(60.px)
           .bg(glassHeader)
@@ -132,6 +137,8 @@ object AdminTheme:
           .borderBottom(1.px, AppTheme.Palette.border)
           .padding(10.px, 12.px)
           .gap(2.px)
+          .maxHeight(80.vh)
+          .overflowY(Overflow.auto)
           .animation("mp-drop-in", 160, Easing.easeOut),
       )
       // KPI Grid

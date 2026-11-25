@@ -259,9 +259,11 @@ object AppTheme:
         Style.column
           .width(100.pct)
           .bg(surface)
-          .borderBottom(1.px, border)
+          .borderTop(1.px, border)
           .padding(12.px, 20.px)
-          .gap(8.px),
+          .gap(8.px)
+          .maxHeight(80.vh)
+          .overflowY(Overflow.auto),
       )
       // Hero Banner
       .rule(
