@@ -11,3 +11,4 @@ object DomainCodecs:
   export ArtworkCodecs.given
   export OrderingCodecs.given
   export ManufacturingCodecs.given
+  export DesignCodecs.given

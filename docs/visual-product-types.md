@@ -1,5 +1,10 @@
 # Visual Product Types & Formats
 
+> **Superseded.** This describes the pre-Kyo Laminar PoC. The current Design Studio (business cards, flyers,
+> posters, postcards, wall/desk calendars, photo books) is specified in
+> [analysis/visual-editor-architecture.md](analysis/visual-editor-architecture.md); presets live in
+> `backend/design/01-c-core/.../DesignTemplates.scala` (`DesignPresets`).
+
 This document defines the supported visual product types, their available formats (sizes),
 and the mapping to the product material domain model.
 

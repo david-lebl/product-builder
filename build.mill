@@ -290,6 +290,24 @@ object backend extends Module {
     }
   }
 
+  /** Bounded Context 8: Customer Design Projects — Visual Editor document model, templates, preflight,
+    * SVG renderer and the design persistence/sync service. Cross-compiled so the browser editor, the
+    * storefront and the future server-side PDF renderer share one model. */
+  object design extends Module {
+    object `01-c-core` extends Module {
+      private val dir = backendDir / "design" / "01-c-core"
+      object jvm extends BackendJvmModule {
+        def baseDir    = dir
+        def moduleDeps = Seq(backend.shared.jvm)
+        object test extends CoreTests
+      }
+      object js extends BackendJsModule {
+        def baseDir    = dir
+        def moduleDeps = Seq(backend.shared.js)
+      }
+    }
+  }
+
   /** Storefront BFF / Application Orchestration Facade (depends ONLY on public context APIs). */
   object storefront extends Module {
     private val dir = backendDir / "storefront"
@@ -412,6 +430,7 @@ object backend extends Module {
         backend.manufacturing.`01-c-core`.jvm,
         backend.storefront.jvm,
         backend.backoffice.jvm,
+        backend.design.`01-c-core`.jvm,
       )
       object test extends CoreTests
     }
@@ -428,6 +447,7 @@ object backend extends Module {
         backend.manufacturing.`01-c-core`.js,
         backend.storefront.js,
         backend.backoffice.js,
+        backend.design.`01-c-core`.js,
       )
     }
   }
@@ -444,6 +464,7 @@ object backend extends Module {
       backend.artwork.`01-c-core`.jvm,
       backend.ordering.`01-c-core`.jvm,
       backend.manufacturing.`01-c-core`.jvm,
+      backend.design.`01-c-core`.jvm,
     )
     object jvm extends BackendJvmModule {
       def baseDir    = dir
@@ -464,6 +485,7 @@ object backend extends Module {
         backend.artwork.`01-c-core`.js,
         backend.ordering.`01-c-core`.js,
         backend.manufacturing.`01-c-core`.js,
+        backend.design.`01-c-core`.js,
       )
       def mvnDeps = backendCoreDeps ++ backendJsExtraDeps ++ jsonDeps
     }
@@ -621,6 +643,43 @@ object `ui-admin-core` extends Module {
 }
 
 // ---------------------------------------------------------------------------
+// UI Editor Core — Cross-compiled Kyo UI Visual Editor (design studio) library.
+// Shared sources are pure (JVM-testable); `src/main/scala-js` holds the browser glue (pointer gestures,
+// IndexedDB design/photo storage, file picking, fonts). Linked only into the `ui-editor` page bundle.
+// ---------------------------------------------------------------------------
+
+object `ui-editor-core` extends Module {
+  private val dir = rootDir / "modules" / "ui-editor-core"
+
+  object jvm extends ScalaModule {
+    def scalaVersion  = scala3Version
+    def scalacOptions = commonScalacOptions
+    def sources       = Task.Sources(dir / "src" / "main" / "scala")
+    def resources     = Task.Sources(dir / "src" / "main" / "resources")
+    def moduleDeps    = Seq(`ui-core`.jvm, backend.design.`01-c-core`.jvm, backend.json.jvm)
+    def mvnDeps       = kyoUiDeps ++ jsonDeps
+
+    object test extends ScalaTests {
+      def sources       = Task.Sources(dir / "src" / "test" / "scala")
+      def resources     = Task.Sources(dir / "src" / "test" / "resources")
+      def moduleDeps    = Seq(`ui-editor-core`.jvm)
+      def mvnDeps       = backendTestDeps
+      def testFramework = kyoTestFramework
+    }
+  }
+
+  object js extends ScalaJSModule {
+    def scalaVersion   = scala3Version
+    def scalaJSVersion = build.scalaJsVersion
+    def scalacOptions  = commonScalacOptions
+    def sources        = Task.Sources(dir / "src" / "main" / "scala", dir / "src" / "main" / "scala-js")
+    def resources      = Task.Sources(dir / "src" / "main" / "resources")
+    def moduleDeps     = Seq(`ui-core`.js, backend.design.`01-c-core`.js, backend.json.js)
+    def mvnDeps        = kyoUiDeps ++ jsonDeps
+  }
+}
+
+// ---------------------------------------------------------------------------
 // UI — Static Scala.js Unified Demo SPA (Storefront + #/admin Backoffice)
 // Shares a single in-memory SampleShowcaseRuntime so Storefront orders land
 // immediately in Staff Order Intake.
@@ -650,6 +709,23 @@ object `ui-admin` extends ScalaJSModule {
   def resources                       = Task.Sources(rootDir / "modules" / "ui-admin" / "src" / "main" / "resources")
   def scalaJSUseMainModuleInitializer = true
   def moduleDeps                      = Seq(`ui-admin-core`.js, `ui-http-client`.js, backend.sample.js)
+  def mvnDeps                         = kyoUiDeps
+}
+
+// ---------------------------------------------------------------------------
+// UI Editor — Design Studio page (Kyo UI, Scala.js app) deployed to `_site/editor/`.
+// Used standalone AND embedded by the storefront in a full-screen <iframe> (postMessage contract, see
+// `mpbuilder.editor.EmbedProtocol`), so the storefront / calculator / backoffice bundles never contain it.
+// ---------------------------------------------------------------------------
+
+object `ui-editor` extends ScalaJSModule {
+  def scalaVersion                    = scala3Version
+  def scalaJSVersion                  = build.scalaJsVersion
+  def scalacOptions                   = commonScalacOptions
+  def sources                         = Task.Sources(rootDir / "modules" / "ui-editor" / "src" / "main" / "scala")
+  def resources                       = Task.Sources(rootDir / "modules" / "ui-editor" / "src" / "main" / "resources")
+  def scalaJSUseMainModuleInitializer = true
+  def moduleDeps                      = Seq(`ui-editor-core`.js)
   def mvnDeps                         = kyoUiDeps
 }
 

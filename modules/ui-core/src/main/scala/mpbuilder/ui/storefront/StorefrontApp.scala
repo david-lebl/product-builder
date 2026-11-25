@@ -7,7 +7,7 @@ import mpbuilder.shared.*
 import mpbuilder.ui.components.CommonComponents.*
 import mpbuilder.ui.components.{Controls, Icons}
 import mpbuilder.ui.components.Icons.Icon
-import mpbuilder.ui.configurator.{ConfiguratorHost, ConfiguratorView}
+import mpbuilder.ui.configurator.{ConfiguratorHost, ConfiguratorView, DesignOnlineRequest}
 import mpbuilder.ui.theme.AppTheme.*
 import mpbuilder.ui.theme.AppTheme.Palette.*
 
@@ -17,6 +17,7 @@ object StorefrontApp:
   def render(
       state: StorefrontState,
       onOpenAdmin: Option[() => Unit < Async] = None,
+      onDesignOnline: Option[DesignOnlineRequest => Unit < Async] = None,
   ): UI < Async =
     for
       catalogUI    <- CatalogView.render(state)
@@ -31,6 +32,7 @@ object StorefrontApp:
         onLinkCopied = url => state.notifyLinkCopied(url),
         onArtworkUploaded = () => state.i18n.now("cfg-artwork-uploaded-toast").flatMap(state.showToast),
         onArtworkRemoved = () => state.i18n.now("cfg-artwork-removed-toast").flatMap(state.showToast),
+        onDesignOnline = onDesignOnline,
       )
 
       val builderUI: UI = ConfiguratorView.render(state.configurator, builderHost, showHeader = true)

@@ -8,7 +8,7 @@ cd "$ROOT_DIR"
 # Defaults (override via flags or environment variables)
 FRONTEND_PORT="${FRONTEND_PORT:-3000}"
 API_PORT="${API_PORT:-8080}"
-APP="${APP:-all}"                 # all | ui | admin | calculator
+APP="${APP:-all}"                 # all | ui | admin | calculator | editor
 LINK_MODE="${LINK_MODE:-fast}"    # fast | full
 BUILD_ONLY=false
 NO_SEED=false
@@ -38,7 +38,8 @@ Commands:
   test [args...]  Run Mill tests (defaults to __.test; pass Mill target(s) to scope)
 
 Options:
-  --app=<target>      Which frontend(s) to build/serve: all | ui | admin | calculator (default: all)
+  --app=<target>      Which frontend(s) to build/serve: all | ui | admin | calculator | editor (default: all;
+                      ui also builds the editor it embeds)
   --port=<port>       Frontend HTTP server port (default: 3000, env: FRONTEND_PORT)
   --api-port=<port>   Backend API server port (default: 8080, env: API_PORT)
   --prod, --full      Use Scala.js fullLinkJS instead of fastLinkJS
@@ -163,10 +164,11 @@ build_frontend() {
   local targets=()
   case "$APP" in
     all)
-      targets=("ui.$link_task" "+" "ui-admin.$link_task" "+" "ui-calculator.$link_task")
+      targets=("ui.$link_task" "+" "ui-admin.$link_task" "+" "ui-calculator.$link_task" "+" "ui-editor.$link_task")
       ;;
     ui)
-      targets=("ui.$link_task")
+      # The storefront opens the Design Studio in an iframe (editor/), so build it too.
+      targets=("ui.$link_task" "+" "ui-editor.$link_task")
       ;;
     admin)
       targets=("ui-admin.$link_task")
@@ -174,8 +176,11 @@ build_frontend() {
     calculator)
       targets=("ui-calculator.$link_task")
       ;;
+    editor)
+      targets=("ui-editor.$link_task")
+      ;;
     *)
-      err "Unknown --app='$APP'. Expected: all | ui | admin | calculator"
+      err "Unknown --app='$APP'. Expected: all | ui | admin | calculator | editor"
       ;;
   esac
 
@@ -193,6 +198,9 @@ build_frontend() {
   fi
   if [[ "$APP" == "all" || "$APP" == "calculator" ]]; then
     assemble_app "modules/ui-calculator/src/main/resources" "out/ui-calculator/${link_task}.dest/main.js" "$DEV_DIR/calculator" "$api_base_url"
+  fi
+  if [[ "$APP" == "all" || "$APP" == "ui" || "$APP" == "editor" ]]; then
+    assemble_app "modules/ui-editor/src/main/resources" "out/ui-editor/${link_task}.dest/main.js" "$DEV_DIR/editor" "$api_base_url"
   fi
 
   log "Assembled frontend in $DEV_DIR"
@@ -281,6 +289,9 @@ print_urls() {
   fi
   if [[ "$APP" == "all" || "$APP" == "calculator" ]]; then
     echo "  Price Calculator:      http://localhost:$FRONTEND_PORT/calculator/"
+  fi
+  if [[ "$APP" == "all" || "$APP" == "ui" || "$APP" == "editor" ]]; then
+    echo "  Design Studio:         http://localhost:$FRONTEND_PORT/editor/"
   fi
   if [[ "$with_api" == "true" ]]; then
     echo "  API Swagger UI:        http://localhost:$API_PORT/docs"

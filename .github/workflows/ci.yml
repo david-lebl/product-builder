@@ -45,5 +45,6 @@ jobs:
           mill ui.fastLinkJS
           mill ui-admin.fastLinkJS
           mill ui-calculator.fastLinkJS
+          mill ui-editor.fastLinkJS
 
 

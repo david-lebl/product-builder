@@ -28,6 +28,30 @@ final case class DraftConfig(
     specs: ProductSpecs,
     speed: ManufacturingSpeed,
     artworks: Map[ComponentKey, ArtworkSubmissionView] = Map.empty,
+    /** Artworks that were designed in the Visual Editor (re-openable with "Edit design"). */
+    designs: Map[ComponentKey, DesignId] = Map.empty,
+)
+
+/** Request from the configurator to open the (lazily loaded) Visual Editor for one printable component. */
+final case class DesignOnlineRequest(
+    categoryId: CategoryId,
+    categoryName: String,
+    componentKey: ComponentKey,
+    componentLabel: String,
+    trimSize: Dimension2D,
+    pageCount: Option[Int],
+    designId: Option[DesignId],
+)
+
+/** A design confirmed in the Visual Editor, attached to the line as its artwork (proof until the PDF pipeline exists). */
+final case class DesignArtwork(
+    designId: DesignId,
+    name: String,
+    proofDataUrl: String,
+    minimumDpi: Option[Int],
+    bleedMm: Double,
+    pageCount: Int,
+    trimSize: Dimension2D,
 )
 
 enum QuoteStatus:
@@ -219,9 +243,52 @@ final class ConfiguratorController(
              )
       out <- res match
                case Result.Success(view) =>
-                 draft.updateAndGet(cur => cur.copy(artworks = cur.artworks.updated(key, view))).map(_ => Some(view))
+                 draft.updateAndGet(cur => cur.copy(artworks = cur.artworks.updated(key, view), designs = cur.designs - key)).map(_ => Some(view))
                case _ =>
                  Kyo.lift(None)
+    yield out
+
+  /** Attaches a Visual Editor design as the component's draft artwork (replacing any previous file). */
+  def attachDesignArtwork(key: ComponentKey, design: DesignArtwork): Option[ArtworkSubmissionView] < Async =
+    for
+      d   <- draft.get
+      tok <- sessionToken.current
+      expectedTrim  = d.specs.dimensions.finishedBoundingBox
+      expectedPages = d.specs.binding.map(_.totalPages)
+      safeName      = design.name.trim.filter(c => c.isLetterOrDigit || c == ' ' || c == '_' || c == '.' || c == '-').take(60)
+      payload = ArtworkUploadPayload(
+                  fileName = NonEmptyString.unsafe(s"${if safeName.isEmpty then "design" else safeName}.design.svg"),
+                  mimeType = NonEmptyString.unsafe("image/svg+xml"),
+                  sizeBytes = design.proofDataUrl.length.toLong.max(1L),
+                  downloadUrl = NonEmptyString(design.proofDataUrl).toOption,
+                  previewUrl = NonEmptyString(design.proofDataUrl).toOption,
+                  resolutionDpi = design.minimumDpi.getOrElse(300).max(72).min(1200),
+                  bleedMm = math.round(design.bleedMm).toInt,
+                  // Browser designs are sRGB; the server PDF pipeline converts to the press CMYK profile.
+                  colorSpace = ColorSpace.RGB,
+                  pageCount = expectedPages.map(_ => design.pageCount),
+                  fontsEmbedded = true,
+                  trimSizeOverride = Some(design.trimSize),
+                )
+      _ <- d.artworks.get(key) match
+             case Some(prev) => Abort.run[StorefrontError](client.deleteDraftArtwork(prev.id)).unit
+             case None       => Kyo.unit
+      res <- Abort.run[StorefrontError](
+               client.uploadDraftArtwork(
+                 sessionId = draftSessionId,
+                 componentKey = key,
+                 expectedTrim = expectedTrim,
+                 expectedPages = expectedPages,
+                 payload = payload,
+                 sessionToken = tok,
+               )
+             )
+      out <- res match
+               case Result.Success(view) =>
+                 draft
+                   .updateAndGet(cur => cur.copy(artworks = cur.artworks.updated(key, view), designs = cur.designs.updated(key, design.designId)))
+                   .map(_ => Some(view))
+               case _ => Kyo.lift(None)
     yield out
 
   def removeDraftArtwork(key: ComponentKey): Unit < Async =
@@ -230,11 +297,11 @@ final class ConfiguratorController(
       _ <- d.artworks.get(key) match
              case Some(existing) => Abort.run[StorefrontError](client.deleteDraftArtwork(existing.id)).unit
              case None           => Kyo.unit
-      _ <- draft.updateAndGet(cur => cur.copy(artworks = cur.artworks - key)).unit
+      _ <- draft.updateAndGet(cur => cur.copy(artworks = cur.artworks - key, designs = cur.designs - key)).unit
     yield ()
 
   def clearDraftArtworks: Unit < Sync =
-    draft.updateAndGet(_.copy(artworks = Map.empty)).unit
+    draft.updateAndGet(_.copy(artworks = Map.empty, designs = Map.empty)).unit
 
   def buildConfigureCmd(d: DraftConfig): ConfigureProductCmd < Sync =
     for
