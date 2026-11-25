@@ -93,6 +93,9 @@ class StorefrontUiSpec extends Test[Any]:
             assert(enHtml.contains("Business Cards"))
             assert(enHtml.contains("https://images.unsplash.com/photo-1628891439478-c613e85af7d6"))
             assert(enHtml.contains("mp-product-img"))
+            // Whole product card is clickable; its inner buttons stop propagation (Details + Configure per card).
+            assert(listings.forall(l => enHtml.contains(s"""data-mp-product-card="${l.categoryId.value}"""")))
+            assert("""data-kyo-stop="1"""".r.findAllIn(enHtml).size >= listings.size * 2)
             assert(!enHtml.contains("‹") && !enHtml.contains("›"))
             assert(csHtml.contains("Vizitky"))
             assert(csHtml.contains("Košík"))

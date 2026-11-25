@@ -312,6 +312,7 @@ object AppTheme:
           .maxWidth(420.px)
           .overflow(Overflow.hidden)
           .shadow(0.px, 1.px, 2.px, 0.px, shadowSubtle)
+          .cursor(Cursor.pointer)
           .transition(TransitionProperty.all, 180, Easing.easeOut)
           .hover(Style.borderColor(brandBorder).translate(0.px, (-3).px).shadow(0.px, 14.px, 30.px, (-8).px, shadowMedium)),
       )
