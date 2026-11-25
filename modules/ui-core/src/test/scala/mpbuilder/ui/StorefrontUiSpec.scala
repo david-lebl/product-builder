@@ -564,8 +564,12 @@ class StorefrontUiSpec extends Test[Any]:
             csHtml  <- renderHtml(appUi, i18n)
             qStatus <- state.configurator.quoteStatus.get
           yield {
-            // Number inputs must bind `input` event (not only dead `onChange`) so manual typing works in Kyo UI
-            assert(stdHtml.contains("type=\"number\""))
+            // Numeric fields are filtered text inputs, not `type="number"`: the configurator re-renders on every
+            // keystroke and Kyo UI can only restore the caret on inputs exposing `selectionStart` (number inputs
+            // don't, so the refocused field came back fully selected and the next digit overwrote it).
+            assert(!stdHtml.contains("type=\"number\""))
+            assert(stdHtml.contains("data-kyo-filter=\"digits\""))
+            assert(stdHtml.contains("data-kyo-filter=\"decimal\""))
             assert(stdHtml.contains("input"))
             assert(!stdHtml.contains(">Custom</span>"))
             // Custom values render active Custom / Vlastní pill and update input values
