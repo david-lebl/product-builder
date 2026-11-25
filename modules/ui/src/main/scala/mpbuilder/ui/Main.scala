@@ -433,7 +433,7 @@ object Main extends KyoApp:
                             }
                       dom.window.addEventListener("hashchange", listener)
                     }
-               sfUi <- StorefrontApp.render(sfState, onOpenAdmin = Some(openAdmin), onDesignOnline = Some(openDesignStudio(sfState, appI18n)))
+               sfUi <- StorefrontApp.render(sfState, onOpenAdmin = Some(openAdmin), onDesignOnline = Some(openDesignStudio(sfState, appI18n)), designStudioHref = Some("editor/index.html"))
                boUi <- BackofficeApp.render(boState, onBackToStorefront = Some(backToStorefront))
                rootUi = modeRef.render {
                           case AppMode.Storefront => sfUi

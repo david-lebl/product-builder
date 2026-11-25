@@ -527,6 +527,7 @@ object AppTheme:
           .lineHeight(1.25)
           .whiteSpace(WhiteSpace.noWrap)
           .cursor(Cursor.pointer)
+          .textDecoration(TextDecoration.none)
           .border(1.px, Color.transparent)
           .transition(TransitionProperty.all, 140, Easing.easeOut)
           .active(Style.translate(0.px, 1.px)),

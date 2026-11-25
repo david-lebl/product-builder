@@ -18,6 +18,7 @@ object StorefrontApp:
       state: StorefrontState,
       onOpenAdmin: Option[() => Unit < Async] = None,
       onDesignOnline: Option[DesignOnlineRequest => Unit < Async] = None,
+      designStudioHref: Option[String] = None,
   ): UI < Async =
     for
       catalogUI    <- CatalogView.render(state)
@@ -38,8 +39,8 @@ object StorefrontApp:
       val builderUI: UI = ConfiguratorView.render(state.configurator, builderHost, showHeader = true)
 
       div.cssClass("mp-app")(
-        renderHeader(state, onOpenAdmin),
-        renderMobileMenu(state, onOpenAdmin),
+        renderHeader(state, onOpenAdmin, designStudioHref),
+        renderMobileMenu(state, onOpenAdmin, designStudioHref),
         // Main Content
         main.cssClass("mp-container mp-main")(
           state.route.combineLatest(state.checkoutSession).render { case (currentRoute, checkoutOpt) =>
@@ -92,6 +93,7 @@ object StorefrontApp:
   private def renderHeader(
       state: StorefrontState,
       onOpenAdmin: Option[() => Unit < Async],
+      designStudioHref: Option[String],
   ): UI =
     val headerSignal =
       state.route
@@ -131,6 +133,11 @@ object StorefrontApp:
             nav.cssClass("mp-desktop-nav").aria("label", if isCs then "Hlavní navigace" else "Main navigation")(
               navBtn(Icon.Grid, "nav-catalog", isCatalog, state.openCatalog),
               navBtn(Icon.Wand, "nav-builder", isBuilder, state.openBuilder()),
+              designStudioHref match
+                case Some(href) =>
+                  a.cssClass("mp-btn mp-btn-ghost mp-btn-sm")
+                    .href(UI.Href.Path(href))(Icons(Icon.Pencil, 16), span(state.i18n.t("nav-design-studio")).cssClass("mp-nav-label"))
+                case None => UI.empty,
               if sessOpt.isDefined then navBtn(Icon.User, "nav-account", isAccount, state.openAccount) else UI.empty,
               onOpenAdmin match
                 case Some(openAdmin) => navBtn(Icon.Shield, "nav-admin", false, openAdmin())
@@ -193,6 +200,7 @@ object StorefrontApp:
   private def renderMobileMenu(
       state: StorefrontState,
       onOpenAdmin: Option[() => Unit < Async],
+      designStudioHref: Option[String],
   ): UI =
     def item(icon: Icon, labelNode: UI, action: => Unit < Async): UI =
       button
@@ -223,6 +231,12 @@ object StorefrontApp:
           nav.style(Style.column.gap(2.px))(
             item(Icon.Grid, span(state.i18n.t("nav-catalog")), state.openCatalog),
             item(Icon.Wand, span(state.i18n.t("nav-builder")), state.openBuilder()),
+            designStudioHref match
+              case Some(href) =>
+                a.cssClass("mp-btn mp-btn-ghost")
+                  .style(Style.justify(Justification.start).width(100.pct).padding(11.px, 12.px).fontSize(15.px))
+                  .href(UI.Href.Path(href))(Icons(Icon.Pencil, 18), span(state.i18n.t("nav-design-studio")))
+              case None => UI.empty,
             if sessOpt.isDefined then item(Icon.User, span(state.i18n.t("nav-account")), state.openAccount) else UI.empty,
             onOpenAdmin match
               case Some(openAdmin) => item(Icon.Shield, span(state.i18n.t("nav-admin")), openAdmin())
