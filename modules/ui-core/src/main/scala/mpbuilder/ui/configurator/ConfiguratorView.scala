@@ -463,7 +463,7 @@ object ConfiguratorView:
           div.style(Style.row.gap(8.px).align(Alignment.center))(
             span(ctrl.i18n.t("cfg-param-radius")).style(smallText.fontWeight(FontWeight.w600)),
             bindIntInput(
-              numberInput.cssClass("mp-input").style(Style.width(84.px).padding(5.px, 8.px)),
+              input.cssClass("mp-input").style(Style.width(84.px).padding(5.px, 8.px)),
               current = curRad,
               minVal = minR,
               maxVal = maxR,
@@ -511,7 +511,7 @@ object ConfiguratorView:
         div.style(Style.row.gap(8.px).align(Alignment.center))(
           span(ctrl.i18n.t("cfg-param-pitch")).style(smallText.fontWeight(FontWeight.w600)),
           bindIntInput(
-            numberInput.cssClass("mp-input").style(Style.width(90.px).padding(5.px, 8.px)),
+            input.cssClass("mp-input").style(Style.width(90.px).padding(5.px, 8.px)),
             current = curP,
             minVal = minP,
             maxVal = effMax,
@@ -526,10 +526,8 @@ object ConfiguratorView:
         div.style(Style.row.gap(8.px).align(Alignment.center))(
           span(ctrl.i18n.t("cfg-param-length")).style(smallText.fontWeight(FontWeight.w600)),
           bindDecimalInput(
-            numberInput.cssClass("mp-input").style(Style.width(90.px).padding(5.px, 8.px)).step(0.5),
+            input.cssClass("mp-input").style(Style.width(90.px).padding(5.px, 8.px)),
             current = curM,
-            minAttr = minM.toDouble,
-            maxAttr = effMax.toDouble,
             accept = m => m >= minM && m <= effMax,
           )(m => ctrl.updateFinishParams(compKey, finish.id, FinishParams.LinearLength(m))),
         )
@@ -542,7 +540,7 @@ object ConfiguratorView:
         div.style(Style.row.gap(8.px).align(Alignment.center))(
           span(ctrl.i18n.t("cfg-param-creases")).style(smallText.fontWeight(FontWeight.w600)),
           bindIntInput(
-            numberInput.cssClass("mp-input").style(Style.width(84.px).padding(5.px, 8.px)),
+            input.cssClass("mp-input").style(Style.width(84.px).padding(5.px, 8.px)),
             current = curC,
             minVal = minC,
             maxVal = effMax,
@@ -590,7 +588,7 @@ object ConfiguratorView:
           div.cssClass("mp-field")(
             label.style(smallText.fontWeight(FontWeight.w600))(ctrl.i18n.t("cfg-quantity-label")),
             bindIntInput(
-              numberInput.cssClass("mp-input"),
+              input.cssClass("mp-input"),
               current = specs.quantity.value,
               minVal = 1,
               maxVal = 1000000,
@@ -599,7 +597,7 @@ object ConfiguratorView:
           div.cssClass("mp-field")(
             label.style(smallText.fontWeight(FontWeight.w600))(ctrl.i18n.t("cfg-versions-label")),
             bindIntInput(
-              numberInput.cssClass("mp-input"),
+              input.cssClass("mp-input"),
               current = specs.versionCount.value,
               minVal = 1,
               maxVal = 50,
@@ -647,7 +645,7 @@ object ConfiguratorView:
             div.cssClass("mp-field")(
               label.style(smallText.fontWeight(FontWeight.w600))(ctrl.i18n.t("cfg-binding-pages")),
               bindIntInput(
-                numberInput.cssClass("mp-input").step(4.0),
+                input.cssClass("mp-input"),
                 current = curBind.totalPages,
                 minVal = 4,
                 maxVal = 1000,
@@ -806,61 +804,47 @@ object ConfiguratorView:
           ),
         )
 
+  // Numeric fields are rendered as text inputs (with a digit / decimal keystroke filter) rather than
+  // `<input type="number">`: every accepted keystroke updates the draft, which re-renders the whole
+  // configurator, and Kyo UI can only restore the caret on inputs exposing `selectionStart`. Number
+  // inputs don't, so the refocused field came back fully selected and the next digit overwrote it.
   private def bindIntInput(
-      inp: UI.Ast.NumberInput,
+      inp: UI.Ast.Input,
       current: Int,
       minVal: Int,
       maxVal: Int,
   )(onValid: Int => Unit < Async): UI =
-    def applyInt(n: Int): Unit < Async =
-      if n >= minVal && n <= maxVal && n != current then onValid(n)
-      else Kyo.unit
+    def applyInt(raw: String): Unit < Async =
+      raw.trim.toIntOption match
+        case Some(n) if n >= minVal && n <= maxVal && n != current => onValid(n)
+        case _                                                    => Kyo.unit
     inp
       .value(current.toString)
-      .min(minVal.toDouble)
-      .max(maxVal.toDouble)
-      .onInput { v =>
-        v.trim.toIntOption match
-          case Some(n) => applyInt(n)
-          case None    => Kyo.unit
-      }
-      .onChangeNumeric { d =>
-        if d.isFinite && d.isWhole then applyInt(d.toInt)
-        else Kyo.unit
-      }
+      .inputFilter(InputFilter.Digits)
+      .onInput(applyInt)
+      .onChange(applyInt)
 
   private def bindDecimalInput(
-      inp: UI.Ast.NumberInput,
+      inp: UI.Ast.Input,
       current: BigDecimal,
-      minAttr: Double,
-      maxAttr: Double,
       accept: BigDecimal => Boolean,
   )(onValid: BigDecimal => Unit < Async): UI =
-    def applyBd(bd: BigDecimal): Unit < Async =
-      if accept(bd) && bd != current then onValid(bd)
-      else Kyo.unit
+    def applyBd(raw: String): Unit < Async =
+      scala.util.Try(BigDecimal(raw.trim.replace(',', '.'))).toOption match
+        case Some(bd) if accept(bd) && bd != current => onValid(bd)
+        case _                                       => Kyo.unit
     inp
       .value(current.bigDecimal.stripTrailingZeros.toPlainString)
-      .min(minAttr)
-      .max(maxAttr)
-      .onInput { raw =>
-        scala.util.Try(BigDecimal(raw.trim)).toOption match
-          case Some(bd) => applyBd(bd)
-          case None     => Kyo.unit
-      }
-      .onChangeNumeric { d =>
-        if d.isFinite then applyBd(BigDecimal(d))
-        else Kyo.unit
-      }
+      .inputFilter(InputFilter.Decimal)
+      .onInput(applyBd)
+      .onChange(applyBd)
 
   private def mmInputField(lbl: Signal[String], value: BigDecimal)(onValid: PositiveMm => Unit < Async): UI =
     div.cssClass("mp-field")(
       label.style(smallText.fontWeight(FontWeight.w600))(lbl),
       bindDecimalInput(
-        numberInput.cssClass("mp-input"),
+        input.cssClass("mp-input"),
         current = value,
-        minAttr = 10.0,
-        maxAttr = 10000.0,
         accept = _ > BigDecimal(0),
       ) { bd =>
         PositiveMm(bd).toOption match

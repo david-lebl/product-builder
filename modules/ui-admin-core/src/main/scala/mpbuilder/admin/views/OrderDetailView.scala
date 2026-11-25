@@ -411,11 +411,11 @@ object OrderDetailView:
                                     div.cssClass("mp-field-row")(
                                       div.cssClass("mp-field")(
                                         label(if isCs then "Množství (ks)" else "Run Quantity (pcs)").style(smallText),
-                                        numberInput.cssClass("mp-input").value(draft.runQty).onInput(v => lineEditRef.set(Some(draft.copy(runQty = v)))),
+                                        input.cssClass("mp-input").inputFilter(InputFilter.Digits).value(draft.runQty).onInput(v => lineEditRef.set(Some(draft.copy(runQty = v)))),
                                       ),
                                       div.cssClass("mp-field")(
                                         label(if isCs then "Počet sad (kopií)" else "Copies").style(smallText),
-                                        numberInput.cssClass("mp-input").value(draft.copies).onInput(v => lineEditRef.set(Some(draft.copy(copies = v)))),
+                                        input.cssClass("mp-input").inputFilter(InputFilter.Digits).value(draft.copies).onInput(v => lineEditRef.set(Some(draft.copy(copies = v)))),
                                       ),
                                       div.cssClass("mp-field")(
                                         label(if isCs then "Rychlost výroby" else "Production Speed").style(smallText),
