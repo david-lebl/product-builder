@@ -40,7 +40,6 @@ object StorefrontApp:
 
       div.cssClass("mp-app")(
         renderHeader(state, onOpenAdmin, designStudioHref),
-        renderMobileMenu(state, onOpenAdmin, designStudioHref),
         // Main Content
         main.cssClass("mp-container mp-main")(
           state.route.combineLatest(state.checkoutSession).render { case (currentRoute, checkoutOpt) =>
@@ -108,6 +107,8 @@ object StorefrontApp:
         .aria("current", if active then "page" else "false")
         .onClick(action)(Icons(icon, 16), span(state.i18n.t(labelKey)).cssClass("mp-nav-label"))
 
+    // The mobile menu lives inside the sticky header so it opens under the header
+    // at the current scroll position instead of at the top of the document.
     header.cssClass("mp-header")(
       div.cssClass("mp-header-inner")(
         // Brand
@@ -195,6 +196,7 @@ object StorefrontApp:
           )
         },
       ),
+      renderMobileMenu(state, onOpenAdmin, designStudioHref),
     )
 
   private def renderMobileMenu(
