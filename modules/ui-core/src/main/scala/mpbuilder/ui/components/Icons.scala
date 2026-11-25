@@ -12,7 +12,7 @@ import kyo.UI.*
 object Icons:
 
   enum Icon:
-    case Cart, User, Users, Menu, Close, Search, Check, ChevronDown, ChevronRight, ChevronLeft, ArrowRight,
+    case Cart, User, Users, Menu, Close, Search, Check, ChevronDown, ChevronUp, ChevronRight, ChevronLeft, ArrowRight,
       ArrowLeft, Plus, Minus, Trash, Pencil, Copy, Upload, Download, Eye, Refresh, LogIn, LogOut, Dashboard,
       Inbox, Package, Tag, Sliders, Globe, Sun, Moon, Monitor, Sparkles, Info, AlertTriangle, CheckCircle,
       XCircle, Clock, Truck, Zap, More, Filter, Layers, Wand, Store, Shield, Printer, FileText, CreditCard,
@@ -35,6 +35,7 @@ object Icons:
     case Icon.Search       => Seq(C(11, 11, 7.5), P("m21 21-4.3-4.3"))
     case Icon.Check        => Seq(P("M20 6 9 17l-5-5"))
     case Icon.ChevronDown  => Seq(P("m6 9 6 6 6-6"))
+    case Icon.ChevronUp    => Seq(P("m18 15-6-6-6 6"))
     case Icon.ChevronRight => Seq(P("m9 18 6-6-6-6"))
     case Icon.ChevronLeft  => Seq(P("m15 18-6-6 6-6"))
     case Icon.ArrowRight   => Seq(P("M5 12h14M12 5l7 7-7 7"))

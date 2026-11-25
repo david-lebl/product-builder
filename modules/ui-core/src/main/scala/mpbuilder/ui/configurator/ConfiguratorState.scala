@@ -59,6 +59,10 @@ enum QuoteStatus:
   case Ready(result: ProductBuilderQuoteResult)
   case Failed(error: StorefrontError)
 
+/** Feedback phase of the "Add to cart" CTA (idle → adding → added ✓ → idle). */
+enum CartFeedback derives CanEqual:
+  case Idle, Adding, Added
+
 /** Reactive controller driving the shared Product Configurator (for both Storefront SPA and Calculator Widget). */
 final class ConfiguratorController(
     val client: StorefrontClient,
@@ -73,6 +77,10 @@ final class ConfiguratorController(
     val finishLimitsMap: SignalRef[Map[ComponentKey, Map[FinishType, BigDecimal]]],
     private val seqRef: SignalRef[Long],
     val materialPicker: mpbuilder.ui.components.ComboBox.Handle,
+    /** Mobile/tablet price dock: expanded into the full price-detail sheet. */
+    val dockExpanded: SignalRef[Boolean],
+    /** Add-to-cart button feedback shared by the desktop sidebar and the mobile dock. */
+    val cartFeedback: SignalRef[CartFeedback],
     val draftSessionId: NonEmptyString = NonEmptyString.unsafe("draft-session-ui"),
 ):
 
@@ -82,6 +90,32 @@ final class ConfiguratorController(
       _ <- if prev == cur then Kyo.unit
            else displayCurrency.set(cur).andThen(recompute)
     yield ()
+
+  def toggleDock: Unit < Async = dockExpanded.updateAndGet(!_).unit
+
+  def collapseDock: Unit < Async = dockExpanded.set(false)
+
+  /** Runs the host's add-to-cart action with button feedback; a success collapses the dock and briefly shows "Added ✓". */
+  def runAddToCart(action: => Boolean < Async): Unit < Async =
+    cartFeedback.get.flatMap {
+      case CartFeedback.Adding => Kyo.unit
+      case _ =>
+        for
+          _  <- cartFeedback.set(CartFeedback.Adding)
+          ok <- action
+          _  <- if ok then onAdded else cartFeedback.set(CartFeedback.Idle)
+        yield ()
+    }
+
+  private def onAdded: Unit < Async =
+    for
+      _ <- cartFeedback.set(CartFeedback.Added)
+      _ <- dockExpanded.set(false)
+      _ <- Fiber.initUnscoped(Async.sleep(ConfiguratorController.AddedFeedback).andThen(resetAddedFeedback))
+    yield ()
+
+  private def resetAddedFeedback: Unit < Async =
+    cartFeedback.get.flatMap(s => if s == CartFeedback.Added then cartFeedback.set(CartFeedback.Idle) else Kyo.unit)
 
   def currentCategory(d: DraftConfig, catalog: ProductCatalog): Option[ProductCategory] =
     catalog.categories.get(d.categoryId).filter(_.enabled)
@@ -411,6 +445,9 @@ final class ConfiguratorController(
 
 object ConfiguratorController:
 
+  /** How long the add-to-cart button shows its "Added ✓" state. */
+  val AddedFeedback: Duration = 1800.millis
+
   def firstEnabledCategory(catalog: ProductCatalog): Option[ProductCategory] =
     catalog.showcases.values.toList
       .filter(_.enabled)
@@ -458,6 +495,8 @@ object ConfiguratorController:
       limMapRef  <- Signal.initRef(Map.empty[ComponentKey, Map[FinishType, BigDecimal]])
       seqRef     <- Signal.initRef(0L)
       matPicker  <- mpbuilder.ui.components.ComboBox.Handle.make
+      dockRef    <- Signal.initRef(false)
+      feedbackRef <- Signal.initRef[CartFeedback](CartFeedback.Idle)
       ctrl        = new ConfiguratorController(
                       client,
                       catalogRef,
@@ -471,6 +510,8 @@ object ConfiguratorController:
                       limMapRef,
                       seqRef,
                       matPicker,
+                      dockRef,
+                      feedbackRef,
                     )
       _          <- ctrl.recompute
     yield ctrl

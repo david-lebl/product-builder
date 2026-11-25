@@ -202,6 +202,18 @@ object Translations:
       |cfg-btn-quick-order = Quick Order
       |cfg-btn-email-order = Request Quote / Order by Email
       |cfg-added-toast = Added to your shopping cart
+      |cfg-btn-adding = Adding…
+      |cfg-btn-added = Added to cart
+      |cfg-dock-add = Add to cart
+      |cfg-dock-email = Order by email
+      |cfg-dock-unit = { $qty } pcs · { $unit } / pc excl. VAT
+      |cfg-dock-fix = Check configuration ({ $count })
+      |cfg-dock-recap = Your Configuration
+      |cfg-dock-recap-product = Product
+      |cfg-dock-recap-size = Size
+      |cfg-dock-recap-quantity = Quantity
+      |cfg-dock-recap-speed = Production speed
+      |cfg-dock-recap-material = Material
       |
       |# Cart Drawer
       |cart-title = Shopping Cart
@@ -511,6 +523,18 @@ object Translations:
       |cfg-btn-quick-order = Rychlá objednávka
       |cfg-btn-email-order = Poptat / objednat e-mailem
       |cfg-added-toast = Položka byla přidána do košíku
+      |cfg-btn-adding = Přidávám…
+      |cfg-btn-added = Přidáno do košíku
+      |cfg-dock-add = Do košíku
+      |cfg-dock-email = Objednat e-mailem
+      |cfg-dock-unit = { $qty } ks · { $unit } / ks bez DPH
+      |cfg-dock-fix = Zkontrolujte konfiguraci ({ $count })
+      |cfg-dock-recap = Vaše konfigurace
+      |cfg-dock-recap-product = Produkt
+      |cfg-dock-recap-size = Rozměr
+      |cfg-dock-recap-quantity = Množství
+      |cfg-dock-recap-speed = Rychlost výroby
+      |cfg-dock-recap-material = Materiál
       |
       |# Košík
       |cart-title = Nákupní košík

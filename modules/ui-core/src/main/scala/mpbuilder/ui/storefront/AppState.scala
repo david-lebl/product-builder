@@ -410,7 +410,8 @@ final class StorefrontState(
         yield c.id
     }
 
-  def addDraftToCart(d: DraftConfig): Unit < Async =
+  /** Adds the draft to the cart (opening the cart drawer); returns whether it succeeded. */
+  def addDraftToCart(d: DraftConfig): Boolean < Async =
     for
       _   <- cartError.set(None)
       cmd <- configurator.buildConfigureCmd(d)
@@ -423,7 +424,7 @@ final class StorefrontState(
                  updated <- client.addConfiguredProductToCart(cid, cmd, cur, d.speed, Quantity.one, tok, artIds)
                yield updated
              }
-      _ <- res match
+      ok <- res match
              case Result.Success(updated) =>
                for
                  _   <- cart.set(Some(updated))
@@ -431,12 +432,12 @@ final class StorefrontState(
                  _   <- cartDrawerOpen.set(true)
                  msg <- i18n.now("cfg-added-toast")
                  _   <- showToast(msg)
-               yield ()
+               yield true
              case Result.Failure(err) =>
-               showToast(err.message)
+               showToast(err.message).andThen(false)
              case Result.Panic(ex) =>
-               showToast(Option(ex.getMessage).getOrElse("Cart error"))
-    yield ()
+               showToast(Option(ex.getMessage).getOrElse("Cart error")).andThen(false)
+    yield ok
 
   def addPresetToCart(categoryId: CategoryId, presetId: PresetId): Unit < Async =
     catalogRef.get.flatMap { catalog =>
@@ -447,7 +448,7 @@ final class StorefrontState(
         case None => Kyo.unit
         case Some((cat, preset)) =>
           val draft = ConfiguratorController.draftFromPreset(cat, preset)
-          addDraftToCart(draft)
+          addDraftToCart(draft).unit
     }
 
   /** Starts a "buy now" checkout. Sends only the configuration; the backend re-prices it on every checkout call. */
