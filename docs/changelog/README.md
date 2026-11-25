@@ -46,6 +46,12 @@ Brief description of what was accomplished in this session.
 
 | Date | Title | PR | Type |
 |------|-------|----|------|
+| 2026-11-25 | [Searchable Material Combo Box](2026-11-25-configurator-material-combobox.md) | t3/configurator-material-searchable-combobox | feature |
+| 2026-11-24 | [UI Visual & UX Modernization](2026-11-24-ui-visual-ux-modernization.md) | t3/optimise-ui-visual-ux | feature |
+| 2026-11-24 | [Backend Rewritten on Kyo](2026-11-24-kyo-backend-rewrite.md) | t3/rewrite-backend-in-kyo | refactoring |
+| 2026-11-23 | [Quick Order Re-priced on the Server](2026-11-23-quick-order-server-pricing.md) | rewrite/backend-core | bugfix |
+| 2026-11-23 | [HTTP API, Server & Frontend Network Wiring (Phase 4)](2026-11-23-phase4-http-api.md) | feat/phase4-http-api | feature |
+| 2026-11-23 | [PostgreSQL Persistence & Artwork Blob Storage (Phase 3)](2026-11-23-phase3-postgres-persistence.md) | feat/phase3-postgres-persistence | feature |
 | 2026-08-13 | [Standalone Embeddable Price Calculator](2026-08-13-standalone-calculator-widget.md) | — | feature |
 | 2026-05-03 | [Printing Method Setup Fee](2026-05-03-printing-method-setup-fee.md) | copilot/add-setup-fee-for-print-methods | feature |
 | 2026-05-03 | [Promotional Ink Config Pricing Fix (DTG, Sublimation, UV Flatbed Mug)](2026-05-03-dtg-sublimation-uv-mug-pricing-fix.md) | copilot/check-prices-for-print-methods | bugfix |

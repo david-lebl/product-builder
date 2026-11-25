@@ -1,74 +1,130 @@
 package mpbuilder.calculator
 
-import com.raquo.laminar.api.L.*
+import kyo.*
+import mpbuilder.identity.sample.InMemoryOtpInbox
+import mpbuilder.sample.SampleShowcaseRuntime
+import mpbuilder.shared.{CategoryId, Currency, Language}
+import mpbuilder.storefront.StorefrontFacade
+import mpbuilder.ui.calculator.{CalculatorConfig, CalculatorView}
+import mpbuilder.ui.i18n.Translations
+import mpbuilder.ui.port.StorefrontClient
+import mpbuilder.ui.theme.AppTheme
 import org.scalajs.dom
 import scala.scalajs.js
+import scala.scalajs.js.URIUtils
 import scala.scalajs.js.annotation.{JSExport, JSExportTopLevel}
-import mpbuilder.domain.model.Language
-import mpbuilder.ui.productbuilder.{BuilderEnvironment, ProductBuilderViewModel}
 
-/** Options a host page can pass to [[CalculatorWidget.mount]]. */
-final case class CalculatorConfig(
-    language: Language,
-    orderEmail: String,
-)
-
-/** Public entry point of the embeddable price calculator.
+/** Embeddable Standalone Print Price Calculator Widget.
   *
-  * The module is linked without a main initializer, so nothing runs until the
-  * host page calls `MPCalculator.mount(...)`. The same artifact backs both
-  * integration modes: a host page mounting into its own `<div>`, and the
-  * bundled `index.html` that sites embed in an `<iframe>`.
+  * Preserves the public JS API:
+  * {{{
+  *   MPCalculator.mount("#calculator-root", {
+  *     lang: "cs",          // "en" | "cs" (optional)
+  *     currency: "CZK",     // "CZK" | "EUR" (optional)
+  *     category: "cat-business-cards", // optional CategoryId
+  *     orderEmail: "orders@printshop.example", // optional
+  *     apiBaseUrl: "https://api.printshop.example" // optional — live pricing over HTTP
+  *   })
+  * }}}
+  *
+  * Without `apiBaseUrl` (and without a global `window.__API_BASE_URL__`) the widget prices
+  * fully client-side with the bundled in-memory sample runtime.
+  * {{{
+  * }}}
   */
 @JSExportTopLevel("MPCalculator")
 object CalculatorWidget:
 
-  /** Mount the calculator into the element matched by `selector`.
-    *
-    * @param selector CSS selector for the container element
-    * @param config   optional `{ lang, orderEmail }` object
-    */
+  private var stylesheetInjected: Boolean = false
+
+  private def parseConfig(raw: js.UndefOr[js.Dynamic]): CalculatorConfig =
+    raw.toOption match
+      case None => CalculatorConfig()
+      case Some(cfg) =>
+        def strField(name: String): Option[String] =
+          val v = cfg.selectDynamic(name)
+          if js.isUndefined(v) || v == null then None
+          else Option(v.toString.trim).filter(_.nonEmpty)
+
+        val lang = strField("lang").map(_.toLowerCase) match
+          case Some("cs") => Language.Cs
+          case Some("en") => Language.En
+          case _          => Language.En
+
+        val currency = strField("currency").map(_.toUpperCase) match
+          case Some("EUR") => Currency.EUR
+          case _           => Currency.CZK
+
+        val category = strField("category").map(CategoryId.unsafe)
+        val email    = strField("orderEmail")
+
+        CalculatorConfig(
+          initialLanguage = lang,
+          initialCurrency = currency,
+          initialCategoryId = category,
+          orderEmail = email,
+        )
+
+  /** `apiBaseUrl` mount option, falling back to a page-wide `window.__API_BASE_URL__`. */
+  private def apiBaseUrl(raw: js.UndefOr[js.Dynamic]): Option[String] =
+    def clean(v: js.Dynamic): Option[String] =
+      if js.isUndefined(v) || v == null then None else Option(v.toString.trim).filter(_.nonEmpty)
+    raw.toOption.flatMap(cfg => clean(cfg.selectDynamic("apiBaseUrl")))
+      .orElse(clean(dom.window.asInstanceOf[js.Dynamic].selectDynamic("__API_BASE_URL__")))
+
+  private def bootClient(raw: js.UndefOr[js.Dynamic]): StorefrontClient < Async =
+    apiBaseUrl(raw) match
+      case Some(base) => Sync.defer(mpbuilder.httpclient.HttpClients.storefront(base))
+      case None       => bootSampleClient
+
+  private def bootSampleClient: StorefrontClient < Async =
+    SampleShowcaseRuntime.make().map(rt => StorefrontClient.fromFacade(rt.storefront, rt.otpInbox.codeFor))
+
+  private def copyToClipboard(text: String): Unit < Sync =
+    Sync.defer {
+      try
+        val nav = dom.window.navigator.asInstanceOf[js.Dynamic]
+        if !js.isUndefined(nav.clipboard) then
+          val _ = nav.clipboard.writeText(text)
+      catch case _: Throwable => ()
+    }
+
+  private def openMailto(to: String, subject: String, body: String): Unit < Sync =
+    Sync.defer {
+      val encSubj = URIUtils.encodeURIComponent(subject)
+      val encBody = URIUtils.encodeURIComponent(body)
+      dom.window.location.href = s"mailto:$to?subject=$encSubj&body=$encBody"
+    }
+
   @JSExport
-  def mount(selector: String, config: js.UndefOr[js.Dynamic]): Unit =
-    Option(dom.document.querySelector(selector)) match
-      case None =>
-        dom.console.error(s"[MPCalculator] No element matches selector '$selector' — nothing mounted.")
-      case Some(container) =>
-        val cfg = parseConfig(config)
+  def mount(selector: String, config: js.UndefOr[js.Dynamic] = js.undefined): Unit =
+    val parsed = parseConfig(config)
 
-        BuilderEnvironment.init(CalculatorEnvironment.environment(cfg))
-        ProductBuilderViewModel.initializeLanguage(cfg.language)
+    val program: Unit < Async =
+      Scope.run {
+        for
+          client  <- bootClient(config)
+          appI18n <- Translations.init(parsed.initialLanguage)
+          _ <- {
+                 if !stylesheetInjected then
+                   Sync.defer { stylesheetInjected = true }.andThen(UI.runStylesheet(AppTheme.calculatorStylesheet))
+                 else Kyo.unit
+               }
+          _ <- I18n.let(appI18n.handle) {
+                 for
+                   ui <- CalculatorView.render(
+                           client = client,
+                           i18n = appI18n,
+                           config = parsed,
+                           onCopyText = copyToClipboard,
+                           onOpenMailto = openMailto,
+                         )
+                   _ <- UI.runMount(ui, selector)
+                   _ <- Async.never
+                 yield ()
+               }
+        yield ()
+      }
 
-        val node = CalculatorApp()
-        if dom.document.readyState == "loading" then
-          renderOnDomContentLoaded(container, node)
-        else
-          render(container, node)
-
-  private def parseConfig(config: js.UndefOr[js.Dynamic]): CalculatorConfig =
-    val obj = config.toOption.filter(_ != null)
-
-    def str(key: String): Option[String] =
-      obj
-        .flatMap(o => Option(o.selectDynamic(key)))
-        .map(_.toString)
-        .map(_.trim)
-        .filter(_.nonEmpty)
-        .filter(v => v != "undefined" && v != "null")
-
-    CalculatorConfig(
-      language = str("lang").map(Language.fromCode).getOrElse(detectLanguage()),
-      orderEmail = str("orderEmail").getOrElse(""),
-    )
-
-  /** Stored preference first, then the browser's language, then English. */
-  private def detectLanguage(): Language =
-    val stored =
-      try Option(dom.window.localStorage.getItem("selectedLanguage"))
-      catch case _: js.JavaScriptException => None
-
-    stored match
-      case Some(code) => Language.fromCode(code)
-      case None =>
-        if dom.window.navigator.language.toLowerCase().startsWith("cs") then Language.Cs
-        else Language.En
+    import kyo.AllowUnsafe.embrace.danger
+    val _ = Sync.Unsafe.evalOrThrow(Fiber.initUnscoped(program))

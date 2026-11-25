@@ -2,53 +2,72 @@ name: CI
 
 on:
   pull_request:
-    branches: [main]
+    branches: [main, develop]
   push:
-    branches: [main]
+    branches: [main, develop]
+  workflow_dispatch:
 
 permissions:
   contents: read
 
-jobs:
-  test-mill:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+# One run per PR / branch: a new push cancels the outdated run.
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
 
-      - name: Set up JDK 17
-        uses: actions/setup-java@v4
+jobs:
+  # Formatting check (scalafmt, configured in .scalafmt.conf).
+  # REPORT-ONLY until the one-shot reformat of the code base lands
+  # (see docs/analysis/ci-optimization-plan.md, section 2.1). Afterwards delete `continue-on-error`.
+  format:
+    name: Format (scalafmt)
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-java@v6
         with:
-          java-version: '17'
+          java-version: '25'
           distribution: 'temurin'
 
-      - name: Cache Coursier
-        uses: actions/cache@v4
+      - uses: coursier/cache-action@v9
+
+      - name: Check formatting
+        run: ./mill mill.scalalib.scalafmt/checkFormatAll
+
+  build:
+    name: Compile, test & link
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-java@v6
         with:
-          path: ~/.cache/coursier
-          key: ${{ runner.os }}-coursier-${{ hashFiles('**/*.mill', '.mill-version') }}
-          restore-keys: ${{ runner.os }}-coursier-
+          java-version: '25'
+          distribution: 'temurin'
 
-      - name: Install Mill
-        run: |
-          curl -fL "https://repo1.maven.org/maven2/com/lihaoyi/mill-dist/1.1.3/mill-dist-1.1.3-mill.sh" -o /usr/local/bin/mill
-          chmod +x /usr/local/bin/mill
+      # Caches the Coursier dependency cache and the Mill launcher download (~/.cache/mill),
+      # keyed on build.mill / .mill-version.
+      - uses: coursier/cache-action@v9
 
-      - name: Compile
-        run: mill __.compile
+      - name: Compile (JVM + Scala.js, incl. test sources)
+        run: ./mill __.compile
 
+      # Includes the PostgreSQL contract suites (kyo-pod uses the runner's Docker daemon).
       - name: Test
-        run: mill __.test
+        run: ./mill __.test
 
-      # calculator.css is generated from the SPA's stylesheets but committed, so
-      # editing one of them without regenerating would silently ship stale CSS.
-      - name: Check calculator.css is up to date
-        run: |
-          ./modules/ui-calculator/build-css.sh
-          if ! git diff --quiet -- modules/ui-calculator/src/main/resources/calculator.css; then
-            echo "::error::calculator.css is out of date. Run ./modules/ui-calculator/build-css.sh and commit the result."
-            git diff --stat -- modules/ui-calculator/src/main/resources/calculator.css
-            exit 1
-          fi
+      - name: Link Scala.js bundles
+        run: ./mill '{ui,ui-admin,ui-calculator,ui-editor}.fastLinkJS'
 
-
+      - name: Upload test reports
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: test-reports
+          path: out/**/test-report.xml
+          if-no-files-found: ignore
+          retention-days: 7

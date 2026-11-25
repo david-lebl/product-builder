@@ -65,3 +65,13 @@ dist/
 # Linked Scala.js output must never be committed into a source resources dir.
 # The deploy workflows copy it from out/<module>/fullLinkJS.dest/ at build time.
 modules/*/src/main/resources/main.js
+
+# Local blob storage of the dev API server (artwork uploads)
+/data/
+
+# Local SPA preview / deploy staging (copied from out/<module>/*LinkJS.dest/)
+/_site/
+/_dev*/
+
+# Local agent skills (not part of the project)
+/skills/

@@ -311,3 +311,177 @@ That weighs (0,0,0) — exactly like the `*` selector it replaces — so it beha
 **Solution:** Call `BuilderEnvironment.init(...)` once, before the first render. The SPA does this in `Main.main` with `FullAppEnvironment.environment`; the calculator does it in `CalculatorWidget.mount` with `CalculatorEnvironment.environment(config)`.
 
 **Files:** `modules/ui-productbuilder/src/main/scala/mpbuilder/ui/productbuilder/BuilderEnvironment.scala`, `modules/ui/src/main/scala/mpbuilder/ui/Main.scala`, `modules/ui-calculator/src/main/scala/mpbuilder/calculator/CalculatorWidget.scala`
+
+---
+
+### `JsonReaderException: expected key: "type"` when reading a JSONB row (pre-Kyo, jsoniter)
+
+**Symptom:** A value written with the `backend/json` codecs round-trips in memory but fails to decode after a trip through a PostgreSQL `JSONB` column, with `expected key: "type"`.
+
+**Cause:** `JSONB` does not preserve object key order (it sorts keys by length, then bytes). jsoniter-scala, by default, requires an ADT's discriminator field to be the **first** key of the object.
+
+**Solution:** The shared `JsonSupport.config` sets `.withRequireDiscriminatorFirst(false)`. Always derive persisted codecs with `JsonCodecMaker.make(config)` from `mpbuilder.json.JsonSupport`, never with the library default config.
+
+**Files:** `backend/json/src/main/scala/mpbuilder/json/JsonSupport.scala`
+
+---
+
+### `Conflicting definitions: given_JsonValueCodec_List` (or `_NonEmptyChunk`)
+
+**Symptom:** Several `given JsonValueCodec[List[X]] = …` / `given JsonValueCodec[NonEmptyChunk[X]] = …` in one object fail to compile.
+
+**Cause:** Anonymous givens are named after the outer type constructor only, so `List[A]` and `List[B]` both become `given_JsonValueCodec_List`.
+
+**Solution:** Name them: `given listOrderView: JsonValueCodec[List[OrderView]] = …`, `given necOrderLine: JsonValueCodec[NonEmptyChunk[OrderLine]] = …`.
+
+**Files:** `backend/json/src/main/scala/mpbuilder/json/*Codecs.scala`, `backend/{storefront,backoffice}/01-i-tapir-api/…/http/api/*ApiCodecs.scala`, `backend/api-kernel/src/main/scala/mpbuilder/api/ApiKernelCodecs.scala`
+
+---
+
+### Tapir schema derivation: "Could not find Schema", then "Class too large" (pre-Kyo)
+
+**Symptom:** `sttp.tapir.generic.auto` derivation of domain bodies reports `Could not find Schema for type …` deep inside the catalog tree; raising `-Xmax-inlines` makes it compile in ~2 minutes and then fails emitting with `Class too large` / `Method too large`.
+
+**Cause:** Magnolia inlines the entire catalog/pricing/order ADT tree per endpoint. It hits the inline limit first, then JVM class-file limits; the generated code would also bloat the Scala.js client bundle.
+
+**Solution:** Bodies use lightweight named schemas (`ApiSupport.body[T]`, `jsonList[T]`, `ApiSchemas.named`). The jsoniter codecs are the source of truth for body structure. Opaque types still need explicit schemas (`ApiSchemas`), including ones from other contexts, e.g. `manufacturing.WorkflowId` / `StepId` reached via `ManufacturingError`.
+
+**Files:** `backend/api-kernel/src/main/scala/mpbuilder/api/ApiSchemas.scala`, `backend/api-kernel/src/main/scala/mpbuilder/api/ApiSupport.scala`
+
+---
+
+### Facade-generated IDs collide after a server restart
+
+**Symptom:** With PostgreSQL storage, the first order after a restart fails with a unique violation or overwrites `ord-1`.
+
+**Cause:** `StorefrontFacade` used to number orders, lines and artwork from an in-memory counter that restarted at 0.
+
+**Solution:** Facades take an `IdSequence` port: `IdSequence.inMemoryLayer()` in the static demo, `PostgresIdSequence.layer` (`platform.id_sequence`, starting at 10000) in persistent mode.
+
+**Files:** `backend/shared/src/main/scala/mpbuilder/shared/BlobStorage.scala` (`IdSequence`), `backend/platform/src/main/scala/mpbuilder/platform/db/PostgresIdSequence.scala`
+
+---
+
+### Frontend on another origin can't load data from the API (CORS preflight 405)
+
+**Symptom:** The SPA served from e.g. `http://localhost:3000` with `window.__API_BASE_URL__ = "http://localhost:8080"` renders the catalog, but quotes, cart, login and all admin calls fail. Chrome reports *"Response to preflight request doesn't pass access control check: It does not have HTTP ok status"*, and `OPTIONS` requests return **405**.
+
+**Cause:** Browsers send an `OPTIONS` preflight before every cross-origin JSON `POST`/`PUT`/`DELETE` and every request with an `Authorization` header. zio-http's `Middleware.cors` added CORS headers but did not answer the preflight; Tapir saw no `OPTIONS` endpoint and rejected it with 405. Plain `GET`s (catalog, showcases) skip the preflight, so curl and the first screen looked fine. The JVM E2E client never sends preflights either.
+
+**Solution (pre-Kyo):** CORS was handled by Tapir's `CORSInterceptor`. Since the Kyo rewrite it is kyo-http's server-wide CORS policy (`ApiHttpServer.serverConfig`), which answers preflights for every endpoint with 204. `PlatformE2ESpec` now asserts a 2xx preflight for storefront and admin endpoints. If you change CORS handling, verify with:
+
+```bash
+curl -i -X OPTIONS localhost:8080/api/v1/storefront/builder/quote \
+  -H "Origin: http://localhost:3000" -H "Access-Control-Request-Method: POST" \
+  -H "Access-Control-Request-Headers: content-type,authorization"
+```
+
+**Files:** `backend/app/src/main/scala/mpbuilder/app/http/HttpServer.scala`, `backend/app/src/test/scala/mpbuilder/app/PlatformE2ESpec.scala`
+
+---
+
+### Mill compile fails with `UnsupportedClassVersionError` (class file version 69.0)
+
+**Symptom:** `./mill __.compile` fails in `ui-core.jvm.compile` (or any Kyo module) with
+*"kyo/Frame$package$Frame$ has been compiled by a more recent version of the Java Runtime (class file version 69.0), this version of the Java Runtime only recognizes class file versions up to 61.0"*.
+
+**Cause:** Kyo 1.0.0-RC7 targets JDK 25, but the shell's default `java` (and therefore the Mill daemon) is an older JDK (here 17). Kyo macros run inside the compiler and can't load the class files.
+
+**Solution:** Point `JAVA_HOME`/`PATH` at a JDK 25, then restart the daemon so it picks it up:
+
+```bash
+export JAVA_HOME=~/.sdkman/candidates/java/25.0.1-tem PATH=$JAVA_HOME/bin:$PATH   # or: sdk use java 25.0.1-tem
+./mill shutdown && ./mill __.compile
+```
+
+**Files:** `build.mill`
+
+---
+
+### Large blank gaps under form inputs (`mp-field` in a column)
+
+**Symptom:** ~180px of empty space below inputs in the staff login card, the configurator category select, etc.
+
+**Cause:** `mp-field` set `flex-grow: 1; flex-basis: 180px` for wrapping field rows. Inside a *column* flex container, `flex-basis` applies to height.
+
+**Solution:** `mp-field` no longer sets a basis; only `.mp-field-row > .mp-field` gets `flex-basis: 180px`. Use `mp-field-row` for side-by-side fields.
+
+**Files:** `modules/ui-core/src/main/scala/mpbuilder/ui/theme/AppTheme.scala`
+
+---
+
+### Media-query override of a `displayNone` rule has no effect (`Style.row`)
+
+**Symptom:** The hamburger menu (`mp-mobile-only`) and DataTable mobile "Back" button never appeared on tablet/mobile.
+
+**Cause:** In Kyo UI, `Style.row` / `Style.column` emit only `flex-direction`, not `display`. A media rule `Style.row…` cannot undo a base `Style.displayNone`.
+
+**Solution:** Re-display explicitly: `Style.display(Display.flex).row…` in the media rule.
+
+**Files:** `modules/ui-core/src/main/scala/mpbuilder/ui/theme/AppTheme.scala`
+
+---
+
+### Kyo effect silently never runs (`Unit < Async` method body discards an effect)
+
+**Symptom:** State "disappears": a cart/order saved through an in-memory repository is not found
+afterwards (`CartNotFound`), an OTP code is never delivered, while everything compiles.
+
+**Cause:** A Kyo computation is a *value*. `def save(c: Cart): Unit < Async = ref.updateAndGet(_ + …)`
+type-checks through Scala's value discarding: the `Map < Sync` computation is lifted as a pure value and
+thrown away, so the update never executes.
+
+**Solution:** Use the unit-returning `ref.update(f)` (`mpbuilder.shared.Effects`) or append `.unit`. The
+build enables `-Wvalue-discard`, which reports these sites — treat that warning as an error in backend code.
+
+**Files:** `build.mill`, `backend/shared/src/main/scala/mpbuilder/shared/Effects.scala`, `backend/sample/…/InMemory*.scala`
+
+---
+
+### `This method requires a ConcreteTag, but the type … has type parameters` (kyo-http `.error`)
+
+**Symptom:** Registering a generic error envelope on a kyo-http route (`route.error[NotFound[E]](HttpStatus.NotFound)`) fails to compile.
+
+**Cause:** kyo-http dispatches typed errors by `ConcreteTag`, which only supports non-generic types.
+
+**Solution:** Declare concrete envelope case classes per BFF (`StorefrontRoutes.NotFound(message, error: StorefrontError)` …) and register one per status via the module's `apiErrors` extension.
+
+**Files:** `backend/{storefront,backoffice}/02-i-http/…/*Routes.scala`
+
+---
+
+### `Method too large: …BackofficeRoutes.<init>` when compiling kyo-http routes
+
+**Symptom:** The backoffice route module type-checks but fails while emitting bytecode.
+
+**Cause:** `bodyJson[T]` / `.error[…]` are inline; 69 routes in one `Seq(...)` expand into a single constructor larger than the JVM's 64 KB method limit.
+
+**Solution:** Build routes in several methods (one per area) and concatenate them (`authRoutes ++ ordersRoutes ++ …`).
+
+**Files:** `backend/backoffice/02-i-http/src/main/scala/mpbuilder/backoffice/http/BackofficeRoutes.scala`
+
+---
+
+### PostgreSQL tests: `Connect to 127.0.0.1:<port> failed … Connection refused` (Colima / Docker VM)
+
+**Symptom:** The kyo-pod container starts and is healthy, but every connection to its mapped port is refused.
+
+**Cause:** The Docker VM (seen with Colima/Lima) stopped forwarding newly published ports to the host — even `docker run -p 5432 postgres` is unreachable. Not a code problem.
+
+**Solution:** Restart the VM (`colima restart`), or point the tests at a reachable server:
+`TEST_DATABASE_URL=postgresql://user:pw@127.0.0.1:5432/postgres ./mill __.test` (role needs `CREATEDB`; each test creates and later drops its own database).
+
+**Files:** `backend/platform/src/test/scala/mpbuilder/platform/PostgresTestSupport.scala`
+
+---
+
+### Kyo `for` comprehension: `value flatMap is not a member of A | Nothing < Abort[E]`
+
+**Symptom:** A generator like `x <- if cond then pure else Abort.fail(e)` (or a `match`) does not compile.
+
+**Cause:** Without an expected type the branches infer a union of a pure value and a pending effect, which has no `map`/`flatMap`.
+
+**Solution:** Ascribe the expression: `(if cond then pure else Abort.fail(e)): A < Abort[E]`, or bind it to a typed `val` first.
+
+**Files:** any Kyo code (e.g. `backend/app/src/main/scala/mpbuilder/app/AppConfig.scala`)
+

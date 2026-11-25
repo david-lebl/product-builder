@@ -16,27 +16,20 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
-      # Install Temurin JDK 17 — its bundled CA certificates include the root CAs
-      # needed by Coursier to download from Maven Central (repo1.maven.org).
-      # Without this step the default JVM in the runner environment fails with an
-      # SSLHandshakeException when Mill tries to resolve mill-runner-daemon.
-      - name: Set up JDK 17 (Temurin)
-        uses: actions/setup-java@v4
+      # Install Temurin JDK 25 — required by Kyo 1.0.0-RC7 (class file version 69.0)
+      # and includes the root CA certificates needed by Coursier for Maven Central.
+      - name: Set up JDK 25 (Temurin)
+        uses: actions/setup-java@v6
         with:
-          java-version: '17'
+          java-version: '25'
           distribution: 'temurin'
 
-      - name: Cache Coursier
-        uses: actions/cache@v4
-        with:
-          path: ~/.cache/coursier
-          key: ${{ runner.os }}-coursier-${{ hashFiles('**/*.mill', '.mill-version') }}
-          restore-keys: ${{ runner.os }}-coursier-
+      # Coursier dependency cache + Mill launcher download (~/.cache/mill).
+      - uses: coursier/cache-action@v9
 
-      - name: Cache Mill download
-        uses: actions/cache@v4
-        with:
-          path: ~/.cache/mill
-          key: ${{ runner.os }}-mill-${{ hashFiles('.mill-version') }}
+      # Download Mill and every dependency up front so the agent's first build
+      # does not spend minutes resolving (the agent firewall may also block it later).
+      - name: Warm Mill & dependencies
+        run: ./mill __.prepareOffline

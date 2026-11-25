@@ -1,0 +1,169 @@
+package mpbuilder.artwork
+
+import mpbuilder.shared.*
+import kyo.*
+import java.time.Instant
+
+// ── Public Models, Commands, Errors & Events ─────────────────────────────────
+
+enum ArtworkOwner:
+  case DraftSession(sessionId: NonEmptyString)
+  case OrderLineRef(orderId: OrderId, lineIndex: Int)
+
+enum ColorSpace:
+  case CMYK, RGB, Grayscale, SpotPantone, CMYKWithSpot
+
+final case class AssetFileMetadata(
+    fileName: NonEmptyString,
+    mimeType: NonEmptyString,
+    sizeBytes: Long,
+    storageKey: NonEmptyString,
+    checksumSha256: Option[NonEmptyString] = None,
+    downloadUrl: Option[NonEmptyString] = None,
+    previewUrl: Option[NonEmptyString] = None,
+):
+  /** Shareable/copyable URL representing future cloud blob / S3 presigned link or active in-memory URL. */
+  def shareableUrl: String =
+    downloadUrl.map(_.value).filter(u => u.startsWith("http://") || u.startsWith("https://") || u.startsWith("blob:"))
+      .getOrElse(s"https://assets.printcraft.demo/${storageKey.value}")
+
+final case class ExtractedFileSpecs(
+    resolutionDpi: Int,
+    trimSize: Dimension2D,
+    bleed: NonNegativeMm,
+    colorSpace: ColorSpace,
+    pageCount: Int,
+    fontsEmbedded: Boolean,
+    hasUnflattenedTransparency: Boolean = false,
+)
+
+/** Print-readiness contract owned by `artwork` (decoupled from `catalog` via ACL translation). */
+final case class PreflightRequirement(
+    expectedTrimSize: Dimension2D,
+    dimensionToleranceMm: NonNegativeMm = NonNegativeMm.unsafe(1),
+    requiredBleed: NonNegativeMm,
+    minResolutionDpi: Int = 300,
+    expectedPageCount: Option[Int] = None,
+    allowedColorSpaces: Set[ColorSpace] = Set(ColorSpace.CMYK, ColorSpace.Grayscale, ColorSpace.CMYKWithSpot),
+    requireEmbeddedFonts: Boolean = true,
+)
+
+enum PreflightCheckKind:
+  case Resolution, Bleed, TrimDimensions, ColorSpace, PageCount, FontEmbedding, Transparency
+
+enum CheckOutcome:
+  case Passed
+  case Warning(detail: String)
+  case Failed(detail: String)
+
+final case class PreflightCheckResult(
+    kind: PreflightCheckKind,
+    outcome: CheckOutcome,
+)
+
+final case class PreflightReport(
+    checks: List[PreflightCheckResult],
+    evaluatedAt: Instant,
+):
+  def hasFailures: Boolean = checks.exists(_.outcome.isInstanceOf[CheckOutcome.Failed])
+  def hasWarnings: Boolean = !hasFailures && checks.exists(_.outcome.isInstanceOf[CheckOutcome.Warning])
+  def isCleanPass: Boolean = checks.forall(_.outcome == CheckOutcome.Passed)
+
+enum ArtworkStatus:
+  case Uploaded
+  case PreflightPassed
+  case PreflightFailed
+  case ChangesRequested(notes: NonEmptyString)
+  case OperatorApproved(approvedBy: EmployeeId, approvedAt: Instant)
+  case Rejected(reason: NonEmptyString)
+
+final case class ArtworkRevision(
+    revisionNumber: Int,
+    file: AssetFileMetadata,
+    extractedSpecs: ExtractedFileSpecs,
+    preflight: Option[PreflightReport],
+    uploadedAt: Instant,
+)
+
+final case class ArtworkSubmissionView(
+    id: ArtworkId,
+    owner: ArtworkOwner,
+    componentKey: ComponentKey,
+    versionIndex: Int,
+    status: ArtworkStatus,
+    latestRevision: ArtworkRevision,
+    revisionCount: Int,
+    revisions: List[ArtworkRevision] = Nil,
+    createdAt: Instant = Instant.EPOCH,
+):
+  def allRevisions: List[ArtworkRevision] =
+    if revisions.nonEmpty then revisions else List(latestRevision)
+
+final case class UploadArtworkCmd(
+    artworkId: ArtworkId,
+    owner: ArtworkOwner,
+    componentKey: ComponentKey,
+    versionIndex: Int = 1,
+    file: AssetFileMetadata,
+    extractedSpecs: ExtractedFileSpecs,
+    requirement: Option[PreflightRequirement] = None,
+)
+
+final case class UploadRevisionCmd(
+    artworkId: ArtworkId,
+    file: AssetFileMetadata,
+    extractedSpecs: ExtractedFileSpecs,
+    requirement: Option[PreflightRequirement] = None,
+)
+
+enum ArtworkError(val message: String):
+  case NotFound(id: ArtworkId)
+      extends ArtworkError(s"Artwork '${id.value}' not found")
+  case InvalidFileSize(sizeBytes: Long)
+      extends ArtworkError(s"Artwork file size must be positive, got $sizeBytes bytes")
+  case InvalidVersionIndex(versionIndex: Int)
+      extends ArtworkError(s"Artwork version index must be >= 1, got $versionIndex")
+  case CannotApproveFailedPreflight(id: ArtworkId)
+      extends ArtworkError(s"Artwork '${id.value}' has failed preflight checks and cannot be approved without override")
+  case AlreadyFinalized(id: ArtworkId, status: ArtworkStatus)
+      extends ArtworkError(s"Artwork '${id.value}' is already finalized in status $status")
+  case CannotDeleteNonDraft(id: ArtworkId, owner: ArtworkOwner)
+      extends ArtworkError(s"Artwork '${id.value}' belongs to $owner and cannot be deleted as a draft")
+
+// ── Domain Events ────────────────────────────────────────────────────────────
+
+final case class ArtworkUploaded(
+    artworkId: ArtworkId,
+    owner: ArtworkOwner,
+    componentKey: ComponentKey,
+    revisionNumber: Int,
+    occurredAt: Instant,
+) extends DomainEvent
+
+final case class ArtworkApproved(
+    artworkId: ArtworkId,
+    owner: ArtworkOwner,
+    approvedBy: EmployeeId,
+    occurredAt: Instant,
+) extends DomainEvent
+
+final case class ArtworkChangesRequested(
+    artworkId: ArtworkId,
+    owner: ArtworkOwner,
+    notes: NonEmptyString,
+    occurredAt: Instant,
+) extends DomainEvent
+
+// ── Public Inbound Port (Module API) ─────────────────────────────────────────
+
+trait ArtworkService:
+  def upload(cmd: UploadArtworkCmd): ArtworkSubmissionView < (Async & Abort[ArtworkError])
+  def uploadRevision(cmd: UploadRevisionCmd): ArtworkSubmissionView < (Async & Abort[ArtworkError])
+  def runPreflight(artworkId: ArtworkId, requirement: PreflightRequirement): ArtworkSubmissionView < (Async & Abort[ArtworkError])
+  def approve(artworkId: ArtworkId, operatorId: EmployeeId, overrideWarningsOrFailures: Boolean = false): ArtworkSubmissionView < (Async & Abort[ArtworkError])
+  def requestChanges(artworkId: ArtworkId, notes: NonEmptyString): ArtworkSubmissionView < (Async & Abort[ArtworkError])
+  def reject(artworkId: ArtworkId, operatorId: EmployeeId, reason: NonEmptyString): ArtworkSubmissionView < (Async & Abort[ArtworkError])
+  def reassignOwner(artworkId: ArtworkId, newOwner: ArtworkOwner): ArtworkSubmissionView < (Async & Abort[ArtworkError])
+  def deleteDraft(artworkId: ArtworkId): Unit < (Async & Abort[ArtworkError])
+  def getById(artworkId: ArtworkId): ArtworkSubmissionView < (Async & Abort[ArtworkError.NotFound])
+  def listByOwner(owner: ArtworkOwner): List[ArtworkSubmissionView] < Async

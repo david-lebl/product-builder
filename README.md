@@ -2,274 +2,152 @@
 
 > ⚠️ **Note**: This project was built with the assistance of an LLM (Large Language Model).
 
-A domain-driven product configuration and manufacturing management system for the printing industry. Customers configure print products, design visual layouts, place orders — and shop operators manage the full production lifecycle from approval through dispatch.
+A domain-driven print-shop platform: customers configure and price print products, upload artwork
+with automated preflight and place orders; staff accept, review and progress those orders and manage
+the catalog, pricing, customers and store settings in a role-based backoffice.
 
-**🌐 Live Demo:** [https://david-lebl.github.io/product-builder/](https://david-lebl.github.io/product-builder/)
+**🌐 Live Demo (runs fully in the browser, no backend):** [https://david-lebl.github.io/product-builder/](https://david-lebl.github.io/product-builder/)
 
-| Product Configurator | Manufacturing Dashboard |
+| App | URL |
+|---|---|
+| Storefront + Staff Backoffice (`#/admin`) | [david-lebl.github.io/product-builder](https://david-lebl.github.io/product-builder/) |
+| Standalone Backoffice | [david-lebl.github.io/product-builder/admin/](https://david-lebl.github.io/product-builder/admin/) |
+| Embeddable price calculator | [david-lebl.github.io/product-builder/calculator/](https://david-lebl.github.io/product-builder/calculator/) |
+
+Orders placed in the storefront land immediately in Staff Order Intake: both run on one shared
+in-memory runtime. Demo staff login: `admin@printshop.cz` / `staff1234`; demo customer:
+`jan@printshoppro.cz` / `demo1234`.
+
+| Storefront Catalog | Product Configurator |
 |:---:|:---:|
-| ![Product Configurator](https://github.com/user-attachments/assets/3673282f-ccc0-4976-bbce-72a8d453521b) | ![Manufacturing Dashboard](https://github.com/user-attachments/assets/998f0cce-9f0b-49b3-8712-af5dee5a88e5) |
+| ![Storefront Catalog](docs/screenshots/storefront-catalog.png) | ![Product Configurator](docs/screenshots/product-configurator.png) |
 
-| Visual Editor |
-|:---:|
-| ![Visual Editor](https://github.com/user-attachments/assets/b063a3ab-d73c-4c33-ac19-65d5ba4c0425) |
+| Staff Backoffice | Embeddable Price Calculator |
+|:---:|:---:|
+| ![Staff Backoffice](docs/screenshots/staff-backoffice.png) | ![Embeddable Price Calculator](docs/screenshots/price-calculator.png) |
 
 ## What It Does
 
-1. **Configure** — Select a product category, material, printing method, finishes, and specifications. A rules engine enforces only valid, producible combinations.
-2. **Design** — Use the visual editor to layout calendars, photo books, or wall pictures with photos, text, shapes, and clipart on a per-page canvas.
-3. **Price** — See real-time pricing with detailed breakdowns including material costs, finish surcharges, setup fees, and volume discounts.
-4. **Order** — Add products to a shopping basket, apply discount codes, and check out with delivery options.
-5. **Manufacture** — Operators manage production through a dashboard with station queues, order approval, fulfilment tracking, employee/machine management, and analytics.
+**Storefront**
+- **Product configurator** for 15 products in 5 groups (sheet print, large format, bound, specialty & packaging, promotional): materials, printing methods, ink configuration, finishes and specs, guided by a declarative compatibility rule engine with press-sheet imposition.
+- **Live pricing** with a detailed breakdown, speed tiers (express / standard / economy) driven by shop-floor capacity, promo codes and **B2B dual pricing** (list vs. agreement price) for signed-in business customers.
+- **Artwork upload** per product component with automated **prepress preflight** (resolution, bleed, trim size, colour space, page count, fonts, transparency), plus revisions after ordering.
+- **Cart and checkout** with shop pickup or courier delivery; payment by QR bank transfer, card, or invoice on account (net terms for approved B2B accounts); password or passwordless sign-in (OTP by e-mail, IČO or DIČ).
+- **My account**: order history, addresses, payment instructions, artwork status.
+
+**Staff backoffice** (RBAC: Operator, Prepress, Manager, Admin)
+- **Order intake**: queue, accept / hold / resume / cancel, manual stage progression (`Accepted → InProduction → ReadyForDispatch → Dispatched → Completed`), payment confirmation, line edits, internal notes, and an immutable audit timeline.
+- **Artwork review**: approve, request changes or reject, upload corrected revisions, re-run preflight.
+- **Catalog manager** for categories, presets, materials, finishes, printing methods, rules and showcases, with in-use protection and catalog versioning.
+- **Pricing manager** for pricelists, B2B agreements, promo codes, cost sheets and a live margin simulator.
+- **Customers** (approvals, tiers, credit terms, notes, audit trail), **staff directory**, and **store settings** (pickup locations, couriers, bank accounts).
+
+**Embeddable calculator**: a standalone widget (`MPCalculator.mount(selector, config)`) that prices products on any website, with e-mail ordering.
+
+All UI copy is available in **English and Czech**.
 
 ## Tech Stack
 
-| Technology | Role |
-|------------|------|
-| **Scala 3.3.3** | Strongly-typed functional programming with DDD principles |
-| **ZIO Prelude** | `Validation` with error accumulation (not short-circuiting) |
-| **ZIO Test** | Unit testing framework (341 tests) |
-| **Scala.js** | Cross-compilation of domain model to JavaScript |
-| **Laminar 17.2.0** | Reactive web UI framework |
-| **Mill 1.1.3** | Primary build tool |
-| **GitHub Actions** | CI/CD with deployment to GitHub Pages |
+| Area | Technology |
+|---|---|
+| Language & build | Scala 3.9.0, Scala.js 1.22.0, Mill 1.1.3, JDK 25 |
+| Domain & effects | Kyo 1.0.0-RC7 (`kyo-core`, `kyo-combinators`: `Async`, `Abort`, `AtomicRef`, `Clock`), error-accumulating `Validation`, opaque types with smart constructors |
+| UI | Kyo UI 1.0.0-RC7 (`kyo-ui`, `kyo-i18n` Fluent bundles), cross-compiled to JVM (tests) and Scala.js |
+| Persistence | PostgreSQL 17 via `kyo-sql` (native wire driver + pool, typed JSONB columns), schema-per-context migrations |
+| HTTP API | `kyo-http` typed routes + server (generated OpenAPI / Swagger UI), kyo-http client (JVM) / `fetch` (browser), `kyo-schema` JSON |
+| Testing | `kyo-test`, Kyo UI JVM render tests, `kyo-pod` throwaway PostgreSQL containers |
+| CI/CD | GitHub Actions → GitHub Pages (static demo) |
 
-## Key Design Principles
+## Architecture
 
-- **Rules as data, not code** — Compatibility rules (`CompatibilityRule`, 12 variants) and pricing rules (`PricingRule`, 17 variants) are sealed ADTs interpreted by engines. New materials or finishes require only rule data updates, not code changes.
-- **Error accumulation** — ZIO Prelude `Validation` collects all errors at once, giving users comprehensive feedback instead of failing on the first problem.
-- **Pure domain layer** — All domain logic returns `Validation[E, A]`, never `ZIO[...]` effects. This keeps the domain testable and Scala.js-compatible.
-- **Composable predicates** — `ConfigurationPredicate` uses And/Or/Not ADT instead of opaque `A => Boolean`, making rules inspectable, serializable, and debuggable.
-- **Progressive disclosure** — `CatalogQueryService` pre-filters valid options at each step, so the UI shows only compatible choices.
-
-## Project Structure
+A **cross-compiled modular monolith** (hexagonal / DDD): every bounded context compiles to both the
+JVM and Scala.js, so the browser demo runs the exact same domain, pricing, rules and checkout logic as
+the server.
 
 ```
+backend/
+├── shared/                      Kernel: opaque IDs, Money, LocalizedString, EventBus, BlobStorage, IdSequence
+├── catalog|pricing|customers|identity|ordering|artwork|manufacturing/
+│   ├── 01-c-core/               Domain + public API; depends ONLY on shared (JVM + JS)
+│   └── 02-o-db/                 kyo-sql PostgreSQL repository adapters + migrations (JVM; not manufacturing yet)
+├── storefront/                  Customer BFF facade
+│   ├── 01-i-http-api/           Wire DTOs, schemas & URL layout of /api/v1/storefront (JVM + JS)
+│   └── 02-i-http/               kyo-http routes
+├── backoffice/                  Staff RBAC BFF facade (+ 01-i-http-api /api/v1/admin, 02-i-http)
+├── api-kernel/                  Shared transport helpers: error envelope, status mapping, health; kyo-http helpers (JVM)
+├── json/                        kyo-schema codecs (JSONB rows + HTTP wire)
+├── platform/                    kyo-sql pool, migration runner, local blob storage (JVM)
+├── sample/                      Showcase data, in-memory adapters, SampleShowcaseRuntime
+└── app/                         Composition root: --storage=memory|postgres, seeder, HTTP server
+
 modules/
-├── domain/                          # Core domain (cross-compiled JVM + JS)
-│   ├── model/                       # Entities, value objects, enums
-│   │   ├── ids.scala                #   Opaque type IDs with smart constructors
-│   │   ├── material.scala           #   Material family, weight, properties
-│   │   ├── finish.scala             #   Finish type, side application
-│   │   ├── category.scala           #   Category constraints & component templates
-│   │   ├── specification.scala      #   8 spec kinds (size, pages, quantity, etc.)
-│   │   ├── configuration.scala      #   ProductConfiguration — the aggregate root
-│   │   ├── catalog.scala            #   ProductCatalog container
-│   │   ├── printingmethod.scala     #   Printing methods & process types
-│   │   ├── language.scala           #   Language enum, LocalizedString
-│   │   ├── basket.scala             #   Shopping basket model
-│   │   ├── order.scala              #   Order, customer, delivery
-│   │   ├── component.scala          #   Multi-component product support
-│   │   └── manufacturing.scala      #   Workflow, steps, stations, fulfilment
-│   ├── rules/                       # Compatibility rules (12-variant ADT)
-│   ├── validation/                  # Two-layer validation pipeline
-│   ├── pricing/                     # Pricing engine (17-variant ADT)
-│   ├── service/                     # Domain services
-│   │   ├── ConfigurationBuilder     #   Resolve + validate + build
-│   │   ├── CatalogQueryService      #   Progressive disclosure filtering
-│   │   ├── BasketService            #   Shopping basket operations
-│   │   ├── DiscountService          #   Promotional discount codes
-│   │   ├── WorkflowGenerator        #   Config → manufacturing workflow DAG
-│   │   ├── WorkflowEngine           #   Step state machine (start/complete/fail/skip/reset)
-│   │   ├── QueueScorer              #   Priority scoring for operator queues
-│   │   ├── EmployeeManagementService #  Employee CRUD
-│   │   ├── MachineManagementService #   Machine registry CRUD
-│   │   └── AnalyticsService         #   Production analytics & KPIs
-│   ├── weight/                      # Weight calculation for shipping
-│   └── sample/                      # Reference data (11 categories, 13 materials, etc.)
-│
-├── ui/                              # Scala.js web application
-│   ├── AppRouter                    #   Client-side routing (3 views)
-│   ├── ProductBuilderApp            #   Product configuration wizard
-│   ├── calendar/                    #   Visual product editor
-│   │   ├── CalendarModel            #     5 product types, 10 formats, canvas elements
-│   │   ├── CalendarBuilderApp       #     Editor view with canvas, sidebar, page nav
-│   │   └── components/              #     Canvas, element list, background, page strip
-│   ├── manufacturing/               #   Manufacturing management
-│   │   ├── ManufacturingApp         #     Sidebar navigation + route switching
-│   │   ├── ManufacturingViewModel   #     Reactive state management
-│   │   └── views/                   #     7 views (see below)
-│   └── components/                  #   Configurator UI components
-│
-├── ui-productbuilder/               # Shared product configurator (used by ui + ui-calculator)
-│   ├── ProductBuilderApp            #   Form / price / basket page
-│   ├── ProductBuilderViewModel      #   Reactive configuration + pricing state
-│   ├── BuilderEnvironment           #   Host seam — what differs between the two apps
-│   └── components/                  #   Selectors, price preview, basket, e-mail order modal
-│
-├── ui-calculator/                   # Standalone embeddable price calculator widget
-│   ├── CalculatorWidget             #   `MPCalculator.mount(selector, config)` entry point
-│   ├── CalculatorEnvironment        #   No production queue → indicative lead times only
-│   ├── CalculatorApp                #   Thin shell over ProductBuilderApp
-│   └── resources/                   #   calculator.css, index.html, embed-example.html
-│
-├── ui-framework/                    # Reusable Laminar component library (no domain dep)
-│   ├── fields/                      #   TextField, SelectField, CheckboxField, RadioGroup
-│   ├── containers/                  #   Tabs, Stepper, SplitTableView
-│   ├── form/                        #   Mirror-based form state derivation
-│   └── feedback/                    #   ValidationDisplay
-│
-└── ui-showcase/                     # Standalone UI kit demo app
-
-docs/
-├── features.md                      # Comprehensive feature overview
-├── pricing.md                       # Pricing system with worked examples
-├── visual-product-types.md          # Visual editor types & formats
-├── manufacturing-implementation-plan.md  # Manufacturing phases 1–8
-├── standalone-calculator.md         # Embeddable calculator widget & how to embed it
-├── ui-guide.md                      # Build, run & test instructions
-└── analysis/                        # Research & planning documents
-    ├── printing-domain-analysis.md
-    ├── domain-model-gap-analysis.md
-    ├── manufacturing-workflow-analysis.md
-    ├── sheet-based-pricing.md
-    ├── roll-up.md
-    └── ui-kit-review.md
+├── ui-core/                     Storefront, configurator & calculator views (Kyo UI, JVM + JS)
+├── ui-admin-core/               Backoffice views (Kyo UI, JVM + JS)
+├── ui-http-client/              HTTP implementations of the facades (JVM + JS)
+├── ui/                          Unified SPA: storefront + #/admin
+├── ui-admin/                    Standalone backoffice SPA
+└── ui-calculator/               Embeddable calculator widget
 ```
 
-## Features
+The UI talks to transport-agnostic ports (`StorefrontClient`, `BackofficeClient`) and boots in one of
+two modes **with no view changes**:
 
-### 🎨 Product Configuration
+- **Static mode** (default, GitHub Pages): the backend runs inside the browser on the in-memory sample runtime.
+- **Network mode**: when the page sets `window.__API_BASE_URL__`, the same ports call the HTTP API backed by PostgreSQL (or in-memory) storage.
 
-- **11 categories** — Business Cards, Postcards, Flyers, Brochures, Booklets, Calendars, Banners, Packaging, Stickers & Labels, Roll-Up Banners, Free Configuration
-- **13 materials** with paper families, weights, and properties
-- **16 finishes** — lamination, UV coating, embossing, foil stamping, die-cut, and more
-- **4 printing methods** — Digital, Offset, Letterpress, UV Inkjet
-- **Multi-component products** (e.g. booklet cover + body, roll-up banner + stand)
-- **Per-side ink configuration** — CMYK 4/4, 4/0, 4/1, mono 1/0, 1/1
-- **12 compatibility rules** with composable predicates (And/Or/Not)
-- Step-by-step wizard with progressive disclosure and real-time validation
-
-### 💰 Pricing Engine
-
-- **17 pricing rule types** — material (base/area/sheet), finish surcharges (ID overrides type), process/category surcharges, ink configuration factor, cutting, fold/binding surcharges, quantity/sheet tiers, setup fees, minimum order price
-- Sheet-based pricing with nesting/imposition calculation
-- Real-time price breakdown with per-component detail
-- Multiple currency support (USD, CZK)
-- See [docs/pricing.md](docs/pricing.md) for worked examples
-
-### 📅 Visual Product Editor
-
-- **5 product types**: Monthly Calendar (12p), Weekly Calendar (52p), Bi-weekly Calendar (26p), Photo Book (12p), Wall Picture (1p)
-- **10 physical formats** with precise mm dimensions
-- Canvas elements: photos, text (bold/italic/alignment), shapes (rectangles/lines), clipart
-- Drag, resize, rotate, z-order, duplicate, delete for all elements
-- Per-page backgrounds (solid color or image)
-- Horizontal scrollable page navigation (handles 52+ pages)
-- See [docs/visual-product-types.md](docs/visual-product-types.md) for all types and formats
-
-### 🛒 Shopping & Checkout
-
-- Shopping basket with quantity management and real-time totals
-- Discount codes via `DiscountService`
-- Checkout with customer details, delivery options, and order summary
-
-### 🏭 Manufacturing System
-
-A complete production management suite for print shops with 7 operational views:
-
-| View | Purpose |
-|------|---------|
-| **Dashboard** | Summary cards, station status strip, recent orders, "My In-Progress Jobs" |
-| **Station Queue** | Pull-model operator view with priority scoring, Start/Complete actions |
-| **Order Approval** | Artwork checks, payment verification, priority & deadline management |
-| **Order Progress** | Workflow visualization, deadline urgency, fulfilment tracking |
-| **Employees** | Employee profiles, station capabilities, current employee selector |
-| **Machines** | Machine registry with Online/Offline/Maintenance status controls |
-| **Analytics** | KPI cards, station performance, employee throughput, bottleneck alerts |
-
-Key capabilities:
-- **DAG-based workflows** — `WorkflowGenerator` derives step sequence from product configuration, mapping printing methods and finishes to 14 station types
-- **Workflow engine** — Pure state machine: `startStep`, `completeStep`, `failStep`, `skipStep`, `resetStep` with DAG dependency enforcement
-- **Queue priority scoring** — Deadline urgency (0–100), priority boost, completeness, batch affinity, age tiebreaker
-- **Artwork checks** — Per-file resolution/bleed/color profile validation flags
-- **Fulfilment workflow** — 4-step dispatch: collect items → quality sign-off → packaging → dispatch (gated)
-- **Analytics** — Average time per station, bottleneck detection, employee throughput, on-time delivery rate
-
-See [docs/manufacturing-implementation-plan.md](docs/manufacturing-implementation-plan.md) for full implementation details.
-
-### 🌐 Internationalization
-
-- English and Czech (`En`, `Cs`) with `LocalizedString` opaque type
-- All entities, error messages, and UI components fully localized
-- Browser language detection with `localStorage` persistence
+Key principles: **rules and pricing as data** (inspectable ADTs interpreted by engines), **error
+accumulation** with `Validation`, **bounded-context isolation** enforced by the build, and **one
+PostgreSQL schema per context**, each with its own migrations.
 
 ## Getting Started
 
-### Prerequisites
+> Quick start: see **[HOW_TO_RUN.md](HOW_TO_RUN.md)** for the one-command [`scripts/dev.sh`](scripts/dev.sh) runner covering all frontend, backend, and PostgreSQL combinations.
 
-- Java 11+ (Java 17 recommended)
-- Mill 1.1.3+
-- A modern web browser
+**Prerequisites:** JDK 25 (e.g. `sdk env` with the bundled `.sdkmanrc`), Mill 1.1.3 (`./mill` wrapper
+included), and Docker (or Podman) for PostgreSQL and the database tests.
 
-### Build & Test
-
-#### Using Mill
+### Static demo (no backend)
 
 ```bash
-mill domain.jvm.compile          # Compile domain module (JVM)
-mill domain.jvm.test             # Run all domain tests
-mill ui.compile                  # Compile UI module (Scala.js)
-mill ui.fastLinkJS               # Build UI JavaScript (development)
-mill ui.fullLinkJS               # Build UI JavaScript (production, optimized)
+./mill ui.fastLinkJS
+mkdir -p dist && cp modules/ui/src/main/resources/index.html out/ui/fastLinkJS.dest/main.js dist/
+cd dist && python3 -m http.server 8000      # http://localhost:8000 (storefront), /#/admin (backoffice)
 ```
 
-### Run Locally
+### API server
 
 ```bash
-mill ui.fastLinkJS
+./mill backend.app.run --storage=memory     # http://localhost:8080/docs (Swagger UI), /openapi.json
 
-mkdir -p dist
-cp modules/ui/src/main/resources/index.html dist/
-cp modules/ui/src/main/resources/*.css dist/
-cp out/ui/fastLinkJS.dest/main.js dist/
-
-cd dist && python3 -m http.server 8080
-# Open http://localhost:8080
+docker compose up -d postgres
+DATABASE_URL=postgresql://localhost:5432/printcraft ./mill backend.app.run --storage=postgres
 ```
 
-See [docs/ui-guide.md](docs/ui-guide.md) for detailed instructions.
+On first boot the database is migrated and seeded with the showcase data. To point the SPA at the
+server, see **[docs/running-the-platform.md](docs/running-the-platform.md)**, which also covers all
+server options and demo logins.
 
-## Testing
+### Tests
 
-**341 passing tests** across 14 test suites:
-
-| Suite | Tests | Area |
-|-------|------:|------|
-| ConfigurationBuilderSpec | 34 | Product configuration & validation |
-| CatalogQueryServiceSpec | 17 | Progressive disclosure filtering |
-| PriceCalculatorSpec | 14 | Pricing calculations & breakdowns |
-| LocalizationSpec | 17 | i18n, LocalizedString, error messages |
-| BasketServiceSpec | 17 | Basket operations & totals |
-| WorkflowGeneratorSpec | 19 | Workflow DAG generation |
-| WorkflowEngineSpec | 27 | State transitions & DAG enforcement |
-| QueueScorerSpec | 24 | Priority scoring & sorting |
-| EmployeeManagementServiceSpec | 17 | Employee CRUD & capabilities |
-| MachineManagementServiceSpec | 16 | Machine CRUD & status transitions |
-| ArtworkCheckSpec | 15 | Artwork validation flags |
-| FulfilmentChecklistSpec | 17 | Dispatch checklist & gating |
-| AnalyticsServiceSpec | 13 | Production metrics & KPIs |
-| WeightCalculatorSpec | — | Weight calculation |
+```bash
+./mill __.test                               # everything (~140 tests; DB suites need Docker)
+./mill backend.sample.jvm.test               # cross-context domain & facade tests
+./mill ui-admin-core.jvm.test                # Kyo UI render tests (RBAC, i18n, storefront → intake E2E)
+./mill 'backend.ordering.02-o-db.test'       # same contract against in-memory and PostgreSQL
+./mill backend.app.test                      # live HTTP end-to-end, memory and PostgreSQL modes
+```
 
 ## Documentation
 
-📖 **[docs/INDEX.md](docs/INDEX.md)** — Master table of contents for all documentation (start here)
-
-### Key Documents
-
-- **[docs/features.md](docs/features.md)** — Comprehensive feature overview
-- **[docs/pricing.md](docs/pricing.md)** — Pricing system with worked examples
-- **[docs/visual-product-types.md](docs/visual-product-types.md)** — Visual editor types & formats
-- **[docs/manufacturing-implementation-plan.md](docs/manufacturing-implementation-plan.md)** — Manufacturing phases 1–8
-- **[docs/ui-guide.md](docs/ui-guide.md)** — Build, run & test instructions
-- **[docs/analysis/](docs/analysis/)** — Research & planning documents
-
-### Knowledge Base
-
-- **[docs/troubleshooting.md](docs/troubleshooting.md)** — Known issues & solutions
-- **[docs/changelog/](docs/changelog/)** — Work session logs & history
+- **[HOW_TO_RUN.md](HOW_TO_RUN.md)**: one-command local development guide (`scripts/dev.sh`)
+- **[docs/INDEX.md](docs/INDEX.md)**: master index of all documentation (start here)
+- **[PLAN.md](PLAN.md)**: goals and roadmap status; details in [docs_roadmap/platform_roadmap.md](docs_roadmap/platform_roadmap.md)
+- **[docs/backend-persistence-and-http-api.md](docs/backend-persistence-and-http-api.md)**: persistence, HTTP API and blob storage design
+- **[docs/running-the-platform.md](docs/running-the-platform.md)**: running the server and frontends
+- **[guides/scala_3_modulith_boilerplate.md](guides/scala_3_modulith_boilerplate.md)**: the module and layer conventions
+- **[CLAUDE.md](CLAUDE.md)**: build commands and coding conventions for contributors and AI assistants
+- **[docs/troubleshooting.md](docs/troubleshooting.md)** and **[docs/changelog/](docs/changelog/)**: known issues and work history
 
 ## License
 
-MIT — see [LICENSE](LICENSE) for details.
-
+MIT, see [LICENSE](LICENSE).

@@ -7,20 +7,15 @@ This file provides guidance to GitHub Copilot coding agent when working with cod
 See [CLAUDE.md](../CLAUDE.md) for detailed build commands. Quick reference:
 
 ```bash
-# Mill (recommended)
-mill __.compile          # Compile all
-mill __.test             # Test all
-mill ui.fastLinkJS       # Dev JS build
-
-# sbt (legacy)
-sbt compile              # Compile all
-sbt test                 # Test all
-sbt ui/fastLinkJS        # Dev JS build
+./mill __.compile                              # Compile all
+./mill __.test                                 # Test all
+./mill ui.fastLinkJS                           # Dev JS build
+./mill mill.scalalib.scalafmt/checkFormatAll   # Check formatting (reformatAll to fix)
 ```
 
 ## Key Architecture Rules
 
-- **Pure domain, no effects** — Domain module uses `Validation[E, A]` from ZIO Prelude only. No ZIO effects.
+- **Pure domain, no effects** — Domain module uses `mpbuilder.shared.Validation[E, A]` for pure rules; services use Kyo effects (`A < (Async & Abort[E])`).
 - **Rules as sealed ADTs** — Compatibility and pricing rules are data, not functions.
 - **Opaque types everywhere** — All IDs and value objects use Scala 3 opaque types with smart constructors.
 - **Error accumulation** — Always use `Validation`, never `Either`, for domain results.
