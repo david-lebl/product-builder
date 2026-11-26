@@ -4,7 +4,7 @@ This guide covers the local development script [`scripts/dev.sh`](scripts/dev.sh
 
 ## Prerequisites
 
-- **JDK 25** (matching [`.sdkmanrc`](.sdkmanrc)) — `scripts/dev.sh` automatically detects JDK 25 from SDKMAN or `java_home` if your default shell uses another JDK
+- **JDK 25** — provisioned automatically: `build.mill` pins `//| mill-jvm-version: temurin:25.0.1`, so `./mill` downloads and uses Temurin 25 regardless of the shell's `java` ([`.sdkmanrc`](.sdkmanrc) remains for IDEs/other tools)
 - **Mill 1.1.3** (via the bundled [`./mill`](mill) wrapper)
 - **Python 3** (used to serve static frontend bundles and inject `window.__API_BASE_URL__`)
 - **Docker** (or Podman with Compose) — only required for PostgreSQL modes (`fullstack`, `backend-db`, `db-*`) and DB test suites

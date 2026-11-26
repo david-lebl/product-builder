@@ -191,7 +191,7 @@ private[views] object CustomerCommercialTab:
                           .cssClass("mp-input")
                           .value(d.currency.toString)
                           .onChange(v => Currency.values.find(_.toString == v).map(cur => upd(_.copy(currency = cur))).getOrElse(Kyo.unit))(
-                            Currency.values.toList.map(cur => option.value(cur.toString)(cur.toString))*
+                            Currency.values.toList.map(cur => option.value(cur.toString).selected(cur == d.currency)(cur.toString))*
                           ),
                       ),
                     ),

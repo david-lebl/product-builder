@@ -449,3 +449,35 @@ object AdminTheme:
 
   val adminStylesheet: Stylesheet =
     AppTheme.storefrontStylesheet ++ adminOnlyStylesheet
+
+  /** Full-height "one big table" layout, applied automatically whenever the routed view contains a `DataTable`
+    * (`.mp-dt-root`) — Orders, Catalog, Customers, and the Pricing table tabs.
+    *
+    * The workspace is pinned to the viewport so the page itself never scrolls; every wrapper between
+    * `.mp-admin-content` and the table becomes a flexible column, and only the table body
+    * (`.mp-dt-table-scroll`, with sticky column headers) and the detail pane body scroll. The page header,
+    * search / create buttons, filters and pager therefore stay visible, as does the top of the split
+    * detail pane while browsing the last rows. The content width cap is raised from 1560px to 2400px
+    * (centred) so only ultra-wide screens are limited.
+    *
+    * Raw CSS because typed `kyo.Style` cannot emit `max-height: none` (`Length.Auto` renders invalid
+    * `max-height: auto`), an inset box-shadow (sticky header border under `border-collapse`), or the
+    * `100vh` → `100dvh` fallback pair — see `docs/analysis/kyo-ecosystem-findings.md` #21.
+    * Phones (<= 640px) keep the regular page-scroll layout.
+    * Injected by the full-page backoffice hosts next to `AppTheme.documentCss`.
+    */
+  val documentCss: String =
+    """@media (min-width: 641px){
+      |.mp-admin-workspace:has(.mp-dt-root){height:100vh;height:100dvh;min-height:0}
+      |.mp-admin-content:has(.mp-dt-root){flex:1 1 0;min-height:0;max-width:2400px;margin-left:auto;margin-right:auto;overflow-y:auto}
+      |.mp-admin-content :has(.mp-dt-root){display:flex;flex-direction:column;flex:1 1 0;min-height:0;align-self:stretch}
+      |.mp-admin-content .mp-dt-root{flex:1 1 0;min-height:0}
+      |.mp-admin-content .mp-dt-header-top{flex-shrink:0}
+      |.mp-admin-content .mp-dt-split{flex:1 1 0;min-height:320px}
+      |.mp-admin-content .mp-dt-list-pane{min-height:0}
+      |.mp-admin-content .mp-dt-header-filters,.mp-admin-content .mp-dt-pager{flex-shrink:0}
+      |.mp-admin-content .mp-dt-table-scroll{flex:1 1 0;min-height:0;overflow:auto}
+      |.mp-admin-content .mp-dt-th{position:sticky;top:0;z-index:2;box-shadow:inset 0 -1px 0 var(--mp-border)}
+      |.mp-admin-content .mp-dt-detail-pane{flex:1 1 0;min-height:0;max-height:none}
+      |}
+      |""".stripMargin

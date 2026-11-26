@@ -99,7 +99,7 @@ object StaffSettingsView:
                         label("Primary Role").style(labelStyle),
                         stRoleRef.render { r =>
                           select.cssClass("mp-input").value(r.toString).onChange(v => EmployeeRole.values.find(_.toString == v).map(stRoleRef.set).getOrElse(Kyo.unit))(
-                            EmployeeRole.values.toList.map(x => option.value(x.toString)(x.toString))*
+                            EmployeeRole.values.toList.map(x => option.value(x.toString).selected(x == r)(x.toString))*
                           )
                         },
                       ),
@@ -245,7 +245,7 @@ object StaffSettingsView:
                               label("Currency").style(labelStyle),
                               crCurRef.render { c =>
                                 select.cssClass("mp-input").value(c.toString).onChange(v => Currency.values.find(_.toString == v).map(crCurRef.set).getOrElse(Kyo.unit))(
-                                  List(Currency.CZK, Currency.USD).map(x => option.value(x.toString)(x.toString))*
+                                  List(Currency.CZK, Currency.USD).map(x => option.value(x.toString).selected(x == c)(x.toString))*
                                 )
                               },
                             ),
@@ -322,7 +322,7 @@ object StaffSettingsView:
                             label("Currency").style(labelStyle),
                             bkCurRef.render { c =>
                               select.cssClass("mp-input").value(c.toString).onChange(v => Currency.values.find(_.toString == v).map(bkCurRef.set).getOrElse(Kyo.unit))(
-                                List(Currency.CZK, Currency.USD, Currency.EUR).map(x => option.value(x.toString)(x.toString))*
+                                List(Currency.CZK, Currency.USD, Currency.EUR).map(x => option.value(x.toString).selected(x == c)(x.toString))*
                               )
                             },
                           ),
