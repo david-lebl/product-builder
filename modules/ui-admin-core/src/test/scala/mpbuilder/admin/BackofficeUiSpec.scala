@@ -42,6 +42,14 @@ class BackofficeUiSpec extends Test[Any]:
         assert(css.contains(".mp-timeline"))
       }
 
+      "AdminTheme document CSS pins DataTable views to the viewport with an internally scrolling table" in {
+        val css = AdminTheme.documentCss
+        assert(css.contains(".mp-admin-workspace:has(.mp-dt-root){height:100vh"))
+        assert(css.contains(".mp-dt-table-scroll{flex:1 1 0;min-height:0;overflow:auto}"))
+        assert(css.contains(".mp-dt-th{position:sticky;top:0"))
+        assert(css.contains("max-width:2400px"))
+      }
+
       "AdminRoute hash routing round-trips both unified (#/admin/...) and standalone (#/...) prefixes" in {
         val ordId = OrderId.unsafe("ord-seed-0901")
         val routes = List(
