@@ -53,9 +53,13 @@ final case class AddToCartRequest(
     speed: ManufacturingSpeed = ManufacturingSpeed.Standard,
     copies: Quantity = Quantity.one,
     artworkIds: Map[ComponentKey, ArtworkId] = Map.empty,
+    productionNote: Option[String] = None,
 )
 
 final case class UpdateCopiesRequest(copies: Quantity)
+
+/** Sets (or clears, with `None` / blank) a cart or order line's production instructions. */
+final case class ProductionNoteRequest(note: Option[String] = None)
 final case class ApplyPromoRequest(code: String)
 
 final case class CheckoutOptionsRequest(

@@ -116,6 +116,7 @@ final case class QuickOrderItem(
     speed: ManufacturingSpeed = ManufacturingSpeed.Standard,
     copies: Quantity = Quantity.one,
     artworkIds: Map[ComponentKey, ArtworkId] = Map.empty,
+    productionNote: Option[String] = None,
 )
 
 /** Checkout either consumes a shopping cart (clearing it on submit) or orders a single quick item. */

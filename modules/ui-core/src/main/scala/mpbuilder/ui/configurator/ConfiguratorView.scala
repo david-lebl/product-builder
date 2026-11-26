@@ -1049,7 +1049,22 @@ object ConfiguratorView:
             )
           }*
         ),
+        productionNoteField(ctrl),
       )
+
+  /** Optional free-text production instructions for this line (kept in its own ref so typing never re-renders the form). */
+  private def productionNoteField(ctrl: ConfiguratorController): UI =
+    div.cssClass("mp-field mp-production-note")(
+      label.style(Style.fontSize(13.px).fontWeight(FontWeight.w700).color(ink))(ctrl.i18n.t("cfg-production-note-label")),
+      ctrl.i18n.t("cfg-production-note-placeholder").render { ph =>
+        textarea
+          .cssClass("mp-input")
+          .style(Style.minHeight(68.px))
+          .placeholder(ph)
+          .value(ctrl.productionNote)
+      },
+      span(ctrl.i18n.t("cfg-production-note-hint")).style(smallText),
+    )
 
   /** "Design it online" call-to-action (or "Edit design" for an attached Visual Editor design). */
   private def designOnlineAction(

@@ -109,8 +109,12 @@ final class HttpStorefrontFacade(transport: HttpTransport, baseUrl: String) exte
       copies: Quantity,
       sessionToken: Option[SessionToken],
       artworkIds: Map[ComponentKey, ArtworkId],
+      productionNote: Option[String],
   ): CartView < (Async & Abort[StorefrontError]) =
-    http.call[CartView]("POST", cart(cartId, "lines"), sessionToken, json(AddToCartRequest(cmd, currency, speed, copies, artworkIds)))
+    http.call[CartView]("POST", cart(cartId, "lines"), sessionToken, json(AddToCartRequest(cmd, currency, speed, copies, artworkIds, productionNote)))
+
+  override def updateCartLineProductionNote(cartId: CartId, lineId: OrderLineId, note: Option[String]): CartView < (Async & Abort[StorefrontError]) =
+    http.call[CartView]("PUT", cart(cartId, "lines", seg(lineId.value), "production-note"), body = json(ProductionNoteRequest(note)))
 
   override def updateCartLineCopies(cartId: CartId, lineId: OrderLineId, copies: Quantity): CartView < (Async & Abort[StorefrontError]) =
     http.call[CartView]("PATCH", cart(cartId, "lines", seg(lineId.value)), body = json(UpdateCopiesRequest(copies)))
@@ -197,6 +201,16 @@ final class HttpStorefrontFacade(transport: HttpTransport, baseUrl: String) exte
   ): ArtworkSubmissionView < (Async & Abort[StorefrontError]) =
     http.call[ArtworkSubmissionView](
       "POST", myOrder(orderId, "artwork"), Some(sessionToken), json(OrderLineArtworkRequest(lineIndex, componentKey, payload)),
+    )
+
+  override def updateMyOrderLineProductionNote(
+      sessionToken: SessionToken,
+      orderId: OrderId,
+      lineId: OrderLineId,
+      note: Option[String],
+  ): OrderView < (Async & Abort[StorefrontError]) =
+    http.call[OrderView](
+      "PUT", myOrder(orderId, "lines", seg(lineId.value), "production-note"), Some(sessionToken), json(ProductionNoteRequest(note)),
     )
 
   override def reuploadOrderArtworkPayload(

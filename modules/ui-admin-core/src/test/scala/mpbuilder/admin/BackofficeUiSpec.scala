@@ -87,6 +87,8 @@ class BackofficeUiSpec extends Test[Any]:
             loginHtml  <- renderHtml(ui, i18n)
             // Log in as Prepress (read-only intake/management)
             prepress   <- I18n.let(i18n.handle)(state.login("prepress@printshop.cz", "staff1234"))
+            _          <- I18n.let(i18n.handle)(state.navigate(AdminRoute.Orders))
+            queueHtml  <- renderHtml(ui, i18n)
             _          <- I18n.let(i18n.handle)(state.navigate(AdminRoute.OrderDetail(OrderId.unsafe("ord-seed-0902"))))
             prepHtml   <- renderHtml(ui, i18n)
             _          <- I18n.let(i18n.handle)(state.logout)
@@ -102,6 +104,12 @@ class BackofficeUiSpec extends Test[Any]:
             assert(!loginHtml.contains("‹") && !loginHtml.contains("›"))
             assert(prepress.isRight)
             assert(prepHtml.contains("Read-only Intake (Prepress)"))
+            // Intake queue flags orders with customer instructions and offers a filter for them
+            assert(queueHtml.contains("Customer instructions · 1"))
+            assert(queueHtml.contains("With instructions"))
+            // Seeded ORD-2026-0902 carries customer production instructions on its line
+            assert(prepHtml.contains("Customer production instructions"))
+            assert(prepHtml.contains("Pantone 286 C"))
             assert(!prepHtml.contains("‹") && !prepHtml.contains("›"))
             assert(admin.isRight)
             assert(dashEnHtml.contains("Operations Dashboard"))
@@ -123,7 +131,9 @@ class BackofficeUiSpec extends Test[Any]:
             cAuth   <- sfClient.loginWithPassword(EmailAddress.unsafe("jan@printshoppro.cz"), NonEmptyString.unsafe("demo1234"))
             _       <- I18n.let(i18n.handle)(sfState.completeAuth(cAuth))
             draft   <- sfState.configurator.draft.get
+            _       <- sfState.configurator.productionNote.set("Logo side is the front")
             _       <- I18n.let(i18n.handle)(sfState.addDraftToCart(draft))
+            noteCleared <- sfState.configurator.productionNote.get
             _       <- I18n.let(i18n.handle)(sfState.startCartCheckout)
             sessOpt <- sfState.checkoutSession.get
             sess    <- Abort.get(sessOpt.toRight("Expected checkout session"))
@@ -154,6 +164,8 @@ class BackofficeUiSpec extends Test[Any]:
             _         <- I18n.let(i18n.handle)(sfState.refreshOrders)
             sfOrders  <- sfState.orders.get
           yield {
+            assert(conf.order.lines.head.productionNote.contains("Logo side is the front"))
+            assert(noteCleared.isEmpty)
             assert(queue.exists(_.id == newOrdId))
             assert(finalOrd.exists(_.status == OrderStatus.Completed))
             assert(finalOrd.exists(_.internalNotes.exists(_.text.value.contains("Customer confirmed delivery"))))

@@ -81,6 +81,8 @@ final class ConfiguratorController(
     val dockExpanded: SignalRef[Boolean],
     /** Add-to-cart button feedback shared by the desktop sidebar and the mobile dock. */
     val cartFeedback: SignalRef[CartFeedback],
+    /** Customer's optional production instructions for the line being configured (sent with add-to-cart). */
+    val productionNote: SignalRef[String],
     val draftSessionId: NonEmptyString = NonEmptyString.unsafe("draft-session-ui"),
 ):
 
@@ -336,7 +338,11 @@ final class ConfiguratorController(
     yield ()
 
   def clearDraftArtworks: Unit < Sync =
-    draft.updateAndGet(_.copy(artworks = Map.empty, designs = Map.empty)).unit
+    draft.updateAndGet(_.copy(artworks = Map.empty, designs = Map.empty)).unit.andThen(productionNote.set(""))
+
+  /** The production note to attach to the line (`None` when blank). */
+  def currentProductionNote: Option[String] < Sync =
+    productionNote.get.map(n => Option(n.trim).filter(_.nonEmpty))
 
   def buildConfigureCmd(d: DraftConfig): ConfigureProductCmd < Sync =
     for
@@ -497,6 +503,7 @@ object ConfiguratorController:
       matPicker  <- mpbuilder.ui.components.ComboBox.Handle.make
       dockRef    <- Signal.initRef(false)
       feedbackRef <- Signal.initRef[CartFeedback](CartFeedback.Idle)
+      noteRef     <- Signal.initRef("")
       ctrl        = new ConfiguratorController(
                       client,
                       catalogRef,
@@ -512,6 +519,7 @@ object ConfiguratorController:
                       matPicker,
                       dockRef,
                       feedbackRef,
+                      noteRef,
                     )
       _          <- ctrl.recompute
     yield ctrl

@@ -438,6 +438,9 @@ object CheckoutView:
                                   )
                                 else
                                   reactiveBadge(state.i18n.t("cfg-artwork-none-badge"), BadgeTone.Neutral),
+                                if ln.productionNote.isDefined then
+                                  reactiveBadge(state.i18n.t("note-production-badge"), BadgeTone.Brand)
+                                else UI.empty,
                               ),
                             )
                           }*

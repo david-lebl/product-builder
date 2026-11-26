@@ -46,6 +46,7 @@ Brief description of what was accomplished in this session.
 
 | Date | Title | PR | Type |
 |------|-------|----|------|
+| 2026-11-26 | [Order-Line Production Instructions](2026-11-26-order-line-production-notes.md) | t3/order-line-manufacturing-note | feature |
 | 2026-11-25 | [Mobile Configurator Sticky Price Dock](2026-11-25-mobile-configurator-sticky-dock.md) | t3/mobile-configurator-sticky-bar | feature |
 | 2026-11-25 | [Searchable Material Combo Box](2026-11-25-configurator-material-combobox.md) | t3/configurator-material-searchable-combobox | feature |
 | 2026-11-24 | [UI Visual & UX Modernization](2026-11-24-ui-visual-ux-modernization.md) | t3/optimise-ui-visual-ux | feature |

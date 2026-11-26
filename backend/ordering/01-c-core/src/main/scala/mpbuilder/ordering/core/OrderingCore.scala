@@ -52,11 +52,17 @@ private[ordering] final case class Cart(
 ):
   def addLine(line: CartLine): Either[OrderError, Cart] =
     if line.price.currency != currency then Left(OrderError.CurrencyMismatch(currency, line.price.currency))
-    else Right(copy(lines = lines :+ line))
+    else Right(copy(lines = lines :+ line.copy(productionNote = ProductionNote.normalize(line.productionNote))))
 
   def updateLineCopies(lineId: OrderLineId, copies: Quantity): Either[OrderError, Cart] =
     if !lines.exists(_.lineId == lineId) then Left(OrderError.CartLineNotFound(id, lineId))
     else Right(copy(lines = lines.map(l => if l.lineId == lineId then l.copy(copies = copies) else l)))
+
+  def updateLineProductionNote(lineId: OrderLineId, note: Option[String]): Either[OrderError, Cart] =
+    if !lines.exists(_.lineId == lineId) then Left(OrderError.CartLineNotFound(id, lineId))
+    else
+      val normalized = ProductionNote.normalize(note)
+      Right(copy(lines = lines.map(l => if l.lineId == lineId then l.copy(productionNote = normalized) else l)))
 
   def replaceLine(line: CartLine): Either[OrderError, Cart] =
     if line.price.currency != currency then Left(OrderError.CurrencyMismatch(currency, line.price.currency))
@@ -325,6 +331,27 @@ private[ordering] final case class Order(
   def addNote(authorId: EmployeeId, authorName: Option[NonEmptyString], text: NonEmptyString, now: Instant): Order =
     copy(internalNotes = internalNotes :+ OrderInternalNote(authorId, authorName, text, now))
 
+  def updateLineProductionNote(
+      lineId: OrderLineId,
+      note: Option[String],
+      actor: OrderActor,
+      now: Instant,
+  ): Either[OrderError, Order] =
+    if !status.allowsCustomerArtworkUpload then Left(OrderError.ProductionNoteLocked(id, status))
+    else
+      lines.find(_.lineId == lineId) match
+        case None => Left(OrderError.OrderLineNotFound(id, lineId))
+        case Some(target) =>
+          val normalized = ProductionNote.normalize(note)
+          if normalized == target.productionNote then Right(this)
+          else
+            val updatedLines = lines.map(l => if l.lineId == lineId then l.copy(productionNote = normalized) else l)
+            val summary =
+              s"Production instructions ${if normalized.isEmpty then "removed" else "updated"} for line " +
+                target.product.categoryName(Language.En)
+            val ev = OrderStatusEvent(Some(status), status, actor, Some(summary), now)
+            Right(copy(lines = updatedLines, statusHistory = statusHistory :+ ev))
+
   def attachArtwork(lineIndex: Int, componentKey: ComponentKey, artworkId: ArtworkId): Either[OrderError, Order] =
     if lineIndex < 0 || lineIndex >= lines.size then
       Left(OrderError.OrderLineNotFound(id, OrderLineId.unsafe(s"index-$lineIndex")))
@@ -462,6 +489,17 @@ private[ordering] final class CartServiceLive(repo: CartRepository) extends Cart
     for
       cart    <- repo.findById(cartId).someOrFail(OrderError.CartNotFound(cartId))
       updated <- (cart.updateLineCopies(lineId, copies)).orAbort
+      _       <- repo.save(updated)
+    yield updated.toView
+
+  override def updateLineProductionNote(
+      cartId: CartId,
+      lineId: OrderLineId,
+      note: Option[String],
+  ): CartView < (Async & Abort[OrderError]) =
+    for
+      cart    <- repo.findById(cartId).someOrFail(OrderError.CartNotFound(cartId))
+      updated <- (cart.updateLineProductionNote(lineId, note)).orAbort
       _       <- repo.save(updated)
     yield updated.toView
 
@@ -876,6 +914,19 @@ private[ordering] final class OrderServiceLive(
     for
       order   <- repo.findById(orderId).someOrFail(OrderError.OrderNotFound(orderId))
       updated <- (order.attachArtwork(lineIndex, componentKey, artworkId)).orAbort
+      _       <- repo.save(updated)
+    yield updated.toView
+
+  override def updateLineProductionNote(
+      orderId: OrderId,
+      lineId: OrderLineId,
+      note: Option[String],
+      actor: OrderActor,
+  ): OrderView < (Async & Abort[OrderError]) =
+    for
+      now     <- Effects.now
+      order   <- repo.findById(orderId).someOrFail(OrderError.OrderNotFound(orderId))
+      updated <- (order.updateLineProductionNote(lineId, note, actor, now)).orAbort
       _       <- repo.save(updated)
     yield updated.toView
 

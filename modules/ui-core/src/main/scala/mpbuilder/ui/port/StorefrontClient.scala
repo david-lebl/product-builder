@@ -99,7 +99,21 @@ trait StorefrontClient:
       copies: Quantity = Quantity.one,
       sessionToken: Option[SessionToken] = None,
       artworkIds: Map[ComponentKey, ArtworkId] = Map.empty,
+      productionNote: Option[String] = None,
   ): CartView < (Abort[StorefrontError] & Async)
+
+  def updateCartLineProductionNote(
+      cartId: CartId,
+      lineId: OrderLineId,
+      note: Option[String],
+  ): CartView < (Abort[StorefrontError] & Async)
+
+  def updateMyOrderLineProductionNote(
+      sessionToken: SessionToken,
+      orderId: OrderId,
+      lineId: OrderLineId,
+      note: Option[String],
+  ): OrderView < (Abort[StorefrontError] & Async)
 
   def updateCartLineCopies(
       cartId: CartId,
@@ -306,8 +320,24 @@ object StorefrontClient:
         copies: Quantity,
         sessionToken: Option[SessionToken],
         artworkIds: Map[ComponentKey, ArtworkId],
+        productionNote: Option[String],
     ): CartView < (Abort[StorefrontError] & Async) =
-      facade.addConfiguredProductToCart(cartId, cmd, currency, speed, copies, sessionToken, artworkIds)
+      facade.addConfiguredProductToCart(cartId, cmd, currency, speed, copies, sessionToken, artworkIds, productionNote)
+
+    override def updateCartLineProductionNote(
+        cartId: CartId,
+        lineId: OrderLineId,
+        note: Option[String],
+    ): CartView < (Abort[StorefrontError] & Async) =
+      facade.updateCartLineProductionNote(cartId, lineId, note)
+
+    override def updateMyOrderLineProductionNote(
+        sessionToken: SessionToken,
+        orderId: OrderId,
+        lineId: OrderLineId,
+        note: Option[String],
+    ): OrderView < (Abort[StorefrontError] & Async) =
+      facade.updateMyOrderLineProductionNote(sessionToken, orderId, lineId, note)
 
     override def updateCartLineCopies(
         cartId: CartId,

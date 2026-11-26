@@ -380,6 +380,15 @@ object OrderDetailView:
 
                             // Product summary & plain-text staff specification note
                             ln.product.summaryNotes.map(n => div.style(smallText)(n)).getOrElse(UI.empty),
+                            ln.productionNote match
+                              case Some(cn) =>
+                                div
+                                  .cssClass("mp-od-customer-note")
+                                  .style(Style.column.gap(2.px).padding(8.px, 10.px).rounded(8.px).bg(amberSoft).border(1.px, amberBorder))(
+                                    span(state.i18n.t("adm-od-line-customer-note")).style(Style.fontSize(11.px).fontWeight(FontWeight.w800).color(amberInk)),
+                                    span(cn).style(Style.fontSize(13.px).color(ink).whiteSpace(WhiteSpace.preWrap)),
+                                  )
+                              case None => UI.empty,
                             ln.specNote match
                               case Some(sn) =>
                                 div.style(Style.padding(8.px, 10.px).rounded(8.px).bg(brandSoft).border(1.px, brandBorder).fontSize(12.px).color(brandDark))(

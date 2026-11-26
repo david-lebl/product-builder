@@ -37,7 +37,8 @@ private[manufacturing] object WorkflowGenerator:
             componentKey = None,
             dependsOn = Set.empty,
             status = StepStatus.Ready,
-            notes = s"Prepress for ${spec.productLabel}",
+            notes = s"Prepress for ${spec.productLabel}" +
+              spec.customerInstructions.fold("")(i => s" · Customer instructions: $i"),
           )
         )
       else None

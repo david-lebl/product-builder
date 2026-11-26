@@ -35,6 +35,7 @@ object StorefrontApiCodecs:
   given Schema[CreateCartRequest]            = Schema.derived
   given Schema[AddToCartRequest]             = Schema.derived
   given Schema[UpdateCopiesRequest]          = Schema.derived
+  given Schema[ProductionNoteRequest]        = Schema.derived
   given Schema[ApplyPromoRequest]            = Schema.derived
   given Schema[CheckoutOptionsRequest]       = Schema.derived
   given Schema[CheckoutPreviewRequest]       = Schema.derived

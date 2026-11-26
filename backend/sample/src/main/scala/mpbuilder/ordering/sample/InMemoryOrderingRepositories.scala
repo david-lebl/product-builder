@@ -216,6 +216,7 @@ object SampleSeedOrders:
       net: BigDecimal,
       speed: ManufacturingSpeed = ManufacturingSpeed.Standard,
       artworkId: Option[String] = None,
+      productionNote: Option[String] = None,
   ): OrderLine =
     val netMoney = Money(net)
     val taxAmt   = (netMoney * (TaxRate.czStandard.value / BigDecimal(100))).rounded
@@ -254,6 +255,7 @@ object SampleSeedOrders:
         grossAmount = gross,
       ),
       artworkIds = artworkId.map(aid => ComponentKey.Main -> ArtworkId.unsafe(aid)).toMap,
+      productionNote = productionNote,
     )
 
   /** 4 realistic demo orders across the intake workflow:
@@ -304,6 +306,7 @@ object SampleSeedOrders:
       "pm-digital", "4/4", 148, 210, 1000, 260, BigDecimal("2450.00"),
       speed = ManufacturingSpeed.Express,
       artworkId = Some("art-seed-0902"),
+      productionNote = Some("Logo side is the front. Please match the blue to Pantone 286 C as closely as possible."),
     )
     val ord2 = Order
       .place(
