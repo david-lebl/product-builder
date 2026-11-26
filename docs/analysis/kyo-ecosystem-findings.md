@@ -38,6 +38,7 @@ Kyo sources.
 | 18 | combinators / core | **DX** | Small API gaps vs. ZIO users' expectations (`.either`, `Kyo.foreach(Option)`, multi-arg `assert`) | Low |
 | 19 | core | **DX** | `Clock.TimeControl.set` sleeps 100 ms of wall-clock time per call by default | Low |
 | 20 | kyo-kernel | **Bug?** | JMH (`jmh-core`, generators → `asm`, `commons-math3`, `jopt-simple`) is a compile-scope dependency, so it ships in every Kyo app | Low |
+| 21 | kyo-ui | **Bug + Gap** | `maxHeight(Length.Auto)` emits invalid `max-height: auto` (no way to lift a max size); no inset `shadow`; no `dvh` / value fallbacks | Low |
 
 What worked very well is listed at the end — worth saying upstream too.
 
@@ -250,6 +251,43 @@ without `test`/`provided` scope. Every Kyo application therefore ships JMH plus 
 `commons-math3` and `jopt-simple` (`kyo-data` likewise brings `pprint`/`fansi`). In our server they are 7 of the
 28 runtime jars. **Suggestion:** move JMH to a separate benchmark module or `provided` scope.
 
+## 21. kyo-ui `Style`: no "unset" / `none` sizes, no inset shadow, no value fallbacks — **Bug + Gap** (verified in source)
+
+Found while pinning the backoffice DataTable views to the viewport (sticky table header, internally scrolling
+table and detail pane). The layout is in `AdminTheme.documentCss`. It is raw CSS because three things cannot be
+written with typed `kyo.Style` (checked in `kyo-ui_3-1.0.0-RC7-sources.jar`: `Style.scala`, `Length.scala`,
+`internal/CssStyleRenderer.scala`):
+
+1. **`maxHeight(Length.Auto)` emits invalid CSS (Bug).** `Length.scala` documents `Auto` as accepted by
+   `maxHeight`, and `CssStyleRenderer` renders it as `max-height: auto;`. `auto` is not a valid `max-height`
+   value, so browsers drop the declaration and the base rule's cap stays in force. `Length` has no `None`, and
+   `Length.Calc("none")` renders `calc(none)`, so there is no typed way to **lift** a `max-height` / `max-width`
+   set by a base rule. Our own `AppTheme` tablet rule
+   `.rule("mp-dt-detail-pane", … .maxHeight(Length.Auto))` has therefore never done anything: the
+   `max-height: 78vh` from the base rule still applies at ≤ 960px. The same applies to `minWidth` / `minHeight`
+   (`auto` is valid there, but there is no `none` for the max variants).
+2. **No `inset` box-shadow (Gap).** `Style.shadow(x, y, blur, spread, color)` has no inset flag. With
+   `border-collapse: collapse` (which `mp-dt-table` uses), a `position: sticky` `<th>`'s `border-bottom` stays
+   behind on scroll; the usual fix is `box-shadow: inset 0 -1px 0 <border>`, which cannot be expressed.
+3. **No value fallbacks (Gap).** `Style` is last-write-wins per prop kind (`Style.++` / `appendProp`), so the
+   progressive-enhancement pair `height: 100vh; height: 100dvh` cannot be emitted. `Length.Calc("100dvh")`
+   gives `calc(100dvh)` (valid), but without the `vh` fallback for older browsers. `Length` has only
+   `Px | Pct | Em | Vh | Calc | Auto`: no `dvh` / `svh` / `rem` / `fr`.
+
+What *does* work, contrary to our first assumption: `Selector` has `descendant`, `child`, `pseudo(name)` and a
+`Stylesheet.MediaQuery.minWidth` / `raw`, so `:has()` rules like
+`Selector.cls("mp-admin-content").pseudo("has(.mp-dt-root)")` and
+`Selector.cls("mp-admin-content").descendant(Selector.tag("*").pseudo("has(.mp-dt-root)"))` are expressible.
+(Not tried: whether `Stylesheet.media` accepts `Selector` rules is unchecked; the raw string keeps the whole
+layout in one readable block anyway.)
+
+**Workaround:** `AdminTheme.documentCss`, a raw CSS string injected next to `AppTheme.documentCss` by
+`modules/ui` and `modules/ui-admin`. It is not part of the typed `Stylesheet`, so the JVM test checks the string
+itself (`BackofficeUiSpec`).
+**Suggestion:** reject or render `Length.Auto` correctly for `max*` (emit `none`), add a `Length.None` for
+`maxWidth` / `maxHeight`, add an `inset` parameter to `shadow`, add `dvh` / `svh` / `rem` units, and offer a
+`Style.raw(prop, value)` escape hatch that is appended (not merged), which would also cover fallbacks.
+
 ---
 
 ## What worked well (worth telling upstream)
@@ -273,6 +311,7 @@ without `test`/`provided` scope. Every Kyo application therefore ships JMH plus 
 - [ ] Propose a browser `fetch` backend for `kyo-http` (#4).
 - [ ] Propose `AtomicRef.update` / `modify` (#10) and documenting `-Wvalue-discard` (#2).
 - [ ] Contribute a "Coming from ZIO" page (#12, #16, #18).
+- [ ] File a kyo-ui issue for `max-height: auto` + missing `Length.None` / inset shadow / `dvh` (#21).
 - [ ] Measure the Scala.js footprint of derived kyo-schema codecs before reporting anything: after the rewrite the
       production SPA grew +6.4% gzipped (3.05 → 3.25 MB) while the storefront-only calculator shrank −1.2%, which
       points at codec size but is not yet attributed.
