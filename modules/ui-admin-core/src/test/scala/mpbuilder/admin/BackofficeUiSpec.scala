@@ -42,6 +42,14 @@ class BackofficeUiSpec extends Test[Any]:
         assert(css.contains(".mp-timeline"))
       }
 
+      "AdminTheme document CSS pins DataTable views to the viewport with an internally scrolling table" in {
+        val css = AdminTheme.documentCss
+        assert(css.contains(".mp-admin-workspace:has(.mp-dt-root){height:100vh"))
+        assert(css.contains(".mp-dt-table-scroll{flex:1 1 0;min-height:0;overflow:auto}"))
+        assert(css.contains(".mp-dt-th{position:sticky;top:0"))
+        assert(css.contains("max-width:2400px"))
+      }
+
       "AdminRoute hash routing round-trips both unified (#/admin/...) and standalone (#/...) prefixes" in {
         val ordId = OrderId.unsafe("ord-seed-0901")
         val routes = List(
@@ -234,6 +242,46 @@ class BackofficeUiSpec extends Test[Any]:
             assert(setHtml.contains("mp-tabs"))
             assert(setHtml.contains("admin@printshop.cz"))
             assert(!setHtml.contains("‹") && !setHtml.contains("›"))
+          }
+        }
+      }
+
+      "Margin Simulator re-renders with the chosen selections (option selected) and a digit-filtered quantity" in {
+        withSharedClients { (_, boClient) =>
+          for
+            i18n    <- AdminTranslations.init(Language.En)
+            boState <- BackofficeState.init(boClient, i18n)
+            _       <- I18n.let(i18n.handle)(boState.login("admin@printshop.cz", "staff1234"))
+            _       <- I18n.let(i18n.handle)(boState.navigate(AdminRoute.Pricing))
+            catOpt  <- boState.catalog.get
+            cat     <- Abort.get(catOpt.toRight("Expected catalog"))
+            withPre  = cat.categories.values.toList.filter(_.presets.nonEmpty).sortBy(_.id.value)
+            // Pick a non-default category & its last preset, so a fallback to the first option would be visible.
+            selCat   = withPre.last
+            selPre   = selCat.presets.last
+            catRef  <- Signal.initRef(selCat.id.value)
+            preRef  <- Signal.initRef(selPre.id.value)
+            qtyRef  <- Signal.initRef("1200")
+            curRef  <- Signal.initRef[Currency](Currency.USD)
+            spdRef  <- Signal.initRef[ManufacturingSpeed](ManufacturingSpeed.Express)
+            tierRef <- Signal.initRef("Gold")
+            promoRef <- Signal.initRef("")
+            resRef  <- Signal.initRef[Option[mpbuilder.backoffice.MarginSimulationResult]](None)
+            ui = mpbuilder.admin.views.PricingManagerView.renderSimulator(
+                   boState, catOpt, catRef, preRef, qtyRef, curRef, spdRef, tierRef, promoRef, resRef, Language.En,
+                 )
+            html <- renderHtml(ui, i18n)
+          yield {
+            assert(withPre.size > 1)
+            assert(html.contains(s"""value="${selCat.id.value}" selected"""))
+            assert(html.contains(s"""value="${selPre.id.value}" selected"""))
+            assert(html.contains("""value="USD" selected"""))
+            assert(!html.contains("""value="CZK" selected"""))
+            assert(html.contains("""value="Express" selected"""))
+            assert(html.contains("""value="Gold" selected"""))
+            assert(!html.contains("""value="None" selected"""))
+            assert(html.contains("data-kyo-filter=\"digits\""))
+            assert(!html.contains("type=\"number\""))
           }
         }
       }

@@ -198,8 +198,9 @@ object AdminTranslations:
       |adm-pri-promo-exhausted = Exhausted
       |adm-pri-promo-inactive = Inactive
       |adm-pri-agr-create = Save Agreement
-      |adm-pri-agr-edit-global = Update Global Terms
-      |adm-pri-agr-scoped-readonly = Category, Material & Finish Overrides (View Only)
+      |adm-pri-agr-edit = Edit Agreement
+      |adm-pri-agr-edit-json = Edit as JSON
+      |adm-pri-agr-rules = Agreement Rules
       |adm-pri-cost-save = Update Overhead Factor
       |
       |# Customer Manager
@@ -430,8 +431,9 @@ object AdminTranslations:
       |adm-pri-promo-exhausted = Vyčerpané
       |adm-pri-promo-inactive = Neaktivní
       |adm-pri-agr-create = Uložit smlouvu
-      |adm-pri-agr-edit-global = Uložit globální podmínky
-      |adm-pri-agr-scoped-readonly = Slevy na kategorie, materiály a zušlechtění (pouze pro čtení)
+      |adm-pri-agr-edit = Upravit smlouvu
+      |adm-pri-agr-edit-json = Upravit jako JSON
+      |adm-pri-agr-rules = Pravidla smlouvy
       |adm-pri-cost-save = Uložit režijní koeficient
       |
       |# Správa zákazníků

@@ -3,7 +3,9 @@ package mpbuilder.admin.views
 import kyo.*
 import kyo.UI.*
 import kyo.Style.*
+import mpbuilder.admin.pricing.{AgreementDraft, AgreementJson}
 import mpbuilder.admin.state.BackofficeState
+import mpbuilder.catalog.ProductCatalog
 import mpbuilder.backoffice.{MarginSimulationCmd, MarginSimulationResult}
 import mpbuilder.customers.CustomerView
 import mpbuilder.pricing.*
@@ -36,11 +38,7 @@ object PricingManagerView:
     case PromoLifecycleStatus.Exhausted => badge(if isCs then "Vyčerpaný" else "Exhausted", BadgeTone.Amber)
     case PromoLifecycleStatus.Inactive  => badge(if isCs then "Neaktivní" else "Inactive", BadgeTone.Neutral)
 
-  private def agreementKey(a: CustomerPriceAgreement): String =
-    val tKey = a.target match
-      case AgreementTarget.SpecificCustomer(cid) => s"cust:${cid.value}"
-      case AgreementTarget.TierDefault(t)        => s"tier:${t.toString}"
-    s"$tKey:${a.currency}"
+  private def agreementKey(a: CustomerPriceAgreement): String = AgreementDraft.keyOf(a)
 
   def render(state: BackofficeState): UI < Sync =
     for
@@ -64,17 +62,10 @@ object PricingManagerView:
       promoValRef      <- Signal.initRef("15")
       promoMaxRef      <- Signal.initRef("")
       promoExpiresRef  <- Signal.initRef("")
-      // New Agreement form refs
-      agrTargetKindRef <- Signal.initRef("tier")
-      agrTierRef       <- Signal.initRef[CustomerTier](CustomerTier.Gold)
-      agrCustIdRef     <- Signal.initRef("")
-      agrCurRef        <- Signal.initRef[Currency](Currency.CZK)
-      agrDiscRef       <- Signal.initRef("12")
-      agrMinOrdRef     <- Signal.initRef("")
-      // Inline Agreement Global Edit refs (key -> (discountPct, minOrder))
+      // B2B agreement editor sessions (create panel / detail panel) + key of the agreement being edited
+      agrCreate        <- AgreementEditorView.Session.make(AgreementDraft())
+      agrEdit          <- AgreementEditorView.Session.make(AgreementDraft())
       agrEditKeyRef    <- Signal.initRef[Option[String]](None)
-      agrEditDiscRef   <- Signal.initRef("")
-      agrEditMinRef    <- Signal.initRef("")
       // Cost sheet overhead edit ref
       overheadRef      <- Signal.initRef("1.15")
     yield
@@ -134,20 +125,15 @@ object PricingManagerView:
                   state,
                   agrs,
                   custs,
+                  catOpt,
                   focusCustOpt,
                   agrTableState,
                   dialog,
                   actionMenu,
                   canManage,
-                  agrTargetKindRef,
-                  agrTierRef,
-                  agrCustIdRef,
-                  agrCurRef,
-                  agrDiscRef,
-                  agrMinOrdRef,
+                  agrCreate,
+                  agrEdit,
                   agrEditKeyRef,
-                  agrEditDiscRef,
-                  agrEditMinRef,
                   lang,
                 )
 
@@ -164,7 +150,10 @@ object PricingManagerView:
         dialog.render,
       )
 
-  private def renderSimulator(
+  // Every `<select>` below marks its current `<option>` as `selected`: Kyo UI re-renders regions as HTML
+  // strings and browsers ignore a `value` attribute on `<select>`, so without `selected` the control
+  // snapped back to its first option on each re-render (e.g. right after picking a value).
+  private[admin] def renderSimulator(
       state: BackofficeState,
       catOpt: Option[mpbuilder.catalog.ProductCatalog],
       simCatRef: SignalRef[String],
@@ -181,6 +170,42 @@ object PricingManagerView:
       case None => div.cssClass("mp-card")(span("Loading catalog...").style(mutedText))
       case Some(cat) =>
         val catsWithPresets = cat.categories.values.toList.filter(_.presets.nonEmpty).sortBy(_.id.value)
+
+        def resolve(catRaw: String, presetRaw: String) =
+          val c = catsWithPresets.find(_.id.value == catRaw).orElse(catsWithPresets.headOption)
+          val p = c.flatMap(cc => cc.presets.find(_.id.value == presetRaw).orElse(cc.presets.headOption))
+          (c, p)
+
+        // Reads every input at run time (not values captured by the last render), so the simulation
+        // always reflects what is currently entered.
+        val runSim: Unit < Async =
+          for
+            catRaw    <- simCatRef.get
+            presetRaw <- simPresetRef.get
+            qtyS      <- simQtyRef.get.map(_.trim)
+            cur       <- simCurRef.get
+            speed     <- simSpeedRef.get
+            tierStr   <- simTierRef.get
+            promo     <- simPromoRef.get.map(_.trim)
+            _ <- resolve(catRaw, presetRaw) match
+                   case (Some(c), Some(p)) =>
+                     val cmd = MarginSimulationCmd(
+                       categoryId = c.id,
+                       presetId = p.id,
+                       quantity = Quantity.unsafe(qtyS.toIntOption.filter(_ > 0).getOrElse(500)),
+                       currency = cur,
+                       speed = speed,
+                       customerTier = CustomerTier.values.find(_.toString == tierStr),
+                       promoCode = if promo.nonEmpty then Some(promo) else None,
+                     )
+                     state.simulateMargin(cmd).map(simResultRef.set)
+                   case _ => Kyo.unit: Unit < Async
+          yield ()
+
+        // Selection changes re-run the simulation immediately once a result is shown.
+        def rerunIfShown: Unit < Async =
+          simResultRef.get.map(r => if r.isDefined then runSim else Kyo.unit: Unit < Async)
+
         val simSignal =
           simCatRef
             .combineLatest(simPresetRef)
@@ -190,31 +215,10 @@ object PricingManagerView:
             .combineLatest(simResultRef)
 
         simSignal.render { case (((((selCatRaw, selPresetRaw), cur), speed), tierStr), resOpt) =>
-          val activeCat = catsWithPresets.find(_.id.value == selCatRaw).orElse(catsWithPresets.headOption)
-          val presets   = activeCat.map(_.presets).getOrElse(Nil)
-          val activePre = presets.find(_.id.value == selPresetRaw).orElse(presets.headOption)
-
-          def runSim: Unit < Async =
-            (activeCat, activePre) match
-              case (Some(c), Some(p)) =>
-                for
-                  qtyS  <- simQtyRef.get.map(_.trim)
-                  promo <- simPromoRef.get.map(_.trim)
-                  qty    = Quantity.unsafe(qtyS.toIntOption.filter(_ > 0).getOrElse(500))
-                  tier   = CustomerTier.values.find(_.toString == tierStr)
-                  cmd = MarginSimulationCmd(
-                          categoryId = c.id,
-                          presetId = p.id,
-                          quantity = qty,
-                          currency = cur,
-                          speed = speed,
-                          customerTier = tier,
-                          promoCode = if promo.nonEmpty then Some(promo) else None,
-                        )
-                  res <- state.simulateMargin(cmd)
-                  _   <- simResultRef.set(res)
-                yield ()
-              case _ => Kyo.unit
+          val (activeCat, activePre) = resolve(selCatRaw, selPresetRaw)
+          val presets                = activeCat.map(_.presets).getOrElse(Nil)
+          val activeCatId            = activeCat.map(_.id.value).getOrElse("")
+          val activePreId            = activePre.map(_.id.value).getOrElse("")
 
           div.style(stackMd)(
             div.cssClass("mp-card")(
@@ -224,26 +228,32 @@ object PricingManagerView:
                   label(if lang == Language.Cs then "Kategorie" else "Category").style(labelStyle),
                   select
                     .cssClass("mp-input")
-                    .value(activeCat.map(_.id.value).getOrElse(""))
+                    .value(activeCatId)
                     .onChange { v =>
                       val firstPre = catsWithPresets.find(_.id.value == v).flatMap(_.presets.headOption).map(_.id.value).getOrElse("")
-                      simCatRef.set(v).andThen(simPresetRef.set(firstPre))
+                      simPresetRef.set(firstPre).andThen(simCatRef.set(v)).andThen(rerunIfShown)
                     }(
-                      catsWithPresets.map(c => option.value(c.id.value)(c.name(lang)))*
+                      catsWithPresets.map(c => option.value(c.id.value).selected(c.id.value == activeCatId)(c.name(lang)))*
                     ),
                 ),
                 div.cssClass("mp-field")(
                   label(if lang == Language.Cs then "Šablona" else "Preset").style(labelStyle),
                   select
                     .cssClass("mp-input")
-                    .value(activePre.map(_.id.value).getOrElse(""))
-                    .onChange(v => simPresetRef.set(v))(
-                      presets.map(p => option.value(p.id.value)(p.name(lang)))*
+                    .value(activePreId)
+                    .onChange(v => simPresetRef.set(v).andThen(rerunIfShown))(
+                      presets.map(p => option.value(p.id.value).selected(p.id.value == activePreId)(p.name(lang)))*
                     ),
                 ),
                 div.cssClass("mp-field")(
                   label(if lang == Language.Cs then "Množství (ks)" else "Quantity (pcs)").style(labelStyle),
-                  numberInput.cssClass("mp-input").value(simQtyRef).onInput(v => simQtyRef.set(v)),
+                  // Text input + digit filter (not type="number"): number inputs lose the caret on re-render.
+                  input
+                    .cssClass("mp-input")
+                    .inputFilter(InputFilter.Digits)
+                    .value(simQtyRef)
+                    .onInput(v => simQtyRef.set(v))
+                    .onChange(v => simQtyRef.set(v).andThen(rerunIfShown)),
                 ),
               ),
               div.cssClass("mp-field-row")(
@@ -252,8 +262,8 @@ object PricingManagerView:
                   select
                     .cssClass("mp-input")
                     .value(cur.toString)
-                    .onChange(v => Currency.values.find(_.toString == v).map(simCurRef.set).getOrElse(Kyo.unit))(
-                      List(Currency.CZK, Currency.USD).map(c => option.value(c.toString)(c.toString))*
+                    .onChange(v => Currency.values.find(_.toString == v).map(c => simCurRef.set(c).andThen(rerunIfShown)).getOrElse(Kyo.unit))(
+                      List(Currency.CZK, Currency.USD).map(c => option.value(c.toString).selected(c == cur)(c.toString))*
                     ),
                 ),
                 div.cssClass("mp-field")(
@@ -261,8 +271,8 @@ object PricingManagerView:
                   select
                     .cssClass("mp-input")
                     .value(speed.toString)
-                    .onChange(v => ManufacturingSpeed.values.find(_.toString == v).map(simSpeedRef.set).getOrElse(Kyo.unit))(
-                      ManufacturingSpeed.values.toList.map(s => option.value(s.toString)(speedLabel(s, lang)))*
+                    .onChange(v => ManufacturingSpeed.values.find(_.toString == v).map(sp => simSpeedRef.set(sp).andThen(rerunIfShown)).getOrElse(Kyo.unit))(
+                      ManufacturingSpeed.values.toList.map(s => option.value(s.toString).selected(s == speed)(speedLabel(s, lang)))*
                     ),
                 ),
                 div.cssClass("mp-field")(
@@ -270,16 +280,21 @@ object PricingManagerView:
                   select
                     .cssClass("mp-input")
                     .value(tierStr)
-                    .onChange(v => simTierRef.set(v))(
+                    .onChange(v => simTierRef.set(v).andThen(rerunIfShown))(
                       (None :: CustomerTier.values.toList.map(Some(_))).map {
-                        case None    => option.value("None")(if lang == Language.Cs then "Veřejná (Walk-in)" else "Public (Walk-in)")
-                        case Some(t) => option.value(t.toString)(t.toString)
+                        case None    => option.value("None").selected(tierStr == "None")(if lang == Language.Cs then "Veřejná (Walk-in)" else "Public (Walk-in)")
+                        case Some(t) => option.value(t.toString).selected(tierStr == t.toString)(t.toString)
                       }*
                     ),
                 ),
                 div.cssClass("mp-field")(
                   label(if lang == Language.Cs then "Slevový kód (volitelně)" else "Promo Code (optional)").style(labelStyle),
-                  input.cssClass("mp-input").placeholder("SAVE10").value(simPromoRef).onInput(v => simPromoRef.set(v)),
+                  input
+                    .cssClass("mp-input")
+                    .placeholder("SAVE10")
+                    .value(simPromoRef)
+                    .onInput(v => simPromoRef.set(v))
+                    .onChange(v => simPromoRef.set(v).andThen(rerunIfShown)),
                 ),
               ),
               div.style(rowSm)(
@@ -427,9 +442,9 @@ object PricingManagerView:
                       label(if isCs then "Typ slevy" else "Benefit").style(labelStyle),
                       kindRef.render { k =>
                         select.cssClass("mp-input").value(k).onChange(v => kindRef.set(v))(
-                          option.value("percent")(if isCs then "Procentuální sleva (%)" else "Percentage Off (%)"),
-                          option.value("fixed")(if isCs then "Pevná částka (CZK)" else "Fixed Amount (CZK)"),
-                          option.value("freeDelivery")(if isCs then "Doprava zdarma" else "Free Delivery"),
+                          option.value("percent").selected(k == "percent")(if isCs then "Procentuální sleva (%)" else "Percentage Off (%)"),
+                          option.value("fixed").selected(k == "fixed")(if isCs then "Pevná částka (CZK)" else "Fixed Amount (CZK)"),
+                          option.value("freeDelivery").selected(k == "freeDelivery")(if isCs then "Doprava zdarma" else "Free Delivery"),
                         )
                       },
                     ),
@@ -556,24 +571,23 @@ object PricingManagerView:
       state: BackofficeState,
       agreements: List[CustomerPriceAgreement],
       customers: List[CustomerView],
+      catalog: Option[ProductCatalog],
       focusCustOpt: Option[CustomerId],
       tableState: SignalRef[DataTable.State[String]],
       dialog: ConfirmDialog.Handle,
       actionMenu: ActionMenu.Handle,
       canManage: Boolean,
-      targetKindRef: SignalRef[String],
-      tierRef: SignalRef[CustomerTier],
-      custIdRef: SignalRef[String],
-      curRef: SignalRef[Currency],
-      discRef: SignalRef[String],
-      minOrdRef: SignalRef[String],
+      createSession: AgreementEditorView.Session,
+      editSession: AgreementEditorView.Session,
       editKeyRef: SignalRef[Option[String]],
-      editDiscRef: SignalRef[String],
-      editMinRef: SignalRef[String],
       lang: Language,
   ): UI =
     val isCs = lang == Language.Cs
     val customerById = customers.map(c => c.id -> c).toMap
+    val newDraft = AgreementDraft(
+      targetKind = if focusCustOpt.isDefined then AgreementDraft.TargetKind.Customer else AgreementDraft.TargetKind.Tier,
+      customerId = focusCustOpt.map(_.value).getOrElse(""),
+    )
 
     def targetDisplay(t: AgreementTarget): String = t match
       case AgreementTarget.TierDefault(tier) => s"Tier: $tier"
@@ -583,6 +597,10 @@ object PricingManagerView:
             val n = c.company.map(_.legalName.value).getOrElse(s"${c.contact.firstName.value} ${c.contact.lastName.value}")
             s"$n (${cid.value})"
           case None => s"Customer: ${cid.value}"
+
+    def scopedCount(a: CustomerPriceAgreement): Int =
+      a.categoryDiscounts.size + a.materialDiscounts.size + a.finishDiscounts.size + a.fixedMaterialRates.size +
+        a.customVolumeCurves.map(_.size).getOrElse(0)
 
     val visibleAgreements = focusCustOpt match
       case None => agreements
@@ -633,10 +651,10 @@ object PricingManagerView:
       DataTable.Column[CustomerPriceAgreement](
         id = "scoped",
         header = if isCs then "Položkové slevy" else "Scoped Discounts",
-        numericSortKey = Some(a => BigDecimal(a.categoryDiscounts.size + a.materialDiscounts.size + a.finishDiscounts.size)),
+        numericSortKey = Some(a => BigDecimal(scopedCount(a))),
         alignRight = true,
         cell = a =>
-          val total = a.categoryDiscounts.size + a.materialDiscounts.size + a.finishDiscounts.size
+          val total = scopedCount(a)
           if total > 0 then badge(s"$total", BadgeTone.Brand) else span("0").style(smallText),
       ),
     )
@@ -693,126 +711,46 @@ object PricingManagerView:
                 buttonLabel = UI.fragment(span("+ "), state.i18n.t("adm-pri-agr-create")),
                 title = span(state.i18n.t("adm-pri-agr-create")),
                 renderForm = onClose =>
-                  div.style(stackMd)(
-                    targetKindRef.render { kind =>
-                      div.style(stackSm)(
-                        div.cssClass("mp-field-row")(
-                          div.cssClass("mp-field")(
-                            label(if isCs then "Typ cíle" else "Target Kind").style(labelStyle),
-                            select.cssClass("mp-input").value(kind).onChange(v => targetKindRef.set(v))(
-                              option.value("tier")(if isCs then "Cenová hladina (Tier)" else "Customer Tier"),
-                              option.value("customer")(if isCs then "Konkrétní zákazník" else "Specific Customer"),
-                            ),
-                          ),
-                          if kind == "customer" then
-                            div.cssClass("mp-field")(
-                              label(if isCs then "Zákazník" else "Customer").style(labelStyle),
-                              custIdRef.render { selCid =>
-                                val effectiveCid =
-                                  if selCid.nonEmpty then selCid
-                                  else focusCustOpt.map(_.value).orElse(customers.headOption.map(_.id.value)).getOrElse("")
-                                select.cssClass("mp-input").value(effectiveCid).onChange(v => custIdRef.set(v))(
-                                  customers.map { c =>
-                                    val nm = c.company.map(_.legalName.value).getOrElse(s"${c.contact.firstName.value} ${c.contact.lastName.value}")
-                                    option.value(c.id.value)(s"$nm (${c.id.value})")
-                                  }*
-                                )
-                              },
-                            )
-                          else
-                            div.cssClass("mp-field")(
-                              label(if isCs then "Cenová hladina" else "Target Tier").style(labelStyle),
-                              tierRef.render { t =>
-                                select
-                                  .cssClass("mp-input")
-                                  .value(t.toString)
-                                  .onChange(v => CustomerTier.values.find(_.toString == v).map(tierRef.set).getOrElse(Kyo.unit))(
-                                    CustomerTier.values.toList.map(x => option.value(x.toString)(x.toString))*
-                                  )
-                              },
-                            ),
-                        ),
-                        div.cssClass("mp-field-row")(
-                          div.cssClass("mp-field")(
-                            label(if isCs then "Měna" else "Currency").style(labelStyle),
-                            curRef.render { c =>
-                              select
-                                .cssClass("mp-input")
-                                .value(c.toString)
-                                .onChange(v => Currency.values.find(_.toString == v).map(curRef.set).getOrElse(Kyo.unit))(
-                                  List(Currency.CZK, Currency.USD).map(x => option.value(x.toString)(x.toString))*
-                                )
-                            },
-                          ),
-                          div.cssClass("mp-field")(
-                            label(if isCs then "Globální sleva (%)" else "Global Discount (%)").style(labelStyle),
-                            numberInput.cssClass("mp-input").value(discRef).onInput(v => discRef.set(v)),
-                          ),
-                          div.cssClass("mp-field")(
-                            label(if isCs then "Min. obj. bez DPH (volit.)" else "Min Order Net (opt.)").style(labelStyle),
-                            numberInput.cssClass("mp-input").placeholder("—").value(minOrdRef).onInput(v => minOrdRef.set(v)),
-                          ),
-                        ),
-                      )
-                    },
-                    div.style(rowSm)(
-                      button
-                        .cssClass("mp-btn mp-btn-primary mp-btn-sm")
-                        .onClick {
-                          for
-                            kind <- targetKindRef.get
-                            tier <- tierRef.get
-                            cidS <- custIdRef.get.map(_.trim)
-                            cur  <- curRef.get
-                            dStr <- discRef.get.map(_.trim)
-                            mStr <- minOrdRef.get.map(_.trim)
-                            pct   = scala.util.Try(BigDecimal(dStr)).getOrElse(BigDecimal(10)).min(BigDecimal(80)).max(BigDecimal(0))
-                            minO  = scala.util.Try(BigDecimal(mStr)).toOption.filter(_ > 0).map(Money.apply)
-                            target =
-                              if kind == "customer" then
-                                val chosen =
-                                  if cidS.nonEmpty then cidS
-                                  else focusCustOpt.map(_.value).orElse(customers.headOption.map(_.id.value)).getOrElse("cust-unknown")
-                                AgreementTarget.SpecificCustomer(CustomerId.unsafe(chosen))
-                              else AgreementTarget.TierDefault(tier)
-                            existing = agreements.find(x => x.target == target && x.currency == cur)
-                            agr = existing match
-                              case Some(ex) => ex.copy(globalDiscount = Some(Percentage.unsafe(pct)), minimumOrderOverride = minO)
-                              case None =>
-                                CustomerPriceAgreement(
-                                  target = target,
-                                  currency = cur,
-                                  globalDiscount = Some(Percentage.unsafe(pct)),
-                                  minimumOrderOverride = minO,
-                                )
-                            _ <- state.saveAgreement(agr)
-                            _ <- onClose()
-                          yield ()
-                        }(state.i18n.t("adm-pri-agr-create")),
-                      button.cssClass("mp-btn mp-btn-ghost mp-btn-sm").onClick(onClose())(state.i18n.t("adm-cat-cancel")),
-                    ),
+                  AgreementEditorView.render(
+                    state = state,
+                    session = createSession,
+                    catalog = catalog,
+                    customers = customers,
+                    existing = agreements,
+                    original = None,
+                    defaultCustomerId = focusCustOpt.map(_.value),
+                    lang = lang,
+                    onDone = () => createSession.load(newDraft).andThen(onClose()),
                   ),
               )
             )
           else None,
         renderDetail = Some { a =>
           val key = agreementKey(a)
-          editKeyRef.combineLatest(editDiscRef).combineLatest(editMinRef).render { case ((ekOpt, eDisc), eMin) =>
-            val isEditing = ekOpt.contains(key)
+          editKeyRef.render { ekOpt =>
+            val isEditing = ekOpt.contains(key) && canManage
             val agrMenuItems: List[ActionMenu.Item] =
               List(
                 if !isEditing then
                   Some(
                     ActionMenu.Item(
-                      label = state.i18n.t("adm-pri-agr-edit-global"),
-                      onClick = () =>
-                        editKeyRef.set(Some(key))
-                          .andThen(editDiscRef.set(a.globalDiscount.map(_.value.toString).getOrElse("0")))
-                          .andThen(editMinRef.set(a.minimumOrderOverride.map(_.value.toString).getOrElse(""))),
+                      label = state.i18n.t("adm-pri-agr-edit"),
+                      onClick = () => editSession.load(AgreementDraft.from(a)).andThen(editKeyRef.set(Some(key))),
                       tone = ActionMenu.ItemTone.Primary,
                     )
                   )
                 else None,
+                Some(
+                  ActionMenu.Item(
+                    label = state.i18n.t("adm-pri-agr-edit-json"),
+                    onClick = () =>
+                      editSession
+                        .load(AgreementDraft.from(a))
+                        .andThen(editSession.json.set(AgreementJson.encode(a)))
+                        .andThen(editSession.mode.set(AgreementEditorView.Mode.Json))
+                        .andThen(editKeyRef.set(Some(key))),
+                  )
+                ),
                 Some(
                   ActionMenu.Item(
                     label = state.i18n.t("adm-cat-delete"),
@@ -828,7 +766,7 @@ object PricingManagerView:
                         )
                       ),
                     tone = ActionMenu.ItemTone.Danger,
-                    dividerBefore = !isEditing,
+                    dividerBefore = true,
                   )
                 ),
               ).flatten
@@ -854,66 +792,30 @@ object PricingManagerView:
                   a.minimumOrderOverride.map(m => badge(s"Min: ${formatMoney(m, a.currency, lang)}", BadgeTone.Amber)).getOrElse(UI.empty),
                 ),
               ),
-
-              // Inline Global Discount & Min Order editor
-              if isEditing && canManage then
-                div.style(Style.column.gap(8.px).padding(12.px).rounded(10.px).bg(surface).border(1.px, brandBorder))(
-                  div.cssClass("mp-field-row")(
-                    div.cssClass("mp-field")(
-                      label(if isCs then "Globální sleva (%)" else "Global Discount (%)").style(labelStyle),
-                      numberInput.cssClass("mp-input").value(eDisc).onInput(v => editDiscRef.set(v)),
-                    ),
-                    div.cssClass("mp-field")(
-                      label(if isCs then "Min. objednávka bez DPH (prázdné = bez limitu)" else "Min Order Net Override (blank = none)").style(labelStyle),
-                      numberInput.cssClass("mp-input").value(eMin).onInput(v => editMinRef.set(v)),
-                    ),
-                  ),
-                  div.style(rowSm)(
-                    button
-                      .cssClass("mp-btn mp-btn-primary mp-btn-sm")
-                      .onClick {
-                        val pctOpt = scala.util.Try(BigDecimal(eDisc.trim)).toOption.filter(_ > 0).map(p => Percentage.unsafe(p.min(BigDecimal(80))))
-                        val minOpt = scala.util.Try(BigDecimal(eMin.trim)).toOption.filter(_ > 0).map(Money.apply)
-                        state.saveAgreement(a.copy(globalDiscount = pctOpt, minimumOrderOverride = minOpt)).andThen(editKeyRef.set(None))
-                      }(state.i18n.t("adm-cat-save")),
-                    button.cssClass("mp-btn mp-btn-ghost mp-btn-sm").onClick(editKeyRef.set(None))(state.i18n.t("adm-cat-cancel")),
-                  ),
+              if isEditing then
+                AgreementEditorView.render(
+                  state = state,
+                  session = editSession,
+                  catalog = catalog,
+                  customers = customers,
+                  existing = agreements,
+                  original = Some(a),
+                  defaultCustomerId = None,
+                  lang = lang,
+                  onDone = () => editKeyRef.set(None),
                 )
-              else UI.empty,
-
-              // Read-only view of scoped Category / Material / Finish discounts
-              div.style(stackXs)(
-                span(state.i18n.t("adm-pri-agr-scoped-readonly")).style(labelStyle),
-                if a.categoryDiscounts.isEmpty && a.materialDiscounts.isEmpty && a.finishDiscounts.isEmpty && a.fixedMaterialRates.isEmpty then
-                  span(if isCs then "Žádné specifické slevy pro kategorie, materiály ani zušlechtění." else "No category, material, or finish overrides configured.").style(smallText)
-                else
-                  div.style(stackXs)(
-                    if a.categoryDiscounts.nonEmpty then
-                      div.style(rowWrap)(
-                        span(if isCs then "Kategorie:" else "Categories:").style(smallText.fontWeight(FontWeight.w700)),
-                        UI.fragment(a.categoryDiscounts.toList.sortBy(_._1.value).map { case (cid, pct) => badge(s"${cid.value}: −${pct.value}%", BadgeTone.Brand) }*),
-                      )
-                    else UI.empty,
-                    if a.materialDiscounts.nonEmpty then
-                      div.style(rowWrap)(
-                        span(if isCs then "Materiály:" else "Materials:").style(smallText.fontWeight(FontWeight.w700)),
-                        UI.fragment(a.materialDiscounts.toList.sortBy(_._1.value).map { case (mid, pct) => badge(s"${mid.value}: −${pct.value}%", BadgeTone.Emerald) }*),
-                      )
-                    else UI.empty,
-                    if a.finishDiscounts.nonEmpty then
-                      div.style(rowWrap)(
-                        span(if isCs then "Zušlechtění:" else "Finishes:").style(smallText.fontWeight(FontWeight.w700)),
-                        UI.fragment(a.finishDiscounts.toList.sortBy(_._1.value).map { case (fid, pct) => badge(s"${fid.value}: −${pct.value}%", BadgeTone.Amber) }*),
-                      )
-                    else UI.empty,
-                    if a.fixedMaterialRates.nonEmpty then
-                      div.style(rowWrap)(
-                        span(if isCs then "Fixní sazby materiálů:" else "Fixed Material Rates:").style(smallText.fontWeight(FontWeight.w700)),
-                        UI.fragment(a.fixedMaterialRates.toList.sortBy(_._1.value).map { case (mid, rm) => badge(s"${mid.value}: $rm", BadgeTone.Neutral) }*),
-                      )
-                    else UI.empty,
-                  ),
-              ),
+              else
+                div.style(stackSm)(
+                  span(state.i18n.t("adm-pri-agr-rules")).style(labelStyle),
+                  AgreementEditorView.renderSummary(a, catalog, lang),
+                  if canManage then
+                    div(
+                      button
+                        .cssClass("mp-btn mp-btn-secondary mp-btn-sm")
+                        .onClick(editSession.load(AgreementDraft.from(a)).andThen(editKeyRef.set(Some(key))))(state.i18n.t("adm-pri-agr-edit"))
+                    )
+                  else UI.empty,
+                ),
             )
           }
         },

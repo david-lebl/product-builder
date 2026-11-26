@@ -401,12 +401,7 @@ curl -i -X OPTIONS localhost:8080/api/v1/storefront/builder/quote \
 
 **Cause:** Kyo 1.0.0-RC7 targets JDK 25, but the shell's default `java` (and therefore the Mill daemon) is an older JDK (here 17). Kyo macros run inside the compiler and can't load the class files.
 
-**Solution:** Point `JAVA_HOME`/`PATH` at a JDK 25, then restart the daemon so it picks it up:
-
-```bash
-export JAVA_HOME=~/.sdkman/candidates/java/25.0.1-tem PATH=$JAVA_HOME/bin:$PATH   # or: sdk use java 25.0.1-tem
-./mill shutdown && ./mill __.compile
-```
+**Solution:** Fixed permanently — the `build.mill` header pins `//| mill-jvm-version: temurin:25.0.1` (it used to be `system`, i.e. "whatever `java` is on `PATH`"). The `./mill` launcher downloads that JDK via Coursier once (cached under `~/Library/Caches/Coursier/arc` on macOS) and runs the daemon, compiler and tests on it, so the shell's `java`/`JAVA_HOME` no longer matter. If you still see this error, check the header wasn't reverted to `system`, then restart the daemon: `./mill shutdown && ./mill __.compile`.
 
 **Files:** `build.mill`
 
@@ -499,3 +494,15 @@ build enables `-Wvalue-discard`, which reports these sites — treat that warnin
 
 **Files:** any Kyo code (e.g. `backend/app/src/main/scala/mpbuilder/app/AppConfig.scala`)
 
+
+---
+
+### Kyo UI `<select>` snaps back to its first option after a change
+
+**Symptom:** Picking a value in a `select` updates state, but the dropdown immediately shows the first option again (e.g. the Backoffice Margin Simulator).
+
+**Cause:** Kyo UI re-renders reactive regions as HTML strings. `select.value(x)` only emits a `value="x"` attribute on `<select>`, which browsers ignore; kyo-ui does not set the DOM `value` property afterwards.
+
+**Solution:** Also mark the current option: `option.value(v).selected(v == current)(label)`. Every select in `ui-core`/`ui-admin-core` follows this pattern.
+
+**Files:** `modules/ui-admin-core/src/main/scala/mpbuilder/admin/views/PricingManagerView.scala`, `modules/ui-core/src/main/scala/mpbuilder/ui/configurator/ConfiguratorView.scala`

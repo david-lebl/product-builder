@@ -40,6 +40,18 @@ class StorefrontUiSpec extends Test[Any]:
         assert(calcCss.contains(".mp-calc-root"))
       }
 
+      "Tablet/phone breakpoint keeps the checkout Order Summary aside visible and hides only the configurator's" in {
+        val css     = AppTheme.storefrontStylesheet.render
+        val start   = css.indexOf("@media (max-width: 960px)")
+        val tablet  = css.substring(start, css.indexOf("@media", start + 1) match { case -1 => css.length; case i => i })
+        val asideAt = tablet.indexOf(".mp-split-aside")
+        val cfgAt   = tablet.indexOf(".mp-cfg-aside")
+        assert(asideAt >= 0 && cfgAt >= 0)
+        assert(!tablet.substring(asideAt, tablet.indexOf("}", asideAt)).contains("display: none"))
+        assert(!tablet.substring(asideAt, tablet.indexOf("}", asideAt)).contains("display:none"))
+        assert(tablet.substring(cfgAt, tablet.indexOf("}", cfgAt)).replace(" ", "").contains("display:none"))
+      }
+
       "AppRoute hash routing round-trips all primary routes" in {
         val catId    = CategoryId.unsafe("business-cards")
         val presetId = PresetId.unsafe("bc-standard")

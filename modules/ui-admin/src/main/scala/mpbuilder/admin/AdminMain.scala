@@ -57,7 +57,7 @@ object AdminMain extends KyoApp:
 
   private def installDocumentCss(): Unit =
     val styleEl = dom.document.createElement("style")
-    styleEl.textContent = AppTheme.documentCss
+    styleEl.textContent = AppTheme.documentCss + AdminTheme.documentCss
     dom.document.head.appendChild(styleEl)
 
   private def installMasterDetailSplitter(): Unit =

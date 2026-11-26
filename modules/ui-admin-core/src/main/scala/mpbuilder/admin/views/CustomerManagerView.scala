@@ -900,7 +900,7 @@ object CustomerManagerView:
               .cssClass("mp-input")
               .value(seg.toString)
               .onChange(v => CustomerSegment.values.find(_.toString == v).map(regSegRef.set).getOrElse(Kyo.unit))(
-                CustomerSegment.values.toList.map(s => option.value(s.toString)(s.toString))*
+                CustomerSegment.values.toList.map(s => option.value(s.toString).selected(s == seg)(s.toString))*
               )
           },
         ),
