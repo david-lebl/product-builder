@@ -602,6 +602,27 @@ final class BackofficeState(
              case None => Kyo.unit
     yield ()
 
+  /** Saves `agr`; when it replaces an agreement with a different target/currency (re-targeted in the
+    * editor), the previous one is deleted afterwards. Returns whether the save succeeded.
+    */
+  def replaceAgreement(previous: Option[(AgreementTarget, Currency)], agr: CustomerPriceAgreement): Boolean < Async =
+    for
+      res <- withToken(tok => client.saveAgreement(tok, agr))
+      ok <- res match
+              case Some(_) =>
+                val stale = previous.filter((t, c) => t != agr.target || c != agr.currency)
+                for
+                  _   <- stale match
+                           case Some((t, c)) => withToken(tok => client.deleteAgreement(tok, t, c)).unit
+                           case None         => Kyo.unit
+                  _   <- refreshPricing
+                  _   <- onDataMutated()
+                  msg <- i18n.now("adm-toast-saved")
+                  _   <- showToast(msg)
+                yield true
+              case None => Kyo.lift(false)
+    yield ok
+
   def deleteAgreement(target: AgreementTarget, currency: Currency): Unit < Async =
     for
       res <- withToken(tok => client.deleteAgreement(tok, target, currency))
