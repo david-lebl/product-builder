@@ -119,6 +119,13 @@ class AgreementEditorSpec extends Test[Any]:
           assert(formEn.contains("Product category discounts"))
           assert(formEn.contains("Fixed material rates"))
           assert(formEn.contains("Custom volume curves"))
+          // Every select re-renders with the draft's value marked `selected` (no snap-back to option 1)
+          val sel = (v: String) => s"""value="$v" selected"""
+          assert(formEn.contains(sel("Customer")) && !formEn.contains(sel("Tier")))
+          assert(formEn.contains(sel(original.target.asInstanceOf[AgreementTarget.SpecificCustomer].customerId.value)))
+          assert(formEn.contains(sel(original.currency.toString)))
+          original.categoryDiscounts.keys.foreach(k => assert(formEn.contains(sel(k.value))))
+          original.fixedMaterialRates.keys.foreach(k => assert(formEn.contains(sel(k.value))))
           assert(formCs.contains("Slevy na kategorie produktů"))
           assert(jsonEn.contains("<textarea"))
           assert(!formEn.contains("‹") && !formCs.contains("‹") && !jsonEn.contains("‹"))

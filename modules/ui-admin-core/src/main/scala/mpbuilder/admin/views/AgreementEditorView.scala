@@ -45,6 +45,10 @@ object AgreementEditorView:
 
   private final case class Choice(id: String, label: String)
 
+  // Every `<select>` marks its current `<option>` as `selected`: Kyo UI re-renders regions as HTML
+  // strings and browsers ignore a `value` attribute on `<select>`, so without it the control snaps
+  // back to its first option after each re-render (i.e. right after a pick).
+
   private def customerName(c: CustomerView): String =
     c.company.map(_.legalName.value).getOrElse(s"${c.contact.firstName.value} ${c.contact.lastName.value}")
 
@@ -136,8 +140,8 @@ object AgreementEditorView:
       val known  = choices.exists(_.id == current)
       val extra  = if current.nonEmpty && !known then List(Choice(current, s"$current (${if isCs then "není v katalogu" else "not in catalog"})")) else Nil
       select.cssClass("mp-input").value(current).onChange(onChange)(
-        option.value("")(placeholder),
-        UI.fragment((extra ++ choices).map(c => option.value(c.id)(s"${c.label} · ${c.id}"))*),
+        option.value("").selected(current.isEmpty)(placeholder),
+        UI.fragment((extra ++ choices).map(c => option.value(c.id).selected(c.id == current)(s"${c.label} · ${c.id}"))*),
       )
 
     def removeButton(onClick: Unit < Async): UI =
@@ -172,8 +176,8 @@ object AgreementEditorView:
           div.cssClass("mp-field")(
             label(if isCs then "Typ cíle" else "Target kind").style(labelStyle),
             select.cssClass("mp-input").value(d.targetKind.toString).onChange(v => update(_.copy(targetKind = TargetKind.valueOf(v))))(
-              option.value(TargetKind.Tier.toString)(if isCs then "Cenová hladina (Tier)" else "Customer tier"),
-              option.value(TargetKind.Customer.toString)(if isCs then "Konkrétní zákazník" else "Specific customer"),
+              option.value(TargetKind.Tier.toString).selected(d.targetKind == TargetKind.Tier)(if isCs then "Cenová hladina (Tier)" else "Customer tier"),
+              option.value(TargetKind.Customer.toString).selected(d.targetKind == TargetKind.Customer)(if isCs then "Konkrétní zákazník" else "Specific customer"),
             ),
           ),
           d.targetKind match
@@ -182,20 +186,20 @@ object AgreementEditorView:
               div.cssClass("mp-field")(
                 label(if isCs then "Zákazník" else "Customer").style(labelStyle),
                 select.cssClass("mp-input").value(current).onChange(v => update(_.copy(customerId = v)))(
-                  customers.sortBy(customerName).map(c => option.value(c.id.value)(s"${customerName(c)} (${c.id.value})"))*
+                  customers.sortBy(customerName).map(c => option.value(c.id.value).selected(c.id.value == current)(s"${customerName(c)} (${c.id.value})"))*
                 ),
               )
             case TargetKind.Tier =>
               div.cssClass("mp-field")(
                 label(if isCs then "Cenová hladina" else "Tier").style(labelStyle),
                 select.cssClass("mp-input").value(d.tier.toString).onChange(v => update(_.copy(tier = CustomerTier.valueOf(v))))(
-                  CustomerTier.values.toList.map(t => option.value(t.toString)(t.toString))*
+                  CustomerTier.values.toList.map(t => option.value(t.toString).selected(t == d.tier)(t.toString))*
                 ),
               ),
           div.cssClass("mp-field")(
             label(if isCs then "Měna" else "Currency").style(labelStyle),
             select.cssClass("mp-input").value(d.currency.toString).onChange(v => update(_.copy(currency = Currency.valueOf(v))))(
-              currencies.map(c => option.value(c.toString)(c.toString))*
+              currencies.map(c => option.value(c.toString).selected(c == d.currency)(c.toString))*
             ),
           ),
         ),
@@ -282,7 +286,7 @@ object AgreementEditorView:
                 UI.fragment(
                   div.style(Style.width(160.px))(
                     select.cssClass("mp-input").value(kind.toString).onChange(v => set(row.copy(kind = RateKind.valueOf(v))))(
-                      RateKind.editable.map(k => option.value(k.toString)(RateKind.label(k, isCs)))*
+                      RateKind.editable.map(k => option.value(k.toString).selected(k == kind)(RateKind.label(k, isCs)))*
                     )
                   ),
                   div.style(Style.row.gap(6.px).align(Alignment.center).width(150.px))(

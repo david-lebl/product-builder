@@ -40,6 +40,9 @@ editor offers a structured form plus a JSON mode covering the full aggregate.
 
 - Default shell JDK 17 → `UnsupportedClassVersionError`; build with JDK 25 (see troubleshooting).
 - Kyo UI children need `UI.fragment(xs*)` rather than splatting a `List[UI]` alongside other children.
+- Review (#186): editor dropdowns snapped back to their first option after a pick — Kyo UI re-renders
+  regions as HTML and browsers ignore `value` on `<select>`. Every editor `<option>` now sets
+  `.selected(...)`; `AgreementEditorSpec` asserts the selected options.
 
 ## Follow-up Items
 
