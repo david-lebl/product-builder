@@ -329,6 +329,105 @@ object AdminTheme:
       .rule(Selector.cls("mp-admin-nav-btn").pseudo("focus-visible"), AppTheme.focusVisibleRing)
       .rule(Selector.cls("mp-admin-nav-btn-active").pseudo("focus-visible"), AppTheme.focusVisibleRing)
       .rule(Selector.cls("mp-kpi-card").pseudo("focus-visible"), AppTheme.focusVisibleRing)
+      // ── Customer detail (cards, KPI tiles, banners, forms) ─────────────────
+      .rule("mp-cust-head-actions", Style.row.flexWrap(FlexWrap.wrap).align(Alignment.center).gap(8.px).width(100.pct))
+      .rule("mp-cust-stats", Style.row.flexWrap(FlexWrap.wrap).gap(8.px).width(100.pct))
+      .rule(
+        "mp-cust-stat",
+        Style.column
+          .align(Alignment.start)
+          .gap(2.px)
+          .flexGrow(1.0)
+          .flexBasis(120.px)
+          .minWidth(0.px)
+          .padding(10.px, 12.px)
+          .rounded(12.px)
+          .bg(surface)
+          .border(1.px, AppTheme.Palette.border)
+          .textAlign(TextAlign.left)
+          .cursor(Cursor.pointer)
+          .transition(TransitionProperty.all, 140, Easing.easeOut)
+          .hover(Style.borderColor(brandBorder).bg(surfaceAlt)),
+      )
+      .rule(Selector.cls("mp-cust-stat").pseudo("focus-visible"), AppTheme.focusVisibleRing)
+      .rule("mp-cust-stat-label", Style.fontSize(11.px).fontWeight(FontWeight.w700).color(inkMuted).textTransform(TextTransform.uppercase).letterSpacing(0.4.px))
+      .rule("mp-cust-stat-value", Style.fontSize(16.px).fontWeight(FontWeight.w800).color(ink).lineHeight(1.25))
+      .rule("mp-cust-stat-sub", Style.fontSize(11.px).color(inkMuted).lineHeight(1.3))
+      .rule(
+        "mp-cust-banner",
+        Style.row.align(Alignment.start).gap(10.px).width(100.pct).padding(10.px, 12.px).rounded(12.px).fontSize(13.px).lineHeight(1.4),
+      )
+      .rule("mp-cust-banner-amber", Style.bg(amberSoft).border(1.px, amberBorder).color(amberInk))
+      .rule("mp-cust-banner-rose", Style.bg(roseSoft).border(1.px, roseBorder).color(roseInk))
+      .rule("mp-cust-banner-neutral", Style.bg(surfaceAlt).border(1.px, AppTheme.Palette.border).color(inkSecondary))
+      .rule(
+        "mp-cust-card",
+        Style.column.gap(12.px).width(100.pct).padding(14.px, 16.px).rounded(14.px).bg(surface).border(1.px, AppTheme.Palette.border),
+      )
+      .rule("mp-cust-card-editing", Style.borderColor(brandBorder).shadow(0.px, 0.px, 0.px, 3.px, brandSoft))
+      .rule("mp-cust-card-head", Style.row.justify(Justification.spaceBetween).align(Alignment.center).gap(10.px).flexWrap(FlexWrap.wrap))
+      .rule(
+        "mp-cust-card-icon",
+        Style.row.align(Alignment.center).justify(Justification.center).width(28.px).height(28.px).rounded(8.px).bg(brandSoft).color(brand).flexShrink(0.0),
+      )
+      .rule("mp-cust-card-btn", Style.padding(4.px, 9.px).fontSize(12.px).gap(5.px).whiteSpace(WhiteSpace.noWrap))
+      .rule("mp-cust-danger", Style.color(rose))
+      .rule("mp-cust-empty", Style.fontSize(13.px).color(inkMuted))
+      .rule("mp-cust-kv", Style.row.flexWrap(FlexWrap.wrap).gap(20.px))
+      .rule("mp-cust-kv-item", Style.column.gap(2.px).minWidth(120.px))
+      .rule(
+        "mp-cust-contact",
+        Style.row.align(Alignment.center).gap(10.px).flexWrap(FlexWrap.wrap).padding(10.px, 12.px).rounded(10.px).bg(surfaceAlt).border(1.px, AppTheme.Palette.border),
+      )
+      .rule("mp-cust-contact-primary", Style.bg(brandSoft).borderColor(brandBorder))
+      .rule("mp-cust-subform", Style.column.gap(10.px).padding(12.px).rounded(10.px).bg(surfaceAlt).border(1.px, AppTheme.Palette.border))
+      .rule("mp-cust-address", Style.column.gap(2.px))
+      .rule(
+        "mp-cust-address-row",
+        Style.row.align(Alignment.center).gap(8.px).flexWrap(FlexWrap.wrap).padding(6.px, 0.px).borderBottom(1.px, AppTheme.Palette.border),
+      )
+      .rule(
+        "mp-cust-inline-note",
+        Style.row.flexWrap(FlexWrap.wrap).align(Alignment.center).gap(6.px).padding(8.px, 10.px).rounded(10.px).bg(surfaceAlt).fontSize(12.px).color(inkSecondary),
+      )
+      .rule(
+        "mp-cust-confirm-row",
+        Style.row.flexWrap(FlexWrap.wrap).align(Alignment.center).gap(10.px).padding(10.px, 12.px).rounded(10.px).bg(amberSoft).border(1.px, amberBorder),
+      )
+      .rule("mp-cust-agreement", Style.row.flexWrap(FlexWrap.wrap).align(Alignment.center).gap(8.px).padding(8.px, 10.px).rounded(10.px).bg(surfaceAlt))
+      .rule("mp-cust-meter", Style.width(100.pct).height(8.px).rounded(999.px).bg(surfaceAlt).border(1.px, AppTheme.Palette.border).overflow(Overflow.hidden))
+      .rule("mp-cust-meter-fill", Style.height(100.pct).rounded(999.px))
+      .rule("mp-cust-meter-ok", Style.bg(emerald))
+      .rule("mp-cust-meter-warn", Style.bg(amber))
+      .rule("mp-cust-meter-over", Style.bg(rose))
+      .rule("mp-cust-form-group", Style.column.gap(10.px).padding(12.px, 0.px, 0.px, 0.px).borderTop(1.px, AppTheme.Palette.border))
+      .rule("mp-cust-form-legend", Style.fontSize(12.px).fontWeight(FontWeight.w800).color(inkSecondary).textTransform(TextTransform.uppercase).letterSpacing(0.4.px))
+      .rule("mp-cust-form-actions", Style.row.flexWrap(FlexWrap.wrap).align(Alignment.center).gap(8.px).padding(4.px, 0.px, 0.px, 0.px))
+      .rule(
+        "mp-cust-error-box",
+        Style.column.gap(6.px).padding(10.px, 12.px).rounded(10.px).bg(roseSoft).border(1.px, roseBorder).color(roseInk).fontSize(12.px),
+      )
+      .rule("mp-field-required", Style.color(rose))
+      .rule("mp-field-error", Style.fontSize(12.px).fontWeight(FontWeight.w600).color(rose))
+      .rule("mp-input-invalid", Style.borderColor(rose))
+      .rule(
+        "mp-cust-order-row",
+        Style.row
+          .align(Alignment.center)
+          .gap(12.px)
+          .width(100.pct)
+          .padding(10.px, 12.px)
+          .rounded(10.px)
+          .bg(surfaceAlt)
+          .border(1.px, AppTheme.Palette.border)
+          .color(inkMuted)
+          .textAlign(TextAlign.left)
+          .cursor(Cursor.pointer)
+          .transition(TransitionProperty.all, 140, Easing.easeOut)
+          .hover(Style.borderColor(brandBorder).bg(surface)),
+      )
+      .rule(Selector.cls("mp-cust-order-row").pseudo("focus-visible"), AppTheme.focusVisibleRing)
+      .rule("mp-cust-note", Style.column.gap(2.px).padding(8.px, 10.px).rounded(8.px).bg(surfaceAlt).border(1.px, AppTheme.Palette.border))
       // Tablet breakpoint (<= 960px)
       .media(Stylesheet.MediaQuery.maxWidth(960.px))(
         Stylesheet

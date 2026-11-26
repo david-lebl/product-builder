@@ -16,6 +16,7 @@ Core feature specifications — stable documents describing *what* the system do
 | [help-information.md](help-information.md) | Contextual help system specification (field-level `?` and `i` buttons) |
 | [email-order-option.md](email-order-option.md) | Email order option — pre-filled modal popup for requesting orders via email |
 | [standalone-calculator.md](standalone-calculator.md) | Embeddable price calculator widget — scope, e-mail ordering, indicative (non-promised) lead times, and the two embedding modes |
+| [backoffice-customer-management.md](backoffice-customer-management.md) | Backoffice customer list, registration form, and customer detail (header actions, KPI tiles, Profile / Pricing & Terms / Orders / Artworks / Activity tabs) |
 
 ## 🔬 Analysis & Research
 
@@ -83,6 +84,7 @@ Session-by-session work logs documenting what was done, decisions made, and issu
 
 | Document | Description |
 |----------|-------------|
+| [changelog/2026-11-26-backoffice-customer-detail-ux.md](changelog/2026-11-26-backoffice-customer-detail-ux.md) | Feature — customer detail redesign (per-section editing, terms editor, tier preview, KPI tiles), validated registration, duplicate-ID guard |
 | [changelog/2026-11-25-ci-workflow-review.md](changelog/2026-11-25-ci-workflow-review.md) | Session log for the CI workflow fixes, official Mill launcher, caching and report-only scalafmt check |
 | [changelog/2026-11-25-scalajs-link-oom.md](changelog/2026-11-25-scalajs-link-oom.md) | Session log for the Scala.js link OutOfMemoryError fix (Mill daemon `-Xmx6g`) |
 | [changelog/2026-11-25-fulllinkjs-oom-deploy.md](changelog/2026-11-25-fulllinkjs-oom-deploy.md) | Session log for the deploy `fullLinkJS` OutOfMemoryError fix (link bundles one at a time) |

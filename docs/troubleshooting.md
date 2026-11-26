@@ -499,3 +499,15 @@ build enables `-Wvalue-discard`, which reports these sites — treat that warnin
 
 **Files:** any Kyo code (e.g. `backend/app/src/main/scala/mpbuilder/app/AppConfig.scala`)
 
+---
+
+### Kyo UI: `Found: List[kyo.UI.Ast.Div]  Required: Seq[kyo.UI.Ast.HtmlChildVal]` when splatting children
+
+**Symptom:** `div(...)((head +: list)*)` or `div(...)((list :+ extra)*)` does not compile, while `div(...)(list.map(...)*)` does.
+
+**Cause:** Prepending or appending widens the element type to something like `HtmlContent & Interactive` or `UI`. The element-to-child conversion only applies to a directly mapped list, so the widened `Seq` doesn't match the varargs type.
+
+**Solution:** Pass the extra element as a separate child and wrap the list: `div(...)(head, UI.fragment(list*), extra)`.
+
+**Files:** `modules/ui-admin-core/src/main/scala/mpbuilder/admin/views/customers/CustomerProfileTab.scala`
+

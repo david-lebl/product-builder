@@ -112,6 +112,7 @@ class CustomerDomainSpec extends Test[Any]:
                      )
           v1      <- svc.register(cmd)
           dup     <- svc.register(cmd.copy(id = CustomerId.unsafe("c-2"))).either
+          dupId   <- svc.register(cmd.copy(contact = contact("other@studio.cz"))).either
           byEmail <- svc.findByIdentifier(CustomerIdentifier.Email(cmd.contact.email))
           byIco   <- svc.findByIdentifier(CustomerIdentifier.CompanyRegNo(sampleCompany.registrationNumber))
           byDic   <- svc.findByIdentifier(CustomerIdentifier.VatId(sampleCompany.vatId.get))
@@ -123,6 +124,7 @@ class CustomerDomainSpec extends Test[Any]:
         yield {
           assert(v1.status == CustomerStatus.PendingApproval)
           assert(dup == Left(CustomerError.EmailAlreadyRegistered(cmd.contact.email)))
+          assert(dupId == Left(CustomerError.CustomerIdAlreadyExists(cmd.id)))
           assert(byEmail.id == v1.id)
           assert(byIco.id == v1.id)
           assert(byDic.id == v1.id)

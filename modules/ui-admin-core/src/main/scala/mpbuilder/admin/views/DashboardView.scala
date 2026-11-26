@@ -147,7 +147,7 @@ object DashboardView:
                             else UI.empty,
                             button
                               .cssClass("mp-btn mp-btn-secondary mp-btn-sm")
-                              .onClick(state.selectCustomer(cust.id).andThen(state.navigate(AdminRoute.Customers)))(span(state.i18n.t("adm-orders-open")), Icons(Icon.ChevronRight, 15)),
+                              .onClick(state.openCustomer(cust.id))(span(state.i18n.t("adm-orders-open")), Icons(Icon.ChevronRight, 15)),
                           ),
                         )
                       }*
