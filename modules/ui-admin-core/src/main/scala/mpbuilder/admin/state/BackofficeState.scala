@@ -676,56 +676,57 @@ final class BackofficeState(
       _   <- showToast(msg)
     yield ()
 
-  def registerCustomer(cmd: RegisterCustomerCmd): Unit < Async =
-    for
-      res <- withToken(tok => client.registerCustomer(tok, cmd))
-      _   <- res.map(c => afterCustomerMutation(c.id)).getOrElse(Kyo.unit)
-    yield ()
+  /** Runs a customer mutation; on success refreshes lists + detail and returns `true` (editors close only then). */
+  private def customerMutation(id: CustomerId)(
+      f: SessionToken => CustomerView < (Abort[BackofficeError] & Async),
+  ): Boolean < Async =
+    withToken(f).flatMap {
+      case Some(_) => afterCustomerMutation(id).andThen(true)
+      case None    => false
+    }
 
-  def approveCustomer(id: CustomerId): Unit < Async =
-    for
-      res <- withToken(tok => client.approveCustomer(tok, id))
-      _   <- res.map(_ => afterCustomerMutation(id)).getOrElse(Kyo.unit)
-    yield ()
-
-  def suspendCustomer(id: CustomerId, reasonRaw: String): Unit < Async =
+  private def withReason(reasonRaw: String, missingMsg: String)(f: NonEmptyString => Boolean < Async): Boolean < Async =
     NonEmptyString(reasonRaw.trim).toEither match
-      case Left(_) => errorBanner.set(Some("Please enter a suspension reason."))
-      case Right(reason) =>
-        withToken(tok => client.suspendCustomer(tok, id, reason)).flatMap(
-          _.map(_ => afterCustomerMutation(id)).getOrElse(Kyo.unit)
-        )
+      case Left(_)       => errorBanner.set(Some(missingMsg)).andThen(false)
+      case Right(reason) => f(reason)
 
-  def deactivateCustomer(id: CustomerId, reasonRaw: String): Unit < Async =
-    NonEmptyString(reasonRaw.trim).toEither match
-      case Left(_) => errorBanner.set(Some("Please enter a deactivation reason."))
-      case Right(reason) =>
-        withToken(tok => client.deactivateCustomer(tok, id, reason)).flatMap(
-          _.map(_ => afterCustomerMutation(id)).getOrElse(Kyo.unit)
-        )
+  /** Registers a customer and returns its id on success (so the view can open the new record). */
+  def registerCustomer(cmd: RegisterCustomerCmd): Option[CustomerId] < Async =
+    withToken(tok => client.registerCustomer(tok, cmd)).flatMap {
+      case Some(c) => afterCustomerMutation(c.id).andThen(Some(c.id))
+      case None    => None
+    }
 
-  def changeCustomerTier(id: CustomerId, tier: CustomerTier): Unit < Async =
-    withToken(tok => client.changeCustomerTier(tok, id, tier)).flatMap(
-      _.map(_ => afterCustomerMutation(id)).getOrElse(Kyo.unit)
+  def approveCustomer(id: CustomerId): Boolean < Async =
+    customerMutation(id)(tok => client.approveCustomer(tok, id))
+
+  def suspendCustomer(id: CustomerId, reasonRaw: String): Boolean < Async =
+    withReason(reasonRaw, "Please enter a suspension reason.")(reason =>
+      customerMutation(id)(tok => client.suspendCustomer(tok, id, reason))
     )
 
-  def grantCustomerPaymentTerms(id: CustomerId, terms: PaymentTerms): Unit < Async =
-    withToken(tok => client.grantCustomerPaymentTerms(tok, id, terms)).flatMap(
-      _.map(_ => afterCustomerMutation(id)).getOrElse(Kyo.unit)
+  def deactivateCustomer(id: CustomerId, reasonRaw: String): Boolean < Async =
+    withReason(reasonRaw, "Please enter a deactivation reason.")(reason =>
+      customerMutation(id)(tok => client.deactivateCustomer(tok, id, reason))
     )
 
-  def addCustomerNote(id: CustomerId, textRaw: String): Unit < Async =
-    NonEmptyString(textRaw.trim).toEither match
-      case Left(_) => errorBanner.set(Some("Note text must not be empty."))
-      case Right(text) =>
-        withToken(tok => client.addCustomerNote(tok, id, text)).flatMap(
-          _.map(_ => afterCustomerMutation(id)).getOrElse(Kyo.unit)
-        )
+  def changeCustomerTier(id: CustomerId, tier: CustomerTier): Boolean < Async =
+    customerMutation(id)(tok => client.changeCustomerTier(tok, id, tier))
 
-  def updateCustomerProfile(cmd: UpdateCustomerProfileCmd): Unit < Async =
-    withToken(tok => client.updateCustomerProfile(tok, cmd)).flatMap(
-      _.map(_ => afterCustomerMutation(cmd.id)).getOrElse(Kyo.unit)
+  def grantCustomerPaymentTerms(id: CustomerId, terms: PaymentTerms): Boolean < Async =
+    customerMutation(id)(tok => client.grantCustomerPaymentTerms(tok, id, terms))
+
+  def addCustomerNote(id: CustomerId, textRaw: String): Boolean < Async =
+    withReason(textRaw, "Note text must not be empty.")(text =>
+      customerMutation(id)(tok => client.addCustomerNote(tok, id, text))
     )
+
+  def updateCustomerProfile(cmd: UpdateCustomerProfileCmd): Boolean < Async =
+    customerMutation(cmd.id)(tok => client.updateCustomerProfile(tok, cmd))
+
+  /** Opens a customer's detail in the Customers screen (e.g. from the dashboard approvals queue). */
+  def openCustomer(id: CustomerId): Unit < Async =
+    selectCustomer(id).andThen(navigate(AdminRoute.Customers))
 
   // ── Staff & Store Settings Mutations ───────────────────────────────────────
 

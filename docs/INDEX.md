@@ -17,6 +17,7 @@ Core feature specifications — stable documents describing *what* the system do
 | [help-information.md](help-information.md) | Contextual help system specification (field-level `?` and `i` buttons) |
 | [email-order-option.md](email-order-option.md) | Email order option — pre-filled modal popup for requesting orders via email |
 | [standalone-calculator.md](standalone-calculator.md) | Embeddable price calculator widget — scope, e-mail ordering, indicative (non-promised) lead times, and the two embedding modes |
+| [backoffice-customer-management.md](backoffice-customer-management.md) | Backoffice customer list, registration form, and customer detail (header actions, KPI tiles, Profile / Pricing & Terms / Orders / Artworks / Activity tabs) |
 
 ## 🔬 Analysis & Research
 
@@ -85,6 +86,7 @@ Session-by-session work logs documenting what was done, decisions made, and issu
 
 | Document | Description |
 |----------|-------------|
+| [changelog/2026-11-26-backoffice-customer-detail-ux.md](changelog/2026-11-26-backoffice-customer-detail-ux.md) | Feature — customer detail redesign (per-section editing, terms editor, tier preview, KPI tiles), validated registration, duplicate-ID guard |
 | [changelog/2026-11-26-backoffice-margin-simulator-fix.md](changelog/2026-11-26-backoffice-margin-simulator-fix.md) | Bugfix — Backoffice Margin Simulator selects no longer reset (option `selected`), digit-filtered quantity, inputs applied on run |
 | [changelog/2026-11-26-mill-pinned-jdk25.md](changelog/2026-11-26-mill-pinned-jdk25.md) | Session log for pinning JDK 25 in `build.mill` (`mill-jvm-version`) so no manual JDK switching is needed |
 | [changelog/2026-11-25-ci-workflow-review.md](changelog/2026-11-25-ci-workflow-review.md) | Session log for the CI workflow fixes, official Mill launcher, caching and report-only scalafmt check |

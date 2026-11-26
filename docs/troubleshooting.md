@@ -494,7 +494,6 @@ build enables `-Wvalue-discard`, which reports these sites — treat that warnin
 
 **Files:** any Kyo code (e.g. `backend/app/src/main/scala/mpbuilder/app/AppConfig.scala`)
 
-
 ---
 
 ### Kyo UI `<select>` snaps back to its first option after a change
@@ -506,3 +505,27 @@ build enables `-Wvalue-discard`, which reports these sites — treat that warnin
 **Solution:** Also mark the current option: `option.value(v).selected(v == current)(label)`. Every select in `ui-core`/`ui-admin-core` follows this pattern.
 
 **Files:** `modules/ui-admin-core/src/main/scala/mpbuilder/admin/views/PricingManagerView.scala`, `modules/ui-core/src/main/scala/mpbuilder/ui/configurator/ConfiguratorView.scala`
+
+---
+
+### Kyo UI: `Found: List[kyo.UI.Ast.Div]  Required: Seq[kyo.UI.Ast.HtmlChildVal]` when splatting children
+
+**Symptom:** `div(...)((head +: list)*)` or `div(...)((list :+ extra)*)` does not compile, while `div(...)(list.map(...)*)` does.
+
+**Cause:** Prepending or appending widens the element type to something like `HtmlContent & Interactive` or `UI`. The element-to-child conversion only applies to a directly mapped list, so the widened `Seq` doesn't match the varargs type.
+
+**Solution:** Pass the extra element as a separate child and wrap the list: `div(...)(head, UI.fragment(list*), extra)`.
+
+**Files:** `modules/ui-admin-core/src/main/scala/mpbuilder/admin/views/customers/CustomerProfileTab.scala`
+
+---
+
+### Backoffice freezes when a view runs a `\p{…}` regex (Scala.js targets ES2015)
+
+**Symptom:** Clicking a button (e.g. Customers → *+ New Customer*) freezes the browser tab. JVM UI tests pass, because the same code works on the JVM.
+
+**Cause:** The Scala.js bundles use the default `esVersion` (ES2015). Scala.js's `java.util.regex` only supports the ASCII POSIX `\p{…}` classes there. A Unicode class such as `\p{M}` (combining marks) throws a `PatternSyntaxException` ("Unicode character family … requires ES2018") at runtime. The old customer-ID slug ran `replaceAll("\\p{M}", "")` while the registration form was rendering.
+
+**Solution:** Don't use Unicode-property regex (`\p{L}`, `\p{M}`, …) in cross-compiled UI or domain code. Write a small character loop instead. For example, strip diacritics with `java.text.Normalizer` (NFD) and drop the chars `\u0300`–`\u036f`, as `CustomerDrafts.slug` does. Lookbehind (`(?<=…)`) and named groups also need ES2018.
+
+**Files:** `modules/ui-admin-core/src/main/scala/mpbuilder/admin/views/customers/CustomerDrafts.scala`, `modules/ui-admin-core/src/main/scala/mpbuilder/admin/views/customers/CustomerCreateForm.scala`

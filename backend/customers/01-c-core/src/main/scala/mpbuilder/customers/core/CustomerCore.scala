@@ -249,6 +249,8 @@ private[customers] final class CustomerServiceLive(
   override def register(cmd: RegisterCustomerCmd): CustomerView < (Async & Abort[CustomerError]) =
     for
       now      <- Effects.now
+      sameId   <- repo.findById(cmd.id)
+      _        <- Effects.failWhen(sameId.isDefined)(CustomerError.CustomerIdAlreadyExists(cmd.id))
       existing <- repo.findByEmail(cmd.contact.email)
       _        <- Effects.failWhen(existing.isDefined)(CustomerError.EmailAlreadyRegistered(cmd.contact.email))
       customer <- (Customer.register(cmd, now)).orAbort

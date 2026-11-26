@@ -122,6 +122,8 @@ enum CustomerError(val message: String):
       extends CustomerError(s"Customer not found for identifier $identifier")
   case EmailAlreadyRegistered(email: EmailAddress)
       extends CustomerError(s"Email '${email.value}' is already registered")
+  case CustomerIdAlreadyExists(id: CustomerId)
+      extends CustomerError(s"Customer ID '${id.value}' is already in use")
   case CompanyProfileRequired(segment: CustomerSegment)
       extends CustomerError(s"Company profile is required for $segment customers")
   case MultipleContactsNotAllowed(segment: CustomerSegment)
