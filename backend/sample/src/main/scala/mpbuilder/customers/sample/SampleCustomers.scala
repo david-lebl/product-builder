@@ -2,6 +2,8 @@ package mpbuilder.customers.sample
 
 import mpbuilder.customers.*
 import mpbuilder.customers.core.{Customer, CustomerRepository, CustomerServiceLive}
+import mpbuilder.json.DomainCodecs.given
+import mpbuilder.sample.SampleStorage
 import mpbuilder.shared.*
 import kyo.*
 import java.time.Instant
@@ -330,7 +332,7 @@ object SampleCustomers:
   val allViews: List[CustomerView] = all.map(_.toView)
 
 final class InMemoryCustomerRepository(
-    ref: AtomicRef[Map[CustomerId, Customer]],
+    ref: StateRef[Map[CustomerId, Customer]],
 ) extends CustomerRepository:
 
   override def findById(id: CustomerId): Option[Customer] < Async =
@@ -358,13 +360,19 @@ final class InMemoryCustomerRepository(
 
 object CustomerSampleWiring:
 
+  private given Schema[Customer] = Schema.derived
+
   def repository(
       initial: List[Customer] = SampleCustomers.all,
+      storage: SampleStorage = SampleStorage.memory,
   ): InMemoryCustomerRepository < Sync =
-    AtomicRef.init(initial.map(c => c.id -> c).toMap).map(new InMemoryCustomerRepository(_))
+    storage
+      .map("customers.customers", initial.map(c => c.id -> c).toMap)(_.value, CustomerId.unsafe)
+      .map(new InMemoryCustomerRepository(_))
 
   def service(
       eventBus: EventBus,
       initial: List[Customer] = SampleCustomers.all,
+      storage: SampleStorage = SampleStorage.memory,
   ): CustomerService < Sync =
-    repository(initial).map(CustomerServiceLive.make(_, eventBus))
+    repository(initial, storage).map(CustomerServiceLive.make(_, eventBus))

@@ -47,31 +47,38 @@ final case class ShowcaseRuntime(
   */
 object SampleShowcaseRuntime:
 
-  /** Builds a fresh, isolated in-memory runtime with live shop-floor capacity bridged
+  /** Builds a fresh, isolated runtime with live shop-floor capacity bridged
     * from `ManufacturingService.currentCapacity` into `PricingService`, plus `IdentityService`
     * bridged to `CustomerService`, `StorefrontFacade`, and `BackofficeFacade` sharing the
     * exact same in-memory state.
+    *
+    * `storage` decides whether that state starts from the sample seeds every time ([[SampleStorage.memory]]) or is
+    * restored from and written through to a [[DocStore]] such as browser IndexedDB ([[SampleStorage.load]]).
+    * Shop-floor manufacturing jobs, OTP challenges and blobs always stay in memory.
     */
   def make(
       useSheetCzk: Boolean = true,
       busyPeriods: List[BusyPeriodMultiplier] = Nil,
       seedSampleOrders: Boolean = true,
       blobStorage: => BlobStorage < Sync = BlobStorage.inMemory(),
+      storage: SampleStorage = SampleStorage.memory,
   ): ShowcaseRuntime < Async =
     for
       bus              <- EventBus.init
       blobs            <- blobStorage
-      ids              <- IdSequence.inMemory()
-      catalog          <- CatalogSampleWiring.service()
-      customers        <- CustomerSampleWiring.service(bus)
-      (identity, inbox) <- IdentitySampleWiring.service(customers, bus)
-      artwork          <- ArtworkSampleWiring.service(bus, seedSampleArtworks = seedSampleOrders)
-      ordering         <- OrderingSampleWiring.services(bus, seedSampleOrders = seedSampleOrders)
+      idCounter        <- storage.counter("shared.idSequence", 0L)
+      ids               = IdSequence.fromState(idCounter)
+      catalog          <- CatalogSampleWiring.service(storage = storage)
+      customers        <- CustomerSampleWiring.service(bus, storage = storage)
+      (identity, inbox) <- IdentitySampleWiring.service(customers, bus, storage = storage)
+      artwork          <- ArtworkSampleWiring.service(bus, seedSampleArtworks = seedSampleOrders, storage = storage)
+      ordering         <- OrderingSampleWiring.services(bus, seedSampleOrders = seedSampleOrders, storage = storage)
       manufacturing    <- ManufacturingSampleWiring.service(bus)
       pricing          <- PricingSampleWiring.serviceWithLiveCapacity(
                             bus,
                             manufacturing.currentCapacity.map(DomainBridges.toDynamicPricingContext(_, busyPeriods)),
                             useSheetCzk = useSheetCzk,
+                            storage = storage,
                           )
       storefront        = StorefrontFacade.make(
                             catalog, pricing, customers, identity, artwork, ordering.carts, ordering.checkoutOptions,

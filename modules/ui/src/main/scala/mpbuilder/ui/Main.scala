@@ -10,7 +10,7 @@ import mpbuilder.admin.state.{AdminRoute, BackofficeState}
 import mpbuilder.admin.theme.AdminTheme
 import mpbuilder.backoffice.BackofficeFacade
 import mpbuilder.identity.sample.InMemoryOtpInbox
-import mpbuilder.sample.SampleShowcaseRuntime
+import mpbuilder.sample.browser.BrowserShowcaseRuntime
 import mpbuilder.shared.{Currency, DesignId, Language}
 import mpbuilder.storefront.StorefrontFacade
 import mpbuilder.ui.components.{BrowserPickedFile, FileDropRegistry}
@@ -20,10 +20,11 @@ import org.scalajs.dom
 import scala.scalajs.js
 
 /** Unified static client-side Demo SPA hosting BOTH Storefront (`#/catalog`, `#/builder`, ...)
-  * AND Staff Backoffice (`#/admin/...`) over ONE shared in-memory `SampleShowcaseRuntime`.
+  * AND Staff Backoffice (`#/admin/...`) over ONE shared `SampleShowcaseRuntime`.
   *
   * Orders placed in the Storefront land immediately in Staff Order Intake, and changes
   * made in Backoffice (order status, promos, B2B approvals, delivery settings) reflect live.
+  * The runtime's state is persisted in IndexedDB, so all of it survives a page reload.
   */
 object Main extends KyoApp:
 
@@ -39,26 +40,38 @@ object Main extends KyoApp:
     val raw = saved.orElse(Option(dom.window.navigator.language)).getOrElse("en").toLowerCase
     if raw.startsWith("cs") then Language.Cs else Language.En
 
-  /** Mode B (network API) when the host page sets `window.__API_BASE_URL__`; otherwise Mode A (static in-memory). */
+  /** Mode B (network API) when the host page sets `window.__API_BASE_URL__`; otherwise Mode A (static, in the browser). */
   private def apiBaseUrl: Option[String] =
     try
       val v = dom.window.asInstanceOf[scala.scalajs.js.Dynamic].selectDynamic("__API_BASE_URL__")
       if scala.scalajs.js.isUndefined(v) || v == null then None else Option(v.toString.trim).filter(_.nonEmpty)
     catch case _: Throwable => None
 
-  private def bootSharedClients: (StorefrontClient, BackofficeClient) < Async =
+  /** Both clients, plus the "reset demo data" action when the demo state is persisted in this browser. */
+  private def bootSharedClients: (StorefrontClient, BackofficeClient, Option[() => Unit < Async]) < Async =
     apiBaseUrl match
       case Some(base) =>
-        Sync.defer((mpbuilder.httpclient.HttpClients.storefront(base), mpbuilder.httpclient.HttpClients.backoffice(base)))
+        Sync.defer((mpbuilder.httpclient.HttpClients.storefront(base), mpbuilder.httpclient.HttpClients.backoffice(base), None))
       case None => bootInMemoryClients
 
-  private def bootInMemoryClients: (StorefrontClient, BackofficeClient) < Async =
-    SampleShowcaseRuntime.make().map { rt =>
+  /** Mode A: the sample runtime, restored from and saved to IndexedDB (in memory only when IndexedDB is unavailable). */
+  private def bootInMemoryClients: (StorefrontClient, BackofficeClient, Option[() => Unit < Async]) < Async =
+    BrowserShowcaseRuntime.make().map { booted =>
+      val rt = booted.runtime
       (
         StorefrontClient.fromFacade(rt.storefront, rt.otpInbox.codeFor),
         BackofficeClient.fromFacade(rt.backoffice),
+        Option.when(booted.isPersistent)(() => booted.resetStoredData),
       )
     }
+
+  /** Asks for confirmation, wipes the stored demo state and reloads into fresh sample data. */
+  private def confirmAndResetDemoData(appI18n: mpbuilder.ui.i18n.AppI18n, reset: () => Unit < Async): Unit < Async =
+    for
+      question  <- appI18n.now("footer-reset-demo-confirm")
+      confirmed <- Sync.defer(dom.window.confirm(question))
+      _ <- (if confirmed then reset().andThen(Sync.defer(dom.window.location.reload())) else Kyo.unit): Unit < Async
+    yield ()
 
   private def persistLanguage(lang: Language): Unit < Sync =
     Sync.defer {
@@ -369,7 +382,7 @@ object Main extends KyoApp:
 
     for
       clients <- bootSharedClients
-      (sfClient, boClient) = clients
+      (sfClient, boClient, resetDemoData) = clients
       appI18n <- AdminTranslations.init(initialLang)
       _       <- UI.runStylesheet(AdminTheme.adminStylesheet)
       _       <- Sync.defer(installDocumentCss())
@@ -446,7 +459,13 @@ object Main extends KyoApp:
                             }
                       dom.window.addEventListener("hashchange", listener)
                     }
-               sfUi <- StorefrontApp.render(sfState, onOpenAdmin = Some(openAdmin), onDesignOnline = Some(openDesignStudio(sfState, appI18n)), designStudioHref = Some("editor/index.html"))
+               sfUi <- StorefrontApp.render(
+                         sfState,
+                         onOpenAdmin = Some(openAdmin),
+                         onDesignOnline = Some(openDesignStudio(sfState, appI18n)),
+                         designStudioHref = Some("editor/index.html"),
+                         onResetDemoData = resetDemoData.map(reset => () => confirmAndResetDemoData(appI18n, reset)),
+                       )
                boUi <- BackofficeApp.render(boState, onBackToStorefront = Some(backToStorefront))
                rootUi = modeRef.render {
                           case AppMode.Storefront => sfUi

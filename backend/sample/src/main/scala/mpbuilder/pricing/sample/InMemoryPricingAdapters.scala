@@ -2,6 +2,8 @@ package mpbuilder.pricing.sample
 
 import mpbuilder.pricing.*
 import mpbuilder.pricing.core.*
+import mpbuilder.json.DomainCodecs.given
+import mpbuilder.sample.SampleStorage
 import mpbuilder.shared.*
 import kyo.*
 
@@ -9,7 +11,7 @@ import kyo.*
   * (e.g. toggling between unit-based and SRA3 sheet-based CZK pricelist in a UI showcase).
   */
 final class InMemoryPricelistRepository(
-    ref: AtomicRef[Map[Currency, Pricelist]],
+    ref: StateRef[Map[Currency, Pricelist]],
 ) extends PricelistRepository:
 
   override def findActive(currency: Currency): Pricelist < (Async & Abort[PricingError.PricelistNotFound]) =
@@ -25,7 +27,7 @@ final class InMemoryPricelistRepository(
     save(pricelist)
 
 final class InMemoryCustomerAgreementRepository(
-    ref: AtomicRef[List[CustomerPriceAgreement]],
+    ref: StateRef[List[CustomerPriceAgreement]],
 ) extends CustomerAgreementRepository:
 
   override def findForCustomer(customerId: CustomerId, currency: Currency): Option[CustomerPriceAgreement] < Async =
@@ -47,7 +49,7 @@ final class InMemoryCustomerAgreementRepository(
     save(agreement)
 
 final class InMemoryPromoCodeRepository(
-    ref: AtomicRef[Map[String, PromoCode]],
+    ref: StateRef[Map[String, PromoCode]],
 ) extends PromoCodeRepository:
 
   override def findByCode(code: String): Option[PromoCode] < Async =
@@ -75,7 +77,7 @@ final class InMemoryPromoCodeRepository(
     ref.update(_.filterNot { case (_, p) => p.id == id })
 
 final class InMemoryCostSheetRepository(
-    ref: AtomicRef[Map[Currency, ProductionCostSheet]],
+    ref: StateRef[Map[Currency, ProductionCostSheet]],
 ) extends CostSheetRepository:
 
   override def findActive(currency: Currency): Option[ProductionCostSheet] < Async =
@@ -116,26 +118,32 @@ object PricingSampleWiring:
 
   def pricelistRepository(
       pricelists: Map[Currency, Pricelist] = defaultPricelists(),
+      storage: SampleStorage = SampleStorage.memory,
   ): InMemoryPricelistRepository < Sync =
-    AtomicRef.init(pricelists).map(new InMemoryPricelistRepository(_))
+    storage.map("pricing.pricelists", pricelists)(_.toString, Currency.valueOf).map(new InMemoryPricelistRepository(_))
 
   def agreementRepository(
       agreements: List[CustomerPriceAgreement] = SampleAgreements.all,
+      storage: SampleStorage = SampleStorage.memory,
   ): InMemoryCustomerAgreementRepository < Sync =
-    AtomicRef.init(agreements).map(new InMemoryCustomerAgreementRepository(_))
+    storage.value("pricing.agreements", agreements).map(new InMemoryCustomerAgreementRepository(_))
 
   def promoRepository(
       promos: List[PromoCode] = SamplePromoCodes.all,
+      storage: SampleStorage = SampleStorage.memory,
   ): InMemoryPromoCodeRepository < Sync =
-    AtomicRef.init(promos.map(p => p.code.value.trim.toUpperCase -> p).toMap).map(new InMemoryPromoCodeRepository(_))
+    storage
+      .map("pricing.promoCodes", promos.map(p => p.code.value.trim.toUpperCase -> p).toMap)(identity, identity)
+      .map(new InMemoryPromoCodeRepository(_))
 
   def costSheetRepository(
       sheets: Map[Currency, ProductionCostSheet] = Map(
         Currency.USD -> SampleCostSheets.costSheetUsd,
         Currency.CZK -> SampleCostSheets.costSheetCzk,
       ),
+      storage: SampleStorage = SampleStorage.memory,
   ): InMemoryCostSheetRepository < Sync =
-    AtomicRef.init(sheets).map(new InMemoryCostSheetRepository(_))
+    storage.map("pricing.costSheets", sheets)(_.toString, Currency.valueOf).map(new InMemoryCostSheetRepository(_))
 
   def staticCapacity(
       ctx: DynamicPricingContext = DynamicPricingContext.default,
@@ -157,13 +165,19 @@ object PricingSampleWiring:
       eventBus: EventBus,
       fetch: => DynamicPricingContext < Async,
       useSheetCzk: Boolean = true,
+      storage: SampleStorage = SampleStorage.memory,
   ): PricingService < Sync =
-    withCapacity(eventBus, new LiveShopCapacityPort(fetch), useSheetCzk)
+    withCapacity(eventBus, new LiveShopCapacityPort(fetch), useSheetCzk, storage)
 
-  private def withCapacity(eventBus: EventBus, capacity: ShopCapacityPort, useSheetCzk: Boolean): PricingService < Sync =
+  private def withCapacity(
+      eventBus: EventBus,
+      capacity: ShopCapacityPort,
+      useSheetCzk: Boolean,
+      storage: SampleStorage = SampleStorage.memory,
+  ): PricingService < Sync =
     for
-      pricelists <- pricelistRepository(defaultPricelists(useSheetCzk))
-      agreements <- agreementRepository()
-      promos     <- promoRepository()
-      costSheets <- costSheetRepository()
+      pricelists <- pricelistRepository(defaultPricelists(useSheetCzk), storage)
+      agreements <- agreementRepository(storage = storage)
+      promos     <- promoRepository(storage = storage)
+      costSheets <- costSheetRepository(storage = storage)
     yield PricingServiceLive.make(pricelists, agreements, promos, costSheets, capacity, eventBus)

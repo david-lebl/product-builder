@@ -175,3 +175,7 @@ trait IdSequence:
 object IdSequence:
   def inMemory(start: Long = 0L)(using Frame): IdSequence < Sync =
     AtomicLong.init(start).map(counter => new IdSequence { def next(using Frame): Long < Async = counter.incrementAndGet })
+
+  /** Sequence over a (possibly persistent) counter cell, so IDs keep increasing across page reloads. */
+  def fromState(counter: StateRef[Long]): IdSequence =
+    new IdSequence { def next(using Frame): Long < Async = counter.updateAndGet(_ + 1) }

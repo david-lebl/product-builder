@@ -20,6 +20,7 @@ object StorefrontApp:
       onOpenAdmin: Option[() => Unit < Async] = None,
       onDesignOnline: Option[DesignOnlineRequest => Unit < Async] = None,
       designStudioHref: Option[String] = None,
+      onResetDemoData: Option[() => Unit < Async] = None,
   ): UI < Async =
     for
       catalogUI    <- CatalogView.render(state, designStudioHref)
@@ -97,6 +98,12 @@ object StorefrontApp:
             ),
             div.style(Style.row.flexWrap(FlexWrap.wrap).align(Alignment.center).gap(12.px))(
               span(state.i18n.t("footer-static-note")).style(smallText),
+              onResetDemoData match
+                case Some(reset) =>
+                  button
+                    .cssClass("mp-btn mp-btn-ghost mp-btn-sm")
+                    .onClick(reset())(span(state.i18n.t("footer-reset-demo")))
+                case None => UI.empty,
               onOpenAdmin match
                 case Some(openAdmin) =>
                   button

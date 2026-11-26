@@ -3,6 +3,8 @@ package mpbuilder.identity.sample
 import mpbuilder.customers.{CustomerIdentifier, CustomerService, CustomerStatus}
 import mpbuilder.identity.*
 import mpbuilder.identity.core.*
+import mpbuilder.json.DomainCodecs.given
+import mpbuilder.sample.SampleStorage
 import mpbuilder.shared.*
 import kyo.*
 
@@ -77,6 +79,9 @@ object SampleIdentity:
 
 object IdentitySampleWiring:
 
+  private given Schema[PasswordCredential] = Schema.derived
+  private given Schema[StoredSession]      = Schema.derived
+
   def otpInbox: InMemoryOtpInbox < Sync =
     AtomicRef.init(Map.empty[OtpChallengeId, OtpCode]).map(new InMemoryOtpInbox(_))
 
@@ -86,16 +91,18 @@ object IdentitySampleWiring:
       eventBus: EventBus,
       seedCustomerEmails: List[(CustomerId, String, EmailAddress)] = SampleIdentity.demoCustomerLogins,
       config: IdentityConfig = IdentityConfig(),
+      storage: SampleStorage = SampleStorage.memory,
   ): (IdentityService, InMemoryOtpInbox) < Async =
     locally {
       for
         inboxRef <- AtomicRef.init(Map.empty[OtpChallengeId, OtpCode])
         inbox     = new InMemoryOtpInbox(inboxRef)
 
-        credRef  <- AtomicRef.init(Map.empty[EmailAddress, PasswordCredential])
+        // Credentials & sessions (and the token counter, so tokens never repeat) persist; OTP challenges stay in memory.
+        credRef  <- storage.map("identity.credentials", Map.empty[EmailAddress, PasswordCredential])(_.value, EmailAddress.unsafe)
         otpRef   <- AtomicRef.init(Map.empty[OtpChallengeId, OtpChallenge])
-        sessRef  <- AtomicRef.init(Map.empty[SessionToken, StoredSession])
-        seqRef   <- AtomicLong.init(1000L)
+        sessRef  <- storage.map("identity.sessions", Map.empty[SessionToken, StoredSession])(_.value, SessionToken.unsafe)
+        seqRef   <- storage.counter("identity.sequence", 1000L)
 
         credRepo = new CredentialRepository:
           override def findByEmail(email: EmailAddress): Option[PasswordCredential] < Async = credRef.get.map(_.get(email))
@@ -114,13 +121,13 @@ object IdentitySampleWiring:
 
         tokenGen = new TokenGenerator:
           override def generateSessionToken: SessionToken < Async =
-            seqRef.incrementAndGet.map(n => SessionToken.unsafe(s"sess-token-$n"))
+            seqRef.updateAndGet(_ + 1).map(n => SessionToken.unsafe(s"sess-token-$n"))
           override def generateOtpChallengeId: OtpChallengeId < Async =
-            seqRef.incrementAndGet.map(n => OtpChallengeId.unsafe(s"otp-ch-$n"))
+            seqRef.updateAndGet(_ + 1).map(n => OtpChallengeId.unsafe(s"otp-ch-$n"))
           override def generateOtpCode: OtpCode < Async =
-            seqRef.incrementAndGet.map(n => OtpCode.unsafe(f"${(123456 + n) % 900000 + 100000}%06d"))
+            seqRef.updateAndGet(_ + 1).map(n => OtpCode.unsafe(f"${(123456 + n) % 900000 + 100000}%06d"))
           override def generateSalt: String < Async =
-            seqRef.incrementAndGet.map(n => s"sample-salt-$n")
+            seqRef.updateAndGet(_ + 1).map(n => s"sample-salt-$n")
 
         lookup = new CustomerServiceLookupAdapter(custSvc)
         svc    = new IdentityServiceLive(credRepo, otpRepo, sessRepo, lookup, inbox, tokenGen, eventBus, config)
