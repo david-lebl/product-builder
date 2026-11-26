@@ -56,6 +56,15 @@ Spec: [backoffice-customer-management.md](../backoffice-customer-management.md).
 - The Mill daemon was running on JDK 17. Fixed per the existing troubleshooting entry (`UnsupportedClassVersionError`).
 - Kyo UI varargs children cannot take a list built as `head +: list` or `list :+ x` (see troubleshooting).
 
+- **Registration form froze the browser (fixed in review).**
+  - The first version of `CustomerCreateForm` worked out the auto-ID placeholder on every render, and its slug used `replaceAll("\\p{M}", "")`.
+  - Scala.js targets ES2015, where that regex throws. The form threw on its first render, so clicking *+ New Customer* froze the tab, while the JVM tests passed.
+  - The form was rewritten:
+    - Each input is bound to its own `SignalRef` (`CustomerCreateForm.Refs`), and typing never re-renders the form.
+    - Only the segment-dependent blocks, the inline errors and the generated-ID preview are reactive.
+    - Validation runs on submit, against the current customer list.
+  - `slug` / `isValidId` no longer use regex (see troubleshooting).
+
 ## Follow-up Items
 
 - [ ] Show staff display names instead of employee IDs on account notes.

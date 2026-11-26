@@ -221,17 +221,28 @@ private[views] object CustomerDrafts:
       showErrors: Boolean = false,
   )
 
-  private val idPattern = "^[a-z0-9][a-z0-9-]*$".r
+  /** Customer IDs: lowercase letters, digits and dashes, starting with a letter or digit.
+    *
+    * Deliberately regex-free: this code runs in the browser, where Scala.js (targeting ES2015) cannot compile
+    * Unicode property classes such as `\p{M}`, and a pattern error thrown while rendering freezes the UI.
+    */
+  private def isIdChar(c: Char): Boolean = (c >= 'a' && c <= 'z') || (c >= '0' && c <= '9')
 
-  private def slug(raw: String): String =
-    java.text.Normalizer
-      .normalize(raw.toLowerCase, java.text.Normalizer.Form.NFD)
-      .replaceAll("\\p{M}", "")
-      .replaceAll("[^a-z0-9]+", "-")
-      .stripPrefix("-")
-      .stripSuffix("-")
-      .take(40)
-      .stripSuffix("-")
+  def isValidId(id: String): Boolean = id.nonEmpty && isIdChar(id.head) && id.forall(c => isIdChar(c) || c == '-')
+
+  /** `"Ateliér Nová s.r.o."` → `"atelier-nova-s-r-o"`: strip diacritics (NFD + drop combining marks), lowercase,
+    * collapse every other run of characters into a single dash, max 40 characters.
+    */
+  private[customers] def slug(raw: String): String =
+    val decomposed = java.text.Normalizer.normalize(raw.toLowerCase, java.text.Normalizer.Form.NFD)
+    val sb         = new StringBuilder
+    decomposed.foreach { c =>
+      if c >= '\u0300' && c <= '\u036f' then () // combining diacritical mark
+      else if isIdChar(c) then sb.append(c)
+      else if sb.nonEmpty && sb.last != '-' then sb.append('-')
+    }
+    val trimmed = sb.result().take(40)
+    trimmed.reverse.dropWhile(_ == '-').reverse
 
   /** Readable, collision-free id derived from company or person name (`cust-atelier-nova`, `cust-atelier-nova-2`, ...). */
   def suggestedId(d: RegisterDraft, existing: Set[String]): String =
@@ -256,7 +267,7 @@ private[views] object CustomerDrafts:
     val id = d.customId.trim
     val idErr =
       if id.isEmpty then None
-      else if !idPattern.matches(id) then Some("customId" -> m.idFormat)
+      else if !isValidId(id) then Some("customId" -> m.idFormat)
       else Option.when(existingIds.contains(id))("customId" -> m.idTaken)
     company ++
       validateContact("contact", d.contact, m) ++

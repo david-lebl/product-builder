@@ -157,6 +157,31 @@ class CustomerManagerSpec extends Test[Any]:
       }
     }
 
+    "create form renders with bound inputs, a generated-ID preview and segment-aware company block (EN & CS)" in {
+      withState { (state, i18n) =>
+        for
+          refs <- CustomerCreateForm.Refs.make
+          _    <- refs.companyName.set("Ateliér Nová")
+          form  = CustomerCreateForm.render(state, refs, Language.En, _ => Kyo.unit, Kyo.unit)
+          en   <- renderHtml(form, i18n)
+          _    <- I18n.let(i18n.handle)(state.setLanguage(Language.Cs))
+          cs   <- renderHtml(CustomerCreateForm.render(state, refs, Language.Cs, _ => Kyo.unit, Kyo.unit), i18n)
+          _    <- I18n.let(i18n.handle)(state.setLanguage(Language.En))
+          _    <- refs.segment.set(CustomerSegment.Individual)
+          ind  <- renderHtml(CustomerCreateForm.render(state, refs, Language.En, _ => Kyo.unit, Kyo.unit), i18n)
+          d    <- refs.draft
+          _    <- refs.reset
+          d0   <- refs.draft
+        yield
+          assert(en.contains("cust-atelier-nova"))
+          assert(en.contains("Atelier Nova s.r.o.")) // company placeholder → company block shown for Business
+          assert(!ind.contains("Atelier Nova s.r.o."))
+          assert(noMissingKeys(en) && noMissingKeys(cs) && noMissingKeys(ind))
+          assert(d.companyName == "Ateliér Nová" && d.segment == CustomerSegment.Individual)
+          assert(d0 == RegisterDraft())
+      }
+    }
+
     "Pricing & Terms tab shows credit usage, tier preview and agreements; editing profile saves through the state (EN & CS)" in {
       withState { (state, i18n) =>
         for

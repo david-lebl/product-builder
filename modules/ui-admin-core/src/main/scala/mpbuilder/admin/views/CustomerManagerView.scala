@@ -5,7 +5,7 @@ import kyo.UI.*
 import kyo.Style.*
 import mpbuilder.admin.state.{AdminRoute, BackofficeState}
 import mpbuilder.admin.views.customers.*
-import mpbuilder.admin.views.customers.CustomerDrafts.{ProfileDraft, RegisterDraft, Section, TermsDraft}
+import mpbuilder.admin.views.customers.CustomerDrafts.{ProfileDraft, Section, TermsDraft}
 import mpbuilder.admin.views.customers.CustomerUi.*
 import mpbuilder.backoffice.CustomerArtworkEntry
 import mpbuilder.customers.*
@@ -48,7 +48,7 @@ object CustomerManagerView:
       profileDraft   <- Signal.initRef[Option[ProfileDraft]](None)
       pendingTierRef <- Signal.initRef[Option[(CustomerId, CustomerTier)]](None)
       termsRef       <- Signal.initRef[Option[TermsDraft]](None)
-      registerRef    <- Signal.initRef(RegisterDraft())
+      createRefs     <- CustomerCreateForm.Refs.make
       noteRef        <- Signal.initRef("")
     yield
       val profileRefs    = CustomerProfileTab.Refs(editingRef, profileDraft)
@@ -406,8 +406,7 @@ object CustomerManagerView:
                     renderForm = closeCreate =>
                       CustomerCreateForm.render(
                         state,
-                        registerRef,
-                        allCustomers,
+                        createRefs,
                         lang,
                         onCreated = id =>
                           for

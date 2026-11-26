@@ -18,8 +18,8 @@
 - **Primary contact**: first name*, last name*, email*, phone, role (role for B2B only).
 - **Billing address**: street*, city*, postal code*, country code* (default `CZ`).
 - **Customer ID** is optional. When it is empty, the system generates a readable ID from the company or person name
-  (`cust-atelier-nova`, then `-2`, `-3` … if that ID is taken).
-- Validation is shown inline after the first save attempt: required fields, email format, an email already used by
+  (`cust-atelier-nova`, then `-2`, `-3` … if that ID is taken). The ID that will be used is previewed live under the field.
+- Validation runs when *Create customer* is clicked and is then shown inline and in a summary box: required fields, email format, an email already used by
   another customer (names that customer), and an ID that is malformed or already taken.
 - After saving, the new customer opens in the detail pane.
 - The backend also rejects a duplicate customer ID (`CustomerIdAlreadyExists`, HTTP 409), so an existing account is
