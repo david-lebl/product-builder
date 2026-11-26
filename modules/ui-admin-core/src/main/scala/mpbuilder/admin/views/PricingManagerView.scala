@@ -150,7 +150,10 @@ object PricingManagerView:
         dialog.render,
       )
 
-  private def renderSimulator(
+  // Every `<select>` below marks its current `<option>` as `selected`: Kyo UI re-renders regions as HTML
+  // strings and browsers ignore a `value` attribute on `<select>`, so without `selected` the control
+  // snapped back to its first option on each re-render (e.g. right after picking a value).
+  private[admin] def renderSimulator(
       state: BackofficeState,
       catOpt: Option[mpbuilder.catalog.ProductCatalog],
       simCatRef: SignalRef[String],
@@ -167,6 +170,42 @@ object PricingManagerView:
       case None => div.cssClass("mp-card")(span("Loading catalog...").style(mutedText))
       case Some(cat) =>
         val catsWithPresets = cat.categories.values.toList.filter(_.presets.nonEmpty).sortBy(_.id.value)
+
+        def resolve(catRaw: String, presetRaw: String) =
+          val c = catsWithPresets.find(_.id.value == catRaw).orElse(catsWithPresets.headOption)
+          val p = c.flatMap(cc => cc.presets.find(_.id.value == presetRaw).orElse(cc.presets.headOption))
+          (c, p)
+
+        // Reads every input at run time (not values captured by the last render), so the simulation
+        // always reflects what is currently entered.
+        val runSim: Unit < Async =
+          for
+            catRaw    <- simCatRef.get
+            presetRaw <- simPresetRef.get
+            qtyS      <- simQtyRef.get.map(_.trim)
+            cur       <- simCurRef.get
+            speed     <- simSpeedRef.get
+            tierStr   <- simTierRef.get
+            promo     <- simPromoRef.get.map(_.trim)
+            _ <- resolve(catRaw, presetRaw) match
+                   case (Some(c), Some(p)) =>
+                     val cmd = MarginSimulationCmd(
+                       categoryId = c.id,
+                       presetId = p.id,
+                       quantity = Quantity.unsafe(qtyS.toIntOption.filter(_ > 0).getOrElse(500)),
+                       currency = cur,
+                       speed = speed,
+                       customerTier = CustomerTier.values.find(_.toString == tierStr),
+                       promoCode = if promo.nonEmpty then Some(promo) else None,
+                     )
+                     state.simulateMargin(cmd).map(simResultRef.set)
+                   case _ => Kyo.unit: Unit < Async
+          yield ()
+
+        // Selection changes re-run the simulation immediately once a result is shown.
+        def rerunIfShown: Unit < Async =
+          simResultRef.get.map(r => if r.isDefined then runSim else Kyo.unit: Unit < Async)
+
         val simSignal =
           simCatRef
             .combineLatest(simPresetRef)
@@ -176,31 +215,10 @@ object PricingManagerView:
             .combineLatest(simResultRef)
 
         simSignal.render { case (((((selCatRaw, selPresetRaw), cur), speed), tierStr), resOpt) =>
-          val activeCat = catsWithPresets.find(_.id.value == selCatRaw).orElse(catsWithPresets.headOption)
-          val presets   = activeCat.map(_.presets).getOrElse(Nil)
-          val activePre = presets.find(_.id.value == selPresetRaw).orElse(presets.headOption)
-
-          def runSim: Unit < Async =
-            (activeCat, activePre) match
-              case (Some(c), Some(p)) =>
-                for
-                  qtyS  <- simQtyRef.get.map(_.trim)
-                  promo <- simPromoRef.get.map(_.trim)
-                  qty    = Quantity.unsafe(qtyS.toIntOption.filter(_ > 0).getOrElse(500))
-                  tier   = CustomerTier.values.find(_.toString == tierStr)
-                  cmd = MarginSimulationCmd(
-                          categoryId = c.id,
-                          presetId = p.id,
-                          quantity = qty,
-                          currency = cur,
-                          speed = speed,
-                          customerTier = tier,
-                          promoCode = if promo.nonEmpty then Some(promo) else None,
-                        )
-                  res <- state.simulateMargin(cmd)
-                  _   <- simResultRef.set(res)
-                yield ()
-              case _ => Kyo.unit
+          val (activeCat, activePre) = resolve(selCatRaw, selPresetRaw)
+          val presets                = activeCat.map(_.presets).getOrElse(Nil)
+          val activeCatId            = activeCat.map(_.id.value).getOrElse("")
+          val activePreId            = activePre.map(_.id.value).getOrElse("")
 
           div.style(stackMd)(
             div.cssClass("mp-card")(
@@ -210,26 +228,32 @@ object PricingManagerView:
                   label(if lang == Language.Cs then "Kategorie" else "Category").style(labelStyle),
                   select
                     .cssClass("mp-input")
-                    .value(activeCat.map(_.id.value).getOrElse(""))
+                    .value(activeCatId)
                     .onChange { v =>
                       val firstPre = catsWithPresets.find(_.id.value == v).flatMap(_.presets.headOption).map(_.id.value).getOrElse("")
-                      simCatRef.set(v).andThen(simPresetRef.set(firstPre))
+                      simPresetRef.set(firstPre).andThen(simCatRef.set(v)).andThen(rerunIfShown)
                     }(
-                      catsWithPresets.map(c => option.value(c.id.value)(c.name(lang)))*
+                      catsWithPresets.map(c => option.value(c.id.value).selected(c.id.value == activeCatId)(c.name(lang)))*
                     ),
                 ),
                 div.cssClass("mp-field")(
                   label(if lang == Language.Cs then "Šablona" else "Preset").style(labelStyle),
                   select
                     .cssClass("mp-input")
-                    .value(activePre.map(_.id.value).getOrElse(""))
-                    .onChange(v => simPresetRef.set(v))(
-                      presets.map(p => option.value(p.id.value)(p.name(lang)))*
+                    .value(activePreId)
+                    .onChange(v => simPresetRef.set(v).andThen(rerunIfShown))(
+                      presets.map(p => option.value(p.id.value).selected(p.id.value == activePreId)(p.name(lang)))*
                     ),
                 ),
                 div.cssClass("mp-field")(
                   label(if lang == Language.Cs then "Množství (ks)" else "Quantity (pcs)").style(labelStyle),
-                  numberInput.cssClass("mp-input").value(simQtyRef).onInput(v => simQtyRef.set(v)),
+                  // Text input + digit filter (not type="number"): number inputs lose the caret on re-render.
+                  input
+                    .cssClass("mp-input")
+                    .inputFilter(InputFilter.Digits)
+                    .value(simQtyRef)
+                    .onInput(v => simQtyRef.set(v))
+                    .onChange(v => simQtyRef.set(v).andThen(rerunIfShown)),
                 ),
               ),
               div.cssClass("mp-field-row")(
@@ -238,8 +262,8 @@ object PricingManagerView:
                   select
                     .cssClass("mp-input")
                     .value(cur.toString)
-                    .onChange(v => Currency.values.find(_.toString == v).map(simCurRef.set).getOrElse(Kyo.unit))(
-                      List(Currency.CZK, Currency.USD).map(c => option.value(c.toString)(c.toString))*
+                    .onChange(v => Currency.values.find(_.toString == v).map(c => simCurRef.set(c).andThen(rerunIfShown)).getOrElse(Kyo.unit))(
+                      List(Currency.CZK, Currency.USD).map(c => option.value(c.toString).selected(c == cur)(c.toString))*
                     ),
                 ),
                 div.cssClass("mp-field")(
@@ -247,8 +271,8 @@ object PricingManagerView:
                   select
                     .cssClass("mp-input")
                     .value(speed.toString)
-                    .onChange(v => ManufacturingSpeed.values.find(_.toString == v).map(simSpeedRef.set).getOrElse(Kyo.unit))(
-                      ManufacturingSpeed.values.toList.map(s => option.value(s.toString)(speedLabel(s, lang)))*
+                    .onChange(v => ManufacturingSpeed.values.find(_.toString == v).map(sp => simSpeedRef.set(sp).andThen(rerunIfShown)).getOrElse(Kyo.unit))(
+                      ManufacturingSpeed.values.toList.map(s => option.value(s.toString).selected(s == speed)(speedLabel(s, lang)))*
                     ),
                 ),
                 div.cssClass("mp-field")(
@@ -256,16 +280,21 @@ object PricingManagerView:
                   select
                     .cssClass("mp-input")
                     .value(tierStr)
-                    .onChange(v => simTierRef.set(v))(
+                    .onChange(v => simTierRef.set(v).andThen(rerunIfShown))(
                       (None :: CustomerTier.values.toList.map(Some(_))).map {
-                        case None    => option.value("None")(if lang == Language.Cs then "Veřejná (Walk-in)" else "Public (Walk-in)")
-                        case Some(t) => option.value(t.toString)(t.toString)
+                        case None    => option.value("None").selected(tierStr == "None")(if lang == Language.Cs then "Veřejná (Walk-in)" else "Public (Walk-in)")
+                        case Some(t) => option.value(t.toString).selected(tierStr == t.toString)(t.toString)
                       }*
                     ),
                 ),
                 div.cssClass("mp-field")(
                   label(if lang == Language.Cs then "Slevový kód (volitelně)" else "Promo Code (optional)").style(labelStyle),
-                  input.cssClass("mp-input").placeholder("SAVE10").value(simPromoRef).onInput(v => simPromoRef.set(v)),
+                  input
+                    .cssClass("mp-input")
+                    .placeholder("SAVE10")
+                    .value(simPromoRef)
+                    .onInput(v => simPromoRef.set(v))
+                    .onChange(v => simPromoRef.set(v).andThen(rerunIfShown)),
                 ),
               ),
               div.style(rowSm)(
@@ -413,9 +442,9 @@ object PricingManagerView:
                       label(if isCs then "Typ slevy" else "Benefit").style(labelStyle),
                       kindRef.render { k =>
                         select.cssClass("mp-input").value(k).onChange(v => kindRef.set(v))(
-                          option.value("percent")(if isCs then "Procentuální sleva (%)" else "Percentage Off (%)"),
-                          option.value("fixed")(if isCs then "Pevná částka (CZK)" else "Fixed Amount (CZK)"),
-                          option.value("freeDelivery")(if isCs then "Doprava zdarma" else "Free Delivery"),
+                          option.value("percent").selected(k == "percent")(if isCs then "Procentuální sleva (%)" else "Percentage Off (%)"),
+                          option.value("fixed").selected(k == "fixed")(if isCs then "Pevná částka (CZK)" else "Fixed Amount (CZK)"),
+                          option.value("freeDelivery").selected(k == "freeDelivery")(if isCs then "Doprava zdarma" else "Free Delivery"),
                         )
                       },
                     ),

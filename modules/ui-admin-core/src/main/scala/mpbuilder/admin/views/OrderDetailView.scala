@@ -425,7 +425,7 @@ object OrderDetailView:
                                           .onChange(v =>
                                             ManufacturingSpeed.values.find(_.toString == v).map(sp => lineEditRef.set(Some(draft.copy(speed = sp)))).getOrElse(Kyo.unit)
                                           )(
-                                            ManufacturingSpeed.values.toList.map(s => option.value(s.toString)(speedLabel(s, lang)))*
+                                            ManufacturingSpeed.values.toList.map(s => option.value(s.toString).selected(s == draft.speed)(speedLabel(s, lang)))*
                                           ),
                                       ),
                                     ),

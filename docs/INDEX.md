@@ -84,6 +84,7 @@ Session-by-session work logs documenting what was done, decisions made, and issu
 
 | Document | Description |
 |----------|-------------|
+| [changelog/2026-11-26-backoffice-margin-simulator-fix.md](changelog/2026-11-26-backoffice-margin-simulator-fix.md) | Bugfix — Backoffice Margin Simulator selects no longer reset (option `selected`), digit-filtered quantity, inputs applied on run |
 | [changelog/2026-11-26-mill-pinned-jdk25.md](changelog/2026-11-26-mill-pinned-jdk25.md) | Session log for pinning JDK 25 in `build.mill` (`mill-jvm-version`) so no manual JDK switching is needed |
 | [changelog/2026-11-25-ci-workflow-review.md](changelog/2026-11-25-ci-workflow-review.md) | Session log for the CI workflow fixes, official Mill launcher, caching and report-only scalafmt check |
 | [changelog/2026-11-25-scalajs-link-oom.md](changelog/2026-11-25-scalajs-link-oom.md) | Session log for the Scala.js link OutOfMemoryError fix (Mill daemon `-Xmx6g`) |

@@ -494,3 +494,15 @@ build enables `-Wvalue-discard`, which reports these sites — treat that warnin
 
 **Files:** any Kyo code (e.g. `backend/app/src/main/scala/mpbuilder/app/AppConfig.scala`)
 
+
+---
+
+### Kyo UI `<select>` snaps back to its first option after a change
+
+**Symptom:** Picking a value in a `select` updates state, but the dropdown immediately shows the first option again (e.g. the Backoffice Margin Simulator).
+
+**Cause:** Kyo UI re-renders reactive regions as HTML strings. `select.value(x)` only emits a `value="x"` attribute on `<select>`, which browsers ignore; kyo-ui does not set the DOM `value` property afterwards.
+
+**Solution:** Also mark the current option: `option.value(v).selected(v == current)(label)`. Every select in `ui-core`/`ui-admin-core` follows this pattern.
+
+**Files:** `modules/ui-admin-core/src/main/scala/mpbuilder/admin/views/PricingManagerView.scala`, `modules/ui-core/src/main/scala/mpbuilder/ui/configurator/ConfiguratorView.scala`
