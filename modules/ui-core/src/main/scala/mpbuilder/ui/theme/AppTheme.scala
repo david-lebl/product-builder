@@ -1954,7 +1954,10 @@ object AppTheme:
       .media(Stylesheet.MediaQuery.maxWidth(960.px))(
         Stylesheet
           .rule("mp-split-layout", Style.column.gap(20.px))
-          .rule("mp-split-aside", Style.displayNone)
+          // Stacked asides flow below the main column at full width (e.g. checkout's Order Summary)...
+          .rule("mp-split-aside", Style.width(100.pct).position(Position.relative).top(0.px))
+          // ...except the configurator's, whose role is taken over by the sticky price dock
+          .rule("mp-cfg-aside", Style.displayNone)
           .rule(
             "mp-cfg-dock",
             Style.display(Display.flex).column
