@@ -3,7 +3,9 @@ package mpbuilder.admin.views
 import kyo.*
 import kyo.UI.*
 import kyo.Style.*
+import mpbuilder.admin.pricing.{AgreementDraft, AgreementJson}
 import mpbuilder.admin.state.BackofficeState
+import mpbuilder.catalog.ProductCatalog
 import mpbuilder.backoffice.{MarginSimulationCmd, MarginSimulationResult}
 import mpbuilder.customers.CustomerView
 import mpbuilder.pricing.*
@@ -36,11 +38,7 @@ object PricingManagerView:
     case PromoLifecycleStatus.Exhausted => badge(if isCs then "Vyčerpaný" else "Exhausted", BadgeTone.Amber)
     case PromoLifecycleStatus.Inactive  => badge(if isCs then "Neaktivní" else "Inactive", BadgeTone.Neutral)
 
-  private def agreementKey(a: CustomerPriceAgreement): String =
-    val tKey = a.target match
-      case AgreementTarget.SpecificCustomer(cid) => s"cust:${cid.value}"
-      case AgreementTarget.TierDefault(t)        => s"tier:${t.toString}"
-    s"$tKey:${a.currency}"
+  private def agreementKey(a: CustomerPriceAgreement): String = AgreementDraft.keyOf(a)
 
   def render(state: BackofficeState): UI < Sync =
     for
@@ -64,17 +62,10 @@ object PricingManagerView:
       promoValRef      <- Signal.initRef("15")
       promoMaxRef      <- Signal.initRef("")
       promoExpiresRef  <- Signal.initRef("")
-      // New Agreement form refs
-      agrTargetKindRef <- Signal.initRef("tier")
-      agrTierRef       <- Signal.initRef[CustomerTier](CustomerTier.Gold)
-      agrCustIdRef     <- Signal.initRef("")
-      agrCurRef        <- Signal.initRef[Currency](Currency.CZK)
-      agrDiscRef       <- Signal.initRef("12")
-      agrMinOrdRef     <- Signal.initRef("")
-      // Inline Agreement Global Edit refs (key -> (discountPct, minOrder))
+      // B2B agreement editor sessions (create panel / detail panel) + key of the agreement being edited
+      agrCreate        <- AgreementEditorView.Session.make(AgreementDraft())
+      agrEdit          <- AgreementEditorView.Session.make(AgreementDraft())
       agrEditKeyRef    <- Signal.initRef[Option[String]](None)
-      agrEditDiscRef   <- Signal.initRef("")
-      agrEditMinRef    <- Signal.initRef("")
       // Cost sheet overhead edit ref
       overheadRef      <- Signal.initRef("1.15")
     yield
@@ -134,20 +125,15 @@ object PricingManagerView:
                   state,
                   agrs,
                   custs,
+                  catOpt,
                   focusCustOpt,
                   agrTableState,
                   dialog,
                   actionMenu,
                   canManage,
-                  agrTargetKindRef,
-                  agrTierRef,
-                  agrCustIdRef,
-                  agrCurRef,
-                  agrDiscRef,
-                  agrMinOrdRef,
+                  agrCreate,
+                  agrEdit,
                   agrEditKeyRef,
-                  agrEditDiscRef,
-                  agrEditMinRef,
                   lang,
                 )
 
@@ -585,24 +571,23 @@ object PricingManagerView:
       state: BackofficeState,
       agreements: List[CustomerPriceAgreement],
       customers: List[CustomerView],
+      catalog: Option[ProductCatalog],
       focusCustOpt: Option[CustomerId],
       tableState: SignalRef[DataTable.State[String]],
       dialog: ConfirmDialog.Handle,
       actionMenu: ActionMenu.Handle,
       canManage: Boolean,
-      targetKindRef: SignalRef[String],
-      tierRef: SignalRef[CustomerTier],
-      custIdRef: SignalRef[String],
-      curRef: SignalRef[Currency],
-      discRef: SignalRef[String],
-      minOrdRef: SignalRef[String],
+      createSession: AgreementEditorView.Session,
+      editSession: AgreementEditorView.Session,
       editKeyRef: SignalRef[Option[String]],
-      editDiscRef: SignalRef[String],
-      editMinRef: SignalRef[String],
       lang: Language,
   ): UI =
     val isCs = lang == Language.Cs
     val customerById = customers.map(c => c.id -> c).toMap
+    val newDraft = AgreementDraft(
+      targetKind = if focusCustOpt.isDefined then AgreementDraft.TargetKind.Customer else AgreementDraft.TargetKind.Tier,
+      customerId = focusCustOpt.map(_.value).getOrElse(""),
+    )
 
     def targetDisplay(t: AgreementTarget): String = t match
       case AgreementTarget.TierDefault(tier) => s"Tier: $tier"
@@ -612,6 +597,10 @@ object PricingManagerView:
             val n = c.company.map(_.legalName.value).getOrElse(s"${c.contact.firstName.value} ${c.contact.lastName.value}")
             s"$n (${cid.value})"
           case None => s"Customer: ${cid.value}"
+
+    def scopedCount(a: CustomerPriceAgreement): Int =
+      a.categoryDiscounts.size + a.materialDiscounts.size + a.finishDiscounts.size + a.fixedMaterialRates.size +
+        a.customVolumeCurves.map(_.size).getOrElse(0)
 
     val visibleAgreements = focusCustOpt match
       case None => agreements
@@ -662,10 +651,10 @@ object PricingManagerView:
       DataTable.Column[CustomerPriceAgreement](
         id = "scoped",
         header = if isCs then "Položkové slevy" else "Scoped Discounts",
-        numericSortKey = Some(a => BigDecimal(a.categoryDiscounts.size + a.materialDiscounts.size + a.finishDiscounts.size)),
+        numericSortKey = Some(a => BigDecimal(scopedCount(a))),
         alignRight = true,
         cell = a =>
-          val total = a.categoryDiscounts.size + a.materialDiscounts.size + a.finishDiscounts.size
+          val total = scopedCount(a)
           if total > 0 then badge(s"$total", BadgeTone.Brand) else span("0").style(smallText),
       ),
     )
@@ -722,126 +711,46 @@ object PricingManagerView:
                 buttonLabel = UI.fragment(span("+ "), state.i18n.t("adm-pri-agr-create")),
                 title = span(state.i18n.t("adm-pri-agr-create")),
                 renderForm = onClose =>
-                  div.style(stackMd)(
-                    targetKindRef.render { kind =>
-                      div.style(stackSm)(
-                        div.cssClass("mp-field-row")(
-                          div.cssClass("mp-field")(
-                            label(if isCs then "Typ cíle" else "Target Kind").style(labelStyle),
-                            select.cssClass("mp-input").value(kind).onChange(v => targetKindRef.set(v))(
-                              option.value("tier").selected(kind == "tier")(if isCs then "Cenová hladina (Tier)" else "Customer Tier"),
-                              option.value("customer").selected(kind == "customer")(if isCs then "Konkrétní zákazník" else "Specific Customer"),
-                            ),
-                          ),
-                          if kind == "customer" then
-                            div.cssClass("mp-field")(
-                              label(if isCs then "Zákazník" else "Customer").style(labelStyle),
-                              custIdRef.render { selCid =>
-                                val effectiveCid =
-                                  if selCid.nonEmpty then selCid
-                                  else focusCustOpt.map(_.value).orElse(customers.headOption.map(_.id.value)).getOrElse("")
-                                select.cssClass("mp-input").value(effectiveCid).onChange(v => custIdRef.set(v))(
-                                  customers.map { c =>
-                                    val nm = c.company.map(_.legalName.value).getOrElse(s"${c.contact.firstName.value} ${c.contact.lastName.value}")
-                                    option.value(c.id.value).selected(c.id.value == effectiveCid)(s"$nm (${c.id.value})")
-                                  }*
-                                )
-                              },
-                            )
-                          else
-                            div.cssClass("mp-field")(
-                              label(if isCs then "Cenová hladina" else "Target Tier").style(labelStyle),
-                              tierRef.render { t =>
-                                select
-                                  .cssClass("mp-input")
-                                  .value(t.toString)
-                                  .onChange(v => CustomerTier.values.find(_.toString == v).map(tierRef.set).getOrElse(Kyo.unit))(
-                                    CustomerTier.values.toList.map(x => option.value(x.toString).selected(x == t)(x.toString))*
-                                  )
-                              },
-                            ),
-                        ),
-                        div.cssClass("mp-field-row")(
-                          div.cssClass("mp-field")(
-                            label(if isCs then "Měna" else "Currency").style(labelStyle),
-                            curRef.render { c =>
-                              select
-                                .cssClass("mp-input")
-                                .value(c.toString)
-                                .onChange(v => Currency.values.find(_.toString == v).map(curRef.set).getOrElse(Kyo.unit))(
-                                  List(Currency.CZK, Currency.USD).map(x => option.value(x.toString).selected(x == c)(x.toString))*
-                                )
-                            },
-                          ),
-                          div.cssClass("mp-field")(
-                            label(if isCs then "Globální sleva (%)" else "Global Discount (%)").style(labelStyle),
-                            numberInput.cssClass("mp-input").value(discRef).onInput(v => discRef.set(v)),
-                          ),
-                          div.cssClass("mp-field")(
-                            label(if isCs then "Min. obj. bez DPH (volit.)" else "Min Order Net (opt.)").style(labelStyle),
-                            numberInput.cssClass("mp-input").placeholder("—").value(minOrdRef).onInput(v => minOrdRef.set(v)),
-                          ),
-                        ),
-                      )
-                    },
-                    div.style(rowSm)(
-                      button
-                        .cssClass("mp-btn mp-btn-primary mp-btn-sm")
-                        .onClick {
-                          for
-                            kind <- targetKindRef.get
-                            tier <- tierRef.get
-                            cidS <- custIdRef.get.map(_.trim)
-                            cur  <- curRef.get
-                            dStr <- discRef.get.map(_.trim)
-                            mStr <- minOrdRef.get.map(_.trim)
-                            pct   = scala.util.Try(BigDecimal(dStr)).getOrElse(BigDecimal(10)).min(BigDecimal(80)).max(BigDecimal(0))
-                            minO  = scala.util.Try(BigDecimal(mStr)).toOption.filter(_ > 0).map(Money.apply)
-                            target =
-                              if kind == "customer" then
-                                val chosen =
-                                  if cidS.nonEmpty then cidS
-                                  else focusCustOpt.map(_.value).orElse(customers.headOption.map(_.id.value)).getOrElse("cust-unknown")
-                                AgreementTarget.SpecificCustomer(CustomerId.unsafe(chosen))
-                              else AgreementTarget.TierDefault(tier)
-                            existing = agreements.find(x => x.target == target && x.currency == cur)
-                            agr = existing match
-                              case Some(ex) => ex.copy(globalDiscount = Some(Percentage.unsafe(pct)), minimumOrderOverride = minO)
-                              case None =>
-                                CustomerPriceAgreement(
-                                  target = target,
-                                  currency = cur,
-                                  globalDiscount = Some(Percentage.unsafe(pct)),
-                                  minimumOrderOverride = minO,
-                                )
-                            _ <- state.saveAgreement(agr)
-                            _ <- onClose()
-                          yield ()
-                        }(state.i18n.t("adm-pri-agr-create")),
-                      button.cssClass("mp-btn mp-btn-ghost mp-btn-sm").onClick(onClose())(state.i18n.t("adm-cat-cancel")),
-                    ),
+                  AgreementEditorView.render(
+                    state = state,
+                    session = createSession,
+                    catalog = catalog,
+                    customers = customers,
+                    existing = agreements,
+                    original = None,
+                    defaultCustomerId = focusCustOpt.map(_.value),
+                    lang = lang,
+                    onDone = () => createSession.load(newDraft).andThen(onClose()),
                   ),
               )
             )
           else None,
         renderDetail = Some { a =>
           val key = agreementKey(a)
-          editKeyRef.combineLatest(editDiscRef).combineLatest(editMinRef).render { case ((ekOpt, eDisc), eMin) =>
-            val isEditing = ekOpt.contains(key)
+          editKeyRef.render { ekOpt =>
+            val isEditing = ekOpt.contains(key) && canManage
             val agrMenuItems: List[ActionMenu.Item] =
               List(
                 if !isEditing then
                   Some(
                     ActionMenu.Item(
-                      label = state.i18n.t("adm-pri-agr-edit-global"),
-                      onClick = () =>
-                        editKeyRef.set(Some(key))
-                          .andThen(editDiscRef.set(a.globalDiscount.map(_.value.toString).getOrElse("0")))
-                          .andThen(editMinRef.set(a.minimumOrderOverride.map(_.value.toString).getOrElse(""))),
+                      label = state.i18n.t("adm-pri-agr-edit"),
+                      onClick = () => editSession.load(AgreementDraft.from(a)).andThen(editKeyRef.set(Some(key))),
                       tone = ActionMenu.ItemTone.Primary,
                     )
                   )
                 else None,
+                Some(
+                  ActionMenu.Item(
+                    label = state.i18n.t("adm-pri-agr-edit-json"),
+                    onClick = () =>
+                      editSession
+                        .load(AgreementDraft.from(a))
+                        .andThen(editSession.json.set(AgreementJson.encode(a)))
+                        .andThen(editSession.mode.set(AgreementEditorView.Mode.Json))
+                        .andThen(editKeyRef.set(Some(key))),
+                  )
+                ),
                 Some(
                   ActionMenu.Item(
                     label = state.i18n.t("adm-cat-delete"),
@@ -857,7 +766,7 @@ object PricingManagerView:
                         )
                       ),
                     tone = ActionMenu.ItemTone.Danger,
-                    dividerBefore = !isEditing,
+                    dividerBefore = true,
                   )
                 ),
               ).flatten
@@ -883,66 +792,30 @@ object PricingManagerView:
                   a.minimumOrderOverride.map(m => badge(s"Min: ${formatMoney(m, a.currency, lang)}", BadgeTone.Amber)).getOrElse(UI.empty),
                 ),
               ),
-
-              // Inline Global Discount & Min Order editor
-              if isEditing && canManage then
-                div.style(Style.column.gap(8.px).padding(12.px).rounded(10.px).bg(surface).border(1.px, brandBorder))(
-                  div.cssClass("mp-field-row")(
-                    div.cssClass("mp-field")(
-                      label(if isCs then "Globální sleva (%)" else "Global Discount (%)").style(labelStyle),
-                      numberInput.cssClass("mp-input").value(eDisc).onInput(v => editDiscRef.set(v)),
-                    ),
-                    div.cssClass("mp-field")(
-                      label(if isCs then "Min. objednávka bez DPH (prázdné = bez limitu)" else "Min Order Net Override (blank = none)").style(labelStyle),
-                      numberInput.cssClass("mp-input").value(eMin).onInput(v => editMinRef.set(v)),
-                    ),
-                  ),
-                  div.style(rowSm)(
-                    button
-                      .cssClass("mp-btn mp-btn-primary mp-btn-sm")
-                      .onClick {
-                        val pctOpt = scala.util.Try(BigDecimal(eDisc.trim)).toOption.filter(_ > 0).map(p => Percentage.unsafe(p.min(BigDecimal(80))))
-                        val minOpt = scala.util.Try(BigDecimal(eMin.trim)).toOption.filter(_ > 0).map(Money.apply)
-                        state.saveAgreement(a.copy(globalDiscount = pctOpt, minimumOrderOverride = minOpt)).andThen(editKeyRef.set(None))
-                      }(state.i18n.t("adm-cat-save")),
-                    button.cssClass("mp-btn mp-btn-ghost mp-btn-sm").onClick(editKeyRef.set(None))(state.i18n.t("adm-cat-cancel")),
-                  ),
+              if isEditing then
+                AgreementEditorView.render(
+                  state = state,
+                  session = editSession,
+                  catalog = catalog,
+                  customers = customers,
+                  existing = agreements,
+                  original = Some(a),
+                  defaultCustomerId = None,
+                  lang = lang,
+                  onDone = () => editKeyRef.set(None),
                 )
-              else UI.empty,
-
-              // Read-only view of scoped Category / Material / Finish discounts
-              div.style(stackXs)(
-                span(state.i18n.t("adm-pri-agr-scoped-readonly")).style(labelStyle),
-                if a.categoryDiscounts.isEmpty && a.materialDiscounts.isEmpty && a.finishDiscounts.isEmpty && a.fixedMaterialRates.isEmpty then
-                  span(if isCs then "Žádné specifické slevy pro kategorie, materiály ani zušlechtění." else "No category, material, or finish overrides configured.").style(smallText)
-                else
-                  div.style(stackXs)(
-                    if a.categoryDiscounts.nonEmpty then
-                      div.style(rowWrap)(
-                        span(if isCs then "Kategorie:" else "Categories:").style(smallText.fontWeight(FontWeight.w700)),
-                        UI.fragment(a.categoryDiscounts.toList.sortBy(_._1.value).map { case (cid, pct) => badge(s"${cid.value}: −${pct.value}%", BadgeTone.Brand) }*),
-                      )
-                    else UI.empty,
-                    if a.materialDiscounts.nonEmpty then
-                      div.style(rowWrap)(
-                        span(if isCs then "Materiály:" else "Materials:").style(smallText.fontWeight(FontWeight.w700)),
-                        UI.fragment(a.materialDiscounts.toList.sortBy(_._1.value).map { case (mid, pct) => badge(s"${mid.value}: −${pct.value}%", BadgeTone.Emerald) }*),
-                      )
-                    else UI.empty,
-                    if a.finishDiscounts.nonEmpty then
-                      div.style(rowWrap)(
-                        span(if isCs then "Zušlechtění:" else "Finishes:").style(smallText.fontWeight(FontWeight.w700)),
-                        UI.fragment(a.finishDiscounts.toList.sortBy(_._1.value).map { case (fid, pct) => badge(s"${fid.value}: −${pct.value}%", BadgeTone.Amber) }*),
-                      )
-                    else UI.empty,
-                    if a.fixedMaterialRates.nonEmpty then
-                      div.style(rowWrap)(
-                        span(if isCs then "Fixní sazby materiálů:" else "Fixed Material Rates:").style(smallText.fontWeight(FontWeight.w700)),
-                        UI.fragment(a.fixedMaterialRates.toList.sortBy(_._1.value).map { case (mid, rm) => badge(s"${mid.value}: $rm", BadgeTone.Neutral) }*),
-                      )
-                    else UI.empty,
-                  ),
-              ),
+              else
+                div.style(stackSm)(
+                  span(state.i18n.t("adm-pri-agr-rules")).style(labelStyle),
+                  AgreementEditorView.renderSummary(a, catalog, lang),
+                  if canManage then
+                    div(
+                      button
+                        .cssClass("mp-btn mp-btn-secondary mp-btn-sm")
+                        .onClick(editSession.load(AgreementDraft.from(a)).andThen(editKeyRef.set(Some(key))))(state.i18n.t("adm-pri-agr-edit"))
+                    )
+                  else UI.empty,
+                ),
             )
           }
         },

@@ -10,7 +10,7 @@ The Backoffice Pricing → Margin Simulator was unusable: picking a category, pr
 
 ## Changes Made
 
-- `modules/ui-admin-core/.../views/PricingManagerView.scala` — simulator: every `<option>` marks `.selected(...)`; quantity uses `input.inputFilter(InputFilter.Digits)` instead of `numberInput`; `runSim` reads all refs at run time; select/input changes re-run the simulation when a result is already displayed; `renderSimulator` is `private[admin]` for tests. Promo-kind and agreement-form selects also mark `.selected`.
+- `modules/ui-admin-core/.../views/PricingManagerView.scala` — simulator: every `<option>` marks `.selected(...)`; quantity uses `input.inputFilter(InputFilter.Digits)` instead of `numberInput`; `runSim` reads all refs at run time; select/input changes re-run the simulation when a result is already displayed; `renderSimulator` is `private[admin]` for tests. The promo-kind select also marks `.selected` (the old inline agreement form was replaced by `AgreementEditorView` in #186, which applies the same fix).
 - `CustomerManagerView.scala`, `OrderDetailView.scala`, `StaffSettingsView.scala` — same `.selected(...)` fix on all remaining admin selects (segment, line speed, staff role, courier/bank currency).
 - `modules/ui-admin-core/src/test/.../BackofficeUiSpec.scala` — new test rendering the simulator with non-default selections and asserting the matching options are `selected` and quantity is digit-filtered.
 
@@ -25,4 +25,4 @@ The Backoffice Pricing → Margin Simulator was unusable: picking a category, pr
 
 ## Follow-up Items
 
-- [ ] Other admin numeric fields (promo value/max uses, agreement discount, credit terms) still use `numberInput`; convert to filtered text inputs if they show the caret problem.
+- [ ] Other admin numeric fields (promo value/max uses, customer credit terms) still use `numberInput`; convert to filtered text inputs if they show the caret problem.

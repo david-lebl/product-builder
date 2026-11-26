@@ -10,6 +10,7 @@ Core feature specifications — stable documents describing *what* the system do
 |----------|-------------|
 | [features.md](features.md) | Comprehensive feature overview of the entire system |
 | [pricing.md](pricing.md) | Pricing engine specification with 24 rule types and worked examples |
+| [b2b-agreements.md](b2b-agreements.md) | B2B customer price agreements — rules, precedence, and the backoffice Form/JSON editor |
 | [visual-product-types.md](visual-product-types.md) | Legacy (pre-Kyo PoC) visual editor product types — superseded by the Design Studio architecture doc |
 | [manufacturing-speed-pipeline.md](manufacturing-speed-pipeline.md) | Order completion time estimation — 8-stage pipeline specification |
 | [new-product-specification.md](new-product-specification.md) | Specification for adding new product types to the system |
@@ -89,6 +90,7 @@ Session-by-session work logs documenting what was done, decisions made, and issu
 | [changelog/2026-11-25-scalajs-link-oom.md](changelog/2026-11-25-scalajs-link-oom.md) | Session log for the Scala.js link OutOfMemoryError fix (Mill daemon `-Xmx6g`) |
 | [changelog/2026-11-25-fulllinkjs-oom-deploy.md](changelog/2026-11-25-fulllinkjs-oom-deploy.md) | Session log for the deploy `fullLinkJS` OutOfMemoryError fix (link bundles one at a time) |
 | [changelog/README.md](changelog/README.md) | Changelog format, template, and log entries index |
+| [changelog/2026-11-26-backoffice-b2b-agreement-editor.md](changelog/2026-11-26-backoffice-b2b-agreement-editor.md) | Feature — full B2B agreement editor in the backoffice (category/material/finish discounts, fixed rates, JSON mode) |
 | [changelog/2026-11-25-mobile-configurator-sticky-dock.md](changelog/2026-11-25-mobile-configurator-sticky-dock.md) | Feature — sticky bottom price dock on mobile/tablet with expandable price-detail sheet, add-to-cart feedback and bottom-sheet cart |
 | [changelog/2026-11-25-configurator-material-combobox.md](changelog/2026-11-25-configurator-material-combobox.md) | Feature — searchable rich material combo box (name/surface/gsm ranges, EN+CS) with weight-variant pills in the configurator |
 | [changelog/2026-11-24-ui-visual-ux-modernization.md](changelog/2026-11-24-ui-visual-ux-modernization.md) | UI modernization — CSS-variable theme with dark mode, icon set, shared controls, storefront & backoffice redesign, layout bug fixes |

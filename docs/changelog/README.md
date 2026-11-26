@@ -47,6 +47,7 @@ Brief description of what was accomplished in this session.
 | Date | Title | PR | Type |
 |------|-------|----|------|
 | 2026-11-26 | [Backoffice Margin Simulator Inputs Fixed](2026-11-26-backoffice-margin-simulator-fix.md) | t3/fix-backoffice-margin-simulator | bugfix |
+| 2026-11-26 | [Backoffice B2B Agreement Editor](2026-11-26-backoffice-b2b-agreement-editor.md) | t3/backoffice-b2b-agreement-config | feature |
 | 2026-11-25 | [Mobile Configurator Sticky Price Dock](2026-11-25-mobile-configurator-sticky-dock.md) | t3/mobile-configurator-sticky-bar | feature |
 | 2026-11-25 | [Searchable Material Combo Box](2026-11-25-configurator-material-combobox.md) | t3/configurator-material-searchable-combobox | feature |
 | 2026-11-24 | [UI Visual & UX Modernization](2026-11-24-ui-visual-ux-modernization.md) | t3/optimise-ui-visual-ux | feature |

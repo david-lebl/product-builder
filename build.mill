@@ -615,8 +615,9 @@ object `ui-admin-core` extends Module {
       `ui-core`.jvm,
       backend.artwork.`01-c-core`.jvm,
       backend.backoffice.jvm,
+      backend.json.jvm,
     )
-    def mvnDeps = kyoUiDeps
+    def mvnDeps = kyoUiDeps ++ jsonDeps
 
     object test extends ScalaTests {
       def sources       = Task.Sources(dir / "src" / "test" / "scala")
@@ -637,8 +638,9 @@ object `ui-admin-core` extends Module {
       `ui-core`.js,
       backend.artwork.`01-c-core`.js,
       backend.backoffice.js,
+      backend.json.js,
     )
-    def mvnDeps = kyoUiDeps
+    def mvnDeps = kyoUiDeps ++ jsonDeps
   }
 }
 
