@@ -88,9 +88,17 @@ trait StorefrontFacade:
       copies: Quantity = Quantity.one,
       sessionToken: Option[SessionToken] = None,
       artworkIds: Map[ComponentKey, ArtworkId] = Map.empty,
+      productionNote: Option[String] = None,
   ): CartView < (Async & Abort[StorefrontError])
 
   def updateCartLineCopies(cartId: CartId, lineId: OrderLineId, copies: Quantity): CartView < (Async & Abort[StorefrontError])
+
+  /** Sets (or clears, with `None` / blank) a cart line's optional production instructions. */
+  def updateCartLineProductionNote(
+      cartId: CartId,
+      lineId: OrderLineId,
+      note: Option[String],
+  ): CartView < (Async & Abort[StorefrontError])
   def removeCartLine(cartId: CartId, lineId: OrderLineId): CartView < (Async & Abort[StorefrontError])
   def clearCart(cartId: CartId): CartView < (Async & Abort[StorefrontError])
 
@@ -160,6 +168,14 @@ trait StorefrontFacade:
       componentKey: ComponentKey,
       payload: ArtworkUploadPayload,
   ): ArtworkSubmissionView < (Async & Abort[StorefrontError])
+
+  /** Customer edits the production instructions of one of their order lines (until the order is accepted). */
+  def updateMyOrderLineProductionNote(
+      sessionToken: SessionToken,
+      orderId: OrderId,
+      lineId: OrderLineId,
+      note: Option[String],
+  ): OrderView < (Async & Abort[StorefrontError])
 
   def reuploadOrderArtworkPayload(
       sessionToken: SessionToken,
@@ -347,6 +363,7 @@ final class StorefrontFacadeLive(
       copies: Quantity,
       sessionToken: Option[SessionToken],
       artworkIds: Map[ComponentKey, ArtworkId],
+      productionNote: Option[String],
   ): CartView < (Async & Abort[StorefrontError]) =
     for
       quoted <- configureAndQuote(cmd, currency, speed, sessionToken, promoCode = None)
@@ -358,9 +375,17 @@ final class StorefrontFacadeLive(
                   quote = quoted.pricing.effectiveQuote,
                   copies = copies,
                   artworkIds = artworkIds,
+                  productionNote = productionNote,
                 )
       cart   <- cartService.addLine(cartId, line).mapAbort(StorefrontError.OrderFailure.apply)
     yield cart
+
+  override def updateCartLineProductionNote(
+      cartId: CartId,
+      lineId: OrderLineId,
+      note: Option[String],
+  ): CartView < (Async & Abort[StorefrontError]) =
+    cartService.updateLineProductionNote(cartId, lineId, note).mapAbort(StorefrontError.OrderFailure.apply)
 
   override def updateCartLineCopies(cartId: CartId, lineId: OrderLineId, copies: Quantity): CartView < (Async & Abort[StorefrontError]) =
     cartService.updateLineCopies(cartId, lineId, copies).mapAbort(StorefrontError.OrderFailure.apply)
@@ -691,6 +716,19 @@ final class StorefrontFacadeLive(
                  yield view
     yield res
 
+  override def updateMyOrderLineProductionNote(
+      sessionToken: SessionToken,
+      orderId: OrderId,
+      lineId: OrderLineId,
+      note: Option[String],
+  ): OrderView < (Async & Abort[StorefrontError]) =
+    for
+      customer <- currentCustomer(sessionToken)
+      order    <- loadOwnedOrder(customer.id, orderId)
+      actor     = OrderActor.Customer(Some(customer.id), order.customer.fullName)
+      updated  <- orderService.updateLineProductionNote(orderId, lineId, note, actor).mapAbort(StorefrontError.OrderFailure.apply)
+    yield updated
+
   override def reuploadOrderArtworkPayload(
       sessionToken: SessionToken,
       orderId: OrderId,
@@ -850,6 +888,7 @@ final class StorefrontFacadeLive(
               quote = quoted.pricing.effectiveQuote,
               copies = item.copies,
               artworkIds = item.artworkIds,
+              productionNote = item.productionNote,
             )
           ),
           None,

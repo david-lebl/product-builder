@@ -14,7 +14,8 @@ import mpbuilder.ui.theme.AppTheme.Palette.*
 /** Order Intake Queue screen powered by Vaadin-style Master-Detail `DataTable`:
   *   - External header with wrapping subtitle, Search, and Refresh button
   *   - Multi-select filters: Intake Status (> 5 options → searchable multi-select textfield),
-  *     Payment Status & Priority (checkboxes, no counts)
+  *     Payment Status, Priority & Customer instructions (checkboxes, no counts)
+  *   - Items column flags orders whose lines carry customer production instructions (searchable too)
   *   - Priority & calculated production deadline column (with mixed-speed badge)
   *   - Clicking any row opens OrderDetailView in the resizable right Master-Detail pane,
   *     with a Full View button (`AdminRoute.OrderDetail`) for dedicated full-screen workspace
@@ -46,6 +47,9 @@ object OrderIntakeView:
       case OrderStatusKind.OnHold           => OrderStatus.OnHold(mpbuilder.shared.NonEmptyString.unsafe("hold"))
       case OrderStatusKind.Cancelled        => OrderStatus.Cancelled(mpbuilder.shared.NonEmptyString.unsafe("cancel"))
     orderStatusLabel(sampleStatus, lang)
+
+  /** Number of lines on which the customer left production instructions (prepress must read them). */
+  private def linesWithInstructions(ord: OrderView): Int = ord.lines.count(_.productionNote.nonEmpty)
 
   def render(state: BackofficeState): UI < Sync =
     for
@@ -117,7 +121,16 @@ object OrderIntakeView:
             numericSortKey = Some(o => BigDecimal(o.lines.size)),
             cell = ord =>
               val lineSummary = ord.lines.toList.map(l => s"${l.product.categoryName(lang)} ×${l.runQuantity.value}").mkString(", ")
-              span(lineSummary).style(Style.fontSize(12.px).color(inkSecondary)),
+              val withNotes   = linesWithInstructions(ord)
+              div.style(Style.column.gap(3.px))(
+                span(lineSummary).style(Style.fontSize(12.px).color(inkSecondary)),
+                if withNotes > 0 then
+                  val label =
+                    if isCs then s"Pokyny zákazníka · $withNotes"
+                    else s"Customer instructions · $withNotes"
+                  div.cssClass("mp-intake-instructions").style(Style.alignSelf(Alignment.start))(badge(label, BadgeTone.Amber))
+                else UI.empty,
+              ),
           ),
           DataTable.Column[OrderView](
             id = "total",
@@ -154,6 +167,14 @@ object OrderIntakeView:
               DataTable.FilterOption[OrderView](pr.toString, priorityLabel(pr, lang), _.priority == pr)
             },
           ),
+          DataTable.FilterGroup[OrderView](
+            id = "instructions",
+            label = if isCs then "Pokyny zákazníka" else "Customer instructions",
+            options = List(
+              DataTable.FilterOption[OrderView]("With", if isCs then "S pokyny" else "With instructions", linesWithInstructions(_) > 0),
+              DataTable.FilterOption[OrderView]("Without", if isCs then "Bez pokynů" else "Without instructions", linesWithInstructions(_) == 0),
+            ),
+          ),
         )
 
         DataTable.render[OrderView, OrderId](
@@ -163,12 +184,13 @@ object OrderIntakeView:
           rowKey = _.id,
           columns = columns,
           state = tableState,
-          searchPlaceholder = if isCs then "Hledat číslo objednávky, zákazníka, firmu nebo e-mail..." else "Search order #, customer name, company, or email...",
+          searchPlaceholder = if isCs then "Hledat číslo objednávky, zákazníka, firmu, e-mail nebo pokyny..." else "Search order #, customer, company, email, or instructions...",
           matchesSearch = (ord, q) =>
             ord.orderNumber.value.toLowerCase.contains(q) ||
               ord.customer.fullName.value.toLowerCase.contains(q) ||
               ord.customer.email.value.toLowerCase.contains(q) ||
-              ord.customer.companyName.exists(_.value.toLowerCase.contains(q)),
+              ord.customer.companyName.exists(_.value.toLowerCase.contains(q)) ||
+              ord.lines.exists(_.productionNote.exists(_.toLowerCase.contains(q))),
           filterGroups = filterGroups,
           onRowSelect = Some(ord => state.selectedOrder.set(Some(ord)).andThen(state.refreshOrderDetail(ord.id))),
           renderDetail = Some(_ => embeddedDetailUI),

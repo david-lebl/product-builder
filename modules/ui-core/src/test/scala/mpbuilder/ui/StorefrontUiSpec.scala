@@ -166,6 +166,7 @@ class StorefrontUiSpec extends Test[Any]:
             assert(b2bReady.exists(b => b.pricing.savingsNet.exists(_.value > 0)))
             assert(b2bReady.exists(b => b.pricing.walkInBaseQuote.exists(w => b.pricing.effectiveQuote.netTotal.value < w.netTotal.value)))
             assert(html.contains("Print Shop Pro") || html.contains("Jan"))
+            assert(html.contains("Instructions for production (optional)"))
             assert(!html.contains("‹") && !html.contains("›"))
         }
       }

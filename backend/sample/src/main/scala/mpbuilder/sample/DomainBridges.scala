@@ -180,6 +180,7 @@ object DomainBridges:
       product: ConfiguredProduct,
       speed: ManufacturingSpeed,
       lang: Language = Language.En,
+      customerInstructions: Option[String] = None,
   ): ProductionSpec =
     val prodComponents = product.components.map { comp =>
       val printJobOpt = comp.print.map { ps =>
@@ -228,6 +229,7 @@ object DomainBridges:
       components = prodComponents,
       hasFolding = product.specs.dimensions.foldTypeOpt.isDefined,
       bindingLabel = product.specs.binding.map(b => s"${b.method} (${b.totalPages}pp)"),
+      customerInstructions = customerInstructions.map(_.trim).filter(_.nonEmpty),
     )
 
   /** Maps a catalog `FinishType` into a manufacturing `FinishingOperation`. */

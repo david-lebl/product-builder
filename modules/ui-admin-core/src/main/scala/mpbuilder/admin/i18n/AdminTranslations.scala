@@ -113,6 +113,7 @@ object AdminTranslations:
       |adm-od-line-breakdown = Price Breakdown
       |adm-od-line-edit = Edit Line
       |adm-od-line-spec-note = Additional Specification Note
+      |adm-od-line-customer-note = Customer production instructions
       |adm-od-totals-card = Commercial Summary
       |adm-od-artwork-card = Artwork & Preflight Review
       |adm-od-artwork-empty = No artwork files attached to this order yet.
@@ -392,6 +393,7 @@ object AdminTranslations:
       |adm-od-line-breakdown = Rozpis ceny
       |adm-od-line-edit = Upravit položku
       |adm-od-line-spec-note = Doplňující textová specifikace
+      |adm-od-line-customer-note = Pokyny zákazníka pro výrobu
       |adm-od-totals-card = Obchodní souhrn
       |adm-od-artwork-card = Tisková data a Preflight
       |adm-od-artwork-empty = K této objednávce zatím nejsou přiložena žádná tisková data.

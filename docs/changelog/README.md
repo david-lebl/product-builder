@@ -47,6 +47,7 @@ Brief description of what was accomplished in this session.
 | Date | Title | PR | Type |
 |------|-------|----|------|
 | 2026-11-26 | [Backoffice Customer Management UX Redesign](2026-11-26-backoffice-customer-detail-ux.md) | t3/backoffice-customer-detail-ux | feature |
+| 2026-11-26 | [Order-Line Production Instructions](2026-11-26-order-line-production-notes.md) | t3/order-line-manufacturing-note | feature |
 | 2026-11-26 | [Backoffice Margin Simulator Inputs Fixed](2026-11-26-backoffice-margin-simulator-fix.md) | t3/fix-backoffice-margin-simulator | bugfix |
 | 2026-11-26 | [Backoffice B2B Agreement Editor](2026-11-26-backoffice-b2b-agreement-editor.md) | t3/backoffice-b2b-agreement-config | feature |
 | 2026-11-25 | [Mobile Configurator Sticky Price Dock](2026-11-25-mobile-configurator-sticky-dock.md) | t3/mobile-configurator-sticky-bar | feature |

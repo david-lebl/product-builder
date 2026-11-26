@@ -404,6 +404,15 @@ object AccountView:
                 span(formatMoney(ln.lineGrossTotal, ln.price.currency, lang)).style(Style.fontWeight(FontWeight.w700).fontSize(14.px)),
               ),
 
+              // Customer's production instructions for this line (editable until the order is accepted)
+              state.noteEditor.render(
+                key = s"order-${order.id.value}-${ln.lineId.value}",
+                current = ln.productionNote,
+                editable = order.status.allowsCustomerArtworkUpload,
+                i18n = state.i18n,
+                onSave = note => state.updateOrderLineProductionNote(order.id, ln.lineId, note),
+              ),
+
               // Component artwork slots for this order line
               div.style(stackSm)(
                 fallbackComps.map { comp =>
