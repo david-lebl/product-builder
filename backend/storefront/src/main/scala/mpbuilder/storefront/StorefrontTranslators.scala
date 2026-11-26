@@ -137,6 +137,7 @@ object StorefrontTranslators:
       quote: PriceQuote,
       copies: Quantity = Quantity.one,
       artworkIds: Map[ComponentKey, ArtworkId] = Map.empty,
+      productionNote: Option[String] = None,
   ): CartLine =
     CartLine(
       lineId = lineId,
@@ -148,6 +149,7 @@ object StorefrontTranslators:
       artworkIds = artworkIds,
       copies = copies,
       weightGrams = product.weight.map(_.totalWeight.value),
+      productionNote = ProductionNote.normalize(productionNote),
     )
 
   def toFinishingOperation(finishType: FinishType): Option[FinishingOperation] =

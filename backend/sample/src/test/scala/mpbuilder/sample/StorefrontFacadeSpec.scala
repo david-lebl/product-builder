@@ -417,6 +417,65 @@ class StorefrontFacadeSpec extends Test[Any]:
       }
     }.provideRuntime(seedSampleOrders = false).atTime(validNow)
 
+    "line production instructions flow from cart to order, stay customer-editable until acceptance, then lock" in {
+      import mpbuilder.backoffice.*
+
+      for
+        sf       <- Env.get[StorefrontFacade]
+        bo       <- Env.get[BackofficeFacade]
+        auth     <- sf.loginWithPassword(EmailAddress.unsafe("jan@printshoppro.cz"), SampleIdentity.demoCustomerPassword)
+        tok       = auth.session.token
+        customer  = auth.customer.get
+        empAuth  <- bo.loginStaff(SampleIdentity.adminEmployeePrincipal.email, SampleIdentity.demoEmployeePassword)
+        empTok    = empAuth.session.token
+
+        cartId    = CartId.unsafe("cart-production-note")
+        _        <- sf.createCart(cartId, Currency.CZK)
+        added    <- sf.addConfiguredProductToCart(
+                      cartId = cartId,
+                      cmd = flyersCmd(500),
+                      currency = Currency.CZK,
+                      sessionToken = Some(tok),
+                      productionNote = Some("  Logo side is the front  "),
+                    )
+        lineId    = added.lines.head.lineId
+        blanked  <- sf.updateCartLineProductionNote(cartId, lineId, Some("   "))
+        edited   <- sf.updateCartLineProductionNote(cartId, lineId, Some("Match Pantone 286 C"))
+
+        custSnap  = OrderCustomerSnapshot(
+                      customerId = Some(customer.id),
+                      segment = customer.segment,
+                      fullName = NonEmptyString.unsafe(s"${customer.contact.firstName.value} ${customer.contact.lastName.value}"),
+                      email = customer.contact.email,
+                    )
+        confirm  <- sf.submitCheckout(
+                      SubmitCheckoutCmd(
+                        sessionToken = Some(tok),
+                        source = CheckoutSource.FromCart(cartId),
+                        customer = custSnap,
+                        billingAddress = customer.billingAddress,
+                        deliveryChoice = DeliveryOptionChoice.ShopPickup(SampleDeliveryCatalog.shopPragueId),
+                        paymentMethod = PaymentMethod.InvoiceOnAccount,
+                      )
+                    )
+        orderId   = confirm.order.id
+        orderLine = confirm.order.lines.head.lineId
+        updated  <- sf.updateMyOrderLineProductionNote(tok, orderId, orderLine, Some("Match Pantone 286 C, cut tight to trim"))
+        staffSees <- bo.getOrder(empTok, orderId)
+        _        <- bo.acceptOrder(empTok, orderId, None)
+        locked   <- sf.updateMyOrderLineProductionNote(tok, orderId, orderLine, Some("Too late")).either
+      yield {
+        assert(added.lines.head.productionNote.contains("Logo side is the front"))
+        assert(blanked.lines.head.productionNote.isEmpty)
+        assert(edited.lines.head.productionNote.contains("Match Pantone 286 C"))
+        assert(confirm.order.lines.head.productionNote.contains("Match Pantone 286 C"))
+        assert(updated.lines.head.productionNote.contains("Match Pantone 286 C, cut tight to trim"))
+        assert(updated.statusHistory.exists(_.note.exists(_.startsWith("Production instructions updated"))))
+        assert(staffSees.lines.head.productionNote == updated.lines.head.productionNote)
+        assert(locked == Left(StorefrontError.OrderFailure(OrderError.ProductionNoteLocked(orderId, OrderStatus.Accepted))))
+      }
+    }.provideRuntime(seedSampleOrders = false).atTime(validNow)
+
     "Storefront currency conversion computes EUR quotes from CZK pricelist via ExchangeRateProvider adapter" in {
       for
         facade      <- Env.get[StorefrontFacade]

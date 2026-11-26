@@ -8,7 +8,7 @@ import mpbuilder.identity.*
 import mpbuilder.ordering.*
 import mpbuilder.shared.*
 import mpbuilder.storefront.*
-import mpbuilder.ui.components.{ArtworkComponents, BrowserPickedFile}
+import mpbuilder.ui.components.{ArtworkComponents, BrowserPickedFile, ProductionNoteEditor}
 import mpbuilder.ui.configurator.*
 import mpbuilder.ui.i18n.AppI18n
 import mpbuilder.ui.port.StorefrontClient
@@ -64,6 +64,8 @@ final class StorefrontState(
     val artworkPreview: ArtworkComponents.PreviewModal.Handle,
     val cartError: SignalRef[Option[String]],
     val checkoutSession: SignalRef[Option[CheckoutSession]],
+    /** Inline editor for cart / order line production instructions (one line edited at a time). */
+    val noteEditor: ProductionNoteEditor.Handle,
     private val idSeq: SignalRef[Long],
     val onRouteChange: AppRoute => Unit < Sync,
     val onLanguagePersist: Language => Unit < Sync,
@@ -418,10 +420,11 @@ final class StorefrontState(
       cur <- currency.get
       tok <- authSession.get.map(_.map(_.token))
       artIds = d.artworks.view.mapValues(_.id).toMap
+      note <- configurator.currentProductionNote
       res <- Abort.run[StorefrontError] {
                for
                  cid     <- ensureCartId
-                 updated <- client.addConfiguredProductToCart(cid, cmd, cur, d.speed, Quantity.one, tok, artIds)
+                 updated <- client.addConfiguredProductToCart(cid, cmd, cur, d.speed, Quantity.one, tok, artIds, note)
                yield updated
              }
       ok <- res match
@@ -454,15 +457,17 @@ final class StorefrontState(
   /** Starts a "buy now" checkout. Sends only the configuration; the backend re-prices it on every checkout call. */
   def startQuickOrder(d: DraftConfig): Unit < Async =
     for
-      cmd <- configurator.buildConfigureCmd(d)
-      cur <- currency.get
-      item = QuickOrderItem(
-               cmd = cmd,
-               currency = cur,
-               speed = d.speed,
-               copies = Quantity.one,
-               artworkIds = d.artworks.view.mapValues(_.id).toMap,
-             )
+      cmd  <- configurator.buildConfigureCmd(d)
+      cur  <- currency.get
+      note <- configurator.currentProductionNote
+      item  = QuickOrderItem(
+                cmd = cmd,
+                currency = cur,
+                speed = d.speed,
+                copies = Quantity.one,
+                artworkIds = d.artworks.view.mapValues(_.id).toMap,
+                productionNote = note,
+              )
       _ <- configurator.clearDraftArtworks
       _ <- navigate(AppRoute.Checkout(CheckoutSource.QuickSingleLine(item)))
     yield ()
@@ -500,6 +505,35 @@ final class StorefrontState(
             case _                       => Kyo.unit
           }
       }
+
+  /** Saves a cart line's production instructions; returns whether it succeeded. */
+  def updateCartLineProductionNote(lineId: OrderLineId, note: Option[String]): Boolean < Async =
+    cart.get.flatMap {
+      case None => false
+      case Some(c) =>
+        Abort.run[StorefrontError](client.updateCartLineProductionNote(c.id, lineId, note)).flatMap {
+          case Result.Success(updated) => cart.set(Some(updated)).andThen(true)
+          case Result.Failure(err)     => cartError.set(Some(err.message)).andThen(false)
+          case Result.Panic(ex)        => cartError.set(Some(Option(ex.getMessage).getOrElse("Cart error"))).andThen(false)
+        }
+    }
+
+  /** Saves an order line's production instructions (allowed until the order is accepted). */
+  def updateOrderLineProductionNote(orderId: OrderId, lineId: OrderLineId, note: Option[String]): Boolean < Async =
+    authSession.get.flatMap {
+      case None => false
+      case Some(sess) =>
+        Abort.run[StorefrontError](client.updateMyOrderLineProductionNote(sess.token, orderId, lineId, note)).flatMap {
+          case Result.Success(updated) =>
+            for
+              _   <- orders.updateAndGet(_.map(o => if o.id == updated.id then updated else o)).unit
+              msg <- i18n.now("note-production-saved")
+              _   <- showToast(msg)
+            yield true
+          case Result.Failure(err) => showToast(err.message).andThen(false)
+          case Result.Panic(ex)    => showToast(Option(ex.getMessage).getOrElse("Error")).andThen(false)
+        }
+    }
 
   def removeCartLine(lineId: OrderLineId): Unit < Async =
     cart.get.flatMap {
@@ -599,6 +633,7 @@ object StorefrontState:
       artPrevH    <- ArtworkComponents.PreviewModal.Handle.make
       cartErrRef  <- Signal.initRef[Option[String]](None)
       checkoutRef <- Signal.initRef[Option[CheckoutSession]](None)
+      noteEdH     <- ProductionNoteEditor.Handle.make
       seqRef      <- Signal.initRef(0L)
       initCatOpt   = initialRoute match
                        case AppRoute.Builder(c, _) => c
@@ -638,6 +673,7 @@ object StorefrontState:
                        artPrevH,
                        cartErrRef,
                        checkoutRef,
+                       noteEdH,
                        seqRef,
                        onRouteChange,
                        onLanguagePersist,

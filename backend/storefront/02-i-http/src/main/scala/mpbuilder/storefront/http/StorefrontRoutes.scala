@@ -110,8 +110,13 @@ final class StorefrontRoutes private[storefront] (facade: StorefrontFacade):
       .doc(Tags.Cart, "Add a configured product to the cart")
       .handler { req =>
         val r = req.fields.body
-        ok(facade.addConfiguredProductToCart(req.fields.cartId, r.cmd, r.currency, r.speed, r.copies, bearerToken(req.fields.authorization), r.artworkIds))
+        ok(facade.addConfiguredProductToCart(req.fields.cartId, r.cmd, r.currency, r.speed, r.copies, bearerToken(req.fields.authorization), r.artworkIds, r.productionNote))
       },
+    HttpRoute.putRaw(base / "carts" / Capture[CartId]("cartId") / "lines" / Capture[OrderLineId]("lineId") / "production-note")
+      .request(_.bodyJson[ProductionNoteRequest])
+      .response(_.bodyJson[CartView]).apiErrors
+      .doc(Tags.Cart, "Set or clear a cart line's production instructions")
+      .handler(req => ok(facade.updateCartLineProductionNote(req.fields.cartId, req.fields.lineId, req.fields.body.note))),
     HttpRoute.patchRaw(base / "carts" / Capture[CartId]("cartId") / "lines" / Capture[OrderLineId]("lineId"))
       .request(_.bodyJson[UpdateCopiesRequest])
       .response(_.bodyJson[CartView]).apiErrors
@@ -188,6 +193,15 @@ final class StorefrontRoutes private[storefront] (facade: StorefrontFacade):
         val r = req.fields.body
         required(req.fields.authorization).map(tok =>
           ok(facade.uploadOrderLineArtwork(tok, req.fields.orderId, r.lineIndex, r.componentKey, r.payload))
+        )
+      },
+    HttpRoute.putRaw(base / "me" / "orders" / Capture[OrderId]("orderId") / "lines" / Capture[OrderLineId]("lineId") / "production-note")
+      .request(_.headerOpt[String]("authorization", "Authorization").bodyJson[ProductionNoteRequest])
+      .response(_.bodyJson[OrderView]).apiErrors
+      .doc(Tags.Me, "Set or clear an order line's production instructions (until the order is accepted)")
+      .handler { req =>
+        required(req.fields.authorization).map(tok =>
+          ok(facade.updateMyOrderLineProductionNote(tok, req.fields.orderId, req.fields.lineId, req.fields.body.note))
         )
       },
     HttpRoute.postRaw(base / "me" / "orders" / Capture[OrderId]("orderId") / "artwork" / Capture[ArtworkId]("artworkId") / "revisions")

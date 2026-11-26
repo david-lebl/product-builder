@@ -79,6 +79,14 @@ class ManufacturingDomainSpec extends Test[Any]:
       assert(standSteps.head.dependsOn.isEmpty)
     }
 
+    "customer production instructions are surfaced on the Prepress step" in {
+      val wf      = WorkflowGenerator.generate(rollupSpec.copy(customerInstructions = Some("Logo side is the front")), WorkflowId.unsafe("wf-note"), None, now)
+      val plainWf = WorkflowGenerator.generate(rollupSpec, WorkflowId.unsafe("wf-plain"), None, now)
+      val notes   = wf.steps.find(_.stationType == StationType.Prepress).get.notes
+      assert(notes.contains("Customer instructions: Logo side is the front"))
+      assert(!plainWf.steps.find(_.stationType == StationType.Prepress).get.notes.contains("Customer instructions"))
+    }
+
     "WorkflowEngine validates employee capability, machine status, unlocks downstream steps, and re-wires DAG on rework" in {
       val wf = WorkflowGenerator.generate(rollupSpec, WorkflowId.unsafe("wf-dag"), None, now)
       val prepressStep = wf.steps.find(_.stationType == StationType.Prepress).get

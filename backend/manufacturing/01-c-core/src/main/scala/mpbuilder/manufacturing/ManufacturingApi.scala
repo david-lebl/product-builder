@@ -102,6 +102,8 @@ final case class ProductionSpec(
     components: NonEmptyChunk[ProductionComponentSpec],
     hasFolding: Boolean = false,
     bindingLabel: Option[String] = None,
+    /** Customer's optional production instructions for this line, surfaced on the prepress step. */
+    customerInstructions: Option[String] = None,
 )
 
 // ── Workflow DAG & Fulfilment Models ─────────────────────────────────────────

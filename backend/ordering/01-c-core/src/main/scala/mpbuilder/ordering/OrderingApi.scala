@@ -154,6 +154,7 @@ final case class CartLine(
     artworkIds: Map[ComponentKey, ArtworkId] = Map.empty,
     copies: Quantity = Quantity.one,
     weightGrams: Option[BigDecimal] = None,
+    productionNote: Option[String] = None,
 ):
   def lineNetTotal: Money   = (price.netAmount * BigDecimal(copies.value)).rounded
   def lineTaxTotal: Money   = (price.taxAmount * BigDecimal(copies.value)).rounded
@@ -161,7 +162,21 @@ final case class CartLine(
   def totalWeightGrams: Option[BigDecimal] = weightGrams.map(_ * BigDecimal(copies.value))
 
   def toOrderLine: OrderLine =
-    OrderLine(lineId, product, runQuantity, versionCount, speed, price, artworkIds, copies, weightGrams)
+    OrderLine(
+      lineId, product, runQuantity, versionCount, speed, price, artworkIds, copies, weightGrams,
+      productionNote = ProductionNote.normalize(productionNote),
+    )
+
+/** Customer-authored, optional production instructions for one order line ("print the logo side first",
+  * "keep the cut tight to the trim", …). A single current value — not a conversation: it is a spec input
+  * for prepress/manufacturing, editable by the customer only until the order is accepted.
+  */
+object ProductionNote:
+  val MaxLength: Int = 1000
+
+  /** Trims, maps blank to `None` and caps the length at [[MaxLength]]. */
+  def normalize(raw: Option[String]): Option[String] =
+    raw.map(_.trim).filter(_.nonEmpty).map(_.take(MaxLength))
 
 final case class CartView(
     id: CartId,
@@ -308,7 +323,10 @@ final case class OrderLine(
     artworkIds: Map[ComponentKey, ArtworkId],
     copies: Quantity = Quantity.one,
     weightGrams: Option[BigDecimal] = None,
+    /** Internal specification note maintained by staff (not shown to the customer). */
     specNote: Option[String] = None,
+    /** Customer's optional production instructions for this line (see [[ProductionNote]]). */
+    productionNote: Option[String] = None,
 ):
   def lineNetTotal: Money   = (price.netAmount * BigDecimal(copies.value)).rounded
   def lineTaxTotal: Money   = (price.taxAmount * BigDecimal(copies.value)).rounded
@@ -397,6 +415,8 @@ enum OrderError(val message: String):
       extends OrderError(s"Order '${orderId.value}' is already cancelled")
   case OrderNotOnHold(orderId: OrderId, currentStatus: OrderStatus)
       extends OrderError(s"Order '${orderId.value}' is not on hold (current status: $currentStatus)")
+  case ProductionNoteLocked(orderId: OrderId, status: OrderStatus)
+      extends OrderError(s"Production instructions of order '${orderId.value}' can no longer be changed (status: $status)")
 
 // ── Domain Events ────────────────────────────────────────────────────────────
 
@@ -450,6 +470,7 @@ trait CartService:
   def createCart(cartId: CartId, currency: Currency, customerId: Option[CustomerId] = None): CartView < (Async & Abort[OrderError])
   def addLine(cartId: CartId, line: CartLine): CartView < (Async & Abort[OrderError])
   def updateLineCopies(cartId: CartId, lineId: OrderLineId, copies: Quantity): CartView < (Async & Abort[OrderError])
+  def updateLineProductionNote(cartId: CartId, lineId: OrderLineId, note: Option[String]): CartView < (Async & Abort[OrderError])
   def replaceLine(cartId: CartId, line: CartLine): CartView < (Async & Abort[OrderError])
   def removeLine(cartId: CartId, lineId: OrderLineId): CartView < (Async & Abort[OrderError])
   def clearCart(cartId: CartId): CartView < (Async & Abort[OrderError])
@@ -570,4 +591,14 @@ trait OrderService:
       lineIndex: Int,
       componentKey: ComponentKey,
       artworkId: ArtworkId,
+  ): OrderView < (Async & Abort[OrderError])
+
+  /** Customer edits a line's production instructions; allowed only while artwork uploads are open
+    * (`OrderStatus.allowsCustomerArtworkUpload`). The change is recorded in the status history.
+    */
+  def updateLineProductionNote(
+      orderId: OrderId,
+      lineId: OrderLineId,
+      note: Option[String],
+      actor: OrderActor,
   ): OrderView < (Async & Abort[OrderError])

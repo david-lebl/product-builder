@@ -24,6 +24,7 @@ Research documents, gap analyses, and architecture decisions — context for *wh
 
 | Document | Description |
 |----------|-------------|
+| [analysis/order-line-production-notes.md](analysis/order-line-production-notes.md) | Customer production instructions per order line vs. a customer ↔ backoffice conversation: decision (dedicated field now, one order-level thread later) and resulting model |
 | [analysis/visual-editor-architecture.md](analysis/visual-editor-architecture.md) | Design Studio (visual editor): document model in mm/pt, shared SVG renderer, local-first IndexedDB storage, server sync & asset upload design, print-PDF pipeline, iframe embedding & bundle-size measurements |
 | [analysis/ci-optimization-plan.md](analysis/ci-optimization-plan.md) | GitHub Actions / Mill CI review: fixed issues (CI skipped `develop` PRs, broken preview cleanup, custom Mill wrapper) and backlog (scalafmt enforcement, scalafix, staged jobs, `out/` caching, Scala Steward) |
 | [analysis/kyo-ecosystem-findings.md](analysis/kyo-ecosystem-findings.md) | Kyo 1.0.0-RC7 bugs, gaps & footguns found during the backend rewrite (with reproductions) — input for upstream issues |
@@ -90,6 +91,7 @@ Session-by-session work logs documenting what was done, decisions made, and issu
 | [changelog/2026-11-25-scalajs-link-oom.md](changelog/2026-11-25-scalajs-link-oom.md) | Session log for the Scala.js link OutOfMemoryError fix (Mill daemon `-Xmx6g`) |
 | [changelog/2026-11-25-fulllinkjs-oom-deploy.md](changelog/2026-11-25-fulllinkjs-oom-deploy.md) | Session log for the deploy `fullLinkJS` OutOfMemoryError fix (link bundles one at a time) |
 | [changelog/README.md](changelog/README.md) | Changelog format, template, and log entries index |
+| [changelog/2026-11-26-order-line-production-notes.md](changelog/2026-11-26-order-line-production-notes.md) | Feature — optional customer production instructions per cart/order line (configurator, cart, My orders, backoffice, manufacturing) |
 | [changelog/2026-11-26-backoffice-b2b-agreement-editor.md](changelog/2026-11-26-backoffice-b2b-agreement-editor.md) | Feature — full B2B agreement editor in the backoffice (category/material/finish discounts, fixed rates, JSON mode) |
 | [changelog/2026-11-25-mobile-configurator-sticky-dock.md](changelog/2026-11-25-mobile-configurator-sticky-dock.md) | Feature — sticky bottom price dock on mobile/tablet with expandable price-detail sheet, add-to-cart feedback and bottom-sheet cart |
 | [changelog/2026-11-25-configurator-material-combobox.md](changelog/2026-11-25-configurator-material-combobox.md) | Feature — searchable rich material combo box (name/surface/gsm ranges, EN+CS) with weight-variant pills in the configurator |

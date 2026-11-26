@@ -119,6 +119,13 @@ object CartDrawer:
               ),
               span(formatMoney(line.lineGrossTotal, cur, lang)).style(Style.fontWeight(FontWeight.w800).fontSize(15.px).color(ink)),
             ),
+            state.noteEditor.render(
+              key = s"cart-${line.lineId.value}",
+              current = line.productionNote,
+              editable = true,
+              i18n = state.i18n,
+              onSave = note => state.updateCartLineProductionNote(line.lineId, note),
+            ),
           )
         }*
       ),
