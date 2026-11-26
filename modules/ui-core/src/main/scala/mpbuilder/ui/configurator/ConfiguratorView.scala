@@ -96,8 +96,8 @@ object ConfiguratorView:
                 )
           },
         ),
-        // Right: Sticky Live Price Summary
-        div.cssClass("mp-split-aside")(
+        // Right: Sticky Live Price Summary (replaced by the price dock at <= 960px)
+        div.cssClass("mp-split-aside mp-cfg-aside")(
           quoteCombined.render { case ((((status, d), cur), lang), feedback) =>
             renderQuoteSidebar(ctrl, status, d, cur, lang, host, feedback)
           },

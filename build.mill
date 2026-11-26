@@ -1,4 +1,4 @@
-//| mill-jvm-version: system
+//| mill-jvm-version: temurin:25.0.1
 
 package build
 

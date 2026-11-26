@@ -21,7 +21,7 @@ The Backoffice Pricing → Margin Simulator was unusable: picking a category, pr
 
 ## Issues Encountered
 
-- Mill used JDK 17 by default here; tests need JDK 25 (`JAVA_HOME=~/.sdkman/candidates/java/25.0.1-tem`).
+- Mill used the system JDK 17 here, so tests were run with `JAVA_HOME` pointed at JDK 25; #183 (pinned `mill-jvm-version`) has since made that unnecessary.
 
 ## Follow-up Items
 

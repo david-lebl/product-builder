@@ -4,7 +4,7 @@ This file provides guidance to AI assistants and developers when working with co
 
 ## Prerequisites & Stack
 
-- **JDK 25** (required by `io.getkyo:kyo-ui:1.0.0-RC7`, which targets JVM class file version 69.0)
+- **JDK 25** (required by `io.getkyo:kyo-ui:1.0.0-RC7`, which targets JVM class file version 69.0) — **handled automatically**: `build.mill` pins `//| mill-jvm-version: temurin:25.0.1`, so `./mill` downloads (via Coursier, cached) and runs on Temurin 25 whatever `java`/`JAVA_HOME` the shell has. Just run `./mill …`; don't switch JDKs, `sdk use`, or export `JAVA_HOME` first. Never change it back to `system`.
 - **Scala 3.9.0**, **Scala.js 1.22.0**, **Mill 1.1.3**
 - **Kyo 1.0.0-RC7 everywhere**: `kyo-core` + `kyo-combinators` (effects), `kyo-schema-json` (JSON), `kyo-sql-postgres` (PostgreSQL 17, native wire driver), `kyo-http` (routes, server, OpenAPI, JVM client), `kyo-test` (tests), `kyo-pod` (test containers), `kyo-ui` + `kyo-i18n` (UI). No ZIO, Tapir, Magnum, Flyway, JDBC or jsoniter.
 - **Docker or Podman** must be running for the `02-o-db`, `platform` and `app` test suites (kyo-pod), or set `TEST_DATABASE_URL` to an existing PostgreSQL (role with `CREATEDB`)
