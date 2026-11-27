@@ -32,17 +32,87 @@ object DeliveryOptionId:
 
 // ── Immutable Order Snapshots (No Mutable Catalog Aggregates Embedded!) ──────
 
+// The types below mirror the catalog's configuration model so an order line carries the complete
+// production specification without `ordering` depending on `catalog` (translated by the BFF ACLs).
+
+/** Frozen finish selection of a component: which finish, on which side, with which settings. */
+final case class FinishSnapshot(
+    finishId: FinishId,
+    name: LocalizedString,
+    /** Catalog `FinishType` key (e.g. `Lamination`, `RoundCorners`). */
+    finishType: String,
+    /** `None` when the finish has no side (e.g. die cut, grommets). */
+    side: Option[FinishSnapshot.Side],
+    /** `None` when the finish takes no settings. */
+    params: Option[FinishSnapshot.Params],
+)
+
+object FinishSnapshot:
+  enum Side:
+    case Front, Back, Both
+
+  enum FoilColor:
+    case Gold, Silver, Copper, RoseGold, Holographic
+
+  enum Params:
+    case RoundCorners(cornerCount: Int, radiusMm: Int)
+    case FoilStamping(color: FoilColor)
+    case Grommets(spacingMm: Int)
+    case Perforation(pitchMm: Int)
+    case LinearLength(lengthMeters: BigDecimal)
+    case Scoring(creaseCount: Int)
+
 final case class ComponentSnapshot(
     key: ComponentKey,
     materialId: MaterialId,
     materialName: LocalizedString,
     printingMethodId: Option[PrintingMethodId],
     inkNotation: Option[String],
-    finishIds: List[FinishId],
+    finishes: List[FinishSnapshot],
     flatSize: Dimension2D,
     finishedSize: Dimension2D,
     sheetsUsed: Int,
+):
+  def isDoubleSidedPrint: Boolean = inkNotation.exists(n => !n.endsWith("/0"))
+
+/** Frozen physical specification of the ordered product (catalog `ProductSpecs` without quantity/versions,
+  * which live on the line itself).
+  */
+final case class ProductSpecSnapshot(
+    dimensions: ProductSpecSnapshot.Dimensions,
+    /** `None` for products without an orientation (e.g. circular, packaging). */
+    orientation: Option[ProductSpecSnapshot.Orientation],
+    /** Effective bleed: the customer's choice or the default for the printing process, resolved when frozen. */
+    bleed: NonNegativeMm,
+    /** `None` for unbound products. */
+    binding: Option[ProductSpecSnapshot.Binding],
+    deliveryFormat: ProductSpecSnapshot.DeliveryFormat,
 )
+
+object ProductSpecSnapshot:
+  enum Orientation:
+    case Portrait, Landscape
+
+  enum FoldType:
+    case Half, Tri, Gate, Accordion, ZFold, RollFold, FrenchFold, CrossFold
+
+  enum Dimensions:
+    case Flat2D(size: Dimension2D)
+    case Folded2D(finishedSize: Dimension2D, foldType: FoldType)
+    case Box3D(box: Dimension3D, customBlankSize: Option[Dimension2D] = None)
+    case Circular(diameter: PositiveMm)
+    case PrintArea(area: Dimension2D, variantLabel: Option[String] = None)
+
+  enum BindingMethod:
+    case SaddleStitch, PerfectBinding, SpiralBinding, WireOBinding, CaseBinding
+
+  final case class Binding(method: BindingMethod, totalPages: Int, selfCover: Boolean)
+
+  enum DeliveryFormat:
+    case CutSingles
+    case KissCutSheets
+    case RollLabels(coreDiameterMm: Int, unwindDirection: Int)
+    case PackedUnits
 
 /** Frozen product specification snapshot persisted with an order line. */
 final case class ProductSnapshot(
@@ -50,8 +120,25 @@ final case class ProductSnapshot(
     categoryName: LocalizedString,
     catalogVersion: Version,
     components: NonEmptyChunk[ComponentSnapshot],
+    specs: ProductSpecSnapshot,
     summaryNotes: Option[String] = None,
-)
+):
+  def component(key: ComponentKey): ComponentSnapshot =
+    components.find(_.key == key).getOrElse(components.head)
+
+  def bleed: NonNegativeMm = specs.bleed
+
+  /** Pages the customer's artwork for `key` must have: the bound page count for a booklet body
+    * (minus a separate 4-page cover), otherwise one page per printed side.
+    */
+  def expectedArtworkPages(key: ComponentKey): Int =
+    val comp  = component(key)
+    val sides = if comp.isDoubleSidedPrint then 2 else 1
+    specs.binding match
+      case Some(b) if comp.key == ComponentKey.Body =>
+        val coverPages = if b.selfCover then 0 else 4
+        math.max(1, b.totalPages - coverPages)
+      case _ => sides
 
 /** Frozen commercial valuation snapshot persisted with an order line (per 1 copy/set). */
 final case class LinePriceSnapshot(

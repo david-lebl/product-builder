@@ -476,6 +476,62 @@ class StorefrontFacadeSpec extends Test[Any]:
       }
     }.provideRuntime(seedSampleOrders = false).atTime(validNow)
 
+    "the full product configuration (orientation, bleed, binding, delivery format, finish sides) is frozen on cart and order lines" in {
+      val preset = SampleCatalog.booklets.presets.find(_.id == PresetId.unsafe("preset-booklet-a4-saddle")).get
+      val cmd = StorefrontTranslators.presetToConfigureCmd(
+        ConfigurationId.unsafe("cfg-booklet-full-spec"),
+        SampleCatalog.bookletsId,
+        preset,
+        Some(preset.defaultSpecs.copy(orientation = Some(Orientation.Landscape), bleed = Some(NonNegativeMm.unsafe(2)))),
+      )
+      for
+        sf      <- Env.get[StorefrontFacade]
+        cartId   = CartId.unsafe("cart-full-spec")
+        _       <- sf.createCart(cartId, Currency.CZK)
+        added   <- sf.addConfiguredProductToCart(cartId = cartId, cmd = cmd, currency = Currency.CZK)
+        _       <- sf.createCart(CartId.unsafe("cart-default-bleed"), Currency.CZK)
+        defaulted <- sf.addConfiguredProductToCart(cartId = CartId.unsafe("cart-default-bleed"), cmd = flyersCmd(), currency = Currency.CZK)
+        confirm <- sf.submitCheckout(
+                     SubmitCheckoutCmd(
+                       sessionToken = None,
+                       source = CheckoutSource.FromCart(cartId),
+                       customer = OrderCustomerSnapshot(
+                         customerId = None,
+                         segment = CustomerSegment.Individual,
+                         fullName = NonEmptyString.unsafe("Eva Spec"),
+                         email = EmailAddress.unsafe("eva.spec@email.cz"),
+                       ),
+                       billingAddress = Address(
+                         NonEmptyString.unsafe("Korunní 1"),
+                         NonEmptyString.unsafe("Praha"),
+                         NonEmptyString.unsafe("12000"),
+                         NonEmptyString.unsafe("CZ"),
+                       ),
+                       deliveryChoice = DeliveryOptionChoice.ShopPickup(SampleDeliveryCatalog.shopPragueId),
+                       paymentMethod = PaymentMethod.BankTransferQR,
+                     )
+                   )
+      yield {
+        val cartProduct = added.lines.head.product
+        val specs       = cartProduct.specs
+        assert(specs.dimensions == ProductSpecSnapshot.Dimensions.Flat2D(Dimension2D.A4))
+        assert(specs.orientation.contains(ProductSpecSnapshot.Orientation.Landscape))
+        assert(specs.bleed == NonNegativeMm.unsafe(2))
+        assert(specs.binding.contains(ProductSpecSnapshot.Binding(ProductSpecSnapshot.BindingMethod.SaddleStitch, 16, selfCover = false)))
+        assert(specs.deliveryFormat == ProductSpecSnapshot.DeliveryFormat.CutSingles)
+        val coverFinish = cartProduct.component(ComponentKey.Cover).finishes
+        assert(coverFinish.map(f => (f.finishId, f.finishType, f.side)) ==
+          List((SampleCatalog.matteLaminationId, "Lamination", Some(FinishSnapshot.Side.Front))))
+        // Artwork expectations follow the ordered binding: 16 pp minus a separate 4-page cover
+        assert(cartProduct.expectedArtworkPages(ComponentKey.Body) == 12)
+        assert(cartProduct.expectedArtworkPages(ComponentKey.Cover) == 2)
+        // No bleed chosen: the digital-print default (3 mm) is frozen
+        assert(defaulted.lines.head.product.specs.bleed == NonNegativeMm.unsafe(3))
+        // The order line keeps exactly what the cart line froze
+        assert(confirm.order.lines.head.product == cartProduct)
+      }
+    }.provideRuntime(seedSampleOrders = false).atTime(validNow)
+
     "Storefront currency conversion computes EUR quotes from CZK pricelist via ExchangeRateProvider adapter" in {
       for
         facade      <- Env.get[StorefrontFacade]

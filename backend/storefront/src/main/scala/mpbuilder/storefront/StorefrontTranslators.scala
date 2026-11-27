@@ -109,13 +109,86 @@ object StorefrontTranslators:
           materialName = c.material.name,
           printingMethodId = c.print.map(_.printingMethod.id),
           inkNotation = c.print.map(_.ink.notation),
-          finishIds = c.finishes.map(_.id),
+          finishes = c.finishes.map(toFinishSnapshot),
           flatSize = c.geometry.flatSize,
           finishedSize = c.geometry.finishedSize,
           sheetsUsed = sheets,
         )
       },
+      specs = toProductSpecSnapshot(product),
       summaryNotes = summaryNotes,
+    )
+
+  /** Bleed when the customer did not choose one: 5 mm for large-format inkjet, 3 mm otherwise. */
+  def defaultBleed(product: ConfiguredProduct): NonNegativeMm =
+    val largeFormat = product.components.exists(_.print.exists(_.printingMethod.processType.isLargeFormatInkjet))
+    NonNegativeMm.unsafe(if largeFormat then 5 else 3)
+
+  def toFinishSnapshot(sf: SelectedFinish): FinishSnapshot =
+    FinishSnapshot(
+      finishId = sf.id,
+      name = sf.finish.name,
+      finishType = sf.finishType.toString,
+      side = sf.appliedSide.map {
+        case FinishSide.Front => FinishSnapshot.Side.Front
+        case FinishSide.Back  => FinishSnapshot.Side.Back
+        case FinishSide.Both  => FinishSnapshot.Side.Both
+      },
+      params = sf.params.map {
+        case FinishParams.RoundCorners(n, r) => FinishSnapshot.Params.RoundCorners(n, r)
+        case FinishParams.FoilStamping(c)    => FinishSnapshot.Params.FoilStamping(toFoilColor(c))
+        case FinishParams.Grommets(s)        => FinishSnapshot.Params.Grommets(s)
+        case FinishParams.Perforation(p)     => FinishSnapshot.Params.Perforation(p)
+        case FinishParams.LinearLength(m)    => FinishSnapshot.Params.LinearLength(m)
+        case FinishParams.Scoring(n)         => FinishSnapshot.Params.Scoring(n)
+      },
+    )
+
+  private def toFoilColor(c: FoilColor): FinishSnapshot.FoilColor = c match
+    case FoilColor.Gold        => FinishSnapshot.FoilColor.Gold
+    case FoilColor.Silver      => FinishSnapshot.FoilColor.Silver
+    case FoilColor.Copper      => FinishSnapshot.FoilColor.Copper
+    case FoilColor.RoseGold    => FinishSnapshot.FoilColor.RoseGold
+    case FoilColor.Holographic => FinishSnapshot.FoilColor.Holographic
+
+  def toProductSpecSnapshot(product: ConfiguredProduct): ProductSpecSnapshot =
+    import ProductSpecSnapshot as S
+    val specs = product.specs
+    def fold(ft: FoldType): S.FoldType = ft match
+      case FoldType.Half       => S.FoldType.Half
+      case FoldType.Tri        => S.FoldType.Tri
+      case FoldType.Gate       => S.FoldType.Gate
+      case FoldType.Accordion  => S.FoldType.Accordion
+      case FoldType.ZFold      => S.FoldType.ZFold
+      case FoldType.RollFold   => S.FoldType.RollFold
+      case FoldType.FrenchFold => S.FoldType.FrenchFold
+      case FoldType.CrossFold  => S.FoldType.CrossFold
+    def binding(m: BindingMethod): S.BindingMethod = m match
+      case BindingMethod.SaddleStitch   => S.BindingMethod.SaddleStitch
+      case BindingMethod.PerfectBinding => S.BindingMethod.PerfectBinding
+      case BindingMethod.SpiralBinding  => S.BindingMethod.SpiralBinding
+      case BindingMethod.WireOBinding   => S.BindingMethod.WireOBinding
+      case BindingMethod.CaseBinding    => S.BindingMethod.CaseBinding
+    ProductSpecSnapshot(
+      dimensions = specs.dimensions match
+        case ProductDimensions.Flat2D(size)            => S.Dimensions.Flat2D(size)
+        case ProductDimensions.Folded2D(size, ft)      => S.Dimensions.Folded2D(size, fold(ft))
+        case ProductDimensions.Box3D(box, blank)       => S.Dimensions.Box3D(box, blank)
+        case ProductDimensions.Circular(d)             => S.Dimensions.Circular(d)
+        case ProductDimensions.PrintArea(area, label)  => S.Dimensions.PrintArea(area, label)
+      ,
+      orientation = specs.orientation.map {
+        case Orientation.Portrait  => S.Orientation.Portrait
+        case Orientation.Landscape => S.Orientation.Landscape
+      },
+      bleed = specs.bleed.getOrElse(defaultBleed(product)),
+      binding = specs.binding.map(b => S.Binding(binding(b.method), b.totalPages, b.selfCover)),
+      deliveryFormat = specs.deliveryFormat match
+        case DeliveryFormat.CutSingles            => S.DeliveryFormat.CutSingles
+        case DeliveryFormat.KissCutSheets         => S.DeliveryFormat.KissCutSheets
+        case DeliveryFormat.RollLabels(core, dir) => S.DeliveryFormat.RollLabels(core, dir)
+        case DeliveryFormat.PackedUnits           => S.DeliveryFormat.PackedUnits
+      ,
     )
 
   def toLinePriceSnapshot(quote: PriceQuote): LinePriceSnapshot =

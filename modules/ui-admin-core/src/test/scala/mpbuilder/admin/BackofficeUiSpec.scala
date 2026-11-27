@@ -393,6 +393,13 @@ class BackofficeUiSpec extends Test[Any]:
             assert(detEnHtml.contains("mp-action-menu-wrap"))
             assert(detEnHtml.contains("Next stage:"))
             assert(detEnHtml.contains("Pantone 286 C spot check"))
+            // Full ordered configuration: physical spec + finish sides/settings of seeded ORD-2026-0901
+            assert(detEnHtml.contains("mp-od-line-spec"))
+            assert(detEnHtml.contains("Orientation: Landscape"))
+            assert(detEnHtml.contains("Bleed: 3 mm"))
+            assert(detEnHtml.contains("Delivery: Cut Singles"))
+            assert(detEnHtml.contains("Matte Lamination (Both sides)"))
+            assert(detEnHtml.contains("Rounded Corners (4 corners, r 3 mm)"))
             assert(detEnHtml.contains("Artwork &amp; Preflight Review"))
             assert(!detEnHtml.contains("‹") && !detEnHtml.contains("›"))
             assert(embOrdHtml.contains("mp-tabs-sm"))

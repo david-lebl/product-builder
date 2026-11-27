@@ -10,7 +10,7 @@ import mpbuilder.shared.*
 import mpbuilder.ui.components.Icons
 import mpbuilder.ui.components.Icons.Icon
 import mpbuilder.ui.components.CommonComponents.*
-import mpbuilder.ui.components.{ActionMenu, ArtworkComponents, ConfirmDialog, TabBar}
+import mpbuilder.ui.components.{ActionMenu, ArtworkComponents, ConfirmDialog, LineSpecFormat, TabBar}
 import mpbuilder.ui.theme.AppTheme.*
 import mpbuilder.ui.theme.AppTheme.Palette.*
 
@@ -371,12 +371,27 @@ object OrderDetailView:
                                   span(
                                     s"${if isCs then "Čistý rozměr" else "Finished"}: ${formatDimension(comp.finishedSize)} · " +
                                       s"${if isCs then "Rozložený" else "Flat"}: ${formatDimension(comp.flatSize)} · " +
-                                      s"${comp.sheetsUsed} ${if isCs then "archů" else "sheets"}" +
-                                      (if comp.finishIds.nonEmpty then s" · ${if isCs then "Zušlechtění" else "Finishes"}: ${comp.finishIds.map(_.value).mkString(", ")}" else ""),
+                                      s"${comp.sheetsUsed} ${if isCs then "archů" else "sheets"}",
                                   ).style(smallText),
+                                  LineSpecFormat.componentFinishes(comp, lang) match
+                                    case Nil => UI.empty
+                                    case finishes =>
+                                      span(s"${if isCs then "Zušlechtění" else "Finishes"}: ${finishes.mkString(" · ")}")
+                                        .cssClass("mp-od-line-finishes")
+                                        .style(smallText),
                                 )
                               }*
                             ),
+
+                            // Ordered physical spec (orientation, bleed, binding, delivery format, …)
+                            div
+                              .cssClass("mp-od-line-spec")
+                              .style(rowWrap.gap(6.px))(
+                                LineSpecFormat.specRows(ln.product.specs, lang).map { case (label, value) =>
+                                  span(s"$label: $value")
+                                    .style(Style.fontSize(12.px).color(ink).padding(3.px, 8.px).rounded(6.px).bg(surface).border(1.px, Palette.border))
+                                }*
+                              ),
 
                             // Product summary & plain-text staff specification note
                             ln.product.summaryNotes.map(n => div.style(smallText)(n)).getOrElse(UI.empty),

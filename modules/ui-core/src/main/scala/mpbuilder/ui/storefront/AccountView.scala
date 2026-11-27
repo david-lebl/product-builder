@@ -7,7 +7,7 @@ import mpbuilder.artwork.*
 import mpbuilder.customers.*
 import mpbuilder.ordering.*
 import mpbuilder.shared.*
-import mpbuilder.ui.components.Icons
+import mpbuilder.ui.components.{Icons, LineSpecFormat}
 import mpbuilder.ui.components.CommonComponents.*
 import mpbuilder.ui.theme.AppTheme.*
 import mpbuilder.ui.theme.AppTheme.Palette.*
@@ -400,6 +400,7 @@ object AccountView:
                       .map(c => s"${c.materialName(lang)} · ${formatDimension(c.finishedSize)}")
                       .mkString(" / "),
                   ).style(smallText),
+                  span(LineSpecFormat.lineSummary(ln.product, lang)).cssClass("mp-order-line-spec").style(smallText),
                 ),
                 span(formatMoney(ln.lineGrossTotal, ln.price.currency, lang)).style(Style.fontWeight(FontWeight.w700).fontSize(14.px)),
               ),
