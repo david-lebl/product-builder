@@ -86,6 +86,7 @@ Session-by-session work logs documenting what was done, decisions made, and issu
 
 | Document | Description |
 |----------|-------------|
+| [changelog/2026-11-27-product-detail-custom-first.md](changelog/2026-11-27-product-detail-custom-first.md) | Feature — product detail leads with "Configure your own" / "Design it online"; presets become a secondary quick start |
 | [changelog/2026-11-26-backoffice-customer-detail-ux.md](changelog/2026-11-26-backoffice-customer-detail-ux.md) | Feature — customer detail redesign (per-section editing, terms editor, tier preview, KPI tiles), validated registration, duplicate-ID guard |
 | [changelog/2026-11-26-backoffice-margin-simulator-fix.md](changelog/2026-11-26-backoffice-margin-simulator-fix.md) | Bugfix — Backoffice Margin Simulator selects no longer reset (option `selected`), digit-filtered quantity, inputs applied on run |
 | [changelog/2026-11-26-mill-pinned-jdk25.md](changelog/2026-11-26-mill-pinned-jdk25.md) | Session log for pinning JDK 25 in `build.mill` (`mill-jvm-version`) so no manual JDK switching is needed |

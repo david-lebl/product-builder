@@ -14,9 +14,11 @@ import mpbuilder.ui.theme.AppTheme.Palette.*
 
 /** E-shop style Product Detail page.
   *
-  * Desktop: product image gallery on the left, buy box on the right (title, short description, preset picker,
-  * live price, Add-to-Cart / Quick Order / Customize / Design Studio CTAs). Below: full description, specifications,
-  * a preset comparison, a Design Studio promo and the "how it works" steps. Tablet and mobile stack everything.
+  * Desktop: product image gallery on the left, buy box on the right. The buy box leads with the platform's primary
+  * paths — configure your own product, or design it in the Design Studio — and offers ready-made presets as a
+  * secondary "quick start" (preset picker, live price, Add-to-Cart / Quick Order). Below: full description,
+  * specifications, a preset comparison, a Design Studio promo and the "how it works" steps. Tablet and mobile stack
+  * everything.
   *
   * @param selectedPreset preset picked in the buy box (falls back to the first available preset)
   * @param onDesignInStudio opens the Design Studio on the chosen preset (storefront hosts that embed the editor)
@@ -143,6 +145,10 @@ object ProductDetailView:
     )
 
   // ── Right: Buy Box ─────────────────────────────────────────────────────────
+  //
+  // Custom configuration is the primary path: the buy box leads with "configure your own" and
+  // "design it online"; ready-made presets are a secondary quick start for newcomers (and for
+  // reorder-style products such as business cards) with their own add-to-cart / quick-order.
 
   private def renderBuyBox(
       c: Ctx,
@@ -165,24 +171,75 @@ object ProductDetailView:
             )
           else UI.empty,
         ),
+        renderFromPrice(c, presets),
       ),
-      if presets.nonEmpty then
-        div.style(stackSm)(
-          span(c.t("detail-choose-preset")).style(labelStyle),
-          div.cssClass("mp-pd-preset-list").role("radiogroup")(
-            presets.map(preset => renderPresetOption(c, preset, active.exists(_.id == preset.id), selectedRef))*
-          ),
+      renderCreatePaths(c, active),
+      if presets.nonEmpty then renderQuickStart(c, presets, active, selectedRef)
+      else p(c.t("detail-no-presets")).style(smallText.margin(0.px)),
+    )
+
+  /** "From X" teaser — the cheapest ready preset quote, so the custom-first box still anchors a price. */
+  private def renderFromPrice(c: Ctx, presets: List[CategoryPreset]): UI =
+    val cheapest = presets.flatMap(p =>
+      c.quotes.get(p.id).collect { case QuoteStatus.Ready(res) => res.pricing.effectiveQuote.grossTotal }
+    ).minByOption(_.value)
+    cheapest match
+      case Some(price) =>
+        div.style(rowSm)(
+          span(c.state.i18n.t("detail-from-price", Dict("price" -> formatMoney(price, c.currency, c.lang))))
+            .cssClass("mp-num")
+            .style(Style.fontSize(18.px).fontWeight(FontWeight.w800).color(ink)),
+          span(c.t("detail-from-price-note")).style(smallText),
         )
-      else UI.empty,
+      case None => UI.empty
+
+  private def pathCard(icon: Icon, titleKey: String, descKey: String, c: Ctx): UI =
+    UI.fragment(
+      span.cssClass("mp-pd-path-icon")(Icons(icon, 20)),
+      div.cssClass("mp-pd-path-copy")(
+        span(c.t(titleKey)).cssClass("mp-pd-path-title"),
+        span(c.t(descKey)).cssClass("mp-pd-path-desc"),
+      ),
+      span.cssClass("mp-pd-path-arrow")(Icons(Icon.ArrowRight, 18)),
+    )
+
+  private def renderCreatePaths(c: Ctx, active: Option[CategoryPreset]): UI =
+    val configure =
+      button
+        .cssClass("mp-pd-path mp-pd-path-primary")
+        .onClick(c.state.openBuilder(Some(c.cat.id), active.map(_.id)))(
+          pathCard(Icon.Sliders, "detail-configure-title", "detail-configure-desc", c)
+        )
+
+    val studio: UI =
+      (c.onDesignInStudio, active) match
+        case (Some(open), Some(preset)) =>
+          button
+            .cssClass("mp-pd-path mp-pd-path-studio")
+            .onClick(open(c.cat, preset.id))(pathCard(Icon.Palette, "detail-studio-title", "detail-studio-desc", c))
+        case _ =>
+          c.designStudioHref match
+            case Some(href) =>
+              a.cssClass("mp-pd-path mp-pd-path-studio")
+                .href(UI.Href.Path(href))(pathCard(Icon.Palette, "detail-studio-title", "detail-studio-desc", c))
+            case None => UI.empty
+
+    val startHint: UI =
       active match
-        case Some(preset) => renderPriceAndActions(c, preset)
-        case None =>
-          div.style(stackSm)(
-            p(c.t("detail-no-presets")).style(mutedText.margin(0.px)),
+        case Some(preset) =>
+          div.style(Style.row.align(Alignment.center).gap(6.px).flexWrap(FlexWrap.wrap))(
+            span(c.state.i18n.t("detail-configure-hint", Dict("preset" -> preset.name(c.lang)))).style(smallText),
             button
-              .cssClass("mp-btn mp-btn-primary mp-btn-lg")
-              .onClick(c.state.openBuilder(Some(c.cat.id)))(Icons(Icon.Sliders, 17), c.t("detail-custom-cta")),
-          ),
+              .cssClass("mp-pd-link")
+              .onClick(c.state.openBuilder(Some(c.cat.id)))(c.t("detail-start-blank")),
+          )
+        case None => UI.empty
+
+    div.cssClass("mp-pd-paths")(
+      span(c.t("detail-make-own-title")).style(labelStyle),
+      configure,
+      studio,
+      startHint,
     )
 
   private def presetSummary(preset: CategoryPreset, lang: Language): String =
@@ -190,6 +247,26 @@ object ProductDetailView:
     val qty  = s"${preset.defaultSpecs.quantity.value} ${if lang == Language.Cs then "ks" else "pcs"}"
     val bind = preset.defaultSpecs.binding.map(b => s"${bindingMethodLabel(b.method, lang)}, ${b.totalPages} ${if lang == Language.Cs then "str." else "pp"}")
     (List(dims, qty) ++ bind).mkString(" · ")
+
+  private def renderQuickStart(
+      c: Ctx,
+      presets: List[CategoryPreset],
+      active: Option[CategoryPreset],
+      selectedRef: SignalRef[Option[PresetId]],
+  ): UI =
+    div.cssClass("mp-pd-quick")(
+      div.style(stackXs)(
+        div.style(rowSm)(
+          span(Icons(Icon.Zap, 15)).style(Style.color(brand).row.align(Alignment.center)),
+          span(c.t("detail-quick-start-title")).style(Style.fontSize(15.px).fontWeight(FontWeight.w700).color(ink)),
+        ),
+        p(c.t("detail-quick-start-desc")).style(smallText.margin(0.px)),
+      ),
+      div.cssClass("mp-pd-preset-list").role("radiogroup")(
+        presets.map(preset => renderPresetOption(c, preset, active.exists(_.id == preset.id), selectedRef))*
+      ),
+      active.map(renderPresetOrder(c, _)).getOrElse(UI.empty),
+    )
 
   private def renderPresetOption(c: Ctx, preset: CategoryPreset, isActive: Boolean, selectedRef: SignalRef[Option[PresetId]]): UI =
     val priceText = c.quotes.get(preset.id) match
@@ -210,10 +287,11 @@ object ProductDetailView:
         priceText.style(Style.fontSize(14.px).fontWeight(FontWeight.w700).color(ink).whiteSpace(WhiteSpace.noWrap)),
       )
 
-  private def renderPriceAndActions(c: Ctx, preset: CategoryPreset): UI =
+  /** Price + order-as-is actions for the selected preset (secondary to the custom paths above). */
+  private def renderPresetOrder(c: Ctx, preset: CategoryPreset): UI =
     val quote = c.quotes.getOrElse(preset.id, QuoteStatus.Loading)
 
-    val priceBox = div.cssClass("mp-pd-price-box")(
+    div.cssClass("mp-pd-price-box")(
       quote match
         case QuoteStatus.Loading =>
           div.style(rowSm)(Icons(Icon.Clock, 16), span(c.t("detail-loading-price")).style(mutedText))
@@ -226,11 +304,11 @@ object ProductDetailView:
             div.style(Style.row.align(Alignment.end).gap(10.px).flexWrap(FlexWrap.wrap))(
               span(formatMoney(q.grossTotal, c.currency, c.lang)).cssClass("mp-pd-price mp-num"),
               res.pricing.walkInBaseQuote
-                .map(w => span(formatMoney(w.grossTotal, c.currency, c.lang)).style(mutedText.strikethrough.padding(0.px, 0.px, 6.px, 0.px)))
+                .map(w => span(formatMoney(w.grossTotal, c.currency, c.lang)).style(mutedText.strikethrough.padding(0.px, 0.px, 4.px, 0.px)))
                 .getOrElse(UI.empty),
               res.pricing.savingsPercent
                 .filter(_ > BigDecimal(0))
-                .map(pct => span(badge(s"-${pct.setScale(0, BigDecimal.RoundingMode.HALF_UP)}% B2B", BadgeTone.Emerald)).style(Style.padding(0.px, 0.px, 6.px, 0.px)))
+                .map(pct => span(badge(s"-${pct.setScale(0, BigDecimal.RoundingMode.HALF_UP)}% B2B", BadgeTone.Emerald)).style(Style.padding(0.px, 0.px, 4.px, 0.px)))
                 .getOrElse(UI.empty),
             ),
             span(
@@ -242,48 +320,18 @@ object ProductDetailView:
         span(Icons(Icon.Truck, 15)).style(Style.color(emerald).row.align(Alignment.center)),
         span(c.t("detail-dispatch-note")).style(smallText),
       ),
-    )
-
-    val studioButton: UI =
-      c.onDesignInStudio match
-        case Some(open) =>
-          button
-            .cssClass("mp-btn mp-pd-studio-btn")
-            .onClick(open(c.cat, preset.id))(Icons(Icon.Palette, 17), span(c.t("detail-design-studio-cta")))
-        case None =>
-          c.designStudioHref match
-            case Some(href) =>
-              a.cssClass("mp-btn mp-pd-studio-btn")
-                .href(UI.Href.Path(href))(Icons(Icon.Palette, 17), span(c.t("detail-design-studio-cta")))
-            case None => UI.empty
-
-    div.style(stackMd)(
-      priceBox,
-      div.style(stackSm)(
-        div.style(Style.row.gap(8.px).flexWrap(FlexWrap.wrap))(
-          button
-            .cssClass("mp-btn mp-btn-primary mp-btn-lg")
-            .style(Style.flexGrow(1.0).flexBasis(180.px))
-            .onClick(c.state.addPresetToCart(c.cat.id, preset.id))(Icons(Icon.Cart, 17), span(c.t("detail-add-cart"))),
-          quote match
-            case QuoteStatus.Ready(_) =>
-              button
-                .cssClass("mp-btn mp-btn-secondary mp-btn-lg")
-                .style(Style.flexGrow(1.0).flexBasis(140.px))
-                .onClick(c.state.startPresetQuickOrder(c.cat.id, preset.id))(Icons(Icon.Zap, 16), span(c.t("detail-quick-order")))
-            case _ => UI.empty,
-        ),
-        studioButton,
-        div.style(Style.row.gap(8.px).flexWrap(FlexWrap.wrap))(
-          button
-            .cssClass("mp-btn mp-btn-ghost mp-btn-sm")
-            .style(Style.flexGrow(1.0))
-            .onClick(c.state.openBuilder(Some(c.cat.id), Some(preset.id)))(Icons(Icon.Sliders, 15), span(c.t("detail-use-preset"))),
-          button
-            .cssClass("mp-btn mp-btn-ghost mp-btn-sm")
-            .style(Style.flexGrow(1.0))
-            .onClick(c.state.openBuilder(Some(c.cat.id)))(Icons(Icon.Wand, 15), span(c.t("detail-custom-cta"))),
-        ),
+      div.style(Style.row.gap(8.px).flexWrap(FlexWrap.wrap))(
+        button
+          .cssClass("mp-btn mp-btn-secondary")
+          .style(Style.flexGrow(1.0).flexBasis(150.px))
+          .onClick(c.state.addPresetToCart(c.cat.id, preset.id))(Icons(Icon.Cart, 16), span(c.t("detail-add-cart"))),
+        quote match
+          case QuoteStatus.Ready(_) =>
+            button
+              .cssClass("mp-btn mp-btn-ghost")
+              .style(Style.flexGrow(1.0).flexBasis(130.px))
+              .onClick(c.state.startPresetQuickOrder(c.cat.id, preset.id))(Icons(Icon.Zap, 15), span(c.t("detail-quick-order")))
+          case _ => UI.empty,
       ),
     )
 

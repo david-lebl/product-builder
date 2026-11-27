@@ -129,8 +129,19 @@ class StorefrontUiSpec extends Test[Any]:
             quotes  <- state.presetQuotes.get
             ui      <- I18n.let(appI18n.handle)(StorefrontApp.render(state))
             html    <- renderHtml(ui, appI18n)
+            _       <- appI18n.setLanguage(Language.Cs)
+            uiCs    <- I18n.let(appI18n.handle)(StorefrontApp.render(state))
+            htmlCs  <- renderHtml(uiCs, appI18n)
           yield {
             assert(cat.presets.nonEmpty)
+            // Custom configuration leads; presets are a secondary quick start with their own order actions.
+            assert(html.contains("mp-pd-path-primary"))
+            assert(html.contains("Configure your own"))
+            assert(html.contains("mp-pd-quick"))
+            assert(html.contains("Add to Cart"))
+            assert(html.indexOf("mp-pd-path-primary") < html.indexOf("mp-pd-quick"))
+            assert(htmlCs.contains("Vlastní konfigurace"))
+            assert(!htmlCs.contains("‹") && !htmlCs.contains("›"))
             assert(quotes.size == cat.presets.size)
             assert(quotes.values.forall {
               case QuoteStatus.Ready(res) => res.pricing.effectiveQuote.grossTotal.value > 0

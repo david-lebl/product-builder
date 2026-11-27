@@ -95,9 +95,8 @@ object Translations:
       |# Product Detail
       |detail-back = Back to Products
       |detail-presets-title = Popular Presets
-      |detail-presets-subtitle = Start from a pre-configured template with live pricing, or customize every parameter in the configurator.
+      |detail-presets-subtitle = Popular starting points with live pricing — order one as is, or open it in the configurator and make it your own.
       |detail-custom-cta = Configure from Scratch
-      |detail-use-preset = Customize Preset
       |detail-quick-order = Quick Order
       |detail-add-cart = Add to Cart
       |detail-loading-price = Calculating...
@@ -130,7 +129,18 @@ object Translations:
       |detail-spec-printing = Printing methods
       |detail-spec-bleed = Bleed
       |detail-how-title = How it works
-      |detail-how-1 = Pick a configuration or customize every parameter.
+      |detail-make-own-title = Make it your own
+      |detail-configure-title = Configure your own
+      |detail-configure-desc = Choose format, paper, colours, finishes and quantity — the price updates live with every change.
+      |detail-configure-hint = The configurator opens pre-filled with “{ $preset }”.
+      |detail-start-blank = Start blank instead
+      |detail-studio-title = Design it online
+      |detail-studio-desc = Lay out your artwork in the Design Studio in the exact print format — templates, photos and bleed guides included.
+      |detail-from-price = From { $price }
+      |detail-from-price-note = incl. VAT · final price follows your configuration
+      |detail-quick-start-title = Quick start: ready-made presets
+      |detail-quick-start-desc = Not sure where to begin? Pick a popular configuration and order it as is.
+      |detail-how-1 = Configure every parameter yourself — or start from a ready-made preset.
       |detail-how-2 = Upload your artwork or design it in the Design Studio.
       |detail-how-3 = We check your files and send a proof if needed.
       |detail-how-4 = Your order is printed, finished and dispatched.
@@ -467,9 +477,8 @@ object Translations:
       |# Detail produktu
       |detail-back = Zpět na produkty
       |detail-presets-title = Oblíbené konfigurace
-      |detail-presets-subtitle = Začněte z připravené šablony s živou cenou, nebo si upravte každý parametr v konfigurátoru.
+      |detail-presets-subtitle = Oblíbené výchozí konfigurace s živou cenou — objednejte je rovnou, nebo je v konfigurátoru upravte podle sebe.
       |detail-custom-cta = Konfigurovat od začátku
-      |detail-use-preset = Upravit šablonu
       |detail-quick-order = Rychlá objednávka
       |detail-add-cart = Přidat do košíku
       |detail-loading-price = Počítám cenu...
@@ -502,7 +511,18 @@ object Translations:
       |detail-spec-printing = Tiskové technologie
       |detail-spec-bleed = Spadávka
       |detail-how-title = Jak to funguje
-      |detail-how-1 = Vyberte konfiguraci, nebo si upravte každý parametr.
+      |detail-make-own-title = Vytvořte si vlastní
+      |detail-configure-title = Vlastní konfigurace
+      |detail-configure-desc = Zvolte formát, papír, barevnost, úpravy a náklad — cena se přepočítá při každé změně.
+      |detail-configure-hint = Konfigurátor se otevře s předvyplněnou konfigurací „{ $preset }“.
+      |detail-start-blank = Začít od nuly
+      |detail-studio-title = Navrhněte online
+      |detail-studio-desc = Připravte si podklady v Design Studiu v přesném tiskovém formátu — se šablonami, fotkami i vodítky spadávky.
+      |detail-from-price = Od { $price }
+      |detail-from-price-note = vč. DPH · konečná cena podle vaší konfigurace
+      |detail-quick-start-title = Rychlý start: připravené konfigurace
+      |detail-quick-start-desc = Nevíte, jak začít? Vyberte oblíbenou konfiguraci a objednejte ji rovnou.
+      |detail-how-1 = Nastavte si každý parametr sami — nebo začněte z připravené konfigurace.
       |detail-how-2 = Nahrajte podklady, nebo je navrhněte v Design Studiu.
       |detail-how-3 = Soubory zkontrolujeme a v případě potřeby pošleme náhled.
       |detail-how-4 = Zakázku vytiskneme, dokončíme a odešleme.
