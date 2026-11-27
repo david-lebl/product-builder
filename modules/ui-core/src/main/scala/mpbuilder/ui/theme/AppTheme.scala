@@ -1687,19 +1687,78 @@ object AppTheme:
       )
       .rule(
         "mp-pd-price",
-        Style.fontSize(34.px).fontWeight(FontWeight.w800).letterSpacing((-0.6).px).lineHeight(1.1).color(ink),
+        Style.fontSize(26.px).fontWeight(FontWeight.w800).letterSpacing((-0.6).px).lineHeight(1.1).color(ink),
+      )
+      .rule("mp-pd-paths", Style.column.gap(10.px))
+      .rule(
+        "mp-pd-path",
+        Style.row
+          .align(Alignment.center)
+          .gap(14.px)
+          .width(100.pct)
+          .padding(16.px, 18.px)
+          .rounded(16.px)
+          .border(1.px, Color.transparent)
+          .color(Color.white)
+          .textAlign(TextAlign.left)
+          .textDecoration(TextDecoration.none)
+          .cursor(Cursor.pointer)
+          .transition(TransitionProperty.all, 160, Easing.easeOut)
+          .active(Style.translate(0.px, 1.px)),
       )
       .rule(
-        "mp-pd-studio-btn",
-        Style.width(100.pct)
-          .padding(12.px, 18.px)
-          .rounded(12.px)
-          .fontSize(15.px)
-          .fontWeight(FontWeight.w700)
-          .color(Color.white)
-          .bgGradient(GradientDirection.toRight, (brandStatic, 0.pct), (violetStatic, 100.pct))
-          .shadow(0.px, 10.px, 24.px, (-10).px, Color.rgba(124, 58, 237, 0.6))
+        "mp-pd-path-primary",
+        Style.bg(brand)
+          .shadow(0.px, 10.px, 24.px, (-10).px, Color.rgba(79, 70, 229, 0.55))
+          .hover(Style.bg(brandHover).shadow(0.px, 14.px, 30.px, (-10).px, Color.rgba(79, 70, 229, 0.7)).translate(0.px, (-1).px)),
+      )
+      .rule(
+        "mp-pd-path-studio",
+        Style.bgGradient(GradientDirection.toRight, (brandDeep, 0.pct), (violetStatic, 100.pct))
+          .shadow(0.px, 10.px, 24.px, (-10).px, Color.rgba(124, 58, 237, 0.55))
           .hover(Style.shadow(0.px, 14.px, 30.px, (-10).px, Color.rgba(124, 58, 237, 0.75)).translate(0.px, (-1).px)),
+      )
+      .rule(
+        "mp-pd-path-icon",
+        Style.row
+          .align(Alignment.center)
+          .justify(Justification.center)
+          .width(44.px)
+          .height(44.px)
+          .flexShrink(0.0)
+          .rounded(12.px)
+          .bg(Color.rgba(255, 255, 255, 0.18)),
+      )
+      .rule("mp-pd-path-copy", Style.column.gap(3.px).flexGrow(1.0).minWidth(0.px))
+      .rule("mp-pd-path-title", Style.fontSize(16.px).fontWeight(FontWeight.w700).lineHeight(1.25))
+      .rule(
+        "mp-pd-path-desc",
+        Style.fontSize(13.px).fontWeight(FontWeight.w400).lineHeight(1.45).color(Color.rgba(255, 255, 255, 0.86)),
+      )
+      .rule("mp-pd-path-arrow", Style.row.align(Alignment.center).flexShrink(0.0).opacity(0.85))
+      .rule(
+        "mp-pd-link",
+        Style.bg(Color.transparent)
+          .border(0.px, BorderStyle.none, Color.transparent)
+          .padding(0.px)
+          .fontSize(13.px)
+          .fontWeight(FontWeight.w600)
+          .color(brand)
+          .cursor(Cursor.pointer)
+          .textDecoration(TextDecoration.underline)
+          .hover(Style.color(brandHover)),
+      )
+      .rule("mp-pd-qty", Style.column.gap(8.px).padding(0.px, 0.px, 12.px, 0.px).borderBottom(1.px, border))
+      .rule("mp-pd-qty-row", Style.row.flexWrap(FlexWrap.wrap).align(Alignment.center).gap(6.px))
+      .rule("mp-pd-qty-input", Style.width(96.px).padding(6.px, 10.px).fontSize(13.px))
+      .rule(
+        "mp-pd-quick",
+        Style.column
+          .gap(14.px)
+          .padding(18.px)
+          .rounded(18.px)
+          .bg(surfaceAlt)
+          .border(1.px, border),
       )
       .rule(
         "mp-pd-trust",
@@ -2035,7 +2094,9 @@ object AppTheme:
           .rule("mp-hero-title", Style.fontSize(24.px))
           .rule("mp-pd-media", Style.height(260.px).rounded(16.px))
           .rule("mp-pd-title", Style.fontSize(26.px))
-          .rule("mp-pd-price", Style.fontSize(28.px))
+          .rule("mp-pd-price", Style.fontSize(24.px))
+          .rule("mp-pd-path", Style.padding(14.px).gap(12.px))
+          .rule("mp-pd-quick", Style.padding(14.px))
           .rule("mp-studio-promo", Style.padding(24.px, 18.px).rounded(18.px))
           .rule("mp-studio-title", Style.fontSize(22.px))
           .rule("mp-studio-visual", Style.displayNone)

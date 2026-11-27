@@ -129,8 +129,19 @@ class StorefrontUiSpec extends Test[Any]:
             quotes  <- state.presetQuotes.get
             ui      <- I18n.let(appI18n.handle)(StorefrontApp.render(state))
             html    <- renderHtml(ui, appI18n)
+            _       <- appI18n.setLanguage(Language.Cs)
+            uiCs    <- I18n.let(appI18n.handle)(StorefrontApp.render(state))
+            htmlCs  <- renderHtml(uiCs, appI18n)
           yield {
             assert(cat.presets.nonEmpty)
+            // Custom configuration leads; presets are a secondary quick start with their own order actions.
+            assert(html.contains("mp-pd-path-primary"))
+            assert(html.contains("Configure your own"))
+            assert(html.contains("mp-pd-quick"))
+            assert(html.contains("Add to Cart"))
+            assert(html.indexOf("mp-pd-path-primary") < html.indexOf("mp-pd-quick"))
+            assert(htmlCs.contains("Vlastní konfigurace"))
+            assert(!htmlCs.contains("‹") && !htmlCs.contains("›"))
             assert(quotes.size == cat.presets.size)
             assert(quotes.values.forall {
               case QuoteStatus.Ready(res) => res.pricing.effectiveQuote.grossTotal.value > 0
@@ -139,6 +150,37 @@ class StorefrontUiSpec extends Test[Any]:
             assert(html.contains(cat.name(Language.En)))
             assert(!html.contains("‹") && !html.contains("›"))
           }
+        }
+      }
+
+      "ProductDetailView quick-start quantity re-prices the preset and flows into the cart" in {
+        withClient { client =>
+          for
+            appI18n <- Translations.init(Language.En)
+            state   <- I18n.let(appI18n.handle)(StorefrontState.init(client, appI18n))
+            listings <- state.listingsRef.get
+            catalog <- state.catalogRef.get
+            catId    = listings.head.categoryId
+            preset   = catalog.categories(catId).presets.head
+            newQty   = Quantity.unsafe(preset.defaultSpecs.quantity.value * 4)
+            _       <- I18n.let(appI18n.handle)(state.openProductDetail(catId))
+            before  <- state.presetQuotes.get
+            _       <- I18n.let(appI18n.handle)(state.setPresetQuantity(catId, preset.id, newQty))
+            after   <- state.presetQuotes.get
+            ui      <- I18n.let(appI18n.handle)(StorefrontApp.render(state))
+            html    <- renderHtml(ui, appI18n)
+            _       <- I18n.let(appI18n.handle)(state.addPresetToCart(catId, preset.id))
+            cart    <- state.cart.get
+            _       <- I18n.let(appI18n.handle)(state.openProductDetail(catId))
+            reset   <- state.presetQuantities.get
+          yield
+            def gross(m: Map[PresetId, QuoteStatus]) = m.get(preset.id).collect { case QuoteStatus.Ready(r) => r.pricing.effectiveQuote.grossTotal.value }
+            assert(gross(before).isDefined && gross(after).isDefined)
+            assert(gross(after).get > gross(before).get)
+            assert(html.contains("mp-pd-qty"))
+            assert(html.contains(s"${newQty.value} pcs"))
+            assert(cart.exists(_.lines.exists(_.runQuantity == newQty)))
+            assert(reset.isEmpty)
         }
       }
 
