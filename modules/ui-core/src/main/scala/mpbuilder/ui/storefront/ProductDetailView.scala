@@ -39,8 +39,9 @@ object ProductDetailView:
         .combineLatest(state.currency)
         .combineLatest(state.i18n.language)
         .combineLatest(selectedPreset)
+        .combineLatest(state.presetQuantities)
 
-    combined.render { case ((((catalog, quotesMap), cur), lang), selectedOpt) =>
+    combined.render { case (((((catalog, quotesMap), cur), lang), selectedOpt), qtyMap) =>
       catalog.categories.get(categoryId) match
         case None =>
           div.cssClass("mp-card")(
@@ -60,7 +61,7 @@ object ProductDetailView:
           val listingOpt       = catalog.showcases.get(categoryId)
           val availablePresets = cat.presets.filter(ConfiguratorController.isPresetAvailable(_, catalog))
           val activePreset     = selectedOpt.flatMap(id => availablePresets.find(_.id == id)).orElse(availablePresets.headOption)
-          val ctx              = Ctx(state, catalog, cat, listingOpt, quotesMap, cur, lang, onDesignInStudio, designStudioHref)
+          val ctx              = Ctx(state, catalog, cat, listingOpt, quotesMap, qtyMap, cur, lang, onDesignInStudio, designStudioHref)
 
           div.style(Style.column.gap(28.px).width(100.pct))(
             renderBreadcrumb(ctx),
@@ -89,6 +90,7 @@ object ProductDetailView:
       cat: ProductCategory,
       listing: Option[ShowcaseListing],
       quotes: Map[PresetId, QuoteStatus],
+      quantities: Map[PresetId, Quantity],
       currency: Currency,
       lang: Language,
       onDesignInStudio: Option[(ProductCategory, PresetId) => Unit < Async],
@@ -97,6 +99,8 @@ object ProductDetailView:
     def t(key: String): Signal[String] = state.i18n.t(key)
     val isCs: Boolean      = lang == Language.Cs
     def group: Option[CatalogGroup] = listing.map(_.group)
+    /** Quick-start quantity of a preset (the preset's default until the customer changes it). */
+    def qtyOf(preset: CategoryPreset): Int = quantities.getOrElse(preset.id, preset.defaultSpecs.quantity).value
 
   // ── Breadcrumb ─────────────────────────────────────────────────────────────
 
@@ -242,9 +246,9 @@ object ProductDetailView:
       startHint,
     )
 
-  private def presetSummary(preset: CategoryPreset, lang: Language): String =
+  private def presetSummary(preset: CategoryPreset, lang: Language, quantity: Int): String =
     val dims = formatDimension(preset.defaultSpecs.dimensions.finishedBoundingBox)
-    val qty  = s"${preset.defaultSpecs.quantity.value} ${if lang == Language.Cs then "ks" else "pcs"}"
+    val qty  = s"$quantity ${if lang == Language.Cs then "ks" else "pcs"}"
     val bind = preset.defaultSpecs.binding.map(b => s"${bindingMethodLabel(b.method, lang)}, ${b.totalPages} ${if lang == Language.Cs then "str." else "pp"}")
     (List(dims, qty) ++ bind).mkString(" · ")
 
@@ -282,16 +286,61 @@ object ProductDetailView:
         span.cssClass("mp-pd-radio")(if isActive then span.cssClass("mp-pd-radio-dot") else UI.empty),
         div.style(Style.column.gap(2.px).flexGrow(1.0).minWidth(0.px))(
           span(preset.name(c.lang)).style(Style.fontSize(14.px).fontWeight(FontWeight.w700).color(ink)),
-          span(presetSummary(preset, c.lang)).style(smallText),
+          span(presetSummary(preset, c.lang, c.qtyOf(preset))).style(smallText),
         ),
         priceText.style(Style.fontSize(14.px).fontWeight(FontWeight.w700).color(ink).whiteSpace(WhiteSpace.noWrap)),
       )
+
+  /** Quick quantity choices around the preset's default: a log-scale ladder, the 6 values nearest the default. */
+  private def quantityChoices(default: Int): List[Int] =
+    val ladder = List(1, 2, 5, 10, 25, 50, 100, 250, 500, 1000, 2500, 5000, 10000)
+    def dist(q: Int): Double = math.abs(math.log(q.toDouble) - math.log(default.toDouble))
+    (default :: ladder).distinct.sortBy(dist).take(6).sorted
+
+  private val MaxPresetQuantity = 1000000
+
+  private def renderQuantityPicker(c: Ctx, preset: CategoryPreset): UI =
+    val current = c.qtyOf(preset)
+    def setQty(q: Int): Unit < Async =
+      if q == current then Kyo.unit else c.state.setPresetQuantity(c.cat.id, preset.id, Quantity.unsafe(q))
+    // Commit on change (blur / Enter) only: re-pricing re-renders the box, which would fight the caret while typing.
+    def applyRaw(raw: String): Unit < Async =
+      raw.trim.toIntOption match
+        case Some(n) if n >= 1 && n <= MaxPresetQuantity => setQty(n)
+        case _                                          => Kyo.unit
+    val choices = quantityChoices(preset.defaultSpecs.quantity.value)
+
+    div.cssClass("mp-pd-qty")(
+      div.style(rowBetween)(
+        label.style(labelStyle)(c.t("detail-quantity-label")),
+        if current != preset.defaultSpecs.quantity.value then
+          button.cssClass("mp-pd-link").onClick(setQty(preset.defaultSpecs.quantity.value))(c.t("detail-quantity-reset"))
+        else UI.empty,
+      ),
+      div.cssClass("mp-pd-qty-row")(
+        UI.fragment(
+          choices.map { q =>
+            button
+              .cssClass(if q == current then "mp-pill-active" else "mp-pill")
+              .style(Style.padding(6.px, 12.px))
+              .onClick(setQty(q))(q.toString)
+          }*
+        ),
+        input
+          .cssClass("mp-input mp-pd-qty-input")
+          .aria("label", if c.isCs then "Vlastní počet kusů" else "Custom quantity")
+          .value(current.toString)
+          .inputFilter(InputFilter.Digits)
+          .onChange(applyRaw),
+      ),
+    )
 
   /** Price + order-as-is actions for the selected preset (secondary to the custom paths above). */
   private def renderPresetOrder(c: Ctx, preset: CategoryPreset): UI =
     val quote = c.quotes.getOrElse(preset.id, QuoteStatus.Loading)
 
     div.cssClass("mp-pd-price-box")(
+      renderQuantityPicker(c, preset),
       quote match
         case QuoteStatus.Loading =>
           div.style(rowSm)(Icons(Icon.Clock, 16), span(c.t("detail-loading-price")).style(mutedText))
@@ -299,7 +348,7 @@ object ProductDetailView:
           span(err.message).style(Style.fontSize(13.px).color(roseInk))
         case QuoteStatus.Ready(res) =>
           val q = res.pricing.effectiveQuote
-          val qty = preset.defaultSpecs.quantity.value
+          val qty = c.qtyOf(preset)
           div.style(stackXs)(
             div.style(Style.row.align(Alignment.end).gap(10.px).flexWrap(FlexWrap.wrap))(
               span(formatMoney(q.grossTotal, c.currency, c.lang)).cssClass("mp-pd-price mp-num"),
@@ -429,7 +478,7 @@ object ProductDetailView:
       ).flatten
     }
     ul.cssClass("mp-pd-facts")(
-      UI.fragment((fact(Icon.Ruler, presetSummary(preset, c.lang)) :: comps)*)
+      UI.fragment((fact(Icon.Ruler, presetSummary(preset, c.lang, c.qtyOf(preset))) :: comps)*)
     )
 
   // ── Below: Specifications ──────────────────────────────────────────────────
@@ -453,7 +502,7 @@ object ProductDetailView:
       div.style(Style.column)(
         UI.fragment((compRows ++
           Option.when(methods.nonEmpty)(row(span(c.t("detail-spec-printing")), methods.mkString(", "))).toList ++
-          active.map(p => row(span(c.t("detail-starting-specs")), presetSummary(p, c.lang))).toList ++
+          active.map(p => row(span(c.t("detail-starting-specs")), presetSummary(p, c.lang, p.defaultSpecs.quantity.value))).toList ++
           active.flatMap(_.defaultSpecs.bleed).map(b => row(span(c.t("detail-spec-bleed")), s"${b.value} mm")).toList)*)
       ),
     )

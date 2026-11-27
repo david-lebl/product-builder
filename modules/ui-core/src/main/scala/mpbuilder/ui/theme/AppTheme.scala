@@ -1748,6 +1748,9 @@ object AppTheme:
           .textDecoration(TextDecoration.underline)
           .hover(Style.color(brandHover)),
       )
+      .rule("mp-pd-qty", Style.column.gap(8.px).padding(0.px, 0.px, 12.px, 0.px).borderBottom(1.px, border))
+      .rule("mp-pd-qty-row", Style.row.flexWrap(FlexWrap.wrap).align(Alignment.center).gap(6.px))
+      .rule("mp-pd-qty-input", Style.width(96.px).padding(6.px, 10.px).fontSize(13.px))
       .rule(
         "mp-pd-quick",
         Style.column

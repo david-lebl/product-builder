@@ -58,6 +58,8 @@ final class StorefrontState(
     val toast: SignalRef[Option[String]],
     val configurator: ConfiguratorController,
     val presetQuotes: SignalRef[Map[PresetId, QuoteStatus]],
+    /** Quantity picked per preset in the product-detail quick start (absent = the preset's default quantity). */
+    val presetQuantities: SignalRef[Map[PresetId, Quantity]],
     val orders: SignalRef[List[OrderView]],
     val orderArtworks: SignalRef[Map[OrderId, List[mpbuilder.artwork.ArtworkSubmissionView]]],
     val paymentModal: SignalRef[Option[(OrderView, PaymentInstructions)]],
@@ -90,7 +92,7 @@ final class StorefrontState(
       _ <- route.set(next)
       _ <- if syncHash then onRouteChange(next) else Kyo.unit
       _ <- next match
-             case AppRoute.ProductDetail(catId) => refreshPresetQuotes(catId)
+             case AppRoute.ProductDetail(catId) => presetQuantities.set(Map.empty).andThen(refreshPresetQuotes(catId))
              case AppRoute.Builder(Some(catId), Some(presetId)) =>
                configurator.applyPreset(catId, presetId)
              case AppRoute.Builder(Some(catId), None) =>
@@ -162,39 +164,76 @@ final class StorefrontState(
         case Some(cat) =>
           val availablePresets = cat.presets.filter(ConfiguratorController.isPresetAvailable(_, catalog))
           for
-            cur  <- currency.get
-            tok  <- authSession.get.map(_.map(_.token))
-            lang <- i18n.currentLanguage
-            _    <- presetQuotes.set(availablePresets.map(p => p.id -> QuoteStatus.Loading).toMap)
-            results <- Kyo.foreach(availablePresets) { preset =>
-                         Abort
-                           .run[StorefrontError](
-                             client.pricePreset(
-                               categoryId = categoryId,
-                               presetId = preset.id,
-                               currency = cur,
-                               speed = ManufacturingSpeed.Standard,
-                               specsOverride = None,
-                               sessionToken = tok,
-                               lang = lang,
-                             )
-                           )
-                           .map {
-                             case Result.Success(q)   => preset.id -> QuoteStatus.Ready(q)
-                             case Result.Failure(err) => preset.id -> QuoteStatus.Failed(err)
-                             case Result.Panic(ex) =>
-                               preset.id -> QuoteStatus.Failed(
-                                 StorefrontError.CatalogFailure(
-                                   CatalogError.RuleViolation(
-                                     RuleId.unsafe("preset-quote"),
-                                     LocalizedString(Option(ex.getMessage).getOrElse("Error")),
-                                   )
-                                 )
-                               )
-                           }
-                       }
-            _ <- presetQuotes.set(results.toMap)
+            qtys    <- presetQuantities.get
+            _       <- presetQuotes.set(availablePresets.map(p => p.id -> QuoteStatus.Loading).toMap)
+            results <- Kyo.foreach(availablePresets)(preset => quotePreset(categoryId, preset, qtys.get(preset.id)).map(preset.id -> _))
+            _       <- presetQuotes.set(results.toMap)
           yield ()
+    }
+
+  /** Sets the quick-start quantity of one preset and re-prices only that preset. */
+  def setPresetQuantity(categoryId: CategoryId, presetId: PresetId, qty: Quantity): Unit < Async =
+    findAvailablePreset(categoryId, presetId).flatMap {
+      case None => Kyo.unit
+      case Some((_, preset)) =>
+        for
+          _      <- presetQuantities.updateAndGet(_.updated(presetId, qty)).unit
+          _      <- presetQuotes.updateAndGet(_.updated(presetId, QuoteStatus.Loading)).unit
+          status <- quotePreset(categoryId, preset, Some(qty))
+          latest <- presetQuantities.get
+          // Ignore out-of-order responses: only the quote for the latest picked quantity wins.
+          _ <- if latest.get(presetId).contains(qty) then presetQuotes.updateAndGet(_.updated(presetId, status)).unit else Kyo.unit
+        yield ()
+    }
+
+  private def quotePreset(categoryId: CategoryId, preset: CategoryPreset, qty: Option[Quantity]): QuoteStatus < Async =
+    for
+      cur  <- currency.get
+      tok  <- authSession.get.map(_.map(_.token))
+      lang <- i18n.currentLanguage
+      status <- Abort
+                  .run[StorefrontError](
+                    client.pricePreset(
+                      categoryId = categoryId,
+                      presetId = preset.id,
+                      currency = cur,
+                      speed = ManufacturingSpeed.Standard,
+                      specsOverride = qty.filter(_ != preset.defaultSpecs.quantity).map(q => preset.defaultSpecs.copy(quantity = q)),
+                      sessionToken = tok,
+                      lang = lang,
+                    )
+                  )
+                  .map {
+                    case Result.Success(q)   => QuoteStatus.Ready(q)
+                    case Result.Failure(err) => QuoteStatus.Failed(err)
+                    case Result.Panic(ex) =>
+                      QuoteStatus.Failed(
+                        StorefrontError.CatalogFailure(
+                          CatalogError.RuleViolation(
+                            RuleId.unsafe("preset-quote"),
+                            LocalizedString(Option(ex.getMessage).getOrElse("Error")),
+                          )
+                        )
+                      )
+                  }
+    yield status
+
+  private def findAvailablePreset(categoryId: CategoryId, presetId: PresetId): Option[(ProductCategory, CategoryPreset)] < Async =
+    catalogRef.get.map { catalog =>
+      catalog.categories
+        .get(categoryId)
+        .filter(_.enabled)
+        .flatMap(cat => cat.presets.find(p => p.id == presetId && ConfiguratorController.isPresetAvailable(p, catalog)).map(cat -> _))
+    }
+
+  /** Preset draft with the quick-start quantity applied (the backend re-prices it on add / checkout). */
+  private def presetDraft(categoryId: CategoryId, presetId: PresetId): Option[DraftConfig] < Async =
+    for
+      found <- findAvailablePreset(categoryId, presetId)
+      qtys  <- presetQuantities.get
+    yield found.map { (cat, preset) =>
+      val d = ConfiguratorController.draftFromPreset(cat, preset)
+      qtys.get(presetId).fold(d)(q => d.copy(specs = d.specs.copy(quantity = q)))
     }
 
   // ── Auth & Account ─────────────────────────────────────────────────────────
@@ -443,15 +482,9 @@ final class StorefrontState(
     yield ok
 
   def addPresetToCart(categoryId: CategoryId, presetId: PresetId): Unit < Async =
-    catalogRef.get.flatMap { catalog =>
-      catalog.categories
-        .get(categoryId)
-        .filter(_.enabled)
-        .flatMap(cat => cat.presets.find(p => p.id == presetId && ConfiguratorController.isPresetAvailable(p, catalog)).map(cat -> _)) match
-        case None => Kyo.unit
-        case Some((cat, preset)) =>
-          val draft = ConfiguratorController.draftFromPreset(cat, preset)
-          addDraftToCart(draft).unit
+    presetDraft(categoryId, presetId).flatMap {
+      case None        => Kyo.unit
+      case Some(draft) => addDraftToCart(draft).unit
     }
 
   /** Starts a "buy now" checkout. Sends only the configuration; the backend re-prices it on every checkout call. */
@@ -473,14 +506,9 @@ final class StorefrontState(
     yield ()
 
   def startPresetQuickOrder(categoryId: CategoryId, presetId: PresetId): Unit < Async =
-    catalogRef.get.flatMap { catalog =>
-      catalog.categories
-        .get(categoryId)
-        .filter(_.enabled)
-        .flatMap(cat => cat.presets.find(p => p.id == presetId && ConfiguratorController.isPresetAvailable(p, catalog)).map(cat -> _)) match
-        case None => Kyo.unit
-        case Some((cat, preset)) =>
-          startQuickOrder(ConfiguratorController.draftFromPreset(cat, preset))
+    presetDraft(categoryId, presetId).flatMap {
+      case None        => Kyo.unit
+      case Some(draft) => startQuickOrder(draft)
     }
 
   def startCartCheckout: Unit < Async =
@@ -627,6 +655,7 @@ object StorefrontState:
       mobileMenu  <- Signal.initRef(false)
       toastRef    <- Signal.initRef[Option[String]](None)
       presetsRef  <- Signal.initRef(Map.empty[PresetId, QuoteStatus])
+      presetQtyRef <- Signal.initRef(Map.empty[PresetId, Quantity])
       ordersRef   <- Signal.initRef(List.empty[OrderView])
       artRef      <- Signal.initRef(Map.empty[OrderId, List[mpbuilder.artwork.ArtworkSubmissionView]])
       payModalRef <- Signal.initRef[Option[(OrderView, PaymentInstructions)]](None)
@@ -667,6 +696,7 @@ object StorefrontState:
                        toastRef,
                        ctrl,
                        presetsRef,
+                       presetQtyRef,
                        ordersRef,
                        artRef,
                        payModalRef,

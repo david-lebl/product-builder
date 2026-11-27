@@ -139,7 +139,9 @@ object Translations:
       |detail-from-price = From { $price }
       |detail-from-price-note = incl. VAT · final price follows your configuration
       |detail-quick-start-title = Quick start: ready-made presets
-      |detail-quick-start-desc = Not sure where to begin? Pick a popular configuration and order it as is.
+      |detail-quantity-label = Quantity
+      |detail-quantity-reset = Reset to preset
+      |detail-quick-start-desc = Not sure where to begin? Pick a popular configuration, set the quantity and order it right away.
       |detail-how-1 = Configure every parameter yourself — or start from a ready-made preset.
       |detail-how-2 = Upload your artwork or design it in the Design Studio.
       |detail-how-3 = We check your files and send a proof if needed.
@@ -521,7 +523,9 @@ object Translations:
       |detail-from-price = Od { $price }
       |detail-from-price-note = vč. DPH · konečná cena podle vaší konfigurace
       |detail-quick-start-title = Rychlý start: připravené konfigurace
-      |detail-quick-start-desc = Nevíte, jak začít? Vyberte oblíbenou konfiguraci a objednejte ji rovnou.
+      |detail-quantity-label = Počet kusů
+      |detail-quantity-reset = Vrátit výchozí
+      |detail-quick-start-desc = Nevíte, jak začít? Vyberte oblíbenou konfiguraci, nastavte počet kusů a objednejte ji rovnou.
       |detail-how-1 = Nastavte si každý parametr sami — nebo začněte z připravené konfigurace.
       |detail-how-2 = Nahrajte podklady, nebo je navrhněte v Design Studiu.
       |detail-how-3 = Soubory zkontrolujeme a v případě potřeby pošleme náhled.

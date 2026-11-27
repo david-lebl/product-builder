@@ -153,6 +153,37 @@ class StorefrontUiSpec extends Test[Any]:
         }
       }
 
+      "ProductDetailView quick-start quantity re-prices the preset and flows into the cart" in {
+        withClient { client =>
+          for
+            appI18n <- Translations.init(Language.En)
+            state   <- I18n.let(appI18n.handle)(StorefrontState.init(client, appI18n))
+            listings <- state.listingsRef.get
+            catalog <- state.catalogRef.get
+            catId    = listings.head.categoryId
+            preset   = catalog.categories(catId).presets.head
+            newQty   = Quantity.unsafe(preset.defaultSpecs.quantity.value * 4)
+            _       <- I18n.let(appI18n.handle)(state.openProductDetail(catId))
+            before  <- state.presetQuotes.get
+            _       <- I18n.let(appI18n.handle)(state.setPresetQuantity(catId, preset.id, newQty))
+            after   <- state.presetQuotes.get
+            ui      <- I18n.let(appI18n.handle)(StorefrontApp.render(state))
+            html    <- renderHtml(ui, appI18n)
+            _       <- I18n.let(appI18n.handle)(state.addPresetToCart(catId, preset.id))
+            cart    <- state.cart.get
+            _       <- I18n.let(appI18n.handle)(state.openProductDetail(catId))
+            reset   <- state.presetQuantities.get
+          yield
+            def gross(m: Map[PresetId, QuoteStatus]) = m.get(preset.id).collect { case QuoteStatus.Ready(r) => r.pricing.effectiveQuote.grossTotal.value }
+            assert(gross(before).isDefined && gross(after).isDefined)
+            assert(gross(after).get > gross(before).get)
+            assert(html.contains("mp-pd-qty"))
+            assert(html.contains(s"${newQty.value} pcs"))
+            assert(cart.exists(_.lines.exists(_.runQuantity == newQty)))
+            assert(reset.isEmpty)
+        }
+      }
+
       "Configurator computes live quote and unlocks B2B dual-pricing savings after B2B login" in {
         withClient { client =>
           for

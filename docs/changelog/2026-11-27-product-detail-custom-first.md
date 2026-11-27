@@ -24,3 +24,14 @@ the hierarchy is flipped: the buy box now leads with the two creation paths, and
   and quick start; reworded `detail-presets-subtitle` / `detail-how-1`; dropped unused `detail-use-preset`.
 - **`StorefrontUiSpec`** — product detail test asserts the custom paths render before the quick-start panel,
   in EN and CS without missing keys.
+
+## Follow-up: quick-start quantity (PR review)
+
+- **`StorefrontState`** — new `presetQuantities` (per preset, reset on entering a product detail page) and
+  `setPresetQuantity`, which re-prices only that preset via `pricePreset(specsOverride = …)` and drops
+  out-of-order responses. `refreshPresetQuotes` (language / currency / catalog refresh) keeps the picked
+  quantities; `addPresetToCart` / `startPresetQuickOrder` order the picked quantity.
+- **`ProductDetailView`** — quantity picker in the quick-start price box: six log-scale pills around the
+  preset default, a custom number field (committed on blur / Enter), and "Reset to preset". Per-piece price and
+  preset summaries follow the picked quantity.
+- **`StorefrontUiSpec`** — new test: a changed quantity re-prices the preset, renders, and lands in the cart.
