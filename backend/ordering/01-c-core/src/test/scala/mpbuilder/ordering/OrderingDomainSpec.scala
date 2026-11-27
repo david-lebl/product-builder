@@ -41,11 +41,20 @@ class OrderingDomainSpec extends Test[Any]:
             materialName = LocalizedString("Art 350g"),
             printingMethodId = Some(PrintingMethodId.unsafe("digital")),
             inkNotation = Some("4/4"),
-            finishIds = List(FinishId.unsafe("matte-lam")),
+            finishes = List(
+              FinishSnapshot(FinishId.unsafe("matte-lam"), LocalizedString("Matte Lamination"), "Lamination", Some(FinishSnapshot.Side.Both), None)
+            ),
             flatSize = Dimension2D.unsafeMm(90, 50),
             finishedSize = Dimension2D.unsafeMm(90, 50),
             sheetsUsed = 25,
           )
+        ),
+        specs = ProductSpecSnapshot(
+          dimensions = ProductSpecSnapshot.Dimensions.Flat2D(Dimension2D.unsafeMm(90, 50)),
+          orientation = Some(ProductSpecSnapshot.Orientation.Landscape),
+          bleed = NonNegativeMm.unsafe(3),
+          binding = None,
+          deliveryFormat = ProductSpecSnapshot.DeliveryFormat.CutSingles,
         ),
       ),
       runQuantity = Quantity.unsafe(500),
@@ -124,6 +133,31 @@ class OrderingDomainSpec extends Test[Any]:
     )
 
   "OrderingDomainSpec" - {
+    "ProductSnapshot derives artwork page counts from the ordered binding and print sides" in {
+      val product = sampleLine("l-pages", Currency.CZK, Money(BigDecimal(100))).product
+      val oneSided = product.copy(components = product.components.map(_.copy(inkNotation = Some("4/0"))))
+      val booklet = product.copy(
+        components = NonEmptyChunk(
+          product.components.head.copy(key = ComponentKey.Cover),
+          product.components.head.copy(key = ComponentKey.Body),
+        ),
+        specs = product.specs.copy(
+          bleed = NonNegativeMm.unsafe(5),
+          binding = Some(ProductSpecSnapshot.Binding(ProductSpecSnapshot.BindingMethod.SaddleStitch, 16, selfCover = false)),
+        ),
+      )
+      val selfCover = booklet.copy(
+        specs = booklet.specs.copy(binding = Some(ProductSpecSnapshot.Binding(ProductSpecSnapshot.BindingMethod.SaddleStitch, 16, selfCover = true)))
+      )
+      // Unbound product: one page per printed side
+      assert(product.expectedArtworkPages(ComponentKey.Main) == 2)
+      assert(oneSided.expectedArtworkPages(ComponentKey.Main) == 1)
+      assert(booklet.expectedArtworkPages(ComponentKey.Body) == 12)
+      assert(booklet.expectedArtworkPages(ComponentKey.Cover) == 2)
+      assert(selfCover.expectedArtworkPages(ComponentKey.Body) == 16)
+      assert(booklet.bleed == NonNegativeMm.unsafe(5))
+    }
+
     "Cart enforces currency consistency across lines, scales copies, and applies cart-level promo with VAT" in {
       val cart = Cart(CartId.unsafe("cart-1"), None, Currency.CZK, List.empty, None)
       val czkLine = sampleLine("l1", Currency.CZK, Money(1000))

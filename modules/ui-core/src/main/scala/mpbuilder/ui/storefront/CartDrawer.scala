@@ -5,7 +5,7 @@ import kyo.UI.*
 import kyo.Style.*
 import mpbuilder.ordering.*
 import mpbuilder.shared.*
-import mpbuilder.ui.components.Icons
+import mpbuilder.ui.components.{Icons, LineSpecFormat}
 import mpbuilder.ui.components.CommonComponents.*
 import mpbuilder.ui.theme.AppTheme.*
 import mpbuilder.ui.theme.AppTheme.Palette.*
@@ -86,6 +86,7 @@ object CartDrawer:
                 div.style(smallText)(
                   s"${firstComp.materialName(lang)} · ${formatDimension(firstComp.finishedSize)} · ${line.runQuantity.value} pcs",
                 ),
+                div.cssClass("mp-cart-line-spec").style(smallText)(LineSpecFormat.lineSummary(line.product, lang)),
               ),
               button
                 .cssClass("mp-btn mp-btn-ghost mp-btn-sm")

@@ -23,11 +23,33 @@ class OrderingCodecsSpec extends Test[Any]:
           materialName = LocalizedString("Silk 170g", "Křída 170g"),
           printingMethodId = Some(PrintingMethodId.unsafe("pm-digital")),
           inkNotation = Some("4/4"),
-          finishIds = Nil,
+          finishes = List(
+            FinishSnapshot(
+              finishId = FinishId.unsafe("fin-foil"),
+              name = LocalizedString("Foil", "Fólie"),
+              finishType = "FoilStamping",
+              side = Some(FinishSnapshot.Side.Front),
+              params = Some(FinishSnapshot.Params.FoilStamping(FinishSnapshot.FoilColor.RoseGold)),
+            ),
+            FinishSnapshot(
+              finishId = FinishId.unsafe("fin-corners"),
+              name = LocalizedString("Rounded Corners", "Zaoblené rohy"),
+              finishType = "RoundCorners",
+              side = None,
+              params = Some(FinishSnapshot.Params.RoundCorners(4, 3)),
+            ),
+          ),
           flatSize = Dimension2D.A5,
           finishedSize = Dimension2D.A5,
           sheetsUsed = 10,
         )
+      ),
+      specs = ProductSpecSnapshot(
+        dimensions = ProductSpecSnapshot.Dimensions.Folded2D(Dimension2D.A5, ProductSpecSnapshot.FoldType.Tri),
+        orientation = Some(ProductSpecSnapshot.Orientation.Landscape),
+        bleed = NonNegativeMm.unsafe(3),
+        binding = Some(ProductSpecSnapshot.Binding(ProductSpecSnapshot.BindingMethod.PerfectBinding, 64, selfCover = true)),
+        deliveryFormat = ProductSpecSnapshot.DeliveryFormat.RollLabels(coreDiameterMm = 76, unwindDirection = 3),
       ),
     ),
     runQuantity = Quantity.unsafe(100),
@@ -48,6 +70,10 @@ class OrderingCodecsSpec extends Test[Any]:
   )
 
   "OrderingCodecs" - {
+    "order lines round-trip with the full product configuration" in {
+      assert(fromJsonUnsafe[OrderLine](toJson(line)) == line)
+    }
+
     "order lines round-trip with production instructions" in {
       assert(fromJsonUnsafe[OrderLine](toJson(line)) == line)
     }

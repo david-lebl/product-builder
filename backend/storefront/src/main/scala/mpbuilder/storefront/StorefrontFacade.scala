@@ -619,7 +619,7 @@ final class StorefrontFacadeLive(
   ): ArtworkSubmissionView < (Async & Abort[StorefrontError]) =
     val trimSize = payload.trimSizeOverride.getOrElse(expectedTrimSize)
     val pageCnt  = payload.pageCount.orElse(expectedPageCount).getOrElse(1)
-    val req      = buildPreflightRequirement(expectedTrimSize, expectedPageCount)
+    val req      = buildPreflightRequirement(expectedTrimSize, expectedPageCount, orderedBleed = None)
     for
       artId <- nextArtworkId
       file  <- assetFile(s"drafts/${sessionId.value}/${artId.value}-${sanitizeFileSegment(payload.fileName.value)}", payload)
@@ -684,11 +684,11 @@ final class StorefrontFacadeLive(
                case Some(existing) =>
                  reuploadOrderArtworkPayload(sessionToken, orderId, existing.id, payload)
                case None =>
-                 val comp     = line.product.components.find(_.key == componentKey).getOrElse(line.product.components.head)
-                 val expPages = defaultPageCountFor(comp)
+                 val comp     = line.product.component(componentKey)
+                 val expPages = line.product.expectedArtworkPages(componentKey)
                  val trimSize = payload.trimSizeOverride.getOrElse(comp.finishedSize)
                  val pageCnt  = payload.pageCount.getOrElse(expPages)
-                 val req      = buildPreflightRequirement(comp.finishedSize, Some(expPages))
+                 val req      = buildPreflightRequirement(comp.finishedSize, Some(expPages), Some(line.product.bleed))
                  for
                    artId <- nextArtworkId
                    file  <- assetFile(s"uploads/${orderId.value}/${artId.value}-${sanitizeFileSegment(payload.fileName.value)}", payload)
@@ -750,11 +750,11 @@ final class StorefrontFacadeLive(
       lineOpt   = existing.owner match
                     case ArtworkOwner.OrderLineRef(_, idx) => order.lines.lift(idx)
                     case _                                 => None
-      compOpt   = lineOpt.flatMap(_.product.components.find(_.key == existing.componentKey)).orElse(lineOpt.map(_.product.components.head))
+      compOpt   = lineOpt.map(_.product.component(existing.componentKey))
       expTrim   = compOpt.map(_.finishedSize).getOrElse(existing.latestRevision.extractedSpecs.trimSize)
       trimSize  = payload.trimSizeOverride.getOrElse(expTrim)
       pageCnt   = payload.pageCount.getOrElse(existing.latestRevision.extractedSpecs.pageCount)
-      req       = buildPreflightRequirement(expTrim, Some(existing.latestRevision.extractedSpecs.pageCount))
+      req       = buildPreflightRequirement(expTrim, Some(existing.latestRevision.extractedSpecs.pageCount), lineOpt.map(_.product.bleed))
       revNum    = existing.revisionCount + 1
       file     <- assetFile(s"uploads/${orderId.value}/${artworkId.value}-v$revNum-${sanitizeFileSegment(payload.fileName.value)}", payload)
       updated  <- artworkService
@@ -972,23 +972,19 @@ final class StorefrontFacadeLive(
   private def nextArtworkId: ArtworkId < Async =
     idSequence.next.map(n => ArtworkId.unsafe(s"art-$n"))
 
+  /** Preflight requirement for an artwork; order lines pass their ordered bleed, drafts fall back to 3 mm. */
   private def buildPreflightRequirement(
       expectedTrimSize: Dimension2D,
       expectedPageCount: Option[Int],
+      orderedBleed: Option[NonNegativeMm],
   ): PreflightRequirement =
     val isLargeFormat = expectedTrimSize.width.value >= BigDecimal(400) || expectedTrimSize.height.value >= BigDecimal(400)
     PreflightRequirement(
       expectedTrimSize = expectedTrimSize,
-      requiredBleed = NonNegativeMm.unsafe(3),
+      requiredBleed = orderedBleed.getOrElse(NonNegativeMm.unsafe(3)),
       minResolutionDpi = if isLargeFormat then 150 else 300,
       expectedPageCount = expectedPageCount,
     )
-
-  private def defaultPageCountFor(comp: ComponentSnapshot): Int =
-    comp.inkNotation match
-      case Some(n) if n.endsWith("/0") => 1
-      case Some(_)                     => 2
-      case None                        => 1
 
   /** Builds artwork file metadata, moving inline `data:` URL payloads into `BlobStorage` (Phase 5). */
   private def assetFile(storageKey: String, payload: ArtworkUploadPayload): AssetFileMetadata < (Async & Abort[StorefrontError]) =

@@ -217,6 +217,7 @@ object SampleSeedOrders:
       speed: ManufacturingSpeed = ManufacturingSpeed.Standard,
       artworkId: Option[String] = None,
       productionNote: Option[String] = None,
+      finishes: List[FinishSnapshot] = Nil,
   ): OrderLine =
     val netMoney = Money(net)
     val taxAmt   = (netMoney * (TaxRate.czStandard.value / BigDecimal(100))).rounded
@@ -234,11 +235,20 @@ object SampleSeedOrders:
             materialName = LocalizedString(matEn, matCs),
             printingMethodId = Some(PrintingMethodId.unsafe(pmId)),
             inkNotation = Some(ink),
-            finishIds = Nil,
+            finishes = finishes,
             flatSize = Dimension2D(PositiveMm.unsafe(wMm), PositiveMm.unsafe(hMm)),
             finishedSize = Dimension2D(PositiveMm.unsafe(wMm), PositiveMm.unsafe(hMm)),
             sheetsUsed = sheets,
           )
+        ),
+        specs = ProductSpecSnapshot(
+          dimensions = ProductSpecSnapshot.Dimensions.Flat2D(Dimension2D(PositiveMm.unsafe(wMm), PositiveMm.unsafe(hMm))),
+          orientation = Some(
+            if wMm > hMm then ProductSpecSnapshot.Orientation.Landscape else ProductSpecSnapshot.Orientation.Portrait
+          ),
+          bleed = NonNegativeMm.unsafe(3),
+          binding = None,
+          deliveryFormat = ProductSpecSnapshot.DeliveryFormat.CutSingles,
         ),
       ),
       runQuantity = Quantity.unsafe(qty),
@@ -270,6 +280,22 @@ object SampleSeedOrders:
       "mat-coated-350", "Coated Silk 350g", "Křída matná 350g",
       "pm-digital", "4/4", 90, 50, 500, 26, BigDecimal("690.00"),
       artworkId = Some("art-seed-0901"),
+      finishes = List(
+        FinishSnapshot(
+          finishId = FinishId.unsafe("fin-matte-lamination"),
+          name = LocalizedString("Matte Lamination", "Matná laminace"),
+          finishType = "Lamination",
+          side = Some(FinishSnapshot.Side.Both),
+          params = None,
+        ),
+        FinishSnapshot(
+          finishId = FinishId.unsafe("fin-round-corners"),
+          name = LocalizedString("Rounded Corners", "Zaoblené rohy"),
+          finishType = "RoundCorners",
+          side = None,
+          params = Some(FinishSnapshot.Params.RoundCorners(cornerCount = 4, radiusMm = 3)),
+        ),
+      ),
     )
     val ord1 = Order
       .place(

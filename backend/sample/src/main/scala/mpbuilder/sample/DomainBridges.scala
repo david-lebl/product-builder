@@ -3,7 +3,7 @@ package mpbuilder.sample
 import mpbuilder.artwork.{ColorSpace, PreflightRequirement}
 import mpbuilder.catalog.*
 import mpbuilder.manufacturing.*
-import mpbuilder.ordering.{ComponentSnapshot, LinePriceSnapshot, ProductSnapshot}
+import mpbuilder.ordering.{LinePriceSnapshot, ProductSnapshot}
 import mpbuilder.pricing.*
 import mpbuilder.shared.*
 
@@ -101,28 +101,7 @@ object DomainBridges:
       product: ConfiguredProduct,
       summaryNotes: Option[String] = None,
   ): ProductSnapshot =
-    ProductSnapshot(
-      categoryId = product.categoryId,
-      categoryName = product.categoryName,
-      catalogVersion = product.catalogVersion,
-      components = product.components.map { c =>
-        val sheets = c.geometry.imposition match
-          case ImpositionResult.SheetImposition(_, _, _, s, _, _) => s
-          case _                                                  => 0
-        ComponentSnapshot(
-          key = c.key,
-          materialId = c.material.id,
-          materialName = c.material.name,
-          printingMethodId = c.print.map(_.printingMethod.id),
-          inkNotation = c.print.map(_.ink.notation),
-          finishIds = c.finishes.map(_.id),
-          flatSize = c.geometry.flatSize,
-          finishedSize = c.geometry.finishedSize,
-          sheetsUsed = sheets,
-        )
-      },
-      summaryNotes = summaryNotes,
-    )
+    mpbuilder.storefront.StorefrontTranslators.toProductSnapshot(product, summaryNotes)
 
   /** Freezes a `PriceQuote` into a `LinePriceSnapshot` for `ordering`. */
   def toLinePriceSnapshot(quote: PriceQuote): LinePriceSnapshot =
@@ -145,9 +124,7 @@ object DomainBridges:
     product.components.find(_.key == componentKey).flatMap { comp =>
       comp.print.map { ps =>
         val isLargeFormat = ps.printingMethod.processType.isLargeFormatInkjet
-        val bleed = product.specs.bleed.getOrElse(
-          if isLargeFormat then NonNegativeMm.unsafe(5) else NonNegativeMm.unsafe(3)
-        )
+        val bleed = product.specs.bleed.getOrElse(mpbuilder.storefront.StorefrontTranslators.defaultBleed(product))
         val minDpi = if isLargeFormat then 150 else 300
         val expectedPages = product.specs.binding match
           case Some(b) if componentKey == ComponentKey.Body =>

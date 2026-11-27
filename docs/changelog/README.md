@@ -46,6 +46,7 @@ Brief description of what was accomplished in this session.
 
 | Date | Title | PR | Type |
 |------|-------|----|------|
+| 2026-11-27 | [Full Product Configuration on Cart & Order Lines](2026-11-27-order-line-full-product-configuration.md) | t3/store-full-product-config-on-order-lines | feature |
 | 2026-11-26 | [Backoffice Customer Management UX Redesign](2026-11-26-backoffice-customer-detail-ux.md) | t3/backoffice-customer-detail-ux | feature |
 | 2026-11-26 | [Order-Line Production Instructions](2026-11-26-order-line-production-notes.md) | t3/order-line-manufacturing-note | feature |
 | 2026-11-26 | [Backoffice Margin Simulator Inputs Fixed](2026-11-26-backoffice-margin-simulator-fix.md) | t3/fix-backoffice-margin-simulator | bugfix |

@@ -17,6 +17,7 @@ Core feature specifications — stable documents describing *what* the system do
 | [help-information.md](help-information.md) | Contextual help system specification (field-level `?` and `i` buttons) |
 | [email-order-option.md](email-order-option.md) | Email order option — pre-filled modal popup for requesting orders via email |
 | [standalone-calculator.md](standalone-calculator.md) | Embeddable price calculator widget — scope, e-mail ordering, indicative (non-promised) lead times, and the two embedding modes |
+| [order-line-product-configuration.md](order-line-product-configuration.md) | What a cart/order line stores about the product (finish sides & settings, orientation, bleed, binding, delivery format) and how it drives the backoffice view and artwork preflight |
 | [backoffice-customer-management.md](backoffice-customer-management.md) | Backoffice customer list, registration form, and customer detail (header actions, KPI tiles, Profile / Pricing & Terms / Orders / Artworks / Activity tabs) |
 
 ## 🔬 Analysis & Research
@@ -93,6 +94,7 @@ Session-by-session work logs documenting what was done, decisions made, and issu
 | [changelog/2026-11-25-scalajs-link-oom.md](changelog/2026-11-25-scalajs-link-oom.md) | Session log for the Scala.js link OutOfMemoryError fix (Mill daemon `-Xmx6g`) |
 | [changelog/2026-11-25-fulllinkjs-oom-deploy.md](changelog/2026-11-25-fulllinkjs-oom-deploy.md) | Session log for the deploy `fullLinkJS` OutOfMemoryError fix (link bundles one at a time) |
 | [changelog/README.md](changelog/README.md) | Changelog format, template, and log entries index |
+| [changelog/2026-11-27-order-line-full-product-configuration.md](changelog/2026-11-27-order-line-full-product-configuration.md) | Feature — cart and order lines keep the full product configuration (finish sides/settings, orientation, bleed, binding, delivery format) |
 | [changelog/2026-11-26-order-line-production-notes.md](changelog/2026-11-26-order-line-production-notes.md) | Feature — optional customer production instructions per cart/order line (configurator, cart, My orders, backoffice, manufacturing) |
 | [changelog/2026-11-26-backoffice-b2b-agreement-editor.md](changelog/2026-11-26-backoffice-b2b-agreement-editor.md) | Feature — full B2B agreement editor in the backoffice (category/material/finish discounts, fixed rates, JSON mode) |
 | [changelog/2026-11-25-mobile-configurator-sticky-dock.md](changelog/2026-11-25-mobile-configurator-sticky-dock.md) | Feature — sticky bottom price dock on mobile/tablet with expandable price-detail sheet, add-to-cart feedback and bottom-sheet cart |
