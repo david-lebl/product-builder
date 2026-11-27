@@ -6,6 +6,7 @@ import kyo.Style.*
 import mpbuilder.ordering.*
 import mpbuilder.shared.*
 import mpbuilder.storefront.*
+import mpbuilder.ui.components.Icons
 import mpbuilder.ui.components.CommonComponents.*
 import mpbuilder.ui.theme.AppTheme.*
 import mpbuilder.ui.theme.AppTheme.Palette.*
@@ -70,12 +71,71 @@ final class CheckoutSession(
             yield buildAddress(s, c, p, k)
       yield addrEither.map(addr => DeliveryOptionChoice.Courier(opt.id, addr))
 
+  /** Overwrites contact, billing and shipping fields with the values the account provides (blank fields stay untouched). */
+  def applyPrefill(prefill: CheckoutPrefill): Unit < Sync =
+    def put(ref: SignalRef[String], v: Option[String]): Unit < Sync =
+      v.filter(_.trim.nonEmpty).map(ref.set).getOrElse(Kyo.unit)
+    val cust = prefill.customer
+    val bill = prefill.billingAddress
+    val ship = prefill.shippingAddresses.headOption.filterNot(a => bill.contains(a))
+    for
+      _ <- put(fullNameRef, cust.map(c => s"${c.contact.firstName.value} ${c.contact.lastName.value}"))
+      _ <- put(emailRef, cust.map(_.contact.email.value))
+      _ <- put(phoneRef, cust.flatMap(_.contact.phone).map(_.value))
+      _ <- put(companyRef, cust.flatMap(_.company).map(_.legalName.value))
+      _ <- put(icoRef, cust.flatMap(_.company).map(_.registrationNumber.value))
+      _ <- put(dicRef, cust.flatMap(_.company).flatMap(_.vatId).map(_.value))
+      _ <- put(billStreetRef, bill.map(_.street.value))
+      _ <- put(billCityRef, bill.map(_.city.value))
+      _ <- put(billPostalRef, bill.map(_.postalCode.value))
+      _ <- put(billCountryRef, bill.map(_.countryCode.value))
+      _ <- ship match
+             case Some(a) =>
+               for
+                 _ <- sameShipRef.set(false)
+                 _ <- shipStreetRef.set(a.street.value)
+                 _ <- shipCityRef.set(a.city.value)
+                 _ <- shipPostalRef.set(a.postalCode.value)
+                 _ <- shipCountryRef.set(a.countryCode.value)
+               yield ()
+             case None => Kyo.unit
+    yield ()
+
+  /** Called after the customer signs in on the checkout page: pulls the account prefill and re-prices for the account. */
+  def applyAccountPrefill(state: StorefrontState): Unit < Async =
+    for
+      cur <- state.currency.get
+      tok <- state.authSession.get.map(_.map(_.token))
+      res <- Abort.run[StorefrontError](state.client.getCheckoutOptions(source, cur, tok, None))
+      _ <- res match
+             case Result.Success(opts) => applyPrefill(opts.prefill)
+             case _                    => Kyo.unit
+      _ <- refreshPreview(state)
+    yield ()
+
+  /** Keeps the delivery / payment selections valid after the available options change (e.g. sign-in / sign-out). */
+  private def reconcileSelections(opts: CheckoutOptionsView): Unit < Sync =
+    for
+      del <- selectedDeliv.get
+      _ <- selectedDeliv.set(
+             del.flatMap(d => opts.deliveryOptions.find(o => o.id == d.id && o.available))
+               .orElse(opts.deliveryOptions.find(_.available))
+           )
+      pay <- selectedPay.get
+      _ <- if opts.paymentOptions.exists(o => o.method == pay && o.available) then Kyo.unit
+           else opts.paymentOptions.find(_.available).map(o => selectedPay.set(o.method)).getOrElse(Kyo.unit)
+    yield ()
+
   def refreshPreview(state: StorefrontState): Unit < Async =
     for
-      cNow   <- state.currency.get
-      tNow   <- state.authSession.get.map(_.map(_.token))
+      cNow    <- state.currency.get
+      tNow    <- state.authSession.get.map(_.map(_.token))
+      promo   <- promoOverride.get.map(s => Option(s.trim).filter(_.nonEmpty))
+      optsRes <- Abort.run[StorefrontError](state.client.getCheckoutOptions(source, cNow, tNow, promo))
+      _ <- optsRes.toMaybe.toOption match
+             case Some(o) => optionsRef.set(Some(o)).andThen(reconcileSelections(o))
+             case None    => Kyo.unit
       delOpt <- selectedDeliv.get
-      promo  <- promoOverride.get.map(s => Option(s.trim).filter(_.nonEmpty))
       choiceOpt = delOpt.map { opt =>
                     if opt.isPickup then DeliveryOptionChoice.ShopPickup(opt.id)
                     else
@@ -89,8 +149,6 @@ final class CheckoutSession(
                         ),
                       )
                   }
-      optsRes <- Abort.run[StorefrontError](state.client.getCheckoutOptions(source, cNow, tNow, promo))
-      _       <- optsRes.toMaybe.toOption.map(o => optionsRef.set(Some(o))).getOrElse(Kyo.unit)
       prevRes <- Abort.run[StorefrontError](state.client.previewCheckout(source, cNow, choiceOpt, tNow, promo))
       _ <- prevRes match
              case Result.Success(prev) => previewRef.set(Some(prev)).andThen(errorRef.set(None))
@@ -181,22 +239,19 @@ object CheckoutSession:
       tok            <- state.authSession.get.map(_.map(_.token))
       initialOptsRes <- Abort.run[StorefrontError](state.client.getCheckoutOptions(source, cur, tok, None))
       initOpts        = initialOptsRes.toMaybe.toOption
-      prefill         = initOpts.map(_.prefill)
-      initCust        = prefill.flatMap(_.customer)
-      initBill        = prefill.flatMap(_.billingAddress)
       initDelivOpt    = initOpts.flatMap(_.deliveryOptions.find(_.available))
       initPayOpt      = initOpts.flatMap(_.paymentOptions.find(_.available)).map(_.method).getOrElse(PaymentMethod.BankTransferQR)
 
-      fullNameRef     <- Signal.initRef(initCust.map(c => s"${c.contact.firstName.value} ${c.contact.lastName.value}").getOrElse(""))
-      emailRef        <- Signal.initRef(initCust.map(_.contact.email.value).getOrElse(""))
-      phoneRef        <- Signal.initRef(initCust.flatMap(_.contact.phone).map(_.value).getOrElse(""))
-      companyRef      <- Signal.initRef(initCust.flatMap(_.company).map(_.legalName.value).getOrElse(""))
-      icoRef          <- Signal.initRef(initCust.flatMap(_.company).map(_.registrationNumber.value).getOrElse(""))
-      dicRef          <- Signal.initRef(initCust.flatMap(_.company).flatMap(_.vatId).map(_.value).getOrElse(""))
-      billStreetRef   <- Signal.initRef(initBill.map(_.street.value).getOrElse(""))
-      billCityRef     <- Signal.initRef(initBill.map(_.city.value).getOrElse(""))
-      billPostalRef   <- Signal.initRef(initBill.map(_.postalCode.value).getOrElse(""))
-      billCountryRef  <- Signal.initRef(initBill.map(_.countryCode.value).getOrElse("CZ"))
+      fullNameRef     <- Signal.initRef("")
+      emailRef        <- Signal.initRef("")
+      phoneRef        <- Signal.initRef("")
+      companyRef      <- Signal.initRef("")
+      icoRef          <- Signal.initRef("")
+      dicRef          <- Signal.initRef("")
+      billStreetRef   <- Signal.initRef("")
+      billCityRef     <- Signal.initRef("")
+      billPostalRef   <- Signal.initRef("")
+      billCountryRef  <- Signal.initRef("CZ")
 
       sameShipRef     <- Signal.initRef(true)
       shipStreetRef   <- Signal.initRef("")
@@ -241,6 +296,7 @@ object CheckoutSession:
                   submittingRef,
                   confirmationRef,
                 )
+      _ <- initOpts.map(o => session.applyPrefill(o.prefill)).getOrElse(Kyo.unit)
       _ <- session.refreshPreview(state)
     yield session
 
@@ -286,6 +342,7 @@ object CheckoutView:
                 // Step 1: Contact & Billing
                 div.cssClass("mp-card")(
                   h2(state.i18n.t("checkout-step-contact")).style(sectionTitle.margin(0.px)),
+                  accountPrompt(state),
                   div.cssClass("mp-field-row")(
                     textField(state.i18n.t("checkout-full-name"), session.fullNameRef, "Jan Novák"),
                     div.cssClass("mp-field")(
@@ -566,6 +623,30 @@ object CheckoutView:
         ),
       ),
     )
+
+  /** Sign-in call-to-action for guests; a "signed in as" note once the customer is logged in. */
+  private def accountPrompt(state: StorefrontState): UI =
+    state.authSession.render {
+      case None =>
+        div.cssClass("mp-checkout-login")
+          .style(rowBetween.flexWrap(FlexWrap.wrap).gap(10.px).padding(12.px, 14.px).rounded(12.px).bg(brandSoft).border(1.px, brandBorder))(
+            div.style(Style.column.gap(2.px).flexGrow(1.0).minWidth(200.px))(
+              span(state.i18n.t("checkout-login-title")).style(Style.fontWeight(FontWeight.w700).fontSize(14.px).color(brandDark)),
+              span(state.i18n.t("checkout-login-hint")).style(Style.fontSize(13.px).color(brandDark)),
+            ),
+            button
+              .cssClass("mp-btn mp-btn-primary mp-btn-sm")
+              .onClick(state.authModalOpen.set(true))(
+                Icons(Icons.Icon.LogIn, 15),
+                span(state.i18n.t("checkout-login-cta")),
+              ),
+          )
+      case Some(sess) =>
+        div.style(Style.row.align(Alignment.center).gap(8.px).padding(10.px, 14.px).rounded(12.px).bg(emeraldSoft).border(1.px, emeraldBorder))(
+          span(state.i18n.t("checkout-logged-in-as", Dict("name" -> sess.principal.displayName.value)))
+            .style(Style.fontSize(13.px).fontWeight(FontWeight.w600).color(emeraldInk)),
+        )
+    }
 
   private def textField(lbl: Signal[String], ref: SignalRef[String], ph: String): UI =
     div.cssClass("mp-field")(

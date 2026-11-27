@@ -290,6 +290,10 @@ object Translations:
       |checkout-back-catalog = Continue Shopping
       |checkout-quick-banner = Quick Single-Item Checkout — your shopping cart remains untouched.
       |checkout-step-contact = 1. Contact & Billing Details
+      |checkout-login-title = Already have an account?
+      |checkout-login-hint = Sign in and we'll fill in your contact and address details.
+      |checkout-login-cta = Sign In
+      |checkout-logged-in-as = Signed in as { $name } — details filled from your account.
       |checkout-step-delivery = 2. Delivery Method
       |checkout-step-payment = 3. Payment Method
       |checkout-step-note = 4. Promo & Order Notes
@@ -662,6 +666,10 @@ object Translations:
       |checkout-back-catalog = Pokračovat v nákupu
       |checkout-quick-banner = Rychlá objednávka jedné položky — váš košík zůstane zachován.
       |checkout-step-contact = 1. Kontaktní a fakturační údaje
+      |checkout-login-title = Už u nás máte účet?
+      |checkout-login-hint = Přihlaste se a kontaktní údaje i adresu vyplníme za vás.
+      |checkout-login-cta = Přihlásit se
+      |checkout-logged-in-as = Přihlášen(a) jako { $name } — údaje jsme vyplnili z vašeho účtu.
       |checkout-step-delivery = 2. Způsob doručení
       |checkout-step-payment = 3. Způsob platby
       |checkout-step-note = 4. Slevový kód a poznámka

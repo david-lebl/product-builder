@@ -230,6 +230,48 @@ class StorefrontUiSpec extends Test[Any]:
         }
       }
 
+      "Guest checkout offers sign-in and fills contact & billing details from the account after login (EN & CS)" in {
+        withClient { client =>
+          for
+            appI18n   <- Translations.init(Language.En)
+            state     <- I18n.let(appI18n.handle)(StorefrontState.init(client, appI18n, initialRoute = AppRoute.Builder()))
+            draft     <- state.configurator.draft.get
+            _         <- I18n.let(appI18n.handle)(state.addDraftToCart(draft))
+            _         <- I18n.let(appI18n.handle)(state.startCartCheckout)
+            sessOpt   <- state.checkoutSession.get
+            sess      <- Abort.get(sessOpt.toRight("Expected initialized CheckoutSession"))
+            nameBefore <- sess.fullNameRef.get
+            emailBefore <- sess.emailRef.get
+            ui        <- I18n.let(appI18n.handle)(StorefrontApp.render(state))
+            guestHtml <- renderHtml(ui, appI18n)
+            _         <- appI18n.setLanguage(Language.Cs)
+            guestCsHtml <- renderHtml(ui, appI18n)
+            _         <- appI18n.setLanguage(Language.En)
+            auth      <- client.loginWithPassword(EmailAddress.unsafe("jan@printshoppro.cz"), NonEmptyString.unsafe("demo1234"))
+            _         <- I18n.let(appI18n.handle)(state.completeAuth(auth))
+            sameSess  <- state.checkoutSession.get
+            name      <- sess.fullNameRef.get
+            email     <- sess.emailRef.get
+            ico       <- sess.icoRef.get
+            street    <- sess.billStreetRef.get
+            city      <- sess.billCityRef.get
+            authedHtml <- renderHtml(ui, appI18n)
+          yield
+            assert(nameBefore.isEmpty && emailBefore.isEmpty)
+            assert(guestHtml.contains("Already have an account?"))
+            assert(guestCsHtml.contains("Už u nás máte účet?"))
+            assert(!guestCsHtml.contains("‹") && !guestCsHtml.contains("›"))
+            assert(sameSess.contains(sess))
+            assert(email == "jan@printshoppro.cz")
+            assert(name.nonEmpty)
+            assert(ico == "12345678")
+            assert(street.nonEmpty && city.nonEmpty)
+            assert(!authedHtml.contains("Already have an account?"))
+            assert(authedHtml.contains("details filled from your account"))
+            assert(!authedHtml.contains("‹") && !authedHtml.contains("›"))
+        }
+      }
+
       "Material combo box search matches name, surface, CS diacritics & gsm ranges and offers weight variants" in {
         withClient { client =>
           for
