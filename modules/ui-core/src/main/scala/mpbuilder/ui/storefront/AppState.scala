@@ -209,7 +209,9 @@ final class StorefrontState(
       _ <- r match
              case AppRoute.ProductDetail(catId) => refreshPresetQuotes(catId)
              case AppRoute.Account              => refreshOrders
-             case _                             => Kyo.unit
+             case AppRoute.Checkout(_) =>
+               checkoutSession.get.flatMap(_.map(_.applyAccountPrefill(this)).getOrElse(Kyo.unit))
+             case _ => Kyo.unit
       msg <- i18n.now("auth-welcome-toast", Dict("name" -> result.session.principal.displayName.value))
       _   <- showToast(msg)
     yield ()
@@ -229,7 +231,9 @@ final class StorefrontState(
       r <- route.get
       _ <- r match
              case AppRoute.ProductDetail(catId) => refreshPresetQuotes(catId)
-             case _                             => Kyo.unit
+             case AppRoute.Checkout(_) =>
+               checkoutSession.get.flatMap(_.map(_.refreshPreview(this)).getOrElse(Kyo.unit))
+             case _ => Kyo.unit
       msg <- i18n.now("auth-signed-out-toast")
       _   <- showToast(msg)
     yield ()
