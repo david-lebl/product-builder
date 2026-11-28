@@ -156,6 +156,19 @@ final class CheckoutSession(
              case _                    => Kyo.unit
     yield ()
 
+  /** Applies the typed promo code. Cart checkouts also persist it on the cart (or remove it when the field is
+    * cleared) so the cart drawer stays in sync; quick checkouts only use it as a per-order override.
+    */
+  def applyPromo(state: StorefrontState): Unit < Async =
+    source match
+      case CheckoutSource.FromCart(_) =>
+        for
+          code <- promoOverride.get.map(_.trim)
+          _    <- if code.isEmpty then state.removeCartPromo else state.applyCartPromo(code)
+          _    <- refreshPreview(state)
+        yield ()
+      case _ => refreshPreview(state)
+
   def submitOrder(state: StorefrontState): Unit < Async =
     for
       _    <- errorRef.set(None)
@@ -262,7 +275,10 @@ object CheckoutSession:
       optionsRef      <- Signal.initRef[Option[CheckoutOptionsView]](initOpts)
       selectedDeliv   <- Signal.initRef[Option[DeliveryOptionQuote]](initDelivOpt)
       selectedPay     <- Signal.initRef[PaymentMethod](initPayOpt)
-      promoOverride   <- Signal.initRef("")
+      cartPromo       <- source match
+                           case CheckoutSource.FromCart(_) => state.cart.get.map(_.flatMap(_.appliedPromoCode).getOrElse(""))
+                           case _                          => Kyo.lift("")
+      promoOverride   <- Signal.initRef(cartPromo)
       noteRef         <- Signal.initRef("")
       previewRef      <- Signal.initRef[Option[CheckoutPreview]](None)
       errorRef        <- Signal.initRef[Option[String]](None)
@@ -452,17 +468,15 @@ object CheckoutView:
                 // Step 4: Promo Override & Order Note
                 div.cssClass("mp-card")(
                   h2(state.i18n.t("checkout-step-note")).style(sectionTitle.margin(0.px)),
-                  if isQuick then
-                    div.style(Style.row.gap(8.px).align(Alignment.end))(
-                      div.cssClass("mp-field")(
-                        label.style(labelStyle)(state.i18n.t("cart-promo-label")),
-                        input.cssClass("mp-input").value(session.promoOverride).placeholder("SAVE10, FREESHIP..."),
-                      ),
-                      button
-                        .cssClass("mp-btn mp-btn-secondary")
-                        .onClick(session.refreshPreview(state))(state.i18n.t("cart-promo-apply")),
-                    )
-                  else UI.empty,
+                  div.style(Style.row.gap(8.px).align(Alignment.end))(
+                    div.cssClass("mp-field")(
+                      label.style(labelStyle)(state.i18n.t("cart-promo-label")),
+                      input.cssClass("mp-input").value(session.promoOverride).placeholder("SAVE10, FREESHIP..."),
+                    ),
+                    button
+                      .cssClass("mp-btn mp-btn-secondary")
+                      .onClick(session.applyPromo(state))(state.i18n.t("cart-promo-apply")),
+                  ),
                   div.cssClass("mp-field")(
                     textarea.cssClass("mp-input").value(session.noteRef).placeholder("Delivery instructions or PO reference...").style(Style.minHeight(76.px)),
                   ),
