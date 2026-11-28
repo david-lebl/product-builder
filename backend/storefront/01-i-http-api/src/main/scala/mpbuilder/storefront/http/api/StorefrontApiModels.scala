@@ -41,6 +41,13 @@ final case class PricePresetRequest(
     lang: Language = Language.En,
 )
 
+final case class PriceMatrixRequest(
+    cmd: ConfigureProductCmd,
+    quantities: List[Quantity],
+    currency: Currency,
+    promoCode: Option[String] = None,
+)
+
 final case class PasswordLoginRequest(email: EmailAddress, password: NonEmptyString)
 final case class OtpRequest(identifier: LoginIdentifier)
 final case class OtpVerifyRequest(challengeId: OtpChallengeId, code: OtpCode)

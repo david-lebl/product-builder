@@ -81,6 +81,18 @@ final class HttpStorefrontFacade(transport: HttpTransport, baseUrl: String) exte
       json(PricePresetRequest(categoryId, presetId, currency, speed, specsOverride, lang)),
     )
 
+  override def quotePriceMatrix(
+      cmd: ConfigureProductCmd,
+      quantities: List[Quantity],
+      currency: Currency,
+      sessionToken: Option[SessionToken],
+      promoCode: Option[String],
+  ): PriceMatrix < (Async & Abort[StorefrontError]) =
+    http.call[PriceMatrix](
+      "POST", path("builder", "price-matrix"), sessionToken,
+      json(PriceMatrixRequest(cmd, quantities, currency, promoCode)),
+    )
+
   // ── Authentication ─────────────────────────────────────────────────────────
 
   override def loginWithPassword(email: EmailAddress, rawPassword: NonEmptyString): AuthResult < (Async & Abort[StorefrontError]) =

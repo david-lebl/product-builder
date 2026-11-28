@@ -98,6 +98,34 @@ final class CurrencyConversionService(provider: ExchangeRateProvider):
         )
       }
 
+  def convertPriceMatrix(
+      matrix: PriceMatrix,
+      targetCurrency: Currency,
+  ): PriceMatrix < (Async & Abort[StorefrontError]) =
+    if matrix.currency == targetCurrency then matrix
+    else
+      provider.rate(matrix.currency, targetCurrency).map { rate =>
+        def conv(m: Money): Money = (m * rate).rounded
+        matrix.copy(
+          currency = targetCurrency,
+          rows = matrix.rows.map { row =>
+            val q = BigDecimal(row.quantity.value.max(1))
+            row.copy(
+              cells = row.cells.map { c =>
+                val net   = conv(c.netTotal)
+                val gross = conv(c.grossTotal)
+                c.copy(
+                  netTotal = net,
+                  grossTotal = gross,
+                  unitNet = Money(net.value / q).rounded,
+                  unitGross = Money(gross.value / q).rounded,
+                )
+              }
+            )
+          },
+        )
+      }
+
 object CurrencyConversionService:
   def make(provider: ExchangeRateProvider = ExchangeRateProvider.hardcoded()): CurrencyConversionService =
     new CurrencyConversionService(provider)

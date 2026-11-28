@@ -97,6 +97,57 @@ final case class ProductBuilderQuoteResult(
     localizedBreakdown: List[LocalizedChargeLine],
 )
 
+// ── Quantity & Speed Price Matrix (Tier Table) ───────────────────────────────
+
+/** One (quantity, speed) cell inside the Quantity & Speed Price Matrix. */
+final case class PriceMatrixCell(
+    speed: ManufacturingSpeed,
+    available: Boolean,
+    unavailableReason: Option[String],
+    netTotal: Money,
+    grossTotal: Money,
+    unitNet: Money,
+    unitGross: Money,
+)
+
+/** One quantity tier row in the Price Matrix, with cells for each manufacturing speed
+  * and the volume savings percentage relative to the smallest tier's per-piece net price.
+  */
+final case class PriceMatrixRow(
+    quantity: Quantity,
+    cells: List[PriceMatrixCell],
+    volumeMultiplier: BigDecimal,
+    savingsVsSmallestPercent: Option[BigDecimal],
+)
+
+/** Quantity × ManufacturingSpeed price comparison table for a product configuration. */
+final case class PriceMatrix(
+    currency: Currency,
+    speeds: List[ManufacturingSpeed],
+    rows: List[PriceMatrixRow],
+)
+
+object PriceMatrixTiers:
+
+  /** Canonical print-run ladder spanning single-piece large-format runs through high-volume offset runs. */
+  val Ladder: List[Int] = List(1, 2, 5, 10, 25, 50, 100, 250, 500, 1000, 2500, 5000, 10000)
+
+  /** Picks 5 stable quantity tiers suited to a product's typical run size (`anchorQty`).
+    *
+    *   - Sheet print (100–1,000 pcs): `100 / 250 / 500 / 1,000 / 2,500`
+    *   - Single-unit / large-format (1–5 pcs): `1 / 2 / 5 / 10 / 25`
+    *   - Other anchors: 5 ladder values nearest the anchor in log space, sorted ascending
+    */
+  def forAnchor(anchorQty: Int): List[Quantity] =
+    val clamped = anchorQty.max(1)
+    val ints: List[Int] =
+      if clamped >= 100 && clamped <= 1000 then List(100, 250, 500, 1000, 2500)
+      else if clamped <= 5 then List(1, 2, 5, 10, 25)
+      else
+        def dist(q: Int): Double = math.abs(math.log(q.toDouble) - math.log(clamped.toDouble))
+        (clamped :: Ladder).distinct.sortBy(dist).take(5).sorted
+    ints.map(Quantity.unsafe)
+
 // ── Auth Models ──────────────────────────────────────────────────────────────
 
 final case class AuthResult(

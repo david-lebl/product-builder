@@ -721,4 +721,57 @@ class StorefrontUiSpec extends Test[Any]:
           }
         }
       }
+
+      "Configurator and ProductDetailView render Quantity & Speed Price Matrix in EN/CS and apply selected tier & speed" in {
+        withClient { client =>
+          for
+            appI18n <- Translations.init(Language.En)
+            state   <- I18n.let(appI18n.handle)(StorefrontState.init(client, appI18n, initialRoute = AppRoute.Builder()))
+            ui      <- I18n.let(appI18n.handle)(StorefrontApp.render(state))
+            cfgEn   <- renderHtml(ui, appI18n)
+            mat     <- state.configurator.priceMatrix.get
+            _       <- I18n.let(appI18n.handle)(state.configurator.selectQuantityAndSpeed(Quantity.unsafe(1000), ManufacturingSpeed.Economy))
+            draft   <- state.configurator.draft.get
+            quote   <- state.configurator.quoteStatus.get
+            _       <- I18n.let(appI18n.handle)(state.setLanguage(Language.Cs))
+            cfgCs   <- renderHtml(ui, appI18n)
+            // Switch to ProductDetailView and test preset price matrix selection flowing into cart
+            listings <- state.listingsRef.get
+            catalog  <- state.catalogRef.get
+            catId     = listings.head.categoryId
+            preset    = catalog.categories(catId).presets.head
+            _        <- I18n.let(appI18n.handle)(state.setLanguage(Language.En))
+            _        <- I18n.let(appI18n.handle)(state.openProductDetail(catId))
+            pdEn     <- renderHtml(ui, appI18n)
+            _        <- I18n.let(appI18n.handle)(state.setPresetQuantityAndSpeed(catId, preset.id, Quantity.unsafe(1000), ManufacturingSpeed.Economy))
+            _        <- I18n.let(appI18n.handle)(state.addPresetToCart(catId, preset.id))
+            cart     <- state.cart.get
+            _        <- I18n.let(appI18n.handle)(state.setLanguage(Language.Cs))
+            pdCs     <- renderHtml(ui, appI18n)
+          yield {
+            assert(cfgEn.contains("mp-price-matrix"))
+            assert(cfgEn.contains("Quantity &amp; Speed Price Matrix"))
+            assert(cfgEn.contains("mp-matrix-cell-active"))
+            assert(!cfgEn.contains("‹") && !cfgEn.contains("›"))
+            assert(cfgCs.contains("Cenová matice nákladu a rychlosti"))
+            assert(!cfgCs.contains("‹") && !cfgCs.contains("›"))
+            assert(mat match
+              case mpbuilder.ui.components.PriceMatrixStatus.Ready(m) => m.rows.nonEmpty && m.speeds.size == 3
+              case _                                                  => false
+            )
+            assert(draft.specs.quantity.value == 1000)
+            assert(draft.speed == ManufacturingSpeed.Economy)
+            assert(quote match
+              case QuoteStatus.Ready(r) => r.pricing.effectiveQuote.quantity.value == 1000
+              case _                    => false
+            )
+            assert(pdEn.contains("mp-price-matrix"))
+            assert(pdEn.contains("Quantity &amp; Speed Price Matrix"))
+            assert(!pdEn.contains("‹") && !pdEn.contains("›"))
+            assert(pdCs.contains("Cenová matice nákladu a rychlosti"))
+            assert(!pdCs.contains("‹") && !pdCs.contains("›"))
+            assert(cart.exists(_.lines.exists(l => l.runQuantity.value == 1000 && l.speed == ManufacturingSpeed.Economy)))
+          }
+        }
+      }
   }

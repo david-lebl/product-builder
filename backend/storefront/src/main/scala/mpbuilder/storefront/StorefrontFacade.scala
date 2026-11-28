@@ -64,6 +64,14 @@ trait StorefrontFacade:
       lang: Language = Language.En,
   ): ProductBuilderQuoteResult < (Async & Abort[StorefrontError])
 
+  def quotePriceMatrix(
+      cmd: ConfigureProductCmd,
+      quantities: List[Quantity],
+      currency: Currency,
+      sessionToken: Option[SessionToken] = None,
+      promoCode: Option[String] = None,
+  ): PriceMatrix < (Async & Abort[StorefrontError])
+
   // ── Authentication & Session ───────────────────────────────────────────────
 
   def loginWithPassword(email: EmailAddress, rawPassword: NonEmptyString): AuthResult < (Async & Abort[StorefrontError])
@@ -315,6 +323,92 @@ final class StorefrontFacadeLive(
                 )
       res    <- configureAndQuote(cmd, currency, speed, sessionToken, promoCode = None, lang = lang)
     yield res
+
+  override def quotePriceMatrix(
+      cmd: ConfigureProductCmd,
+      quantities: List[Quantity],
+      currency: Currency,
+      sessionToken: Option[SessionToken],
+      promoCode: Option[String],
+  ): PriceMatrix < (Async & Abort[StorefrontError]) =
+    val pricingCurrency = if currency == Currency.EUR then Currency.CZK else currency
+    val orderedSpeeds   = List(ManufacturingSpeed.Economy, ManufacturingSpeed.Standard, ManufacturingSpeed.Express)
+    val sortedQtys =
+      val raw = if quantities.nonEmpty then quantities else PriceMatrixTiers.forAnchor(cmd.specs.quantity.value)
+      raw.distinctBy(_.value).sortBy(_.value).take(12)
+
+    for
+      customerOpt <- resolveOptionalCustomer(sessionToken)
+      rawRows     <- Effects.traverse(sortedQtys) { qty =>
+                       val qtyCmd = cmd.copy(specs = cmd.specs.copy(quantity = qty))
+                       catalogService.configure(qtyCmd).either.flatMap {
+                         case Left(_) => Kyo.lift(Option.empty[(PriceMatrixRow, BigDecimal)])
+                         case Right(cfgRes) =>
+                           val prod         = cfgRes.product
+                           val materialIds  = prod.components.toList.map(_.material.id).toSet
+                           val finishingOps = prod.components.toList.flatMap(_.finishes).flatMap(sf => StorefrontTranslators.toFinishingOperation(sf.finishType)).toSet
+                           for
+                             speedResults <- Effects.traverse(orderedSpeeds) { speed =>
+                                               val subject = StorefrontTranslators.toPricingSubject(prod, speed)
+                                               for
+                                                 availRes <- manufacturingService
+                                                               .checkSpeedAvailability(
+                                                                 categoryId = prod.categoryId,
+                                                                 speed = speed,
+                                                                 quantity = prod.specs.quantity,
+                                                                 componentCount = prod.components.size,
+                                                                 materialIds = materialIds,
+                                                                 finishingOps = finishingOps,
+                                                               )
+                                                               .either
+                                                 qId      <- nextQuoteId
+                                                 quote    <- pricingService
+                                                               .quote(
+                                                                 PriceQuoteCmd(
+                                                                   quoteId = qId,
+                                                                   subject = subject,
+                                                                   currency = pricingCurrency,
+                                                                   customerId = customerOpt.map(_.id),
+                                                                   customerTier = customerOpt.map(_.tier),
+                                                                   customerSegment = customerOpt.map(_.segment),
+                                                                   promoCode = promoCode,
+                                                                 )
+                                                               )
+                                                               .mapAbort(StorefrontError.PricingFailure.apply)
+                                                 (avail, reason) = availRes match
+                                                                     case Right(_)  => (true, None)
+                                                                     case Left(err) => (false, Some(err.reason))
+                                                 qDiv      = BigDecimal(qty.value.max(1))
+                                                 unitNet   = Money(quote.netTotal.value / qDiv).rounded
+                                                 unitGross = Money(quote.grossTotal.value / qDiv).rounded
+                                               yield (
+                                                 PriceMatrixCell(speed, avail, reason, quote.netTotal, quote.grossTotal, unitNet, unitGross),
+                                                 quote.volumeMultiplier,
+                                                 quote.netTotal.value / qDiv,
+                                               )
+                                             }
+                           yield
+                             val cells        = speedResults.map(_._1)
+                             val stdEntry     = speedResults.find(_._1.speed == ManufacturingSpeed.Standard).orElse(speedResults.headOption)
+                             val volMult      = stdEntry.map(_._2).getOrElse(BigDecimal(1))
+                             val exactUnitNet = stdEntry.map(_._3).getOrElse(BigDecimal(0))
+                             Some((PriceMatrixRow(qty, cells, volMult, savingsVsSmallestPercent = None), exactUnitNet))
+                       }
+                     }
+      validRows    = rawRows.flatten
+      baselineUnit = validRows.headOption.map(_._2).getOrElse(BigDecimal(0))
+      rowsWithSav  = validRows.zipWithIndex.map { case ((row, exactUnit), idx) =>
+                       val savOpt =
+                         if idx > 0 && baselineUnit > BigDecimal(0) && exactUnit < baselineUnit then
+                           val pct = ((baselineUnit - exactUnit) / baselineUnit * BigDecimal(100))
+                             .setScale(0, BigDecimal.RoundingMode.HALF_UP)
+                           Option.when(pct > BigDecimal(0))(pct)
+                         else None
+                       row.copy(savingsVsSmallestPercent = savOpt)
+                     }
+      rawMatrix    = PriceMatrix(pricingCurrency, orderedSpeeds, rowsWithSav)
+      converted   <- currencyConversion.convertPriceMatrix(rawMatrix, currency)
+    yield converted
 
   // ── Auth ───────────────────────────────────────────────────────────────────
 

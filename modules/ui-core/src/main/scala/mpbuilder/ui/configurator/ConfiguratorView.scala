@@ -7,7 +7,7 @@ import mpbuilder.artwork.*
 import mpbuilder.catalog.*
 import mpbuilder.shared.*
 import mpbuilder.storefront.*
-import mpbuilder.ui.components.{ArtworkComponents, BrowserPickedFile, ComboBox, CommonComponents, Controls}
+import mpbuilder.ui.components.{ArtworkComponents, BrowserPickedFile, ComboBox, CommonComponents, Controls, PriceMatrixView}
 import mpbuilder.ui.components.Icons
 import mpbuilder.ui.components.CommonComponents.*
 import mpbuilder.ui.theme.AppTheme.*
@@ -88,6 +88,7 @@ object ConfiguratorView:
                   renderComponentsCard(ctrl, catalog, cat, d, finMap, limMap, lang),
                   renderSpecsCard(ctrl, cat, d, lang),
                   renderSpeedCard(ctrl, d, host, lang),
+                  renderPriceMatrixCard(ctrl, d, lang),
                   host match
                     case sf: ConfiguratorHost.Storefront =>
                       renderArtworkCard(ctrl, cat, d, sf, lang)
@@ -910,6 +911,29 @@ object ConfiguratorView:
         )
       },
     )
+
+  // ── Quantity & Speed Price Matrix (Tier Table) ─────────────────────────────
+
+  private def renderPriceMatrixCard(
+      ctrl: ConfiguratorController,
+      d: DraftConfig,
+      lang: Language,
+  ): UI =
+    ctrl.priceMatrix.combineLatest(ctrl.quoteStatus).render { case (matStatus, qStatus) =>
+      val speedOpts = qStatus match
+        case QuoteStatus.Ready(res) => res.speedOptions
+        case _                      => Nil
+      PriceMatrixView.render(
+        status = matStatus,
+        selectedQuantity = d.specs.quantity,
+        selectedSpeed = d.speed,
+        i18n = ctrl.i18n,
+        lang = lang,
+        subtitle = ctrl.i18n.t("matrix-subtitle"),
+        onSelect = (qty, speed) => ctrl.selectQuantityAndSpeed(qty, speed),
+        speedOptions = speedOpts,
+      )
+    }
 
   // ── Step 5: Print Artwork Upload (Storefront Mode) ─────────────────────────
 

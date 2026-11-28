@@ -56,6 +56,14 @@ trait StorefrontClient:
       lang: Language = Language.En,
   ): ProductBuilderQuoteResult < (Abort[StorefrontError] & Async)
 
+  def quotePriceMatrix(
+      cmd: ConfigureProductCmd,
+      quantities: List[Quantity],
+      currency: Currency,
+      sessionToken: Option[SessionToken] = None,
+      promoCode: Option[String] = None,
+  ): PriceMatrix < (Abort[StorefrontError] & Async)
+
   // ── Authentication & Session ───────────────────────────────────────────────
 
   def loginWithPassword(
@@ -276,6 +284,15 @@ object StorefrontClient:
         lang: Language,
     ): ProductBuilderQuoteResult < (Abort[StorefrontError] & Async) =
       facade.pricePreset(categoryId, presetId, currency, speed, specsOverride, sessionToken, lang)
+
+    override def quotePriceMatrix(
+        cmd: ConfigureProductCmd,
+        quantities: List[Quantity],
+        currency: Currency,
+        sessionToken: Option[SessionToken],
+        promoCode: Option[String],
+    ): PriceMatrix < (Abort[StorefrontError] & Async) =
+      facade.quotePriceMatrix(cmd, quantities, currency, sessionToken, promoCode)
 
     override def loginWithPassword(
         email: EmailAddress,

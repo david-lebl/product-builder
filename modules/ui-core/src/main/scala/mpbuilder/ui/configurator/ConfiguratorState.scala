@@ -6,7 +6,7 @@ import mpbuilder.catalog.*
 import mpbuilder.identity.SessionToken
 import mpbuilder.shared.*
 import mpbuilder.storefront.*
-import mpbuilder.ui.components.{ArtworkComponents, BrowserPickedFile}
+import mpbuilder.ui.components.{ArtworkComponents, BrowserPickedFile, PriceMatrixStatus}
 import mpbuilder.ui.i18n.AppI18n
 import mpbuilder.ui.port.StorefrontClient
 
@@ -73,6 +73,8 @@ final class ConfiguratorController(
     val sessionToken: Signal[Option[SessionToken]],
     val draft: SignalRef[DraftConfig],
     val quoteStatus: SignalRef[QuoteStatus],
+    val priceMatrix: SignalRef[PriceMatrixStatus],
+    private val matrixKeyRef: SignalRef[Option[ConfiguratorController.MatrixCacheKey]],
     val compatibleFinishesMap: SignalRef[Map[ComponentKey, List[Finish]]],
     val finishLimitsMap: SignalRef[Map[ComponentKey, Map[FinishType, BigDecimal]]],
     private val seqRef: SignalRef[Long],
@@ -254,6 +256,12 @@ final class ConfiguratorController(
       _ <- recompute
     yield ()
 
+  def selectQuantityAndSpeed(qty: Quantity, speed: ManufacturingSpeed): Unit < Async =
+    for
+      _ <- draft.updateAndGet(d => d.copy(activePresetId = None, specs = d.specs.copy(quantity = qty), speed = speed))
+      _ <- recompute
+    yield ()
+
   def uploadDraftArtwork(
       key: ComponentKey,
       file: BrowserPickedFile,
@@ -416,6 +424,58 @@ final class ConfiguratorController(
                        )
                      )
                    )
+      _     <- refreshPriceMatrix(pruned, cmd, cur, tok)
+    yield ()
+
+  private def refreshPriceMatrix(
+      d: DraftConfig,
+      cmd: ConfigureProductCmd,
+      cur: Currency,
+      tok: Option[SessionToken],
+  ): Unit < Async =
+    val key = ConfiguratorController.MatrixCacheKey(
+      categoryId = d.categoryId,
+      components = d.components,
+      specsWithoutQty = d.specs.copy(quantity = Quantity.one),
+      currency = cur,
+      sessionToken = tok,
+    )
+    for
+      prevKey <- matrixKeyRef.get
+      curMat  <- priceMatrix.get
+      needsRefresh = !prevKey.contains(key) || (curMat match { case PriceMatrixStatus.Ready(_) => false; case _ => true })
+      _ <- if !needsRefresh then Kyo.unit
+           else
+             for
+               catalog <- catalogRef.get
+               anchorQty = catalog.categories
+                             .get(d.categoryId)
+                             .flatMap(_.presets.find(ConfiguratorController.isPresetAvailable(_, catalog)))
+                             .map(_.defaultSpecs.quantity.value)
+                             .getOrElse(100)
+               tiers   = PriceMatrixTiers.forAnchor(anchorQty)
+               _      <- matrixKeyRef.set(Some(key))
+               _      <- priceMatrix.set(PriceMatrixStatus.Loading)
+               matRes <- Abort.run[StorefrontError](client.quotePriceMatrix(cmd, tiers, cur, tok, promoCode = None))
+               latest <- matrixKeyRef.get
+               _      <-
+                 if latest.contains(key) then
+                   matRes match
+                     case Result.Success(m)   => priceMatrix.set(PriceMatrixStatus.Ready(m))
+                     case Result.Failure(err) => priceMatrix.set(PriceMatrixStatus.Failed(err))
+                     case Result.Panic(ex) =>
+                       priceMatrix.set(
+                         PriceMatrixStatus.Failed(
+                           StorefrontError.CatalogFailure(
+                             CatalogError.RuleViolation(
+                               RuleId.unsafe("price-matrix"),
+                               LocalizedString(Option(ex.getMessage).getOrElse("Unexpected error")),
+                             )
+                           )
+                         )
+                       )
+                 else Kyo.unit
+             yield ()
     yield ()
 
   private def refreshComponentCapabilities(d: DraftConfig): Unit < Async =
@@ -450,6 +510,15 @@ final class ConfiguratorController(
     yield ()
 
 object ConfiguratorController:
+
+  /** Cache key for the price matrix (everything except selected quantity & speed). */
+  final case class MatrixCacheKey(
+      categoryId: CategoryId,
+      components: List[DraftComponent],
+      specsWithoutQty: ProductSpecs,
+      currency: Currency,
+      sessionToken: Option[SessionToken],
+  )
 
   /** How long the add-to-cart button shows its "Added ✓" state. */
   val AddedFeedback: Duration = 1800.millis
@@ -497,6 +566,8 @@ object ConfiguratorController:
       dispCurRef <- Signal.initRef[Currency](if initCur == Currency.EUR then Currency.EUR else Currency.CZK)
       draftRef   <- Signal.initRef(initDraft)
       quoteRef   <- Signal.initRef[QuoteStatus](QuoteStatus.Loading)
+      matrixRef  <- Signal.initRef[PriceMatrixStatus](PriceMatrixStatus.Loading)
+      matKeyRef  <- Signal.initRef[Option[MatrixCacheKey]](None)
       finMapRef  <- Signal.initRef(Map.empty[ComponentKey, List[Finish]])
       limMapRef  <- Signal.initRef(Map.empty[ComponentKey, Map[FinishType, BigDecimal]])
       seqRef     <- Signal.initRef(0L)
@@ -513,6 +584,8 @@ object ConfiguratorController:
                       sessionToken,
                       draftRef,
                       quoteRef,
+                      matrixRef,
+                      matKeyRef,
                       finMapRef,
                       limMapRef,
                       seqRef,
