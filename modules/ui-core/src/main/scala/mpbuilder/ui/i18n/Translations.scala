@@ -245,6 +245,7 @@ object Translations:
       |cfg-speed-economy-desc = Extended production window, best value
       |cfg-speed-unavailable = Unavailable
       |matrix-title = Quantity & Speed Price Matrix
+      |matrix-open-btn = Compare volume prices
       |matrix-subtitle = Compare unit prices across run sizes and turnaround speeds — click any cell to apply.
       |matrix-preset-subtitle = Compare volume breaks for “{ $preset }” — click any cell to pick quantity and speed.
       |matrix-col-qty = Quantity
@@ -642,6 +643,7 @@ object Translations:
       |cfg-speed-economy-desc = Delší výrobní okno, nejnižší cena
       |cfg-speed-unavailable = Nedostupné
       |matrix-title = Cenová matice nákladu a rychlosti
+      |matrix-open-btn = Porovnat množstevní ceny
       |matrix-subtitle = Porovnejte cenu za kus podle nákladu a rychlosti výroby — kliknutím na buňku vyberete kombinaci.
       |matrix-preset-subtitle = Porovnejte množstevní slevy pro „{ $preset }“ — kliknutím na buňku zvolíte náklad a rychlost.
       |matrix-col-qty = Náklad

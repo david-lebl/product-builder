@@ -74,6 +74,8 @@ final class ConfiguratorController(
     val draft: SignalRef[DraftConfig],
     val quoteStatus: SignalRef[QuoteStatus],
     val priceMatrix: SignalRef[PriceMatrixStatus],
+    /** Whether the Quantity & Speed Price Matrix popup modal is open. */
+    val priceMatrixOpen: SignalRef[Boolean],
     private val matrixKeyRef: SignalRef[Option[ConfiguratorController.MatrixCacheKey]],
     val compatibleFinishesMap: SignalRef[Map[ComponentKey, List[Finish]]],
     val finishLimitsMap: SignalRef[Map[ComponentKey, Map[FinishType, BigDecimal]]],
@@ -256,8 +258,22 @@ final class ConfiguratorController(
       _ <- recompute
     yield ()
 
+  def openPriceMatrix: Unit < Async =
+    for
+      _   <- priceMatrixOpen.set(true)
+      d   <- draft.get
+      cur <- displayCurrency.get
+      tok <- sessionToken.current
+      cmd <- buildConfigureCmd(d)
+      _   <- refreshPriceMatrix(d, cmd, cur, tok)
+    yield ()
+
+  def closePriceMatrix: Unit < Sync =
+    priceMatrixOpen.set(false)
+
   def selectQuantityAndSpeed(qty: Quantity, speed: ManufacturingSpeed): Unit < Async =
     for
+      _ <- priceMatrixOpen.set(false)
       _ <- draft.updateAndGet(d => d.copy(activePresetId = None, specs = d.specs.copy(quantity = qty), speed = speed))
       _ <- recompute
     yield ()
@@ -424,7 +440,8 @@ final class ConfiguratorController(
                        )
                      )
                    )
-      _     <- refreshPriceMatrix(pruned, cmd, cur, tok)
+      matOpen <- priceMatrixOpen.get
+      _       <- if matOpen then refreshPriceMatrix(pruned, cmd, cur, tok) else Kyo.unit
     yield ()
 
   private def refreshPriceMatrix(
@@ -567,6 +584,7 @@ object ConfiguratorController:
       draftRef   <- Signal.initRef(initDraft)
       quoteRef   <- Signal.initRef[QuoteStatus](QuoteStatus.Loading)
       matrixRef  <- Signal.initRef[PriceMatrixStatus](PriceMatrixStatus.Loading)
+      matOpenRef <- Signal.initRef(false)
       matKeyRef  <- Signal.initRef[Option[MatrixCacheKey]](None)
       finMapRef  <- Signal.initRef(Map.empty[ComponentKey, List[Finish]])
       limMapRef  <- Signal.initRef(Map.empty[ComponentKey, Map[FinishType, BigDecimal]])
@@ -585,6 +603,7 @@ object ConfiguratorController:
                       draftRef,
                       quoteRef,
                       matrixRef,
+                      matOpenRef,
                       matKeyRef,
                       finMapRef,
                       limMapRef,

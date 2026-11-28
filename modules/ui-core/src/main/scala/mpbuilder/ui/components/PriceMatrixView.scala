@@ -60,6 +60,54 @@ object PriceMatrixView:
               renderTable(matrix, selectedQuantity, selectedSpeed, i18n, lang, onSelect, speedOptions),
         )
 
+  /** Renders the price matrix inside a dismissible modal dialog (used by the Configurator). */
+  def renderModal(
+      status: PriceMatrixStatus,
+      selectedQuantity: Quantity,
+      selectedSpeed: ManufacturingSpeed,
+      i18n: AppI18n,
+      lang: Language,
+      subtitle: Signal[String],
+      onSelect: (Quantity, ManufacturingSpeed) => Unit < Async,
+      onClose: => Unit < Async,
+      speedOptions: List[SpeedTierOption] = Nil,
+  ): UI =
+    div.cssClass("mp-modal-backdrop").onClickSelf(onClose)(
+      div
+        .cssClass("mp-modal mp-matrix-modal mp-price-matrix")
+        .role("dialog")
+        .aria("modal", "true")(
+          div.style(rowBetween.align(Alignment.start).gap(12.px))(
+            div.style(stackXs)(
+              div.style(rowSm)(
+                span(Icons(Icon.Percent, 17)).style(Style.color(brand).row.align(Alignment.center)),
+                h2(i18n.t("matrix-title")).style(sectionTitle.margin(0.px)),
+              ),
+              p(subtitle).style(smallText.margin(0.px)),
+            ),
+            button
+              .cssClass("mp-icon-btn mp-icon-btn-sm")
+              .aria("label", if lang == Language.Cs then "Zavřít" else "Close")
+              .onClick(onClose)(Icons(Icon.Close, 16)),
+          ),
+          div.style(rowBetween.flexWrap(FlexWrap.wrap))(
+            span(i18n.t("matrix-unit-note")).style(smallText),
+          ),
+          status match
+            case PriceMatrixStatus.Loading =>
+              div.style(rowSm.padding(20.px, 0.px).color(inkMuted).justify(Justification.center))(
+                Icons(Icon.Clock, 16),
+                span(i18n.t("matrix-loading")).style(mutedText),
+              )
+            case PriceMatrixStatus.Failed(err) =>
+              alertBanner(BadgeTone.Rose, span(i18n.t("cfg-errors-title")), List(err.message))
+            case PriceMatrixStatus.Ready(matrix) if matrix.rows.isEmpty =>
+              span(i18n.t("matrix-unavailable")).style(mutedText)
+            case PriceMatrixStatus.Ready(matrix) =>
+              renderTable(matrix, selectedQuantity, selectedSpeed, i18n, lang, onSelect, speedOptions),
+        )
+    )
+
   private def renderTable(
       matrix: PriceMatrix,
       selectedQuantity: Quantity,

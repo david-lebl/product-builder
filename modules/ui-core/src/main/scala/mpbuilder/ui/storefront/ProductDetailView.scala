@@ -71,7 +71,6 @@ object ProductDetailView:
               renderGallery(ctx),
               renderBuyBox(ctx, availablePresets, activePreset, selectedPreset),
             ),
-            activePreset.map(renderPriceMatrixSection(ctx, _)).getOrElse(UI.empty),
             renderTrustStrip(ctx),
             div.cssClass("mp-pd-details")(
               div.cssClass("mp-pd-details-main")(
@@ -83,6 +82,7 @@ object ProductDetailView:
                 renderHowItWorks(ctx),
               ),
             ),
+            activePreset.map(renderPriceMatrixSection(ctx, _)).getOrElse(UI.empty),
             renderStudioPromo(ctx, activePreset),
           )
     }

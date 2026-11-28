@@ -2003,6 +2003,10 @@ object AppTheme:
       .rule(Selector.cls("mp-matrix-cell-btn").pseudo("focus-visible"), focusVisibleRing)
       // Quantity & Speed Price Matrix (Tier Table)
       .rule(
+        "mp-matrix-modal",
+        Style.width(680.px),
+      )
+      .rule(
         "mp-matrix-scroll",
         Style.width(100.pct).overflowX(Overflow.auto),
       )

@@ -88,7 +88,6 @@ object ConfiguratorView:
                   renderComponentsCard(ctrl, catalog, cat, d, finMap, limMap, lang),
                   renderSpecsCard(ctrl, cat, d, lang),
                   renderSpeedCard(ctrl, d, host, lang),
-                  renderPriceMatrixCard(ctrl, d, lang),
                   host match
                     case sf: ConfiguratorHost.Storefront =>
                       renderArtworkCard(ctrl, cat, d, sf, lang)
@@ -106,6 +105,8 @@ object ConfiguratorView:
       ),
       // Mobile / tablet: sticky bottom price dock (hidden on desktop)
       renderDock(ctrl, host),
+      // On-demand Quantity & Speed Price Matrix popup modal
+      renderPriceMatrixModal(ctrl),
     )
 
   // ── Step 1: Product Category & Quick-Start Presets ─────────────────────────
@@ -566,7 +567,15 @@ object ConfiguratorView:
 
       // Quantity pills + custom input + Artwork Versions
       div.style(Style.column.gap(8.px))(
-        label.style(labelStyle)(ctrl.i18n.t("cfg-quantity-label")),
+        div.style(rowBetween.flexWrap(FlexWrap.wrap))(
+          label.style(labelStyle)(ctrl.i18n.t("cfg-quantity-label")),
+          button
+            .cssClass("mp-btn mp-btn-ghost mp-btn-sm mp-matrix-trigger")
+            .onClick(ctrl.openPriceMatrix)(
+              Icons(Icons.Icon.Percent, 14),
+              span(ctrl.i18n.t("matrix-open-btn")),
+            ),
+        ),
         div.style(Style.row.flexWrap(FlexWrap.wrap).gap(6.px))(
           UI.fragment(
             standardQuantities.map { q =>
@@ -912,28 +921,32 @@ object ConfiguratorView:
       },
     )
 
-  // ── Quantity & Speed Price Matrix (Tier Table) ─────────────────────────────
+  // ── Quantity & Speed Price Matrix Popup Modal ──────────────────────────────
 
-  private def renderPriceMatrixCard(
-      ctrl: ConfiguratorController,
-      d: DraftConfig,
-      lang: Language,
-  ): UI =
-    ctrl.priceMatrix.combineLatest(ctrl.quoteStatus).render { case (matStatus, qStatus) =>
-      val speedOpts = qStatus match
-        case QuoteStatus.Ready(res) => res.speedOptions
-        case _                      => Nil
-      PriceMatrixView.render(
-        status = matStatus,
-        selectedQuantity = d.specs.quantity,
-        selectedSpeed = d.speed,
-        i18n = ctrl.i18n,
-        lang = lang,
-        subtitle = ctrl.i18n.t("matrix-subtitle"),
-        onSelect = (qty, speed) => ctrl.selectQuantityAndSpeed(qty, speed),
-        speedOptions = speedOpts,
-      )
-    }
+  private def renderPriceMatrixModal(ctrl: ConfiguratorController): UI =
+    ctrl.priceMatrixOpen
+      .combineLatest(ctrl.priceMatrix)
+      .combineLatest(ctrl.draft)
+      .combineLatest(ctrl.quoteStatus)
+      .combineLatest(ctrl.i18n.language)
+      .render { case ((((isOpen, matStatus), d), qStatus), lang) =>
+        if !isOpen then UI.empty
+        else
+          val speedOpts = qStatus match
+            case QuoteStatus.Ready(res) => res.speedOptions
+            case _                      => Nil
+          PriceMatrixView.renderModal(
+            status = matStatus,
+            selectedQuantity = d.specs.quantity,
+            selectedSpeed = d.speed,
+            i18n = ctrl.i18n,
+            lang = lang,
+            subtitle = ctrl.i18n.t("matrix-subtitle"),
+            onSelect = (qty, speed) => ctrl.selectQuantityAndSpeed(qty, speed),
+            onClose = ctrl.closePriceMatrix,
+            speedOptions = speedOpts,
+          )
+      }
 
   // ── Step 5: Print Artwork Upload (Storefront Mode) ─────────────────────────
 

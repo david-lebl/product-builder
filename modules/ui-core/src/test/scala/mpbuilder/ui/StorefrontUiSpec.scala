@@ -722,20 +722,25 @@ class StorefrontUiSpec extends Test[Any]:
         }
       }
 
-      "Configurator and ProductDetailView render Quantity & Speed Price Matrix in EN/CS and apply selected tier & speed" in {
+      "Configurator opens Quantity & Speed Price Matrix as popup modal and ProductDetailView places it below details" in {
         withClient { client =>
           for
-            appI18n <- Translations.init(Language.En)
-            state   <- I18n.let(appI18n.handle)(StorefrontState.init(client, appI18n, initialRoute = AppRoute.Builder()))
-            ui      <- I18n.let(appI18n.handle)(StorefrontApp.render(state))
-            cfgEn   <- renderHtml(ui, appI18n)
-            mat     <- state.configurator.priceMatrix.get
-            _       <- I18n.let(appI18n.handle)(state.configurator.selectQuantityAndSpeed(Quantity.unsafe(1000), ManufacturingSpeed.Economy))
-            draft   <- state.configurator.draft.get
-            quote   <- state.configurator.quoteStatus.get
-            _       <- I18n.let(appI18n.handle)(state.setLanguage(Language.Cs))
-            cfgCs   <- renderHtml(ui, appI18n)
-            // Switch to ProductDetailView and test preset price matrix selection flowing into cart
+            appI18n  <- Translations.init(Language.En)
+            state    <- I18n.let(appI18n.handle)(StorefrontState.init(client, appI18n, initialRoute = AppRoute.Builder()))
+            ui       <- I18n.let(appI18n.handle)(StorefrontApp.render(state))
+            // Hidden by default in configurator; trigger button is visible
+            closedEn <- renderHtml(ui, appI18n)
+            _        <- I18n.let(appI18n.handle)(state.configurator.openPriceMatrix)
+            openEn   <- renderHtml(ui, appI18n)
+            mat      <- state.configurator.priceMatrix.get
+            _        <- I18n.let(appI18n.handle)(state.setLanguage(Language.Cs))
+            openCs   <- renderHtml(ui, appI18n)
+            // Selecting a cell applies quantity + speed and closes the modal
+            _        <- I18n.let(appI18n.handle)(state.configurator.selectQuantityAndSpeed(Quantity.unsafe(1000), ManufacturingSpeed.Economy))
+            isOpen   <- state.configurator.priceMatrixOpen.get
+            draft    <- state.configurator.draft.get
+            quote    <- state.configurator.quoteStatus.get
+            // ProductDetailView places the matrix below the details section and flows selection into cart
             listings <- state.listingsRef.get
             catalog  <- state.catalogRef.get
             catId     = listings.head.categoryId
@@ -749,16 +754,21 @@ class StorefrontUiSpec extends Test[Any]:
             _        <- I18n.let(appI18n.handle)(state.setLanguage(Language.Cs))
             pdCs     <- renderHtml(ui, appI18n)
           yield {
-            assert(cfgEn.contains("mp-price-matrix"))
-            assert(cfgEn.contains("Quantity &amp; Speed Price Matrix"))
-            assert(cfgEn.contains("mp-matrix-cell-active"))
-            assert(!cfgEn.contains("‹") && !cfgEn.contains("›"))
-            assert(cfgCs.contains("Cenová matice nákladu a rychlosti"))
-            assert(!cfgCs.contains("‹") && !cfgCs.contains("›"))
+            assert(closedEn.contains("mp-matrix-trigger"))
+            assert(closedEn.contains("Compare volume prices"))
+            assert(!closedEn.contains("mp-price-matrix"))
+            assert(openEn.contains("mp-matrix-modal"))
+            assert(openEn.contains("mp-price-matrix"))
+            assert(openEn.contains("Quantity &amp; Speed Price Matrix"))
+            assert(openEn.contains("mp-matrix-cell-active"))
+            assert(!openEn.contains("‹") && !openEn.contains("›"))
+            assert(openCs.contains("Cenová matice nákladu a rychlosti"))
+            assert(!openCs.contains("‹") && !openCs.contains("›"))
             assert(mat match
               case mpbuilder.ui.components.PriceMatrixStatus.Ready(m) => m.rows.nonEmpty && m.speeds.size == 3
               case _                                                  => false
             )
+            assert(!isOpen)
             assert(draft.specs.quantity.value == 1000)
             assert(draft.speed == ManufacturingSpeed.Economy)
             assert(quote match
@@ -766,6 +776,7 @@ class StorefrontUiSpec extends Test[Any]:
               case _                    => false
             )
             assert(pdEn.contains("mp-price-matrix"))
+            assert(pdEn.indexOf("mp-pd-details") < pdEn.indexOf("mp-price-matrix"))
             assert(pdEn.contains("Quantity &amp; Speed Price Matrix"))
             assert(!pdEn.contains("‹") && !pdEn.contains("›"))
             assert(pdCs.contains("Cenová matice nákladu a rychlosti"))
