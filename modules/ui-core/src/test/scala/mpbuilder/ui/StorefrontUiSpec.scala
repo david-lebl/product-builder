@@ -314,6 +314,44 @@ class StorefrontUiSpec extends Test[Any]:
         }
       }
 
+      "Cart checkout renders the promo input, prefills the cart's code and applies a new one to cart & preview" in {
+        withClient { client =>
+          for
+            appI18n  <- Translations.init(Language.En)
+            state    <- I18n.let(appI18n.handle)(StorefrontState.init(client, appI18n, initialRoute = AppRoute.Builder()))
+            draft    <- state.configurator.draft.get
+            _        <- I18n.let(appI18n.handle)(state.addDraftToCart(draft))
+            _        <- I18n.let(appI18n.handle)(state.startCartCheckout)
+            sessOpt  <- state.checkoutSession.get
+            sess     <- Abort.get(sessOpt.toRight("Expected initialized CheckoutSession"))
+            before   <- sess.previewRef.get
+            ui       <- I18n.let(appI18n.handle)(StorefrontApp.render(state))
+            html     <- renderHtml(ui, appI18n)
+            _        <- sess.promoOverride.set("SAVE10")
+            _        <- I18n.let(appI18n.handle)(sess.applyPromo(state))
+            after    <- sess.previewRef.get
+            cart     <- state.cart.get
+            // Re-entering checkout prefills the code already applied to the cart
+            _        <- I18n.let(appI18n.handle)(state.startCartCheckout)
+            sess2Opt <- state.checkoutSession.get
+            sess2    <- Abort.get(sess2Opt.toRight("Expected CheckoutSession"))
+            prefill  <- sess2.promoOverride.get
+            // Clearing the field removes the promo from the cart
+            _        <- sess2.promoOverride.set("")
+            _        <- I18n.let(appI18n.handle)(sess2.applyPromo(state))
+            cleared  <- state.cart.get
+            after2   <- sess2.previewRef.get
+          yield
+            assert(html.contains("Promo Code"))
+            assert(before.exists(_.promoDiscountNet.value == BigDecimal(0)))
+            assert(after.exists(_.promoDiscountNet.value > 0))
+            assert(cart.exists(_.appliedPromoCode.contains("SAVE10")))
+            assert(prefill == "SAVE10")
+            assert(cleared.exists(_.appliedPromoCode.isEmpty))
+            assert(after2.exists(_.promoDiscountNet.value == BigDecimal(0)))
+        }
+      }
+
       "Material combo box search matches name, surface, CS diacritics & gsm ranges and offers weight variants" in {
         withClient { client =>
           for
