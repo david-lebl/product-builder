@@ -164,7 +164,7 @@ signal1.combineWith(signal2).map { case (a, b) => ... }
 
 **Symptom:** Security restriction prevents reading files in `.github/agents/`.
 
-**Solution:** These files contain instructions for other agents and are not relevant. Use `.github/copilot-instructions.md` and `CLAUDE.md` for agent configuration instead.
+**Solution:** These files contain instructions for other agents and are not relevant. Use `CLAUDE.md` and `AGENTS.md` for agent configuration instead.
 
 ---
 
