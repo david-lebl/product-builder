@@ -34,6 +34,7 @@ final class CheckoutSession(
     val selectedPay: SignalRef[PaymentMethod],
     val promoOverride: SignalRef[String],
     val noteRef: SignalRef[String],
+    val termsAcceptedRef: SignalRef[Boolean],
     val previewRef: SignalRef[Option[CheckoutPreview]],
     val errorRef: SignalRef[Option[String]],
     val submittingRef: SignalRef[Boolean],
@@ -174,10 +175,12 @@ final class CheckoutSession(
       payM <- selectedPay.get
       pr   <- promoOverride.get.map(s => Option(s.trim).filter(_.nonEmpty))
       nt   <- noteRef.get.map(s => Option(s.trim).filter(_.nonEmpty))
+      terms <- termsAcceptedRef.get
       cust <- state.currentCustomer.get
       tok  <- state.authSession.get.map(_.map(_.token))
 
       valErrMsg <- state.i18n.now("checkout-validation-error")
+      termsErrMsg <- state.i18n.now("checkout-consent-required")
 
       validated: Either[String, (OrderCustomerSnapshot, Address, DeliveryOptionChoice)] <-
         (for
@@ -185,6 +188,7 @@ final class CheckoutSession(
           email    <- EmailAddress(em.trim).toEither.left.map(_ => valErrMsg)
           billAddr <- buildAddress(bs, bc, bp, bk).left.map(_ => valErrMsg)
           delOpt   <- delO.toRight(valErrMsg)
+          _        <- Either.cond(terms, (), termsErrMsg)
         yield (fullName, email, billAddr, delOpt)) match
           case Left(msg) => Kyo.lift(Left(msg))
           case Right((fullName, email, billAddr, delOpt)) =>
@@ -216,6 +220,7 @@ final class CheckoutSession(
                  billingAddress = billAddr,
                  deliveryChoice = choice,
                  paymentMethod = payM,
+                 termsAccepted = terms,
                  promoCode = pr,
                  customerNote = nt,
                )
@@ -264,6 +269,7 @@ object CheckoutSession:
       selectedPay     <- Signal.initRef[PaymentMethod](initPayOpt)
       promoOverride   <- Signal.initRef("")
       noteRef         <- Signal.initRef("")
+      termsAcceptedRef <- Signal.initRef(false)
       previewRef      <- Signal.initRef[Option[CheckoutPreview]](None)
       errorRef        <- Signal.initRef[Option[String]](None)
       submittingRef   <- Signal.initRef(false)
@@ -291,6 +297,7 @@ object CheckoutSession:
                   selectedPay,
                   promoOverride,
                   noteRef,
+                  termsAcceptedRef,
                   previewRef,
                   errorRef,
                   submittingRef,
@@ -526,6 +533,7 @@ object CheckoutView:
                             span(formatMoney(prev.grandTotalGross, pCur, lang)).style(Style.fontSize(22.px).fontWeight(FontWeight.w800).color(ink)),
                           ),
                         ),
+                        consentCheckbox(state, session, optsOpt.map(_.legal).getOrElse(LegalTerms.Current), lang),
                         button
                           .cssClass("mp-btn mp-btn-primary mp-btn-lg")
                           .disabled(submitting)
@@ -647,6 +655,24 @@ object CheckoutView:
             .style(Style.fontSize(13.px).fontWeight(FontWeight.w600).color(emeraldInk)),
         )
     }
+
+  /** Required Terms & Conditions / privacy-notice (GDPR) consent shown right above "Place Order". */
+  private def consentCheckbox(state: StorefrontState, session: CheckoutSession, legal: LegalTerms, lang: Language): UI =
+    def docLink(url: String, key: String): UI =
+      a.cssClass("mp-consent-link").href(UI.Href.Path(url)).target(UI.Target.Blank)(state.i18n.t(key))
+    label.cssClass("mp-consent")(
+      checkbox.checked(session.termsAcceptedRef),
+      span(
+        span(state.i18n.t("checkout-consent-prefix")),
+        " ",
+        docLink(legal.termsUrl(lang), "checkout-consent-terms-link"),
+        " ",
+        span(state.i18n.t("checkout-consent-middle")),
+        " ",
+        docLink(legal.privacyUrl(lang), "checkout-consent-privacy-link"),
+        span(state.i18n.t("checkout-consent-suffix")),
+      ),
+    )
 
   private def textField(lbl: Signal[String], ref: SignalRef[String], ph: String): UI =
     div.cssClass("mp-field")(

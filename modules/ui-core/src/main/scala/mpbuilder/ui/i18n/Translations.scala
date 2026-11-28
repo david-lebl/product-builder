@@ -337,6 +337,12 @@ object Translations:
       |checkout-place-order = Place Order
       |checkout-placing = Placing Order...
       |checkout-validation-error = Please complete all required contact and address fields.
+      |checkout-consent-prefix = I have read and agree to the
+      |checkout-consent-terms-link = Terms & Conditions
+      |checkout-consent-middle = and consent to the processing of my personal data under the
+      |checkout-consent-privacy-link = Privacy Policy (GDPR)
+      |checkout-consent-suffix = .
+      |checkout-consent-required = Please accept the Terms & Conditions and the Privacy Policy to place your order.
       |
       |# Order Confirmation
       |confirm-badge = Order Confirmed
@@ -725,6 +731,12 @@ object Translations:
       |checkout-place-order = Odeslat objednávku
       |checkout-placing = Odesílám objednávku...
       |checkout-validation-error = Vyplňte prosím všechna povinná kontaktní a adresní pole.
+      |checkout-consent-prefix = Přečetl(a) jsem si a souhlasím s
+      |checkout-consent-terms-link = obchodními podmínkami
+      |checkout-consent-middle = a se zpracováním osobních údajů podle
+      |checkout-consent-privacy-link = zásad ochrany osobních údajů (GDPR)
+      |checkout-consent-suffix = .
+      |checkout-consent-required = Pro odeslání objednávky prosím potvrďte souhlas s obchodními podmínkami a zásadami ochrany osobních údajů.
       |
       |# Potvrzení objednávky
       |confirm-badge = Objednávka přijata

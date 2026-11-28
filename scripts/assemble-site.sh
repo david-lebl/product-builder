@@ -26,6 +26,8 @@ mkdir -p "$SITE_DIR/admin" "$SITE_DIR/calculator" "$SITE_DIR/editor"
 
 cp modules/ui/src/main/resources/index.html "$SITE_DIR/"
 cp out/ui/fullLinkJS.dest/main.js "$SITE_DIR/"
+# Terms & Conditions / privacy notice linked from the checkout consent checkbox (mpbuilder.storefront.LegalTerms).
+cp -R modules/ui/src/main/resources/legal "$SITE_DIR/"
 
 cp modules/ui-admin/src/main/resources/index.html "$SITE_DIR/admin/"
 cp out/ui-admin/fullLinkJS.dest/main.js "$SITE_DIR/admin/"

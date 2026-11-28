@@ -40,6 +40,7 @@ object OrderingCodecs:
   given Schema[OrderPriority]         = Schema.derived
   given Schema[OrderLine]             = Schema.derived
   given Schema[OrderTotals]           = Schema.derived
+  given Schema[TermsConsent]          = Schema.derived
   given Schema[OrderView]             = Schema.derived
   given Schema[PlaceOrderCmd]         = Schema.derived
   given Schema[EditOrderLineCmd]      = Schema.derived

@@ -192,6 +192,7 @@ class OrderingDomainSpec extends Test[Any]:
       )
       val unapprovedCmd = PlaceOrderCmd(
         orderId = OrderId.unsafe("ord-unapp"),
+        acceptedTermsVersion = "test-terms",
         orderNumber = OrderNumber.unsafe("ORD-2026-0001"),
         customer = customerSnap,
         billingAddress = address,
@@ -217,6 +218,7 @@ class OrderingDomainSpec extends Test[Any]:
       val line = sampleLine("l1", Currency.CZK, Money(2000))
       val cardCmd = PlaceOrderCmd(
         orderId = OrderId.unsafe("ord-card"),
+        acceptedTermsVersion = "test-terms",
         orderNumber = OrderNumber.unsafe("ORD-2026-0002"),
         customer = customerSnap,
         billingAddress = address,
@@ -300,6 +302,7 @@ class OrderingDomainSpec extends Test[Any]:
       val staffName = Some(NonEmptyString.unsafe("Operations Lead"))
       val cmd = PlaceOrderCmd(
         orderId = OrderId.unsafe("ord-intake-1"),
+        acceptedTermsVersion = "test-terms",
         orderNumber = OrderNumber.unsafe("ORD-2026-0101"),
         customer = customerSnap,
         billingAddress = address,

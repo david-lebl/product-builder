@@ -110,6 +110,7 @@ class PlatformE2ESpec extends Test[Any]:
                       ),
                       deliveryChoice = DeliveryOptionChoice.ShopPickup(SampleDeliveryCatalog.shopPragueId),
                       paymentMethod = PaymentMethod.BankTransferQR,
+                      termsAccepted = true,
                       customerNote = Some("Call when ready"),
                     )
                   )

@@ -145,6 +145,7 @@ class BackofficeFacadeSpec extends Test[Any]:
                        ),
                        deliveryChoice = DeliveryOptionChoice.ShopPickup(SampleDeliveryCatalog.shopPragueId),
                        paymentMethod = PaymentMethod.BankTransferQR,
+                       termsAccepted = true,
                        customerNote = Some("Call when ready"),
                      )
                    )

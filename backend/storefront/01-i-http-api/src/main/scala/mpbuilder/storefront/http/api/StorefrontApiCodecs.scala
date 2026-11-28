@@ -21,6 +21,7 @@ object StorefrontApiCodecs:
   given Schema[ProductBuilderQuoteResult]  = Schema.derived
   given Schema[AuthResult]                 = Schema.derived
   given Schema[CheckoutSource]             = Schema.derived
+  given Schema[LegalTerms]                 = Schema.derived
   given Schema[CheckoutOptionsView]        = Schema.derived
   given Schema[CheckoutPreview]            = Schema.derived
   given Schema[SubmitCheckoutCmd]          = Schema.derived

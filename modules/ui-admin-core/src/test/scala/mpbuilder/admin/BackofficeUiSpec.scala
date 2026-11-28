@@ -146,6 +146,7 @@ class BackofficeUiSpec extends Test[Any]:
             sessOpt <- sfState.checkoutSession.get
             sess    <- Abort.get(sessOpt.toRight("Expected checkout session"))
             _       <- sess.selectedPay.set(PaymentMethod.InvoiceOnAccount)
+            _       <- sess.termsAcceptedRef.set(true)
             _       <- I18n.let(i18n.handle)(sess.submitOrder(sfState))
             conf    <- sess.confirmationRef.get.flatMap(opt => Abort.get(opt.toRight("Expected confirmation")))
             newOrdId = conf.order.id
