@@ -321,6 +321,11 @@ object Translations:
       |checkout-country = Country Code
       |checkout-same-shipping = Shipping address same as billing
       |checkout-shipping-title = Shipping Address
+      |checkout-ship-to = Ship to
+      |checkout-ship-same-billing = Billing address
+      |checkout-ship-same-billing-desc = Deliver to the billing address above
+      |checkout-ship-new = Different address
+      |checkout-ship-new-desc = Enter a one-off shipping address
       |checkout-free-badge = FREE
       |checkout-pickup-badge = Pickup
       |checkout-courier-badge = Courier
@@ -709,6 +714,11 @@ object Translations:
       |checkout-country = Kód země
       |checkout-same-shipping = Doručovací adresa je stejná jako fakturační
       |checkout-shipping-title = Doručovací adresa
+      |checkout-ship-to = Doručit na
+      |checkout-ship-same-billing = Fakturační adresa
+      |checkout-ship-same-billing-desc = Doručit na fakturační adresu výše
+      |checkout-ship-new = Jiná adresa
+      |checkout-ship-new-desc = Zadat jednorázovou doručovací adresu
       |checkout-free-badge = ZDARMA
       |checkout-pickup-badge = Osobní odběr
       |checkout-courier-badge = Kurýr

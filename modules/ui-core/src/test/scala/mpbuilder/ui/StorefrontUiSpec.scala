@@ -352,6 +352,59 @@ class StorefrontUiSpec extends Test[Any]:
         }
       }
 
+      "Signed-in checkout offers saved delivery addresses as a one-click picker, defaulting to the account's default (EN & CS)" in {
+        withClient { client =>
+          for
+            appI18n   <- Translations.init(Language.En)
+            state     <- I18n.let(appI18n.handle)(StorefrontState.init(client, appI18n, initialRoute = AppRoute.Builder()))
+            auth      <- client.loginWithPassword(EmailAddress.unsafe("jan@printshoppro.cz"), NonEmptyString.unsafe("demo1234"))
+            _         <- I18n.let(appI18n.handle)(state.completeAuth(auth))
+            draft     <- state.configurator.draft.get
+            _         <- I18n.let(appI18n.handle)(state.addDraftToCart(draft))
+            _         <- I18n.let(appI18n.handle)(state.startCartCheckout)
+            sessOpt   <- state.checkoutSession.get
+            sess      <- Abort.get(sessOpt.toRight("Expected initialized CheckoutSession"))
+            opts      <- sess.optionsRef.get
+            courier   <- Abort.get(opts.flatMap(_.deliveryOptions.find(o => o.available && !o.isPickup)).toRight("Expected a courier option"))
+            _         <- sess.selectedDeliv.set(Some(courier))
+            saved     <- sess.savedShipRef.get
+            sameInit  <- sess.sameShipRef.get
+            streetInit <- sess.shipStreetRef.get
+            ui        <- I18n.let(appI18n.handle)(StorefrontApp.render(state))
+            enHtml    <- renderHtml(ui, appI18n)
+            _         <- appI18n.setLanguage(Language.Cs)
+            csHtml    <- renderHtml(ui, appI18n)
+            _         <- appI18n.setLanguage(Language.En)
+            // One click on the other saved address fills the shipping fields
+            _         <- sess.selectSavedShipping(saved.find(!_.isDefault).get.address)
+            same2     <- sess.sameShipRef.get
+            street2   <- sess.shipStreetRef.get
+            city2     <- sess.shipCityRef.get
+            postal2   <- sess.shipPostalRef.get
+            country2  <- sess.shipCountryRef.get
+            // "Different address" clears the fields for a one-off address
+            _         <- sess.selectNewShipping
+            street3   <- sess.shipStreetRef.get
+            same3     <- sess.sameShipRef.get
+          yield
+            assert(saved.map(_.address.street.value) == List("Průmyslová 45, Sklad B", "Vinohradská 10"))
+            assert(saved.map(_.isDefault) == List(true, false))
+            assert(!sameInit && streetInit == "Průmyslová 45, Sklad B")
+            assert(ShippingChoice.of(sameInit, saved, streetInit, "Praha 10", "10200", "CZ") == ShippingChoice.Saved(0))
+            assert(enHtml.contains("Ship to") && enHtml.contains("Different address"))
+            assert(enHtml.contains("Průmyslová 45, Sklad B") && enHtml.contains("Vinohradská 10"))
+            assert(enHtml.contains("mp-option-card-active mp-ship-choice"))
+            assert(csHtml.contains("Doručit na") && csHtml.contains("Jiná adresa"))
+            assert(!enHtml.contains("‹") && !enHtml.contains("›"))
+            assert(!csHtml.contains("‹") && !csHtml.contains("›"))
+            assert(!same2 && street2 == "Vinohradská 10" && city2 == "Praha" && postal2 == "12000" && country2 == "CZ")
+            assert(ShippingChoice.of(same2, saved, street2, city2, postal2, country2) == ShippingChoice.Saved(1))
+            assert(!same3 && street3.isEmpty)
+            assert(ShippingChoice.of(same3, saved, street3, "", "", "CZ") == ShippingChoice.Other)
+            assert(ShippingChoice.of(true, saved, street2, city2, postal2, country2) == ShippingChoice.SameAsBilling)
+        }
+      }
+
       "Material combo box search matches name, surface, CS diacritics & gsm ranges and offers weight variants" in {
         withClient { client =>
           for
