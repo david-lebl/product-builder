@@ -35,6 +35,10 @@ object CommonComponents:
       case Currency.EUR => s"$num €"
       case Currency.GBP => s"${sign}£$grouped$decSep$decPart"
 
+  def formatQuantity(qty: Int, lang: Language): String =
+    val sep = if lang == Language.Cs then "\u00A0" else ","
+    qty.toString.reverse.grouped(3).mkString(sep).reverse
+
   def formatWeight(grams: BigDecimal): String =
     if grams >= BigDecimal(1000) then
       val kg = (grams / BigDecimal(1000)).setScale(2, BigDecimal.RoundingMode.HALF_UP)

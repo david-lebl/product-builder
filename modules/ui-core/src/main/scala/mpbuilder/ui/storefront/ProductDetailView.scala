@@ -6,7 +6,7 @@ import kyo.Style.*
 import mpbuilder.catalog.*
 import mpbuilder.shared.*
 import mpbuilder.ui.components.CommonComponents.*
-import mpbuilder.ui.components.Icons
+import mpbuilder.ui.components.{Icons, PriceMatrixStatus, PriceMatrixView}
 import mpbuilder.ui.components.Icons.Icon
 import mpbuilder.ui.configurator.{ConfiguratorController, QuoteStatus}
 import mpbuilder.ui.theme.AppTheme.*
@@ -40,8 +40,10 @@ object ProductDetailView:
         .combineLatest(state.i18n.language)
         .combineLatest(selectedPreset)
         .combineLatest(state.presetQuantities)
+        .combineLatest(state.presetSpeeds)
+        .combineLatest(state.presetMatrices)
 
-    combined.render { case (((((catalog, quotesMap), cur), lang), selectedOpt), qtyMap) =>
+    combined.render { case (((((((catalog, quotesMap), cur), lang), selectedOpt), qtyMap), speedMap), matrixMap) =>
       catalog.categories.get(categoryId) match
         case None =>
           div.cssClass("mp-card")(
@@ -61,7 +63,7 @@ object ProductDetailView:
           val listingOpt       = catalog.showcases.get(categoryId)
           val availablePresets = cat.presets.filter(ConfiguratorController.isPresetAvailable(_, catalog))
           val activePreset     = selectedOpt.flatMap(id => availablePresets.find(_.id == id)).orElse(availablePresets.headOption)
-          val ctx              = Ctx(state, catalog, cat, listingOpt, quotesMap, qtyMap, cur, lang, onDesignInStudio, designStudioHref)
+          val ctx              = Ctx(state, catalog, cat, listingOpt, quotesMap, qtyMap, speedMap, matrixMap, cur, lang, onDesignInStudio, designStudioHref)
 
           div.style(Style.column.gap(28.px).width(100.pct))(
             renderBreadcrumb(ctx),
@@ -80,6 +82,7 @@ object ProductDetailView:
                 renderHowItWorks(ctx),
               ),
             ),
+            activePreset.map(renderPriceMatrixSection(ctx, _)).getOrElse(UI.empty),
             renderStudioPromo(ctx, activePreset),
           )
     }
@@ -91,6 +94,8 @@ object ProductDetailView:
       listing: Option[ShowcaseListing],
       quotes: Map[PresetId, QuoteStatus],
       quantities: Map[PresetId, Quantity],
+      speeds: Map[PresetId, ManufacturingSpeed],
+      matrices: Map[PresetId, PriceMatrixStatus],
       currency: Currency,
       lang: Language,
       onDesignInStudio: Option[(ProductCategory, PresetId) => Unit < Async],
@@ -101,6 +106,8 @@ object ProductDetailView:
     def group: Option[CatalogGroup] = listing.map(_.group)
     /** Quick-start quantity of a preset (the preset's default until the customer changes it). */
     def qtyOf(preset: CategoryPreset): Int = quantities.getOrElse(preset.id, preset.defaultSpecs.quantity).value
+    /** Quick-start production speed of a preset (Standard until changed from the price matrix). */
+    def speedOf(preset: CategoryPreset): ManufacturingSpeed = speeds.getOrElse(preset.id, ManufacturingSpeed.Standard)
 
   // ── Breadcrumb ─────────────────────────────────────────────────────────────
 
@@ -368,6 +375,12 @@ object ProductDetailView:
       div.style(rowSm.padding(10.px, 0.px, 0.px, 0.px).borderTop(1.px, Palette.border))(
         span(Icons(Icon.Truck, 15)).style(Style.color(emerald).row.align(Alignment.center)),
         span(c.t("detail-dispatch-note")).style(smallText),
+        if c.speedOf(preset) != ManufacturingSpeed.Standard then
+          reactiveBadge(
+            c.state.i18n.t("matrix-speed-selected", Dict("speed" -> speedLabel(c.speedOf(preset), c.lang))),
+            if c.speedOf(preset) == ManufacturingSpeed.Economy then BadgeTone.Emerald else BadgeTone.Amber,
+          )
+        else UI.empty,
       ),
       div.style(Style.row.gap(8.px).flexWrap(FlexWrap.wrap))(
         button
@@ -382,6 +395,24 @@ object ProductDetailView:
               .onClick(c.state.startPresetQuickOrder(c.cat.id, preset.id))(Icons(Icon.Zap, 15), span(c.t("detail-quick-order")))
           case _ => UI.empty,
       ),
+    )
+
+  // ── Quantity & Speed Price Matrix ──────────────────────────────────────────
+
+  private def renderPriceMatrixSection(c: Ctx, preset: CategoryPreset): UI =
+    val status    = c.matrices.getOrElse(preset.id, PriceMatrixStatus.Loading)
+    val speedOpts = c.quotes.get(preset.id) match
+      case Some(QuoteStatus.Ready(res)) => res.speedOptions
+      case _                            => Nil
+    PriceMatrixView.render(
+      status = status,
+      selectedQuantity = Quantity.unsafe(c.qtyOf(preset)),
+      selectedSpeed = c.speedOf(preset),
+      i18n = c.state.i18n,
+      lang = c.lang,
+      subtitle = c.state.i18n.t("matrix-preset-subtitle", Dict("preset" -> preset.name(c.lang))),
+      onSelect = (qty, speed) => c.state.setPresetQuantityAndSpeed(c.cat.id, preset.id, qty, speed),
+      speedOptions = speedOpts,
     )
 
   // ── Trust strip ────────────────────────────────────────────────────────────

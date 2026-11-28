@@ -71,6 +71,13 @@ final class StorefrontRoutes private[storefront] (facade: StorefrontFacade):
         val r = req.fields.body
         ok(facade.pricePreset(r.categoryId, r.presetId, r.currency, r.speed, r.specsOverride, bearerToken(req.fields.authorization), r.lang))
       },
+    HttpRoute.postRaw(base / "builder" / "price-matrix").request(_.headerOpt[String]("authorization", "Authorization").bodyJson[PriceMatrixRequest])
+      .response(_.bodyJson[PriceMatrix]).apiErrors
+      .doc(Tags.Catalog, "Quantity × speed price tier matrix for a configuration")
+      .handler { req =>
+        val r = req.fields.body
+        ok(facade.quotePriceMatrix(r.cmd, r.quantities, r.currency, bearerToken(req.fields.authorization), r.promoCode))
+      },
     // ── Authentication
     HttpRoute.postRaw(base / "auth" / "login").request(_.bodyJson[PasswordLoginRequest])
       .response(_.bodyJson[AuthResult]).apiErrors

@@ -563,4 +563,50 @@ class StorefrontFacadeSpec extends Test[Any]:
         assert(customEur.pricing.effectiveQuote.netTotal == (czkQuote.pricing.effectiveQuote.netTotal * BigDecimal("0.05")).rounded)
       }
     }.provideRuntime(seedSampleOrders = false).atTime(validNow)
+
+    "Quantity & Speed Price Matrix computes volume breaks, savings badges, speed tiers, B2B discounts and EUR conversion" in {
+      for
+        facade    <- Env.get[StorefrontFacade]
+        tiers      = PriceMatrixTiers.forAnchor(250)
+        czkMatrix <- facade.quotePriceMatrix(flyersCmd(250), tiers, Currency.CZK)
+        eurMatrix <- facade.quotePriceMatrix(flyersCmd(250), tiers, Currency.EUR)
+        ref500    <- facade.configureAndQuote(flyersCmd(500), Currency.CZK, ManufacturingSpeed.Standard)
+        auth      <- facade.loginWithPassword(EmailAddress.unsafe("jan@printshoppro.cz"), NonEmptyString.unsafe("demo1234"))
+        b2bMatrix <- facade.quotePriceMatrix(flyersCmd(250), tiers, Currency.CZK, Some(auth.session.token))
+      yield {
+        assert(tiers.map(_.value) == List(100, 250, 500, 1000, 2500))
+        assert(PriceMatrixTiers.forAnchor(1).map(_.value) == List(1, 2, 5, 10, 25))
+        assert(czkMatrix.currency == Currency.CZK)
+        assert(czkMatrix.speeds == List(ManufacturingSpeed.Economy, ManufacturingSpeed.Standard, ManufacturingSpeed.Express))
+        assert(czkMatrix.rows.map(_.quantity.value) == List(100, 250, 500, 1000, 2500))
+
+        // Baseline row has no savings badge; largest tier saves meaningfully per piece vs smallest tier
+        assert(czkMatrix.rows.head.savingsVsSmallestPercent.isEmpty)
+        assert(czkMatrix.rows.last.savingsVsSmallestPercent.exists(_ > BigDecimal(0)))
+
+        // Unit net price decreases monotonically from smallest to largest tier on Standard speed
+        val stdUnits = czkMatrix.rows.flatMap(_.cells.find(_.speed == ManufacturingSpeed.Standard)).map(_.unitNet.value)
+        assert(stdUnits.size == 5)
+        assert(stdUnits.head > stdUnits.last)
+
+        // Economy <= Standard <= Express for the 500-piece row, and Standard cell matches configureAndQuote
+        val row500 = czkMatrix.rows.find(_.quantity.value == 500).get
+        val eco500 = row500.cells.find(_.speed == ManufacturingSpeed.Economy).get
+        val std500 = row500.cells.find(_.speed == ManufacturingSpeed.Standard).get
+        val exp500 = row500.cells.find(_.speed == ManufacturingSpeed.Express).get
+        assert(eco500.netTotal.value <= std500.netTotal.value)
+        assert(std500.netTotal.value <= exp500.netTotal.value)
+        assert(std500.netTotal == ref500.pricing.effectiveQuote.netTotal)
+        assert(std500.grossTotal == ref500.pricing.effectiveQuote.grossTotal)
+
+        // EUR conversion matches CZK -> EUR rate
+        assert(eurMatrix.currency == Currency.EUR)
+        val eurStd500 = eurMatrix.rows.find(_.quantity.value == 500).get.cells.find(_.speed == ManufacturingSpeed.Standard).get
+        assert(eurStd500.netTotal.value < std500.netTotal.value)
+
+        // B2B signed-in customer receives lower prices in the matrix
+        val b2bStd500 = b2bMatrix.rows.find(_.quantity.value == 500).get.cells.find(_.speed == ManufacturingSpeed.Standard).get
+        assert(b2bStd500.netTotal.value < std500.netTotal.value)
+      }
+    }.provideRuntime(seedSampleOrders = false).atTime(validNow)
   }

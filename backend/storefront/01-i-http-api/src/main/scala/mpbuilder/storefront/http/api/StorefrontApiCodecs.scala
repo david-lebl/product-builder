@@ -19,6 +19,8 @@ object StorefrontApiCodecs:
   given Schema[ExchangeRateQuote]          = Schema.derived
   given Schema[ArtworkUploadPayload]       = Schema.derived
   given Schema[ProductBuilderQuoteResult]  = Schema.derived
+  given Schema[PriceMatrix]                = Schema.derived
+  given Schema[PriceMatrixRequest]         = Schema.derived
   given Schema[AuthResult]                 = Schema.derived
   given Schema[CheckoutSource]             = Schema.derived
   given Schema[CheckoutOptionsView]        = Schema.derived

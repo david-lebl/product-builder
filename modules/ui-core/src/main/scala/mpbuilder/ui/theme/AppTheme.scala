@@ -2000,6 +2000,105 @@ object AppTheme:
       .rule(Selector.cls("mp-option-card").pseudo("focus-visible"), focusVisibleRing)
       .rule(Selector.cls("mp-combo-trigger").pseudo("focus-visible"), focusVisibleRing)
       .rule(Selector.cls("mp-action-menu-item").pseudo("focus-visible"), focusVisibleRing)
+      .rule(Selector.cls("mp-matrix-cell-btn").pseudo("focus-visible"), focusVisibleRing)
+      // Quantity & Speed Price Matrix (Tier Table)
+      .rule(
+        "mp-matrix-modal",
+        Style.width(680.px),
+      )
+      .rule(
+        "mp-matrix-scroll",
+        Style.width(100.pct).overflowX(Overflow.auto),
+      )
+      .rule(
+        "mp-matrix-grid",
+        Style.column.width(100.pct).minWidth(480.px).gap(6.px),
+      )
+      .rule(
+        "mp-matrix-header",
+        Style.row
+          .align(Alignment.center)
+          .gap(8.px)
+          .padding(0.px, 4.px, 6.px, 4.px)
+          .borderBottom(1.px, border),
+      )
+      .rule(
+        "mp-matrix-row",
+        Style.row
+          .align(Alignment.stretch)
+          .gap(8.px)
+          .padding(4.px)
+          .rounded(12.px)
+          .transition(TransitionProperty.backgroundColor, 140, Easing.easeOut),
+      )
+      .rule(
+        "mp-matrix-row-active",
+        Style.bg(surfaceAlt),
+      )
+      .rule(
+        "mp-matrix-qty-col",
+        Style.column
+          .justify(Justification.center)
+          .align(Alignment.start)
+          .gap(3.px)
+          .width(136.px)
+          .flexShrink(0.0)
+          .padding(6.px, 8.px),
+      )
+      .rule(
+        "mp-matrix-speed-col",
+        Style.column
+          .align(Alignment.center)
+          .justify(Justification.center)
+          .flexGrow(1.0)
+          .flexBasis(110.px)
+          .minWidth(100.px),
+      )
+      .rule(
+        "mp-matrix-cell-btn",
+        Style.column
+          .align(Alignment.center)
+          .justify(Justification.center)
+          .gap(2.px)
+          .width(100.pct)
+          .padding(9.px, 10.px)
+          .rounded(10.px)
+          .bg(surface)
+          .border(1.px, border)
+          .color(ink)
+          .cursor(Cursor.pointer)
+          .textAlign(TextAlign.center)
+          .transition(TransitionProperty.all, 140, Easing.easeOut)
+          .hover(Style.borderColor(brandBorder).bg(surfaceAlt)),
+      )
+      .rule(
+        "mp-matrix-cell-active",
+        Style.bg(brandSoft)
+          .border(1.px, brand)
+          .shadow(0.px, 0.px, 0.px, 2.px, focusRing)
+          .hover(Style.bg(brandSoft).borderColor(brand)),
+      )
+      .rule(
+        "mp-matrix-cell-disabled",
+        Style.bg(surfaceAlt)
+          .border(1.px, border)
+          .color(inkMuted)
+          .opacity(0.6)
+          .cursor(Cursor.notAllowed)
+          .hover(Style.borderColor(border).bg(surfaceAlt)),
+      )
+      .rule(
+        "mp-matrix-unit",
+        Style.fontSize(13.px).fontWeight(FontWeight.w700).color(ink).lineHeight(1.2),
+      )
+      .rule(
+        "mp-matrix-unit-active",
+        Style.color(brandDark),
+      )
+      .rule(
+        "mp-matrix-total",
+        Style.fontSize(11.px).color(inkMuted).lineHeight(1.25),
+      )
       // Field rows: fields share a row and wrap at 180px
       .rule(
         Selector.cls("mp-field-row").child(Selector.cls("mp-field")),

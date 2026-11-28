@@ -8,7 +8,7 @@ import mpbuilder.identity.*
 import mpbuilder.ordering.*
 import mpbuilder.shared.*
 import mpbuilder.storefront.*
-import mpbuilder.ui.components.{ArtworkComponents, BrowserPickedFile, ProductionNoteEditor}
+import mpbuilder.ui.components.{ArtworkComponents, BrowserPickedFile, PriceMatrixStatus, ProductionNoteEditor}
 import mpbuilder.ui.configurator.*
 import mpbuilder.ui.i18n.AppI18n
 import mpbuilder.ui.port.StorefrontClient
@@ -60,6 +60,10 @@ final class StorefrontState(
     val presetQuotes: SignalRef[Map[PresetId, QuoteStatus]],
     /** Quantity picked per preset in the product-detail quick start (absent = the preset's default quantity). */
     val presetQuantities: SignalRef[Map[PresetId, Quantity]],
+    /** Speed picked per preset in the product-detail price matrix (absent = Standard). */
+    val presetSpeeds: SignalRef[Map[PresetId, ManufacturingSpeed]],
+    /** Quantity × Speed price matrices for presets of the currently viewed product detail page. */
+    val presetMatrices: SignalRef[Map[PresetId, PriceMatrixStatus]],
     val orders: SignalRef[List[OrderView]],
     val orderArtworks: SignalRef[Map[OrderId, List[mpbuilder.artwork.ArtworkSubmissionView]]],
     val paymentModal: SignalRef[Option[(OrderView, PaymentInstructions)]],
@@ -92,7 +96,8 @@ final class StorefrontState(
       _ <- route.set(next)
       _ <- if syncHash then onRouteChange(next) else Kyo.unit
       _ <- next match
-             case AppRoute.ProductDetail(catId) => presetQuantities.set(Map.empty).andThen(refreshPresetQuotes(catId))
+             case AppRoute.ProductDetail(catId) =>
+               presetQuantities.set(Map.empty).andThen(presetSpeeds.set(Map.empty)).andThen(refreshPresetQuotes(catId))
              case AppRoute.Builder(Some(catId), Some(presetId)) =>
                configurator.applyPreset(catId, presetId)
              case AppRoute.Builder(Some(catId), None) =>
@@ -160,33 +165,88 @@ final class StorefrontState(
   def refreshPresetQuotes(categoryId: CategoryId): Unit < Async =
     catalogRef.get.flatMap { catalog =>
       catalog.categories.get(categoryId).filter(_.enabled) match
-        case None => presetQuotes.set(Map.empty)
+        case None =>
+          presetQuotes.set(Map.empty).andThen(presetMatrices.set(Map.empty))
         case Some(cat) =>
           val availablePresets = cat.presets.filter(ConfiguratorController.isPresetAvailable(_, catalog))
           for
-            qtys    <- presetQuantities.get
-            _       <- presetQuotes.set(availablePresets.map(p => p.id -> QuoteStatus.Loading).toMap)
-            results <- Kyo.foreach(availablePresets)(preset => quotePreset(categoryId, preset, qtys.get(preset.id)).map(preset.id -> _))
-            _       <- presetQuotes.set(results.toMap)
+            qtys     <- presetQuantities.get
+            speeds   <- presetSpeeds.get
+            _        <- presetQuotes.set(availablePresets.map(p => p.id -> QuoteStatus.Loading).toMap)
+            _        <- presetMatrices.set(availablePresets.map(p => p.id -> PriceMatrixStatus.Loading).toMap)
+            results  <- Kyo.foreach(availablePresets) { preset =>
+                          val speed = speeds.getOrElse(preset.id, ManufacturingSpeed.Standard)
+                          quotePreset(categoryId, preset, qtys.get(preset.id), speed).map(preset.id -> _)
+                        }
+            _        <- presetQuotes.set(results.toMap)
+            matrices <- Kyo.foreach(availablePresets) { preset =>
+                          quotePresetMatrix(cat, preset).map(preset.id -> _)
+                        }
+            _        <- presetMatrices.set(matrices.toMap)
           yield ()
     }
 
   /** Sets the quick-start quantity of one preset and re-prices only that preset. */
   def setPresetQuantity(categoryId: CategoryId, presetId: PresetId, qty: Quantity): Unit < Async =
+    presetSpeeds.get.flatMap { speeds =>
+      setPresetQuantityAndSpeed(categoryId, presetId, qty, speeds.getOrElse(presetId, ManufacturingSpeed.Standard))
+    }
+
+  /** Sets both quantity and production speed for a preset and re-prices only that preset. */
+  def setPresetQuantityAndSpeed(
+      categoryId: CategoryId,
+      presetId: PresetId,
+      qty: Quantity,
+      speed: ManufacturingSpeed,
+  ): Unit < Async =
     findAvailablePreset(categoryId, presetId).flatMap {
       case None => Kyo.unit
       case Some((_, preset)) =>
         for
           _      <- presetQuantities.updateAndGet(_.updated(presetId, qty)).unit
+          _      <- presetSpeeds.updateAndGet(_.updated(presetId, speed)).unit
           _      <- presetQuotes.updateAndGet(_.updated(presetId, QuoteStatus.Loading)).unit
-          status <- quotePreset(categoryId, preset, Some(qty))
-          latest <- presetQuantities.get
-          // Ignore out-of-order responses: only the quote for the latest picked quantity wins.
-          _ <- if latest.get(presetId).contains(qty) then presetQuotes.updateAndGet(_.updated(presetId, status)).unit else Kyo.unit
+          status <- quotePreset(categoryId, preset, Some(qty), speed)
+          latestQ <- presetQuantities.get
+          latestS <- presetSpeeds.get
+          // Ignore out-of-order responses: only the quote for the latest picked (quantity, speed) wins.
+          _ <-
+            if latestQ.get(presetId).contains(qty) && latestS.get(presetId).contains(speed) then
+              presetQuotes.updateAndGet(_.updated(presetId, status)).unit
+            else Kyo.unit
         yield ()
     }
 
-  private def quotePreset(categoryId: CategoryId, preset: CategoryPreset, qty: Option[Quantity]): QuoteStatus < Async =
+  private def quotePresetMatrix(cat: ProductCategory, preset: CategoryPreset): PriceMatrixStatus < Async =
+    for
+      cur <- currency.get
+      tok <- authSession.get.map(_.map(_.token))
+      d    = ConfiguratorController.draftFromPreset(cat, preset)
+      cmd <- configurator.buildConfigureCmd(d)
+      tiers = PriceMatrixTiers.forAnchor(preset.defaultSpecs.quantity.value)
+      res <- Abort
+               .run[StorefrontError](client.quotePriceMatrix(cmd, tiers, cur, tok, promoCode = None))
+               .map {
+                 case Result.Success(m)   => PriceMatrixStatus.Ready(m)
+                 case Result.Failure(err) => PriceMatrixStatus.Failed(err)
+                 case Result.Panic(ex) =>
+                   PriceMatrixStatus.Failed(
+                     StorefrontError.CatalogFailure(
+                       CatalogError.RuleViolation(
+                         RuleId.unsafe("preset-matrix"),
+                         LocalizedString(Option(ex.getMessage).getOrElse("Error")),
+                       )
+                     )
+                   )
+               }
+    yield res
+
+  private def quotePreset(
+      categoryId: CategoryId,
+      preset: CategoryPreset,
+      qty: Option[Quantity],
+      speed: ManufacturingSpeed,
+  ): QuoteStatus < Async =
     for
       cur  <- currency.get
       tok  <- authSession.get.map(_.map(_.token))
@@ -197,7 +257,7 @@ final class StorefrontState(
                       categoryId = categoryId,
                       presetId = preset.id,
                       currency = cur,
-                      speed = ManufacturingSpeed.Standard,
+                      speed = speed,
                       specsOverride = qty.filter(_ != preset.defaultSpecs.quantity).map(q => preset.defaultSpecs.copy(quantity = q)),
                       sessionToken = tok,
                       lang = lang,
@@ -226,14 +286,16 @@ final class StorefrontState(
         .flatMap(cat => cat.presets.find(p => p.id == presetId && ConfiguratorController.isPresetAvailable(p, catalog)).map(cat -> _))
     }
 
-  /** Preset draft with the quick-start quantity applied (the backend re-prices it on add / checkout). */
+  /** Preset draft with the quick-start quantity and speed applied (the backend re-prices it on add / checkout). */
   private def presetDraft(categoryId: CategoryId, presetId: PresetId): Option[DraftConfig] < Async =
     for
-      found <- findAvailablePreset(categoryId, presetId)
-      qtys  <- presetQuantities.get
+      found  <- findAvailablePreset(categoryId, presetId)
+      qtys   <- presetQuantities.get
+      speeds <- presetSpeeds.get
     yield found.map { (cat, preset) =>
-      val d = ConfiguratorController.draftFromPreset(cat, preset)
-      qtys.get(presetId).fold(d)(q => d.copy(specs = d.specs.copy(quantity = q)))
+      val d0 = ConfiguratorController.draftFromPreset(cat, preset)
+      val d1 = qtys.get(presetId).fold(d0)(q => d0.copy(specs = d0.specs.copy(quantity = q)))
+      speeds.get(presetId).fold(d1)(s => d1.copy(speed = s))
     }
 
   // ── Auth & Account ─────────────────────────────────────────────────────────
@@ -660,6 +722,8 @@ object StorefrontState:
       toastRef    <- Signal.initRef[Option[String]](None)
       presetsRef  <- Signal.initRef(Map.empty[PresetId, QuoteStatus])
       presetQtyRef <- Signal.initRef(Map.empty[PresetId, Quantity])
+      presetSpdRef <- Signal.initRef(Map.empty[PresetId, ManufacturingSpeed])
+      presetMatRef <- Signal.initRef(Map.empty[PresetId, PriceMatrixStatus])
       ordersRef   <- Signal.initRef(List.empty[OrderView])
       artRef      <- Signal.initRef(Map.empty[OrderId, List[mpbuilder.artwork.ArtworkSubmissionView]])
       payModalRef <- Signal.initRef[Option[(OrderView, PaymentInstructions)]](None)
@@ -701,6 +765,8 @@ object StorefrontState:
                        ctrl,
                        presetsRef,
                        presetQtyRef,
+                       presetSpdRef,
+                       presetMatRef,
                        ordersRef,
                        artRef,
                        payModalRef,
