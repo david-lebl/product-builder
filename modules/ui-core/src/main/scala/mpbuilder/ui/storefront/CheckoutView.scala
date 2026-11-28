@@ -29,6 +29,7 @@ final class CheckoutSession(
     val shipCityRef: SignalRef[String],
     val shipPostalRef: SignalRef[String],
     val shipCountryRef: SignalRef[String],
+    val savedShipRef: SignalRef[List[SavedShippingAddress]],
     val optionsRef: SignalRef[Option[CheckoutOptionsView]],
     val selectedDeliv: SignalRef[Option[DeliveryOptionQuote]],
     val selectedPay: SignalRef[PaymentMethod],
@@ -78,7 +79,9 @@ final class CheckoutSession(
     val cust = prefill.customer
     val bill = prefill.billingAddress
     val ship = prefill.shippingAddresses.headOption.filterNot(a => bill.contains(a))
+    val default = cust.flatMap(_.defaultShippingAddress)
     for
+      _ <- savedShipRef.set(prefill.shippingAddresses.map(a => SavedShippingAddress(a, default.contains(a))))
       _ <- put(fullNameRef, cust.map(c => s"${c.contact.firstName.value} ${c.contact.lastName.value}"))
       _ <- put(emailRef, cust.map(_.contact.email.value))
       _ <- put(phoneRef, cust.flatMap(_.contact.phone).map(_.value))
@@ -90,15 +93,27 @@ final class CheckoutSession(
       _ <- put(billPostalRef, bill.map(_.postalCode.value))
       _ <- put(billCountryRef, bill.map(_.countryCode.value))
       _ <- ship match
-             case Some(a) =>
-               for
-                 _ <- sameShipRef.set(false)
-                 _ <- shipStreetRef.set(a.street.value)
-                 _ <- shipCityRef.set(a.city.value)
-                 _ <- shipPostalRef.set(a.postalCode.value)
-                 _ <- shipCountryRef.set(a.countryCode.value)
-               yield ()
-             case None => Kyo.unit
+             case Some(a) => selectSavedShipping(a)
+             case None    => Kyo.unit
+    yield ()
+
+  /** One-click pick of a saved delivery address: ships separately from billing and fills the shipping fields. */
+  def selectSavedShipping(a: Address): Unit < Sync =
+    for
+      _ <- sameShipRef.set(false)
+      _ <- shipStreetRef.set(a.street.value)
+      _ <- shipCityRef.set(a.city.value)
+      _ <- shipPostalRef.set(a.postalCode.value)
+      _ <- shipCountryRef.set(a.countryCode.value)
+    yield ()
+
+  /** Switches to a one-off shipping address typed by hand (blank fields, country kept). */
+  def selectNewShipping: Unit < Sync =
+    for
+      _ <- sameShipRef.set(false)
+      _ <- shipStreetRef.set("")
+      _ <- shipCityRef.set("")
+      _ <- shipPostalRef.set("")
     yield ()
 
   /** Called after the customer signs in on the checkout page: pulls the account prefill and re-prices for the account. */
@@ -244,6 +259,28 @@ final class CheckoutSession(
       _ <- submittingRef.set(false)
     yield ()
 
+/** A delivery address saved on the signed-in account, offered as a one-click choice at checkout. */
+final case class SavedShippingAddress(address: Address, isDefault: Boolean)
+
+/** Which shipping choice the current form state corresponds to. */
+enum ShippingChoice:
+  case SameAsBilling
+  case Saved(index: Int)
+  case Other
+
+object ShippingChoice:
+  /** Derives the active choice from the form: a saved address is active while the shipping fields still match it. */
+  def of(sameShip: Boolean, saved: List[SavedShippingAddress], street: String, city: String, postal: String, country: String): ShippingChoice =
+    if sameShip then SameAsBilling
+    else
+      def norm(s: String) = s.trim
+      val idx = saved.indexWhere { s =>
+        val a = s.address
+        norm(street) == a.street.value && norm(city) == a.city.value &&
+        norm(postal) == a.postalCode.value && norm(country).toUpperCase == a.countryCode.value.toUpperCase
+      }
+      if idx >= 0 then Saved(idx) else Other
+
 object CheckoutSession:
 
   def init(state: StorefrontState, source: CheckoutSource): CheckoutSession < Async =
@@ -271,6 +308,7 @@ object CheckoutSession:
       shipCityRef     <- Signal.initRef("")
       shipPostalRef   <- Signal.initRef("")
       shipCountryRef  <- Signal.initRef("CZ")
+      savedShipRef    <- Signal.initRef[List[SavedShippingAddress]](Nil)
 
       optionsRef      <- Signal.initRef[Option[CheckoutOptionsView]](initOpts)
       selectedDeliv   <- Signal.initRef[Option[DeliveryOptionQuote]](initDelivOpt)
@@ -302,6 +340,7 @@ object CheckoutSession:
                   shipCityRef,
                   shipPostalRef,
                   shipCountryRef,
+                  savedShipRef,
                   optionsRef,
                   selectedDeliv,
                   selectedPay,
@@ -318,6 +357,50 @@ object CheckoutSession:
 
 /** Pure Checkout & Order Confirmation UI rendering a `CheckoutSession`. */
 object CheckoutView:
+
+  /** One-click picker over the account's saved delivery addresses, plus "same as billing" and "different address". */
+  private def savedShippingPicker(state: StorefrontState, session: CheckoutSession, saved: List[SavedShippingAddress], sameShip: Boolean): UI =
+    val fields =
+      session.shipStreetRef
+        .combineLatest(session.shipCityRef)
+        .combineLatest(session.shipPostalRef)
+        .combineLatest(session.shipCountryRef)
+    div.style(Style.column.gap(8.px))(
+      span(state.i18n.t("checkout-ship-to")).style(labelStyle),
+      fields.render { case (((street, city), postal), country) =>
+        val choice = ShippingChoice.of(sameShip, saved, street, city, postal, country)
+        val titleStyle = Style.fontWeight(FontWeight.w700).fontSize(14.px).color(ink)
+        def card(active: Boolean, onPick: Unit < Async, title: UI, desc: UI) =
+          button
+            .cssClass(if active then "mp-option-card-active mp-ship-choice" else "mp-option-card mp-ship-choice")
+            .onClick(onPick.andThen(session.refreshPreview(state)))(title, desc)
+        val billingCard = card(
+          choice == ShippingChoice.SameAsBilling,
+          session.sameShipRef.set(true),
+          span(state.i18n.t("checkout-ship-same-billing")).style(titleStyle),
+          div.style(smallText)(state.i18n.t("checkout-ship-same-billing-desc")),
+        )
+        val savedCards = saved.zipWithIndex.map { case (s, idx) =>
+          card(
+            choice == ShippingChoice.Saved(idx),
+            session.selectSavedShipping(s.address),
+            div.style(rowBetween)(
+              span(s.address.street.value).style(titleStyle),
+              if s.isDefault then reactiveBadge(state.i18n.t("account-default-badge"), BadgeTone.Emerald) else UI.empty,
+            ),
+            div.style(smallText)(s"${s.address.postalCode.value} ${s.address.city.value}, ${s.address.countryCode.value}"),
+          )
+        }
+        val newCard = card(
+          choice == ShippingChoice.Other,
+          session.selectNewShipping,
+          span(state.i18n.t("checkout-ship-new")).style(titleStyle),
+          div.style(smallText)(state.i18n.t("checkout-ship-new-desc")),
+        )
+        val cards: Seq[UI.Ast.HtmlChildVal] = (billingCard :: savedCards ::: List(newCard)).map(c => c: UI.Ast.HtmlChildVal)
+        div.cssClass("mp-option-grid")(cards*)
+      },
+    )
 
   def render(state: StorefrontState, session: CheckoutSession): UI =
     val combined =
@@ -412,10 +495,14 @@ object CheckoutView:
                       ),
                   if delOpt.exists(!_.isPickup) then
                     div.style(Style.column.gap(10.px).padding(10.px, 0.px, 0.px, 0.px).borderTop(1.px, Palette.border))(
-                      div.style(Style.row.align(Alignment.center).gap(8.px))(
-                        checkbox.checked(session.sameShipRef),
-                        span(state.i18n.t("checkout-same-shipping")).style(Style.fontSize(13.px).color(inkSecondary)),
-                      ),
+                      session.savedShipRef.render { saved =>
+                        if saved.isEmpty then
+                          div.style(Style.row.align(Alignment.center).gap(8.px))(
+                            checkbox.checked(session.sameShipRef),
+                            span(state.i18n.t("checkout-same-shipping")).style(Style.fontSize(13.px).color(inkSecondary)),
+                          )
+                        else savedShippingPicker(state, session, saved, sameShip)
+                      },
                       if !sameShip then
                         div.style(Style.column.gap(8.px))(
                           span(state.i18n.t("checkout-shipping-title")).style(labelStyle),
