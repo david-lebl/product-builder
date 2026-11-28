@@ -2,6 +2,16 @@
 
 This file provides guidance to AI assistants and developers when working with code in this repository.
 
+## Development Stage: Prefer Breaking Changes
+
+The platform is under active development and **has never been deployed to production** — there are no external API consumers, no production databases, and no persisted user data to protect (the GitHub Pages site is an in-memory demo). Optimise for the cleanest design, not for compatibility:
+
+- **Change things at the root.** Rename, reshape or delete types, fields, facade/port methods, HTTP routes and DTOs directly, and update every call site in the same change. Don't add deprecated aliases, overloads, adapters, shims, feature flags, `Option` fields kept "for old data", or parallel `v2` APIs.
+- **Prefer a generic rewrite over a special case.** If a cleaner, more general abstraction makes the task (and future ones) simpler, do the rewrite rather than bolting another branch onto the old shape.
+- **Delete dead code** you make obsolete instead of leaving it around "just in case".
+- **Migrations & formats:** SQL migrations may be edited, squashed or renumbered rather than stacking corrective `V<n>` files (afterwards reset local databases, e.g. `docker compose down -v`; test databases are recreated per run). Likewise `DesignDocument` changes don't need decode migrations for old formats unless one is trivial — the rules below about never editing applied migrations and bumping format versions apply once there is a real deployment.
+- **Still required:** keep everything compiling and all tests green, keep EN & CS translations complete, respect bounded-context boundaries, and update affected docs. Mention notable breaking changes in the PR description / changelog.
+
 ## Prerequisites & Stack
 
 - **JDK 25** (required by `io.getkyo:kyo-ui:1.0.0-RC7`, which targets JVM class file version 69.0) — **handled automatically**: `build.mill` pins `//| mill-jvm-version: temurin:25.0.1`, so `./mill` downloads (via Coursier, cached) and runs on Temurin 25 whatever `java`/`JAVA_HOME` the shell has. Just run `./mill …`; don't switch JDKs, `sdk use`, or export `JAVA_HOME` first. Never change it back to `system`.
