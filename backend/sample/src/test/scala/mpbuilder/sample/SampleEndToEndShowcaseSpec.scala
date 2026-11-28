@@ -10,6 +10,7 @@ import mpbuilder.manufacturing.sample.SampleManufacturing
 import mpbuilder.ordering.*
 import mpbuilder.pricing.*
 import mpbuilder.shared.*
+import mpbuilder.storefront.LegalTerms
 import kyo.*
 import kyo.test.*
 import ShowcaseTestEnv.*
@@ -138,6 +139,7 @@ class SampleEndToEndShowcaseSpec extends Test[Any]:
         order <- orderSvc.placeOrder(
                    PlaceOrderCmd(
                      orderId = orderId,
+                     acceptedTermsVersion = LegalTerms.Current.version,
                      orderNumber = OrderNumber.unsafe("2026-0001"),
                      customer = OrderCustomerSnapshot(
                        customerId = Some(creditCust.id),

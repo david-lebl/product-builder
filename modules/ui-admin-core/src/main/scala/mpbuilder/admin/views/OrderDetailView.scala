@@ -834,6 +834,10 @@ object OrderDetailView:
                       case DeliverySelection.Courier(svcId, addr, _, _) =>
                         s"Courier (${svcId.value}) → ${addr.street.value}, ${addr.city.value}",
                   ),
+                  infoRow(
+                    if isCs then "Souhlas s podmínkami" else "Terms & GDPR Consent",
+                    s"${if isCs then "Verze" else "Version"} ${ord.termsConsent.termsVersion} · ${formatInstant(ord.termsConsent.acceptedAt)}",
+                  ),
                   ord.customerNote
                     .map(cn => alertBanner(BadgeTone.Brand, state.i18n.t("adm-od-customer-note"), List(cn)))
                     .getOrElse(UI.empty),

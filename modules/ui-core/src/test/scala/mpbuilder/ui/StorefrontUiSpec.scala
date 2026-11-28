@@ -243,6 +243,16 @@ class StorefrontUiSpec extends Test[Any]:
             sessOpt <- state.checkoutSession.get
             sess    <- Abort.get(sessOpt.toRight("Expected initialized CheckoutSession"))
             _       <- sess.selectedPay.set(PaymentMethod.BankTransferQR)
+            ckUi    <- I18n.let(appI18n.handle)(StorefrontApp.render(state))
+            ckHtml  <- renderHtml(ckUi, appI18n)
+            _       <- appI18n.setLanguage(Language.Cs)
+            ckCsHtml <- renderHtml(ckUi, appI18n)
+            _       <- appI18n.setLanguage(Language.En)
+            // Without the Terms & Conditions / GDPR consent the order is not placed
+            _       <- I18n.let(appI18n.handle)(sess.submitOrder(state))
+            blocked <- sess.confirmationRef.get
+            blockedErr <- sess.errorRef.get
+            _       <- sess.termsAcceptedRef.set(true)
             _       <- I18n.let(appI18n.handle)(sess.submitOrder(state))
             confOpt <- sess.confirmationRef.get
             ui      <- I18n.let(appI18n.handle)(StorefrontApp.render(state))
@@ -256,6 +266,11 @@ class StorefrontUiSpec extends Test[Any]:
                 case _: PaymentInstructions.BankTransferQR => true
                 case _                                     => false
             }
+            assert(ckHtml.contains("Terms &amp; Conditions") && ckHtml.contains("legal/terms.html") && ckHtml.contains("legal/privacy.html"))
+            assert(ckCsHtml.contains("obchodními podmínkami") && !ckCsHtml.contains("‹") && !ckCsHtml.contains("›"))
+            assert(blocked.isEmpty)
+            assert(blockedErr.exists(_.contains("Terms & Conditions")))
+            assert(confOpt.exists(_.order.termsConsent.termsVersion == LegalTerms.Current.version))
             assert(cart1.exists(_.lines.size == 1))
             assert(cart2.exists(_.appliedPromoCode.contains("SAVE10")))
             assert(cart2.exists(_.promoDiscountNet.value > 0))

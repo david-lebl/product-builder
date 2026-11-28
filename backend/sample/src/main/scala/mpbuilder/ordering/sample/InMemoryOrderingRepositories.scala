@@ -3,6 +3,7 @@ package mpbuilder.ordering.sample
 import mpbuilder.ordering.*
 import mpbuilder.ordering.core.{Cart, CartRepository, DeliveryCatalogRepository, Order, OrderRepository, OrderingCoreLayers}
 import mpbuilder.shared.*
+import mpbuilder.storefront.LegalTerms
 import kyo.*
 
 /** Sample shop pickup locations, courier options, and bank account matching the frontend checkout. */
@@ -301,6 +302,7 @@ object SampleSeedOrders:
       .place(
         PlaceOrderCmd(
           orderId = OrderId.unsafe("ord-seed-0901"),
+          acceptedTermsVersion = LegalTerms.Current.version,
           orderNumber = OrderNumber.unsafe("ORD-2026-0901"),
           customer = OrderCustomerSnapshot(
             customerId = None,
@@ -338,6 +340,7 @@ object SampleSeedOrders:
       .place(
         PlaceOrderCmd(
           orderId = OrderId.unsafe("ord-seed-0902"),
+          acceptedTermsVersion = LegalTerms.Current.version,
           orderNumber = OrderNumber.unsafe("ORD-2026-0902"),
           customer = OrderCustomerSnapshot(
             customerId = Some(CustomerId.unsafe("cust-print-shop-pro")),
@@ -386,6 +389,7 @@ object SampleSeedOrders:
       .place(
         PlaceOrderCmd(
           orderId = OrderId.unsafe("ord-seed-0903"),
+          acceptedTermsVersion = LegalTerms.Current.version,
           orderNumber = OrderNumber.unsafe("ORD-2026-0903"),
           customer = OrderCustomerSnapshot(
             customerId = Some(CustomerId.unsafe("cust-mega-corp")),
@@ -426,6 +430,7 @@ object SampleSeedOrders:
       .place(
         PlaceOrderCmd(
           orderId = OrderId.unsafe("ord-seed-0904"),
+          acceptedTermsVersion = LegalTerms.Current.version,
           orderNumber = OrderNumber.unsafe("ORD-2026-0904"),
           customer = OrderCustomerSnapshot(
             customerId = Some(CustomerId.unsafe("cust-graphic-design-co")),

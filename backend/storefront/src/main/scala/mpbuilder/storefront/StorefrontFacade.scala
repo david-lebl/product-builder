@@ -448,7 +448,7 @@ final class StorefrontFacadeLive(
                                            invoiceApproved = invoiceApproved,
                                            invoiceDueDays = invoiceDueOpt,
                                          )
-    yield CheckoutOptionsView(prefill, deliveryOptions, paymentOptions)
+    yield CheckoutOptionsView(prefill, deliveryOptions, paymentOptions, LegalTerms.Current)
 
   override def previewCheckout(
       source: CheckoutSource,
@@ -494,6 +494,7 @@ final class StorefrontFacadeLive(
 
   override def submitCheckout(cmd: SubmitCheckoutCmd): CheckoutConfirmation < (Async & Abort[StorefrontError]) =
     for
+      _                               <- Effects.failUnless(cmd.termsAccepted)(StorefrontError.TermsNotAccepted)
       customerOpt                     <- resolveOptionalCustomer(cmd.sessionToken)
       loaded                          <- loadCheckoutLines(cmd.source, cmd.sessionToken, nextLineId)
       (lines, existingPromoOpt)        = loaded
@@ -535,6 +536,7 @@ final class StorefrontFacadeLive(
                                                lines = nonEmptyLines.map(_.toOrderLine),
                                                customerNote = cmd.customerNote,
                                                appliedPromo = effectivePromoOpt,
+                                               acceptedTermsVersion = LegalTerms.Current.version,
                                              )
                                            )
                                            .mapAbort(StorefrontError.OrderFailure.apply)

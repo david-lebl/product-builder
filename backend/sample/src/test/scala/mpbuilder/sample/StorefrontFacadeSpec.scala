@@ -160,6 +160,21 @@ class StorefrontFacadeSpec extends Test[Any]:
                           billingAddress = pragueAddress,
                           deliveryChoice = DeliveryOptionChoice.Courier(SampleDeliveryCatalog.courierStandardId, pragueAddress),
                           paymentMethod = PaymentMethod.InvoiceOnAccount,
+                          termsAccepted = true,
+                        )
+                      )
+                      .either
+        // Orders are refused without the Terms & Conditions / GDPR consent
+        noTerms  <- facade
+                      .submitCheckout(
+                        SubmitCheckoutCmd(
+                          sessionToken = None,
+                          source = CheckoutSource.FromCart(cartId),
+                          customer = guestCustomer,
+                          billingAddress = pragueAddress,
+                          deliveryChoice = DeliveryOptionChoice.Courier(SampleDeliveryCatalog.courierStandardId, pragueAddress),
+                          paymentMethod = PaymentMethod.BankTransferQR,
+                          termsAccepted = false,
                         )
                       )
                       .either
@@ -172,6 +187,7 @@ class StorefrontFacadeSpec extends Test[Any]:
                         billingAddress = pragueAddress,
                         deliveryChoice = DeliveryOptionChoice.Courier(SampleDeliveryCatalog.courierStandardId, pragueAddress),
                         paymentMethod = PaymentMethod.BankTransferQR,
+                        termsAccepted = true,
                         customerNote = Some("Leave at reception"),
                       )
                     )
@@ -184,7 +200,9 @@ class StorefrontFacadeSpec extends Test[Any]:
         assert(opts.deliveryOptions.find(_.id == SampleDeliveryCatalog.courierStandardId).exists(d => d.feeNet == Money.zero && d.freeShippingApplied))
         assert(preview.shippingNet == Money.zero)
         assert(badInv.isLeft)
+        assert(noTerms == Left(StorefrontError.TermsNotAccepted))
         assert(confirm.order.status == OrderStatus.AwaitingPayment)
+        assert(confirm.order.termsConsent == TermsConsent(LegalTerms.Current.version, confirm.order.placedAt))
         assert(confirm.order.totals.shippingNet == Money.zero)
         assert(confirm.paymentInstructions match
           case PaymentInstructions.BankTransferQR(_, _, _, _, amt, Currency.CZK, qr) =>
@@ -229,6 +247,7 @@ class StorefrontFacadeSpec extends Test[Any]:
                         billingAddress = customer.billingAddress,
                         deliveryChoice = DeliveryOptionChoice.ShopPickup(SampleDeliveryCatalog.shopPragueId),
                         paymentMethod = PaymentMethod.InvoiceOnAccount,
+                        termsAccepted = true,
                         promoCode = Some("ONEUSE"),
                       )
                     )
@@ -244,6 +263,7 @@ class StorefrontFacadeSpec extends Test[Any]:
                                billingAddress = customer.billingAddress,
                                deliveryChoice = DeliveryOptionChoice.ShopPickup(SampleDeliveryCatalog.shopPragueId),
                                paymentMethod = PaymentMethod.InvoiceOnAccount,
+                               termsAccepted = true,
                                promoCode = Some("ONEUSE"),
                              )
                            )
@@ -257,6 +277,7 @@ class StorefrontFacadeSpec extends Test[Any]:
                         billingAddress = customer.billingAddress,
                         deliveryChoice = DeliveryOptionChoice.ShopPickup(SampleDeliveryCatalog.shopPragueId),
                         paymentMethod = PaymentMethod.InvoiceOnAccount,
+                        termsAccepted = true,
                       )
                     )
         history  <- facade.listMyOrders(token)
@@ -349,6 +370,7 @@ class StorefrontFacadeSpec extends Test[Any]:
                         billingAddress = customer.billingAddress,
                         deliveryChoice = DeliveryOptionChoice.ShopPickup(SampleDeliveryCatalog.shopPragueId),
                         paymentMethod = PaymentMethod.InvoiceOnAccount,
+                        termsAccepted = true,
                       )
                     )
         orderId   = confirm.order.id
@@ -456,6 +478,7 @@ class StorefrontFacadeSpec extends Test[Any]:
                         billingAddress = customer.billingAddress,
                         deliveryChoice = DeliveryOptionChoice.ShopPickup(SampleDeliveryCatalog.shopPragueId),
                         paymentMethod = PaymentMethod.InvoiceOnAccount,
+                        termsAccepted = true,
                       )
                     )
         orderId   = confirm.order.id
@@ -509,6 +532,7 @@ class StorefrontFacadeSpec extends Test[Any]:
                        ),
                        deliveryChoice = DeliveryOptionChoice.ShopPickup(SampleDeliveryCatalog.shopPragueId),
                        paymentMethod = PaymentMethod.BankTransferQR,
+                       termsAccepted = true,
                      )
                    )
       yield {

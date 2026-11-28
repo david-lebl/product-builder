@@ -120,6 +120,7 @@ private[ordering] final case class Order(
     totals: OrderTotals,
     customerNote: Option[String],
     placedAt: Instant,
+    termsConsent: TermsConsent,
     appliedPromo: Option[AppliedPromoSnapshot] = None,
     statusHistory: List[OrderStatusEvent] = Nil,
     internalNotes: List[OrderInternalNote] = Nil,
@@ -378,6 +379,7 @@ private[ordering] final case class Order(
       appliedPromo = appliedPromo,
       statusHistory = statusHistory,
       internalNotes = internalNotes,
+      termsConsent = termsConsent,
     )
 
 private[ordering] object Order:
@@ -441,6 +443,7 @@ private[ordering] object Order:
           appliedPromo = cmd.appliedPromo,
           statusHistory = List(initialEvent),
           internalNotes = Nil,
+          termsConsent = TermsConsent(cmd.acceptedTermsVersion, now),
         )
       )
 

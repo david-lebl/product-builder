@@ -71,6 +71,7 @@ class PostgresRuntimeSpec extends Test[Any]:
                      ),
                      deliveryChoice = DeliveryOptionChoice.ShopPickup(SampleDeliveryCatalog.shopPragueId),
                      paymentMethod = PaymentMethod.BankTransferQR,
+                     termsAccepted = true,
                      customerNote = None,
                    )
                  )

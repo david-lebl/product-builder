@@ -421,6 +421,12 @@ final case class OrderLine(
   def totalWeightGrams: Option[BigDecimal] = weightGrams.map(_ * BigDecimal(copies.value))
   def estimatedDeadline(placedAt: Instant): Instant = OrderPriority.deadlineFor(placedAt, speed)
 
+/** Proof that the customer accepted the store's Terms & Conditions and privacy notice (GDPR) when placing the order. */
+final case class TermsConsent(
+    termsVersion: String,
+    acceptedAt: Instant,
+)
+
 final case class OrderTotals(
     linesNetTotal: Money,
     shippingNet: Money,
@@ -442,6 +448,7 @@ final case class OrderView(
     totals: OrderTotals,
     customerNote: Option[String],
     placedAt: Instant,
+    termsConsent: TermsConsent,
     appliedPromo: Option[AppliedPromoSnapshot] = None,
     statusHistory: List[OrderStatusEvent] = Nil,
     internalNotes: List[OrderInternalNote] = Nil,
@@ -462,6 +469,8 @@ final case class PlaceOrderCmd(
     paymentMethod: PaymentMethod,
     invoiceApproved: Boolean,
     lines: NonEmptyChunk[OrderLine],
+    /** Version of the store's Terms & Conditions / privacy notice the customer accepted; stamped with the placement time. */
+    acceptedTermsVersion: String,
     customerNote: Option[String] = None,
     appliedPromo: Option[AppliedPromoSnapshot] = None,
 )

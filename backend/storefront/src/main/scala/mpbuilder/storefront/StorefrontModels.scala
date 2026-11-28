@@ -32,6 +32,8 @@ enum StorefrontError(val message: String):
       extends StorefrontError(s"Payment method $method is not allowed: $reason")
   case UnsupportedCurrencyConversion(from: Currency, to: Currency)
       extends StorefrontError(s"Currency conversion from $from to $to is not supported")
+  case TermsNotAccepted
+      extends StorefrontError("The Terms & Conditions and privacy notice must be accepted before placing an order")
 
 /** Exchange rate quote returned by the storefront currency conversion service. */
 final case class ExchangeRateQuote(
@@ -136,6 +138,7 @@ final case class CheckoutOptionsView(
     prefill: CheckoutPrefill,
     deliveryOptions: List[DeliveryOptionQuote],
     paymentOptions: List[PaymentOption],
+    legal: LegalTerms,
 )
 
 final case class CheckoutPreview(
@@ -158,6 +161,8 @@ final case class SubmitCheckoutCmd(
     billingAddress: Address,
     deliveryChoice: DeliveryOptionChoice,
     paymentMethod: PaymentMethod,
+    /** The customer ticked the Terms & Conditions / privacy-notice (GDPR) consent checkbox. Orders are refused without it. */
+    termsAccepted: Boolean,
     promoCode: Option[String] = None,
     customerNote: Option[String] = None,
 )
