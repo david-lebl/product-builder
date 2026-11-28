@@ -70,6 +70,9 @@ trait StorefrontFacade:
   def requestCustomerOtp(identifier: LoginIdentifier): OtpChallengeView < (Async & Abort[StorefrontError])
   def verifyOtp(challengeId: OtpChallengeId, code: OtpCode): AuthResult < (Async & Abort[StorefrontError])
   def currentCustomer(sessionToken: SessionToken): CustomerView < (Async & Abort[StorefrontError])
+
+  /** Re-hydrates a still-valid session (e.g. a token a client persisted across page reloads). */
+  def restoreSession(sessionToken: SessionToken): AuthResult < (Async & Abort[StorefrontError])
   def logout(sessionToken: SessionToken): Unit < Async
 
   // ── Shopping Cart ──────────────────────────────────────────────────────────
@@ -330,6 +333,12 @@ final class StorefrontFacadeLive(
   override def verifyOtp(challengeId: OtpChallengeId, code: OtpCode): AuthResult < (Async & Abort[StorefrontError]) =
     for
       session  <- identityService.verifyOtp(challengeId, code).mapAbort(StorefrontError.IdentityFailure.apply)
+      customer <- loadCustomerForPrincipal(session.principal)
+    yield AuthResult(session, customer)
+
+  override def restoreSession(sessionToken: SessionToken): AuthResult < (Async & Abort[StorefrontError]) =
+    for
+      session  <- identityService.validateSession(sessionToken).mapAbort(StorefrontError.IdentityFailure.apply)
       customer <- loadCustomerForPrincipal(session.principal)
     yield AuthResult(session, customer)
 

@@ -76,6 +76,11 @@ trait StorefrontClient:
       sessionToken: SessionToken,
   ): CustomerView < (Abort[StorefrontError] & Async)
 
+  /** Re-hydrates a still-valid session from a persisted token; fails when it expired or was revoked. */
+  def restoreSession(
+      sessionToken: SessionToken,
+  ): AuthResult < (Abort[StorefrontError] & Async)
+
   def logout(sessionToken: SessionToken): Unit < Async
 
   /** Optional demo-only OTP lookup so the static showcase UI can display the generated 6-digit code.
@@ -298,6 +303,11 @@ object StorefrontClient:
         sessionToken: SessionToken,
     ): CustomerView < (Abort[StorefrontError] & Async) =
       facade.currentCustomer(sessionToken)
+
+    override def restoreSession(
+        sessionToken: SessionToken,
+    ): AuthResult < (Abort[StorefrontError] & Async) =
+      facade.restoreSession(sessionToken)
 
     override def logout(sessionToken: SessionToken): Unit < Async =
       facade.logout(sessionToken)

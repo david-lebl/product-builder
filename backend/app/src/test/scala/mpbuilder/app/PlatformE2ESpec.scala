@@ -78,6 +78,8 @@ class PlatformE2ESpec extends Test[Any]:
       badLogin <- c.sf.loginWithPassword(EmailAddress.unsafe("jan@printshoppro.cz"), NonEmptyString.unsafe("wrong")).either
       auth     <- c.sf.loginWithPassword(EmailAddress.unsafe("jan@printshoppro.cz"), SampleIdentity.demoCustomerPassword)
       me       <- c.sf.currentCustomer(auth.session.token)
+      restored <- c.sf.restoreSession(auth.session.token)
+      badRest  <- c.sf.restoreSession(SessionToken.unsafe(s"bogus-$tag")).either
       draft    <- c.sf.uploadDraftArtwork(
                     sessionId = NonEmptyString.unsafe(s"sess-$tag"),
                     componentKey = cmd.components.head.key,
@@ -128,6 +130,8 @@ class PlatformE2ESpec extends Test[Any]:
       assert(quote.pricing.effectiveQuote.netTotal.value > BigDecimal(0))
       assert(badLogin.isLeft)
       assert(me.contact.email == EmailAddress.unsafe("jan@printshoppro.cz"))
+      assert(restored.session.token == auth.session.token && restored.customer.map(_.id).contains(me.id))
+      assert(badRest.isLeft)
       assert(dlUrl.startsWith("/api/v1/blobs/drafts/"))
       assert(draft.latestRevision.file.checksumSha256.map(_.value).contains(Sha256.hex(tinyPdf.toArray)))
       assert(draft.latestRevision.file.sizeBytes == tinyPdf.size.toLong)

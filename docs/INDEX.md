@@ -95,6 +95,7 @@ Session-by-session work logs documenting what was done, decisions made, and issu
 | [changelog/2026-11-25-scalajs-link-oom.md](changelog/2026-11-25-scalajs-link-oom.md) | Session log for the Scala.js link OutOfMemoryError fix (Mill daemon `-Xmx6g`) |
 | [changelog/2026-11-25-fulllinkjs-oom-deploy.md](changelog/2026-11-25-fulllinkjs-oom-deploy.md) | Session log for the deploy `fullLinkJS` OutOfMemoryError fix (link bundles one at a time) |
 | [changelog/README.md](changelog/README.md) | Changelog format, template, and log entries index |
+| [changelog/2026-11-28-session-cart-persistence.md](changelog/2026-11-28-session-cart-persistence.md) | Feature — signed-in session and active cart survive reloads and new tabs in network mode (`GET /api/v1/auth/session`, `SessionStore`) |
 | [changelog/2026-11-27-order-line-full-product-configuration.md](changelog/2026-11-27-order-line-full-product-configuration.md) | Feature — cart and order lines keep the full product configuration (finish sides/settings, orientation, bleed, binding, delivery format) |
 | [changelog/2026-11-26-order-line-production-notes.md](changelog/2026-11-26-order-line-production-notes.md) | Feature — optional customer production instructions per cart/order line (configurator, cart, My orders, backoffice, manufacturing) |
 | [changelog/2026-11-26-backoffice-b2b-agreement-editor.md](changelog/2026-11-26-backoffice-b2b-agreement-editor.md) | Feature — full B2B agreement editor in the backoffice (category/material/finish discounts, fixed rates, JSON mode) |

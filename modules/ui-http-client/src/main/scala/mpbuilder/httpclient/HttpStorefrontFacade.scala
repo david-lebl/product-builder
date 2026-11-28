@@ -91,6 +91,8 @@ final class HttpStorefrontFacade(transport: HttpTransport, baseUrl: String) exte
     http.call[AuthResult]("POST", path("auth", "otp", "verify"), body = json(OtpVerifyRequest(challengeId, code)))
   override def currentCustomer(sessionToken: SessionToken): CustomerView < (Async & Abort[StorefrontError]) =
     http.call[CustomerView]("GET", path("auth", "me"), Some(sessionToken))
+  override def restoreSession(sessionToken: SessionToken): AuthResult < (Async & Abort[StorefrontError]) =
+    http.call[AuthResult]("GET", path("auth", "session"), Some(sessionToken))
   override def logout(sessionToken: SessionToken): Unit < Async =
     http.callUnit("POST", path("auth", "logout"), Some(sessionToken)).ignore
 

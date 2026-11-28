@@ -11,10 +11,11 @@ import mpbuilder.admin.theme.AdminTheme
 import mpbuilder.backoffice.BackofficeFacade
 import mpbuilder.identity.sample.InMemoryOtpInbox
 import mpbuilder.sample.SampleShowcaseRuntime
-import mpbuilder.shared.{Currency, DesignId, Language}
+import mpbuilder.identity.SessionToken
+import mpbuilder.shared.{CartId, Currency, DesignId, Language}
 import mpbuilder.storefront.StorefrontFacade
 import mpbuilder.ui.components.{BrowserPickedFile, FileDropRegistry}
-import mpbuilder.ui.port.StorefrontClient
+import mpbuilder.ui.port.{PersistedSession, SessionStore, StorefrontClient}
 import mpbuilder.ui.storefront.{AppRoute, StorefrontApp, StorefrontState}
 import org.scalajs.dom
 import scala.scalajs.js
@@ -27,7 +28,9 @@ import scala.scalajs.js
   */
 object Main extends KyoApp:
 
-  private val LangStorageKey = "mpbuilder.lang"
+  private val LangStorageKey    = "mpbuilder.lang"
+  private val SessionStorageKey = "mpbuilder.session"
+  private val CartStorageKey    = "mpbuilder.cart"
 
   private enum AppMode:
     case Storefront, Admin
@@ -65,6 +68,31 @@ object Main extends KyoApp:
       try dom.window.localStorage.setItem(LangStorageKey, lang.code)
       catch case _: Throwable => ()
     }
+
+  private def readStorage(key: String): Option[String] =
+    try Option(dom.window.localStorage.getItem(key)).map(_.trim).filter(_.nonEmpty)
+    catch case _: Throwable => None
+
+  private def writeStorage(key: String, value: Option[String]): Unit < Sync =
+    Sync.defer {
+      try value.fold(dom.window.localStorage.removeItem(key))(dom.window.localStorage.setItem(key, _))
+      catch case _: Throwable => ()
+    }
+
+  /** Session token + active cart id in `localStorage` (shared by all tabs, survives reloads). Keys are scoped
+    * by API base URL so pointing the SPA at another backend never replays foreign handles.
+    */
+  private def browserSessionStore(scope: String): SessionStore = new SessionStore:
+    private def key(base: String) = s"$base@$scope"
+    def load: PersistedSession < Sync =
+      Sync.defer(
+        PersistedSession(
+          readStorage(key(SessionStorageKey)).flatMap(SessionToken(_).toOption),
+          readStorage(key(CartStorageKey)).flatMap(CartId(_).toOption),
+        )
+      )
+    def saveSessionToken(token: Option[SessionToken]): Unit < Sync = writeStorage(key(SessionStorageKey), token.map(_.value))
+    def saveCartId(cartId: Option[CartId]): Unit < Sync            = writeStorage(key(CartStorageKey), cartId.map(_.value))
 
   private def detectThemeMode: ThemeMode =
     try Option(dom.window.localStorage.getItem(AppTheme.ThemeStorageKey)).map(ThemeMode.fromCode).getOrElse(ThemeMode.System)
@@ -394,6 +422,8 @@ object Main extends KyoApp:
                               },
                             onLanguagePersist = persistLanguage,
                             theme = Some(themeCtl),
+                            // Mode A rebuilds the in-memory runtime on every load, so there is nothing to restore.
+                            sessionStore = apiBaseUrl.fold(SessionStore.none)(browserSessionStore),
                           )
                boState <- BackofficeState.init(
                             client = boClient,

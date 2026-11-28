@@ -11,7 +11,7 @@ import mpbuilder.storefront.*
 import mpbuilder.ui.calculator.{CalculatorConfig, CalculatorView}
 import mpbuilder.ui.configurator.*
 import mpbuilder.ui.i18n.{AppI18n, Translations}
-import mpbuilder.ui.port.StorefrontClient
+import mpbuilder.ui.port.{PersistedSession, SessionStore, StorefrontClient}
 import mpbuilder.ui.storefront.*
 import mpbuilder.ui.theme.AppTheme
 import kyo.test.*
@@ -181,6 +181,67 @@ class StorefrontUiSpec extends Test[Any]:
             assert(html.contains(s"${newQty.value} pcs"))
             assert(cart.exists(_.lines.exists(_.runQuantity == newQty)))
             assert(reset.isEmpty)
+        }
+      }
+
+      "Signed-in session and active cart survive a page reload via the SessionStore" in {
+        withClient { client =>
+          for
+            appI18n  <- Translations.init(Language.En)
+            store    <- SessionStore.inMemory()
+            state    <- I18n.let(appI18n.handle)(StorefrontState.init(client, appI18n, sessionStore = store))
+            auth     <- client.loginWithPassword(EmailAddress.unsafe("jan@printshoppro.cz"), NonEmptyString.unsafe("demo1234"))
+            _        <- I18n.let(appI18n.handle)(state.completeAuth(auth))
+            listings <- state.listingsRef.get
+            catalog  <- state.catalogRef.get
+            catId     = listings.head.categoryId
+            _        <- I18n.let(appI18n.handle)(state.addPresetToCart(catId, catalog.categories(catId).presets.head.id))
+            cartA    <- state.cart.get
+            saved    <- store.load
+            // "Reload": a brand-new state over the same backend and the same browser storage.
+            reloaded <- I18n.let(appI18n.handle)(StorefrontState.init(client, appI18n, sessionStore = store))
+            sessB    <- reloaded.authSession.get
+            custB    <- reloaded.currentCustomer.get
+            cartB    <- reloaded.cart.get
+          yield
+            assert(cartA.exists(_.lines.nonEmpty))
+            assert(saved == PersistedSession(Some(auth.session.token), cartA.map(_.id)))
+            assert(cartA.exists(_.id.value.startsWith("cart-ui-")) && cartA.exists(_.id.value.length > 20))
+            assert(sessB.map(_.token).contains(auth.session.token))
+            assert(custB.map(_.id) == auth.customer.map(_.id))
+            assert(cartB.map(_.id) == cartA.map(_.id))
+            assert(cartB.map(_.lines.size) == cartA.map(_.lines.size))
+        }
+      }
+
+      "Sign-out forgets the session and the customer's cart; stale persisted handles are dropped on boot" in {
+        withClient { client =>
+          for
+            appI18n  <- Translations.init(Language.En)
+            store    <- SessionStore.inMemory()
+            state    <- I18n.let(appI18n.handle)(StorefrontState.init(client, appI18n, sessionStore = store))
+            auth     <- client.loginWithPassword(EmailAddress.unsafe("jan@printshoppro.cz"), NonEmptyString.unsafe("demo1234"))
+            _        <- I18n.let(appI18n.handle)(state.completeAuth(auth))
+            listings <- state.listingsRef.get
+            catalog  <- state.catalogRef.get
+            catId     = listings.head.categoryId
+            _        <- I18n.let(appI18n.handle)(state.addPresetToCart(catId, catalog.categories(catId).presets.head.id))
+            _        <- I18n.let(appI18n.handle)(state.signOut)
+            afterOut <- store.load
+            cartOut  <- state.cart.get
+            // A revoked token and an unknown cart id (e.g. persisted before a backend reset) must not linger.
+            auth2    <- client.loginWithPassword(EmailAddress.unsafe("jan@printshoppro.cz"), NonEmptyString.unsafe("demo1234"))
+            _        <- client.logout(auth2.session.token)
+            stale    <- SessionStore.inMemory(PersistedSession(Some(auth2.session.token), Some(CartId.unsafe("cart-ui-gone"))))
+            booted   <- I18n.let(appI18n.handle)(StorefrontState.init(client, appI18n, sessionStore = stale))
+            sessB    <- booted.authSession.get
+            cartB    <- booted.cart.get
+            staleNow <- stale.load
+          yield
+            assert(afterOut == PersistedSession(None, None))
+            assert(cartOut.isEmpty)
+            assert(sessB.isEmpty && cartB.isEmpty)
+            assert(staleNow == PersistedSession(None, None))
         }
       }
 

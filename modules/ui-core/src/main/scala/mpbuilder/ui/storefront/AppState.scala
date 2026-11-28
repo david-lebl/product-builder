@@ -11,7 +11,7 @@ import mpbuilder.storefront.*
 import mpbuilder.ui.components.{ArtworkComponents, BrowserPickedFile, ProductionNoteEditor}
 import mpbuilder.ui.configurator.*
 import mpbuilder.ui.i18n.AppI18n
-import mpbuilder.ui.port.StorefrontClient
+import mpbuilder.ui.port.{PersistedSession, SessionStore, StorefrontClient}
 
 enum AppRoute:
   case Catalog
@@ -68,7 +68,7 @@ final class StorefrontState(
     val checkoutSession: SignalRef[Option[CheckoutSession]],
     /** Inline editor for cart / order line production instructions (one line edited at a time). */
     val noteEditor: ProductionNoteEditor.Handle,
-    private val idSeq: SignalRef[Long],
+    private val sessionStore: SessionStore,
     val onRouteChange: AppRoute => Unit < Sync,
     val onLanguagePersist: Language => Unit < Sync,
     val theme: mpbuilder.ui.theme.ThemeController,
@@ -133,7 +133,7 @@ final class StorefrontState(
              for
                _ <- currency.set(cur)
                // Reset local cart handle when switching currencies (carts are single-currency in backend)
-               _ <- cart.set(None)
+               _ <- forgetCart
                _ <- configurator.recompute
                r <- route.get
                _ <- r match
@@ -241,6 +241,7 @@ final class StorefrontState(
   def completeAuth(result: AuthResult): Unit < Async =
     for
       _ <- authSession.set(Some(result.session))
+      _ <- sessionStore.saveSessionToken(Some(result.session.token))
       _ <- currentCustomer.set(result.customer)
       _ <- authModalOpen.set(false)
       _ <- configurator.recompute
@@ -262,7 +263,13 @@ final class StorefrontState(
              case Some(s) => client.logout(s.token)
              case None    => Kyo.unit
       _ <- authSession.set(None)
+      _ <- sessionStore.saveSessionToken(None)
       _ <- currentCustomer.set(None)
+      // A cart bound to the signed-out customer must not stay with the (possibly shared) browser.
+      _ <- cart.get.flatMap {
+             case Some(c) if c.customerId.isDefined => forgetCart
+             case _                                 => Kyo.unit
+           }
       _ <- orders.set(Nil)
       _ <- orderArtworks.set(Map.empty)
       _ <- paymentModal.set(None)
@@ -441,19 +448,26 @@ final class StorefrontState(
 
   // ── Shopping Cart ──────────────────────────────────────────────────────────
 
+  /** Cart ids are client-chosen and now outlive the page (persisted), so they must be unique across
+    * reloads, tabs and browsers — a per-page counter would make two visitors overwrite each other's cart.
+    */
   private def ensureCartId: CartId < (Abort[StorefrontError] & Async) =
     cart.get.flatMap {
       case Some(existing) => existing.id
       case None =>
         for
-          seq <- idSeq.updateAndGet(_ + 1)
-          cur <- currency.get
-          tok <- authSession.get.map(_.map(_.token))
-          cid  = CartId.unsafe(s"cart-ui-$seq")
-          c   <- client.createCart(cid, cur, tok)
-          _   <- cart.set(Some(c))
+          suffix <- Random.nextStringAlphanumeric(24)
+          cur    <- currency.get
+          tok    <- authSession.get.map(_.map(_.token))
+          c      <- client.createCart(CartId.unsafe(s"cart-ui-$suffix"), cur, tok)
+          _      <- cart.set(Some(c))
+          _      <- sessionStore.saveCartId(Some(c.id))
         yield c.id
     }
+
+  /** Drops the active cart handle (the next add creates a fresh cart). */
+  private def forgetCart: Unit < Sync =
+    cart.set(None).andThen(sessionStore.saveCartId(None))
 
   /** Adds the draft to the cart (opening the cart drawer); returns whether it succeeded. */
   def addDraftToCart(d: DraftConfig): Boolean < Async =
@@ -621,7 +635,7 @@ final class StorefrontState(
   def onOrderPlaced(source: CheckoutSource): Unit < Async =
     for
       _ <- source match
-             case CheckoutSource.FromCart(_) => cart.set(None)
+             case CheckoutSource.FromCart(_) => forgetCart
              case _                          => Kyo.unit
       _ <- refreshOrders
     yield ()
@@ -642,6 +656,7 @@ object StorefrontState:
       onRouteChange: AppRoute => Unit < Sync = _ => Kyo.unit,
       onLanguagePersist: Language => Unit < Sync = _ => Kyo.unit,
       theme: Option[mpbuilder.ui.theme.ThemeController] = None,
+      sessionStore: SessionStore = SessionStore.none,
   ): StorefrontState < Async =
     for
       themeCtl    <- theme.fold(mpbuilder.ui.theme.ThemeController.init())(t => Sync.defer(t))
@@ -667,7 +682,8 @@ object StorefrontState:
       cartErrRef  <- Signal.initRef[Option[String]](None)
       checkoutRef <- Signal.initRef[Option[CheckoutSession]](None)
       noteEdH     <- ProductionNoteEditor.Handle.make
-      seqRef      <- Signal.initRef(0L)
+      persisted   <- sessionStore.load
+      _           <- restorePersisted(client, sessionStore, persisted, authRef, custRef, cartRef, curRef)
       initCatOpt   = initialRoute match
                        case AppRoute.Builder(c, _) => c
                        case AppRoute.ProductDetail(c) => Some(c)
@@ -708,7 +724,7 @@ object StorefrontState:
                        cartErrRef,
                        checkoutRef,
                        noteEdH,
-                       seqRef,
+                       sessionStore,
                        onRouteChange,
                        onLanguagePersist,
                        themeCtl,
@@ -718,3 +734,37 @@ object StorefrontState:
              case AppRoute.Checkout(source)     => CheckoutSession.init(state, source).flatMap(s => checkoutRef.set(Some(s)))
              case _                             => Kyo.unit
     yield state
+
+  /** Re-hydrates the persisted session and cart before anything renders or quotes, so a reload (or a new tab)
+    * continues signed in with the same cart. Handles the backend rejects (expired / revoked session, unknown
+    * cart, a cart bound to another customer) are forgotten; a transient failure (panic) keeps them for next time.
+    */
+  private def restorePersisted(
+      client: StorefrontClient,
+      store: SessionStore,
+      persisted: PersistedSession,
+      authRef: SignalRef[Option[AuthSession]],
+      custRef: SignalRef[Option[CustomerView]],
+      cartRef: SignalRef[Option[CartView]],
+      curRef: SignalRef[Currency],
+  ): Unit < Async =
+    for
+      _ <- persisted.sessionToken match
+             case None => Kyo.unit
+             case Some(tok) =>
+               Abort.run[StorefrontError](client.restoreSession(tok)).flatMap {
+                 case Result.Success(res) => authRef.set(Some(res.session)).andThen(custRef.set(res.customer))
+                 case Result.Failure(_)   => store.saveSessionToken(None)
+                 case Result.Panic(_)     => Kyo.unit
+               }
+      customerId <- custRef.get.map(_.map(_.id))
+      _ <- persisted.cartId match
+             case None => Kyo.unit
+             case Some(cid) =>
+               Abort.run[StorefrontError](client.getCart(cid)).flatMap {
+                 case Result.Success(c) if c.customerId.forall(customerId.contains) =>
+                   cartRef.set(Some(c)).andThen(curRef.set(c.currency))
+                 case Result.Success(_) | Result.Failure(_) => store.saveCartId(None)
+                 case Result.Panic(_)                       => Kyo.unit
+               }
+    yield ()

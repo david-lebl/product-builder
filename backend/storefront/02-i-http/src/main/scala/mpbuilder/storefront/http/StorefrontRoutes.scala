@@ -88,6 +88,10 @@ final class StorefrontRoutes private[storefront] (facade: StorefrontFacade):
       .response(_.bodyJson[CustomerView]).apiErrors
       .doc(Tags.Auth, "Signed-in customer")
       .handler(req => required(req.fields.authorization).map(tok => ok(facade.currentCustomer(tok)))),
+    HttpRoute.getRaw(base / "auth" / "session").request(_.headerOpt[String]("authorization", "Authorization"))
+      .response(_.bodyJson[AuthResult]).apiErrors
+      .doc(Tags.Auth, "Restore a still-valid session (e.g. a token persisted across page reloads)")
+      .handler(req => required(req.fields.authorization).map(tok => ok(facade.restoreSession(tok)))),
     HttpRoute.postRaw(base / "auth" / "logout").request(_.headerOpt[String]("authorization", "Authorization"))
       .response(_.status(HttpStatus.NoContent)).apiErrors
       .doc(Tags.Auth, "Revoke the session")
